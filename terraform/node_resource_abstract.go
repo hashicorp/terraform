@@ -348,7 +348,7 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 // readResourceInstanceState reads the current object for a specific instance in
 // the state.
 func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -368,7 +368,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
 	}
 	var diags tfdiags.Diagnostics
-	src, diags = UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, diags = upgradeResourceState(addr, provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
@@ -388,7 +388,7 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 // readResourceInstanceStateDeposed reads the deposed object for a specific
 // instance in the state.
 func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +413,7 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 
 	}
 
-	src, diags := UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, diags := upgradeResourceState(addr, provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would

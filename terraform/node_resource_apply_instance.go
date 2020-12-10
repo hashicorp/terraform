@@ -135,7 +135,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -168,7 +168,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 
 	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
-	diags = diags.Append(UpdateStateHook(ctx))
+	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
 
@@ -180,7 +180,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var deposedKey states.DeposedKey
 
 	addr := n.ResourceInstanceAddr().Resource
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -323,9 +323,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		} else {
 			restored := ctx.State().MaybeRestoreResourceInstanceDeposed(addr.Absolute(ctx.Path()), deposedKey)
 			if restored {
-				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", addr, deposedKey)
+				log.Printf("[TRACE] managedResourceExecute: %s deposed object %s was restored as the current object", addr, deposedKey)
 			} else {
-				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", addr, deposedKey)
+				log.Printf("[TRACE] managedResourceExecute: %s deposed object %s remains deposed", addr, deposedKey)
 			}
 		}
 	}
@@ -338,7 +338,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(UpdateStateHook(ctx))
+	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
 
@@ -361,7 +361,7 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 
 	absAddr := addr.Absolute(ctx.Path())
 
-	log.Printf("[TRACE] EvalCheckPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
+	log.Printf("[TRACE] checkPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
 
 	if plannedChange.Action != actualChange.Action {
 		switch {

@@ -273,7 +273,7 @@ const (
 // default is the global working state.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, dependencies []addrs.ConfigResource, targetState phaseState) error {
 	absAddr := n.Addr
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}
@@ -404,7 +404,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		return nil
 	}
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
 	}
@@ -440,7 +440,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := n.Addr
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return state, diags.Append(err)
 	}
@@ -560,7 +560,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	config := *n.Config
 	resource := n.Addr.Resource.Resource
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return plan, state, diags.Append(err)
 	}
@@ -1173,7 +1173,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 
 	config := *n.Config
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return newVal, diags
@@ -1277,7 +1277,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 	var diags tfdiags.Diagnostics
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return metaConfigVal, diags.Append(err)
 	}
@@ -1317,7 +1317,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	var diags tfdiags.Diagnostics
 	var configVal cty.Value
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, nil, diags.Append(err)
 	}
@@ -1466,7 +1466,7 @@ func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
 func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned *plans.ResourceInstanceChange) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, diags.Append(err)
 	}
@@ -1808,7 +1808,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		state = &states.ResourceInstanceObject{}
 	}
 	var newState *states.ResourceInstanceObject
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return newState, applyError, diags.Append(err)
 	}

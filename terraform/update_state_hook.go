@@ -1,7 +1,7 @@
 package terraform
 
-// UpdateStateHook calls the PostStateUpdate hook with the current state.
-func UpdateStateHook(ctx EvalContext) error {
+// updateStateHook calls the PostStateUpdate hook with the current state.
+func updateStateHook(ctx EvalContext) error {
 	// In principle we could grab the lock here just long enough to take a
 	// deep copy and then pass that to our hooks below, but we'll instead
 	// hold the hook for the duration to avoid the potential confusing

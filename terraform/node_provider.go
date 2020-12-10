@@ -27,7 +27,7 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	if diags.HasErrors() {
 		return diags
 	}
-	provider, _, err := GetProvider(ctx, n.Addr)
+	provider, _, err := getProvider(ctx, n.Addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
