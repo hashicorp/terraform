@@ -554,7 +554,8 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to query available provider packages",
-					fmt.Sprintf("Could not retrieve the list of available versions for provider %s: %s%s",
+					fmt.Sprintf(
+						"Could not retrieve the list of available versions for provider %s: %s\n\nIf you have just upgraded directly from Terraform v0.12 to Terraform v0.14 then please upgrade to Terraform v0.13 first and follow the upgrade guide for that release, which might help you address this problem.%s",
 						provider.ForDisplay(), err, suggestion,
 					),
 				))
