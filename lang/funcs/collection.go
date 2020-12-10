@@ -70,6 +70,9 @@ var AllTrueFunc = function.New(&function.Spec{
 		result := cty.True
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
+			if !v.IsKnown() {
+				return cty.UnknownVal(cty.Bool), nil
+			}
 			if v.IsNull() {
 				return cty.False, nil
 			}
@@ -94,8 +97,13 @@ var AnyTrueFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		result := cty.False
+		var hasUnknown bool
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
+			if !v.IsKnown() {
+				hasUnknown = true
+				continue
+			}
 			if v.IsNull() {
 				continue
 			}
@@ -103,6 +111,9 @@ var AnyTrueFunc = function.New(&function.Spec{
 			if result.True() {
 				return cty.True, nil
 			}
+		}
+		if hasUnknown {
+			return cty.UnknownVal(cty.Bool), nil
 		}
 		return result, nil
 	},
