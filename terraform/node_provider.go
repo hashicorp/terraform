@@ -63,10 +63,22 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	}
 
 	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
-	diags = diags.Append(evalDiags)
 	if evalDiags.HasErrors() {
-		return diags
+		if n.Config == nil {
+			// If there isn't an explicit "provider" block in the configuration,
+			// this error message won't be very clear. Add some detail to the
+			// error message in this case.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider configuration",
+				fmt.Sprintf(providerConfigErr, evalDiags.Err(), n.Addr.Provider),
+			))
+			return diags
+		} else {
+			return diags.Append(evalDiags)
+		}
 	}
+	diags = diags.Append(evalDiags)
 
 	// If our config value contains any marked values, ensure those are
 	// stripped out before sending this to the provider
@@ -126,10 +138,22 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	// PrepareProviderConfig is only used for validation. We are intentionally
 	// ignoring the PreparedConfig field to maintain existing behavior.
 	prepareResp := provider.PrepareProviderConfig(req)
-	diags = diags.Append(prepareResp.Diagnostics)
-	if diags.HasErrors() {
-		return diags
+	if prepareResp.Diagnostics.HasErrors() {
+		if config == nil {
+			// If there isn't an explicit "provider" block in the configuration,
+			// this error message won't be very clear. Add some detail to the
+			// error message in this case.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider configuration",
+				fmt.Sprintf(providerConfigErr, prepareResp.Diagnostics.Err(), n.Addr.Provider),
+			))
+			return diags
+		} else {
+			return diags.Append(prepareResp.Diagnostics)
+		}
 	}
+	diags = diags.Append(prepareResp.Diagnostics)
 
 	// If the provider returns something different, log a warning to help
 	// indicate to provider developers that the value is not used.
@@ -139,7 +163,27 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	}
 
 	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
+	if configDiags.HasErrors() {
+		if config == nil {
+			// If there isn't an explicit "provider" block in the configuration,
+			// this error message won't be very clear. Add some detail to the
+			// error message in this case.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid provider configuration",
+				fmt.Sprintf(providerConfigErr, configDiags.InConfigBody(configBody).Err(), n.Addr.Provider),
+			))
+			return diags
+		} else {
+			return diags.Append(configDiags.InConfigBody(configBody))
+		}
+	}
 	diags = diags.Append(configDiags.InConfigBody(configBody))
 
 	return diags
 }
+
+const providerConfigErr = `%s
+
+Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.
+`
