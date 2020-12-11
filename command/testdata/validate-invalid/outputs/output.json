@@ -1,0 +1,43 @@
+{
+  "valid": false,
+  "error_count": 2,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Missing required argument",
+      "detail": "The argument \"value\" is required, but no definition was found.",
+      "range": {
+        "filename": "testdata/validate-invalid/outputs/main.tf",
+        "start": {
+          "line": 1,
+          "column": 18,
+          "byte": 17
+        },
+        "end": {
+          "line": 1,
+          "column": 18,
+          "byte": 17
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Unsupported argument",
+      "detail": "An argument named \"values\" is not expected here. Did you mean \"value\"?",
+      "range": {
+        "filename": "testdata/validate-invalid/outputs/main.tf",
+        "start": {
+          "line": 2,
+          "column": 3,
+          "byte": 21
+        },
+        "end": {
+          "line": 2,
+          "column": 9,
+          "byte": 27
+        }
+      }
+    }
+  ]
+}
