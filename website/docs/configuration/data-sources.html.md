@@ -118,6 +118,12 @@ Data resources have the same dependency resolution behavior
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
 
+In order to ensure that data sources are accessing the most up to date
+information possible in a wide variety of use cases, arguments directly
+referencing managed resources are treated the same as if the resource was
+listed in `depends_on`. This behavior can be avoided when desired by indirectly
+referencing the managed resource values through a `local` value.
+
 ~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
 
