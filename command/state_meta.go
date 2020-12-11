@@ -103,24 +103,28 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 	case addrs.ModuleInstance:
 		// Matches all instances within the indicated module and all of its
 		// descendent modules.
+		found := false
 		ms := state.Module(addr)
-		if ms == nil {
-			if !allowMissing {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Unknown module",
-					fmt.Sprintf(`The current state contains no module at %s. If you've just added this module to the configuration, you must run "terraform apply" first to create the module's entry in the state.`, addr),
-				))
-			}
-			break
+		if ms != nil {
+			found = true
+			ret = append(ret, c.collectModuleResourceInstances(ms)...)
 		}
-		ret = append(ret, c.collectModuleResourceInstances(ms)...)
 		for _, cms := range state.Modules {
-			candidateAddr := ms.Addr
-			if len(candidateAddr) > len(addr) && candidateAddr[:len(addr)].Equal(addr) {
-				ret = append(ret, c.collectModuleResourceInstances(cms)...)
+			if !addr.Equal(cms.Addr) {
+				if addr.IsAncestor(cms.Addr) || addr.TargetContains(cms.Addr) {
+					found = true
+					ret = append(ret, c.collectModuleResourceInstances(cms)...)
+				}
 			}
 		}
+		if found == false && !allowMissing {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unknown module",
+				fmt.Sprintf(`The current state contains no module at %s. If you've just added this module to the configuration, you must run "terraform apply" first to create the module's entry in the state.`, addr),
+			))
+		}
+
 	case addrs.AbsResource:
 		// Matches all instances of the specific selected resource.
 		rs := state.Resource(addr)
