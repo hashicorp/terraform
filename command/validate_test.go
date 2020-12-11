@@ -1,10 +1,14 @@
 package command
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -28,6 +32,7 @@ func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 							Attributes: map[string]*configschema.Attribute{
 								"device_index": {Type: cty.String, Optional: true},
 								"description":  {Type: cty.String, Optional: true},
+								"name":         {Type: cty.String, Optional: true},
 							},
 						},
 					},
@@ -83,29 +88,25 @@ func TestValidateFailingCommand(t *testing.T) {
 }
 
 func TestValidateFailingCommandMissingQuote(t *testing.T) {
-	// FIXME: Re-enable once we've updated core for new data structures
-	t.Skip("test temporarily disabled until deep validate supports new config structures")
-
 	ui, code := setupTest("validate-invalid/missing_quote")
 
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	if !strings.HasSuffix(strings.TrimSpace(ui.ErrorWriter.String()), "IDENT test") {
-		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
+	wantError := "Error: Invalid reference"
+	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}
 }
 
 func TestValidateFailingCommandMissingVariable(t *testing.T) {
-	// FIXME: Re-enable once we've updated core for new data structures
-	t.Skip("test temporarily disabled until deep validate supports new config structures")
-
 	ui, code := setupTest("validate-invalid/missing_var")
 	if code != 1 {
 		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	if !strings.HasSuffix(strings.TrimSpace(ui.ErrorWriter.String()), "config: unknown variable referenced: 'description'; define it with a 'variable' block") {
-		t.Fatalf("Should have failed: %d\n\n'%s'", code, ui.ErrorWriter.String())
+	wantError := "Error: Reference to undeclared input variable"
+	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
 	}
 }
 
@@ -195,5 +196,67 @@ func TestMissingDefinedVar(t *testing.T) {
 	// correctly, not that they all have defined values.
 	if code != 0 {
 		t.Fatalf("Should have passed: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestValidate_json(t *testing.T) {
+	tests := []struct {
+		path  string
+		valid bool
+	}{
+		{"validate-valid", true},
+		{"validate-invalid", false},
+		{"validate-invalid/missing_quote", false},
+		{"validate-invalid/missing_var", false},
+		{"validate-invalid/multiple_providers", false},
+		{"validate-invalid/multiple_modules", false},
+		{"validate-invalid/multiple_resources", false},
+		{"validate-invalid/outputs", false},
+		{"validate-invalid/incorrectmodulename", false},
+		{"validate-invalid/interpolation", false},
+		{"validate-invalid/missing_defined_var", true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.path, func(t *testing.T) {
+			var want, got map[string]interface{}
+
+			wantFile, err := os.Open(path.Join(testFixturePath(tc.path), "output.json"))
+			if err != nil {
+				t.Fatalf("failed to open output file: %s", err)
+			}
+			defer wantFile.Close()
+			wantBytes, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("failed to read output file: %s", err)
+			}
+			err = json.Unmarshal([]byte(wantBytes), &want)
+			if err != nil {
+				t.Fatalf("failed to unmarshal expected JSON: %s", err)
+			}
+
+			ui, code := setupTest(tc.path, "-json")
+
+			gotString := ui.OutputWriter.String()
+			err = json.Unmarshal([]byte(gotString), &got)
+			if err != nil {
+				t.Fatalf("failed to unmarshal actual JSON: %s", err)
+			}
+
+			if !cmp.Equal(got, want) {
+				t.Errorf("wrong output:\n %v\n", cmp.Diff(got, want))
+				t.Errorf("raw output:\n%s\n", gotString)
+			}
+
+			if tc.valid && code != 0 {
+				t.Errorf("wrong exit code: want 0, got %d", code)
+			} else if !tc.valid && code != 1 {
+				t.Errorf("wrong exit code: want 1, got %d", code)
+			}
+
+			if errorOutput := ui.ErrorWriter.String(); errorOutput != "" {
+				t.Errorf("unexpected error output:\n%s", errorOutput)
+			}
+		})
 	}
 }
