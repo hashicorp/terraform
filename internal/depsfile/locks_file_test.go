@@ -159,6 +159,45 @@ func TestLoadLocksFromFile(t *testing.T) {
 	}
 }
 
+func TestLoadLocksFromFileAbsent(t *testing.T) {
+	t.Run("lock file is a directory", func(t *testing.T) {
+		// This can never happen when Terraform is the one generating the
+		// lock file, but might arise if the user makes a directory with the
+		// lock file's name for some reason. (There is no actual reason to do
+		// so, so that would always be a mistake.)
+		locks, diags := LoadLocksFromFile("testdata")
+		if len(locks.providers) != 0 {
+			t.Errorf("returned locks has providers; expected empty locks")
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("LoadLocksFromFile succeeded; want error")
+		}
+		// This is a generic error message from HCL itself, so upgrading HCL
+		// in future might cause a different error message here.
+		want := `Failed to read file: The configuration file "testdata" could not be read.`
+		got := diags.Err().Error()
+		if got != want {
+			t.Errorf("wrong error message\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("lock file doesn't exist", func(t *testing.T) {
+		locks, diags := LoadLocksFromFile("testdata/nonexist.hcl")
+		if len(locks.providers) != 0 {
+			t.Errorf("returned locks has providers; expected empty locks")
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("LoadLocksFromFile succeeded; want error")
+		}
+		// This is a generic error message from HCL itself, so upgrading HCL
+		// in future might cause a different error message here.
+		want := `Failed to read file: The configuration file "testdata/nonexist.hcl" could not be read.`
+		got := diags.Err().Error()
+		if got != want {
+			t.Errorf("wrong error message\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
 func TestSaveLocksToFile(t *testing.T) {
 	locks := NewLocks()
 
