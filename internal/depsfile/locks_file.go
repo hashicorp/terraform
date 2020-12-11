@@ -59,6 +59,12 @@ func loadLocks(loadParse func(*hclparse.Parser) (*hcl.File, hcl.Diagnostics)) (*
 	f, hclDiags := loadParse(parser)
 	ret.sources = parser.Sources()
 	diags = diags.Append(hclDiags)
+	if f == nil {
+		// If we encountered an error loading the file then those errors
+		// should already be in diags from the above, but the file might
+		// also be nil itself and so we can't decode from it.
+		return ret, diags
+	}
 
 	moreDiags := decodeLocksFromHCL(ret, f.Body)
 	diags = diags.Append(moreDiags)
