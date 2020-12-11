@@ -185,7 +185,5 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 const providerConfigErr = `%s
 
-Provider %q requires explicit configuration. Add a provider block to the root
-module and configure the provider's required arguments as described in the
-provider documentation.
+Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.
 `
