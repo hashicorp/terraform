@@ -28,6 +28,8 @@ create a new plan automatically and then prompt for approval to apply it. If the
 created plan does not include any changes to resources or to root module
 output values then `terraform apply` will exit immediately, without prompting.
 
+**Caution: If you run a `terraform apply` with a saved plan it will not ask for promt to apply it.** 
+
 The command-line flags are all optional. The list of available flags are:
 
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
