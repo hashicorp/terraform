@@ -103,6 +103,9 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 	case addrs.ModuleInstance:
 		// Matches all instances within the indicated module and all of its
 		// descendent modules.
+
+		// found is used to identify cases where the selected module has no
+		// resources, but one or more of its submodules does.
 		found := false
 		ms := state.Module(addr)
 		if ms != nil {
@@ -117,6 +120,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 				}
 			}
 		}
+
 		if found == false && !allowMissing {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
