@@ -28,7 +28,7 @@ create a new plan automatically and then prompt for approval to apply it. If the
 created plan does not include any changes to resources or to root module
 output values then `terraform apply` will exit immediately, without prompting.
 
-**Caution: If you run a `terraform apply` with a saved plan it will not ask for promt for confirmation before applying it.** 
+**Caution: If you run a `terraform apply` with a saved plan it will not promt for confirmation before applying it.** 
 
 The command-line flags are all optional. The list of available flags are:
 
