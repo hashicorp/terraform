@@ -22,6 +22,7 @@ BUG FIXES:
 * cli: TF_LOG levels other than `trace` will now work correctly [GH-26632]
 * cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` [GH-26685]
 * command/console: expressions using `path` (`path.root`, `path.module`) now return the same result as they would in a configuration [GH-27263]
+* command/state list: fix bug where nested modules' resources were missing from `state list` output [GH-27268]
 
 ## Previous Releases
 
