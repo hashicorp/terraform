@@ -345,20 +345,20 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 	return diags
 }
 
-// ReadResourceInstanceState reads the current object for a specific instance in
+// readResourceInstanceState reads the current object for a specific instance in
 // the state.
-func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Printf("[TRACE] ReadResourceInstanceState: reading state for %s", addr)
+	log.Printf("[TRACE] readResourceInstanceState: reading state for %s", addr)
 
 	src := ctx.State().ResourceInstanceObject(addr, states.CurrentGen)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
-		log.Printf("[TRACE] ReadResourceInstanceState: no state present for %s", addr)
+		log.Printf("[TRACE] readResourceInstanceState: no state present for %s", addr)
 		return nil, nil
 	}
 
@@ -368,7 +368,7 @@ func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr a
 		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
 	}
 	var diags tfdiags.Diagnostics
-	src, diags = UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, diags = upgradeResourceState(addr, provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
@@ -385,24 +385,24 @@ func (n *NodeAbstractResource) ReadResourceInstanceState(ctx EvalContext, addr a
 	return obj, nil
 }
 
-// ReadResourceInstanceStateDeposed reads the deposed object for a specific
+// readResourceInstanceStateDeposed reads the deposed object for a specific
 // instance in the state.
-func (n *NodeAbstractResource) ReadResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, err
 	}
 
 	if key == states.NotDeposed {
-		return nil, fmt.Errorf("EvalReadStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
+		return nil, fmt.Errorf("readResourceInstanceStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
 	}
 
-	log.Printf("[TRACE] EvalReadStateDeposed: reading state for %s deposed object %s", addr, key)
+	log.Printf("[TRACE] readResourceInstanceStateDeposed: reading state for %s deposed object %s", addr, key)
 
 	src := ctx.State().ResourceInstanceObject(addr, key)
 	if src == nil {
 		// Presumably we only have deposed objects, then.
-		log.Printf("[TRACE] EvalReadStateDeposed: no state present for %s deposed object %s", addr, key)
+		log.Printf("[TRACE] readResourceInstanceStateDeposed: no state present for %s deposed object %s", addr, key)
 		return nil, nil
 	}
 
@@ -413,7 +413,7 @@ func (n *NodeAbstractResource) ReadResourceInstanceStateDeposed(ctx EvalContext,
 
 	}
 
-	src, diags := UpgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, diags := upgradeResourceState(addr, provider, src, schema, currentVersion)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would

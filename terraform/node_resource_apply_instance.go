@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -134,9 +135,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	addr := n.ResourceInstanceAddr().Resource
-
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -152,23 +151,11 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	// In this particular call to EvalReadData we include our planned
+	// In this particular call to applyDataSource we include our planned
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
-	var state *states.ResourceInstanceObject
-	readDataApply := &evalReadDataApply{
-		evalReadData{
-			Addr:           addr,
-			Config:         n.Config,
-			Planned:        &change,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-		},
-	}
-	diags = diags.Append(readDataApply.Eval(ctx))
+	state, applyDiags := n.applyDataSource(ctx, change)
+	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -179,17 +166,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr,
-		ProviderSchema: &providerSchema,
-		Change:         nil,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
-	diags = diags.Append(UpdateStateHook(ctx))
+	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
 
@@ -197,12 +176,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. Most of this are written to by-address below.
 	var state *states.ResourceInstanceObject
-	var createNew bool
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
 	addr := n.ResourceInstanceAddr().Resource
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -240,7 +218,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, err = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -255,136 +233,63 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	evalDiff := &EvalDiff{
-		Addr:           addr,
-		Config:         n.Config,
-		Provider:       &provider,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderMetas:  n.ProviderMetas,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		PreviousDiff:   &diff,
-		OutputChange:   &diffApply,
-		OutputState:    &state,
-	}
-	diags = diags.Append(evalDiff.Eval(ctx))
+	diffApply, state, planDiags := n.plan(ctx, diff, state, false)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
 	// Compare the diffs
-	checkPlannedChange := &EvalCheckPlannedChange{
-		Addr:           addr,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		Planned:        &diff,
-		Actual:         &diffApply,
-	}
-	diags = diags.Append(checkPlannedChange.Eval(ctx))
+	diags = diags.Append(n.checkPlannedChange(ctx, diff, diffApply, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, err = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	reduceDiff := &EvalReduceDiff{
-		Addr:      addr,
-		InChange:  &diffApply,
-		Destroy:   false,
-		OutChange: &diffApply,
-	}
-	diags = diags.Append(reduceDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// EvalReduceDiff may have simplified our planned change
+	diffApply = reducePlan(addr, diffApply, false)
+	// reducePlan may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
 	// is handled by NodeDestroyResourceInstance.
 	if diffApply == nil || diffApply.Action == plans.NoOp {
 		return diags
 	}
 
-	diags = diags.Append(n.PreApplyHook(ctx, diffApply))
+	diags = diags.Append(n.preApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
 	}
 
 	var applyError error
-	evalApply := &EvalApply{
-		Addr:                addr,
-		Config:              n.Config,
-		State:               &state,
-		Change:              &diffApply,
-		Provider:            &provider,
-		ProviderAddr:        n.ResolvedProvider,
-		ProviderMetas:       n.ProviderMetas,
-		ProviderSchema:      &providerSchema,
-		Output:              &state,
-		Error:               &applyError,
-		CreateNew:           &createNew,
-		CreateBeforeDestroy: n.CreateBeforeDestroy(),
-	}
-	diags = diags.Append(evalApply.Eval(ctx))
+	state, applyError, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy(), applyError)
+	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr,
-		ProviderSchema: &providerSchema,
-		Change:         nil,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
-	evalMaybeTainted := &EvalMaybeTainted{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-		Error:  &applyError,
-	}
-	diags = diags.Append(evalMaybeTainted.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyError)
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	applyProvisioners := &EvalApplyProvisioners{
-		Addr:           addr,
-		State:          &state, // EvalApplyProvisioners will skip if already tainted
-		ResourceConfig: n.Config,
-		CreateNew:      &createNew,
-		Error:          &applyError,
-		When:           configs.ProvisionerWhenCreate,
-	}
-	diags = diags.Append(applyProvisioners.Eval(ctx))
+	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
+	applyError, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate, applyError)
+	diags = diags.Append(applyProvisionersDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	evalMaybeTainted = &EvalMaybeTainted{
-		Addr:   addr,
-		State:  &state,
-		Change: &diffApply,
-		Error:  &applyError,
-	}
-	diags = diags.Append(evalMaybeTainted.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyError)
 
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 	if diags.HasErrors() {
@@ -418,9 +323,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		} else {
 			restored := ctx.State().MaybeRestoreResourceInstanceDeposed(addr.Absolute(ctx.Path()), deposedKey)
 			if restored {
-				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s was restored as the current object", addr, deposedKey)
+				log.Printf("[TRACE] managedResourceExecute: %s deposed object %s was restored as the current object", addr, deposedKey)
 			} else {
-				log.Printf("[TRACE] EvalMaybeRestoreDeposedObject: %s deposed object %s remains deposed", addr, deposedKey)
+				log.Printf("[TRACE] managedResourceExecute: %s deposed object %s remains deposed", addr, deposedKey)
 			}
 		}
 	}
@@ -428,11 +333,105 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(n.PostApplyHook(ctx, state, &applyError))
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(UpdateStateHook(ctx))
+	diags = diags.Append(updateStateHook(ctx))
 	return diags
+}
+
+// checkPlannedChange produces errors if the _actual_ expected value is not
+// compatible with what was recorded in the plan.
+//
+// Errors here are most often indicative of a bug in the provider, so our error
+// messages will report with that in mind. It's also possible that there's a bug
+// in Terraform's Core's own "proposed new value" code in EvalDiff.
+func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema *ProviderSchema) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	addr := n.ResourceInstanceAddr().Resource
+
+	schema, _ := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support %q", addr.Resource.Type))
+		return diags
+	}
+
+	absAddr := addr.Absolute(ctx.Path())
+
+	log.Printf("[TRACE] checkPlannedChange: Verifying that actual change (action %s) matches planned change (action %s)", actualChange.Action, plannedChange.Action)
+
+	if plannedChange.Action != actualChange.Action {
+		switch {
+		case plannedChange.Action == plans.Update && actualChange.Action == plans.NoOp:
+			// It's okay for an update to become a NoOp once we've filled in
+			// all of the unknown values, since the final values might actually
+			// match what was there before after all.
+			log.Printf("[DEBUG] After incorporating new values learned so far during apply, %s change has become NoOp", absAddr)
+
+		case (plannedChange.Action == plans.CreateThenDelete && actualChange.Action == plans.DeleteThenCreate) ||
+			(plannedChange.Action == plans.DeleteThenCreate && actualChange.Action == plans.CreateThenDelete):
+			// If the order of replacement changed, then that is a bug in terraform
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Terraform produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, the planned action changed from %s to %s.\n\nThis is a bug in Terraform and should be reported.",
+					absAddr, plannedChange.Action, actualChange.Action,
+				),
+			))
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced inconsistent final plan",
+				fmt.Sprintf(
+					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					absAddr, n.ResolvedProvider.Provider.String(),
+					plannedChange.Action, actualChange.Action,
+				),
+			))
+		}
+	}
+
+	errs := objchange.AssertObjectCompatible(schema, plannedChange.After, actualChange.After)
+	for _, err := range errs {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced inconsistent final plan",
+			fmt.Sprintf(
+				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				absAddr, n.ResolvedProvider.Provider.String(), tfdiags.FormatError(err),
+			),
+		))
+	}
+	return diags
+}
+
+// maybeTainted takes the resource addr, new value, planned change, and possible
+// error from an apply operation and return a new instance object marked as
+// tainted if it appears that a create operation has failed.
+func maybeTainted(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, change *plans.ResourceInstanceChange, err error) *states.ResourceInstanceObject {
+	if state == nil || change == nil || err == nil {
+		return state
+	}
+	if state.Status == states.ObjectTainted {
+		log.Printf("[TRACE] maybeTainted: %s was already tainted, so nothing to do", addr)
+		return state
+	}
+	if change.Action == plans.Create {
+		// If there are errors during a _create_ then the object is
+		// in an undefined state, and so we'll mark it as tainted so
+		// we can try again on the next run.
+		//
+		// We don't do this for other change actions because errors
+		// during updates will often not change the remote object at all.
+		// If there _were_ changes prior to the error, it's the provider's
+		// responsibility to record the effect of those changes in the
+		// object value it returned.
+		log.Printf("[TRACE] maybeTainted: %s encountered an error during creation, so it is now marked as tainted", addr)
+		return state.AsTainted()
+	}
+	return state
 }

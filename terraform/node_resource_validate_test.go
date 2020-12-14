@@ -7,17 +7,153 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func TestEvalValidateResource_managedResource(t *testing.T) {
+func TestNodeValidatableResource_ValidateProvisioner_valid(t *testing.T) {
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+	mp := &MockProvisioner{}
+	ps := &configschema.Block{}
+	ctx.ProvisionerSchemaSchema = ps
+	ctx.ProvisionerProvisioner = mp
+
+	pc := &configs.Provisioner{
+		Type:   "baz",
+		Config: hcl.EmptyBody(),
+		Connection: &configs.Connection{
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"host": cty.StringVal("localhost"),
+				"type": cty.StringVal("ssh"),
+			}),
+		},
+	}
+
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "test_foo",
+		Name:   "bar",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
+
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:   mustConfigResourceAddr("test_foo.bar"),
+			Config: rc,
+		},
+	}
+
+	diags := node.validateProvisioner(ctx, pc, false, false)
+	if diags.HasErrors() {
+		t.Fatalf("node.Eval failed: %s", diags.Err())
+	}
+	if !mp.ValidateProvisionerConfigCalled {
+		t.Fatalf("p.ValidateProvisionerConfig not called")
+	}
+}
+
+func TestNodeValidatableResource_ValidateProvisioner__warning(t *testing.T) {
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+	mp := &MockProvisioner{}
+	ps := &configschema.Block{}
+	ctx.ProvisionerSchemaSchema = ps
+	ctx.ProvisionerProvisioner = mp
+
+	pc := &configs.Provisioner{
+		Type:   "baz",
+		Config: hcl.EmptyBody(),
+	}
+
+	rc := &configs.Resource{
+		Mode:    addrs.ManagedResourceMode,
+		Type:    "test_foo",
+		Name:    "bar",
+		Config:  configs.SynthBody("", map[string]cty.Value{}),
+		Managed: &configs.ManagedResource{},
+	}
+
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:   mustConfigResourceAddr("test_foo.bar"),
+			Config: rc,
+		},
+	}
+
+	{
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.SimpleWarning("foo is deprecated"))
+		mp.ValidateProvisionerConfigResponse = provisioners.ValidateProvisionerConfigResponse{
+			Diagnostics: diags,
+		}
+	}
+
+	diags := node.validateProvisioner(ctx, pc, false, false)
+	if len(diags) != 1 {
+		t.Fatalf("wrong number of diagnostics in %s; want one warning", diags.ErrWithWarnings())
+	}
+
+	if got, want := diags[0].Description().Summary, mp.ValidateProvisionerConfigResponse.Diagnostics[0].Description().Summary; got != want {
+		t.Fatalf("wrong warning %q; want %q", got, want)
+	}
+}
+
+func TestNodeValidatableResource_ValidateProvisioner__conntectionInvalid(t *testing.T) {
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+	mp := &MockProvisioner{}
+	ps := &configschema.Block{}
+	ctx.ProvisionerSchemaSchema = ps
+	ctx.ProvisionerProvisioner = mp
+
+	pc := &configs.Provisioner{
+		Type:   "baz",
+		Config: hcl.EmptyBody(),
+		Connection: &configs.Connection{
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"type":             cty.StringVal("ssh"),
+				"bananananananana": cty.StringVal("foo"),
+				"bazaz":            cty.StringVal("bar"),
+			}),
+		},
+	}
+
+	rc := &configs.Resource{
+		Mode:    addrs.ManagedResourceMode,
+		Type:    "test_foo",
+		Name:    "bar",
+		Config:  configs.SynthBody("", map[string]cty.Value{}),
+		Managed: &configs.ManagedResource{},
+	}
+
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:   mustConfigResourceAddr("test_foo.bar"),
+			Config: rc,
+		},
+	}
+
+	diags := node.validateProvisioner(ctx, pc, false, false)
+	if !diags.HasErrors() {
+		t.Fatalf("node.Eval succeeded; want error")
+	}
+	if len(diags) != 3 {
+		t.Fatalf("wrong number of diagnostics; want two errors\n\n%s", diags.Err())
+	}
+
+	errStr := diags.Err().Error()
+	if !(strings.Contains(errStr, "bananananananana") && strings.Contains(errStr, "bazaz")) {
+		t.Fatalf("wrong errors %q; want something about each of our invalid connInfo keys", errStr)
+	}
+}
+
+func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
@@ -42,21 +178,20 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 			"test_number": cty.NumberIntVal(2).Mark("sensitive"),
 		}),
 	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "aws_instance",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	err := node.Validate(ctx)
+	err := node.validateResource(ctx)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -66,7 +201,7 @@ func TestEvalValidateResource_managedResource(t *testing.T) {
 	}
 }
 
-func TestEvalValidateResource_managedResourceCount(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
@@ -88,23 +223,22 @@ func TestEvalValidateResource_managedResourceCount(t *testing.T) {
 			"test_string": cty.StringVal("bar"),
 		}),
 	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "aws_instance",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	if !mp.ValidateResourceTypeConfigCalled {
@@ -112,7 +246,7 @@ func TestEvalValidateResource_managedResourceCount(t *testing.T) {
 	}
 }
 
-func TestEvalValidateResource_dataSource(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
@@ -138,23 +272,22 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 		}),
 	}
 
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.DataResourceMode,
-			Type: "aws_ami",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	if !mp.ValidateDataSourceConfigCalled {
@@ -162,7 +295,7 @@ func TestEvalValidateResource_dataSource(t *testing.T) {
 	}
 }
 
-func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		return providers.ValidateResourceTypeConfigResponse{}
@@ -175,27 +308,26 @@ func TestEvalValidateResource_validReturnsNilError(t *testing.T) {
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test_object",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_object.foo"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("Expected nil error, got: %s", err)
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 }
 
-func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		var diags tfdiags.Diagnostics
@@ -213,27 +345,24 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 		Name:   "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{}),
 	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test_object",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	err := node.Validate(ctx)
-	if err == nil {
+	diags := node.validateResource(ctx)
+	if !diags.HasErrors() {
 		t.Fatal("unexpected success; want error")
 	}
 
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(err)
 	bySeverity := map[tfdiags.Severity]tfdiags.Diagnostics{}
 	for _, diag := range diags {
 		bySeverity[diag.Severity()] = append(bySeverity[diag.Severity()], diag)
@@ -246,7 +375,7 @@ func TestEvalValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	}
 }
 
-func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		return providers.ValidateResourceTypeConfigResponse{}
@@ -278,21 +407,20 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 			},
 		},
 	}
-	node := &EvalValidateResource{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "aws_instance",
-			Name: "foo",
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		},
-		Provider:       &p,
-		Config:         rc,
-		ProviderSchema: &mp.GetSchemaReturn,
 	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
+	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderProvider = p
 
-	diags := node.Validate(ctx)
+	diags := node.validateResource(ctx)
 	if diags.HasErrors() {
 		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
 	}
@@ -313,7 +441,7 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	diags = node.Validate(ctx)
+	diags = node.validateResource(ctx)
 	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
@@ -329,159 +457,11 @@ func TestEvalValidateResource_invalidDependsOn(t *testing.T) {
 		},
 	})
 
-	diags = node.Validate(ctx)
+	diags = node.validateResource(ctx)
 	if !diags.HasErrors() {
 		t.Fatal("no error for invalid depends_on")
 	}
 	if got, want := diags.Err().Error(), "Invalid depends_on reference"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
-	}
-}
-
-func TestEvalValidateProvisioner_valid(t *testing.T) {
-	mp := &MockProvisioner{}
-	var p provisioners.Interface = mp
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	schema := &configschema.Block{}
-
-	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "foo",
-			Name: "bar",
-		},
-		Provisioner: &p,
-		Schema:      &schema,
-		Config: &configs.Provisioner{
-			Type:   "baz",
-			Config: hcl.EmptyBody(),
-			Connection: &configs.Connection{
-				Config: configs.SynthBody("", map[string]cty.Value{
-					"host": cty.StringVal("localhost"),
-					"type": cty.StringVal("ssh"),
-				}),
-			},
-		},
-	}
-
-	err := node.Validate(ctx)
-	if err != nil {
-		t.Fatalf("node.Eval failed: %s", err)
-	}
-	if !mp.ValidateProvisionerConfigCalled {
-		t.Fatalf("p.ValidateProvisionerConfig not called")
-	}
-}
-
-func TestEvalValidateProvisioner_warning(t *testing.T) {
-	mp := &MockProvisioner{}
-	var p provisioners.Interface = mp
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"type": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	}
-
-	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "foo",
-			Name: "bar",
-		},
-		Provisioner: &p,
-		Schema:      &schema,
-		Config: &configs.Provisioner{
-			Type:   "baz",
-			Config: hcl.EmptyBody(),
-			Connection: &configs.Connection{
-				Config: configs.SynthBody("", map[string]cty.Value{
-					"host": cty.StringVal("localhost"),
-					"type": cty.StringVal("ssh"),
-				}),
-			},
-		},
-	}
-
-	{
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.SimpleWarning("foo is deprecated"))
-		mp.ValidateProvisionerConfigResponse = provisioners.ValidateProvisionerConfigResponse{
-			Diagnostics: diags,
-		}
-	}
-
-	err := node.Validate(ctx)
-	if err == nil {
-		t.Fatalf("node.Eval succeeded; want error")
-	}
-
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(err)
-	if len(diags) != 1 {
-		t.Fatalf("wrong number of diagnostics in %s; want one warning", diags.ErrWithWarnings())
-	}
-
-	if got, want := diags[0].Description().Summary, mp.ValidateProvisionerConfigResponse.Diagnostics[0].Description().Summary; got != want {
-		t.Fatalf("wrong warning %q; want %q", got, want)
-	}
-}
-
-func TestEvalValidateProvisioner_connectionInvalid(t *testing.T) {
-	var p provisioners.Interface = &MockProvisioner{}
-	ctx := &MockEvalContext{}
-	ctx.installSimpleEval()
-
-	schema := &configschema.Block{
-		Attributes: map[string]*configschema.Attribute{
-			"type": {
-				Type:     cty.String,
-				Optional: true,
-			},
-		},
-	}
-
-	node := &EvalValidateProvisioner{
-		ResourceAddr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "foo",
-			Name: "bar",
-		},
-		Provisioner: &p,
-		Schema:      &schema,
-		Config: &configs.Provisioner{
-			Type:   "baz",
-			Config: hcl.EmptyBody(),
-			Connection: &configs.Connection{
-				Config: configs.SynthBody("", map[string]cty.Value{
-					"type":             cty.StringVal("ssh"),
-					"bananananananana": cty.StringVal("foo"),
-					"bazaz":            cty.StringVal("bar"),
-				}),
-			},
-		},
-	}
-
-	err := node.Validate(ctx)
-	if err == nil {
-		t.Fatalf("node.Eval succeeded; want error")
-	}
-
-	var diags tfdiags.Diagnostics
-	diags = diags.Append(err)
-	if len(diags) != 3 {
-		t.Fatalf("wrong number of diagnostics; want two errors\n\n%s", diags.Err())
-	}
-
-	errStr := diags.Err().Error()
-	if !(strings.Contains(errStr, "bananananananana") && strings.Contains(errStr, "bazaz")) {
-		t.Fatalf("wrong errors %q; want something about each of our invalid connInfo keys", errStr)
 	}
 }

@@ -55,6 +55,9 @@ type MockEvalContext struct {
 	SetProviderInputAddr   addrs.AbsProviderConfig
 	SetProviderInputValues map[string]cty.Value
 
+	ConfigureProviderFn func(
+		addr addrs.AbsProviderConfig,
+		cfg cty.Value) tfdiags.Diagnostics // overrides the other values below, if set
 	ConfigureProviderCalled bool
 	ConfigureProviderAddr   addrs.AbsProviderConfig
 	ConfigureProviderConfig cty.Value
@@ -183,9 +186,13 @@ func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
 }
 
 func (c *MockEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, cfg cty.Value) tfdiags.Diagnostics {
+
 	c.ConfigureProviderCalled = true
 	c.ConfigureProviderAddr = addr
 	c.ConfigureProviderConfig = cfg
+	if c.ConfigureProviderFn != nil {
+		return c.ConfigureProviderFn(addr, cfg)
+	}
 	return c.ConfigureProviderDiags
 }
 

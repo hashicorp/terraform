@@ -30,15 +30,15 @@ in the following order of operations:
 1. `&&`
 1. `||`
 
-Parentheses can be used to override the default order of operations. Without
-parentheses, higher levels are evaluated first, so `1 + 2 * 3` is interpreted
-as `1 + (2 * 3)` and _not_ as `(1 + 2) * 3`.
+Use parentheses to override the default order of operations. Without
+parentheses, higher levels will be evaluated first, so Terraform will interpret
+`1 + 2 * 3` as `1 + (2 * 3)` and _not_ as `(1 + 2) * 3`.
 
 The different operators can be gathered into a few different groups with
 similar behavior, as described below. Each group of operators expects its
 given values to be of a particular type. Terraform will attempt to convert
 values to the required type automatically, or will produce an error message
-if this automatic conversion is not possible.
+if automatic conversion is impossible.
 
 ## Arithmetic Operators
 
@@ -53,6 +53,11 @@ as results:
   generally useful only when used with whole numbers.
 * `-a` returns the result of multiplying `a` by `-1`.
 
+Terraform supports some other less-common numeric operations as
+[functions](function-calls.html). For example, you can calculate exponents
+using
+[the `pow` function](../functions/pow.html).
+
 ## Equality Operators
 
 The equality operators both take two values of any type and produce boolean
@@ -61,6 +66,18 @@ values as results.
 * `a == b` returns `true` if `a` and `b` both have the same type and the same
   value, or `false` otherwise.
 * `a != b` is the opposite of `a == b`.
+
+Because the equality operators require both arguments to be of exactly the
+same type in order to decide equality, we recommend using these operators only
+with values of primitive types or using explicit type conversion functions
+to indicate which type you are intending to use for comparison.
+
+Comparisons between structural types may produce surprising results if you
+are not sure about the types of each of the arguments. For example,
+`var.list == []` may seem like it would return `true` if `var.list` were an
+empty list, but `[]` actually builds a value of type `tuple([])` and so the
+two values can never match. In this situation it's often clearer to write
+`length(var.list) == 0` instead.
 
 ## Comparison Operators
 
@@ -80,3 +97,7 @@ The logical operators all expect bool values and produce bool values as results.
 * `a || b` returns `true` if either `a` or `b` is `true`, or `false` if both are `false`.
 * `a && b` returns `true` if both `a` and `b` are `true`, or `false` if either one is `false`.
 * `!a` returns `true` if `a` is `false`, and `false` if `a` is `true`.
+
+Terraform does not have an operator for the "exclusive OR" operation. If you
+know that both operators are boolean values then exclusive OR is equivalent
+to the `!=` ("not equal") operator.

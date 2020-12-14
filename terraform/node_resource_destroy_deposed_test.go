@@ -128,3 +128,47 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		t.Fatalf("resources left in state after destroy")
 	}
 }
+
+func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *testing.T) {
+	state := states.NewState()
+	ctx := new(MockEvalContext)
+	ctx.StateState = state.SyncWrapper()
+	ctx.PathPath = addrs.RootModuleInstance
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	ctx.ProviderProvider = mockProvider
+	ctx.ProviderSchemaSchema = mockProvider.GetSchemaReturn
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
+	node := &NodeDestroyDeposedResourceInstanceObject{
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+			Addr: mustResourceInstanceAddr("aws_instance.foo"),
+		},
+		DeposedKey: states.NewDeposedKey(),
+	}
+	err := node.writeResourceInstanceState(ctx, obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo: (1 deposed)
+  ID = <not created>
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  Deposed ID 1 = i-abc123
+	`)
+}

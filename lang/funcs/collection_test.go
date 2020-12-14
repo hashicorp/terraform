@@ -2,6 +2,7 @@ package funcs
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -170,9 +171,27 @@ func TestAllTrue(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListVal([]cty.Value{cty.True, cty.NullVal(cty.Bool)}),
+			cty.False,
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			true,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.UnknownVal(cty.Bool),
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
 		},
 		{
 			cty.NullVal(cty.List(cty.Bool)),
@@ -233,9 +252,35 @@ func TestAnyTrue(t *testing.T) {
 			false,
 		},
 		{
+			cty.ListVal([]cty.Value{cty.NullVal(cty.Bool), cty.True}),
+			cty.True,
+			false,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
-			true,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.False,
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.True,
+			}),
+			cty.True,
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
 		},
 		{
 			cty.NullVal(cty.List(cty.Bool)),
@@ -952,7 +997,7 @@ func TestSum(t *testing.T) {
 	tests := []struct {
 		List cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.ListVal([]cty.Value{
@@ -961,7 +1006,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(3),
 			}),
 			cty.NumberIntVal(6),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -972,7 +1017,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(234),
 			}),
 			cty.NumberIntVal(66685532),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -981,7 +1026,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("c"),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -990,7 +1035,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(5),
 			}),
 			cty.NumberIntVal(-4),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -999,7 +1044,7 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(5.7),
 			}),
 			cty.NumberFloatVal(35.3),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1008,12 +1053,20 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(-5.7),
 			}),
 			cty.NumberFloatVal(-35.3),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
 			cty.NilVal,
-			true,
+			"argument must be list, set, or tuple of number values",
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(5),
+				cty.NullVal(cty.Number),
+			}),
+			cty.NilVal,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1022,7 +1075,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("c"),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1031,7 +1084,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(5),
 			}),
 			cty.NumberIntVal(-4),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1040,7 +1093,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(30),
 			}),
 			cty.NumberIntVal(65),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1049,14 +1102,14 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(3),
 			}),
 			cty.NumberFloatVal(2354),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
 				cty.NumberFloatVal(2),
 			}),
 			cty.NumberFloatVal(2),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1067,7 +1120,7 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(-4),
 			}),
 			cty.NumberFloatVal(-199),
-			false,
+			"",
 		},
 		{
 			cty.TupleVal([]cty.Value{
@@ -1076,27 +1129,53 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(38),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.NumberIntVal(12),
 			cty.NilVal,
-			true,
+			"cannot sum noniterable",
 		},
 		{
 			cty.ListValEmpty(cty.Number),
 			cty.NilVal,
-			true,
+			"cannot sum an empty list",
 		},
 		{
 			cty.MapVal(map[string]cty.Value{"hello": cty.True}),
 			cty.NilVal,
-			true,
+			"argument must be list, set, or tuple. Received map of bool",
 		},
 		{
 			cty.UnknownVal(cty.Number),
 			cty.UnknownVal(cty.Number),
-			false,
+			"",
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Number)),
+			cty.UnknownVal(cty.Number),
+			"",
+		},
+		{ // known list containing unknown values
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Number)}),
+			cty.UnknownVal(cty.Number),
+			"",
+		},
+		{ // numbers too large to represent as float64
+			cty.ListVal([]cty.Value{
+				cty.MustParseNumberVal("1e+500"),
+				cty.MustParseNumberVal("1e+500"),
+			}),
+			cty.MustParseNumberVal("2e+500"),
+			"",
+		},
+		{ // edge case we have a special error handler for
+			cty.ListVal([]cty.Value{
+				cty.NumberFloatVal(math.Inf(1)),
+				cty.NumberFloatVal(math.Inf(-1)),
+			}),
+			cty.NilVal,
+			"can't compute sum of opposing infinities",
 		},
 	}
 
@@ -1104,9 +1183,11 @@ func TestSum(t *testing.T) {
 		t.Run(fmt.Sprintf("sum(%#v)", test.List), func(t *testing.T) {
 			got, err := Sum(test.List)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				} else if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\n got: %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {

@@ -64,7 +64,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl/v2 v2.7.2
+	github.com/hashicorp/hcl/v2 v2.8.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
@@ -97,7 +97,7 @@ require (
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
-	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.1
 	github.com/prometheus/client_golang v0.9.3-0.20190127221311-3c4408c8b829 // indirect
@@ -130,7 +130,6 @@ require (
 	google.golang.org/grpc v1.31.1
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.42.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v10.0.0+incompatible

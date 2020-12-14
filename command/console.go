@@ -35,6 +35,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	configPath = c.Meta.normalizePath(configPath)
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {

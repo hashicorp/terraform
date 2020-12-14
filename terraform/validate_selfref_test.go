@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestEvalValidateSelfRef(t *testing.T) {
+func TestValidateSelfRef(t *testing.T) {
 	rAddr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
 		Type: "aws_instance",
@@ -92,12 +92,7 @@ func TestEvalValidateSelfRef(t *testing.T) {
 				},
 			}
 
-			n := &EvalValidateSelfRef{
-				Addr:           test.Addr,
-				Config:         body,
-				ProviderSchema: &ps,
-			}
-			diags := n.Eval(nil)
+			diags := validateSelfRef(test.Addr, body, ps)
 			if diags.HasErrors() != test.Err {
 				if test.Err {
 					t.Errorf("unexpected success; want error")

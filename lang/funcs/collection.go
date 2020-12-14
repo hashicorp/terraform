@@ -3,13 +3,13 @@ package funcs
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 var LengthFunc = function.New(&function.Spec{
@@ -70,6 +70,9 @@ var AllTrueFunc = function.New(&function.Spec{
 		result := cty.True
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
+			if !v.IsKnown() {
+				return cty.UnknownVal(cty.Bool), nil
+			}
 			if v.IsNull() {
 				return cty.False, nil
 			}
@@ -94,8 +97,13 @@ var AnyTrueFunc = function.New(&function.Spec{
 	Type: function.StaticReturnType(cty.Bool),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		result := cty.False
+		var hasUnknown bool
 		for it := args[0].ElementIterator(); it.Next(); {
 			_, v := it.Element()
+			if !v.IsKnown() {
+				hasUnknown = true
+				continue
+			}
 			if v.IsNull() {
 				continue
 			}
@@ -103,6 +111,9 @@ var AnyTrueFunc = function.New(&function.Spec{
 			if result.True() {
 				return cty.True, nil
 			}
+		}
+		if hasUnknown {
+			return cty.UnknownVal(cty.Bool), nil
 		}
 		return result, nil
 	},
@@ -393,27 +404,45 @@ var SumFunc = function.New(&function.Spec{
 		arg := args[0].AsValueSlice()
 		ty := args[0].Type()
 
-		var i float64
-		var s float64
-
 		if !ty.IsListType() && !ty.IsSetType() && !ty.IsTupleType() {
 			return cty.NilVal, function.NewArgErrorf(0, fmt.Sprintf("argument must be list, set, or tuple. Received %s", ty.FriendlyName()))
 		}
 
-		if !args[0].IsKnown() {
+		if !args[0].IsWhollyKnown() {
 			return cty.UnknownVal(cty.Number), nil
 		}
 
-		for _, v := range arg {
-
-			if err := gocty.FromCtyValue(v, &i); err != nil {
-				return cty.UnknownVal(cty.Number), function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
-			} else {
-				s += i
+		// big.Float.Add can panic if the input values are opposing infinities,
+		// so we must catch that here in order to remain within
+		// the cty Function abstraction.
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(big.ErrNaN); ok {
+					ret = cty.NilVal
+					err = fmt.Errorf("can't compute sum of opposing infinities")
+				} else {
+					// not a panic we recognize
+					panic(r)
+				}
 			}
+		}()
+
+		s := arg[0]
+		if s.IsNull() {
+			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
+		}
+		for _, v := range arg[1:] {
+			if v.IsNull() {
+				return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
+			}
+			v, err = convert.Convert(v, cty.Number)
+			if err != nil {
+				return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
+			}
+			s = s.Add(v)
 		}
 
-		return cty.NumberFloatVal(s), nil
+		return s, nil
 	},
 })
 
