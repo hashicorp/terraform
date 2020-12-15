@@ -43,6 +43,26 @@ min([55, 2453, 2]...)
 The expansion symbol is three periods (`...`), not a Unicode ellipsis character
 (`…`). Expansion is a special syntax that is only available in function calls.
 
+## Using Sensitive Data as Function Arguments
+
+When using sensitive data, such as [an input variable](https://www.terraform.io/docs/configuration/variables.html#suppressing-values-in-cli-output)
+or [an output defined](https://www.terraform.io/docs/configuration/outputs.html#sensitive-suppressing-values-in-cli-output) as sensitive
+as function arguments, the result of the function call will be marked as sensitive.
+
+This is a conservative behavior that is true irrespective of the function being
+called. For example, passing an object containing a sensitive input variable to
+the `keys()` function will result in a list that is sensitive:
+
+```shell
+> local.baz
+{
+  "a" = (sensitive)
+  "b" = "dog"
+}
+> keys(local.baz)
+(sensitive)
+```
+
 ## Available Functions
 
 For a full list of available functions, see
