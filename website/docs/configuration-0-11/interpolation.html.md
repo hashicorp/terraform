@@ -409,7 +409,7 @@ The supported built-in functions are:
 
   * `timestamp()` - Returns a UTC timestamp string in RFC 3339 format. This string will change with every
    invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the
-   [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
+   [`ignore_changes`](./resources.html#ignore_changes) lifecycle attribute.
 
   * `timeadd(time, duration)` - Returns a UTC timestamp string corresponding to adding a given `duration` to `time` in RFC 3339 format.
     For example, `timeadd("2017-11-22T00:00:00Z", "10m")` produces a value `"2017-11-22T00:10:00Z"`.
@@ -424,7 +424,7 @@ The supported built-in functions are:
 
   * `urlencode(string)` - Returns an URL-safe copy of the string.
 
-  * `uuid()` - Returns a random UUID string. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](./resources.html#ignore-changes) lifecycle attribute.
+  * `uuid()` - Returns a random UUID string. This string will change with every invocation of the function, so in order to prevent diffs on every plan & apply, it must be used with the [`ignore_changes`](./resources.html#ignore_changes) lifecycle attribute.
 
   * `values(map)` - Returns a list of the map values, in the order of the keys
     returned by the `keys` function. This function only works on flat maps and

@@ -75,11 +75,12 @@ in the configuration for the target resource, and that is the best behavior in m
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
-  specified via this flag. This is only useful with the `-config` flag.
+  [literal expressions](/docs/configuration/expressions/types.html) in the
+  Terraform language, so list and map values can be specified via this flag.
+  This is only useful with the `-config` flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a [variable file](/docs/configuration/variables.html#variable-definitions-tfvars-files). If
   a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files

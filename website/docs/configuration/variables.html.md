@@ -349,6 +349,8 @@ terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-de
 
 The `-var` option can be used any number of times in a single command.
 
+<a id="variable-files"></a>
+
 ### Variable Definitions (`.tfvars`) Files
 
 To set lots of variables, it is more convenient to specify their values in

@@ -166,8 +166,13 @@ You must include [a `connection` block](./connection.html) so that Terraform
 will know how to communicate with the server.
 
 Terraform includes several built-in provisioners; use the navigation sidebar to
-view their documentation. You can also install third-party provisioners in
-[the user plugins directory](../configuration/providers.html#third-party-plugins).
+view their documentation.
+
+It's also possible to use third-party provisioners as plugins, by placing them
+in `%APPDATA%\terraform.d\plugins`, `~/.terraform.d/plugins`, or the same
+directory where the Terraform binary is installed. However, we do not recommend
+using any provisioners except the built-in `file`, `local-exec`, and
+`remote-exec` provisioners.
 
 All provisioners support the `when` and `on_failure` meta-arguments, which
 are described below (see [Destroy-Time Provisioners](#destroy-time-provisioners)

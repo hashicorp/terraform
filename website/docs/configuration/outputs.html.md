@@ -66,6 +66,8 @@ value as `module.web_server.instance_ip_addr`.
 
 `output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.
 
+<a id="description"></a>
+
 ### `description` — Output Value Documentation
 
 Because the output values of a module are part of its user interface, you can
@@ -84,6 +86,8 @@ purpose of the output and what kind of value is expected. This description
 string might be included in documentation about the module, and so it should be
 written from the perspective of the user of the module rather than its
 maintainer. For commentary for module maintainers, use comments.
+
+<a id="sensitive"></a>
 
 ### `sensitive` — Suppressing Values in CLI Output
 
@@ -150,6 +154,8 @@ Sensitive output values are still recorded in the
 [state](/docs/state/index.html), and so will be visible to anyone who is able
 to access the state data. For more information, see
 [_Sensitive Data in State_](/docs/state/sensitive-data.html).
+
+<a id="depends_on"></a>
 
 ### `depends_on` — Explicit Output Dependencies
 

@@ -60,9 +60,18 @@ eventually support a similar approach for third-party plugins, but we wish
 to ensure the robustness of the installation and versioning mechanisms before
 generalizing this feature.
 
-In the mean time,
-[the prior mechanisms for installing third-party providers](/docs/plugins/basics.html#installing-a-plugin)
-are still supported. Maintainers of third-party providers may optionally
+-> **Note:** As of Terraform 0.13, Terraform can automatically install
+third-party providers released on the Terraform Registry.
+
+In the mean time, third-party providers can be installed by placing them in the
+user plugins directory:
+
+Operating system  | User plugins directory
+------------------|-----------------------
+Windows           | `%APPDATA%\terraform.d\plugins`
+All other systems | `~/.terraform.d/plugins`
+
+Maintainers of third-party providers may optionally
 make use of the new versioning mechanism by naming provider binaries
 using the scheme `terraform-provider-NAME_v0.0.1`, where "0.0.1" is an
 example version. Terraform expects providers to follow the
