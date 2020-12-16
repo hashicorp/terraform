@@ -43,7 +43,6 @@ directory, located at `%APPDATA%\terraform.d\plugins` on Windows and
 For more information, see:
 
 - [Configuring Providers](/docs/configuration/providers.html)
-- [Configuring Providers: Third-party Plugins](/docs/configuration/providers.html#third-party-plugins)
 
 For developer-centric documentation, see:
 

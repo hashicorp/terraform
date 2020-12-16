@@ -75,9 +75,8 @@ an official release.
 When constructing a new provider from scratch, it's recommended to follow
 a similar repository structure as for the existing providers, with the main
 package in the repository root and a library package in a subdirectory named
-after the provider. For more information, see
-[Writing Custom Providers](/docs/extend/writing-custom-providers.html) in the
-[Extending Terraform section](/docs/extend/index.html).
+after the provider. For more information, see the
+[Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE/docs/extend/writing-custom-providers.htmlutm_medium=WEB_IO/docs/extend/writing-custom-providers.htmlutm_offer=ARTICLE_PAGE/docs/extend/writing-custom-providers.htmlutm_content=DOCS) collection on HashiCorp Learn.
 
 When making changes only to files within the provider repository, it is _not_
 necessary to re-build the main Terraform executable. Note that some packages

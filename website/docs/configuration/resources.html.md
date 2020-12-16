@@ -14,6 +14,7 @@ pages.
 <a id="resource-arguments"></a>
 <a id="documentation-for-resource-types"></a>
 <a id="meta-arguments"></a>
+<a id="timeouts"></a>
 <a id="operation-timeouts"></a>
 
 ## Syntax and Elements of Resource Blocks
@@ -66,7 +67,9 @@ This information has moved to
 
 
 <a id="count-multiple-resource-instances-by-count"></a>
+<a id="count-multiple-resource-instances"></a>
 <a id="the-count-object"></a>
+<a id="count-index"></a>
 <a id="referring-to-instances"></a>
 <a id="using-expressions-in-count"></a>
 <a id="when-to-use-for_each-instead-of-count"></a>
@@ -82,6 +85,8 @@ This information has moved to
 
 <a id="for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings"></a>
 <a id="the-each-object"></a>
+<a id="each-key"></a>
+<a id="each-value"></a>
 <a id="using-expressions-in-for_each"></a>
 <a id="referring-to-instances-1"></a>
 <a id="using-sets"></a>
@@ -107,6 +112,9 @@ This information has moved to
 
 
 <a id="lifecycle-lifecycle-customizations"></a>
+<a id="prevent_destroy"></a>
+<a id="create_before_destroy"></a>
+<a id="ignore_changes"></a>
 
 ### `lifecycle`
 

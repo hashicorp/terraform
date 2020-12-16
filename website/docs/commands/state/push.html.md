@@ -20,7 +20,7 @@ manual intervention is necessary with the remote state.
 Usage: `terraform state push [options] PATH`
 
 This command will push the state specified by PATH to the currently
-configured [backend](/docs/backends).
+configured [backend](/docs/configuration/blocks/backends/index.html).
 
 If PATH is "-" then the state data to push is read from stdin. This data
 is loaded completely into memory and verified prior to being written to

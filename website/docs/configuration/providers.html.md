@@ -80,7 +80,7 @@ empty default configuration for any provider that is not explicitly configured.
 
 ## `alias`: Multiple Provider Configurations
 
-[inpage-alias]: #alias-multiple-provider-instances
+[inpage-alias]: #alias-multiple-provider-configurations
 
 You can optionally define multiple configurations for the same provider, and
 select which one to use on a per-resource or per-module basis. The primary
