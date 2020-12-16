@@ -36,12 +36,6 @@ instance for each item in that map or set. Each instance has a distinct
 infrastructure object associated with it, and each is separately created,
 updated, or destroyed when the configuration is applied.
 
--> **Note:** The keys of the map (or all the values in the case of a set of strings) must
-be _known values_, or you will get an error message that `for_each` has dependencies
-that cannot be determined before apply, and a `-target` may be needed. `for_each` keys
-cannot be the result (or rely on the result of) of impure functions, including `uuid`, `bcrypt`,
-or `timestamp`, as their evaluation is deferred during the main evaluation step.
-
 Map:
 
 ```hcl
@@ -102,6 +96,20 @@ This object has two attributes:
 - `each.key` — The map key (or set member) corresponding to this instance.
 - `each.value` — The map value corresponding to this instance. (If a set was
   provided, this is the same as `each.key`.)
+
+## Limitations on values used in `for_each`
+
+The keys of the map (or all the values in the case of a set of strings) must
+be _known values_, or you will get an error message that `for_each` has dependencies
+that cannot be determined before apply, and a `-target` may be needed.
+
+`for_each` keys cannot be the result (or rely on the result of) of impure functions,
+including `uuid`, `bcrypt`, or `timestamp`, as their evaluation is deferred during the
+main evaluation step.
+
+Sensitive values, such as [sensitive input variables](https://www.terraform.io/docs/configuration/variables.html#suppressing-values-in-cli-output), [sensitive outputs](https://www.terraform.io/docs/configuration/outputs.html#sensitive-suppressing-values-in-cli-output), or [sensitive resource attributes](https://www.terraform.io/docs/configuration/expressions/references.html#sensitive-resource-attributes) (if the `provider_sensitive_attrs` experiment is enabled), cannot be used as arguments to `for_each`. The value used in `for_each` is used to identify the resource instance and will always be disclosed in UI output, which is why sensitive values are not allowed. Attempts to use sensitive values as `for_each` arguments will result in an error.
+
+If you transform a value containing sensitive data into an argument to be used in `for_each`, be aware that [most functions in Terraform will return a sensitive result if given an argument with any sensitive content](https://www.terraform.io/docs/configuration/expressions/function-calls.html#using-sensitive-data-as-function-arguments). In many cases, you can achieve similar results to a function used for this purpose by using a `for` expression. For example, if you would like to call `keys(local.map)`, where `local.map` is an object with sensitive values (but non-sensitive keys), you can create a value to pass to  `for_each` with `toset([for k,v in local.map : k])`.
 
 ## Using Expressions in `for_each`
 
