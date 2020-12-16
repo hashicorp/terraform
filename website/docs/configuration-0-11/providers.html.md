@@ -220,7 +220,7 @@ may also be used, but currently may cause errors when running `terraform destroy
 ## Third-party Plugins
 
 Anyone can develop and distribute their own Terraform providers. (See
-[Writing Custom Providers](/docs/extend/writing-custom-providers.html) for more
+[Writing Custom Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE/docs/extend/writing-custom-providers.htmlutm_medium=WEB_IO/docs/extend/writing-custom-providers.htmlutm_offer=ARTICLE_PAGE/docs/extend/writing-custom-providers.htmlutm_content=DOCS) for more
 about provider development.) These third-party providers must be manually
 installed, since `terraform init` cannot automatically download them.
 

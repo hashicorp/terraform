@@ -31,7 +31,7 @@ behavior. For more information on this assumption, see
 ## Currently State Only
 
 The current implementation of Terraform import can only import resources
-into the [state](/docs/state). It does not generate configuration. A future
+into the [state](/docs/state/). It does not generate configuration. A future
 version of Terraform will also generate configuration.
 
 Because of this, prior to running `terraform import` it is necessary to write

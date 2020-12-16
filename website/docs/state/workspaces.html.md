@@ -195,7 +195,7 @@ control, although using a remote backend instead is recommended when there are
 multiple collaborators.
 
 For [remote state](/docs/state/remote.html), the workspaces are stored
-directly in the configured [backend](/docs/backends). For example, if you
+directly in the configured [backend](/docs/backends/). For example, if you
 use [Consul](/docs/backends/types/consul.html), the workspaces are stored
 by appending the workspace name to the state path. To ensure that
 workspace names are stored correctly and safely in all backends, the name
