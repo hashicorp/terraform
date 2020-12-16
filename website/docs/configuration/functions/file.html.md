@@ -31,7 +31,7 @@ dependency graph, so this function cannot be used with files that are generated
 dynamically during a Terraform operation. We do not recommend using dynamic
 local files in Terraform configurations, but in rare situations where this is
 necessary you can use
-[the `local_file` data source](/docs/providers/local/d/file.html)
+[the `local_file` data source](https://registry.terraform.io/providers/hashicorp/local/latest/docs/data-sources/file)
 to read files while respecting resource dependencies.
 
 ## Examples

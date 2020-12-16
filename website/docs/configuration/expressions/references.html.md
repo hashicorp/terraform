@@ -213,7 +213,7 @@ resource "aws_instance" "example" {
 }
 ```
 
-The documentation for [`aws_instance`](/docs/providers/aws/r/instance.html)
+The documentation for [`aws_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance)
 lists all of the arguments and nested blocks supported for this resource type,
 and also lists a number of attributes that are _exported_ by this resource
 type. All of these different resource type schema constructs are available

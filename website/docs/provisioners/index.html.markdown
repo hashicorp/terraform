@@ -50,25 +50,25 @@ to pass data to instances at the time of their creation such that the data
 is immediately available on system boot. For example:
 
 * Alibaba Cloud: `user_data` on
-  [`alicloud_instance`](/docs/providers/alicloud/r/instance.html)
-  or [`alicloud_launch_template`](/docs/providers/alicloud/r/launch_template.html).
+  [`alicloud_instance`](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/instance)
+  or [`alicloud_launch_template`](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/launch_template).
 * Amazon EC2: `user_data` or `user_data_base64` on
-  [`aws_instance`](/docs/providers/aws/r/instance.html),
-  [`aws_launch_template`](/docs/providers/aws/r/launch_template.html),
-  and [`aws_launch_configuration`](/docs/providers/aws/r/launch_configuration.html).
+  [`aws_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance),
+  [`aws_launch_template`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/launch_template),
+  and [`aws_launch_configuration`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/launch_configuration).
 * Amazon Lightsail: `user_data` on
-  [`aws_lightsail_instance`](/docs/providers/aws/r/lightsail_instance.html).
+  [`aws_lightsail_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lightsail_instance).
 * Microsoft Azure: `custom_data` on
-  [`azurerm_virtual_machine`](/docs/providers/azurerm/r/virtual_machine.html)
-  or [`azurerm_virtual_machine_scale_set`](/docs/providers/azurerm/r/virtual_machine_scale_set.html).
+  [`azurerm_virtual_machine`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine)
+  or [`azurerm_virtual_machine_scale_set`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine_scale_set).
 * Google Cloud Platform: `metadata` on
-  [`google_compute_instance`](/docs/providers/google/r/compute_instance.html)
-  or [`google_compute_instance_group`](/docs/providers/google/r/compute_instance_group.html).
+  [`google_compute_instance`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance)
+  or [`google_compute_instance_group`](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance_group).
 * Oracle Cloud Infrastructure: `metadata` or `extended_metadata` on
-  [`oci_core_instance`](/docs/providers/oci/r/core_instance.html)
-  or [`oci_core_instance_configuration`](/docs/providers/oci/r/core_instance_configuration.html).
+  [`oci_core_instance`](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/core_instance)
+  or [`oci_core_instance_configuration`](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/core_instance_configuration).
 * VMware vSphere: Attach a virtual CDROM to
-  [`vsphere_virtual_machine`](/docs/providers/vsphere/r/virtual_machine.html)
+  [`vsphere_virtual_machine`](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs/resources/virtual_machine)
   using the `cdrom` block, containing a file called `user-data.txt`.
 
 Many official Linux distribution disk images include software called

@@ -449,7 +449,7 @@ Terraform 0.12 and later.
 ## Templates
 
 Long strings can be managed using templates.
-[Templates](/docs/providers/template/index.html) are
+[Templates](https://registry.terraform.io/providers/hashicorp/template/latest/docs) are
 [data-sources](./data-sources.html) defined by a
 string with interpolation tokens (usually loaded from a file) and some variables
 to use during interpolation. They have a computed `rendered` attribute
@@ -487,7 +487,7 @@ by the surrounding scope of the configuration.
 
 You may use any of the built-in functions in your template. For more
 details on template usage, please see the
-[template_file documentation](/docs/providers/template/d/file.html).
+[template_file documentation](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file).
 
 ### Using Templates with Count
 

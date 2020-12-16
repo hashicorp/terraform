@@ -28,7 +28,7 @@ terraform {
 }
 ```
 
-This assumes we have a [COS Bucket](https://www.terraform.io/docs/providers/tencentcloud/r/cos_bucket.html) created named `bucket-for-terraform-state-1258798060`,
+This assumes we have a [COS Bucket](https://registry.terraform.io/providers/tencentcloudstack/tencentcloud/latest/docs/resources/cos_bucket) created named `bucket-for-terraform-state-1258798060`,
 Terraform state will be written into the file `terraform/state/terraform.tfstate`.
 
 ## Data Source Configuration
