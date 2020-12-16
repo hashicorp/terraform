@@ -46,9 +46,9 @@ between configurations, you may prefer to use more general stores to
 pass settings both to other configurations and to other consumers. For example,
 if your environment has [HashiCorp Consul](https://www.consul.io/) then you
 can have one Terraform configuration that writes to Consul using
-[`consul_key_prefix`](/docs/providers/consul/r/key_prefix.html) and then
+[`consul_key_prefix`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix) and then
 another that consumes those values using
-[the `consul_keys` data source](/docs/providers/consul/d/keys.html).
+[the `consul_keys` data source](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys).
 
 ## Locking and Teamwork
 

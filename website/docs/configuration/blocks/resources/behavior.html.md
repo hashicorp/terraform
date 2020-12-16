@@ -95,9 +95,9 @@ types that operate only within Terraform itself, calculating some results and
 saving those results in the state for future use.
 
 For example, local-only resource types exist for
-[generating private keys](/docs/providers/tls/r/private_key.html),
-[issuing self-signed TLS certificates](/docs/providers/tls/r/self_signed_cert.html),
-and even [generating random ids](/docs/providers/random/r/id.html).
+[generating private keys](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key),
+[issuing self-signed TLS certificates](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/self_signed_cert),
+and even [generating random ids](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id).
 While these resource types often have a more marginal purpose than those
 managing "real" infrastructure objects, they can be useful as glue to help
 connect together other resources.

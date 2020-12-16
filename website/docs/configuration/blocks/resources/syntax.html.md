@@ -46,7 +46,7 @@ resource and so must be unique within a module.
 Within the block body (between `{` and `}`) are the configuration arguments
 for the resource itself. Most arguments in this section depend on the
 resource type, and indeed in this example both `ami` and `instance_type` are
-arguments defined specifically for [the `aws_instance` resource type](/docs/providers/aws/r/instance.html).
+arguments defined specifically for [the `aws_instance` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance).
 
 -> **Note:** Resource names must start with a letter or underscore, and may
 contain only letters, digits, underscores, and dashes.
@@ -144,7 +144,7 @@ The following meta-arguments are documented on separate pages:
 Some resource types provide a special `timeouts` nested block argument that
 allows you to customize how long certain operations are allowed to take
 before being considered to have failed.
-For example, [`aws_db_instance`](/docs/providers/aws/r/db_instance.html)
+For example, [`aws_db_instance`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance)
 allows configurable timeouts for `create`, `update` and `delete` operations.
 
 Timeouts are handled entirely by the resource type implementation in the
