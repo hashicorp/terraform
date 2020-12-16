@@ -81,5 +81,5 @@ Usage: terraform state pull [options]
 }
 
 func (c *StatePullCommand) Synopsis() string {
-	return "Pull current state and output to stdout"
+	return "Read current state and write it to stdout"
 }

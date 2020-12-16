@@ -40,13 +40,17 @@ func (c *WorkspaceShowCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceShowCommand) Help() string {
 	helpText := `
-Usage: terraform workspace show
+Usage: terraform state current
 
-  Show the name of the current workspace.
+  Show the name of the currently-selected named state.
+
+  Typically a configuration as only one state associated with it, which is
+  always named "default". If you have created additional named states then
+  this command may return a different name.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WorkspaceShowCommand) Synopsis() string {
-	return "Show the name of the current workspace"
+	return "Show the name of the currently-selected state"
 }

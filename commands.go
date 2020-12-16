@@ -124,41 +124,6 @@ func initCommands(
 			}, nil
 		},
 
-		"env": func() (cli.Command, error) {
-			return &command.WorkspaceCommand{
-				Meta:       meta,
-				LegacyName: true,
-			}, nil
-		},
-
-		"env list": func() (cli.Command, error) {
-			return &command.WorkspaceListCommand{
-				Meta:       meta,
-				LegacyName: true,
-			}, nil
-		},
-
-		"env select": func() (cli.Command, error) {
-			return &command.WorkspaceSelectCommand{
-				Meta:       meta,
-				LegacyName: true,
-			}, nil
-		},
-
-		"env new": func() (cli.Command, error) {
-			return &command.WorkspaceNewCommand{
-				Meta:       meta,
-				LegacyName: true,
-			}, nil
-		},
-
-		"env delete": func() (cli.Command, error) {
-			return &command.WorkspaceDeleteCommand{
-				Meta:       meta,
-				LegacyName: true,
-			}, nil
-		},
-
 		"fmt": func() (cli.Command, error) {
 			return &command.FmtCommand{
 				Meta: meta,
@@ -286,19 +251,22 @@ func initCommands(
 
 		"workspace": func() (cli.Command, error) {
 			return &command.WorkspaceCommand{
-				Meta: meta,
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"workspace list": func() (cli.Command, error) {
 			return &command.WorkspaceListCommand{
-				Meta: meta,
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"workspace select": func() (cli.Command, error) {
 			return &command.WorkspaceSelectCommand{
-				Meta: meta,
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
@@ -310,13 +278,15 @@ func initCommands(
 
 		"workspace new": func() (cli.Command, error) {
 			return &command.WorkspaceNewCommand{
-				Meta: meta,
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
 		"workspace delete": func() (cli.Command, error) {
 			return &command.WorkspaceDeleteCommand{
-				Meta: meta,
+				Meta:       meta,
+				LegacyName: true,
 			}, nil
 		},
 
@@ -344,6 +314,36 @@ func initCommands(
 
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{}, nil
+		},
+
+		"state available": func() (cli.Command, error) {
+			return &command.WorkspaceListCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state select": func() (cli.Command, error) {
+			return &command.WorkspaceSelectCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state current": func() (cli.Command, error) {
+			return &command.WorkspaceShowCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state new": func() (cli.Command, error) {
+			return &command.WorkspaceNewCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"state delete": func() (cli.Command, error) {
+			return &command.WorkspaceDeleteCommand{
+				Meta: meta,
+			}, nil
 		},
 
 		"state list": func() (cli.Command, error) {
@@ -409,6 +409,7 @@ func initCommands(
 		"env":             struct{}{},
 		"internal-plugin": struct{}{},
 		"push":            struct{}{},
+		"workspace":       struct{}{},
 	}
 
 }

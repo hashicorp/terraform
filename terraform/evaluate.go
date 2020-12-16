@@ -903,17 +903,23 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 	switch addr.Name {
 
 	case "workspace":
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  `Deprecated "terraform" attribute`,
+			Detail:   `The terraform.workspace attribute is deprecated to reduce confusion with the Terraform Cloud concept of the same name. Use terraform.state instead, as a direct replacement to get the name of the currently-selected state.`,
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		fallthrough
+
+	case "state":
 		workspaceName := d.Evaluator.Meta.Env
 		return cty.StringVal(workspaceName), diags
 
 	case "env":
-		// Prior to Terraform 0.12 there was an attribute "env", which was
-		// an alias name for "workspace". This was deprecated and is now
-		// removed.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid "terraform" attribute`,
-			Detail:   `The terraform.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" concept was rename to "workspace" in v0.12, and so the workspace name can now be accessed using the terraform.workspace attribute.`,
+			Detail:   `The terraform.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" or "workspace" concept was renamed to "state" in v0.15, and so the currently-selected state name can now be accessed using the terraform.state attribute.`,
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -922,7 +928,7 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid "terraform" attribute`,
-			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attribute is terraform.workspace, the name of the currently-selected workspace.`, addr.Name),
+			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attribute is terraform.state, the name of the currently-selected state.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags

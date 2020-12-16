@@ -195,5 +195,5 @@ Options:
 }
 
 func (c *StateReplaceProviderCommand) Synopsis() string {
-	return "Replace provider in the state"
+	return "Replace a provider in the current state"
 }

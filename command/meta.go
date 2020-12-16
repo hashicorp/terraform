@@ -634,31 +634,44 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 }
 
-// WorkspaceNameEnvVar is the name of the environment variable that can be used
-// to set the name of the Terraform workspace, overriding the workspace chosen
-// by `terraform workspace select`.
+// CurrentStateEnvVar is the name of the environment variable that can be used to
+// set the name of the current named state, overriding the one chosen by
+// `terraform state select`.
 //
 // Note that this environment variable is ignored by `terraform workspace new`
 // and `terraform workspace delete`.
-const WorkspaceNameEnvVar = "TF_WORKSPACE"
+const CurrentStateEnvVar = "TF_CURRENT_STATE"
 
-var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+// CurrentStateEnvVarLegacy is an alternative environment variable name that
+// can be used instead of StateNameEnvVar for backward compatibility.
+//
+// This variable name is deprecated.
+const CurrentStateEnvVarLegacy = "TF_WORKSPACE"
+
+var errInvalidStateNameEnvVar = fmt.Errorf("Invalid state name set using %s", CurrentStateEnvVar)
 
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Workspace() (string, error) {
 	current, overridden := m.WorkspaceOverridden()
 	if overridden && !validWorkspaceName(current) {
-		return "", errInvalidWorkspaceNameEnvVar
+		return "", errInvalidStateNameEnvVar
 	}
 	return current, nil
 }
 
 // WorkspaceOverridden returns the name of the currently configured workspace,
 // corresponding to the desired named state, as well as a bool saying whether
-// this was set via the TF_WORKSPACE environment variable.
+// this was set via the TF_CURRENT_STATE environment variable.
 func (m *Meta) WorkspaceOverridden() (string, bool) {
-	if envVar := os.Getenv(WorkspaceNameEnvVar); envVar != "" {
+	if envVar := os.Getenv(CurrentStateEnvVar); envVar != "" {
+		return envVar, true
+	}
+	if envVar := os.Getenv(CurrentStateEnvVarLegacy); envVar != "" {
+		// TODO: Ideally we'd also be able to indicate to the caller that
+		// we got this from the _legacy_ environment variable, so they can
+		// potentially generate messaging about it being deprecated, but
+		// will save that for later because we're just prototyping right now.
 		return envVar, true
 	}
 

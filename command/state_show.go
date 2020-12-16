@@ -164,7 +164,7 @@ Options:
 }
 
 func (c *StateShowCommand) Synopsis() string {
-	return "Show a resource in the state"
+	return "Show a resource in the current state"
 }
 
 const errNoInstanceFound = `No instance found for the given address!

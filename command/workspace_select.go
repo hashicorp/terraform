@@ -16,7 +16,7 @@ type WorkspaceSelectCommand struct {
 
 func (c *WorkspaceSelectCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	workspaceCommandShowWarning(c.Ui, c.Colorize(), c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace select")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -129,14 +129,23 @@ func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform workspace select NAME [DIR]
+Usage: terraform state select NAME
 
-  Select a different Terraform workspace.
+  Select a different state for subsequent operations.
 
+  If you've created additional states then you can switch between your named
+  states using this command. The primary state is always called "default",
+  while any additional workspaces have names selected by the person who
+  created them.
+
+  The currently-selected state is tracked by name in your local working
+  directory. Changing the selected state doesn't affect any other working
+  directories or other users running Terraform against this configuration
+  elsewhere.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WorkspaceSelectCommand) Synopsis() string {
-	return "Select a workspace"
+	return "Select a different state for subsequent operations"
 }

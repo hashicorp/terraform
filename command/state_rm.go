@@ -168,7 +168,7 @@ Options:
 }
 
 func (c *StateRmCommand) Synopsis() string {
-	return "Remove instances from the state"
+	return "Forget objects in the current state"
 }
 
 const errStateRmPersist = `Error saving the state: %s

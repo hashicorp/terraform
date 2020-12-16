@@ -500,7 +500,7 @@ Options:
 }
 
 func (c *StateMvCommand) Synopsis() string {
-	return "Move an item in the state"
+	return "Move an item in the current state"
 }
 
 const errStateMv = `Error moving state: %s

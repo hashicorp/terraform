@@ -217,8 +217,8 @@ func TestMeta_Env(t *testing.T) {
 
 func TestMeta_Workspace_override(t *testing.T) {
 	defer func(value string) {
-		os.Setenv(WorkspaceNameEnvVar, value)
-	}(os.Getenv(WorkspaceNameEnvVar))
+		os.Setenv(CurrentStateEnvVar, value)
+	}(os.Getenv(CurrentStateEnvVar))
 
 	m := new(Meta)
 
@@ -236,13 +236,13 @@ func TestMeta_Workspace_override(t *testing.T) {
 		},
 		"invalid name": {
 			"",
-			errInvalidWorkspaceNameEnvVar,
+			errInvalidStateNameEnvVar,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			os.Setenv(WorkspaceNameEnvVar, name)
+			os.Setenv(CurrentStateEnvVar, name)
 			workspace, err := m.Workspace()
 			if workspace != tc.workspace {
 				t.Errorf("Unexpected workspace\n got: %s\nwant: %s\n", workspace, tc.workspace)

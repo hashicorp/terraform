@@ -16,7 +16,7 @@ type WorkspaceListCommand struct {
 
 func (c *WorkspaceListCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	workspaceCommandShowWarning(c.Ui, c.Colorize(), c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -91,14 +91,17 @@ func (c *WorkspaceListCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceListCommand) Help() string {
 	helpText := `
-Usage: terraform workspace list [DIR]
+Usage: terraform state available
 
-  List Terraform workspaces.
+  Prints a list of all of the named states available in the
+  currently-configured backend.
 
+  In the typical situation where a configuration has only one associated state,
+  that single state is named "default".
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WorkspaceListCommand) Synopsis() string {
-	return "List Workspaces"
+	return "List all states for the current configuration"
 }

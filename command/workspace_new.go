@@ -21,7 +21,7 @@ type WorkspaceNewCommand struct {
 
 func (c *WorkspaceNewCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	workspaceCommandShowWarning(c.Ui, c.Colorize(), c.LegacyName)
 
 	var stateLock bool
 	var stateLockTimeout time.Duration
@@ -176,23 +176,30 @@ func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceNewCommand) Help() string {
 	helpText := `
-Usage: terraform workspace new [OPTIONS] NAME [DIR]
+Usage: terraform state new [OPTIONS] NAME
 
-  Create a new Terraform workspace.
+  Create an additional named state in the currently-configured backend.
 
+  Most Terraform configurations should only have one associated state, but in
+  some unusual cases it can be convenient to temporarily create additional
+  states. The additional named states will also be visible to and usable
+  by others who have access to the configured backend.
+
+  When using multiple states, the primary state is named "default" and all
+  additional states have names chosen by you at creation time.
 
 Options:
 
-    -lock=true          Lock the state file when locking is supported.
+    -lock               Lock the state file when locking is supported.
 
     -lock-timeout=0s    Duration to retry a state lock.
 
-    -state=path    Copy an existing state file into the new workspace.
+    -state=path         Copy an existing state file into the new workspace.
 
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *WorkspaceNewCommand) Synopsis() string {
-	return "Create a new workspace"
+	return "Create an additional named state"
 }

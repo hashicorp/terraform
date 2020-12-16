@@ -19,7 +19,7 @@ type WorkspaceDeleteCommand struct {
 
 func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
+	workspaceCommandShowWarning(c.Ui, c.Colorize(), c.LegacyName)
 
 	var force bool
 	var stateLock bool
@@ -182,16 +182,21 @@ func (c *WorkspaceDeleteCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
-Usage: terraform workspace delete [OPTIONS] NAME [DIR]
+Usage: terraform state delete [OPTIONS] NAME
 
-  Delete a Terraform workspace
+  Delete a non-default named state from the current backend.
 
+  This command is only relevant when you are working with multiple named states.
+  Deleting the "default" state is not allowed.
 
 Options:
 
-    -force    remove a non-empty workspace.
+    -force              Discard the state even if it contains resource
+                        instances. Normally this command will only delete
+                        empty states, such as what results from running
+                        terraform destroy.
 
-    -lock=true          Lock the state file when locking is supported.
+    -lock               Lock the state file when locking is supported.
 
     -lock-timeout=0s    Duration to retry a state lock.
 
@@ -200,5 +205,5 @@ Options:
 }
 
 func (c *WorkspaceDeleteCommand) Synopsis() string {
-	return "Delete a workspace"
+	return "Delete a non-default state"
 }
