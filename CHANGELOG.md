@@ -8,11 +8,12 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* cli: `-refresh=false` was skipped when running apply directly [GH-27233]
+* config: Fix `anytrue` and `alltrue` functions when called with values which are not known until apply. [GH-27240]
+* config: Fix `sum` function when called with values which are not known until apply. Also allows `sum` to cope with numbers too large to represent in float64, along with correctly handling errors around infinite values. [GH-27249]
+* `terraform apply`: `-refresh=false` was skipped when running apply directly [GH-27233]
 * configs: Fixed panic when referencing sensitive values in resource `count` expressions [GH-27238]
-* init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
-* lang: Fix `anytrue` and `alltrue` functions when called with values which are not known until apply. [GH-27240]
-* lang: Fix `sum` function when called with values which are not known until apply. Also allows `sum` to cope with numbers too large to represent in float64, along with correctly handling errors around infinite values. [GH-27249]
+* `terraform init`: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
+* `terraform init` and other commands which interact with the dependency lock file: These will now generate a normal error message if the lock file is incorrectly a directory, rather than crashing as before. [GH-27250]
 
 ## 0.14.2 (December 08, 2020)
 
