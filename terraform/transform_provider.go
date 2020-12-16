@@ -67,6 +67,7 @@ type GraphNodeProviderConsumer interface {
 	// ProvidedBy returns the address of the provider configuration the node
 	// refers to, if available. The following value types may be returned:
 	//
+	//   nil + exact true: the node does not require a provider
 	// * addrs.LocalProviderConfig: the provider was set in the resource config
 	// * addrs.AbsProviderConfig + exact true: the provider configuration was
 	//   taken from the instance state.
@@ -111,9 +112,14 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
+			providerAddr, exact := pv.ProvidedBy()
+			if providerAddr == nil && exact {
+				// no provider is required
+				continue
+			}
+
 			requested[v] = make(map[string]ProviderRequest)
 
-			providerAddr, exact := pv.ProvidedBy()
 			var absPc addrs.AbsProviderConfig
 
 			switch p := providerAddr.(type) {

@@ -27,6 +27,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {
@@ -46,6 +47,14 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	default:
 		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
 	}
+}
+
+func (n *NodePlannableResourceInstanceOrphan) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		// indicate that this node does not require a configured provider
+		return nil, true
+	}
+	return n.NodeAbstractResourceInstance.ProvidedBy()
 }
 
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
