@@ -1298,12 +1298,11 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			remoteVersion: "0.13.5",
 			hasOperations: false,
 		},
-		"error if force local, has remote operations, different versions": {
+		"force local with remote operations and different versions is acceptable": {
 			localVersion:  "0.14.0",
-			remoteVersion: "0.13.5",
+			remoteVersion: "0.14.0-acme-provider-bundle",
 			forceLocal:    true,
 			hasOperations: true,
-			wantErr:       `Remote workspace Terraform version "0.13.5" does not match local Terraform version "0.14.0"`,
 		},
 		"no error if versions are identical": {
 			localVersion:  "0.14.0",
