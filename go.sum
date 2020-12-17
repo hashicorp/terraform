@@ -345,8 +345,8 @@ github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f h1:UdxlrJz4JOnY8W+DbLISwf2B8WXEolNRA8BGCwI9jws=
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
 github.com/hashicorp/hcl/v2 v2.0.0/go.mod h1:oVVDG71tEinNGYCxinCYadcmKU9bglqW9pV3txagJ90=
-github.com/hashicorp/hcl/v2 v2.8.0 h1:iHLEAsNDp3N2MtqroP1wf0nF/zB2+McHN5YCzwqIm80=
-github.com/hashicorp/hcl/v2 v2.8.0/go.mod h1:bQTN5mpo+jewjJgh8jr0JUguIi7qPHUF6yIfAEN3jqY=
+github.com/hashicorp/hcl/v2 v2.8.1 h1:FJ60CIYaMyJOKzPndhMyjiz353Fd+2jr6PodF5Xzb08=
+github.com/hashicorp/hcl/v2 v2.8.1/go.mod h1:bQTN5mpo+jewjJgh8jr0JUguIi7qPHUF6yIfAEN3jqY=
 github.com/hashicorp/memberlist v0.1.0 h1:qSsCiC0WYD39lbSitKNt40e30uorm2Ss/d4JGU1hzH8=
 github.com/hashicorp/memberlist v0.1.0/go.mod h1:ncdBp14cuox2iFOq3kDiquKU6fqsTBc3W6JvZwjxxsE=
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb h1:ZbgmOQt8DOg796figP87/EFCVx2v2h9yRvwHF/zceX4=
@@ -492,8 +492,6 @@ github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db/go.mod h1
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c h1:Lgl0gzECD8GnQ5QCWA8o6BtfL6mDH5rQgM4/fX3avOs=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/peterbourgon/diskv v2.0.1+incompatible/go.mod h1:uqqh8zWWbv1HBMNONnaR/tNboyR3/BZd58JJSHlUSCU=
-github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4 h1:49lOXmGaUpV9Fz3gd7TFZY106KVlPVa5jcYD1gaQf98=
-github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4/go.mod h1:4OwLy04Bl9Ef3GJJCoec+30X3LQs/0/m4HFRt/2LUSA=
 github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23 h1:dofHuld+js7eKSemxqTVIo8yRlpRw+H1SdpzZxWruBc=
 github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23/go.mod h1:N6UoU20jOqggOuDwUaBQpluzLNDqif3kq9z2wpdYEfQ=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
