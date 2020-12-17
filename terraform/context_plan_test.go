@@ -6616,3 +6616,55 @@ resource "test_instance" "a" {
 		t.Fatal(diags.Err())
 	}
 }
+
+func TestContext2Plan_dataRemovalNoProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"a","data":"foo"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	// the provider for this data source is no longer in the config, but that
+	// should not matter for state removal.
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.test_data_source.d").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"d"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/local/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			// We still need to be able to locate the provider to decode the
+			// state, since we do not know during init that this provider is
+			// only used for an orphaned data source.
+			addrs.NewProvider("registry.terraform.io", "local", "test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+}
