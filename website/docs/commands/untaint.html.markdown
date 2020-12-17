@@ -57,8 +57,3 @@ certain cases, see above note). The list of available flags are:
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
   [remote state](/docs/state/remote.html) is used.
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.

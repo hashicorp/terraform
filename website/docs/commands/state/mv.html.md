@@ -57,11 +57,6 @@ The command-line flags are all optional. The list of available flags are:
   isn't specified the source state file will be used. This can be a new or
   existing path.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
-
 ## Example: Rename a Resource
 
 The example below renames the `packet_device` resource named `worker` to `helper`:

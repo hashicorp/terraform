@@ -85,9 +85,6 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
-	// This command will not write state
-	c.ignoreRemoteBackendVersionConflict(b)
-
 	workspaces, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to get configured named states: %s", err))
