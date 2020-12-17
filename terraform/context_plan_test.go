@@ -6564,3 +6564,60 @@ resource "test_instance" "a" {
 		t.Fatal(diags.Err())
 	}
 }
+
+func TestContext2Plan_noSensitivityChange(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "sensitive_var" {
+       default = "hello"
+       sensitive = true
+}
+
+resource "test_resource" "foo" {
+       value = var.sensitive_var
+       sensitive_value = var.sensitive_var
+}`,
+	})
+
+	p := testProvider("test")
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(
+				addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "foo",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "sensitive_value":"hello", "network_interface":[]}`),
+					AttrSensitivePaths: []cty.PathValueMarks{
+						cty.PathValueMarks{Path: cty.Path{cty.GetAttrStep{Name: "value"}}, Marks: cty.NewValueMarks("sensitive")},
+						cty.PathValueMarks{Path: cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}, Marks: cty.NewValueMarks("sensitive")},
+					},
+				},
+				addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+			)
+		}),
+	})
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected no changes, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
