@@ -1,25 +1,25 @@
-## 0.14.3 (Unreleased)
+## 0.14.3 (December 17, 2020)
 
 ENHANCEMENTS:
 
-* `terraform output`: Now supports a new "raw" mode, activated by the `-raw` option, for printing out the raw string representation of a particular output value. [GH-27212]
+* `terraform output`: Now supports a new "raw" mode, activated by the `-raw` option, for printing out the raw string representation of a particular output value. ([#27212](https://github.com/hashicorp/terraform/issues/27212))
 
     Only primitive-typed values have a string representation, so this formatting mode is not compatible with complex types. The `-json` mode is still available as a general way to get a machine-readable representation of an output value of any type.
     
-* config: `for_each` now allows maps whose _element values_ are sensitive, as long as the element keys and the map itself are not sensitive. [GH-27247]
+* config: `for_each` now allows maps whose _element values_ are sensitive, as long as the element keys and the map itself are not sensitive. ([#27247](https://github.com/hashicorp/terraform/issues/27247))
 
 BUG FIXES:
 
-* config: Fix `anytrue` and `alltrue` functions when called with values which are not known until apply. [GH-27240]
-* config: Fix `sum` function when called with values which are not known until apply. Also allows `sum` to cope with numbers too large to represent in float64, along with correctly handling errors around infinite values. [GH-27249]
-* config: Fixed panic when referencing sensitive values in resource `count` expressions [GH-27238]
-* config: Fix incorrect attributes in diagnostics when validating objects [GH-27010]
-* core: Prevent unexpected updates during plan when multiple sensitive values are involved [GH-27318]
+* config: Fix `anytrue` and `alltrue` functions when called with values which are not known until apply. ([#27240](https://github.com/hashicorp/terraform/issues/27240))
+* config: Fix `sum` function when called with values which are not known until apply. Also allows `sum` to cope with numbers too large to represent in float64, along with correctly handling errors around infinite values. ([#27249](https://github.com/hashicorp/terraform/issues/27249))
+* config: Fixed panic when referencing sensitive values in resource `count` expressions ([#27238](https://github.com/hashicorp/terraform/issues/27238))
+* config: Fix incorrect attributes in diagnostics when validating objects ([#27010](https://github.com/hashicorp/terraform/issues/27010))
+* core: Prevent unexpected updates during plan when multiple sensitive values are involved ([#27318](https://github.com/hashicorp/terraform/issues/27318))
 * dependencies: Fix several small bugs related to the use of `sensitive` values with expressions and functions.
-* lang: Fix panic when calling `coalescelist` with a `null` argument [GH-26988]
-* `terraform apply`: `-refresh=false` was skipped when running apply directly [GH-27233]
-* `terraform init`: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
-* `terraform init` and other commands which interact with the dependency lock file: These will now generate a normal error message if the lock file is incorrectly a directory, rather than crashing as before. [GH-27250]
+* lang: Fix panic when calling `coalescelist` with a `null` argument ([#26988](https://github.com/hashicorp/terraform/issues/26988))
+* `terraform apply`: `-refresh=false` was skipped when running apply directly ([#27233](https://github.com/hashicorp/terraform/issues/27233))
+* `terraform init`: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks ([#27092](https://github.com/hashicorp/terraform/issues/27092))
+* `terraform init` and other commands which interact with the dependency lock file: These will now generate a normal error message if the lock file is incorrectly a directory, rather than crashing as before. ([#27250](https://github.com/hashicorp/terraform/issues/27250))
 
 ## 0.14.2 (December 08, 2020)
 
