@@ -3,40 +3,20 @@ layout: "language"
 page_title: "Provider: Terraform"
 sidebar_current: "docs-terraform-index"
 description: |-
-  The Terraform provider is used to access meta data from shared infrastructure.
+  The special `terraform_remote_state` data source is used to access outputs from shared infrastructure.
 ---
 
-# Terraform Provider
+# The Built-In `terraform` Provider
 
-The terraform provider provides access to outputs from the Terraform state
-of shared infrastructure.
+Terraform includes one built-in data source:
+[`terraform_remote_state`](/docs/providers/terraform/d/remote_state.html), which
+provides access to root module outputs from some other Terraform configuration.
 
-Use the navigation to the left to read about the available data sources.
+This data source is implemented by a built-in provider, whose
+[source address](/docs/configuration/provider-requirements.html#source-addresses)
+is `terraform.io/builtin/terraform`. You do not need to require or configure
+this provider in order to use the `terraform_remote_state` data source; it is
+always available.
 
-## Example Usage
-
-```hcl
-# Shared infrastructure state stored in Atlas
-data "terraform_remote_state" "vpc" {
-  backend = "remote"
-
-  config = {
-    organization = "hashicorp"
-    workspaces = {
-      name = "vpc-prod"
-    }
-  }
-}
-
-# Terraform >= 0.12
-resource "aws_instance" "foo" {
-  # ...
-  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
-}
-
-# Terraform <= 0.11
-resource "aws_instance" "foo" {
-  # ...
-  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
-}
-```
+The `terraform_remote_state` data source is
+[documented in the Terraform Language docs](/docs/providers/terraform/d/remote_state.html).
