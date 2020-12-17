@@ -694,18 +694,21 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		}
 	}
 
+	// Terraform remote version conflicts are not a concern for operations. We
+	// are in one of three states:
+	//
+	// - Running remotely, in which case the local version is irrelevant;
+	// - Workspace configured for local operations, in which case the remote
+	//   version is meaningless;
+	// - Forcing local operations with a remote backend, which should only
+	//   happen in the Terraform Cloud worker, in which case the Terraform
+	//   versions by definition match.
+	b.IgnoreVersionConflict()
+
 	// Check if we need to use the local backend to run the operation.
 	if b.forceLocal || !w.Operations {
-		if !w.Operations {
-			// Workspace is explicitly configured for local operations, so its
-			// configured Terraform version is meaningless
-			b.IgnoreVersionConflict()
-		}
 		return b.local.Operation(ctx, op)
 	}
-
-	// Running remotely so we don't care about version conflicts
-	b.IgnoreVersionConflict()
 
 	// Set the remote workspace name.
 	op.Workspace = w.Name
