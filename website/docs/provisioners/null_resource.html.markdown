@@ -9,7 +9,7 @@ description: |-
 
 # Provisioners Without a Resource
 
-[null]: /docs/providers/null/resource.html
+[null]: https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource
 
 If you need to run provisioners that aren't directly associated with a specific
 resource, you can associate them with a `null_resource`.

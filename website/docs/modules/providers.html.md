@@ -80,7 +80,7 @@ however, specify any of the configuration settings that determine what remote
 endpoints the provider will access, such as an AWS region; configuration
 settings come from provider _configurations_, and a particular overall Terraform
 configuration can potentially have
-[several different configurations for the same provider](/docs/configuration/providers.html#alias-multiple-provider-instances).
+[several different configurations for the same provider](/docs/configuration/providers.html#alias-multiple-provider-configurations).
 
 If you are writing a shared Terraform module, constrain only the minimum
 required provider version using a `>=` constraint. This should specify the

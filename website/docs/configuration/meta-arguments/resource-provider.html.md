@@ -51,7 +51,7 @@ ensure that the provider is fully configured before any resource actions
 are taken.
 
 The `provider` meta-argument expects
-[a `<PROVIDER>.<ALIAS>` reference](/docs/configuration/providers.html#referring-to-alternate-providers),
+[a `<PROVIDER>.<ALIAS>` reference](/docs/configuration/providers.html#referring-to-alternate-provider-configurations),
 which does not need to be quoted. Arbitrary expressions are not permitted for
 `provider` because it must be resolved while Terraform is constructing the
 dependency graph, before it is safe to evaluate expressions.

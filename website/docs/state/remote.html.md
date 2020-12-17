@@ -19,7 +19,7 @@ which can then be shared between all members of a team. Terraform supports
 storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
 [HashiCorp Consul](https://www.consul.io/), Amazon S3, Azure Blob Storage, Google Cloud Storage, Alibaba Cloud OSS, and more.
 
-Remote state is a feature of [backends](/docs/backends), which you can activate
+Remote state is a feature of [backends](/docs/backends/), which you can activate
 in your configuration's root module.
 
 ## Delegation and Teamwork
@@ -46,9 +46,9 @@ between configurations, you may prefer to use more general stores to
 pass settings both to other configurations and to other consumers. For example,
 if your environment has [HashiCorp Consul](https://www.consul.io/) then you
 can have one Terraform configuration that writes to Consul using
-[`consul_key_prefix`](/docs/providers/consul/r/key_prefix.html) and then
+[`consul_key_prefix`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix) and then
 another that consumes those values using
-[the `consul_keys` data source](/docs/providers/consul/d/keys.html).
+[the `consul_keys` data source](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys).
 
 ## Locking and Teamwork
 

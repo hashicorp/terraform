@@ -158,20 +158,20 @@ rather than multiple deployments, data can be passed from one component to
 another using paired resources types and data sources. For example:
 
 * Where a shared [Consul](https://consul.io/) cluster is available, use
-  [`consul_key_prefix`](/docs/providers/consul/r/key_prefix.html) to
-  publish to the key/value store and [`consul_keys`](/docs/providers/consul/d/keys.html)
+  [`consul_key_prefix`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix) to
+  publish to the key/value store and [`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys)
   to retrieve those values in other configurations.
 
 * In systems that support user-defined labels or tags, use a tagging convention
   to make resources automatically discoverable. For example, use
-  [the `aws_vpc` resource type](/docs/providers/aws/r/vpc.html)
+  [the `aws_vpc` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc)
   to assign suitable tags and then
-  [the `aws_vpc` data source](/docs/providers/aws/d/vpc.html)
+  [the `aws_vpc` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc)
   to query by those tags in other configurations.
 
 * For server addresses, use a provider-specific resource to create a DNS
   record with a predictable name and then either use that name directly or
-  use [the `dns` provider](/docs/providers/dns/index.html) to retrieve
+  use [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs) to retrieve
   the published addresses in other configurations.
 
 * If a Terraform state for one configuration is stored in a remote backend
@@ -195,7 +195,7 @@ control, although using a remote backend instead is recommended when there are
 multiple collaborators.
 
 For [remote state](/docs/state/remote.html), the workspaces are stored
-directly in the configured [backend](/docs/backends). For example, if you
+directly in the configured [backend](/docs/backends/). For example, if you
 use [Consul](/docs/backends/types/consul.html), the workspaces are stored
 by appending the workspace name to the state path. To ensure that
 workspace names are stored correctly and safely in all backends, the name

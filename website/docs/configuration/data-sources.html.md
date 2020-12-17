@@ -49,7 +49,7 @@ resource and so must be unique within a module.
 Within the block body (between `{` and `}`) are query constraints defined by
 the data source. Most arguments in this section depend on the
 data source, and indeed in this example `most_recent`, `owners` and `tags` are
-all arguments defined specifically for [the `aws_ami` data source](/docs/providers/aws/d/ami.html).
+all arguments defined specifically for [the `aws_ami` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami).
 
 When distinguishing from data resources, the primary kind of resource (as declared
 by a `resource` block) is known as a _managed resource_. Both kinds of resources
@@ -103,9 +103,9 @@ only within Terraform itself, calculating some results and exposing them
 for use elsewhere.
 
 For example, local-only data sources exist for
-[rendering templates](/docs/providers/template/d/file.html),
-[reading local files](/docs/providers/local/d/file.html), and
-[rendering AWS IAM policies](/docs/providers/aws/d/iam_policy_document.html).
+[rendering templates](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file),
+[reading local files](https://registry.terraform.io/providers/hashicorp/local/latest/docs/data-sources/file), and
+[rendering AWS IAM policies](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document).
 
 The behavior of local-only data sources is the same as all other data
 sources, but their result data exists only temporarily during a Terraform
