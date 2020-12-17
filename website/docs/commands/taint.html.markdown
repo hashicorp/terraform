@@ -65,11 +65,6 @@ The command-line flags are all optional. The list of available flags are:
   `-state` path will be used. Ignored when
   [remote state](/docs/state/remote.html) is used.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
-
 ## Example: Tainting a Single Resource
 
 This example will taint a single resource:

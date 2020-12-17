@@ -38,11 +38,6 @@ The command-line flags are all optional. The list of available flags are:
 * `-state=path` - Path to the source state file to read from. Defaults to the
   configured backend, or "terraform.tfstate".
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
-
 ## Example
 
 The example below replaces the `hashicorp/aws` provider with a fork by `acme`, hosted at a private registry at `registry.acme.corp`:
