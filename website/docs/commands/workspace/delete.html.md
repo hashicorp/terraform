@@ -1,41 +1,45 @@
 ---
 layout: "docs"
-page_title: "Command: workspace delete"
-sidebar_current: "docs-commands-workspace-sub-delete"
+page_title: "Command: state delete"
+sidebar_current: "docs-commands-state-sub-delete"
 description: |-
-  The terraform workspace delete command is used to delete a workspace.
+  The terraform state delete command is used to delete a named state.
 ---
 
-# Command: workspace delete
+# Command: state delete
 
-The `terraform workspace delete` command is used to delete an existing workspace.
+The `terraform state delete` command deletes one of the additional states that
+you can optionally associate with your configuration.
 
 ## Usage
 
-Usage: `terraform workspace delete [OPTIONS] NAME [DIR]`
+Usage: `terraform state delete [OPTIONS] NAME [DIR]`
 
-This command will delete the specified workspace.
+If you are using [multiple states](/docs/state/multiple.html) with your
+configuration then you can use `terraform state delete` to discard one of
+the non-default states.
 
-To delete an workspace, it must already exist, it must have an empty state,
-and it must not be your current workspace. If the workspace state is not empty,
-Terraform will not allow you to delete it unless the `-force` flag is specified.
+By default this command will refuse to delete a state that has at least one
+resource tracked in it. You can use
+[`terraform destroy`](../destroy.html) with that state selected to destroy the
+objects associated with those resources.
 
-If you delete a workspace with a non-empty state (via `-force`), then resources
-may become "dangling". These are resources that physically exist but that
-Terraform can no longer manage. This is sometimes preferred: you want
-Terraform to stop managing resources so they can be managed some other way.
-Most of the time, however, this is not intended and so Terraform protects you
-from getting into this situation.
+Deleting a state without destroying all of the associated objects first would
+cause Terraform to "forget" those objects and thus require you to delete them
+manually outside of Terraform. If you want to delete a state without deleting
+the associated objects first &mdash; and thus leaving them behind unmanaged
+by Terraform &mdash; you can use the `-force` option to override the usual
+error message in that case.
 
-The command-line flags are all optional. The only supported flag is:
+This command accepts the following options:
 
-* `-force` - Delete the workspace even if its state is not empty. Defaults to false.
-* `-lock`  - Lock the state file when locking is supported. Defaults to true.
-* `-lock-timeout`   - Duration to retry a state lock. Default 0s.
+* `-force` - Delete the workspace even if its state is not empty.
+* `-lock=false` - Disable the default behavior of locking the state before deleting it.
+* `-lock-timeout=DURATION` - If the lock is already held, wait for the given duration in case the lock is released before returning an error.
 
 ## Example
 
 ```
-$ terraform workspace delete example
-Deleted workspace "example".
+$ terraform state delete example
+Deleted state "example".
 ```
