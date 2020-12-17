@@ -28,7 +28,7 @@ func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach ma
 		})
 	}
 
-	if forEachVal.IsNull() || !forEachVal.IsKnown() || forEachVal.LengthInt() == 0 {
+	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set return a nil map
 		return map[string]cty.Value{}, diags
 	}
@@ -48,14 +48,19 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 
 	forEachVal, forEachDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
 	diags = diags.Append(forEachDiags)
-	if forEachVal.ContainsMarked() {
+
+	// If a whole map is marked, or a set contains marked values (which means the set is then marked)
+	// give an error diagnostic as this value cannot be used in for_each
+	if forEachVal.IsMarked() {
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid for_each argument",
-			Detail:   "Sensitive variable, or values derived from sensitive variables, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
-			Subject:  expr.Range().Ptr(),
+			Severity:   hcl.DiagError,
+			Summary:    "Invalid for_each argument",
+			Detail:     "Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			Subject:    expr.Range().Ptr(),
+			Expression: expr,
 		})
 	}
+
 	if diags.HasErrors() {
 		return nullMap, diags
 	}
@@ -83,7 +88,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 		})
 		return nullMap, diags
 
-	case forEachVal.LengthInt() == 0:
+	case markSafeLengthInt(forEachVal) == 0:
 		// If the map is empty ({}), return an empty map, because cty will
 		// return nil when representing {} AsValueMap. This also covers an empty
 		// set (toset([]))
@@ -125,4 +130,10 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.V
 	}
 
 	return forEachVal, nil
+}
+
+// markSafeLengthInt allows calling LengthInt on marked values safely
+func markSafeLengthInt(val cty.Value) int {
+	v, _ := val.UnmarkDeep()
+	return v.LengthInt()
 }
