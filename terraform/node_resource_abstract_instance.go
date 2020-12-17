@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"strings"
 
 	multierror "github.com/hashicorp/go-multierror"
@@ -920,7 +919,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// If we plan to write or delete sensitive paths from state,
 	// this is an Update action
-	if action == plans.NoOp && !reflect.DeepEqual(priorPaths, unmarkedPaths) {
+	if action == plans.NoOp && !marksEqual(unmarkedPaths, priorPaths) {
 		action = plans.Update
 	}
 
@@ -1863,7 +1862,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	// persisted.
 	eqV := unmarkedBefore.Equals(unmarkedAfter)
 	eq := eqV.IsKnown() && eqV.True()
-	if change.Action == plans.Update && eq && !reflect.DeepEqual(beforePaths, afterPaths) {
+	if change.Action == plans.Update && eq && !marksEqual(beforePaths, afterPaths) {
 		// Copy the previous state, changing only the value
 		newState = &states.ResourceInstanceObject{
 			CreateBeforeDestroy: state.CreateBeforeDestroy,
