@@ -11818,7 +11818,39 @@ resource "test_resource" "foo" {
 }`,
 	})
 
-	p := testProvider("test")
+	p := new(MockProvider)
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		return providers.ReadResourceResponse{NewState: req.PriorState}
+	}
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"network_interface": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"network_interface_id": {Type: cty.String, Optional: true},
+								"device_index":         {Type: cty.Number, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+		},
+	}
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
@@ -12049,7 +12081,7 @@ resource "test_resource" "foo" {
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				&states.ResourceInstanceObjectSrc{
 					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "network_interface":[]}`),
+					AttrsJSON: []byte(`{"id":"foo", "value":"hello"}`),
 					// No AttrSensitivePaths present
 				},
 				addrs.AbsProviderConfig{
