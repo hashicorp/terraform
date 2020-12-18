@@ -12331,3 +12331,50 @@ resource "test_instance" "a" {
 		}
 	}
 }
+
+func TestContext2Apply_dataSensitive(t *testing.T) {
+	m := testModule(t, "apply-data-sensitive")
+	p := testProvider("null")
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		// add the required id
+		m := req.Config.AsValueMap()
+		m["id"] = cty.StringVal("foo")
+
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(m),
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		},
+	})
+
+	if p, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	} else {
+		t.Logf(legacyDiffComparisonString(p.Changes))
+	}
+
+	state, diags := ctx.Apply()
+	assertNoErrors(t, diags)
+
+	addr := mustResourceInstanceAddr("data.null_data_source.testing")
+
+	dataSourceState := state.ResourceInstance(addr)
+	pvms := dataSourceState.Current.AttrSensitivePaths
+	if len(pvms) != 1 {
+		t.Fatalf("expected 1 sensitive path, got %d", len(pvms))
+	}
+	pvm := pvms[0]
+	if gotPath, wantPath := pvm.Path, cty.GetAttrPath("foo"); !gotPath.Equals(wantPath) {
+		t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
+	}
+	if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+		t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
+	}
+}
