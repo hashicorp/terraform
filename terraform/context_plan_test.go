@@ -6701,10 +6701,10 @@ resource "test_resource" "foo" {
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				&states.ResourceInstanceObjectSrc{
 					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "sensitive_value":"hello", "network_interface":[]}`),
+					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "sensitive_value":"hello"}`),
 					AttrSensitivePaths: []cty.PathValueMarks{
-						cty.PathValueMarks{Path: cty.Path{cty.GetAttrStep{Name: "value"}}, Marks: cty.NewValueMarks("sensitive")},
-						cty.PathValueMarks{Path: cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}, Marks: cty.NewValueMarks("sensitive")},
+						{Path: cty.Path{cty.GetAttrStep{Name: "value"}}, Marks: cty.NewValueMarks("sensitive")},
+						{Path: cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}, Marks: cty.NewValueMarks("sensitive")},
 					},
 				},
 				addrs.AbsProviderConfig{

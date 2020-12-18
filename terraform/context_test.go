@@ -599,15 +599,6 @@ func testProviderSchema(name string) *ProviderSchema {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"network_interface_id": {Type: cty.String, Optional: true},
-								"device_index":         {Type: cty.Number, Optional: true},
-							},
-						},
-						Nesting: configschema.NestingSet,
-					},
 					"nesting_single": {
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
