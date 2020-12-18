@@ -102,6 +102,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"replace":          funcs.ReplaceFunc,
 			"reverse":          stdlib.ReverseListFunc,
 			"rsadecrypt":       funcs.RsaDecryptFunc,
+			"sensitive":        funcs.SensitiveFunc,
+			"nonsensitive":     funcs.NonsensitiveFunc,
 			"setintersection":  stdlib.SetIntersectionFunc,
 			"setproduct":       stdlib.SetProductFunc,
 			"setsubtract":      stdlib.SetSubtractFunc,
