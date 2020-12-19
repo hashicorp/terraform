@@ -330,6 +330,7 @@ func TestInitProviderNotFound(t *testing.T) {
 
 	fixturePath := filepath.Join("testdata", "provider-not-found")
 	tf := e2e.NewBinary(terraformBin, fixturePath)
+	tf.AddEnv("TF_CLI_ARGS=-no-color")
 	defer tf.Close()
 
 	t.Run("registry provider not found", func(t *testing.T) {
@@ -338,9 +339,9 @@ func TestInitProviderNotFound(t *testing.T) {
 			t.Fatal("expected error, got success")
 		}
 
-		oneLineStderr := strings.ReplaceAll(stderr, "\n", " ")
+		oneLineStderr := strings.ReplaceAll(stderr, "\n│", "")
 		if !strings.Contains(oneLineStderr, "provider registry registry.terraform.io does not have a provider named registry.terraform.io/hashicorp/nonexist") {
-			t.Errorf("expected error message is missing from output:\n%s", stderr)
+			t.Errorf("expected error message is missing from output:\n%s", oneLineStderr)
 		}
 	})
 
@@ -356,8 +357,9 @@ func TestInitProviderNotFound(t *testing.T) {
 			t.Fatal("expected error, got success")
 		}
 
-		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n  - "+pluginDir) {
-			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		oneLineStderr := strings.ReplaceAll(stderr, "\n│", "")
+		if !strings.Contains(oneLineStderr, "provider registry.terraform.io/hashicorp/nonexist was not found in any of the search locations   - "+pluginDir) {
+			t.Errorf("expected error message is missing from output:\n%s", oneLineStderr)
 		}
 	})
 }
@@ -378,7 +380,7 @@ func TestInitProviderWarnings(t *testing.T) {
 		t.Fatal("expected error, got success")
 	}
 
-	if !strings.Contains(stdout, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
+	if !strings.Contains(stdout, "This provider is archived and no longer needed.") {
 		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
 

@@ -659,11 +659,11 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
 		switch diag.Severity() {
 		case tfdiags.Error:
-			m.Ui.Error(msg)
+			m.Ui.Error(strings.TrimSpace(msg))
 		case tfdiags.Warning:
-			m.Ui.Warn(msg)
+			m.Ui.Warn(strings.TrimSpace(msg))
 		default:
-			m.Ui.Output(msg)
+			m.Ui.Output(strings.TrimSpace(msg))
 		}
 	}
 }

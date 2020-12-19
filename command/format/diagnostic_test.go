@@ -25,12 +25,13 @@ func TestDiagnostic(t *testing.T) {
 				"A sourceless error",
 				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
 			),
-			`
-[bold][red]Error: [reset][bold]A sourceless error[reset]
-
-It has no source references but it does
-have a pretty long detail that should
-wrap over multiple lines.
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]A sourceless error[reset]
+[red]│[reset]
+[red]│[reset] It has no source references but it
+[red]│[reset] does have a pretty long detail that
+[red]│[reset] should wrap over multiple lines.
+[red]╵[reset]
 `,
 		},
 		"sourceless warning": {
@@ -39,12 +40,13 @@ wrap over multiple lines.
 				"A sourceless warning",
 				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
 			),
-			`
-[bold][yellow]Warning: [reset][bold]A sourceless warning[reset]
-
-It has no source references but it does
-have a pretty long detail that should
-wrap over multiple lines.
+			`[yellow]╷[reset]
+[yellow]│[reset] [bold][yellow]Warning: [reset][bold]A sourceless warning[reset]
+[yellow]│[reset]
+[yellow]│[reset] It has no source references but it
+[yellow]│[reset] does have a pretty long detail that
+[yellow]│[reset] should wrap over multiple lines.
+[yellow]╵[reset]
 `,
 		},
 		"error with source code subject": {
@@ -58,13 +60,14 @@ wrap over multiple lines.
 					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
 				},
 			},
-			`
-[bold][red]Error: [reset][bold]Bad bad bad[reset]
-
-  on test.tf line 1:
-   1: test [underline]source[reset] code
-
-Whatever shall we do?
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]
+[red]│[reset] Whatever shall we do?
+[red]╵[reset]
 `,
 		},
 		"error with source code subject and known expression": {
@@ -89,15 +92,16 @@ Whatever shall we do?
 					},
 				},
 			},
-			`
-[bold][red]Error: [reset][bold]Bad bad bad[reset]
-
-  on test.tf line 1:
-   1: test [underline]source[reset] code
-    [dark_gray]├────────────────[reset]
-    [dark_gray]│[reset] [bold]boop.beep[reset] is "blah"
-
-Whatever shall we do?
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]     [dark_gray]├────────────────[reset]
+[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] is "blah"
+[red]│[reset]
+[red]│[reset] Whatever shall we do?
+[red]╵[reset]
 `,
 		},
 		"error with source code subject and expression referring to sensitive value": {
@@ -122,15 +126,16 @@ Whatever shall we do?
 					},
 				},
 			},
-			`
-[bold][red]Error: [reset][bold]Bad bad bad[reset]
-
-  on test.tf line 1:
-   1: test [underline]source[reset] code
-    [dark_gray]├────────────────[reset]
-    [dark_gray]│[reset] [bold]boop.beep[reset] has a sensitive value
-
-Whatever shall we do?
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]     [dark_gray]├────────────────[reset]
+[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] has a sensitive value
+[red]│[reset]
+[red]│[reset] Whatever shall we do?
+[red]╵[reset]
 `,
 		},
 		"error with source code subject and unknown string expression": {
@@ -155,15 +160,16 @@ Whatever shall we do?
 					},
 				},
 			},
-			`
-[bold][red]Error: [reset][bold]Bad bad bad[reset]
-
-  on test.tf line 1:
-   1: test [underline]source[reset] code
-    [dark_gray]├────────────────[reset]
-    [dark_gray]│[reset] [bold]boop.beep[reset] is a string, known only after apply
-
-Whatever shall we do?
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]     [dark_gray]├────────────────[reset]
+[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] is a string, known only after apply
+[red]│[reset]
+[red]│[reset] Whatever shall we do?
+[red]╵[reset]
 `,
 		},
 		"error with source code subject and unknown expression of unknown type": {
@@ -188,15 +194,16 @@ Whatever shall we do?
 					},
 				},
 			},
-			`
-[bold][red]Error: [reset][bold]Bad bad bad[reset]
-
-  on test.tf line 1:
-   1: test [underline]source[reset] code
-    [dark_gray]├────────────────[reset]
-    [dark_gray]│[reset] [bold]boop.beep[reset] will be known only after apply
-
-Whatever shall we do?
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
+[red]│[reset]
+[red]│[reset]   on test.tf line 1:
+[red]│[reset]    1: test [underline]source[reset] code
+[red]│[reset]     [dark_gray]├────────────────[reset]
+[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] will be known only after apply
+[red]│[reset]
+[red]│[reset] Whatever shall we do?
+[red]╵[reset]
 `,
 		},
 	}
@@ -316,16 +323,17 @@ func TestDiagnostic_nonOverlappingHighlightContext(t *testing.T) {
 		Reset:   true,
 		Disable: true,
 	}
-	expected := `
-Error: Some error
-
-  on source.tf line 1:
-   1: x = somefunc("testing", {
-   2:   alpha = "foo"
-   3:   beta  = "bar"
-   4: })
-
-...
+	expected := `╷
+│ Error: Some error
+│
+│   on source.tf line 1:
+│    1: x = somefunc("testing", {
+│    2:   alpha = "foo"
+│    3:   beta  = "bar"
+│    4: })
+│
+│ ...
+╵
 `
 	output := Diagnostic(diags[0], sources, color, 80)
 
@@ -364,15 +372,16 @@ func TestDiagnostic_emptyOverlapHighlightContext(t *testing.T) {
 		Reset:   true,
 		Disable: true,
 	}
-	expected := `
-Error: Some error
-
-  on source.tf line 3, in variable "x":
-   2:   default = {
-   3:     "foo"
-   4:   }
-
-...
+	expected := `╷
+│ Error: Some error
+│
+│   on source.tf line 3, in variable "x":
+│    2:   default = {
+│    3:     "foo"
+│    4:   }
+│
+│ ...
+╵
 `
 	output := Diagnostic(diags[0], sources, color, 80)
 
@@ -394,17 +403,18 @@ func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
 		Reset:   true,
 		Disable: true,
 	}
-	expected := `
-Error: Everything went wrong
-
-This is a very long sentence about whatever went wrong which is supposed to
-wrap onto multiple lines. Thank-you very much for listening.
-
-To fix this, run this very long command:
-  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
-
-Here is a coda which is also long enough to wrap and so it should
-eventually make it onto multiple lines. THE END
+	expected := `╷
+│ Error: Everything went wrong
+│
+│ This is a very long sentence about whatever went wrong which is supposed
+│ to wrap onto multiple lines. Thank-you very much for listening.
+│
+│ To fix this, run this very long command:
+│   terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
+│
+│ Here is a coda which is also long enough to wrap and so it should
+│ eventually make it onto multiple lines. THE END
+╵
 `
 	output := Diagnostic(diags[0], nil, color, 76)
 
