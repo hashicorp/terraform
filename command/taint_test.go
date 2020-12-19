@@ -361,11 +361,12 @@ func TestTaint_missingAllow(t *testing.T) {
 
 	// Check for the warning
 	actual := strings.TrimSpace(ui.ErrorWriter.String())
-	expected := strings.TrimSpace(`
-Warning: No such resource instance
-
-Resource instance test_instance.bar was not found, but this is not an error
-because -allow-missing was set.
+	expected := strings.TrimSpace(`╷
+│ Warning: No such resource instance
+│
+│ Resource instance test_instance.bar was not found, but this is not an error
+│ because -allow-missing was set.
+╵
 `)
 	if diff := cmp.Diff(expected, actual); diff != "" {
 		t.Fatalf("wrong output\n%s", diff)

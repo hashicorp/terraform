@@ -290,18 +290,17 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	expectedErr := `
-Error: Invalid target address
-
-Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
-resource (not a resource instance) so the target must also be a whole
-resource.
-
+	expectedErr := `╷
+│ Error: Invalid target address
+│
+│ Cannot move test_instance.foo to test_instance.bar[0]: the source is a
+│ whole resource (not a resource instance) so the target must also be a whole
+│ resource.
+╵
 `
 	errOutput := ui.ErrorWriter.String()
 	if errOutput != expectedErr {
-		t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", errOutput, expectedErr)
-		t.Errorf("%s", cmp.Diff(errOutput, expectedErr))
+		t.Errorf("wrong output\n%s", cmp.Diff(errOutput, expectedErr))
 	}
 }
 func TestStateMv_instanceToResource(t *testing.T) {
@@ -503,9 +502,15 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	errOutput := strings.Replace(ui.ErrorWriter.String(), "\n", " ", -1)
-	if !strings.Contains(errOutput, "resource types don't match") {
-		t.Fatalf("expected initialization error, got:\n%s", ui.ErrorWriter.String())
+	gotErr := strings.TrimSpace(ui.ErrorWriter.String())
+	wantErr := strings.TrimSpace(`╷
+│ Error: Invalid state move request
+│
+│ Cannot move test_instance.foo to test_network.bar: resource types don't
+│ match.
+╵`)
+	if gotErr != wantErr {
+		t.Fatalf("expected initialization error\ngot:\n%s\n\nwant:%s", gotErr, wantErr)
 	}
 }
 
