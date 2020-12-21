@@ -555,7 +555,6 @@ func TestMarshalModules_nested(t *testing.T) {
 }
 
 func TestMarshalModules_parent_no_resources(t *testing.T) {
-	childModule, _ := addrs.ParseModuleInstanceStr("module.child")
 	subModule, _ := addrs.ParseModuleInstanceStr("module.child.module.submodule")
 	testState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -589,25 +588,21 @@ func TestMarshalModules_parent_no_resources(t *testing.T) {
 			},
 		)
 	})
-	moduleMap := make(map[string][]addrs.ModuleInstance)
-	moduleMap[""] = []addrs.ModuleInstance{childModule}
-	moduleMap[childModule.String()] = []addrs.ModuleInstance{subModule}
-
-	got, err := marshalModules(testState, testSchemas(), moduleMap[""], moduleMap)
+	got, err := marshalRootModule(testState, testSchemas())
 
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 
-	if len(got) != 1 {
-		t.Fatalf("wrong result! got %d modules, expected 1", len(got))
+	if len(got.ChildModules) != 1 {
+		t.Fatalf("wrong result! got %d modules, expected 1", len(got.ChildModules))
 	}
 
-	if got[0].Address != "module.child" {
+	if got.ChildModules[0].Address != "module.child" {
 		t.Fatalf("wrong result! got %#v\n", got)
 	}
 
-	if got[0].ChildModules[0].Address != "module.child.module.submodule" {
+	if got.ChildModules[0].ChildModules[0].Address != "module.child.module.submodule" {
 		t.Fatalf("wrong result! got %#v\n", got)
 	}
 }
