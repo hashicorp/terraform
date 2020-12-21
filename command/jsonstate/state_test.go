@@ -554,6 +554,64 @@ func TestMarshalModules_nested(t *testing.T) {
 	}
 }
 
+func TestMarshalModules_parent_no_resources(t *testing.T) {
+	childModule, _ := addrs.ParseModuleInstanceStr("module.child")
+	subModule, _ := addrs.ParseModuleInstanceStr("module.child.module.submodule")
+	testState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(subModule),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   subModule.Module(),
+			},
+		)
+	})
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	moduleMap[""] = []addrs.ModuleInstance{childModule}
+	moduleMap[childModule.String()] = []addrs.ModuleInstance{subModule}
+
+	got, err := marshalModules(testState, testSchemas(), moduleMap[""], moduleMap)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("wrong result! got %d modules, expected 1", len(got))
+	}
+
+	if got[0].Address != "module.child" {
+		t.Fatalf("wrong result! got %#v\n", got)
+	}
+
+	if got[0].ChildModules[0].Address != "module.child.module.submodule" {
+		t.Fatalf("wrong result! got %#v\n", got)
+	}
+}
+
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
