@@ -124,6 +124,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"camelcase": {
+			{
+				`camelcase("foo-bar_baz1 qux quuxCorge")`,
+				cty.StringVal("fooBarBaz1QuxQuuxCorge"),
+			},
+		},
+
 		"can": {
 			{
 				`can(true)`,
@@ -507,6 +514,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"kebabcase": {
+			{
+				`kebabcase("foo-bar_baz1 qux quuxCorge")`,
+				cty.StringVal("foo-bar-baz1-qux-quux-corge"),
+			},
+		},
+
 		"keys": {
 			{
 				`keys({"hello"=1, "goodbye"=42})`,
@@ -774,6 +788,13 @@ func TestFunctions(t *testing.T) {
 				cty.TupleVal([]cty.Value{
 					cty.StringVal("b"), cty.NumberIntVal(3),
 				}),
+			},
+		},
+
+		"snakecase": {
+			{
+				`snakecase("foo-bar_baz1 qux quuxCorge")`,
+				cty.StringVal("foo_bar_baz1_qux_quux_corge"),
 			},
 		},
 
