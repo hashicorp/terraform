@@ -53,11 +53,6 @@ jobs:
             mv consul ~/bin
             echo 'export PATH="~/bin:$PATH"'
       - run:
-          name: install az-cli
-          command: |
-            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-      - run: mkdir -p $TEST_RESULTS_DIR
-      - run:
           name: Run Go Tests
           command: |
             PACKAGE_NAMES=$(go list ./... | circleci tests split --split-by=timings --timings-type=classname)
