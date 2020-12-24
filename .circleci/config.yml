@@ -52,6 +52,7 @@ jobs:
             mkdir -p ~/bin
             mv consul ~/bin
             echo 'export PATH="~/bin:$PATH"'
+      - run: mkdir -p $TEST_RESULTS_DIR
       - run:
           name: Run Go Tests
           command: |
