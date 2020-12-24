@@ -315,7 +315,7 @@ func TestBackendWithKeyVaultEncryption(t *testing.T) {
 
 	ctx := context.TODO()
 	res := testResourceNamesWithKeyVault(rs, "testState", keyVaultName, keyName)
-	armClient := buildTestClientWithKeyVault(t, res)
+	armClient := buildTestClient(t, res)
 
 	err := armClient.buildTestResources(ctx, &res)
 	defer armClient.destroyTestResources(ctx, res)

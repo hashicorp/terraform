@@ -248,7 +248,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		KeyVaultKeyIdentifier:         data.Get("key_vault_key_identifier").(string),
 	}
 
-	armClient, err := buildArmClient(config)
+	armClient, err := buildArmClient(context.TODO(), config)
 	if err != nil {
 		return err
 	}

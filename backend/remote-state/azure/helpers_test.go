@@ -44,11 +44,10 @@ func testAccAzureBackendRunningInAzure(t *testing.T) {
 	}
 }
 
-func getDefaultBackendConfig(t *testing.T, resourceGroup, storageAccountName, keyVaultKeyIdentifier string) *BackendConfig {
+func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	tenantID := os.Getenv("ARM_TENANT_ID")
 	clientID := os.Getenv("ARM_CLIENT_ID")
-	objectID := os.Getenv("ARM_OBJECT_ID")
 	clientSecret := os.Getenv("ARM_CLIENT_SECRET")
 	msiEnabled := strings.EqualFold(os.Getenv("ARM_USE_MSI"), "true")
 	environment := os.Getenv("ARM_ENVIRONMENT")
@@ -66,10 +65,6 @@ func getDefaultBackendConfig(t *testing.T, resourceGroup, storageAccountName, ke
 		t.Fatalf("Missing ARM_TENANT_ID")
 	}
 
-	if objectID == "" {
-		t.Fatalf("Missing ARM_OBJECT_ID")
-	}
-
 	if environment == "" {
 		t.Fatalf("Missing ARM_ENVIRONMENT")
 	}
@@ -83,26 +78,23 @@ func getDefaultBackendConfig(t *testing.T, resourceGroup, storageAccountName, ke
 	// Endpoint is optional (only for Stack)
 	endpoint := os.Getenv("ARM_ENDPOINT")
 
-	backend := &BackendConfig{
+	keyVaultKeyIdentifier := ""
+	if res.keyVaultName != "" && res.keyVaultKeyName != "" {
+		keyVaultKeyIdentifier = fmt.Sprintf("https://%s.vault.azure.net/keys/%s", res.keyVaultName, res.keyVaultKeyName)
+	}
+
+	armClient, err := buildArmClient(context.TODO(), BackendConfig{
 		SubscriptionID:                subscriptionID,
 		TenantID:                      tenantID,
 		ClientID:                      clientID,
 		ClientSecret:                  clientSecret,
 		CustomResourceManagerEndpoint: endpoint,
 		Environment:                   environment,
-		ResourceGroupName:             resourceGroup,
-		StorageAccountName:            storageAccountName,
+		ResourceGroupName:             res.resourceGroup,
+		StorageAccountName:            res.storageAccountName,
 		KeyVaultKeyIdentifier:         keyVaultKeyIdentifier,
 		UseMsi:                        msiEnabled,
-	}
-
-	return backend
-}
-
-func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
-	backendConfig := getDefaultBackendConfig(t, res.resourceGroup, res.storageAccountName, "")
-
-	armClient, err := buildArmClient(*backendConfig)
+	})
 	if err != nil {
 		t.Fatalf("Failed to build ArmClient: %+v", err)
 	}
@@ -156,6 +148,14 @@ func testResourceNames(rString string, keyName string) resourceNames {
 		storageContainerName: "acctestcont",
 		storageKeyName:       keyName,
 	}
+}
+
+func testResourceNamesWithKeyVault(rString, storageKeyName, keyVaultName, keyVaultKeyName string) resourceNames {
+	resources := testResourceNames(rString, storageKeyName)
+	resources.keyVaultName = keyVaultName
+	resources.keyVaultKeyName = keyVaultKeyName
+
+	return resources
 }
 
 func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames) error {
@@ -301,25 +301,4 @@ func (c ArmClient) destroyTestResources(ctx context.Context, resources resourceN
 	}
 
 	return nil
-}
-
-func testResourceNamesWithKeyVault(rString, storageKeyName, keyVaultName, keyVaultKeyName string) resourceNames {
-	resources := testResourceNames(rString, storageKeyName)
-	resources.keyVaultName = keyVaultName
-	resources.keyVaultKeyName = keyVaultKeyName
-
-	return resources
-}
-
-func buildTestClientWithKeyVault(t *testing.T, res resourceNames) *ArmClient {
-	keyIdentifier := fmt.Sprintf("https://%s.vault.azure.net/keys/%s", res.keyVaultName, res.keyVaultKeyName)
-
-	backendConfig := getDefaultBackendConfig(t, res.resourceGroup, res.storageAccountName, keyIdentifier)
-
-	armClient, err := buildArmClient(*backendConfig)
-	if err != nil {
-		t.Fatalf("Failed to build ArmClient: %+v", err)
-	}
-
-	return armClient
 }

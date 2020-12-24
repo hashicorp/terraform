@@ -366,6 +366,11 @@ func (c *RemoteClient) lock() (string, error) {
 	// store the session ID for correlation with consul logs
 	c.info.Info = "consul session: " + lockSession
 
+	// A random lock ID has been generated but we override it with the session
+	// ID as this will make it easier to manually invalidate the session
+	// if needed.
+	c.info.ID = lockSession
+
 	opts := &consulapi.LockOptions{
 		Key:     c.lockPath() + lockSuffix,
 		Session: lockSession,
@@ -524,8 +529,25 @@ func (c *RemoteClient) Unlock(id string) error {
 // the unlock implementation.
 // Only to be called while holding Client.mu
 func (c *RemoteClient) unlock(id string) error {
-	// this doesn't use the lock id, because the lock is tied to the consul client.
+	// This method can be called in two circumstances:
+	// - when the plan apply or destroy operation finishes and the lock needs to be released,
+	// the watchdog stopped and the session closed
+	// - when the user calls `terraform force-unlock <lock_id>` in which case
+	// we only need to release the lock.
+
 	if c.consulLock == nil || c.lockCh == nil {
+		// The user called `terraform force-unlock <lock_id>`, we just destroy
+		// the session which will release the lock, clean the KV store and quit.
+
+		_, err := c.Client.Session().Destroy(id, nil)
+		if err != nil {
+			return err
+		}
+		// We ignore the errors that may happen during cleanup
+		kv := c.Client.KV()
+		kv.Delete(c.lockPath()+lockSuffix, nil)
+		kv.Delete(c.lockPath()+lockInfoSuffix, nil)
+
 		return nil
 	}
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/states/remote"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
 
@@ -36,17 +37,20 @@ func TestBackend_impl(t *testing.T) {
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()
-	schemaName := fmt.Sprintf("terraform_%s", t.Name())
+	schemaName := pq.QuoteIdentifier(fmt.Sprintf("terraform_%s", t.Name()))
+
+	config := backend.TestWrapConfig(map[string]interface{}{
+		"conn_str":    connStr,
+		"schema_name": schemaName,
+	})
+	schemaName = pq.QuoteIdentifier(schemaName)
+
 	dbCleaner, err := sql.Open("postgres", connStr)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := backend.TestWrapConfig(map[string]interface{}{
-		"conn_str":    connStr,
-		"schema_name": schemaName,
-	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
@@ -79,6 +83,12 @@ func TestBackendConfigSkipSchema(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()
 	schemaName := fmt.Sprintf("terraform_%s", t.Name())
+	config := backend.TestWrapConfig(map[string]interface{}{
+		"conn_str":             connStr,
+		"schema_name":          schemaName,
+		"skip_schema_creation": true,
+	})
+	schemaName = pq.QuoteIdentifier(schemaName)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		t.Fatal(err)
@@ -88,11 +98,6 @@ func TestBackendConfigSkipSchema(t *testing.T) {
 	db.Query(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %s", schemaName))
 	defer db.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
-	config := backend.TestWrapConfig(map[string]interface{}{
-		"conn_str":             connStr,
-		"schema_name":          schemaName,
-		"skip_schema_creation": true,
-	})
 	b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
 	if b == nil {
@@ -122,24 +127,32 @@ func TestBackendConfigSkipSchema(t *testing.T) {
 func TestBackendStates(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()
-	schemaName := fmt.Sprintf("terraform_%s", t.Name())
-	dbCleaner, err := sql.Open("postgres", connStr)
-	if err != nil {
-		t.Fatal(err)
+
+	testCases := []string{
+		fmt.Sprintf("terraform_%s", t.Name()),
+		fmt.Sprintf("test with spaces: %s", t.Name()),
 	}
-	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+	for _, schemaName := range testCases {
+		t.Run(schemaName, func(t *testing.T) {
+			dbCleaner, err := sql.Open("postgres", connStr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dbCleaner.Query("DROP SCHEMA IF EXISTS %s CASCADE", pq.QuoteIdentifier(schemaName))
 
-	config := backend.TestWrapConfig(map[string]interface{}{
-		"conn_str":    connStr,
-		"schema_name": schemaName,
-	})
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
+			config := backend.TestWrapConfig(map[string]interface{}{
+				"conn_str":    connStr,
+				"schema_name": schemaName,
+			})
+			b := backend.TestBackendConfig(t, New(), config).(*Backend)
 
-	if b == nil {
-		t.Fatal("Backend could not be configured")
+			if b == nil {
+				t.Fatal("Backend could not be configured")
+			}
+
+			backend.TestBackendStates(t, b)
+		})
 	}
-
-	backend.TestBackendStates(t, b)
 }
 
 func TestBackendStateLocks(t *testing.T) {

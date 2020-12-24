@@ -380,7 +380,7 @@ func TestKeyVaultEncryption(t *testing.T) {
 	keyIdentifier := fmt.Sprintf("https://%s.vault.azure.net/keys/%s", keyVaultName, keyName)
 
 	res := testResourceNamesWithKeyVault(rs, "testState", keyVaultName, keyName)
-	armClient := buildTestClientWithKeyVault(t, res)
+	armClient := buildTestClient(t, res)
 
 	defer armClient.destroyTestResources(ctx, res)
 	err := armClient.buildTestResources(ctx, &res)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/helper/schema"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 const (
@@ -62,7 +62,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	data := b.configData
 
 	b.connStr = data.Get("conn_str").(string)
-	b.schemaName = data.Get("schema_name").(string)
+	b.schemaName = pq.QuoteIdentifier(data.Get("schema_name").(string))
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
@@ -75,8 +75,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	if !data.Get("skip_schema_creation").(bool) {
 		// list all schemas to see if it exists
 		var count int
-		query = `select count(1) from information_schema.schemata where lower(schema_name) = lower('%s')`
-		if err := db.QueryRow(fmt.Sprintf(query, b.schemaName)).Scan(&count); err != nil {
+		query = `select count(1) from information_schema.schemata where schema_name = $1`
+		if err := db.QueryRow(query, data.Get("schema_name").(string)).Scan(&count); err != nil {
 			return err
 		}
 

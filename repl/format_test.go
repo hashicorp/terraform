@@ -136,6 +136,10 @@ func TestFormatValue(t *testing.T) {
 			cty.SetValEmpty(cty.String),
 			`toset([])`,
 		},
+		{
+			cty.StringVal("sensitive value").Mark("sensitive"),
+			"(sensitive)",
+		},
 	}
 
 	for _, test := range tests {

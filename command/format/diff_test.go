@@ -232,7 +232,7 @@ field
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ more_lines = <<~EOT
+      ~ more_lines = <<-EOT
             original
           - long
           + extremely long
@@ -267,7 +267,7 @@ new line
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      + more_lines = <<~EOT
+      + more_lines = <<-EOT
             original
             new line
         EOT
@@ -301,7 +301,7 @@ new line
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ more_lines = <<~EOT # forces replacement
+      ~ more_lines = <<-EOT # forces replacement
             original
           + new line
         EOT

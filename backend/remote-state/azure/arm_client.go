@@ -37,8 +37,8 @@ type ArmClient struct {
 	encClient *EncryptionClient
 }
 
-func buildArmClient(config BackendConfig) (*ArmClient, error) {
-	env, err := buildArmEnvironment(config)
+func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, error) {
+	env, err := authentication.AzureEnvironmentByNameFromEndpoint(ctx, config.MetadataHost, config.Environment)
 	if err != nil {
 		return nil, err
 	}

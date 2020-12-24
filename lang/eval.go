@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang/blocktoattr"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -66,6 +67,35 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	val, evalDiags := hcldec.Decode(body, spec, ctx)
 	diags = diags.Append(evalDiags)
 
+	return val, diags
+}
+
+// EvalSelfBlock evaluates the given body only within the scope of the provided
+// object and instance key data. References to the object must use self, and the
+// key data will only contain count.index or each.key.
+func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
+	vals := make(map[string]cty.Value)
+	vals["self"] = self
+
+	if !keyData.CountIndex.IsNull() {
+		vals["count"] = cty.ObjectVal(map[string]cty.Value{
+			"index": keyData.CountIndex,
+		})
+	}
+	if !keyData.EachKey.IsNull() {
+		vals["each"] = cty.ObjectVal(map[string]cty.Value{
+			"key": keyData.EachKey,
+		})
+	}
+
+	ctx := &hcl.EvalContext{
+		Variables: vals,
+		Functions: s.Functions(),
+	}
+
+	var diags tfdiags.Diagnostics
+	val, decDiags := hcldec.Decode(body, schema.DecoderSpec(), ctx)
+	diags = diags.Append(decDiags)
 	return val, diags
 }
 
