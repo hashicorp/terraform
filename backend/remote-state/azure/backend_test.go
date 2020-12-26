@@ -14,6 +14,31 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
+func TestBackendConfig(t *testing.T) {
+	testAccAzureBackend(t)
+
+	config := map[string]interface{}{
+		"storage_account_name": "tfaccount",
+		"container_name":       "tfcontainer",
+		"key":                  "state",
+		"snapshot":             false,
+		// Access Key must be Base64
+		"access_key": "QUNDRVNTX0tFWQ0K",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	if b.containerName != "tfcontainer" {
+		t.Fatalf("Incorrect bucketName was populated")
+	}
+	if b.keyName != "state" {
+		t.Fatalf("Incorrect keyName was populated")
+	}
+	if b.snapshot != false {
+		t.Fatalf("Incorrect snapshot was populated")
+	}
+}
+
 func TestBackendAccessKeyBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)

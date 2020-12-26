@@ -139,7 +139,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The Azure Key Vault Key Identifier.",
-				DefaultFunc: schema.EnvDefaultFunc("KEY_VAULT_KEY_IDENTIFIER", ""),
+				DefaultFunc: schema.EnvDefaultFunc("ARM_KEY_VAULT_KEY_IDENTIFIER", ""),
 			},
 
 			// Deprecated fields

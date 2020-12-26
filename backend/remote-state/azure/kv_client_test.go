@@ -11,36 +11,32 @@ import (
 	"github.com/hashicorp/terraform/helper/acctest"
 )
 
-// Unit Tests
-
 func TestParseKeyVaultKeyInfoValid(t *testing.T) {
-	testAccAzureBackend(t)
-
 	cases := map[string]*KeyVaultKeyInfo{
-		"https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871": &KeyVaultKeyInfo{
-			vaultURL:   "https://keyvaultname.vault.azure.net",
-			keyName:    "myKey",
-			keyVersion: "99d67321dd9841af859129cd5551a871",
+		"https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871": {
+			VaultURL:   "https://keyvaultname.vault.azure.net",
+			KeyName:    "myKey",
+			KeyVersion: "99d67321dd9841af859129cd5551a871",
 		},
-		"https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871/": &KeyVaultKeyInfo{
-			vaultURL:   "https://keyvaultname.vault.azure.net",
-			keyName:    "myKey",
-			keyVersion: "99d67321dd9841af859129cd5551a871",
+		"https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871/": {
+			VaultURL:   "https://keyvaultname.vault.azure.net",
+			KeyName:    "myKey",
+			KeyVersion: "99d67321dd9841af859129cd5551a871",
 		},
-		"http://abcde.vault.azure.net/keys/myKey/8120938102983": &KeyVaultKeyInfo{
-			vaultURL:   "https://abcde.vault.azure.net",
-			keyName:    "myKey",
-			keyVersion: "8120938102983",
+		"http://abcde.vault.azure.net/keys/myKey/8120938102983": {
+			VaultURL:   "https://abcde.vault.azure.net",
+			KeyName:    "myKey",
+			KeyVersion: "8120938102983",
 		},
-		"https://keyvaultname.vault.azure.net/keys/myKey/": &KeyVaultKeyInfo{
-			vaultURL:   "https://keyvaultname.vault.azure.net",
-			keyName:    "myKey",
-			keyVersion: "",
+		"https://keyvaultname.vault.azure.net/keys/myKey/": {
+			VaultURL:   "https://keyvaultname.vault.azure.net",
+			KeyName:    "myKey",
+			KeyVersion: "",
 		},
-		"https://keyvaultname.vault.azure.net/keys/myKey": &KeyVaultKeyInfo{
-			vaultURL:   "https://keyvaultname.vault.azure.net",
-			keyName:    "myKey",
-			keyVersion: "",
+		"https://keyvaultname.vault.azure.net/keys/myKey": {
+			VaultURL:   "https://keyvaultname.vault.azure.net",
+			KeyName:    "myKey",
+			KeyVersion: "",
 		},
 	}
 
@@ -56,8 +52,6 @@ func TestParseKeyVaultKeyInfoValid(t *testing.T) {
 }
 
 func TestParseKeyVaultKeyInfoInvalid(t *testing.T) {
-	testAccAzureBackend(t)
-
 	errorCases := []string{
 		"",
 		" ",
@@ -100,8 +94,6 @@ func TestCreateEncryptClientInvalid(t *testing.T) {
 }
 
 func TestGeneratePublicKeyFromKeyBundle(t *testing.T) {
-	testAccAzureBackend(t)
-
 	cases := []struct {
 		n        string
 		e        string
@@ -149,8 +141,6 @@ func TestGeneratePublicKeyFromKeyBundle(t *testing.T) {
 }
 
 func TestValidateKeyVaultKeyDetails(t *testing.T) {
-	testAccAzureBackend(t)
-
 	isEnabled := true
 	keyID := "https://vaultname.vault.azure.net/keys/key2048/b5c419ae7aa847459c5f72719dfe522e"
 	keyOps := []string{"encrypt", "decrypt"}
@@ -313,13 +303,11 @@ func TestValidateKeyVaultKeyDetails(t *testing.T) {
 }
 
 func TestGetKeyVaultAlgorithmParameters(t *testing.T) {
-	testAccAzureBackend(t)
-
 	t.Run("RSA15", func(t *testing.T) {
 		expected := map[int]*KeyVaultAlgorithmParameters{
-			2048: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 245, decryptBlockSizeBytes: 342},
-			3072: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 373, decryptBlockSizeBytes: 512},
-			4096: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 501, decryptBlockSizeBytes: 683},
+			2048: {encryptBlockSizeBytes: 245, decryptBlockSizeBytes: 342},
+			3072: {encryptBlockSizeBytes: 373, decryptBlockSizeBytes: 512},
+			4096: {encryptBlockSizeBytes: 501, decryptBlockSizeBytes: 683},
 		}
 
 		testGetKeyVaultAlgorithmParametersWithAlgorithm(t, keyvault.RSA15, expected)
@@ -327,9 +315,9 @@ func TestGetKeyVaultAlgorithmParameters(t *testing.T) {
 
 	t.Run("RSAOAEP", func(t *testing.T) {
 		expected := map[int]*KeyVaultAlgorithmParameters{
-			2048: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 214, decryptBlockSizeBytes: 342},
-			3072: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 342, decryptBlockSizeBytes: 512},
-			4096: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 470, decryptBlockSizeBytes: 683},
+			2048: {encryptBlockSizeBytes: 214, decryptBlockSizeBytes: 342},
+			3072: {encryptBlockSizeBytes: 342, decryptBlockSizeBytes: 512},
+			4096: {encryptBlockSizeBytes: 470, decryptBlockSizeBytes: 683},
 		}
 
 		testGetKeyVaultAlgorithmParametersWithAlgorithm(t, keyvault.RSAOAEP, expected)
@@ -337,9 +325,9 @@ func TestGetKeyVaultAlgorithmParameters(t *testing.T) {
 
 	t.Run("RSAOAEP256", func(t *testing.T) {
 		expected := map[int]*KeyVaultAlgorithmParameters{
-			2048: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 190, decryptBlockSizeBytes: 342},
-			3072: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 318, decryptBlockSizeBytes: 512},
-			4096: &KeyVaultAlgorithmParameters{encryptBlockSizeBytes: 446, decryptBlockSizeBytes: 683},
+			2048: {encryptBlockSizeBytes: 190, decryptBlockSizeBytes: 342},
+			3072: {encryptBlockSizeBytes: 318, decryptBlockSizeBytes: 512},
+			4096: {encryptBlockSizeBytes: 446, decryptBlockSizeBytes: 683},
 		}
 
 		testGetKeyVaultAlgorithmParametersWithAlgorithm(t, keyvault.RSAOAEP256, expected)
@@ -366,8 +354,6 @@ func testGetKeyVaultAlgorithmParametersWithAlgorithm(t *testing.T, algorithm key
 		}
 	}
 }
-
-// Integration Tests
 
 func TestKeyVaultEncryption(t *testing.T) {
 	testAccAzureBackend(t)
@@ -396,7 +382,7 @@ func TestKeyVaultEncryption(t *testing.T) {
 	smallDataBytes := []byte(smallData)
 	largeDataBytes := []byte(largeData)
 
-	t.Run("GetDetails", func(t *testing.T) {
+	t.Run("GetKeyDetails", func(t *testing.T) {
 		details, err := c.getKeyVaultKeyDetails(ctx)
 		if err != nil {
 			t.Fatalf("Error when getting key details: %v", err)

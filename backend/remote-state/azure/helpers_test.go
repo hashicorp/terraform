@@ -15,7 +15,7 @@ import (
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
 
 	keyvaultKey "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	"github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2019-09-01/keyvault"
 	"github.com/Azure/go-autorest/autorest/to"
 	uuid "github.com/satori/go.uuid"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
@@ -235,7 +235,7 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 		apList = append(apList, ap)
 
 		log.Printf("creating Key Vault https://%s.vault.azure.net/", names.keyVaultName)
-		vault, err := vaultsClient.CreateOrUpdate(
+		future, err := vaultsClient.CreateOrUpdate(
 			ctx,
 			names.resourceGroup,
 			names.keyVaultName,
@@ -251,6 +251,13 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 				},
 			},
 		)
+
+		err = future.WaitForCompletionRef(ctx, vaultsClient.Client)
+		if err != nil {
+			return fmt.Errorf("failed waiting for the creation of key vault: %s", err)
+		}
+
+		vault, _ := future.Result(vaultsClient)
 
 		if err != nil {
 			log.Printf("failed to create Key Vault https://%s.vault.azure.net/", names.keyVaultName)
