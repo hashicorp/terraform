@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Backends: Configuration"
 sidebar_current: "docs-backends-config"
 description: |-
@@ -26,7 +26,7 @@ terraform {
 
 You specify the backend type as a key to the `backend` stanza. Within the
 stanza are backend-specific configuration keys. The list of supported backends
-and their configuration is in the sidebar to the left.
+and their configuration details can be found [here](/docs/backends/types/index.html).
 
 Only one backend may be specified and the configuration **may not contain
 interpolations**. Terraform will validate this.

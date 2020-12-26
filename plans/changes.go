@@ -37,6 +37,13 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 	}
+
+	for _, out := range c.Outputs {
+		if out.Addr.Module.IsRoot() && out.Action != NoOp {
+			return false
+		}
+	}
+
 	return true
 }
 

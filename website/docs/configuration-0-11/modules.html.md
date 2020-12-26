@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Modules - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-modules"
 description: |-
@@ -233,7 +233,7 @@ resource "aws_s3_bucket" "example" {
 This approach is recommended in the common case where only a single
 configuration is needed for each provider across the entire configuration.
 
-In more complex situations there may be [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+In more complex situations there may be [multiple provider instances](./providers.html#multiple-provider-instances),
 or a child module may need to use different provider settings than
 its parent. For such situations, it's necessary to pass providers explicitly
 as we will see in the next section.
@@ -272,7 +272,7 @@ module "example" {
 
 The `providers` argument within a `module` block is similar to
 the `provider` argument within a resource as described for
-[multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+[multiple provider instances](./providers.html#multiple-provider-instances),
 but is a map rather than a single string because a module may contain resources
 from many different providers.
 

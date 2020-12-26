@@ -22,7 +22,7 @@ type StatePushCommand struct {
 func (c *StatePushCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var flagForce bool
-	cmdFlags := c.Meta.defaultFlagSet("state push")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state push")
 	cmdFlags.BoolVar(&flagForce, "force", false, "")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -71,13 +71,22 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Get the state manager for the currently-selected workspace
-	env, err := c.Workspace()
+	// Determine the workspace name
+	workspace, err := c.Workspace()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 		return 1
 	}
-	stateMgr, err := b.StateMgr(env)
+
+	// Check remote Terraform version is compatible
+	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	c.showDiagnostics(remoteVersionDiags)
+	if remoteVersionDiags.HasErrors() {
+		return 1
+	}
+
+	// Get the state manager for the currently-selected workspace
+	stateMgr, err := b.StateMgr(workspace)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to load destination state: %s", err))
 		return 1
@@ -153,25 +162,3 @@ Options:
 func (c *StatePushCommand) Synopsis() string {
 	return "Update remote state from a local state file"
 }
-
-const errStatePushLineage = `
-The lineages do not match! The state will not be pushed.
-
-The "lineage" is a unique identifier given to a state on creation. It helps
-protect Terraform from overwriting a seemingly unrelated state file since it
-represents potentially losing real state.
-
-Please verify you're pushing the correct state. If you're sure you are, you
-can force the behavior with the "-force" flag.
-`
-
-const errStatePushSerialNewer = `
-The destination state has a higher serial number! The state will not be pushed.
-
-A higher serial could indicate that there is data in the destination state
-that was not present when the source state was created. As a protection measure,
-Terraform will not automatically overwrite this state.
-
-Please verify you're pushing the correct state. If you're sure you are, you
-can force the behavior with the "-force" flag.
-`

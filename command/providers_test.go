@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -77,7 +76,7 @@ func TestProviders_noConfigs(t *testing.T) {
 
 func TestProviders_modules(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("providers/modules"), td)
+	testCopyDir(t, testFixturePath("providers/modules"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -115,7 +114,7 @@ func TestProviders_modules(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo] 1.0.*", // from required_providers
+		"provider[registry.terraform.io/hashicorp/foo] 1.0.0", // from required_providers
 		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from provider config
 		"── module.kiddo",                               // tree node for child module
 		"provider[registry.terraform.io/hashicorp/baz]", // implied by a resource in the child module
@@ -152,7 +151,7 @@ func TestProviders_state(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo] 1.0.*", // from required_providers
+		"provider[registry.terraform.io/hashicorp/foo] 1.0.0", // from required_providers
 		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from a provider config block
 		"Providers required by state",                         // header for state providers
 		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -56,7 +55,7 @@ func TestGet_multipleArgs(t *testing.T) {
 
 func TestGet_noArgs(t *testing.T) {
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("get"), td)
+	testCopyDir(t, testFixturePath("get"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

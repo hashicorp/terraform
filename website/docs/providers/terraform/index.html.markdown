@@ -1,5 +1,5 @@
 ---
-layout: "terraform"
+layout: "language"
 page_title: "Provider: Terraform"
 sidebar_current: "docs-terraform-index"
 description: |-
@@ -20,7 +20,7 @@ Use the navigation to the left to read about the available data sources.
 data "terraform_remote_state" "vpc" {
   backend = "remote"
 
-  config {
+  config = {
     organization = "hashicorp"
     workspaces = {
       name = "vpc-prod"

@@ -7,18 +7,6 @@ import (
 	"strconv"
 )
 
-const (
-	typeOperation             = "Operation"
-	typeTransform             = "Transform"
-	typeWalk                  = "Walk"
-	typeDepthFirstWalk        = "DepthFirstWalk"
-	typeReverseDepthFirstWalk = "ReverseDepthFirstWalk"
-	typeTransitiveReduction   = "TransitiveReduction"
-	typeEdgeInfo              = "EdgeInfo"
-	typeVertexInfo            = "VertexInfo"
-	typeVisitInfo             = "VisitInfo"
-)
-
 // the marshal* structs are for serialization of the graph data.
 type marshalGraph struct {
 	// Type is always "Graph", for identification as a top level object in the
@@ -47,36 +35,6 @@ type marshalGraph struct {
 
 	// Any lists of vertices that are included in cycles.
 	Cycles [][]*marshalVertex `json:",omitempty"`
-}
-
-// The add, remove, connect, removeEdge methods mirror the basic Graph
-// manipulations to reconstruct a marshalGraph from a debug log.
-func (g *marshalGraph) add(v *marshalVertex) {
-	g.Vertices = append(g.Vertices, v)
-	sort.Sort(vertices(g.Vertices))
-}
-
-func (g *marshalGraph) remove(v *marshalVertex) {
-	for i, existing := range g.Vertices {
-		if v.ID == existing.ID {
-			g.Vertices = append(g.Vertices[:i], g.Vertices[i+1:]...)
-			return
-		}
-	}
-}
-
-func (g *marshalGraph) connect(e *marshalEdge) {
-	g.Edges = append(g.Edges, e)
-	sort.Sort(edges(g.Edges))
-}
-
-func (g *marshalGraph) removeEdge(e *marshalEdge) {
-	for i, existing := range g.Edges {
-		if e.Source == existing.Source && e.Target == existing.Target {
-			g.Edges = append(g.Edges[:i], g.Edges[i+1:]...)
-			return
-		}
-	}
 }
 
 func (g *marshalGraph) vertexByID(id string) *marshalVertex {

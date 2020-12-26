@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Data Sources - Configuration Language"
 sidebar_current: "docs-config-data-sources"
 description: |-
@@ -18,7 +18,8 @@ configuration to make use of information defined outside of Terraform,
 or defined by another separate Terraform configuration.
 
 Each [provider](./providers.html) may offer data sources
-alongside its set of [resource types](./resources.html#resource-types-and-arguments).
+alongside its set of [resource](/docs/configuration/blocks/resources/index.html)
+types.
 
 ## Using Data Sources
 
@@ -48,7 +49,7 @@ resource and so must be unique within a module.
 Within the block body (between `{` and `}`) are query constraints defined by
 the data source. Most arguments in this section depend on the
 data source, and indeed in this example `most_recent`, `owners` and `tags` are
-all arguments defined specifically for [the `aws_ami` data source](/docs/providers/aws/d/ami.html).
+all arguments defined specifically for [the `aws_ami` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami).
 
 When distinguishing from data resources, the primary kind of resource (as declared
 by a `resource` block) is known as a _managed resource_. Both kinds of resources
@@ -71,7 +72,7 @@ infrastructure platform.
 
 Most of the items within the body of a `data` block are defined by and
 specific to the selected data source, and these arguments can make full
-use of [expressions](./expressions.html) and other dynamic
+use of [expressions](/docs/configuration/expressions/index.html) and other dynamic
 Terraform language features.
 
 However, there are some "meta-arguments" that are defined by Terraform itself
@@ -102,9 +103,9 @@ only within Terraform itself, calculating some results and exposing them
 for use elsewhere.
 
 For example, local-only data sources exist for
-[rendering templates](/docs/providers/template/d/file.html),
-[reading local files](/docs/providers/local/d/file.html), and
-[rendering AWS IAM policies](/docs/providers/aws/d/iam_policy_document.html).
+[rendering templates](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file),
+[reading local files](https://registry.terraform.io/providers/hashicorp/local/latest/docs/data-sources/file), and
+[rendering AWS IAM policies](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document).
 
 The behavior of local-only data sources is the same as all other data
 sources, but their result data exists only temporarily during a Terraform
@@ -113,17 +114,23 @@ operation, and is re-calculated each time a new plan is created.
 ## Data Resource Dependencies
 
 Data resources have the same dependency resolution behavior
-[as defined for managed resources](./resources.html#resource-dependencies).
+[as defined for managed resources](/docs/configuration/blocks/resources/behavior.html#resource-dependencies).
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
+
+In order to ensure that data sources are accessing the most up to date
+information possible in a wide variety of use cases, arguments directly
+referencing managed resources are treated the same as if the resource was
+listed in `depends_on`. This behavior can be avoided when desired by indirectly
+referencing the managed resource values through a `local` value.
 
 ~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
 
 ## Multiple Resource Instances
 
-Data resources support [`count`](./resources.html#count-multiple-resource-instances-by-count)
-and [`for_each`](./resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings)
+Data resources support [`count`](/docs/configuration/meta-arguments/count.html)
+and [`for_each`](/docs/configuration/meta-arguments/for_each.html)
 meta-arguments as defined for managed resources, with the same syntax and behavior.
 
 As with managed resources, when `count` or `for_each` is present it is important to
@@ -133,7 +140,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `providers` meta-argument](./resources.html#provider-selecting-a-non-default-provider-configuration)
+Data resources support [the `provider` meta-argument](/docs/configuration/meta-arguments/resource-provider.html)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
@@ -187,13 +194,15 @@ resource "aws_instance" "web" {
 ## Meta-Arguments
 
 As data sources are essentially a read only subset of resources, they also
-support the same [meta-arguments](./resources.html#meta-arguments) of resources
+support the same [meta-arguments](/docs/configuration/blocks/resources/syntax.html#meta-arguments) of resources
 with the exception of the
-[`lifecycle` configuration block](./resources.html#lifecycle-lifecycle-customizations).
+[`lifecycle` configuration block](/docs/configuration/meta-arguments/lifecycle.html).
 
 ### Non-Default Provider Configurations
 
-Similarly to [resources](./resources.html), when a module has multiple configurations for the same provider you can specify which configuration to use with the `provider` meta-argument:
+Similarly to [resources](/docs/configuration/blocks/resources/index.html), when
+a module has multiple configurations for the same provider you can specify which
+configuration to use with the `provider` meta-argument:
 
 ```hcl
 data "aws_ami" "web" {
@@ -204,7 +213,7 @@ data "aws_ami" "web" {
 ```
 
 See
-[Resources: Selecting a Non-Default Provider Configuration](./resources.html#provider-selecting-a-non-default-provider-configuration)
+[The Resource `provider` Meta-Argument](/docs/configuration/meta-arguments/resource-provider.html)
 for more information.
 
 ## Data Source Lifecycle

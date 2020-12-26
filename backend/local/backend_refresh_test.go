@@ -79,12 +79,13 @@ func TestLocal_refreshInput(t *testing.T) {
 	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
-	p.ConfigureFn = func(c *terraform.ResourceConfig) error {
-		if v, ok := c.Get("value"); !ok || v != "bar" {
-			return fmt.Errorf("no value set")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		val := req.Config.GetAttr("value")
+		if val.IsNull() || val.AsString() != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("incorrect value %#v", val))
 		}
 
-		return nil
+		return
 	}
 
 	// Enable input asking since it is normally disabled by default

@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "chomp - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-chomp"
 description: |-

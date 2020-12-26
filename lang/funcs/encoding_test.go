@@ -163,3 +163,157 @@ func TestURLEncode(t *testing.T) {
 		})
 	}
 }
+
+func TestBase64TextEncode(t *testing.T) {
+	tests := []struct {
+		String   cty.Value
+		Encoding cty.Value
+		Want     cty.Value
+		Err      string
+	}{
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("UTF-8"),
+			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+"),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("UTF-16LE"),
+			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("CP936"),
+			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+"),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("NOT-EXISTS"),
+			cty.UnknownVal(cty.String),
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+		},
+		{
+			cty.StringVal("🤔"),
+			cty.StringVal("cp437"),
+			cty.UnknownVal(cty.String),
+			`the given string contains characters that cannot be represented in IBM437`,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.StringVal("windows-1250"),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+		{
+			cty.StringVal("hello world"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("textencodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextEncodeBase64(test.String, test.Encoding)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestBase64TextDecode(t *testing.T) {
+	tests := []struct {
+		String   cty.Value
+		Encoding cty.Value
+		Want     cty.Value
+		Err      string
+	}{
+		{
+			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+"),
+			cty.StringVal("UTF-8"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
+			cty.StringVal("UTF-16LE"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+"),
+			cty.StringVal("CP936"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("doesn't matter"),
+			cty.StringVal("NOT-EXISTS"),
+			cty.UnknownVal(cty.String),
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+		},
+		{
+			cty.StringVal("<invalid base64>"),
+			cty.StringVal("cp437"),
+			cty.UnknownVal(cty.String),
+			`the given value is has an invalid base64 symbol at offset 0`,
+		},
+		{
+			cty.StringVal("gQ=="), // this is 0x81, which is not defined in windows-1250
+			cty.StringVal("windows-1250"),
+			cty.StringVal("�"),
+			`the given string contains symbols that are not defined for windows-1250`,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.StringVal("windows-1250"),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+		{
+			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("textdecodebase64(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextDecodeBase64(test.String, test.Encoding)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}

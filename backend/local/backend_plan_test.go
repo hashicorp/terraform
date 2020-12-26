@@ -241,6 +241,56 @@ Changes to Outputs:
 	}
 }
 
+// Module outputs should not cause the plan to be rendered
+func TestLocal_planModuleOutputsChanged(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
+		ss.SetOutputValue(addrs.AbsOutputValue{
+			Module:      addrs.RootModuleInstance.Child("mod", addrs.NoKey),
+			OutputValue: addrs.OutputValue{Name: "changed"},
+		}, cty.StringVal("before"), false)
+	}))
+	b.CLI = cli.NewMockUi()
+	outDir := testTempDir(t)
+	defer os.RemoveAll(outDir)
+	planPath := filepath.Join(outDir, "plan.tfplan")
+	op, configCleanup := testOperationPlan(t, "./testdata/plan-module-outputs-changed")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanOutPath = planPath
+	cfg := cty.ObjectVal(map[string]cty.Value{
+		"path": cty.StringVal(b.StatePath),
+	})
+	cfgRaw, err := plans.NewDynamicValue(cfg, cfg.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	op.PlanOutBackend = &plans.Backend{
+		Type:   "local",
+		Config: cfgRaw,
+	}
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+	if !run.PlanEmpty {
+		t.Fatal("plan should be empty")
+	}
+
+	expectedOutput := strings.TrimSpace(`
+No changes. Infrastructure is up-to-date.
+`)
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, expectedOutput) {
+		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
+	}
+}
+
 func TestLocal_planTainted(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
@@ -478,12 +528,6 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	// since there is no longer a separate Refresh walk, `-refresh=false
-	// doesn't do anything.
-	// FIXME: determine if we need a refresh option for the new plan, or remove
-	// this test
-	t.Skip()
-
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
@@ -646,7 +690,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.`
 }
 
 func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
-	addrs := make([]string, len(resources), len(resources))
+	addrs := make([]string, len(resources))
 	for i, r := range resources {
 		addrs[i] = r.Addr.String()
 	}

@@ -7,11 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sync"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/mitchellh/go-linereader"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -21,59 +23,79 @@ const (
 	maxBufSize = 8 * 1024
 )
 
-func Provisioner() terraform.ResourceProvisioner {
-	return &schema.Provisioner{
-		Schema: map[string]*schema.Schema{
-			"command": &schema.Schema{
-				Type:     schema.TypeString,
+func New() provisioners.Interface {
+	return &provisioner{}
+}
+
+type provisioner struct {
+	// this stored from the running context, so that Stop() can cancel the
+	// command
+	mu     sync.Mutex
+	cancel context.CancelFunc
+}
+
+func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"command": {
+				Type:     cty.String,
 				Required: true,
 			},
-			"interpreter": &schema.Schema{
-				Type:     schema.TypeList,
-				Elem:     &schema.Schema{Type: schema.TypeString},
+			"interpreter": {
+				Type:     cty.List(cty.String),
 				Optional: true,
 			},
-			"working_dir": &schema.Schema{
-				Type:     schema.TypeString,
+			"working_dir": {
+				Type:     cty.String,
 				Optional: true,
 			},
-			"environment": &schema.Schema{
-				Type:     schema.TypeMap,
+			"environment": {
+				Type:     cty.Map(cty.String),
 				Optional: true,
 			},
 		},
-
-		ApplyFunc: applyFn,
 	}
+
+	resp.Provisioner = schema
+	return resp
 }
 
-func applyFn(ctx context.Context) error {
-	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
-	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
+	if _, err := p.GetSchema().Provisioner.CoerceValue(req.Config); err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+	}
+	return resp
+}
 
-	command := data.Get("command").(string)
+func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+	p.mu.Lock()
+	ctx, cancel := context.WithCancel(context.Background())
+	p.cancel = cancel
+	p.mu.Unlock()
+
+	command := req.Config.GetAttr("command").AsString()
 	if command == "" {
-		return fmt.Errorf("local-exec provisioner command must be a non-empty string")
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("local-exec provisioner command must be a non-empty string"))
+		return resp
 	}
 
-	// Execute the command with env
-	environment := data.Get("environment").(map[string]interface{})
-
+	envVal := req.Config.GetAttr("environment")
 	var env []string
-	for k := range environment {
-		entry := fmt.Sprintf("%s=%s", k, environment[k].(string))
-		env = append(env, entry)
+
+	if !envVal.IsNull() {
+		for k, v := range envVal.AsValueMap() {
+			entry := fmt.Sprintf("%s=%s", k, v.AsString())
+			env = append(env, entry)
+		}
 	}
 
 	// Execute the command using a shell
-	interpreter := data.Get("interpreter").([]interface{})
+	intrVal := req.Config.GetAttr("interpreter")
 
 	var cmdargs []string
-	if len(interpreter) > 0 {
-		for _, i := range interpreter {
-			if arg, ok := i.(string); ok {
-				cmdargs = append(cmdargs, arg)
-			}
+	if !intrVal.IsNull() && intrVal.LengthInt() > 0 {
+		for _, v := range intrVal.AsValueSlice() {
+			cmdargs = append(cmdargs, v.AsString())
 		}
 	} else {
 		if runtime.GOOS == "windows" {
@@ -82,9 +104,13 @@ func applyFn(ctx context.Context) error {
 			cmdargs = []string{"/bin/sh", "-c"}
 		}
 	}
+
 	cmdargs = append(cmdargs, command)
 
-	workingdir := data.Get("working_dir").(string)
+	workingdir := ""
+	if wdVal := req.Config.GetAttr("working_dir"); !wdVal.IsNull() {
+		workingdir = wdVal.AsString()
+	}
 
 	// Setup the reader that will read the output from the command.
 	// We use an os.Pipe so that the *os.File can be passed directly to the
@@ -92,7 +118,8 @@ func applyFn(ctx context.Context) error {
 	// See golang.org/issue/18874
 	pr, pw, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("failed to initialize pipe for output: %s", err)
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("failed to initialize pipe for output: %s", err))
+		return resp
 	}
 
 	var cmdEnv []string
@@ -118,10 +145,10 @@ func applyFn(ctx context.Context) error {
 
 	// copy the teed output to the UI output
 	copyDoneCh := make(chan struct{})
-	go copyOutput(o, tee, copyDoneCh)
+	go copyUIOutput(req.UIOutput, tee, copyDoneCh)
 
 	// Output what we're about to run
-	o.Output(fmt.Sprintf("Executing: %q", cmdargs))
+	req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
 
 	// Start the command
 	err = cmd.Start()
@@ -142,14 +169,26 @@ func applyFn(ctx context.Context) error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error running command '%s': %v. Output: %s",
-			command, err, output.Bytes())
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error running command '%s': %v. Output: %s",
+			command, err, output.Bytes()))
+		return resp
 	}
 
+	return resp
+}
+
+func (p *provisioner) Stop() error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.cancel()
 	return nil
 }
 
-func copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+func (p *provisioner) Close() error {
+	return nil
+}
+
+func copyUIOutput(o provisioners.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
 	for line := range lr.Ch {

@@ -56,7 +56,7 @@ The extra wrapping object here will allow for any extension we may need to add i
 
 A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes Terraform plans to make to achieve that.
 
-For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#value-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
+For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#values-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
 
 ```javascript
 {

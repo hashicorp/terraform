@@ -241,6 +241,30 @@ test_instance.foo:
 	assertBackendStateUnlocked(t, b)
 }
 
+func TestLocal_applyRefreshFalse(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, testPlanState())
+
+	op, configCleanup := testOperationApply(t, "./testdata/plan")
+	defer configCleanup()
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
+	}
+}
+
 type backendWithFailingState struct {
 	Local
 }

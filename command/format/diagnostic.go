@@ -149,9 +149,17 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 						continue Traversals // don't show duplicates when the same variable is referenced multiple times
 					}
 					switch {
+					case val.IsMarked():
+						// We won't say anything at all about sensitive values,
+						// because we might give away something that was
+						// sensitive about them.
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
 					case !val.IsKnown():
-						// Can't say anything about this yet, then.
-						continue Traversals
+						if ty := val.Type(); ty != cty.DynamicPseudoType {
+							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
+						} else {
+							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
+						}
 					case val.IsNull():
 						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
 					default:

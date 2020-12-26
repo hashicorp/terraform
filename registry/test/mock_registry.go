@@ -8,10 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 
-	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -51,8 +49,6 @@ type testMod struct {
 // Only one version for now, as we only lookup latest from the registry.
 type testProvider struct {
 	version string
-	os      string
-	arch    string
 	url     string
 }
 
@@ -135,20 +131,6 @@ func init() {
 	}
 }
 
-func latestVersion(versions []string) string {
-	var col version.Collection
-	for _, v := range versions {
-		ver, err := version.NewVersion(v)
-		if err != nil {
-			panic(err)
-		}
-		col = append(col, ver)
-	}
-
-	sort.Sort(col)
-	return col[len(col)-1].String()
-}
-
 func mockRegHandler() http.Handler {
 	mux := http.NewServeMux()
 
@@ -188,7 +170,6 @@ func mockRegHandler() http.Handler {
 		w.Header().Set("X-Terraform-Get", location)
 		w.WriteHeader(http.StatusNoContent)
 		// no body
-		return
 	}
 
 	moduleVersions := func(w http.ResponseWriter, r *http.Request) {
@@ -249,102 +230,6 @@ func mockRegHandler() http.Handler {
 
 			if strings.HasSuffix(r.URL.Path, "/versions") {
 				moduleVersions(w, r)
-				return
-			}
-
-			http.NotFound(w, r)
-		})),
-	)
-
-	providerDownload := func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimLeft(r.URL.Path, "/")
-		v := strings.Split(string(p), "/")
-
-		if len(v) != 6 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		name := fmt.Sprintf("%s/%s", v[0], v[1])
-
-		providers, ok := testProviders[name]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-
-		// for this test / moment we will only return the one provider
-		loc := response.TerraformProviderPlatformLocation{
-			DownloadURL: providers[0].url,
-		}
-
-		js, err := json.Marshal(loc)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-
-	}
-
-	providerVersions := func(w http.ResponseWriter, r *http.Request) {
-		p := strings.TrimLeft(r.URL.Path, "/")
-		re := regexp.MustCompile(`^([-a-z]+/\w+)/versions$`)
-		matches := re.FindStringSubmatch(p)
-
-		if len(matches) != 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		// check for auth
-		if strings.Contains(matches[1], "private/") {
-			if !strings.Contains(r.Header.Get("Authorization"), testCred) {
-				http.Error(w, "", http.StatusForbidden)
-			}
-		}
-
-		name := providerAlias(fmt.Sprintf("%s", matches[1]))
-		versions, ok := testProviders[name]
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-
-		// only adding the single requested provider for now
-		// this is the minimal that any registry is expected to support
-		pvs := &response.TerraformProviderVersions{
-			ID: name,
-		}
-
-		for _, v := range versions {
-			pv := &response.TerraformProviderVersion{
-				Version: v.version,
-			}
-			pvs.Versions = append(pvs.Versions, pv)
-		}
-
-		js, err := json.Marshal(pvs)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(js)
-	}
-
-	mux.Handle("/v1/providers/",
-		http.StripPrefix("/v1/providers/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if strings.Contains(r.URL.Path, "/download") {
-				providerDownload(w, r)
-				return
-			}
-
-			if strings.HasSuffix(r.URL.Path, "/versions") {
-				providerVersions(w, r)
 				return
 			}
 

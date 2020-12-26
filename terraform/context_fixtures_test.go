@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,7 +17,7 @@ import (
 type contextTestFixture struct {
 	Config       *configs.Config
 	Providers    map[addrs.Provider]providers.Factory
-	Provisioners map[string]ProvisionerFactory
+	Provisioners map[string]provisioners.Factory
 }
 
 // ContextOpts returns a ContextOps pre-populated with the elements of this
@@ -48,8 +49,8 @@ func contextFixtureApplyVars(t *testing.T) *contextTestFixture {
 			"map":  {Type: cty.Map(cty.String), Optional: true},
 		},
 	})
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -74,8 +75,8 @@ func contextFixtureApplyVarsEnv(t *testing.T) *contextTestFixture {
 			"type":   {Type: cty.String, Computed: true},
 		},
 	})
-	p.ApplyFn = testApplyFn
-	p.DiffFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	p.PlanResourceChangeFn = testDiffFn
 	return &contextTestFixture{
 		Config: c,
 		Providers: map[addrs.Provider]providers.Factory{

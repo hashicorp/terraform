@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Module Composition"
 sidebar_current: "docs-modules-composition"
 description: |-
@@ -345,11 +345,11 @@ module "k8s_cluster" {
 
 The `network` module itself could retrieve this data in a number of different
 ways: it could query the AWS API directly using
-[`aws_vpc`](/docs/providers/aws/d/vpc.html)
+[`aws_vpc`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc)
 and
-[`aws_subnet_ids`](/docs/providers/aws/d/subnet_ids.html)
+[`aws_subnet_ids`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnet_ids)
 data sources, or it could read saved information from a Consul cluster using
-[`consul_keys`](https://www.terraform.io/docs/providers/consul/d/keys.html),
+[`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys),
 or it might read the outputs directly from the state of the configuration that
 manages the network using
 [`terraform_remote_state`](https://www.terraform.io/docs/providers/terraform/d/remote_state.html).

@@ -11,12 +11,14 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
 
@@ -542,8 +544,8 @@ func TestRemote_applyApprovedExternally(t *testing.T) {
 		t.Fatalf("error starting operation: %v", err)
 	}
 
-	// Wait 2 seconds to make sure the run started.
-	time.Sleep(2 * time.Second)
+	// Wait 50 milliseconds to make sure the run started.
+	time.Sleep(50 * time.Millisecond)
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
@@ -617,8 +619,8 @@ func TestRemote_applyDiscardedExternally(t *testing.T) {
 		t.Fatalf("error starting operation: %v", err)
 	}
 
-	// Wait 2 seconds to make sure the run started.
-	time.Sleep(2 * time.Second)
+	// Wait 50 milliseconds to make sure the run started.
+	time.Sleep(50 * time.Millisecond)
 
 	wl, err := b.client.Workspaces.List(
 		ctx,
@@ -871,7 +873,7 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 		"approve": "yes",
 	})
 
-	op.StateLockTimeout = 5 * time.Second
+	op.StateLockTimeout = 50 * time.Millisecond
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -887,8 +889,8 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 	case <-sigint:
 		// Stop redirecting SIGINT signals.
 		signal.Stop(sigint)
-	case <-time.After(10 * time.Second):
-		t.Fatalf("expected lock timeout after 5 seconds, waited 10 seconds")
+	case <-time.After(200 * time.Millisecond):
+		t.Fatalf("expected lock timeout after 50 milliseconds, waited 200 milliseconds")
 	}
 
 	if len(input.answers) != 2 {
@@ -1275,5 +1277,135 @@ func TestRemote_applyWithRemoteError(t *testing.T) {
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
 		t.Fatalf("expected apply error in output: %s", output)
+	}
+}
+
+func TestRemote_applyVersionCheck(t *testing.T) {
+	testCases := map[string]struct {
+		localVersion  string
+		remoteVersion string
+		forceLocal    bool
+		hasOperations bool
+		wantErr       string
+	}{
+		"versions can be different for remote apply": {
+			localVersion:  "0.14.0",
+			remoteVersion: "0.13.5",
+			hasOperations: true,
+		},
+		"versions can be different for local apply": {
+			localVersion:  "0.14.0",
+			remoteVersion: "0.13.5",
+			hasOperations: false,
+		},
+		"error if force local, has remote operations, different versions": {
+			localVersion:  "0.14.0",
+			remoteVersion: "0.13.5",
+			forceLocal:    true,
+			hasOperations: true,
+			wantErr:       `Remote workspace Terraform version "0.13.5" does not match local Terraform version "0.14.0"`,
+		},
+		"no error if versions are identical": {
+			localVersion:  "0.14.0",
+			remoteVersion: "0.14.0",
+			forceLocal:    true,
+			hasOperations: true,
+		},
+		"no error if force local but workspace has remote operations disabled": {
+			localVersion:  "0.14.0",
+			remoteVersion: "0.13.5",
+			forceLocal:    true,
+			hasOperations: false,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			b, bCleanup := testBackendDefault(t)
+			defer bCleanup()
+
+			// SETUP: Save original local version state and restore afterwards
+			p := tfversion.Prerelease
+			v := tfversion.Version
+			s := tfversion.SemVer
+			defer func() {
+				tfversion.Prerelease = p
+				tfversion.Version = v
+				tfversion.SemVer = s
+			}()
+
+			// SETUP: Set local version for the test case
+			tfversion.Prerelease = ""
+			tfversion.Version = tc.localVersion
+			tfversion.SemVer = version.Must(version.NewSemver(tc.localVersion))
+
+			// SETUP: Set force local for the test case
+			b.forceLocal = tc.forceLocal
+
+			ctx := context.Background()
+
+			// SETUP: set the operations and Terraform Version fields on the
+			// remote workspace
+			_, err := b.client.Workspaces.Update(
+				ctx,
+				b.organization,
+				b.workspace,
+				tfe.WorkspaceUpdateOptions{
+					Operations:       tfe.Bool(tc.hasOperations),
+					TerraformVersion: tfe.String(tc.remoteVersion),
+				},
+			)
+			if err != nil {
+				t.Fatalf("error creating named workspace: %v", err)
+			}
+
+			// RUN: prepare the apply operation and run it
+			op, configCleanup := testOperationApply(t, "./testdata/apply")
+			defer configCleanup()
+
+			input := testInput(t, map[string]string{
+				"approve": "yes",
+			})
+
+			op.UIIn = input
+			op.UIOut = b.CLI
+			op.Workspace = backend.DefaultStateName
+
+			run, err := b.Operation(ctx, op)
+			if err != nil {
+				t.Fatalf("error starting operation: %v", err)
+			}
+
+			// RUN: wait for completion
+			<-run.Done()
+
+			if tc.wantErr != "" {
+				// ASSERT: if the test case wants an error, check for failure
+				// and the error message
+				if run.Result != backend.OperationFailure {
+					t.Fatalf("expected run to fail, but result was %#v", run.Result)
+				}
+				errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+				if !strings.Contains(errOutput, tc.wantErr) {
+					t.Fatalf("missing error %q\noutput: %s", tc.wantErr, errOutput)
+				}
+			} else {
+				// ASSERT: otherwise, check for success and appropriate output
+				// based on whether the run should be local or remote
+				if run.Result != backend.OperationSuccess {
+					t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+				}
+				output := b.CLI.(*cli.MockUi).OutputWriter.String()
+				hasRemote := strings.Contains(output, "Running apply in the remote backend")
+				if !tc.forceLocal && tc.hasOperations && !hasRemote {
+					t.Fatalf("missing remote backend header in output: %s", output)
+				} else if (tc.forceLocal || !tc.hasOperations) && hasRemote {
+					t.Fatalf("unexpected remote backend header in output: %s", output)
+				}
+				if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+					t.Fatalf("expected apply summary in output: %s", output)
+				}
+			}
+		})
 	}
 }

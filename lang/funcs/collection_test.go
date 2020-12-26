@@ -2,10 +2,10 @@ package funcs
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/function"
 )
 
 func TestLength(t *testing.T) {
@@ -146,32 +146,12 @@ func TestAllTrue(t *testing.T) {
 		Err        bool
 	}{
 		{
-			cty.ListValEmpty(cty.String),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{}),
-			cty.True,
-			false,
-		},
-		{
-			cty.SetValEmpty(cty.Bool),
+			cty.ListValEmpty(cty.Bool),
 			cty.True,
 			false,
 		},
 		{
 			cty.ListVal([]cty.Value{cty.True}),
-			cty.True,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.StringVal("true")}),
-			cty.True,
-			false,
-		},
-		{
-			cty.TupleVal([]cty.Value{cty.True, cty.StringVal("true")}),
 			cty.True,
 			false,
 		},
@@ -191,30 +171,127 @@ func TestAllTrue(t *testing.T) {
 			false,
 		},
 		{
-			cty.ListVal([]cty.Value{cty.NumberIntVal(1)}),
+			cty.ListVal([]cty.Value{cty.True, cty.NullVal(cty.Bool)}),
 			cty.False,
 			false,
 		},
 		{
-			cty.StringVal("true"),
-			cty.False,
-			true,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.ListValEmpty(cty.String)}),
-			cty.False,
-			false,
-		},
-		{
-			cty.ListVal([]cty.Value{cty.UnknownVal(cty.String)}),
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
 			cty.UnknownVal(cty.Bool),
 			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.UnknownVal(cty.Bool),
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.NullVal(cty.List(cty.Bool)),
+			cty.NilVal,
+			true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("alltrue(%#v)", test.Collection), func(t *testing.T) {
 			got, err := AllTrue(test.Collection)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestAnyTrue(t *testing.T) {
+	tests := []struct {
+		Collection cty.Value
+		Want       cty.Value
+		Err        bool
+	}{
+		{
+			cty.ListValEmpty(cty.Bool),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.False}),
+			cty.False,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.True, cty.False}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.False, cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.NullVal(cty.Bool), cty.True}),
+			cty.True,
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Bool)}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.False,
+			}),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.Bool),
+				cty.True,
+			}),
+			cty.True,
+			false,
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Bool)),
+			cty.UnknownVal(cty.Bool),
+			false,
+		},
+		{
+			cty.NullVal(cty.List(cty.Bool)),
+			cty.NilVal,
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("anytrue(%#v)", test.Collection), func(t *testing.T) {
+			got, err := AnyTrue(test.Collection)
 
 			if test.Err {
 				if err == nil {
@@ -422,83 +499,6 @@ func TestIndex(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("index(%#v, %#v)", test.List, test.Value), func(t *testing.T) {
 			got, err := Index(test.List, test.Value)
-
-			if test.Err {
-				if err == nil {
-					t.Fatal("succeeded; want error")
-				}
-				return
-			} else if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-			}
-		})
-	}
-}
-
-func TestList(t *testing.T) {
-	tests := []struct {
-		Values []cty.Value
-		Want   cty.Value
-		Err    bool
-	}{
-		{
-			[]cty.Value{
-				cty.NilVal,
-			},
-			cty.NilVal,
-			true,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("Hello"),
-			},
-			cty.ListVal([]cty.Value{
-				cty.StringVal("Hello"),
-			}),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("Hello"),
-				cty.StringVal("World"),
-			},
-			cty.ListVal([]cty.Value{
-				cty.StringVal("Hello"),
-				cty.StringVal("World"),
-			}),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("Hello"),
-				cty.NumberIntVal(42),
-			},
-			cty.ListVal([]cty.Value{
-				cty.StringVal("Hello"),
-				cty.StringVal("42"),
-			}),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("Hello"),
-				cty.UnknownVal(cty.String),
-			},
-			cty.ListVal([]cty.Value{
-				cty.StringVal("Hello"),
-				cty.UnknownVal(cty.String),
-			}),
-			false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("list(%#v)", test.Values), func(t *testing.T) {
-			got, err := List(test.Values...)
 
 			if test.Err {
 				if err == nil {
@@ -769,169 +769,6 @@ func TestLookup(t *testing.T) {
 	}
 }
 
-func TestMap(t *testing.T) {
-	tests := []struct {
-		Values []cty.Value
-		Want   cty.Value
-		Err    bool
-	}{
-		{
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.StringVal("world"),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello": cty.StringVal("world"),
-			}),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.UnknownVal(cty.String),
-			},
-			cty.UnknownVal(cty.Map(cty.String)),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.StringVal("world"),
-				cty.StringVal("what's"),
-				cty.StringVal("up"),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello":  cty.StringVal("world"),
-				"what's": cty.StringVal("up"),
-			}),
-			false,
-		},
-		{
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.NumberIntVal(1),
-				cty.StringVal("goodbye"),
-				cty.NumberIntVal(42),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello":   cty.NumberIntVal(1),
-				"goodbye": cty.NumberIntVal(42),
-			}),
-			false,
-		},
-		{ // convert numbers to strings
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.NumberIntVal(1),
-				cty.StringVal("goodbye"),
-				cty.StringVal("42"),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello":   cty.StringVal("1"),
-				"goodbye": cty.StringVal("42"),
-			}),
-			false,
-		},
-		{ // convert number keys to strings
-			[]cty.Value{
-				cty.NumberIntVal(1),
-				cty.StringVal("hello"),
-				cty.NumberIntVal(2),
-				cty.StringVal("goodbye"),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"1": cty.StringVal("hello"),
-				"2": cty.StringVal("goodbye"),
-			}),
-			false,
-		},
-		{ // map of lists is okay
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.ListVal([]cty.Value{
-					cty.StringVal("world"),
-				}),
-				cty.StringVal("what's"),
-				cty.ListVal([]cty.Value{
-					cty.StringVal("up"),
-				}),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello":  cty.ListVal([]cty.Value{cty.StringVal("world")}),
-				"what's": cty.ListVal([]cty.Value{cty.StringVal("up")}),
-			}),
-			false,
-		},
-		{ // map of maps is okay
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.MapVal(map[string]cty.Value{
-					"there": cty.StringVal("world"),
-				}),
-				cty.StringVal("what's"),
-				cty.MapVal(map[string]cty.Value{
-					"really": cty.StringVal("up"),
-				}),
-			},
-			cty.MapVal(map[string]cty.Value{
-				"hello": cty.MapVal(map[string]cty.Value{
-					"there": cty.StringVal("world"),
-				}),
-				"what's": cty.MapVal(map[string]cty.Value{
-					"really": cty.StringVal("up"),
-				}),
-			}),
-			false,
-		},
-		{ // single argument returns an error
-			[]cty.Value{
-				cty.StringVal("hello"),
-			},
-			cty.NilVal,
-			true,
-		},
-		{ // duplicate keys returns an error
-			[]cty.Value{
-				cty.StringVal("hello"),
-				cty.StringVal("world"),
-				cty.StringVal("hello"),
-				cty.StringVal("universe"),
-			},
-			cty.NilVal,
-			true,
-		},
-		{ // null key returns an error
-			[]cty.Value{
-				cty.NullVal(cty.DynamicPseudoType),
-				cty.NumberIntVal(5),
-			},
-			cty.NilVal,
-			true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(fmt.Sprintf("map(%#v)", test.Values), func(t *testing.T) {
-			got, err := Map(test.Values...)
-			if test.Err {
-				if err == nil {
-					t.Fatal("succeeded; want error")
-				}
-				if _, ok := err.(function.PanicError); ok {
-					t.Fatalf("unexpected panic: %s", err)
-				}
-				return
-			} else if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-
-			if !got.RawEquals(test.Want) {
-				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
-			}
-		})
-	}
-}
-
 func TestMatchkeys(t *testing.T) {
 	tests := []struct {
 		Keys      cty.Value
@@ -1160,7 +997,7 @@ func TestSum(t *testing.T) {
 	tests := []struct {
 		List cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.ListVal([]cty.Value{
@@ -1169,7 +1006,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(3),
 			}),
 			cty.NumberIntVal(6),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1180,7 +1017,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(234),
 			}),
 			cty.NumberIntVal(66685532),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1189,7 +1026,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("c"),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1198,7 +1035,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(5),
 			}),
 			cty.NumberIntVal(-4),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1207,7 +1044,7 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(5.7),
 			}),
 			cty.NumberFloatVal(35.3),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{
@@ -1216,12 +1053,20 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(-5.7),
 			}),
 			cty.NumberFloatVal(-35.3),
-			false,
+			"",
 		},
 		{
 			cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
 			cty.NilVal,
-			true,
+			"argument must be list, set, or tuple of number values",
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.NumberIntVal(5),
+				cty.NullVal(cty.Number),
+			}),
+			cty.NilVal,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1230,7 +1075,7 @@ func TestSum(t *testing.T) {
 				cty.StringVal("c"),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1239,7 +1084,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(5),
 			}),
 			cty.NumberIntVal(-4),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1248,7 +1093,7 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(30),
 			}),
 			cty.NumberIntVal(65),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1257,14 +1102,14 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(3),
 			}),
 			cty.NumberFloatVal(2354),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
 				cty.NumberFloatVal(2),
 			}),
 			cty.NumberFloatVal(2),
-			false,
+			"",
 		},
 		{
 			cty.SetVal([]cty.Value{
@@ -1275,7 +1120,7 @@ func TestSum(t *testing.T) {
 				cty.NumberFloatVal(-4),
 			}),
 			cty.NumberFloatVal(-199),
-			false,
+			"",
 		},
 		{
 			cty.TupleVal([]cty.Value{
@@ -1284,27 +1129,53 @@ func TestSum(t *testing.T) {
 				cty.NumberIntVal(38),
 			}),
 			cty.UnknownVal(cty.String),
-			true,
+			"argument must be list, set, or tuple of number values",
 		},
 		{
 			cty.NumberIntVal(12),
 			cty.NilVal,
-			true,
+			"cannot sum noniterable",
 		},
 		{
 			cty.ListValEmpty(cty.Number),
 			cty.NilVal,
-			true,
+			"cannot sum an empty list",
 		},
 		{
 			cty.MapVal(map[string]cty.Value{"hello": cty.True}),
 			cty.NilVal,
-			true,
+			"argument must be list, set, or tuple. Received map of bool",
 		},
 		{
 			cty.UnknownVal(cty.Number),
 			cty.UnknownVal(cty.Number),
-			false,
+			"",
+		},
+		{
+			cty.UnknownVal(cty.List(cty.Number)),
+			cty.UnknownVal(cty.Number),
+			"",
+		},
+		{ // known list containing unknown values
+			cty.ListVal([]cty.Value{cty.UnknownVal(cty.Number)}),
+			cty.UnknownVal(cty.Number),
+			"",
+		},
+		{ // numbers too large to represent as float64
+			cty.ListVal([]cty.Value{
+				cty.MustParseNumberVal("1e+500"),
+				cty.MustParseNumberVal("1e+500"),
+			}),
+			cty.MustParseNumberVal("2e+500"),
+			"",
+		},
+		{ // edge case we have a special error handler for
+			cty.ListVal([]cty.Value{
+				cty.NumberFloatVal(math.Inf(1)),
+				cty.NumberFloatVal(math.Inf(-1)),
+			}),
+			cty.NilVal,
+			"can't compute sum of opposing infinities",
 		},
 	}
 
@@ -1312,9 +1183,11 @@ func TestSum(t *testing.T) {
 		t.Run(fmt.Sprintf("sum(%#v)", test.List), func(t *testing.T) {
 			got, err := Sum(test.List)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				} else if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\n got: %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {

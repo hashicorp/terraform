@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
+	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -28,6 +29,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -159,7 +161,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &terraform.BackendState{
+		m.backendState = &legacy.BackendState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -316,20 +318,6 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	}, nil
 }
 
-// IsLocalBackend returns true if the backend is a local backend. We use this
-// for some checks that require a remote backend.
-func (m *Meta) IsLocalBackend(b backend.Backend) bool {
-	// Is it a local backend?
-	bLocal, ok := b.(*backendLocal.Local)
-
-	// If it is, does it not have an alternate state backend?
-	if ok {
-		ok = bLocal.Backend == nil
-	}
-
-	return ok
-}
-
 // Operation initializes a new backend.Operation struct.
 //
 // This prepares the operation. After calling this, the caller is expected
@@ -474,7 +462,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	s := sMgr.State()
 	if s == nil {
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = terraform.NewState()
+		s = legacy.NewState()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 	} else {
@@ -728,36 +716,6 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	return nil, diags
 }
 
-// Legacy remote state
-func (m *Meta) backend_c_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
-
-	diags = diags.Append(fmt.Errorf("Cannot initialize legacy remote state"))
-	return nil, diags
-}
-
-// Unsetting backend, saved backend, legacy remote state
-func (m *Meta) backend_c_R_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
-
-	diags = diags.Append(fmt.Errorf("Cannot initialize legacy remote state"))
-	return nil, diags
-}
-
-// Configuring a backend for the first time with legacy remote state.
-func (m *Meta) backend_C_R_s(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
-
-	diags = diags.Append(fmt.Errorf("Cannot initialize legacy remote state"))
-	return nil, diags
-}
-
 // Configuring a backend for the first time.
 func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	// Get the backend
@@ -861,9 +819,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -945,9 +903,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -1025,26 +983,6 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clis
 	return b, diags
 }
 
-// Initiailizing a changed saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_changed(c *configs.Backend, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
-
-	diags = diags.Append(fmt.Errorf("Cannot initialize legacy remote state"))
-	return nil, diags
-}
-
-// Initiailizing an unchanged saved backend with legacy remote state.
-func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	m.Ui.Error(strings.TrimSpace(errBackendLegacy) + "\n")
-
-	diags = diags.Append(fmt.Errorf("Cannot initialize legacy remote state"))
-	return nil, diags
-}
-
 //-------------------------------------------------------------------
 // Reusable helper functions for backend management
 //-------------------------------------------------------------------
@@ -1059,7 +997,7 @@ func (m *Meta) backend_C_R_S_unchanged(c *configs.Backend, sMgr *clistate.LocalS
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *terraform.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *legacy.BackendState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -1150,39 +1088,36 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	return b, configVal, diags
 }
 
-func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	// Get the backend
-	f := backendInit.Backend(s.Type)
-	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedUnknown), s.Type))
-		return nil, diags
-	}
-	b := f()
-
-	schema := b.ConfigSchema()
-	configVal, err := s.Config(schema)
-	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("saved backend configuration is invalid: {{err}}", err))
-		return nil, diags
-	}
-
-	newVal, validateDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validateDiags)
-	if validateDiags.HasErrors() {
-		return nil, diags
-	}
-
-	configureDiags := b.Configure(newVal)
-	diags = diags.Append(configureDiags)
-
-	return b, diags
-}
-
 func (m *Meta) backendInitRequired(reason string) {
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset]"+strings.TrimSpace(errBackendInit)+"\n", reason)))
+}
+
+// Helper method to ignore remote backend version conflicts. Only call this
+// for commands which cannot accidentally upgrade remote state files.
+func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
+	if rb, ok := b.(*remoteBackend.Remote); ok {
+		rb.IgnoreVersionConflict()
+	}
+}
+
+// Helper method to check the local Terraform version against the configured
+// version in the remote workspace, returning diagnostics if they conflict.
+func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if rb, ok := b.(*remoteBackend.Remote); ok {
+		// Allow user override based on command-line flag
+		if m.ignoreRemoteVersion {
+			rb.IgnoreVersionConflict()
+		}
+		// If the override is set, this check will return a warning instead of
+		// an error
+		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
+		diags = diags.Append(versionDiags)
+	}
+
+	return diags
 }
 
 //-------------------------------------------------------------------
@@ -1193,30 +1128,6 @@ func (m *Meta) backendInitRequired(reason string) {
 // is required for some reason. The error message includes the reason.
 var errBackendInitRequired = errors.New(
 	"Initialization required. Please see the error message above.")
-
-const errBackendLegacyConfig = `
-One or more errors occurred while configuring the legacy remote state.
-If fixing these errors requires changing your remote state configuration,
-you must switch your configuration to the new remote backend configuration.
-You can learn more about remote backends at the URL below:
-
-https://www.terraform.io/docs/backends/index.html
-
-The error(s) configuring the legacy remote state:
-
-%s
-`
-
-const errBackendLegacyUnknown = `
-The legacy remote state type %q could not be found.
-
-Terraform 0.9.0 shipped with backwards compatibility for all built-in
-legacy remote state types. This error may mean that you were using a
-custom Terraform build that perhaps supported a different type of
-remote state.
-
-Please check with the creator of the remote state above and try again.
-`
 
 const errBackendLocalRead = `
 Error reading local state: %s
@@ -1235,29 +1146,6 @@ configured backend. As part of the deletion process, a backup is made at
 the standard backup path unless explicitly asked not to. To cleanly operate
 with a backend, we must delete the local state file. Please resolve the
 issue above and retry the command.
-`
-
-const errBackendMigrateNew = `
-Error migrating local state to backend: %s
-
-Your local state remains intact and unmodified. Please resolve the error
-above and try again.
-`
-
-const errBackendNewConfig = `
-Error configuring the backend %q: %s
-
-Please update the configuration in your Terraform files to fix this error
-then run this command again.
-`
-
-const errBackendNewRead = `
-Error reading newly configured backend state: %s
-
-Terraform is trying to read the state from your newly configured backend
-to determine the copy process for your existing state. Backends are expected
-to not error even if there is no state yet written. Please resolve the
-error above and try again.
 `
 
 const errBackendNewUnknown = `
@@ -1280,34 +1168,6 @@ If the backend already contains existing workspaces, you may need to update
 the backend configuration.
 `
 
-const errBackendRemoteRead = `
-Error reading backend state: %s
-
-Terraform is trying to read the state from your configured backend to
-determine if there is any migration steps necessary. Terraform can't continue
-without this check because that would risk losing state. Please resolve the
-error above and try again.
-`
-
-const errBackendSavedConfig = `
-Error configuring the backend %q: %s
-
-Please update the configuration in your Terraform files to fix this error.
-If you'd like to update the configuration interactively without storing
-the values in your configuration, run "terraform init".
-`
-
-const errBackendSavedUnsetConfig = `
-Error configuring the existing backend %q: %s
-
-Terraform must configure the existing backend in order to copy the state
-from the existing backend, as requested. Please resolve the error and try
-again. If you choose to not copy the existing state, Terraform will not
-configure the backend. If the configuration is invalid, please update your
-Terraform configuration with proper configuration for this backend first
-before unsetting the backend.
-`
-
 const errBackendSavedUnknown = `
 The backend %q could not be found.
 
@@ -1319,14 +1179,6 @@ contains support for this backend.
 
 If you'd like to force remove this backend, you must update your configuration
 to not use the backend and run "terraform init" (or any other command) again.
-`
-
-const errBackendClearLegacy = `
-Error clearing the legacy remote state configuration: %s
-
-Terraform completed configuring your backend. It is now safe to remove
-the legacy remote state configuration, but an error occurred while trying
-to do so. Please look at the error above, resolve it, and try again.
 `
 
 const errBackendClearSaved = `
@@ -1365,70 +1217,12 @@ are usually due to simple file permission errors. Please look at the error
 above, resolve it, and try again.
 `
 
-const errBackendPlanBoth = `
-The plan file contained both a legacy remote state and backend configuration.
-This is not allowed. Please recreate the plan file with the latest version of
-Terraform.
-`
-
-const errBackendPlanLineageDiff = `
-The plan file contains a state with a differing lineage than the current
-state. By continuing, your current state would be overwritten by the state
-in the plan. Please either update the plan with the latest state or delete
-your current state and try again.
-
-"Lineage" is a unique identifier generated only once on the creation of
-a new, empty state. If these values differ, it means they were created new
-at different times. Therefore, Terraform must assume that they're completely
-different states.
-
-The most common cause of seeing this error is using a plan that was
-created against a different state. Perhaps the plan is very old and the
-state has since been recreated, or perhaps the plan was against a completely
-different infrastructure.
-`
-
-const errBackendPlanStateFlag = `
-The -state and -state-out flags cannot be set with a plan that has a remote
-state. The plan itself contains the configuration for the remote backend to
-store state. The state will be written there for consistency.
-
-If you wish to change this behavior, please create a plan from local state.
-You may use the state flags with plans from local state to affect where
-the final state is written.
-`
-
-const errBackendPlanOlder = `
-This plan was created against an older state than is current. Please create
-a new plan file against the latest state and try again.
-
-Terraform doesn't allow you to run plans that were created from older
-states since it doesn't properly represent the latest changes Terraform
-may have made, and can result in unsafe behavior.
-
-Plan Serial:    %[1]d
-Current Serial: %[2]d
-`
-
 const outputBackendMigrateChange = `
 Terraform detected that the backend type changed from %q to %q.
 `
 
-const outputBackendMigrateLegacy = `
-Terraform detected legacy remote state.
-`
-
 const outputBackendMigrateLocal = `
 Terraform has detected you're unconfiguring your previously set %q backend.
-`
-
-const outputBackendConfigureWithLegacy = `
-[reset][bold]New backend configuration detected with legacy remote state![reset]
-
-Terraform has detected that you're attempting to configure a new backend.
-At the same time, legacy remote state configuration was found. Terraform will
-first configure the new backend, and then ask if you'd like to migrate
-your remote state to the new backend.
 `
 
 const outputBackendReconfigure = `
@@ -1438,45 +1232,6 @@ Terraform has detected that the configuration specified for the backend
 has changed. Terraform will now check for existing state in the backends.
 `
 
-const outputBackendSavedWithLegacy = `
-[reset][bold]Legacy remote state was detected![reset]
-
-Terraform has detected you still have legacy remote state enabled while
-also having a backend configured. Terraform will now ask if you want to
-migrate your legacy remote state data to the configured backend.
-`
-
-const outputBackendSavedWithLegacyChanged = `
-[reset][bold]Legacy remote state was detected while also changing your current backend!reset]
-
-Terraform has detected that you have legacy remote state, a configured
-current backend, and you're attempting to reconfigure your backend. To handle
-all of these changes, Terraform will first reconfigure your backend. After
-this, Terraform will handle optionally copying your legacy remote state
-into the newly configured backend.
-`
-
-const outputBackendUnsetWithLegacy = `
-[reset][bold]Detected a request to unset the backend with legacy remote state present![reset]
-
-Terraform has detected that you're attempting to unset a previously configured
-backend (by not having the "backend" configuration set in your Terraform files).
-At the same time, legacy remote state was detected. To handle this complex
-scenario, Terraform will first unset your configured backend, and then
-ask you how to handle the legacy remote state. This will be multi-step
-process.
-`
-
-const successBackendLegacyUnset = `
-Terraform has successfully migrated from legacy remote state to your
-configured backend (%q).
-`
-
-const successBackendReconfigureWithLegacy = `
-Terraform has successfully reconfigured your backend and migrate
-from legacy remote state to the new backend.
-`
-
 const successBackendUnset = `
 Successfully unset the backend %q. Terraform will now operate locally.
 `
@@ -1484,13 +1239,4 @@ Successfully unset the backend %q. Terraform will now operate locally.
 const successBackendSet = `
 Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.
-`
-
-const errBackendLegacy = `
-This working directory is configured to use the legacy remote state features
-from Terraform 0.8 or earlier. Remote state changed significantly in Terraform
-0.9 and the automatic upgrade mechanism has now been removed.
-
-To upgrade, please first use Terraform v0.11 to complete the upgrade steps:
-    https://www.terraform.io/docs/backends/legacy-0-8.html
 `

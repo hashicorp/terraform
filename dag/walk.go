@@ -106,11 +106,6 @@ type walkerVertex struct {
 	depsCancelCh chan struct{}
 }
 
-// errWalkUpstream is used in the errMap of a walk to note that an upstream
-// dependency failed so this vertex wasn't run. This is not shown in the final
-// user-returned error.
-var errWalkUpstream = errors.New("upstream dependency failed")
-
 // Wait waits for the completion of the walk and returns diagnostics describing
 // any problems that arose. Update should be called to populate the walk with
 // vertices and edges prior to calling this.
@@ -383,7 +378,6 @@ func (w *Walker) walkVertex(v Vertex, info *walkerVertex) {
 	var diags tfdiags.Diagnostics
 	var upstreamFailed bool
 	if depsSuccess {
-		log.Printf("[TRACE] dag/walk: visiting %q", VertexName(v))
 		diags = w.Callback(v)
 	} else {
 		log.Printf("[TRACE] dag/walk: upstream of %q errored, so skipping", VertexName(v))

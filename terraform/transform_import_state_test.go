@@ -14,12 +14,17 @@ import (
 func TestGraphNodeImportStateExecute(t *testing.T) {
 	state := states.NewState()
 	provider := testProvider("aws")
-	provider.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "bar",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	provider.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("bar"),
+				}),
+			},
 		},
 	}
+
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
@@ -41,9 +46,9 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 		},
 	}
 
-	err := node.Execute(ctx, walkImport)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkImport)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
 
 	if len(node.states) != 1 {
@@ -93,9 +98,9 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 			Module:   addrs.RootModule,
 		},
 	}
-	err := node.Execute(ctx, walkImport)
-	if err != nil {
-		t.Fatalf("Unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkImport)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
 	}
 
 	// check for resource in state

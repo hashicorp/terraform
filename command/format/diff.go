@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -99,7 +98,6 @@ func ResourceChange(
 		color:           color,
 		action:          change.Action,
 		requiredReplace: change.RequiredReplace,
-		concise:         experiment.Enabled(experiment.X_concise_diff),
 	}
 
 	// Most commonly-used resources have nested blocks that result in us
@@ -154,10 +152,9 @@ func OutputChanges(
 ) string {
 	var buf bytes.Buffer
 	p := blockBodyDiffPrinter{
-		buf:     &buf,
-		color:   color,
-		action:  plans.Update, // not actually used in this case, because we're not printing a containing block
-		concise: experiment.Enabled(experiment.X_concise_diff),
+		buf:    &buf,
+		color:  color,
+		action: plans.Update, // not actually used in this case, because we're not printing a containing block
 	}
 
 	// We're going to reuse the codepath we used for printing resource block
@@ -200,7 +197,8 @@ type blockBodyDiffPrinter struct {
 	color           *colorstring.Colorize
 	action          plans.Action
 	requiredReplace cty.PathSet
-	concise         bool
+	// verbose is set to true when using the "diff" printer to format state
+	verbose bool
 }
 
 type blockBodyDiffResult struct {
@@ -307,12 +305,6 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 func getPlanActionAndShow(old cty.Value, new cty.Value) (plans.Action, bool) {
 	var action plans.Action
 	showJustNew := false
-	if old.ContainsMarked() {
-		old, _ = old.UnmarkDeep()
-	}
-	if new.ContainsMarked() {
-		new, _ = new.UnmarkDeep()
-	}
 	switch {
 	case old.IsNull():
 		action = plans.Create
@@ -332,7 +324,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	path = append(path, cty.GetAttrStep{Name: name})
 	action, showJustNew := getPlanActionAndShow(old, new)
 
-	if action == plans.NoOp && p.concise && !identifyingAttribute(name, attrS) {
+	if action == plans.NoOp && !p.verbose && !identifyingAttribute(name, attrS) {
 		return true
 	}
 
@@ -381,7 +373,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// Display a special diff because it is irrelevant
 	// to list all obfuscated attributes as (sensitive)
 	if old.IsMarked() || new.IsMarked() {
-		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore)
+		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore, path)
 		return 0
 	}
 
@@ -589,10 +581,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	return skippedBlocks
 }
 
-func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool) {
-	unmarkedOld, _ := old.Unmark()
-	unmarkedNew, _ := new.Unmark()
-	eqV := unmarkedNew.Equals(unmarkedOld)
+func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, new cty.Value, indent int, blankBefore bool, path cty.Path) {
 	var action plans.Action
 	switch {
 	case old.IsNull():
@@ -604,7 +593,7 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 		// that old values must never be unknown, but we'll allow it
 		// anyway to be robust.
 		action = plans.Update
-	case !eqV.IsKnown() || !eqV.True():
+	case !ctyEqualValueAndMarks(old, new):
 		action = plans.Update
 	}
 
@@ -618,6 +607,9 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 	fmt.Fprintf(p.buf, "%s {", name)
+	if action != plans.NoOp && p.pathForcesNewResource(path) {
+		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+	}
 	p.buf.WriteRune('\n')
 	p.buf.WriteString(strings.Repeat(" ", indent+4))
 	p.buf.WriteString("# At least one attribute in this block is (or was) sensitive,\n")
@@ -626,11 +618,10 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteRune('\n')
 	p.buf.WriteString(strings.Repeat(" ", indent+2))
 	p.buf.WriteString("}")
-	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) bool {
-	if action == plans.NoOp && p.concise {
+	if action == plans.NoOp && !p.verbose {
 		return true
 	}
 
@@ -827,6 +818,9 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
 		if old.IsMarked() || new.IsMarked() {
 			p.buf.WriteString("(sensitive)")
+			if p.pathForcesNewResource(path) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
 			return
 		}
 
@@ -881,7 +875,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			if strings.Index(oldS, "\n") < 0 && strings.Index(newS, "\n") < 0 {
+			if !strings.Contains(oldS, "\n") && !strings.Contains(newS, "\n") {
 				break
 			}
 
@@ -987,7 +981,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.NoOp
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}
@@ -1027,8 +1021,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			var changeShown bool
 
 			for i := 0; i < len(elemDiffs); i++ {
-				// In concise mode, push any no-op diff elements onto the stack
-				if p.concise {
+				if !p.verbose {
 					for i < len(elemDiffs) && elemDiffs[i].Action == plans.NoOp {
 						suppressedElements = append(suppressedElements, elemDiffs[i])
 						i++
@@ -1056,7 +1049,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					if hidden > 0 && i < len(elemDiffs) {
 						hidden--
 						nextContextDiff = suppressedElements[hidden]
-						suppressedElements = suppressedElements[:hidden]
 					}
 
 					// If there are still hidden elements, show an elision
@@ -1156,19 +1148,15 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Delete
 				}
 
-				// Use unmarked values for equality testing
 				if old.HasIndex(kV).True() && new.HasIndex(kV).True() {
-					unmarkedOld, _ := old.Index(kV).Unmark()
-					unmarkedNew, _ := new.Index(kV).Unmark()
-					eqV := unmarkedOld.Equals(unmarkedNew)
-					if eqV.IsKnown() && eqV.True() {
+					if ctyEqualValueAndMarks(old.Index(kV), new.Index(kV)) {
 						action = plans.NoOp
 					} else {
 						action = plans.Update
 					}
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}
@@ -1263,13 +1251,13 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Create
 				} else if !new.Type().HasAttribute(kV) {
 					action = plans.Delete
-				} else if eqV := old.GetAttr(kV).Equals(new.GetAttr(kV)); eqV.IsKnown() && eqV.True() {
+				} else if ctyEqualValueAndMarks(old.GetAttr(kV), new.GetAttr(kV)) {
 					action = plans.NoOp
 				} else {
 					action = plans.Update
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}
@@ -1487,11 +1475,23 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	return ret
 }
 
+// ctyEqualValueAndMarks checks equality of two possibly-marked values,
+// considering partially-unknown values and equal values with different marks
+// as inequal
 func ctyEqualWithUnknown(old, new cty.Value) bool {
 	if !old.IsWhollyKnown() || !new.IsWhollyKnown() {
 		return false
 	}
-	return old.Equals(new).True()
+	return ctyEqualValueAndMarks(old, new)
+}
+
+// ctyEqualValueAndMarks checks equality of two possibly-marked values,
+// considering equal values with different marks as inequal
+func ctyEqualValueAndMarks(old, new cty.Value) bool {
+	oldUnmarked, oldMarks := old.UnmarkDeep()
+	newUnmarked, newMarks := new.UnmarkDeep()
+	sameValue := oldUnmarked.Equals(newUnmarked)
+	return sameValue.IsKnown() && sameValue.True() && oldMarks.Equal(newMarks)
 }
 
 // ctyTypesEqual checks equality of two types more loosely

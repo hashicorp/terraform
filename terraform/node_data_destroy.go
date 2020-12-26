@@ -1,6 +1,10 @@
 package terraform
 
-import "log"
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/tfdiags"
+)
 
 // NodeDestroyableDataResourceInstance represents a resource that is "destroyable":
 // it is ready to be destroyed.
@@ -13,7 +17,7 @@ var (
 )
 
 // GraphNodeExecutable
-func (n *NodeDestroyableDataResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeDestroyableDataResourceInstance) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	log.Printf("[TRACE] NodeDestroyableDataResourceInstance: removing state object for %s", n.Addr)
 	ctx.State().SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	return nil

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/lib/pq"
 )
 
@@ -19,24 +19,36 @@ const (
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"conn_str": &schema.Schema{
+			"conn_str": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Postgres connection string; a `postgres://` URL",
 			},
 
-			"schema_name": &schema.Schema{
+			"schema_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the automatically managed Postgres schema to store state",
 				Default:     "terraform_remote_state",
 			},
 
-			"skip_schema_creation": &schema.Schema{
+			"skip_schema_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
 				Default:     false,
+			},
+
+			"skip_table_creation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set to `true`, Terraform won't try to create the Postgres table",
+			},
+
+			"skip_index_creation": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "If set to `true`, Terraform won't try to create the Postgres index",
 			},
 		},
 	}
@@ -91,17 +103,23 @@ func (b *Backend) configure(ctx context.Context) error {
 			}
 		}
 	}
-	query = `CREATE TABLE IF NOT EXISTS %s.%s (
-		id SERIAL PRIMARY KEY,
-		name TEXT,
-		data TEXT
-	)`
-	if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
-		return err
+
+	if !data.Get("skip_table_creation").(bool) {
+		query = `CREATE TABLE IF NOT EXISTS %s.%s (
+			id SERIAL PRIMARY KEY,
+			name TEXT,
+			data TEXT
+			)`
+		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
+			return err
+		}
 	}
-	query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
-	if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
-		return err
+
+	if !data.Get("skip_index_creation").(bool) {
+		query = `CREATE UNIQUE INDEX IF NOT EXISTS %s ON %s.%s (name)`
+		if _, err := db.Exec(fmt.Sprintf(query, statesIndexName, b.schemaName, statesTableName)); err != nil {
+			return err
+		}
 	}
 
 	// Assign db after its schema is prepared.

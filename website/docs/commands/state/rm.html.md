@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state rm"
 sidebar_current: "docs-commands-state-sub-rm"
 description: |-
@@ -51,6 +51,11 @@ The command-line flags are all optional. The list of available flags are:
   Terraform-managed resources. By default it will use the configured backend,
   or the default "terraform.tfstate" if it exists.
 
+* `-ignore-remote-version` - When using the enhanced remote backend with
+  Terraform Cloud, continue even if remote and local Terraform versions differ.
+  This may result in an unusable Terraform Cloud workspace, and should be used
+  with extreme caution.
+
 ## Example: Remove a Resource
 
 The example below removes the `packet_device` resource named `worker`:
@@ -78,7 +83,7 @@ $ terraform state rm 'module.foo.packet_device.worker'
 ## Example: Remove a Resource configured with count
 
 The example below removes the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+[`count`](/docs/configuration/meta-arguments/count.html):
 
 ```shell
 $ terraform state rm 'packet_device.worker[0]'
@@ -87,7 +92,7 @@ $ terraform state rm 'packet_device.worker[0]'
 ## Example: Remove a Resource configured with for_each
 
 The example below removes the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+[`for_each`](/docs/configuration/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

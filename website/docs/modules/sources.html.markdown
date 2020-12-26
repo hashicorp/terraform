@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
 description: The source argument within a module block specifies the location of the source code of a child module.
@@ -7,7 +7,7 @@ description: The source argument within a module block specifies the location of
 
 # Module Sources
 
-The `source` argument in [a `module` block](/docs/configuration/modules.html)
+The `source` argument in [a `module` block](/docs/configuration/blocks/modules/syntax.html)
 tells Terraform where to find the source code for the desired child module.
 
 Terraform uses this during the module installation step of `terraform init`
@@ -116,13 +116,14 @@ module "consul" {
 ```
 
 If you are using the SaaS version of Terraform Cloud, its private
-registry hostname is `app.terraform.io`. If you are using a Terraform Enterprise
-instance, its private registry hostname is the same hostname you use to
-access the Terraform Cloud application.
+registry hostname is `app.terraform.io`. If you use a self-hosted Terraform
+Enterprise instance, its private registry hostname is the same as the host
+where you'd access the web UI and the host you'd use when configuring
+the `remote` backend.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
-[version constraints](/docs/configuration/modules.html#module-versions).
+[version constraints](/docs/configuration/blocks/modules/syntax.html#version).
 
 You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
@@ -183,7 +184,7 @@ a specific revision to install.
 
 Arbitrary Git repositories can be used by prefixing the address with the
 special `git::` prefix. After this prefix, any valid
-[Git URL](https://git-scm.com/docs/git-clone#_git_urls_a_id_urls_a)
+[Git URL](https://git-scm.com/docs/git-clone#_git_urls)
 can be specified to select one of the protocols supported by Git.
 
 For example, to use HTTPS or SSH:
@@ -205,8 +206,8 @@ suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Git
-repositories from automated systems because it is easy to configure
-and allows access to private repositories without interactive prompts.
+repositories from automated systems because it allows access to private
+repositories without interactive prompts.
 
 If using the HTTP/HTTPS protocol, or any other protocol that uses
 username/password credentials, configure
@@ -272,8 +273,8 @@ with suitable credentials for that repository.
 
 If you use the SSH protocol then any configured SSH keys will be used
 automatically. This is the most common way to access non-public Mercurial
-repositories from automated systems because it is easy to configure
-and allows access to private repositories without interactive prompts.
+repositories from automated systems because it allows access to private
+repositories without interactive prompts.
 
 If your Terraform configuration will be used within [Terraform Cloud](https://www.hashicorp.com/products/terraform),
 only SSH key authentication is supported, and
@@ -349,7 +350,7 @@ module "vpc" {
 ```
 
 -> **Note:** If the content of the archive file is a directory, you will need to
-include that directory in the module source. Read the section on 
+include that directory in the module source. Read the section on
 [Modules in Package Sub-directories](#modules-in-package-sub-directories) for more
 information.
 
@@ -357,7 +358,7 @@ information.
 
 You can use archives stored in S3 as module sources using the special `s3::`
 prefix, followed by
-[a path-style S3 bucket object URL](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
+[an S3 bucket object URL](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
 
 ```hcl
 module "consul" {

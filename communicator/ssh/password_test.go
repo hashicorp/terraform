@@ -3,17 +3,7 @@ package ssh
 import (
 	"reflect"
 	"testing"
-
-	"golang.org/x/crypto/ssh"
 )
-
-func TestPasswordKeyboardInteractive_Impl(t *testing.T) {
-	var raw interface{}
-	raw = PasswordKeyboardInteractive("foo")
-	if _, ok := raw.(ssh.KeyboardInteractiveChallenge); !ok {
-		t.Fatal("PasswordKeyboardInteractive must implement KeyboardInteractiveChallenge")
-	}
-}
 
 func TestPasswordKeybardInteractive_Challenge(t *testing.T) {
 	p := PasswordKeyboardInteractive("foo")

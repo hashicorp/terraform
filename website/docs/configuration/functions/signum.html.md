@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "signum - Functions - Configuration Language"
 sidebar_current: "docs-funcs-numeric-signum"
 description: |-

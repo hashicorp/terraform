@@ -301,7 +301,7 @@ func (m ReferenceMap) References(v dag.Vertex) []dag.Vertex {
 			case addrs.ModuleCallInstance:
 				subject = ri.Call
 			default:
-				log.Printf("[WARN] ReferenceTransformer: reference not found: %q", subject)
+				log.Printf("[INFO] ReferenceTransformer: reference not found: %q", subject)
 				continue
 			}
 			key = m.referenceMapKey(v, subject)
@@ -537,18 +537,4 @@ func ReferencesFromConfig(body hcl.Body, schema *configschema.Block) []*addrs.Re
 	}
 	refs, _ := lang.ReferencesInBlock(body, schema)
 	return refs
-}
-
-func modulePrefixStr(p addrs.ModuleInstance) string {
-	return p.String()
-}
-
-func modulePrefixList(result []string, prefix string) []string {
-	if prefix != "" {
-		for i, v := range result {
-			result[i] = fmt.Sprintf("%s.%s", prefix, v)
-		}
-	}
-
-	return result
 }

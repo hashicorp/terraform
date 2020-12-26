@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provisioner: file"
 sidebar_current: "docs-provisioners-file"
 description: |-
@@ -59,7 +59,7 @@ The following arguments are supported:
 * `content` - This is the content to copy on the destination. If destination is a file,
   the content will be written on that file, in case of a directory a file named
   `tf-file-content` is created. It's recommended to use a file as the destination. A
-  [`template_file`](/docs/providers/template/d/file.html) might be referenced in here, or
+  [`template_file`](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file) might be referenced in here, or
   any interpolation syntax. This attribute cannot be specified with `source`.
 
 * `destination` - (Required) This is the destination path. It must be specified as an

@@ -21,8 +21,8 @@ import (
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/logging"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
 
@@ -77,12 +77,7 @@ func newRegistryClient(baseURL *url.URL, creds svcauth.HostCredentials) *registr
 	retryableClient.RequestLogHook = requestLogHook
 	retryableClient.ErrorHandler = maxRetryErrorHandler
 
-	logOutput, err := logging.LogOutput()
-	if err != nil {
-		log.Printf("[WARN] Failed to set up registry client logger, "+
-			"continuing without client logging: %s", err)
-	}
-	retryableClient.Logger = log.New(logOutput, "", log.Flags())
+	retryableClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
 
 	return &registryClient{
 		baseURL:    baseURL,
@@ -266,7 +261,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 				match = true
 			}
 		}
-		if match == false {
+		if !match {
 			// If the protocol version is not supported, try to find the closest
 			// matching version.
 			closest, err := c.findClosestProtocolCompatibleVersion(ctx, provider, version)

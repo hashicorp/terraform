@@ -107,7 +107,7 @@ func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
 		case HookActionHalt:
 			// Return an early exit error to trigger an early exit
 			log.Printf("[WARN] Early exit triggered by hook: %T", h)
-			return EvalEarlyExitError{}
+			return nil
 		}
 	}
 
@@ -297,7 +297,19 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	return ctx.Evaluator.Scope(data, self)
+	scope := ctx.Evaluator.Scope(data, self)
+
+	// ctx.PathValue is the path of the module that contains whatever
+	// expression the caller will be trying to evaluate, so this will
+	// activate only the experiments from that particular module, to
+	// be consistent with how experiment checking in the "configs"
+	// package itself works. The nil check here is for robustness in
+	// incompletely-mocked testing situations; mc should never be nil in
+	// real situations.
+	if mc := ctx.Evaluator.Config.DescendentForInstance(ctx.PathValue); mc != nil {
+		scope.SetActiveExperiments(mc.Module.ActiveExperiments)
+	}
+	return scope
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
@@ -320,7 +332,6 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 
 	args := ctx.VariableValues[key]
 	if args == nil {
-		args = make(map[string]cty.Value)
 		ctx.VariableValues[key] = vals
 		return
 	}

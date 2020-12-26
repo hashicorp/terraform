@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend: Supported Backend Types"
 sidebar_current: "docs-backends-types-index"
 description: |-

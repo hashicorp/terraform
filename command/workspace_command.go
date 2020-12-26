@@ -15,7 +15,7 @@ type WorkspaceCommand struct {
 }
 
 func (c *WorkspaceCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+	c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
@@ -63,8 +63,6 @@ will be removed in a future Terraform version.
 }
 
 const (
-	envNotSupported = `Backend does not support multiple workspaces`
-
 	envExists = `Workspace %q already exists`
 
 	envDoesNotExist = `

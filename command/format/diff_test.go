@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
@@ -363,13 +362,6 @@ new line
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ id       = "blah" -> (known after apply)
-        password = (sensitive value)
-      ~ str      = "before" -> "after"
-    }
-`,
 		},
 
 		// tainted resources
@@ -503,18 +495,6 @@ new line
         # (2 unchanged attributes hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ ami  = "ami-BEFORE" -> "ami-AFTER"
-        bar  = "bar"
-        foo  = "foo"
-        id   = "i-02ae66f368e8518a9"
-        name = "alice"
-        tags = {
-            "name" = "bob"
-        }
-    }
-`,
 		},
 	}
 
@@ -590,19 +570,6 @@ func TestResourceChange_JSON(t *testing.T) {
               + bbb = "new_value"
               - ccc = 5 -> null
                 # (1 unchanged element hidden)
-            }
-        )
-    }
-`,
-
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ json_field = jsonencode(
-          ~ {
-                aaa = "value"
-              + bbb = "new_value"
-              - ccc = 5 -> null
             }
         )
     }
@@ -740,17 +707,6 @@ func TestResourceChange_JSON(t *testing.T) {
         )
     }
 `,
-			VerboseOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ json_field = jsonencode(
-          ~ {
-                aaa = "value"
-              + bbb = "new_value"
-            } # forces replacement
-        )
-    }
-`,
 		},
 		"in-place update (whitespace change)": {
 			Action: plans.Update,
@@ -872,18 +828,6 @@ func TestResourceChange_JSON(t *testing.T) {
         )
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ json_field = jsonencode(
-          ~ [
-                "first",
-                "second",
-              - "third",
-            ]
-        )
-    }
-`,
 		},
 		"JSON list item addition": {
 			Action: plans.Update,
@@ -910,19 +854,6 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ [
                 # (1 unchanged element hidden)
-                "second",
-              + "third",
-            ]
-        )
-    }
-`,
-
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ json_field = jsonencode(
-          ~ [
-                "first",
                 "second",
               + "third",
             ]
@@ -1224,15 +1155,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      + list_field = [
-          + "new-element",
-        ]
-    }
-`,
 		},
 		"in-place update - first addition": {
 			Action: plans.Update,
@@ -1265,15 +1187,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-          + "new-element",
-        ]
     }
 `,
 		},
@@ -1325,20 +1238,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-            "aaaa",
-            "bbbb",
-          + "cccc",
-            "dddd",
-            "eeee",
-            "ffff",
-        ]
-    }
-`,
 		},
 		"force-new update - insertion": {
 			Action: plans.DeleteThenCreate,
@@ -1380,17 +1279,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
             "cccc",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [ # forces replacement
-            "aaaa",
-          + "bbbb",
-            "cccc",
-        ]
     }
 `,
 		},
@@ -1437,19 +1325,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-          - "aaaa",
-            "bbbb",
-          - "cccc",
-            "dddd",
-            "eeee",
-        ]
     }
 `,
 		},
@@ -1516,17 +1391,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-          - "aaaa",
-          - "bbbb",
-          - "cccc",
-        ]
-    }
-`,
 		},
 		"in-place update - null to empty": {
 			Action: plans.Update,
@@ -1555,13 +1419,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       + list_field = []
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      + list_field = []
     }
 `,
 		},
@@ -1605,18 +1462,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
             "cccc",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-            "aaaa",
-          - "bbbb",
-          + (known after apply),
-            "cccc",
-        ]
     }
 `,
 		},
@@ -1667,21 +1512,6 @@ func TestResourceChange_primitiveList(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami        = "ami-STATIC"
-      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ list_field = [
-            "aaaa",
-          - "bbbb",
-          + (known after apply),
-          + (known after apply),
-            "cccc",
-            "dddd",
-            "eeee",
-        ]
     }
 `,
 		},
@@ -1735,19 +1565,6 @@ func TestResourceChange_primitiveTuple(t *testing.T) {
         ]
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        id          = "i-02ae66f368e8518a9"
-      ~ tuple_field = [
-            "aaaa",
-            "bbbb",
-          - "dddd",
-          + "cccc",
-            "eeee",
-            "ffff",
-        ]
-    }
-`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -1788,15 +1605,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      + set_field = [
-          + "new-element",
-        ]
-    }
-`,
 		},
 		"in-place update - first insertion": {
 			Action: plans.Update,
@@ -1829,15 +1637,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-          + "new-element",
-        ]
     }
 `,
 		},
@@ -1878,17 +1677,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-            "aaaa",
-          + "bbbb",
-            "cccc",
-        ]
     }
 `,
 		},
@@ -1933,17 +1721,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [ # forces replacement
-            "aaaa",
-          + "bbbb",
-            "cccc",
-        ]
-    }
-`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -1982,17 +1759,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-          - "aaaa",
-            "bbbb",
-          - "cccc",
-        ]
     }
 `,
 		},
@@ -2056,16 +1822,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-          - "aaaa",
-          - "bbbb",
-        ]
-    }
-`,
 		},
 		"in-place update - null to empty set": {
 			Action: plans.Update,
@@ -2094,13 +1850,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + set_field = []
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      + set_field = []
     }
 `,
 		},
@@ -2137,16 +1886,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           - "bbbb",
         ] -> (known after apply)
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-          - "aaaa",
-          - "bbbb",
-        ] -> (known after apply)
     }
 `,
 		},
@@ -2189,17 +1928,6 @@ func TestResourceChange_primitiveSet(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ set_field = [
-            "aaaa",
-          - "bbbb",
-          ~ (known after apply),
-        ]
-    }
-`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -2240,15 +1968,6 @@ func TestResourceChange_map(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      + map_field = {
-          + "new-key" = "new-element"
-        }
-    }
-`,
 		},
 		"in-place update - first insertion": {
 			Action: plans.Update,
@@ -2281,15 +2000,6 @@ func TestResourceChange_map(t *testing.T) {
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ map_field = {
-          + "new-key" = "new-element"
-        }
     }
 `,
 		},
@@ -2330,17 +2040,6 @@ func TestResourceChange_map(t *testing.T) {
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ map_field = {
-            "a" = "aaaa"
-          + "b" = "bbbb"
-            "c" = "cccc"
-        }
     }
 `,
 		},
@@ -2385,17 +2084,6 @@ func TestResourceChange_map(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ map_field = { # forces replacement
-            "a" = "aaaa"
-          + "b" = "bbbb"
-            "c" = "cccc"
-        }
-    }
-`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -2434,17 +2122,6 @@ func TestResourceChange_map(t *testing.T) {
             # (1 unchanged element hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ map_field = {
-          - "a" = "aaaa" -> null
-            "b" = "bbbb"
-          - "c" = "cccc" -> null
-        }
     }
 `,
 		},
@@ -2514,17 +2191,6 @@ func TestResourceChange_map(t *testing.T) {
         # (1 unchanged attribute hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-        ami       = "ami-STATIC"
-      ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
-      ~ map_field = {
-            "a" = "aaaa"
-          ~ "b" = "bbbb" -> (known after apply)
-            "c" = "cccc"
-        }
-    }
-`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -2581,16 +2247,6 @@ func TestResourceChange_nestedList(t *testing.T) {
         id  = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-        root_block_device {
-            volume_type = "gp2"
-        }
     }
 `,
 		},
@@ -2754,17 +2410,6 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ root_block_device {
           + new_field   = "new_value"
             # (1 unchanged attribute hidden)
-        }
-    }
-`,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-      ~ root_block_device {
-          + new_field   = "new_value"
-            volume_type = "gp2"
         }
     }
 `,
@@ -3345,17 +2990,6 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-      ~ root_block_device "a" {
-          + new_field   = "new_value"
-            volume_type = "gp2"
-        }
-    }
-`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -3423,20 +3057,6 @@ func TestResourceChange_nestedMap(t *testing.T) {
         # (1 unchanged block hidden)
     }
 `,
-			VerboseOutput: `  # test_instance.example will be updated in-place
-  ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-        root_block_device "a" {
-            volume_type = "gp2"
-        }
-      + root_block_device "b" {
-          + new_field   = "new_value"
-          + volume_type = "gp2"
-        }
-    }
-`,
 		},
 		"force-new update (whole block)": {
 			Action: plans.DeleteThenCreate,
@@ -3499,19 +3119,6 @@ func TestResourceChange_nestedMap(t *testing.T) {
           ~ volume_type = "gp2" -> "different"
         }
         # (1 unchanged block hidden)
-    }
-`,
-			VerboseOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
-
-      ~ root_block_device "a" { # forces replacement
-          ~ volume_type = "gp2" -> "different"
-        }
-        root_block_device "b" {
-            volume_type = "standard"
-        }
     }
 `,
 		},
@@ -4152,6 +3759,176 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
+		"in-place update - value unchanged, sensitivity changes": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-BEFORE"),
+				"special":     cty.BoolVal(true),
+				"some_number": cty.NumberIntVal(1),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":          cty.StringVal("i-02ae66f368e8518a9"),
+				"ami":         cty.StringVal("ami-BEFORE"),
+				"special":     cty.BoolVal(true),
+				"some_number": cty.NumberIntVal(1),
+				"list_field": cty.ListVal([]cty.Value{
+					cty.StringVal("hello"),
+					cty.StringVal("friends"),
+					cty.StringVal("!"),
+				}),
+				"map_key": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.NumberIntVal(800),
+					"dinner":    cty.NumberIntVal(2000), // sensitive key
+				}),
+				"map_whole": cty.MapVal(map[string]cty.Value{
+					"breakfast": cty.StringVal("pizza"),
+					"dinner":    cty.StringVal("pizza"),
+				}),
+				"nested_block": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+				"nested_block_set": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secretval"),
+					}),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Tainted:         false,
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":          {Type: cty.String, Optional: true, Computed: true},
+					"ami":         {Type: cty.String, Optional: true},
+					"list_field":  {Type: cty.List(cty.String), Optional: true},
+					"special":     {Type: cty.Bool, Optional: true},
+					"some_number": {Type: cty.Number, Optional: true},
+					"map_key":     {Type: cty.Map(cty.Number), Optional: true},
+					"map_whole":   {Type: cty.Map(cty.String), Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingList,
+					},
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ ami         = (sensitive)
+        id          = "i-02ae66f368e8518a9"
+      ~ list_field  = [
+            # (1 unchanged element hidden)
+            "friends",
+          - (sensitive),
+          + "!",
+        ]
+      ~ map_key     = {
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change
+          ~ "dinner"    = (sensitive)
+            # (1 unchanged element hidden)
+        }
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ map_whole   = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ some_number = (sensitive)
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change
+      ~ special     = (sensitive)
+
+      # Warning: this block will no longer be marked as sensitive
+      # after applying this change
+      ~ nested_block {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+
+      # Warning: this block will no longer be marked as sensitive
+      # after applying this change
+      ~ nested_block_set {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
 		"deletion": {
 			Action: plans.Delete,
 			Mode:   addrs.ManagedResourceMode,
@@ -4253,6 +4030,80 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
+		"update with sensitive value forcing replacement": {
+			Action: plans.DeleteThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"nested_block_set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("secret"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"nested_block_set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"an_attr": cty.StringVal("changed"),
+					}),
+				}),
+			}),
+			BeforeValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("ami"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.GetAttrPath("nested_block_set"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("ami"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+				{
+					Path:  cty.GetAttrPath("nested_block_set"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_block_set": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"an_attr": {Type: cty.String, Required: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(
+				cty.GetAttrPath("ami"),
+				cty.GetAttrPath("nested_block_set"),
+			),
+			Tainted: false,
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      ~ ami = (sensitive) # forces replacement
+        id  = "i-02ae66f368e8518a9"
+
+      ~ nested_block_set { # forces replacement
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
@@ -4268,10 +4119,6 @@ type testCase struct {
 	RequiredReplace cty.PathSet
 	Tainted         bool
 	ExpectedOutput  string
-
-	// This field and all associated values can be removed if the concise diff
-	// experiment succeeds.
-	VerboseOutput string
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -4325,24 +4172,10 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			experiment.SetEnabled(experiment.X_concise_diff, true)
 			output := ResourceChange(change, tc.Tainted, tc.Schema, color)
 			if output != tc.ExpectedOutput {
 				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.ExpectedOutput)
 				t.Errorf("%s", cmp.Diff(output, tc.ExpectedOutput))
-			}
-
-			// Temporary coverage for verbose diff behaviour. All lines below
-			// in this function can be removed if the concise diff experiment
-			// succeeds.
-			if tc.VerboseOutput == "" {
-				return
-			}
-			experiment.SetEnabled(experiment.X_concise_diff, false)
-			output = ResourceChange(change, tc.Tainted, tc.Schema, color)
-			if output != tc.VerboseOutput {
-				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.VerboseOutput)
-				t.Errorf("%s", cmp.Diff(output, tc.VerboseOutput))
 			}
 		})
 	}
@@ -4450,7 +4283,6 @@ func TestOutputChanges(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			experiment.SetEnabled(experiment.X_concise_diff, true)
 			output := OutputChanges(tc.changes, color)
 			if output != tc.output {
 				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)

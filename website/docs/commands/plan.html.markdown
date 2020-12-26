@@ -78,11 +78,11 @@ The available options are:
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
-  specified via this flag.
+  [literal expressions](/docs/configuration/expressions/types.html) in the
+  Terraform language, so list and map values can be specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a [variable file](/docs/configuration/variables.html#variable-definitions-tfvars-files). If
   a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files
@@ -142,7 +142,7 @@ module instead of the current working directory.
 That usage is still supported in Terraform v0.14, but is now deprecated and we
 plan to remove it in Terraform v0.15. If your workflow relies on overriding
 the root module directory, use
-[the `-chdir` global option](./#switching-working-directory-with--chdir)
+[the `-chdir` global option](./#switching-working-directory-with-chdir)
 instead, which works across all commands and makes Terraform consistently look
 in the given directory for all files it would normaly read or write in the
 current working directory.
@@ -150,6 +150,6 @@ current working directory.
 If your previous use of this legacy pattern was also relying on Terraform
 writing the `.terraform` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](environment-variables.html#TF_DATA_DIR)
+[the `TF_DATA_DIR` environment variable](environment-variables.html#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.

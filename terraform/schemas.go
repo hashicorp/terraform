@@ -205,9 +205,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			return
 		}
 		defer func() {
-			if closer, ok := provisioner.(ResourceProvisionerCloser); ok {
-				closer.Close()
-			}
+			provisioner.Close()
 		}()
 
 		resp := provisioner.GetSchema()
@@ -275,11 +273,4 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 // the given resource address. Returns nil if no such schema is available.
 func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ps.SchemaForResourceType(addr.Mode, addr.Type)
-}
-
-// ProviderSchemaRequest is used to describe to a ResourceProvider which
-// aspects of schema are required, when calling the GetSchema method.
-type ProviderSchemaRequest struct {
-	ResourceTypes []string
-	DataSources   []string
 }

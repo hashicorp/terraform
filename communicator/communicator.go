@@ -9,16 +9,18 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/hashicorp/terraform/communicator/ssh"
 	"github.com/hashicorp/terraform/communicator/winrm"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Communicator is an interface that must be implemented by all communicators
 // used for any of the provisioners
 type Communicator interface {
 	// Connect is used to setup the connection
-	Connect(terraform.UIOutput) error
+	Connect(provisioners.UIOutput) error
 
 	// Disconnect is used to terminate the connection
 	Disconnect() error
@@ -43,13 +45,23 @@ type Communicator interface {
 }
 
 // New returns a configured Communicator or an error if the connection type is not supported
-func New(s *terraform.InstanceState) (Communicator, error) {
-	connType := s.Ephemeral.ConnInfo["type"]
+func New(v cty.Value) (Communicator, error) {
+	v, err := shared.ConnectionBlockSupersetSchema.CoerceValue(v)
+	if err != nil {
+		return nil, err
+	}
+
+	typeVal := v.GetAttr("type")
+	connType := ""
+	if !typeVal.IsNull() {
+		connType = typeVal.AsString()
+	}
+
 	switch connType {
 	case "ssh", "": // The default connection type is ssh, so if connType is empty use ssh
-		return ssh.New(s)
+		return ssh.New(v)
 	case "winrm":
-		return winrm.New(s)
+		return winrm.New(v)
 	default:
 		return nil, fmt.Errorf("connection type '%s' not supported", connType)
 	}

@@ -1,12 +1,12 @@
 package command
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -19,14 +19,19 @@ import (
 // from a Terraform state and prints it.
 type OutputCommand struct {
 	Meta
+
+	// Unit tests may set rawPrint to capture the output from the -raw
+	// option, which would normally go to stdout directly.
+	rawPrint func(string)
 }
 
 func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var module, statePath string
-	var jsonOutput bool
+	var jsonOutput, rawOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&rawOutput, "raw", false, "raw")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -40,6 +45,18 @@ func (c *OutputCommand) Run(args []string) int {
 		c.Ui.Error(
 			"The output command expects exactly one argument with the name\n" +
 				"of an output variable or no arguments to show all outputs.\n")
+		cmdFlags.Usage()
+		return 1
+	}
+
+	if jsonOutput && rawOutput {
+		c.Ui.Error("The -raw and -json options are mutually-exclusive.\n")
+		cmdFlags.Usage()
+		return 1
+	}
+
+	if rawOutput && len(args) == 0 {
+		c.Ui.Error("You must give the name of a single output value when using the -raw option.\n")
 		cmdFlags.Usage()
 		return 1
 	}
@@ -62,6 +79,9 @@ func (c *OutputCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	env, err := c.Workspace()
 	if err != nil {
@@ -186,132 +206,70 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 	v := os.Value
 
-	if jsonOutput {
+	switch {
+	case jsonOutput:
 		jsonOutput, err := ctyjson.Marshal(v, v.Type())
 		if err != nil {
 			return 1
 		}
 
 		c.Ui.Output(string(jsonOutput))
-	} else {
+	case rawOutput:
+		strV, err := convert.Convert(v, cty.String)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unsupported value for raw output",
+				fmt.Sprintf(
+					"The -raw option only supports strings, numbers, and boolean values, but output value %q is %s.\n\nUse the -json option for machine-readable representations of output values that have complex types.",
+					name, v.Type().FriendlyName(),
+				),
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if strV.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unsupported value for raw output",
+				fmt.Sprintf(
+					"The value for output value %q is null, so -raw mode cannot print it.",
+					name,
+				),
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if !strV.IsKnown() {
+			// Since we're working with values from the state it would be very
+			// odd to end up in here, but we'll handle it anyway to avoid a
+			// panic in case our rules somehow change in future.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unsupported value for raw output",
+				fmt.Sprintf(
+					"The value for output value %q won't be known until after a successful terraform apply, so -raw mode cannot print it.",
+					name,
+				),
+			))
+			c.showDiagnostics(diags)
+			return 1
+		}
+		// If we get out here then we should have a valid string to print.
+		// We're writing it directly to the output here so that a shell caller
+		// will get exactly the value and no extra whitespace.
+		str := strV.AsString()
+		if c.rawPrint != nil {
+			c.rawPrint(str)
+		} else {
+			fmt.Print(str)
+		}
+	default:
 		result := repl.FormatValue(v, 0)
 		c.Ui.Output(result)
 	}
 
 	return 0
-}
-
-func formatNestedList(indent string, outputList []interface{}) string {
-	outputBuf := new(bytes.Buffer)
-	outputBuf.WriteString(fmt.Sprintf("%s[", indent))
-
-	lastIdx := len(outputList) - 1
-
-	for i, value := range outputList {
-		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, "    ", value))
-		if i != lastIdx {
-			outputBuf.WriteString(",")
-		}
-	}
-
-	outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
-	return strings.TrimPrefix(outputBuf.String(), "\n")
-}
-
-func formatListOutput(indent, outputName string, outputList []interface{}) string {
-	keyIndent := ""
-
-	outputBuf := new(bytes.Buffer)
-
-	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("%s%s = [", indent, outputName))
-		keyIndent = "    "
-	}
-
-	lastIdx := len(outputList) - 1
-
-	for i, value := range outputList {
-		switch typedValue := value.(type) {
-		case string:
-			outputBuf.WriteString(fmt.Sprintf("\n%s%s%s", indent, keyIndent, value))
-		case []interface{}:
-			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
-				formatNestedList(indent+keyIndent, typedValue)))
-		case map[string]interface{}:
-			outputBuf.WriteString(fmt.Sprintf("\n%s%s", indent,
-				formatNestedMap(indent+keyIndent, typedValue)))
-		}
-
-		if lastIdx != i {
-			outputBuf.WriteString(",")
-		}
-	}
-
-	if outputName != "" {
-		if len(outputList) > 0 {
-			outputBuf.WriteString(fmt.Sprintf("\n%s]", indent))
-		} else {
-			outputBuf.WriteString("]")
-		}
-	}
-
-	return strings.TrimPrefix(outputBuf.String(), "\n")
-}
-
-func formatNestedMap(indent string, outputMap map[string]interface{}) string {
-	ks := make([]string, 0, len(outputMap))
-	for k, _ := range outputMap {
-		ks = append(ks, k)
-	}
-	sort.Strings(ks)
-
-	outputBuf := new(bytes.Buffer)
-	outputBuf.WriteString(fmt.Sprintf("%s{", indent))
-
-	lastIdx := len(outputMap) - 1
-	for i, k := range ks {
-		v := outputMap[k]
-		outputBuf.WriteString(fmt.Sprintf("\n%s%s = %v", indent+"    ", k, v))
-
-		if lastIdx != i {
-			outputBuf.WriteString(",")
-		}
-	}
-
-	outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
-
-	return strings.TrimPrefix(outputBuf.String(), "\n")
-}
-
-func formatMapOutput(indent, outputName string, outputMap map[string]interface{}) string {
-	ks := make([]string, 0, len(outputMap))
-	for k, _ := range outputMap {
-		ks = append(ks, k)
-	}
-	sort.Strings(ks)
-
-	keyIndent := ""
-
-	outputBuf := new(bytes.Buffer)
-	if outputName != "" {
-		outputBuf.WriteString(fmt.Sprintf("%s%s = {", indent, outputName))
-		keyIndent = "  "
-	}
-
-	for _, k := range ks {
-		v := outputMap[k]
-		outputBuf.WriteString(fmt.Sprintf("\n%s%s%s = %v", indent, keyIndent, k, v))
-	}
-
-	if outputName != "" {
-		if len(outputMap) > 0 {
-			outputBuf.WriteString(fmt.Sprintf("\n%s}", indent))
-		} else {
-			outputBuf.WriteString("}")
-		}
-	}
-
-	return strings.TrimPrefix(outputBuf.String(), "\n")
 }
 
 func (c *OutputCommand) Help() string {
@@ -331,12 +289,16 @@ Options:
   -no-color        If specified, output won't contain any color.
 
   -json            If specified, machine readable output will be
-                   printed in JSON format
+                   printed in JSON format.
 
+  -raw             For value types that can be automatically
+                   converted to a string, will print the raw
+                   string directly, rather than a human-oriented
+                   representation of the value.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *OutputCommand) Synopsis() string {
-	return "Read an output from a state file"
+	return "Show output values from your root module"
 }

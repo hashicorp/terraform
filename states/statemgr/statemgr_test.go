@@ -4,13 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/logging"
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestNewLockInfo(t *testing.T) {
@@ -69,12 +67,11 @@ func TestLockWithContext(t *testing.T) {
 
 	// unlock the state during LockWithContext
 	unlocked := make(chan struct{})
+	var unlockErr error
 	go func() {
 		defer close(unlocked)
 		<-attempted
-		if err := s.Unlock(id); err != nil {
-			t.Fatal(err)
-		}
+		unlockErr = s.Unlock(id)
 	}()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
@@ -87,16 +84,12 @@ func TestLockWithContext(t *testing.T) {
 
 	// ensure the goruotine completes
 	<-unlocked
+	if unlockErr != nil {
+		t.Fatal(unlockErr)
+	}
 }
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
 	os.Exit(m.Run())
 }

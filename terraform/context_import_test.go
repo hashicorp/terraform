@@ -1,7 +1,7 @@
 package terraform
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
 
@@ -22,10 +22,14 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -59,10 +63,14 @@ func TestContextImport_countIndex(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -117,10 +125,14 @@ func TestContextImport_collision(t *testing.T) {
 		}),
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -152,9 +164,13 @@ func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID: "foo",
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -189,22 +205,24 @@ func TestContextImport_missingType(t *testing.T) {
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	m := testModule(t, "import-provider")
@@ -229,7 +247,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 
@@ -251,22 +269,24 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
-	configured := false
-	p.ConfigureFn = func(c *ResourceConfig) error {
-		configured = true
-
-		if v, ok := c.Get("foo"); !ok || v.(string) != "bar" {
-			return fmt.Errorf("bad")
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo").AsString()
+		if foo != "bar" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
 		}
 
-		return nil
+		return
 	}
 
 	_, diags := ctx.Import(&ImportOpts{
@@ -283,7 +303,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !configured {
+	if !p.ConfigureCalled {
 		t.Fatal("didn't configure provider")
 	}
 }
@@ -321,10 +341,14 @@ func TestContextImport_providerConfig(t *testing.T) {
 				},
 			})
 
-			p.ImportStateReturn = []*InstanceState{
-				&InstanceState{
-					ID:        "foo",
-					Ephemeral: EphemeralState{Type: "aws_instance"},
+			p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+				ImportedResources: []providers.ImportedResource{
+					{
+						TypeName: "aws_instance",
+						State: cty.ObjectVal(map[string]cty.Value{
+							"id": cty.StringVal("foo"),
+						}),
+					},
 				},
 			}
 
@@ -372,10 +396,14 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -407,10 +435,14 @@ func TestContextImport_refresh(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -454,10 +486,14 @@ func TestContextImport_refreshNil(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -498,10 +534,14 @@ func TestContextImport_module(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -536,10 +576,14 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -574,10 +618,14 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	})
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
 		},
 	}
 
@@ -626,14 +674,20 @@ func TestContextImport_multiState(t *testing.T) {
 		},
 	}
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-		&InstanceState{
-			ID:        "bar",
-			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
+			{
+				TypeName: "aws_instance_thing",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("bar"),
+				}),
+			},
 		},
 	}
 
@@ -689,18 +743,26 @@ func TestContextImport_multiStateSame(t *testing.T) {
 		},
 	}
 
-	p.ImportStateReturn = []*InstanceState{
-		&InstanceState{
-			ID:        "foo",
-			Ephemeral: EphemeralState{Type: "aws_instance"},
-		},
-		&InstanceState{
-			ID:        "bar",
-			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
-		},
-		&InstanceState{
-			ID:        "qux",
-			Ephemeral: EphemeralState{Type: "aws_instance_thing"},
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "aws_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("foo"),
+				}),
+			},
+			{
+				TypeName: "aws_instance_thing",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("bar"),
+				}),
+			},
+			{
+				TypeName: "aws_instance_thing",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("qux"),
+				}),
+			},
 		},
 	}
 
@@ -732,6 +794,105 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
+func TestContextImport_noConfigModuleImport(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  xs = toset(["foo"])
+}
+
+module "a" {
+  for_each = local.xs
+  source   = "./a"
+}
+
+module "b" {
+  for_each = local.xs
+  source   = "./b"
+  y = module.a[each.key].y
+}
+`,
+		"a/main.tf": `
+output "y" {
+  value = "bar"
+}
+`,
+		"b/main.tf": `
+variable "y" {
+  type = string
+}
+
+resource "test_resource" "unused" {
+  value = var.y
+}
+`,
+	})
+
+	p.GetSchemaReturn = &ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"foo": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	}
+
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_resource",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("test"),
+				}),
+			},
+		},
+	}
+	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_resource",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("test"),
+				}),
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Import(&ImportOpts{
+		Targets: []*ImportTarget{
+			&ImportTarget{
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
+				),
+				ID: "test",
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ri := state.ResourceInstance(mustResourceInstanceAddr("test_resource.test"))
+	expected := `{"id":"test"}`
+	if string(ri.Current.AttrsJSON) != expected {
+		t.Fatalf("expected %q, got %q\n", expected, ri.Current.AttrsJSON)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo
@@ -755,17 +916,6 @@ module.child[0]:
 const testImportModuleDepth2Str = `
 <no state>
 module.child[0].nested:
-  aws_instance.foo:
-    ID = foo
-    provider = provider["registry.terraform.io/hashicorp/aws"]
-`
-
-const testImportModuleExistingStr = `
-<no state>
-module.foo:
-  aws_instance.bar:
-    ID = bar
-    provider = provider["registry.terraform.io/hashicorp/aws"]
   aws_instance.foo:
     ID = foo
     provider = provider["registry.terraform.io/hashicorp/aws"]

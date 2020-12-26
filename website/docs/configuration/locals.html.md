@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Local Values - Configuration Language"
 sidebar_current: "docs-config-locals"
 description: |-
@@ -13,7 +13,11 @@ description: |-
 earlier, see
 [0.11 Configuration Language: Local Values](../configuration-0-11/locals.html).
 
-A local value assigns a name to an [expression](./expressions.html),
+> **Hands-on:** Try the [Simplify Terraform Configuration with
+Locals](https://learn.hashicorp.com/tutorials/terraform/locals?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+tutorial on HashiCorp Learn.
+
+A local value assigns a name to an [expression](/docs/configuration/expressions/index.html),
 so you can use it multiple times within a module without repeating
 it.
 
@@ -61,7 +65,7 @@ locals {
 ## Using Local Values
 
 Once a local value is declared, you can reference it in
-[expressions](./expressions.html) as `local.<NAME>`.
+[expressions](/docs/configuration/expressions/index.html) as `local.<NAME>`.
 
 -> **Note:** Local values are _created_ by a `locals` block (plural), but you
 _reference_ them as attributes on an object named `local` (singular). Make sure

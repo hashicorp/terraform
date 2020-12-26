@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform v0.13"
 sidebar_current: "upgrade-guides-0-13"
 description: |-
@@ -44,7 +44,7 @@ Upgrade guide sections:
 * [New Filesystem Layout for Local Copies of Providers](#new-filesystem-layout-for-local-copies-of-providers)
   * [Special considerations for in-house providers](#in-house-providers)
 * [Destroy-time provisioners may not refer to other resources](#destroy-time-provisioners-may-not-refer-to-other-resources)
-* [Data resource reads can no longer be disabled by `-refresh=false`](#data-resource-reads-can-no-longer-be-disabled-by--refresh-false)
+* [Data resource reads can no longer be disabled by `-refresh=false`](#data-resource-reads-can-no-longer-be-disabled-by-refresh-false)
 * [Frequently Asked Questions](#frequently-asked-questions)
 
 ## Before You Upgrade
@@ -135,7 +135,7 @@ for a module that must remain compatible with both Terraform v0.12 and
 Terraform v0.13; the `terraform 0.13upgrade` result includes a conservative
 version constraint for Terraform v0.13 or later, which you can weaken to
 `>= 0.12.26` if you follow the guidelines in
-[v0.12-Compatible Provider Requirements](/docs/configuration/provider-requirements.html#v012-compatible-provider-requirements).
+[v0.12-Compatible Provider Requirements](/docs/configuration/provider-requirements.html#v0-12-compatible-provider-requirements).
 
 Each module must declare its own set of provider requirements, so if you have
 a configuration which calls other modules then you'll need to run this upgrade
@@ -441,7 +441,7 @@ accurate plan, and so there is no replacement mechanism in Terraform v0.13
 to restore the previous behavior.
 
 ## Frequently Asked Questions
-### Why do I see `-/provider` during init? 
+### Why do I see `-/provider` during init?
 
 Provider source addresses starting with `registry.terraform.io/-/` are a special
 way Terraform marks legacy addresses where the true namespace is unknown. For
@@ -473,7 +473,7 @@ While this does not cause any problems for Terraform, it has been confusing. You
 may circumvent this by using the `terraform state replace-provider` subcommand
 to tell Terraform exactly what provider addresses are required in state.
 Continuing from the example above, the following commands tell Terraform the
-source address for the `null` and `random` providers: 
+source address for the `null` and `random` providers:
 
 ```
 terraform state replace-provider -- -/random registry.terraform.io/hashicorp/random

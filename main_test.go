@@ -264,3 +264,20 @@ func (c *testCommandCLI) Run(args []string) int {
 
 func (c *testCommandCLI) Synopsis() string { return "" }
 func (c *testCommandCLI) Help() string     { return "" }
+
+func TestWarnOutput(t *testing.T) {
+	mock := cli.NewMockUi()
+	wrapped := &ui{mock}
+	wrapped.Warn("WARNING")
+
+	stderr := mock.ErrorWriter.String()
+	stdout := mock.OutputWriter.String()
+
+	if stderr != "" {
+		t.Fatalf("unexpected stderr: %q", stderr)
+	}
+
+	if stdout != "WARNING\n" {
+		t.Fatalf("unexpected stdout: %q\n", stdout)
+	}
+}

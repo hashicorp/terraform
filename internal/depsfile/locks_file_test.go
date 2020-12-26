@@ -159,16 +159,57 @@ func TestLoadLocksFromFile(t *testing.T) {
 	}
 }
 
+func TestLoadLocksFromFileAbsent(t *testing.T) {
+	t.Run("lock file is a directory", func(t *testing.T) {
+		// This can never happen when Terraform is the one generating the
+		// lock file, but might arise if the user makes a directory with the
+		// lock file's name for some reason. (There is no actual reason to do
+		// so, so that would always be a mistake.)
+		locks, diags := LoadLocksFromFile("testdata")
+		if len(locks.providers) != 0 {
+			t.Errorf("returned locks has providers; expected empty locks")
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("LoadLocksFromFile succeeded; want error")
+		}
+		// This is a generic error message from HCL itself, so upgrading HCL
+		// in future might cause a different error message here.
+		want := `Failed to read file: The configuration file "testdata" could not be read.`
+		got := diags.Err().Error()
+		if got != want {
+			t.Errorf("wrong error message\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("lock file doesn't exist", func(t *testing.T) {
+		locks, diags := LoadLocksFromFile("testdata/nonexist.hcl")
+		if len(locks.providers) != 0 {
+			t.Errorf("returned locks has providers; expected empty locks")
+		}
+		if !diags.HasErrors() {
+			t.Fatalf("LoadLocksFromFile succeeded; want error")
+		}
+		// This is a generic error message from HCL itself, so upgrading HCL
+		// in future might cause a different error message here.
+		want := `Failed to read file: The configuration file "testdata/nonexist.hcl" could not be read.`
+		got := diags.Err().Error()
+		if got != want {
+			t.Errorf("wrong error message\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
 func TestSaveLocksToFile(t *testing.T) {
 	locks := NewLocks()
 
 	fooProvider := addrs.MustParseProviderSourceString("test/foo")
 	barProvider := addrs.MustParseProviderSourceString("test/bar")
 	bazProvider := addrs.MustParseProviderSourceString("test/baz")
+	booProvider := addrs.MustParseProviderSourceString("test/boo")
 	oneDotOh := getproviders.MustParseVersion("1.0.0")
 	oneDotTwo := getproviders.MustParseVersion("1.2.0")
 	atLeastOneDotOh := getproviders.MustParseVersionConstraints(">= 1.0.0")
 	pessimisticOneDotOh := getproviders.MustParseVersionConstraints("~> 1")
+	abbreviatedOneDotTwo := getproviders.MustParseVersionConstraints("1.2")
 	hashes := []getproviders.Hash{
 		getproviders.MustParseHash("test:cccccccccccccccccccccccccccccccccccccccccccccccc"),
 		getproviders.MustParseHash("test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
@@ -177,6 +218,7 @@ func TestSaveLocksToFile(t *testing.T) {
 	locks.SetProvider(fooProvider, oneDotOh, atLeastOneDotOh, hashes)
 	locks.SetProvider(barProvider, oneDotTwo, pessimisticOneDotOh, nil)
 	locks.SetProvider(bazProvider, oneDotTwo, nil, nil)
+	locks.SetProvider(booProvider, oneDotTwo, abbreviatedOneDotTwo, nil)
 
 	dir, err := ioutil.TempDir("", "terraform-internal-depsfile-savelockstofile")
 	if err != nil {
@@ -188,6 +230,14 @@ func TestSaveLocksToFile(t *testing.T) {
 	diags := SaveLocksToFile(locks, filename)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	fileInfo, err := os.Stat(filename)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if mode := fileInfo.Mode(); mode&0111 != 0 {
+		t.Fatalf("Expected lock file to be non-executable: %o", mode)
 	}
 
 	gotContentBytes, err := ioutil.ReadFile(filename)
@@ -207,10 +257,19 @@ provider "registry.terraform.io/test/baz" {
   version = "1.2.0"
 }
 
+provider "registry.terraform.io/test/boo" {
+  version     = "1.2.0"
+  constraints = "1.2.0"
+}
+
 provider "registry.terraform.io/test/foo" {
   version     = "1.0.0"
   constraints = ">= 1.0.0"
-  hashes      = ["test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "test:cccccccccccccccccccccccccccccccccccccccccccccccc"]
+  hashes = [
+    "test:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "test:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "test:cccccccccccccccccccccccccccccccccccccccccccccccc",
+  ]
 }
 `
 	if diff := cmp.Diff(wantContent, gotContent); diff != "" {

@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/helper/copy"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Since we can't unlock a local state file, just test that calling unlock
@@ -25,7 +25,7 @@ func TestUnlock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		err = terraform.WriteState(terraform.NewState(), f)
+		err = legacy.WriteState(legacy.NewState(), f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -65,7 +65,7 @@ func TestUnlock(t *testing.T) {
 func TestUnlock_inmemBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("backend-inmem-locked"), td)
+	testCopyDir(t, testFixturePath("backend-inmem-locked"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()

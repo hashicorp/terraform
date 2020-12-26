@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Resources - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-resources"
 description: |-
@@ -98,7 +98,7 @@ There are **meta-parameters** available to all resources:
 Individual Resources may provide a `timeouts` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
 an error. For example, the
-[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
+[aws_db_instance](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance#timeouts)
 resource provides configurable timeouts for the
 `create`, `update`, and `delete` operations. Any Resource that provides Timeouts
 will document the default values for that operation, and users can overwrite
@@ -211,7 +211,7 @@ You can use the `${count.index}`
 [variable](./variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS
-Instances](/docs/providers/aws/r/instance.html) each with their own
+Instances](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) each with their own
 static IP address:
 
 ```hcl
@@ -232,7 +232,7 @@ resource "aws_instance" "app" {
 
 To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
 
-For example, to create a list of all [AWS subnet](/docs/providers/aws/r/subnet.html) ids vs referencing a specific subnet in the list you can use this syntax:
+For example, to create a list of all [AWS subnet](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) ids vs referencing a specific subnet in the list you can use this syntax:
 
 ```hcl
 resource "aws_vpc" "foo" {

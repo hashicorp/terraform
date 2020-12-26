@@ -5,9 +5,17 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+)
+
+var ignoreUnexported = cmpopts.IgnoreUnexported(
+	proto.Diagnostic{},
+	proto.Schema_Block{},
+	proto.Schema_NestedBlock{},
+	proto.Schema_Attribute{},
 )
 
 func TestProtoDiagnostics(t *testing.T) {
@@ -41,8 +49,8 @@ func TestProtoDiagnostics(t *testing.T) {
 		},
 	}
 
-	if !cmp.Equal(expected, diags) {
-		t.Fatal(cmp.Diff(expected, diags))
+	if !cmp.Equal(expected, diags, ignoreUnexported) {
+		t.Fatal(cmp.Diff(expected, diags, ignoreUnexported))
 	}
 }
 

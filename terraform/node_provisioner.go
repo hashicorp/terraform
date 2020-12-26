@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodeProvisioner represents a provider that has no associated operations.
@@ -39,6 +40,6 @@ func (n *NodeProvisioner) ProvisionerName() string {
 }
 
 // GraphNodeExecutable impl.
-func (n *NodeProvisioner) Execute(ctx EvalContext, op walkOperation) error {
-	return ctx.InitProvisioner(n.NameValue)
+func (n *NodeProvisioner) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	return diags.Append(ctx.InitProvisioner(n.NameValue))
 }

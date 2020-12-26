@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "upper - Functions - Configuration Language"
 sidebar_current: "docs-funcs-string-upper"
 description: |-

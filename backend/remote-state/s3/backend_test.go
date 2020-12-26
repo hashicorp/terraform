@@ -121,7 +121,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 			Description: "assume_role_duration_seconds",
 			MockStsEndpoints: []*awsbase.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{"POST", "/", url.Values{
+					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"3600"},
 						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
@@ -148,7 +148,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 			Description: "external_id",
 			MockStsEndpoints: []*awsbase.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{"POST", "/", url.Values{
+					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"900"},
 						"ExternalId":      []string{awsbase.MockStsAssumeRoleExternalId},
@@ -176,7 +176,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 			Description: "assume_role_policy",
 			MockStsEndpoints: []*awsbase.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{"POST", "/", url.Values{
+					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"900"},
 						"Policy":          []string{awsbase.MockStsAssumeRolePolicy},

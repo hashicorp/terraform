@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "can - Functions - Configuration Language"
 sidebar_current: "docs-funcs-conversion-can"
 description: |-

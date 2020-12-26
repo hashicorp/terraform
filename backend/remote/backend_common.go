@@ -24,6 +24,13 @@ var (
 	errRunOverridden    = errors.New("overridden using the UI or API")
 )
 
+var (
+	backoffMin = 1000.0
+	backoffMax = 3000.0
+
+	runPollInterval = 3 * time.Second
+)
+
 // backoff will perform exponential backoff based on the iteration and
 // limited by the provided min and max (in milliseconds) durations.
 func backoff(min, max float64, iter int) time.Duration {
@@ -43,7 +50,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 			return r, stopCtx.Err()
 		case <-cancelCtx.Done():
 			return r, cancelCtx.Err()
-		case <-time.After(backoff(1000, 3000, i)):
+		case <-time.After(backoff(backoffMin, backoffMax, i)):
 			// Timer up, show status
 		}
 
@@ -260,7 +267,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			return stopCtx.Err()
 		case <-cancelCtx.Done():
 			return cancelCtx.Err()
-		case <-time.After(1 * time.Second):
+		case <-time.After(backoff(backoffMin, backoffMax, i)):
 		}
 
 		// Retrieve the cost estimate to get its current status.
@@ -321,14 +328,15 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateErrored:
-			return fmt.Errorf(msgPrefix + " errored.")
+			b.CLI.Output(msgPrefix + " errored.\n")
+			b.CLI.Output("\n------------------------------------------------------------------------")
+			return nil
 		case tfe.CostEstimateCanceled:
 			return fmt.Errorf(msgPrefix + " canceled.")
 		default:
 			return fmt.Errorf("Unknown or unexpected cost estimate state: %s", ce.Status)
 		}
 	}
-	return nil
 }
 
 func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
@@ -453,7 +461,7 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 				return
 			case <-stopCtx.Done():
 				return
-			case <-time.After(3 * time.Second):
+			case <-time.After(runPollInterval):
 				// Retrieve the run again to get its current status.
 				r, err := b.client.Runs.Read(stopCtx, r.ID)
 				if err != nil {
@@ -487,10 +495,10 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 					}
 
 					if err == errRunDiscarded {
+						err = errApplyDiscarded
 						if op.Destroy {
 							err = errDestroyDiscarded
 						}
-						err = errApplyDiscarded
 					}
 
 					result <- err

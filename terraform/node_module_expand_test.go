@@ -42,9 +42,9 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 			StateState: state.SyncWrapper(),
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
-		err := node.Execute(ctx, walkApply)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+		diags := node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 
 		// Since module.child has no resources, it should be removed
@@ -62,9 +62,9 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		}
 		node := nodeCloseModule{addrs.Module{"child"}}
 
-		err := node.Execute(ctx, walkImport)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+		diags := node.Execute(ctx, walkImport)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
 		}
 		if _, ok := state.Modules["module.child"]; !ok {
 			t.Fatal("module.child was removed from state, expected no-op")
@@ -87,9 +87,9 @@ func TestNodeValidateModuleExecute(t *testing.T) {
 			},
 		}
 
-		err := node.Execute(ctx, walkApply)
-		if err != nil {
-			t.Fatalf("unexpected error: %s", err.Error())
+		diags := node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %v", diags.Err())
 		}
 	})
 

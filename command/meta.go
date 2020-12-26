@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/providers"
@@ -31,6 +30,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Meta are the meta-options that are available on all or most commands.
@@ -50,10 +51,9 @@ type Meta struct {
 	// for some reason.
 	OriginalWorkingDir string
 
-	Color            bool             // True if output should be colored
-	GlobalPluginDirs []string         // Additional paths to search for plugins
-	PluginOverrides  *PluginOverrides // legacy overrides from .terraformrc file
-	Ui               cli.Ui           // Ui for output
+	Color            bool     // True if output should be colored
+	GlobalPluginDirs []string // Additional paths to search for plugins
+	Ui               cli.Ui   // Ui for output
 
 	// ExtraHooks are extra hooks to add to the context.
 	ExtraHooks []terraform.Hook
@@ -104,7 +104,21 @@ type Meta struct {
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
 
-	// UnmanagedProviders are a set of providers that exist as processes predating Terraform, which Terraform should use but not worry about the lifecycle of.
+	// ProviderDevOverrides are providers where we ignore the lock file, the
+	// configured version constraints, and the local cache directory and just
+	// always use exactly the path specified. This is intended to allow
+	// provider developers to easily test local builds without worrying about
+	// what version number they might eventually be released as, or what
+	// checksums they have.
+	ProviderDevOverrides map[addrs.Provider]getproviders.PackageLocalDir
+
+	// UnmanagedProviders are a set of providers that exist as processes
+	// predating Terraform, which Terraform should use but not worry about the
+	// lifecycle of.
+	//
+	// This is essentially a more extreme version of ProviderDevOverrides where
+	// Terraform doesn't even worry about how the provider server gets launched,
+	// just trusting that someone else did it before running Terraform.
 	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
 	//----------------------------------------------------------
@@ -121,8 +135,6 @@ type Meta struct {
 	// This overrides all other search paths when discovering plugins.
 	pluginPath []string
 
-	ignorePluginChecksum bool
-
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
@@ -136,7 +148,7 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *terraform.BackendState
+	backendState *legacy.BackendState
 
 	// Variables for the context (private)
 	variableArgs rawFlags
@@ -185,7 +197,6 @@ type Meta struct {
 	stateOutPath     string
 	backupPath       string
 	parallelism      int
-	provider         string
 	stateLock        bool
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
@@ -194,11 +205,10 @@ type Meta struct {
 
 	// Used with the import command to allow import of state when no matching config exists.
 	allowMissingConfig bool
-}
 
-type PluginOverrides struct {
-	Providers    map[string]string
-	Provisioners map[string]string
+	// Used with commands which write state to allow users to write remote
+	// state even if the remote and local Terraform versions don't match.
+	ignoreRemoteVersion bool
 }
 
 type testingOverrides struct {
@@ -373,10 +383,6 @@ func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*back
 	return op, nil
 }
 
-const (
-	ProviderSkipVerifyEnvVar = "TF_SKIP_PROVIDER_VERIFY"
-)
-
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
@@ -410,16 +416,40 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 			// This situation shouldn't arise commonly in practice because
 			// the selections file is generated programmatically.
 			log.Printf("[WARN] Failed to determine selected providers: %s", err)
-			providerFactories = nil
+
+			// variable providerFactories may now be incomplete, which could
+			// lead to errors reported downstream from here. providerFactories
+			// tries to populate as many providers as possible even in an
+			// error case, so that operations not using problematic providers
+			// can still succeed.
 		}
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
+
+		// Read the dependency locks so that they can be verified against the
+		// provider requirements in the configuration
+		lockedDependencies, diags := m.lockedDependencies()
+
+		// If the locks file is invalid, we should fail early rather than
+		// ignore it. A missing locks file will return no error.
+		if diags.HasErrors() {
+			return nil, diags.Err()
+		}
+		opts.LockedDependencies = lockedDependencies
+
+		// If any unmanaged providers or dev overrides are enabled, they must
+		// be listed in the context so that they can be ignored when verifying
+		// the locks against the configuration
+		opts.ProvidersInDevelopment = make(map[addrs.Provider]struct{})
+		for provider := range m.UnmanagedProviders {
+			opts.ProvidersInDevelopment[provider] = struct{}{}
+		}
+		for provider := range m.ProviderDevOverrides {
+			opts.ProvidersInDevelopment[provider] = struct{}{}
+		}
 	}
 
 	opts.ProviderSHA256s = m.providerPluginsLock().Read()
-	if v := os.Getenv(ProviderSkipVerifyEnvVar); v != "" {
-		opts.SkipProviderVerify = true
-	}
 
 	opts.Meta = &terraform.ContextMeta{
 		Env:                workspace,
@@ -440,6 +470,17 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
+// ignoreRemoteVersionFlagSet add the ignore-remote version flag to suppress
+// the error when the configured Terraform version on the remote workspace
+// does not match the local Terraform version.
+func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
+	f := m.defaultFlagSet(n)
+
+	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions differ")
+
+	return f
+}
+
 // extendedFlagSet adds custom flags that are mostly used by commands
 // that are used to run an operation like plan or apply.
 func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
@@ -456,9 +497,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	varFiles := m.variableArgs.Alias("-var-file")
 	f.Var(varValues, "var", "variables")
 	f.Var(varFiles, "var-file", "variable file")
-
-	// Experimental features
-	experiment.Flag(f)
 
 	// commands that bypass locking will supply their own flag on this var,
 	// but set the initial meta value to true as a failsafe.
@@ -596,49 +634,6 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 }
 
-// outputShadowError outputs the error from ctx.ShadowError. If the
-// error is nil then nothing happens. If output is false then it isn't
-// outputted to the user (you can define logic to guard against outputting).
-func (m *Meta) outputShadowError(err error, output bool) bool {
-	// Do nothing if no error
-	if err == nil {
-		return false
-	}
-
-	// If not outputting, do nothing
-	if !output {
-		return false
-	}
-
-	// Write the shadow error output to a file
-	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
-	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
-		// If there is an error writing it, just let it go
-		log.Printf("[ERROR] Error writing shadow error: %s", err)
-		return false
-	}
-
-	// Output!
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
-			"This is not an error. Your Terraform operation completed successfully.\n"+
-			"Your real infrastructure is unaffected by this message.\n\n"+
-			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
-			"background. These features cannot affect real state and never touch\n"+
-			"real infrastructure. If the features work properly, you see nothing.\n"+
-			"If the features fail, this message appears.\n\n"+
-			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
-			"The failure was written to %q. Please\n"+
-			"double check this file contains no sensitive information and report\n"+
-			"it with your issue.\n\n"+
-			"This is not an error. Your terraform operation completed successfully\n"+
-			"and your real infrastructure is unaffected by this message.",
-		path,
-	)))
-
-	return true
-}
-
 // WorkspaceNameEnvVar is the name of the environment variable that can be used
 // to set the name of the Terraform workspace, overriding the workspace chosen
 // by `terraform workspace select`.
@@ -647,14 +642,14 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-var invalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
 
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Workspace() (string, error) {
 	current, overridden := m.WorkspaceOverridden()
 	if overridden && !validWorkspaceName(current) {
-		return "", invalidWorkspaceNameEnvVar
+		return "", errInvalidWorkspaceNameEnvVar
 	}
 	return current, nil
 }

@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
+var planConfigurationVersionsPollInterval = 500 * time.Millisecond
+
 func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	log.Printf("[INFO] backend/remote: starting Plan operation")
 
@@ -213,7 +215,7 @@ in order to capture the filesystem context the remote workspace expects:
 			return nil, context.Canceled
 		case <-cancelCtx.Done():
 			return nil, context.Canceled
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(planConfigurationVersionsPollInterval):
 			cv, err = b.client.ConfigurationVersions.Read(stopCtx, cv.ID)
 			if err != nil {
 				return nil, generalError("Failed to retrieve configuration version", err)

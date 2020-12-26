@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Type Constraints - Configuration Language"
 sidebar_current: "docs-config-types"
 description: |-
@@ -32,7 +32,7 @@ function-like constructs called _type constructors._
   represent a type; instead, it represents a _kind_ of similar types.
 
 Type constraints look like other kinds of Terraform
-[expressions](./expressions.html), but are a special syntax. Within the
+[expressions](/docs/configuration/expressions/index.html), but are a special syntax. Within the
 Terraform language, they are only valid in the `type` argument of an
 [input variable](./variables.html).
 
@@ -160,7 +160,7 @@ like the following:
 
 The Terraform language has literal expressions for creating tuple and object
 values, which are described in
-[Expressions: Literal Expressions](./expressions.html#literal-expressions) as
+[Expressions: Literal Expressions](/docs/configuration/expressions/types.html#literal-expressions) as
 "list/tuple" literals and "map/object" literals, respectively.
 
 Terraform does _not_ provide any way to directly represent lists, maps, or sets.
@@ -264,3 +264,40 @@ variable "no_type_constraint" {
 
 In this case, Terraform will replace `any` with the exact type of the given
 value and thus perform no type conversion whatsoever.
+
+## Experimental: Optional Object Type Attributes
+
+From Terraform v0.14 there is _experimental_ support for marking particular
+attributes as optional in an object type constraint.
+
+To mark an attribute as optional, use the additional `optional(...)` modifier
+around its type declaration:
+
+```hcl
+variable "with_optional_attribute" {
+  type = object({
+    a = string           # a required attribute
+    b = optional(string) # an optional attribute
+  })
+}
+```
+
+By default, for required attributes, Terraform will return an error if the
+source value has no matching attribute. Marking an attribute as optional
+changes the behavior in that situation: Terraform will instead just silently
+insert `null` as the value of the attribute, allowing the recieving module
+to describe an appropriate fallback behavior.
+
+Because this feature is currently experimental, it requires an explicit
+opt-in on a per-module basis. To use it, write a `terraform` block with the
+`experiments` argument set as follows:
+
+```hcl
+terraform {
+  experiments = [module_variable_optional_attrs]
+}
+```
+
+Until the experiment is concluded, the behavior of this feature may see
+breaking changes even in minor releases. We recommend using this feature
+only in prerelease versions of modules as long as it remains experimental.

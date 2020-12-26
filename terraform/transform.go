@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/dag"
-	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/internal/logging"
 )
 
 // GraphTransformer is the interface that transformers implement. This
@@ -21,17 +21,6 @@ type GraphTransformer interface {
 // VertexTransformer.
 type GraphVertexTransformer interface {
 	Transform(dag.Vertex) (dag.Vertex, error)
-}
-
-// GraphTransformIf is a helper function that conditionally returns a
-// GraphTransformer given. This is useful for calling inline a sequence
-// of transforms without having to split it up into multiple append() calls.
-func GraphTransformIf(f func() bool, then GraphTransformer) GraphTransformer {
-	if f() {
-		return then
-	}
-
-	return nil
 }
 
 type graphTransformerMulti struct {

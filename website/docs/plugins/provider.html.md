@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "extend"
 page_title: "Provider Plugins"
 sidebar_current: "docs-plugins-provider"
 description: |-
@@ -40,12 +40,8 @@ a basic development environment setup.
 ## Provider Plugin Codebases
 
 Provider plugins live outside of the Terraform core codebase in their own
-source code repositories. The official set of provider plugins released by
-HashiCorp (developed by both HashiCorp staff and community contributors)
-all live in repositories in
-[the `terraform-providers` organization](https://github.com/terraform-providers)
-on GitHub, but third-party plugins can be maintained in any source code
-repository.
+source code repositories, and are typically published in a provider registry
+such as [the public Terraform Registry](https://registry.terraform.io/).
 
 When developing a provider plugin, it is recommended to use a common `GOPATH`
 that includes both the core Terraform repository and the repositories of any
@@ -79,9 +75,8 @@ an official release.
 When constructing a new provider from scratch, it's recommended to follow
 a similar repository structure as for the existing providers, with the main
 package in the repository root and a library package in a subdirectory named
-after the provider. For more information, see
-[Writing Custom Providers](/docs/extend/writing-custom-providers.html) in the
-[Extending Terraform section](/docs/extend/index.html).
+after the provider. For more information, see the
+[Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE/docs/extend/writing-custom-providers.htmlutm_medium=WEB_IO/docs/extend/writing-custom-providers.htmlutm_offer=ARTICLE_PAGE/docs/extend/writing-custom-providers.htmlutm_content=DOCS) collection on HashiCorp Learn.
 
 When making changes only to files within the provider repository, it is _not_
 necessary to re-build the main Terraform executable. Note that some packages
@@ -106,20 +101,13 @@ own core providers.
 
 ## helper/schema
 
-The `helper/schema` library is a framework we've built to make creating
-providers extremely easy. This is the same library we use to build most
-of the core providers.
+The `helper/schema` package in the plugin SDK is a framework designed to allow
+building providers at a higher level of abstraction than the raw plugin protocol
+that Terraform expects. This is the same library we've used to build most
+of the official providers.
 
-To give you an idea of how productive you can become with this framework:
-we implemented the Google Cloud provider in about 6 hours of coding work.
-This isn't a simple provider, and we did have knowledge of
-the framework beforehand, but it goes to show how expressive the framework
-can be.
-
-The GoDoc for `helper/schema` can be
-[found here](https://godoc.org/github.com/hashicorp/terraform/helper/schema).
-This is API-level documentation but will be extremely important
-for you going forward.
+For more information on `helper/schema`, see
+[the `helper/schema` package reference documentation](https://pkg.go.dev/github.com/hashicorp/terraform-plugin-sdk/helper/schema).
 
 ## Provider
 

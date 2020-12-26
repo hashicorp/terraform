@@ -8,7 +8,6 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/states"
 )
 
@@ -460,7 +459,7 @@ func TestTaint_module(t *testing.T) {
 func TestTaint_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("taint-check-required-version"), td)
+	testCopyDir(t, testFixturePath("taint-check-required-version"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 

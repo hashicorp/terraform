@@ -7,6 +7,8 @@ package backend
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -33,10 +36,6 @@ var (
 	// be selected.
 	ErrDefaultWorkspaceNotSupported = errors.New("default workspace not supported\n" +
 		"You can create a new workspace with the \"workspace new\" command.")
-
-	// ErrOperationNotSupported is returned when an unsupported operation
-	// is detected by the configured backend.
-	ErrOperationNotSupported = errors.New("operation not supported")
 
 	// ErrWorkspacesNotSupported is an error returned when a caller attempts
 	// to perform an operation on a workspace other than "default" for a
@@ -290,4 +289,32 @@ const (
 
 func (r OperationResult) ExitStatus() int {
 	return int(r)
+}
+
+// If the argument is a path, Read loads it and returns the contents,
+// otherwise the argument is assumed to be the desired contents and is simply
+// returned.
+func ReadPathOrContents(poc string) (string, error) {
+	if len(poc) == 0 {
+		return poc, nil
+	}
+
+	path := poc
+	if path[0] == '~' {
+		var err error
+		path, err = homedir.Expand(path)
+		if err != nil {
+			return path, err
+		}
+	}
+
+	if _, err := os.Stat(path); err == nil {
+		contents, err := ioutil.ReadFile(path)
+		if err != nil {
+			return string(contents), err
+		}
+		return string(contents), nil
+	}
+
+	return poc, nil
 }

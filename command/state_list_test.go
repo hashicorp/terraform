@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/mitchellh/cli"
 )
 
@@ -99,7 +98,7 @@ func TestStateListWithNonExistentID(t *testing.T) {
 func TestStateList_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-default"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-default"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -128,7 +127,7 @@ func TestStateList_backendDefaultState(t *testing.T) {
 func TestStateList_backendCustomState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-custom"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -157,7 +156,7 @@ func TestStateList_backendCustomState(t *testing.T) {
 func TestStateList_backendOverrideState(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("state-list-backend-custom"), td)
+	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -201,6 +200,75 @@ func TestStateList_noState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
+}
+
+func TestStateList_modules(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("state-list-nested-modules"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	t.Run("list resources in module and submodules", func(t *testing.T) {
+		args := []string{"module.nest"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+
+		// resources in the module and any submodules should be included in the outputs
+		expected := "module.nest.test_instance.nest\nmodule.nest.module.subnest.test_instance.subnest\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("submodule has resources only", func(t *testing.T) {
+		// now get the state for a module that has no resources, only another nested module
+		ui.OutputWriter.Reset()
+		args := []string{"module.nonexist"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.nonexist.module.child.test_instance.child\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("expanded module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		ui.OutputWriter.Reset()
+		args := []string{"module.count"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("completely nonexistent module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		ui.OutputWriter.Reset()
+		args := []string{"module.notevenalittlebit"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+	})
+
 }
 
 const testStateListOutput = `

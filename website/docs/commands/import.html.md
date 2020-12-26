@@ -75,17 +75,23 @@ in the configuration for the target resource, and that is the best behavior in m
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [HCL](/docs/configuration/syntax.html#HCL), so list and map values can be
-  specified via this flag. This is only useful with the `-config` flag.
+  [literal expressions](/docs/configuration/expressions/types.html) in the
+  Terraform language, so list and map values can be specified via this flag.
+  This is only useful with the `-config` flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/configuration/variables.html#variable-files). If
+  a [variable file](/docs/configuration/variables.html#variable-definitions-tfvars-files). If
   a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times. This is only
   useful with the `-config` flag.
+
+* `-ignore-remote-version` - When using the enhanced remote backend with
+  Terraform Cloud, continue even if remote and local Terraform versions differ.
+  This may result in an unusable Terraform Cloud workspace, and should be used
+  with extreme caution.
 
 ## Provider Configuration
 
@@ -133,7 +139,7 @@ $ terraform import module.foo.aws_instance.bar i-abcd1234
 ## Example: Import into Resource configured with count
 
 The example below will import an AWS instance into the first instance of the `aws_instance` resource named `baz` configured with
-[`count`](/docs/configuration/resources.html#count-multiple-resource-instances-by-count):
+[`count`](/docs/configuration/meta-arguments/count.html):
 
 ```shell
 $ terraform import 'aws_instance.baz[0]' i-abcd1234
@@ -142,7 +148,7 @@ $ terraform import 'aws_instance.baz[0]' i-abcd1234
 ## Example: Import into Resource configured with for_each
 
 The example below will import an AWS instance into the `"example"` instance of the `aws_instance` resource named `baz` configured with
-[`for_each`](/docs/configuration/resources.html#for_each-multiple-resource-instances-defined-by-a-map-or-set-of-strings):
+[`for_each`](/docs/configuration/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

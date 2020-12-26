@@ -1,5 +1,5 @@
 ---
-layout: "functions"
+layout: "language"
 page_title: "toset - Functions - Configuration Language"
 sidebar_current: "docs-funcs-conversion-toset"
 description: |-

@@ -13,15 +13,17 @@ type Experiment string
 // Each experiment is represented by a string that must be a valid HCL
 // identifier so that it can be specified in configuration.
 const (
-	VariableValidation = Experiment("variable_validation")
-	SensitiveVariables = Experiment("sensitive_variables")
+	VariableValidation             = Experiment("variable_validation")
+	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
+	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
 )
 
 func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
-	registerCurrentExperiment(SensitiveVariables)
+	registerCurrentExperiment(ModuleVariableOptionalAttrs)
+	registerCurrentExperiment(SuppressProviderSensitiveAttrs)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value

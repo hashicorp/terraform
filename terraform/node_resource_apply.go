@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // nodeExpandApplyableResource handles the first layer of resource
@@ -26,7 +27,8 @@ var (
 	_ GraphNodeTargetable           = (*nodeExpandApplyableResource)(nil)
 )
 
-func (n *nodeExpandApplyableResource) expandsInstances() {}
+func (n *nodeExpandApplyableResource) expandsInstances() {
+}
 
 func (n *nodeExpandApplyableResource) References() []*addrs.Reference {
 	return (&NodeApplyableResource{NodeAbstractResource: n.NodeAbstractResource}).References()
@@ -41,10 +43,7 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
-	var resources []addrs.AbsResource
 	for _, module := range moduleInstances {
-		resAddr := n.Addr.Resource.Absolute(module)
-		resources = append(resources, resAddr)
 		g.Add(&NodeApplyableResource{
 			NodeAbstractResource: n.NodeAbstractResource,
 			Addr:                 n.Addr.Resource.Absolute(module),
@@ -101,13 +100,12 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeApplyableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return nil
 	}
 
-	err := n.writeResourceState(ctx, n.Addr)
-	return err
+	return n.writeResourceState(ctx, n.Addr)
 }

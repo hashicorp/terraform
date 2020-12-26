@@ -128,10 +128,7 @@ func (n *NodeLocal) References() []*addrs.Reference {
 // NodeLocal.Execute is an Execute implementation that evaluates the
 // expression for a local value and writes it into a transient part of
 // the state.
-func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) error {
-
-	var diags tfdiags.Diagnostics
-
+func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	expr := n.Config.Expr
 	addr := n.Addr.LocalValue
 
@@ -150,23 +147,24 @@ func (n *NodeLocal) Execute(ctx EvalContext, op walkOperation) error {
 		}
 	}
 	if diags.HasErrors() {
-		return diags.Err()
+		return diags
 	}
 
 	val, moreDiags := ctx.EvaluateExpr(expr, cty.DynamicPseudoType, nil)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return diags.Err()
+		return diags
 	}
 
 	state := ctx.State()
 	if state == nil {
-		return fmt.Errorf("cannot write local value to nil state")
+		diags = diags.Append(fmt.Errorf("cannot write local value to nil state"))
+		return diags
 	}
 
 	state.SetLocalValue(addr.Absolute(ctx.Path()), val)
 
-	return nil
+	return diags
 }
 
 // dag.GraphNodeDotter impl.

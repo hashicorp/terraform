@@ -121,7 +121,7 @@ Usage: terraform force-unlock LOCK_ID [DIR]
   Manually unlock the state for the defined configuration.
 
   This will not modify your infrastructure. This command removes the lock on the
-  state for the current configuration. The behavior of this lock is dependent
+  state for the current workspace. The behavior of this lock is dependent
   on the backend being used. Local state files cannot be unlocked by another
   process.
 
@@ -133,7 +133,7 @@ Options:
 }
 
 func (c *UnlockCommand) Synopsis() string {
-	return "Manually unlock the terraform state"
+	return "Release a stuck lock on the current workspace"
 }
 
 const outputUnlockSuccess = `

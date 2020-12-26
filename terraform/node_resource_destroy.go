@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -122,7 +123,7 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 }
 
 // GraphNodeExecutable
-func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Get our state
@@ -136,134 +137,84 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	var state *states.ResourceInstanceObject
 	var provisionerErr error
 
-	switch op {
-	case walkApply, walkDestroy:
-		provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-		if err != nil {
-			return err
-		}
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
-		changeApply, err = n.readDiff(ctx, providerSchema)
-		if err != nil {
-			return err
-		}
+	changeApply, err = n.readDiff(ctx, providerSchema)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
-		evalReduceDiff := &EvalReduceDiff{
-			Addr:      addr.Resource,
-			InChange:  &changeApply,
-			Destroy:   true,
-			OutChange: &changeApply,
-		}
-		_, err = evalReduceDiff.Eval(ctx)
-		if err != nil {
-			return err
-		}
+	changeApply = reducePlan(addr.Resource, changeApply, true)
+	// reducePlan may have simplified our planned change
+	// into a NoOp if it does not require destroying.
+	if changeApply == nil || changeApply.Action == plans.NoOp {
+		return diags
+	}
 
-		// EvalReduceDiff may have simplified our planned change
-		// into a NoOp if it does not require destroying.
-		if changeApply == nil || changeApply.Action == plans.NoOp {
-			return EvalEarlyExitError{}
-		}
+	state, err = n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
+	}
 
-		state, err = n.ReadResourceInstanceState(ctx, addr)
-		if err != nil {
-			return err
-		}
+	// Exit early if the state object is null after reading the state
+	if state == nil || state.Value.IsNull() {
+		return diags
+	}
 
-		// Exit early if the state object is null after reading the state
-		if state == nil || state.Value.IsNull() {
-			return EvalEarlyExitError{}
-		}
+	diags = diags.Append(n.preApplyHook(ctx, changeApply))
+	if diags.HasErrors() {
+		return diags
+	}
 
-		evalApplyPre := &EvalApplyPre{
-			Addr:   addr.Resource,
-			State:  &state,
-			Change: &changeApply,
+	// Run destroy provisioners if not tainted
+	if state != nil && state.Status != states.ObjectTainted {
+		var applyProvisionersDiags tfdiags.Diagnostics
+		provisionerErr, applyProvisionersDiags = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
+		diags = diags.Append(applyProvisionersDiags)
+		if diags.HasErrors() {
+			return diags
 		}
-		_, err = evalApplyPre.Eval(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Run destroy provisioners if not tainted
-		if state != nil && state.Status != states.ObjectTainted {
-			evalApplyProvisioners := &EvalApplyProvisioners{
-				Addr:           addr.Resource,
-				State:          &state,
-				ResourceConfig: n.Config,
-				Error:          &provisionerErr,
-				When:           configs.ProvisionerWhenDestroy,
+		if provisionerErr != nil {
+			// If we have a provisioning error, then we just call
+			// the post-apply hook now.
+			diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
+			if diags.HasErrors() {
+				return diags
 			}
-			_, err := evalApplyProvisioners.Eval(ctx)
-			if err != nil {
-				return err
-			}
-			if provisionerErr != nil {
-				// If we have a provisioning error, then we just call
-				// the post-apply hook now.
-				evalApplyPost := &EvalApplyPost{
-					Addr:  addr.Resource,
-					State: &state,
-					Error: &provisionerErr,
-				}
-				_, err = evalApplyPost.Eval(ctx)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		// Managed resources need to be destroyed, while data sources
-		// are only removed from state.
-		if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
-			evalApply := &EvalApply{
-				Addr:           addr.Resource,
-				Config:         nil, // No configuration because we are destroying
-				State:          &state,
-				Change:         &changeApply,
-				Provider:       &provider,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderMetas:  n.ProviderMetas,
-				ProviderSchema: &providerSchema,
-				Output:         &state,
-				Error:          &provisionerErr,
-			}
-			_, err = evalApply.Eval(ctx)
-			if err != nil {
-				return err
-			}
-
-			evalWriteState := &EvalWriteState{
-				Addr:           addr.Resource,
-				ProviderAddr:   n.ResolvedProvider,
-				ProviderSchema: &providerSchema,
-				State:          &state,
-			}
-			_, err = evalWriteState.Eval(ctx)
-			if err != nil {
-				return err
-			}
-		} else {
-			log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
-			state := ctx.State()
-			state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
-		}
-
-		evalApplyPost := &EvalApplyPost{
-			Addr:  addr.Resource,
-			State: &state,
-			Error: &provisionerErr,
-		}
-		_, err = evalApplyPost.Eval(ctx)
-		if err != nil {
-			return err
-		}
-
-		err = UpdateStateHook(ctx)
-		if err != nil {
-			return err
 		}
 	}
 
-	return nil
+	// Managed resources need to be destroyed, while data sources
+	// are only removed from state.
+	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+		var applyDiags tfdiags.Diagnostics
+		// we pass a nil configuration to apply because we are destroying
+		state, provisionerErr, applyDiags = n.apply(ctx, state, changeApply, nil, false, provisionerErr)
+		diags.Append(applyDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+	} else {
+		log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
+		state := ctx.State()
+		state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+	}
+
+	diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diags = diags.Append(updateStateHook(ctx))
+	return diags
 }

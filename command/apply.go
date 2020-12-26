@@ -70,7 +70,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 	if c.Destroy && planFile != nil {
-		c.Ui.Error(fmt.Sprintf("Destroy can't be called with a plan file."))
+		c.Ui.Error("Destroy can't be called with a plan file.")
 		return 1
 	}
 	if planFile != nil {
@@ -118,7 +118,7 @@ func (c *ApplyCommand) Run(args []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to read plan from plan file",
-				fmt.Sprintf("The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file."),
+				"The given plan file does not have a valid backend configuration. This is a bug in the Terraform command that generated this plan file.",
 			))
 			c.showDiagnostics(diags)
 			return 1
@@ -130,6 +130,11 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Applying changes with dev overrides in effect could make it impossible
+	// to switch back to a release version if the schema isn't compatible,
+	// so we'll warn about it.
+	diags = diags.Append(c.providerDevOverrideWarnings())
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -191,23 +196,24 @@ func (c *ApplyCommand) Help() string {
 
 func (c *ApplyCommand) Synopsis() string {
 	if c.Destroy {
-		return "Destroy Terraform-managed infrastructure"
+		return "Destroy previously-created infrastructure"
 	}
 
-	return "Builds or changes infrastructure"
+	return "Create or update infrastructure"
 }
 
 func (c *ApplyCommand) helpApply() string {
 	helpText := `
-Usage: terraform apply [options] [DIR-OR-PLAN]
+Usage: terraform apply [options] [PLAN]
 
-  Builds or changes infrastructure according to Terraform configuration
-  files in DIR.
+  Creates or updates infrastructure according to Terraform configuration
+  files in the current directory.
 
-  By default, apply scans the current directory for the configuration
-  and applies the changes appropriately. However, a path to another
-  configuration or an execution plan can be provided. Execution plans can be
-  used to only execute a pre-determined set of actions.
+  By default, Terraform will generate a new plan and present it for your
+  approval before taking any action. You can optionally provide a plan
+  file created by a previous call to "terraform plan", in which case
+  Terraform will take the actions described in that plan without any
+  confirmation prompt.
 
 Options:
 
@@ -329,7 +335,7 @@ func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeH
 		// Output the outputs in alphabetical order
 		keyLen := 0
 		ks := make([]string, 0, len(outputs))
-		for key, _ := range outputs {
+		for key := range outputs {
 			ks = append(ks, key)
 			if len(key) > keyLen {
 				keyLen = len(key)

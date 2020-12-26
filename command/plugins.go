@@ -9,15 +9,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
+	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
+	localexec "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
+	remoteexec "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
+	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/provisioners"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // NOTE WELL: The logic in this file is primarily about plugin types OTHER THAN
@@ -119,18 +121,7 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	return dirs
 }
 
-func (m *Meta) pluginCache() discovery.PluginCache {
-	dir := m.PluginCacheDir
-	if dir == "" {
-		return nil // cache disabled
-	}
-
-	dir = filepath.Join(dir, pluginMachineName)
-
-	return discovery.NewLocalPluginCache(dir)
-}
-
-func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
+func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
 	dirs := m.pluginDirs(true)
 	plugins := discovery.FindPlugins("provisioner", dirs)
 	plugins, _ = plugins.ValidateVersions()
@@ -141,12 +132,12 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	// name here, even though the discovery interface forces us to pretend
 	// that might not be true.
 
-	factories := make(map[string]terraform.ProvisionerFactory)
+	factories := make(map[string]provisioners.Factory)
 
 	// Wire up the internal provisioners first. These might be overridden
 	// by discovered provisioners below.
-	for name := range InternalProvisioners {
-		factories[name] = internalProvisionerFactory(discovery.PluginMeta{Name: name})
+	for name, factory := range internalProvisionerFactories() {
+		factories[name] = factory
 	}
 
 	byName := plugins.ByName()
@@ -162,41 +153,27 @@ func (m *Meta) provisionerFactories() map[string]terraform.ProvisionerFactory {
 	return factories
 }
 
-func internalPluginClient(kind, name string) (*plugin.Client, error) {
-	cmdLine, err := BuildPluginCommandString(kind, name)
-	if err != nil {
-		return nil, err
-	}
-
-	// See the docstring for BuildPluginCommandString for why we need to do
-	// this split here.
-	cmdArgv := strings.Split(cmdLine, TFSPACE)
-
-	cfg := &plugin.ClientConfig{
-		Cmd:              exec.Command(cmdArgv[0], cmdArgv[1:]...),
-		HandshakeConfig:  tfplugin.Handshake,
-		Managed:          true,
-		VersionedPlugins: tfplugin.VersionedPlugins,
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-	}
-
-	return plugin.NewClient(cfg), nil
-}
-
-func provisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
+func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
-		client := tfplugin.Client(meta)
-		return newProvisionerClient(client)
-	}
-}
-
-func internalProvisionerFactory(meta discovery.PluginMeta) terraform.ProvisionerFactory {
-	return func() (provisioners.Interface, error) {
-		client, err := internalPluginClient("provisioner", meta.Name)
-		if err != nil {
-			return nil, fmt.Errorf("[WARN] failed to build command line for internal plugin %q: %s", meta.Name, err)
+		cfg := &plugin.ClientConfig{
+			Cmd:              exec.Command(meta.Path),
+			HandshakeConfig:  tfplugin.Handshake,
+			VersionedPlugins: tfplugin.VersionedPlugins,
+			Managed:          true,
+			Logger:           logging.NewLogger("provisioner"),
+			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+			AutoMTLS:         enableProviderAutoMTLS,
 		}
+		client := plugin.NewClient(cfg)
 		return newProvisionerClient(client)
+	}
+}
+
+func internalProvisionerFactories() map[string]provisioners.Factory {
+	return map[string]provisioners.Factory{
+		"file":        provisioners.FactoryFixed(fileprovisioner.New()),
+		"local-exec":  provisioners.FactoryFixed(localexec.New()),
+		"remote-exec": provisioners.FactoryFixed(remoteexec.New()),
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 
+	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/lang/funcs"
 )
 
@@ -34,6 +35,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"abs":              stdlib.AbsoluteFunc,
 			"abspath":          funcs.AbsPathFunc,
 			"alltrue":          funcs.AllTrueFunc,
+			"anytrue":          funcs.AnyTrueFunc,
 			"basename":         funcs.BasenameFunc,
 			"base64decode":     funcs.Base64DecodeFunc,
 			"base64encode":     funcs.Base64EncodeFunc,
@@ -54,6 +56,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"concat":           stdlib.ConcatFunc,
 			"contains":         stdlib.ContainsFunc,
 			"csvdecode":        stdlib.CSVDecodeFunc,
+			"defaults":         s.experimentalFunction(experiments.ModuleVariableOptionalAttrs, funcs.DefaultsFunc),
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
@@ -113,6 +116,8 @@ func (s *Scope) Functions() map[string]function.Function {
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"sum":              funcs.SumFunc,
+			"textdecodebase64": funcs.TextDecodeBase64Func,
+			"textencodebase64": funcs.TextEncodeBase64Func,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
 			"title":            stdlib.TitleFunc,
@@ -157,11 +162,31 @@ func (s *Scope) Functions() map[string]function.Function {
 	return s.funcs
 }
 
-var unimplFunc = function.New(&function.Spec{
-	Type: func([]cty.Value) (cty.Type, error) {
-		return cty.DynamicPseudoType, fmt.Errorf("function not yet implemented")
-	},
-	Impl: func([]cty.Value, cty.Type) (cty.Value, error) {
-		return cty.DynamicVal, fmt.Errorf("function not yet implemented")
-	},
-})
+// experimentalFunction checks whether the given experiment is enabled for
+// the recieving scope. If so, it will return the given function verbatim.
+// If not, it will return a placeholder function that just returns an
+// error explaining that the function requires the experiment to be enabled.
+func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn function.Function) function.Function {
+	if s.activeExperiments.Has(experiment) {
+		return fn
+	}
+
+	err := fmt.Errorf(
+		"this function is experimental and available only when the experiment keyword %s is enabled for the current module",
+		experiment.Keyword(),
+	)
+
+	return function.New(&function.Spec{
+		Params:   fn.Params(),
+		VarParam: fn.VarParam(),
+		Type: func(args []cty.Value) (cty.Type, error) {
+			return cty.DynamicPseudoType, err
+		},
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			// It would be weird to get here because the Type function always
+			// fails, but we'll return an error here too anyway just to be
+			// robust.
+			return cty.DynamicVal, err
+		},
+	})
+}

@@ -1,12 +1,13 @@
 package terraform
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/instances"
@@ -15,9 +16,12 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // InputMode defines what sort of input will be asked for when Input
@@ -31,17 +35,6 @@ const (
 	// InputModeStd is the standard operating mode and asks for both variables
 	// and providers.
 	InputModeStd = InputModeProvider
-)
-
-var (
-	// contextFailOnShadowError will cause Context operations to return
-	// errors when shadow operations fail. This is only used for testing.
-	contextFailOnShadowError = false
-
-	// contextTestDeepCopyOnPlan will perform a Diff DeepCopy on every
-	// Plan operation, effectively testing the Diff DeepCopy whenever
-	// a Plan occurs. This is enabled for tests.
-	contextTestDeepCopyOnPlan = false
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -63,8 +56,15 @@ type ContextOpts struct {
 
 	// If non-nil, will apply as additional constraints on the provider
 	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s    map[string][]byte
-	SkipProviderVerify bool
+	ProviderSHA256s map[string][]byte
+
+	// If non-nil, will be verified to ensure that provider requirements from
+	// configuration can be satisfied by the set of locked dependencies.
+	LockedDependencies *depsfile.Locks
+
+	// Set of providers to exclude from the requirements check process, as they
+	// are marked as in local development.
+	ProvidersInDevelopment map[addrs.Provider]struct{}
 
 	UIInput UIInput
 }
@@ -114,11 +114,9 @@ type Context struct {
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]cty.Value
 	providerSHA256s     map[string][]byte
-	runLock             sync.Mutex
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
-	shadowErr           error
 }
 
 // (additional methods on Context can be found in context_*.go files.)
@@ -211,6 +209,50 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config = configs.NewEmptyConfig()
 	}
 
+	// If we have a configuration and a set of locked dependencies, verify that
+	// the provider requirements from the configuration can be satisfied by the
+	// locked dependencies.
+	if opts.LockedDependencies != nil {
+		reqs, providerDiags := config.ProviderRequirements()
+		diags = diags.Append(providerDiags)
+
+		locked := opts.LockedDependencies.AllProviders()
+		unmetReqs := make(getproviders.Requirements)
+		for provider, versionConstraints := range reqs {
+			// Builtin providers are not listed in the locks file
+			if provider.IsBuiltIn() {
+				continue
+			}
+			// Development providers must be excluded from this check
+			if _, ok := opts.ProvidersInDevelopment[provider]; ok {
+				continue
+			}
+			// If the required provider doesn't exist in the lock, or the
+			// locked version doesn't meet the constraints, mark the
+			// requirement unmet
+			acceptable := versions.MeetingConstraints(versionConstraints)
+			if lock, ok := locked[provider]; !ok || !acceptable.Has(lock.Version()) {
+				unmetReqs[provider] = versionConstraints
+			}
+		}
+
+		if len(unmetReqs) > 0 {
+			var buf strings.Builder
+			for provider, versionConstraints := range unmetReqs {
+				fmt.Fprintf(&buf, "\n- %s", provider)
+				if len(versionConstraints) > 0 {
+					fmt.Fprintf(&buf, " (%s)", getproviders.VersionConstraintsString(versionConstraints))
+				}
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider requirements cannot be satisfied by locked dependencies",
+				fmt.Sprintf("The following required providers are not installed:\n%s\n\nPlease run \"terraform init\".", buf.String()),
+			))
+			return nil, diags
+		}
+	}
+
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	// By the time we get here, we should have values defined for all of
@@ -277,7 +319,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Components: c.components,
 			Schemas:    c.schemas,
 			Targets:    c.targets,
-			Destroy:    c.destroy,
 			Validate:   opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
@@ -327,33 +368,6 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 		// Should never happen, because the above is exhaustive for all graph types.
 		panic(fmt.Errorf("unsupported graph type %s", typ))
 	}
-}
-
-// ShadowError returns any errors caught during a shadow operation.
-//
-// A shadow operation is an operation run in parallel to a real operation
-// that performs the same tasks using new logic on copied state. The results
-// are compared to ensure that the new logic works the same as the old logic.
-// The shadow never affects the real operation or return values.
-//
-// The result of the shadow operation are only available through this function
-// call after a real operation is complete.
-//
-// For API consumers of Context, you can safely ignore this function
-// completely if you have no interest in helping report experimental feature
-// errors to Terraform maintainers. Otherwise, please call this function
-// after every operation and report this to the user.
-//
-// IMPORTANT: Shadow errors are _never_ critical: they _never_ affect
-// the real state or result of a real operation. They are purely informational
-// to assist in future Terraform versions being more stable. Please message
-// this effectively to the end user.
-//
-// This must be called only when no other operation is running (refresh,
-// plan, etc.). The result can be used in parallel to any other operation
-// running.
-func (c *Context) ShadowError() error {
-	return c.shadowErr
 }
 
 // State returns a copy of the current state associated with this context.
@@ -694,9 +708,6 @@ func (c *Context) acquireRun(phase string) func() {
 	// Reset the stop hook so we're not stopped
 	c.sh.Reset()
 
-	// Reset the shadow errors
-	c.shadowErr = nil
-
 	return c.releaseRun
 }
 
@@ -840,38 +851,4 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	}()
 
 	return stop, wait
-}
-
-// ShimLegacyState is a helper that takes the legacy state type and
-// converts it to the new state type.
-//
-// This is implemented as a state file upgrade, so it will not preserve
-// parts of the state structure that are not included in a serialized state,
-// such as the resolved results of any local values, outputs in non-root
-// modules, etc.
-func ShimLegacyState(legacy *State) (*states.State, error) {
-	if legacy == nil {
-		return nil, nil
-	}
-	var buf bytes.Buffer
-	err := WriteState(legacy, &buf)
-	if err != nil {
-		return nil, err
-	}
-	f, err := statefile.Read(&buf)
-	if err != nil {
-		return nil, err
-	}
-	return f.State, err
-}
-
-// MustShimLegacyState is a wrapper around ShimLegacyState that panics if
-// the conversion does not succeed. This is primarily intended for tests where
-// the given legacy state is an object constructed within the test.
-func MustShimLegacyState(legacy *State) *states.State {
-	ret, err := ShimLegacyState(legacy)
-	if err != nil {
-		panic(err)
-	}
-	return ret
 }

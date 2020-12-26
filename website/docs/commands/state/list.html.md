@@ -1,5 +1,5 @@
 ---
-layout: "commands-state"
+layout: "docs"
 page_title: "Command: state list"
 sidebar_current: "docs-commands-state-sub-list"
 description: |-
@@ -57,11 +57,12 @@ aws_instance.bar[1]
 
 ## Example: Filtering by Module
 
-This example will only list resources in the given module:
+This example will list resources in the given module and any submodules:
 
 ```
 $ terraform state list module.elb
 module.elb.aws_elb.main
+module.elb.module.secgroups.aws_security_group.sg
 ```
 
 ## Example: Filtering by ID

@@ -16,16 +16,16 @@ for debugging.
 
 ## TF_LOG
 
-If set to any value, enables detailed logs to appear on stderr which is useful for debugging. For example:
+Enables detailed logs to appear on stderr which is useful for debugging. For example:
 
 ```shell
-export TF_LOG=TRACE
+export TF_LOG=trace
 ```
 
-To disable, either unset it or set it to empty. When unset, logging will default to stderr. For example:
+To disable, either unset it, or set it to `off`. For example:
 
 ```shell
-export TF_LOG=
+export TF_LOG=off
 ```
 
 For more on debugging Terraform, check out the section on [Debugging](/docs/internals/debugging.html).
@@ -100,6 +100,21 @@ The data directory is used to retain data that must persist from one command
 to the next, so it's important to have this variable set consistently throughout
 all of the Terraform workflow commands (starting with `terraform init`) or else
 Terraform may be unable to find providers, modules, and other artifacts.
+
+## TF_WORKSPACE
+
+For multi-environment deployment, in order to select a workspace, instead of doing `terraform workspace select your_workspace`, it is possible to use this environment variable. Using TF_WORKSPACE allow and override workspace selection.
+
+For example:
+
+```shell
+export TF_WORKSPACE=your_workspace
+```
+
+Using this environment variable is recommended only for non-interactive usage, since in a local shell environment it can be easy to forget the variable is set and apply changes to the wrong state.
+
+For more information regarding workspaces, check out the section on [Using Workspaces]
+(https://www.terraform.io/docs/state/workspaces.html).
 
 ## TF_IN_AUTOMATION
 

@@ -65,6 +65,11 @@ The command-line flags are all optional. The list of available flags are:
   `-state` path will be used. Ignored when
   [remote state](/docs/state/remote.html) is used.
 
+* `-ignore-remote-version` - When using the enhanced remote backend with
+  Terraform Cloud, continue even if remote and local Terraform versions differ.
+  This may result in an unusable Terraform Cloud workspace, and should be used
+  with extreme caution.
+
 ## Example: Tainting a Single Resource
 
 This example will taint a single resource:
@@ -76,14 +81,18 @@ The resource aws_security_group.allow_all in the module root has been marked as 
 
 ## Example: Tainting a single resource created with for_each
 
-It is necessary to wrap the resource in single quotes and escape the quotes.
 This example will taint a single resource created with for_each:
 
 ```
-$ terraform taint "module.route_tables.azurerm_route_table.rt[\"DefaultSubnet\"]"
+$ terraform taint 'module.route_tables.azurerm_route_table.rt["DefaultSubnet"]'
 The resource module.route_tables.azurerm_route_table.rt["DefaultSubnet"] in the module root has been marked as tainted.
 ```
 
+~> Note: In most `sh` compatible shells, double quotes and spaces can be
+escaped by wrapping the argument in single quotes. This however varies between
+other shells and operating systems, and users should use the appropriate escape
+characters based on the applicable quoting rules for their shell to pass the
+address string, including quotes, to Terraform.
 
 ## Example: Tainting a Resource within a Module
 

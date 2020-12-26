@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -19,7 +18,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/copy"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -83,7 +81,7 @@ func TestRefresh(t *testing.T) {
 func TestRefresh_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	copy.CopyDir(testFixturePath("refresh-empty"), td)
+	testCopyDir(t, testFixturePath("refresh-empty"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -692,25 +690,6 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	}
 }
 
-// newInstanceState creates a new states.ResourceInstanceObjectSrc with the
-// given value for its single id attribute. It is named newInstanceState for
-// historical reasons, because it was originally written for the poorly-named
-// terraform.InstanceState type.
-func newInstanceState(id string) *states.ResourceInstanceObjectSrc {
-	attrs := map[string]interface{}{
-		"id": id,
-	}
-	attrsJSON, err := json.Marshal(attrs)
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal attributes: %s", err)) // should never happen
-	}
-	return &states.ResourceInstanceObjectSrc{
-		AttrsJSON: attrsJSON,
-		Status:    states.ObjectReady,
-	}
-}
-
-// refreshFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *terraform.ProviderSchema {

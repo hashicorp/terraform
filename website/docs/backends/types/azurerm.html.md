@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend Type: azurerm"
 sidebar_current: "docs-backends-types-standard-azurerm"
 description: |-
@@ -92,7 +92,7 @@ terraform {
 
 ## Data Source Configuration
 
-When authenticating using a Service Principall (either with a Client Certificate or a Client Secret):
+When authenticating using a Service Principal (either with a Client Certificate or a Client Secret):
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -159,9 +159,9 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options are supported:
 
-* `storage_account_name` - (Required) The Name of [the Storage Account](https://www.terraform.io/docs/providers/azurerm/r/storage_account.html).
+* `storage_account_name` - (Required) The Name of [the Storage Account](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_account).
 
-* `container_name` - (Required) The Name of [the Storage Container](https://www.terraform.io/docs/providers/azurerm/r/storage_container.html) within the Storage Account.
+* `container_name` - (Required) The Name of [the Storage Container](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) within the Storage Account.
 
 * `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
 

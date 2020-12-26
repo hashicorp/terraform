@@ -35,6 +35,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	configPath = c.Meta.normalizePath(configPath)
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
@@ -68,6 +69,9 @@ func (c *ConsoleCommand) Run(args []string) int {
 		c.Ui.Error(ErrUnsupportedLocalOp)
 		return 1
 	}
+
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	// Build the operation
 	opReq := c.Operation(b)
@@ -203,5 +207,5 @@ Options:
 }
 
 func (c *ConsoleCommand) Synopsis() string {
-	return "Interactive console for Terraform interpolations"
+	return "Try Terraform expressions at an interactive command prompt"
 }

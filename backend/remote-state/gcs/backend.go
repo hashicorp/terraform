@@ -11,9 +11,8 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/pathorcontents"
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
@@ -28,9 +27,8 @@ type Backend struct {
 	storageClient  *storage.Client
 	storageContext context.Context
 
-	bucketName       string
-	prefix           string
-	defaultStateFile string
+	bucketName string
+	prefix     string
 
 	encryptionKey []byte
 }
@@ -44,13 +42,6 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the Google Cloud Storage bucket",
-			},
-
-			"path": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path of the default state file",
-				Deprecated:  "Use the \"prefix\" option instead",
 			},
 
 			"prefix": {
@@ -73,6 +64,22 @@ func New() backend.Backend {
 					"GOOGLE_OAUTH_ACCESS_TOKEN",
 				}, nil),
 				Description: "An OAuth2 token used for GCP authentication",
+			},
+
+			"impersonate_service_account": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
+				}, nil),
+				Description: "The service account to impersonate for all Google API Calls",
+			},
+
+			"impersonate_service_account_delegates": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "The delegation chain for the impersonated service account",
+				Elem:        &schema.Schema{Type: schema.TypeString},
 			},
 
 			"encryption_key": {
@@ -122,8 +129,6 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.prefix = b.prefix + "/"
 	}
 
-	b.defaultStateFile = strings.TrimLeft(data.Get("path").(string), "/")
-
 	var opts []option.ClientOption
 
 	// Add credential source
@@ -148,7 +153,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
-		contents, _, err := pathorcontents.Read(creds)
+		contents, err := backend.ReadPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
@@ -169,6 +174,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
 
+	// Service Account Impersonation
+	if v, ok := data.GetOk("impersonate_service_account"); ok {
+		ServiceAccount := v.(string)
+		opts = append(opts, option.ImpersonateCredentials(ServiceAccount))
+
+		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
+			var delegates []string
+			d := v.([]interface{})
+			if len(delegates) > 0 {
+				delegates = make([]string, len(d))
+			}
+			for _, delegate := range d {
+				delegates = append(delegates, delegate.(string))
+			}
+			opts = append(opts, option.ImpersonateCredentials(ServiceAccount, delegates...))
+		}
+	}
+
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
@@ -183,7 +206,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if key != "" {
-		kc, _, err := pathorcontents.Read(key)
+		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
 			return fmt.Errorf("Error loading encryption key: %s", err)
 		}

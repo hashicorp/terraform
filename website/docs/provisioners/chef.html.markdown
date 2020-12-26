@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provisioner: chef"
 sidebar_current: "docs-provisioners-chef"
 description: |-
@@ -12,10 +12,7 @@ The `chef` provisioner installs, configures and runs the Chef Client on a remote
 resource. The `chef` provisioner supports both `ssh` and `winrm` type
 [connections](/docs/provisioners/connection.html).
 
--> **Note:** This provisioner has been deprecated as of Terraform 0.13.4 and will be
-removed in a future version of Terraform. For most common situations there are better
-alternatives to using provisioners. For more information, see
-[the main Provisioners page](./).
+!> **Note:** This provisioner was removed in the 0.15.0 version of Terraform after being deprecated as of Terraform 0.13.4. For most common situations there are better alternatives to using provisioners. For more information, see [the main Provisioners page](./).
 
 ## Requirements
 

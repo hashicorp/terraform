@@ -36,9 +36,9 @@ func TestNodeDataDestroyExecute(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 	}}
 
-	err := node.Execute(ctx, walkApply)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err.Error())
+	diags := node.Execute(ctx, walkApply)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %v", diags.Err())
 	}
 
 	// verify resource removed from state

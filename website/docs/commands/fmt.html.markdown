@@ -22,6 +22,28 @@ after upgrading Terraform we recommend to proactively run `terraform fmt`
 on your modules along with any other changes you are making to adopt the new
 version.
 
+We don't consider new formatting rules in `terraform fmt` to be a breaking
+change in new versions of Terraform, but we do aim to minimize changes for
+configurations that are already following the style examples shown in the
+Terraform documentation. When adding new formatting rules, they will usually
+aim to apply more of the rules already shown in the configuration examples
+in the documentation, and so we recommend following the documented style even
+for decisions that `terraform fmt` doesn't yet apply automatically.
+
+Formatting decisions are always subjective and so you might disagree with the
+decisions that `terraform fmt` makes. This command is intentionally opinionated
+and has no customization options because its primary goal is to encourage
+consistency of style between different Terraform codebases, even though the
+chosen style can never be be everyone's favorite.
+
+We recommend that you follow the style conventions applied by `terraform fmt`
+when writing Terraform modules, but if you find the results particularly
+objectionable then you may choose not to use this command, and possibly choose
+to use a third-party formatting tool instead. If you choose to use a
+third-party tool then you should also run it on files that are generated
+automatically by Terraform, to get consistency between your hand-written files
+and the generated files.
+
 ## Usage
 
 Usage: `terraform fmt [options] [DIR]`

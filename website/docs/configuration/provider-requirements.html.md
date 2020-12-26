@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Provider Requirements - Configuration Language"
 ---
 
@@ -20,49 +20,6 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 - The [Provider Configuration](./providers.html) page documents how to configure
   settings for providers.
-
-## About Providers
-
-Providers are plugins. They are released on a separate rhythm from Terraform
-itself, and each provider has its own series of version numbers.
-
-Each provider plugin offers a set of
-[resource types](resources.html#resource-types-and-arguments), and defines for
-each resource type which arguments it accepts, which attributes it exports, and
-how changes to resources of that type are actually applied to remote APIs.
-
-Most providers configure a specific infrastructure platform (either cloud or
-self-hosted). Providers can also offer local utilities for tasks like
-generating random numbers for unique resource names.
-
-The [Terraform Registry](https://registry.terraform.io/browse/providers)
-is the main directory of publicly available Terraform providers, and hosts
-providers for most major infrastructure platforms. You can also write and
-distribute your own Terraform providers, for public or private use.
-
-> **Hands-on:** If you're interested in developing your own Terraform providers, try the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
-
-### Provider Installation
-
-Terraform finds and installs providers when
-[initializing a working directory](/docs/commands/init.html). It can
-automatically download providers from a Terraform registry, or load them from a
-local mirror or cache.
-
-When a new provider is added to a configuration, Terraform must install the
-provider before it can be used. If you are using a persistent working directory,
-you can run `terraform init` again to install new providers.
-
-Providers downloaded by `terraform init` are only installed for the current
-working directory; other working directories can have their own installed
-provider plugins, which might be different versions.
-
-To save time and bandwidth, Terraform supports an optional plugin cache. You can
-enable the cache using the `plugin_cache_dir` setting in
-[the CLI configuration file](/docs/commands/cli-config.html).
-
-For more information about provider installation, see
-[the `terraform init` command](/docs/commands/init.html).
 
 ## Requiring Providers
 
@@ -211,7 +168,7 @@ provider in a module, so you'll need to use a non-preferred name for at least
 one of them.
 
 When this happens, we recommend combining each provider's namespace with
-its type name to produce compound local names:
+its type name to produce compound local names with a dash:
 
 ```hcl
 terraform {
@@ -219,11 +176,11 @@ terraform {
     # In the rare situation of using two providers that
     # have the same type name -- "http" in this example --
     # use a compound local name to distinguish them.
-    hashicorp_http = {
+    hashicorp-http = {
       source  = "hashicorp/http"
       version = "~> 2.0"
     }
-    mycorp_http = {
+    mycorp-http = {
       source  = "mycorp/http"
       version = "~> 1.0"
     }
@@ -232,12 +189,12 @@ terraform {
 
 # References to these providers elsewhere in the
 # module will use these compound local names.
-provider "mycorp_http" {
+provider "mycorp-http" {
   # ...
 }
 
 data "http" "example" {
-  provider = hashicorp_http
+  provider = hashicorp-http
   #...
 }
 ```
@@ -259,6 +216,15 @@ that all modules are compatible with.
 The `version` argument is optional; if omitted, Terraform will accept any
 version of the provider as compatible. However, we strongly recommend specifying
 a version constraint for every provider your module depends on.
+
+To ensure Terraform always installs the same provider versions for a given
+configuration, you can use Terraform CLI to create a
+[dependency lock file](/docs/configuration/dependency-lock.html)
+and commit it to version control along with your configuration. If a lock file
+is present, Terraform Cloud, CLI, and Enterprise will all obey it when
+installing providers.
+
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 ### Best Practices for Provider Versions
 

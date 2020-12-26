@@ -82,6 +82,7 @@ func parseModuleInstancePrefix(traversal hcl.Traversal) (ModuleInstance, hcl.Tra
 	var mi ModuleInstance
 	var diags tfdiags.Diagnostics
 
+LOOP:
 	for len(remain) > 0 {
 		var next string
 		switch tt := remain[0].(type) {
@@ -96,7 +97,7 @@ func parseModuleInstancePrefix(traversal hcl.Traversal) (ModuleInstance, hcl.Tra
 				Detail:   "Module address prefix must be followed by dot and then a name.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
-			break
+			break LOOP
 		}
 
 		if next != "module" {
@@ -129,7 +130,7 @@ func parseModuleInstancePrefix(traversal hcl.Traversal) (ModuleInstance, hcl.Tra
 				Detail:   "Prefix \"module.\" must be followed by a module name.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
-			break
+			break LOOP
 		}
 		remain = remain[1:]
 		step := ModuleInstanceStep{

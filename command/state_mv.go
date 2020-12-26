@@ -23,7 +23,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	var backupPathOut, statePathOut string
 
 	var dryRun bool
-	cmdFlags := c.Meta.defaultFlagSet("state mv")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state mv")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.StringVar(&backupPathOut, "backup-out", "-", "backup")
@@ -64,7 +64,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	stateFrom := stateFromMgr.State()
 	if stateFrom == nil {
-		c.Ui.Error(fmt.Sprintf(errStateNotFound))
+		c.Ui.Error(errStateNotFound)
 		return 1
 	}
 
@@ -465,31 +465,35 @@ Usage: terraform state mv [options] SOURCE DESTINATION
 
 Options:
 
-  -dry-run            If set, prints out what would've been moved but doesn't
-                      actually move anything.
+  -dry-run                If set, prints out what would've been moved but doesn't
+                          actually move anything.
 
-  -backup=PATH        Path where Terraform should write the backup for the original
-                      state. This can't be disabled. If not set, Terraform
-                      will write it to the same path as the statefile with
-                      a ".backup" extension.
+  -backup=PATH            Path where Terraform should write the backup for the
+						  original state. This can't be disabled. If not set,
+						  Terraform will write it to the same path as the
+						  statefile with a ".backup" extension.
 
-  -backup-out=PATH    Path where Terraform should write the backup for the destination
-                      state. This can't be disabled. If not set, Terraform
-                      will write it to the same path as the destination state
-                      file with a backup extension. This only needs
-                      to be specified if -state-out is set to a different path
-                      than -state.
+  -backup-out=PATH        Path where Terraform should write the backup for the
+						  destination state. This can't be disabled. If not
+						  set, Terraform will write it to the same path as the
+						  destination state file with a backup extension. This
+						  only needs to be specified if -state-out is set to a
+						  different path than -state.
 
-  -lock=true          Lock the state files when locking is supported.
+  -lock=true              Lock the state files when locking is supported.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock-timeout=0s        Duration to retry a state lock.
 
-  -state=PATH         Path to the source state file. Defaults to the configured
-                      backend, or "terraform.tfstate"
+  -state=PATH             Path to the source state file. Defaults to the
+						  configured backend, or "terraform.tfstate"
 
-  -state-out=PATH     Path to the destination state file to write to. If this
-                      isn't specified, the source state file will be used. This
-                      can be a new or existing path.
+  -state-out=PATH         Path to the destination state file to write to. If
+						  this isn't specified, the source state file will be
+						  used. This can be a new or existing path.
+
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          differ. This may result in an unusable workspace, and
+                          should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)
@@ -503,9 +507,3 @@ const errStateMv = `Error moving state: %s
 
 Please ensure your addresses and state paths are valid. No
 state was persisted. Your existing states are untouched.`
-
-const errStateMvPersist = `Error saving the state: %s
-
-The state wasn't saved properly. If the error happening after a partial
-write occurred, a backup file will have been created. Otherwise, the state
-is in the same state it was when the operation started.`

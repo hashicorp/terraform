@@ -6,12 +6,6 @@ VERSION?="0.3.44"
 # "make protobuf".
 generate:
 	go generate ./...
-	# go fmt doesn't support -mod=vendor but it still wants to populate the
-	# module cache with everything in go.mod even though formatting requires
-	# no dependencies, and so we're disabling modules mode for this right
-	# now until the "go fmt" behavior is rationalized to either support the
-	# -mod= argument or _not_ try to install things.
-	GO111MODULE=off go fmt command/internal_plugin_list.go > /dev/null
 
 # We separate the protobuf generation because most development tasks on
 # Terraform do not involve changing protobuf files and protoc is not a

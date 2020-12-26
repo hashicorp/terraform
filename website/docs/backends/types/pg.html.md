@@ -1,5 +1,5 @@
 ---
-layout: "backend-types"
+layout: "language"
 page_title: "Backend Type: pg"
 sidebar_current: "docs-backends-types-standard-pg"
 description: |-
@@ -72,6 +72,8 @@ The following configuration options or environment variables are supported:
  * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
  * `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
  * `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Terraform won't try to create the schema. Useful when the Postgres user does not have "create schema" permission on the database.
+ * `skip_table_creation` - If set to `true`, the Postgres table must already exist. Terraform won't try to create the table. Useful when the Postgres user does not have "create table" permission on the database.
+ * `skip_index_creation` - If set to `true`, the Postgres index must already exist. Terraform won't try to create the index. Useful when the Postgres user does not have "create index" permission on the database.
 
 ## Technical Design
 

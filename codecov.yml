@@ -6,11 +6,15 @@ comment:
   require_head: yes       # [yes :: must have a head report to post]
   branches:               # branch names that can post comment
     - "master"
-    - "v0.12"
 
 coverage:
   status:
     project:
+      default:
+        informational: true
+        target: auto
+        threshold: "0.5%"
+    patch:
       default:
         informational: true
         target: auto

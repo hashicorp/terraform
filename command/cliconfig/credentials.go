@@ -12,9 +12,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/replacefile"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -336,7 +337,7 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 		// Temporary file now replaces the original file, as atomically as
 		// possible. (At the very least, we should not end up with a file
 		// containing only a partial JSON object.)
-		err = replaceFileAtomic(tmpName, filename)
+		err = replacefile.AtomicRename(tmpName, filename)
 		if err != nil {
 			return fmt.Errorf("failed to replace %s with temporary file %s: %s", filename, tmpName, err)
 		}

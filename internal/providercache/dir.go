@@ -66,6 +66,12 @@ func NewDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 	}
 }
 
+// BasePath returns the filesystem path of the base directory of this
+// cache directory.
+func (d *Dir) BasePath() string {
+	return filepath.Clean(d.baseDir)
+}
+
 // AllAvailablePackages returns a description of all of the packages already
 // present in the directory. The cache entries are grouped by the provider
 // they relate to and then sorted by version precedence, with highest

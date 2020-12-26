@@ -67,6 +67,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This command will not write state
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	name := args[0]
 	if !validWorkspaceName(name) {
 		c.Ui.Error(fmt.Sprintf(envInvalidName, name))

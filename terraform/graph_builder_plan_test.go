@@ -288,10 +288,10 @@ local.instance_id (expand)
   aws_instance.web (expand)
 meta.count-boundary (EachMode fixup)
   aws_load_balancer.weblb (expand)
-  output.instance_id (expand)
+  output.instance_id
 openstack_floating_ip.random (expand)
   provider["registry.terraform.io/hashicorp/openstack"]
-output.instance_id (expand)
+output.instance_id
   local.instance_id (expand)
 provider["registry.terraform.io/hashicorp/aws"]
   openstack_floating_ip.random (expand)

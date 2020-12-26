@@ -122,7 +122,7 @@ module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
 module.child.output.grandchild_id (expand)
   module.child.module.grandchild.output.id (expand)
-output.grandchild_id (expand)
+output.grandchild_id
   module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {
@@ -193,7 +193,7 @@ module.child.module.grandchild.output.id (expand)
   module.child.module.grandchild.aws_instance.foo
 module.child.output.grandchild_id (expand)
   module.child.module.grandchild.output.id (expand)
-output.grandchild_id (expand)
+output.grandchild_id
   module.child.output.grandchild_id (expand)
 	`)
 	if actual != expected {

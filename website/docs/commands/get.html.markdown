@@ -13,7 +13,7 @@ The `terraform get` command is used to download and update
 
 ## Usage
 
-Usage: `terraform get [options]`
+Usage: `terraform get [options] PATH`
 
 The modules are downloaded into a `.terraform` subdirectory of the current
 working directory. Don't commit this directory to your version control
@@ -23,3 +23,5 @@ The `get` command supports the following option:
 
 * `-update` - If specified, modules that are already downloaded will be
    checked for updates and the updates will be downloaded if present.
+
+* `-no-color` - Disable text coloring in the output.

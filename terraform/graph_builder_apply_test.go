@@ -468,7 +468,6 @@ func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
 	}
 
 	b := &ApplyGraphBuilder{
-		Destroy:    true,
 		Config:     testModule(t, "graph-builder-apply-provisioner"),
 		Changes:    changes,
 		Components: simpleMockComponentFactory(),

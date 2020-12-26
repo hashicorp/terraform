@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.9"
 sidebar_current: "upgrade-guides-0-9"
 description: |-
@@ -26,7 +26,8 @@ Remote state has been overhauled to be easier and safer to configure and use.
 you'll be prompted to migrate to the new remote backend system.
 
 An in-depth guide for migrating to the new backend system
-[is available here](/docs/backends/legacy-0-8.html). This includes
+[is available here](https://github.com/hashicorp/terraform/blob/v0.9.11/website/source/docs/backends/legacy-0-8.html.md).
+This includes
 backing up your existing remote state and also rolling back if necessary.
 
 The only non-backwards compatible change is in the CLI: the existing
@@ -48,7 +49,7 @@ terraform {
 
 **Action:** Nothing immediately, everything will continue working
 except scripts using `terraform remote config`.
-As soon as possible, [upgrade to backends](/docs/backends/legacy-0-8.html).
+As soon as possible, [upgrade to backends](/docs/configuration/blocks/backends/index.html).
 
 ## State Locking
 

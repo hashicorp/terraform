@@ -2,8 +2,6 @@ package depsfile
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -15,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/replacefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
 )
@@ -31,14 +30,40 @@ import (
 // If the returned diagnostics contains errors then the returned Locks may
 // be incomplete or invalid.
 func LoadLocksFromFile(filename string) (*Locks, tfdiags.Diagnostics) {
+	return loadLocks(func(parser *hclparse.Parser) (*hcl.File, hcl.Diagnostics) {
+		return parser.ParseHCLFile(filename)
+	})
+}
+
+// LoadLocksFromBytes reads locks from the given byte array, pretending that
+// it was read from the given filename.
+//
+// The constraints and behaviors are otherwise the same as for
+// LoadLocksFromFile. LoadLocksFromBytes is primarily to allow more convenient
+// integration testing (avoiding creating temporary files on disk); if you
+// are writing non-test code, consider whether LoadLocksFromFile might be
+// more appropriate to call.
+func LoadLocksFromBytes(src []byte, filename string) (*Locks, tfdiags.Diagnostics) {
+	return loadLocks(func(parser *hclparse.Parser) (*hcl.File, hcl.Diagnostics) {
+		return parser.ParseHCL(src, filename)
+	})
+}
+
+func loadLocks(loadParse func(*hclparse.Parser) (*hcl.File, hcl.Diagnostics)) (*Locks, tfdiags.Diagnostics) {
 	ret := NewLocks()
 
 	var diags tfdiags.Diagnostics
 
 	parser := hclparse.NewParser()
-	f, hclDiags := parser.ParseHCLFile(filename)
+	f, hclDiags := loadParse(parser)
 	ret.sources = parser.Sources()
 	diags = diags.Append(hclDiags)
+	if f == nil {
+		// If we encountered an error loading the file then those errors
+		// should already be in diags from the above, but the file might
+		// also be nil itself and so we can't decode from it.
+		return ret, diags
+	}
 
 	moreDiags := decodeLocksFromHCL(ret, f.Body)
 	diags = diags.Append(moreDiags)
@@ -101,25 +126,14 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 			body.SetAttributeValue("constraints", cty.StringVal(constraintsStr))
 		}
 		if len(lock.hashes) != 0 {
-			hashVals := make([]cty.Value, 0, len(lock.hashes))
-			for _, hash := range lock.hashes {
-				hashVals = append(hashVals, cty.StringVal(hash.String()))
-			}
-			// We're using a set rather than a list here because the order
-			// isn't significant and SetAttributeValue will automatically
-			// write the set elements in a consistent lexical order.
-			hashSet := cty.SetVal(hashVals)
-			body.SetAttributeValue("hashes", hashSet)
+			hashToks := encodeHashSetTokens(lock.hashes)
+			body.SetAttributeRaw("hashes", hashToks)
 		}
 	}
 
 	newContent := f.Bytes()
 
-	// TODO: Create the content in a new file and atomically pivot it into
-	// the target, so that there isn't a brief period where an incomplete
-	// file can be seen at the given location.
-	// But for now, this gets us started.
-	err := ioutil.WriteFile(filename, newContent, os.ModePerm)
+	err := replacefile.AtomicWriteFile(filename, newContent, 0644)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -420,4 +434,46 @@ func decodeProviderHashesArgument(provider addrs.Provider, attr *hcl.Attribute) 
 	}
 
 	return ret, diags
+}
+
+func encodeHashSetTokens(hashes []getproviders.Hash) hclwrite.Tokens {
+	// We'll generate the source code in a low-level way here (direct
+	// token manipulation) because it's desirable to maintain exactly
+	// the layout implemented here so that diffs against the locks
+	// file are easy to read; we don't want potential future changes to
+	// hclwrite to inadvertently introduce whitespace changes here.
+	ret := hclwrite.Tokens{
+		{
+			Type:  hclsyntax.TokenOBrack,
+			Bytes: []byte{'['},
+		},
+		{
+			Type:  hclsyntax.TokenNewline,
+			Bytes: []byte{'\n'},
+		},
+	}
+
+	// Although lock.hashes is a slice, we de-dupe and sort it on
+	// initialization so it's normalized for interpretation as a logical
+	// set, and so we can just trust it's already in a good order here.
+	for _, hash := range hashes {
+		hashVal := cty.StringVal(hash.String())
+		ret = append(ret, hclwrite.TokensForValue(hashVal)...)
+		ret = append(ret, hclwrite.Tokens{
+			{
+				Type:  hclsyntax.TokenComma,
+				Bytes: []byte{','},
+			},
+			{
+				Type:  hclsyntax.TokenNewline,
+				Bytes: []byte{'\n'},
+			},
+		}...)
+	}
+	ret = append(ret, &hclwrite.Token{
+		Type:  hclsyntax.TokenCBrack,
+		Bytes: []byte{']'},
+	})
+
+	return ret
 }
