@@ -38,7 +38,7 @@ expression syntax.
 - [References to Values](/docs/configuration/expressions/references.html)
   documents how to refer to named values like variables and resource attributes.
 
-- [Operators](/docs/configuration/expressions/references.html)
+- [Operators](/docs/configuration/expressions/operators.html)
   documents the arithmetic, comparison, and logical operators.
 
 - [Function Calls](/docs/configuration/expressions/function-calls.html)
