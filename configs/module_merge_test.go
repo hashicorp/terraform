@@ -313,3 +313,18 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
 	}
 }
+
+func TestModuleOverrideSourceToLocal(t *testing.T) {
+	moduleName := "example"
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-module-source-local")
+
+	assertNoDiagnostics(t, diags)
+	if mod == nil {
+		t.Fatalf("module is nil")
+	}
+	if _, ok := mod.ModuleCalls[moduleName]; !ok {
+		t.Fatalf("module call \"%s\" not found", moduleName)
+	}
+	// We expect the version attribute to be unset when changing source to a local path
+	assertResultDeepEqual(t, mod.ModuleCalls[moduleName].Version, VersionConstraint{})
+}
