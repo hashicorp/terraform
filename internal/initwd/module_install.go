@@ -197,7 +197,7 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 			// on what type of module source address we have.
 			switch {
 
-			case isLocalSourceAddr(req.SourceAddr):
+			case earlyconfig.IsLocalSourceAddr(req.SourceAddr):
 				log.Printf("[TRACE] ModuleInstaller: %s has local path %q", key, req.SourceAddr)
 				mod, mDiags := i.installLocalModule(req, key, manifest, hooks)
 				diags = append(diags, mDiags...)
