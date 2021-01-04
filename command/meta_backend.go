@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
-	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -1159,33 +1158,6 @@ func (m *Meta) backendInitFromSaved(s *terraform.BackendState) (backend.Backend,
 func (m *Meta) backendInitRequired(reason string) {
 	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 		"[reset]"+strings.TrimSpace(errBackendInit)+"\n", reason)))
-}
-
-// Helper method to ignore remote backend version conflicts. Only call this
-// for commands which cannot accidentally upgrade remote state files.
-func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
-	if rb, ok := b.(*remoteBackend.Remote); ok {
-		rb.IgnoreVersionConflict()
-	}
-}
-
-// Helper method to check the local Terraform version against the configured
-// version in the remote workspace, returning diagnostics if they conflict.
-func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if rb, ok := b.(*remoteBackend.Remote); ok {
-		// Allow user override based on command-line flag
-		if m.ignoreRemoteVersion {
-			rb.IgnoreVersionConflict()
-		}
-		// If the override is set, this check will return a warning instead of
-		// an error
-		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
-		diags = diags.Append(versionDiags)
-	}
-
-	return diags
 }
 
 //-------------------------------------------------------------------

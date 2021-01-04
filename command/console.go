@@ -73,9 +73,6 @@ func (c *ConsoleCommand) Run(args []string) int {
 		return 1
 	}
 
-	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
-
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath

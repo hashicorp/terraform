@@ -325,7 +325,6 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		c.ignoreRemoteBackendVersionConflict(back)
 		sMgr, err := back.StateMgr(c.Workspace())
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))

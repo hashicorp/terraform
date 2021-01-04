@@ -51,11 +51,6 @@ The command-line flags are all optional. The list of available flags are:
   Terraform-managed resources. By default it will use the configured backend,
   or the default "terraform.tfstate" if it exists.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
-
 ## Example: Remove a Resource
 
 The example below removes the `packet_device` resource named `worker`:

@@ -42,10 +42,3 @@ making changes that appear to be unsafe:
 Both of these safety checks can be disabled with the `-force` flag.
 **This is not recommended.** If you disable the safety checks and are
 pushing state, the destination state will be overwritten.
-
-Other available flags:
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
