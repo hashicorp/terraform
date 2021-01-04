@@ -1,5 +1,9 @@
 ## 0.14.4 (Unreleased)
 
+UPGRADE NOTES:
+
+* This release disables the remote Terraform version check feature for plan and apply operations. This fixes an issue with using custom Terraform version bundles in Terraform Enterprise. [GH-27319]
+
 BUG FIXES:
 
 * core: Fix panic when using `sensitive` values as arguments to data sources ([GH-27335])
