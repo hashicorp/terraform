@@ -5,11 +5,6 @@ page_title: "Provider Requirements - Configuration Language"
 
 # Provider Requirements
 
--> **Note:** This page is about a feature of Terraform 0.13 and later; it also
-describes how to use the more limited version of that feature that was available
-in Terraform 0.12. If you are using Terraform 0.11 or earlier, see
-[0.11 Configuration Language: Provider Versions](../configuration-0-11/providers.html#provider-versions) instead.
-
 Terraform relies on plugins called "providers" to interact with remote systems.
 
 Terraform configurations must declare which providers they require, so that
