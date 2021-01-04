@@ -65,9 +65,6 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	// This command will not write state
-	c.ignoreRemoteBackendVersionConflict(b)
-
 	workspaces, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())

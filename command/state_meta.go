@@ -41,14 +41,6 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		// Check remote Terraform version is compatible
-		remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
-		c.showDiagnostics(remoteVersionDiags)
-		if remoteVersionDiags.HasErrors() {
-			return nil, fmt.Errorf("Error checking remote Terraform version")
-		}
-
 		// Get the state
 		s, err := b.StateMgr(workspace)
 		if err != nil {

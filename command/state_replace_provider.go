@@ -25,7 +25,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
 	var autoApprove bool
-	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state replace-provider")
+	cmdFlags := c.Meta.defaultFlagSet("state replace-provider")
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of replacements")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock states")
@@ -172,24 +172,19 @@ Usage: terraform state replace-provider [options] FROM_PROVIDER_FQN TO_PROVIDER_
 
 Options:
 
-  -auto-approve           Skip interactive approval.
+  -auto-approve       Skip interactive approval.
 
-  -backup=PATH            Path where Terraform should write the backup for the
-						  state file. This can't be disabled. If not set,
-						  Terraform will write it to the same path as the state
-						  file with a ".backup" extension.
+  -backup=PATH        Path where Terraform should write the backup for the
+                      state file. This can't be disabled. If not set, Terraform
+                      will write it to the same path as the state file with
+                      a ".backup" extension.
 
-  -lock=true              Lock the state files when locking is supported.
+  -lock=true          Lock the state files when locking is supported.
 
-  -lock-timeout=0s        Duration to retry a state lock.
+  -lock-timeout=0s    Duration to retry a state lock.
 
-  -state=PATH             Path to the state file to update. Defaults to the
-						  configured backend, or "terraform.tfstate"
-
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          differ. This may result in an unusable workspace, and
-                          should be used with extreme caution.
-
+  -state=PATH         Path to the state file to update. Defaults to the configured
+                      backend, or "terraform.tfstate"
 `
 	return strings.TrimSpace(helpText)
 }

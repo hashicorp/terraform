@@ -16,7 +16,6 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/terraform"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 type mockClient struct {
@@ -1095,15 +1094,10 @@ func (m *mockWorkspaces) List(ctx context.Context, organization string, options 
 }
 
 func (m *mockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
-	if strings.HasSuffix(*options.Name, "no-operations") {
-		options.Operations = tfe.Bool(false)
-	} else if options.Operations == nil {
-		options.Operations = tfe.Bool(true)
-	}
 	w := &tfe.Workspace{
 		ID:         generateID("ws-"),
 		Name:       *options.Name,
-		Operations: *options.Operations,
+		Operations: !strings.HasSuffix(*options.Name, "no-operations"),
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueApply: true,
 			CanQueueRun:   true,
@@ -1114,11 +1108,6 @@ func (m *mockWorkspaces) Create(ctx context.Context, organization string, option
 	}
 	if options.VCSRepo != nil {
 		w.VCSRepo = &tfe.VCSRepo{}
-	}
-	if options.TerraformVersion != nil {
-		w.TerraformVersion = *options.TerraformVersion
-	} else {
-		w.TerraformVersion = tfversion.String()
 	}
 	m.workspaceIDs[w.ID] = w
 	m.workspaceNames[w.Name] = w
@@ -1152,9 +1141,6 @@ func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace str
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	if options.Operations != nil {
-		w.Operations = *options.Operations
-	}
 	if options.Name != nil {
 		w.Name = *options.Name
 	}
