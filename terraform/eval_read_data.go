@@ -93,6 +93,10 @@ func (n *evalReadData) readDataSource(ctx EvalContext, configVal cty.Value) (cty
 		return newVal, diags
 	}
 
+	// Unmark before sending to provider, will re-mark before returning
+	var pvm []cty.PathValueMarks
+	configVal, pvm = configVal.UnmarkDeepWithPaths()
+
 	log.Printf("[TRACE] EvalReadData: Re-validating config for %s", absAddr)
 	validateResp := provider.ValidateDataSourceConfig(
 		providers.ValidateDataSourceConfigRequest{
@@ -166,6 +170,10 @@ func (n *evalReadData) readDataSource(ctx EvalContext, configVal cty.Value) (cty
 		// that here because we're saving the value only for inspection
 		// purposes; the error we added above will halt the graph walk.
 		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	if len(pvm) > 0 {
+		newVal = newVal.MarkWithPaths(pvm)
 	}
 
 	return newVal, diags

@@ -1,5 +1,9 @@
 ## 0.14.4 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix panic when using `sensitive` values as arguments to data sources ([GH-27335])
+
 ## 0.14.3 (December 17, 2020)
 
 ENHANCEMENTS:
