@@ -559,7 +559,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
 	outDir := testTempDir(t)
@@ -593,10 +593,6 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not be called")
-	}
-
 	if run.PlanEmpty {
 		t.Fatal("plan should not be empty")
 	}
@@ -613,7 +609,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_withDataSource())
 
 	b.CLI = cli.NewMockUi()
@@ -647,14 +643,6 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	<-run.Done()
 	if run.Result != backend.OperationSuccess {
 		t.Fatalf("plan operation failed")
-	}
-
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not be called")
-	}
-
-	if p.ReadDataSourceCalled {
-		t.Fatal("ReadDataSourceCalled should not be called")
 	}
 
 	if run.PlanEmpty {
