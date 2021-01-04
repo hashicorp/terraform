@@ -1401,6 +1401,13 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		return plannedChange, plannedNewState, diags
 	}
 
+	// While this isn't a "diff", continue to call this for data sources.
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, configVal)
+	}))
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)

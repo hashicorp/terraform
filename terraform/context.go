@@ -547,44 +547,96 @@ The -target option is not for routine use, and is provided only for exceptional 
 		varVals[k] = dv
 	}
 
-	p := &plans.Plan{
+	plan := &plans.Plan{
 		VariableValues:  varVals,
 		TargetAddrs:     c.targets,
 		ProviderSHA256s: c.providerSHA256s,
 	}
 
-	operation := walkPlan
-	graphType := GraphTypePlan
-	if c.destroy {
-		operation = walkPlanDestroy
-		graphType = GraphTypePlanDestroy
+	switch {
+	case c.destroy:
+		diags = diags.Append(c.destroyPlan(plan))
+	default:
+		diags = diags.Append(c.plan(plan))
 	}
 
-	graph, graphDiags := c.Graph(graphType, nil)
+	return plan, diags
+}
+
+func (c *Context) plan(plan *plans.Plan) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
-		return nil, diags
+		return diags
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, operation)
+	walker, walkDiags := c.walk(graph, walkPlan)
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		return nil, diags
+		return diags
 	}
-	p.Changes = c.changes
+	plan.Changes = c.changes
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	refreshedState := c.refreshState.DeepCopy()
-	p.State = refreshedState
+	plan.State = refreshedState
 
 	// replace the working state with the updated state, so that immediate calls
 	// to Apply work as expected.
 	c.state = refreshedState
 
-	return p, diags
+	return diags
+}
+
+func (c *Context) destroyPlan(destroyPlan *plans.Plan) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	c.changes = plans.NewChanges()
+
+	// A destroy plan starts by running Refresh to read any pending data
+	// sources, and remove missing managed resources. This is required because
+	// a "destroy plan" is only creating delete changes, and is essentially a
+	// local operation.
+	if !c.skipRefresh {
+		refreshPlan := &plans.Plan{
+			VariableValues:  destroyPlan.VariableValues,
+			TargetAddrs:     c.targets,
+			ProviderSHA256s: c.providerSHA256s,
+		}
+
+		refreshDiags := c.plan(refreshPlan)
+
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// insert the refreshed state into the destroy plan result, and discard
+		// the changes recorded from the refresh.
+		destroyPlan.State = refreshPlan.State
+		c.changes = plans.NewChanges()
+	}
+
+	graph, graphDiags := c.Graph(GraphTypePlanDestroy, nil)
+	diags = diags.Append(graphDiags)
+	if graphDiags.HasErrors() {
+		return diags
+	}
+
+	// Do the walk
+	walker, walkDiags := c.walk(graph, walkPlan)
+	diags = diags.Append(walker.NonFatalDiagnostics)
+	diags = diags.Append(walkDiags)
+	if walkDiags.HasErrors() {
+		return diags
+	}
+
+	destroyPlan.Changes = c.changes
+	return diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them
