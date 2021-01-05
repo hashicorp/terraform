@@ -202,6 +202,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 }
 
 func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testing.T) {
+	// Setup
 	mp := simpleMockProvider()
 	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
@@ -214,35 +215,54 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
-		Mode:  addrs.ManagedResourceMode,
-		Type:  "test_object",
-		Name:  "foo",
-		Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
-		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("bar"),
-		}),
-	}
-	node := NodeValidatableResource{
-		NodeAbstractResource: &NodeAbstractResource{
-			Addr:             mustConfigResourceAddr("test_foo.bar"),
-			Config:           rc,
-			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
-		},
-	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
 	ctx.ProviderProvider = p
 
-	diags := node.validateResource(ctx)
-	if diags.HasErrors() {
-		t.Fatalf("err: %s", diags.Err())
+	tests := []struct {
+		name  string
+		count hcl.Expression
+	}{
+		{
+			"simple count",
+			hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+		},
+		{
+			"marked count value",
+			hcltest.MockExprLiteral(cty.NumberIntVal(3).Mark("marked")),
+		},
 	}
 
-	if !mp.ValidateResourceTypeConfigCalled {
-		t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rc := &configs.Resource{
+				Mode:  addrs.ManagedResourceMode,
+				Type:  "test_object",
+				Name:  "foo",
+				Count: test.count,
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"test_string": cty.StringVal("bar"),
+				}),
+			}
+			node := NodeValidatableResource{
+				NodeAbstractResource: &NodeAbstractResource{
+					Addr:             mustConfigResourceAddr("test_foo.bar"),
+					Config:           rc,
+					ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				},
+			}
+
+			diags := node.validateResource(ctx)
+			if diags.HasErrors() {
+				t.Fatalf("err: %s", diags.Err())
+			}
+
+			if !mp.ValidateResourceTypeConfigCalled {
+				t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+			}
+		})
 	}
 }
 
