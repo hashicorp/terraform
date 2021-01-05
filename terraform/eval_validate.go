@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
@@ -477,69 +476,16 @@ func (n *EvalValidateResource) Validate(ctx EvalContext) error {
 	}
 }
 
-func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) tfdiags.Diagnostics {
-	if expr == nil {
-		return nil
-	}
-
-	var diags tfdiags.Diagnostics
-
-	countVal, countDiags := ctx.EvaluateExpr(expr, cty.Number, nil)
-	diags = diags.Append(countDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	if countVal.IsNull() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count argument",
-			Detail:   `The given "count" argument value is null. An integer is required.`,
-			Subject:  expr.Range().Ptr(),
-		})
-		return diags
-	}
-
-	var err error
-	countVal, err = convert.Convert(countVal, cty.Number)
-	if err != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count argument",
-			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
-			Subject:  expr.Range().Ptr(),
-		})
-		return diags
-	}
-
+func (n *EvalValidateResource) validateCount(ctx EvalContext, expr hcl.Expression) (diags tfdiags.Diagnostics) {
+	val, countDiags := evaluateCountExpressionValue(expr, ctx)
 	// If the value isn't known then that's the best we can do for now, but
-	// we'll check more thoroughly during the plan walk.
-	if !countVal.IsKnown() {
+	// we'll check more thoroughly during the plan walk
+	if !val.IsKnown() {
 		return diags
 	}
 
-	// If we _do_ know the value, then we can do a few more checks here.
-	var count int
-	err = gocty.FromCtyValue(countVal, &count)
-	if err != nil {
-		// Isn't a whole number, etc.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count argument",
-			Detail:   fmt.Sprintf(`The given "count" argument value is unsuitable: %s.`, err),
-			Subject:  expr.Range().Ptr(),
-		})
-		return diags
-	}
-
-	if count < 0 {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count argument",
-			Detail:   `The given "count" argument value is unsuitable: count cannot be negative.`,
-			Subject:  expr.Range().Ptr(),
-		})
-		return diags
+	if countDiags.HasErrors() {
+		diags = diags.Append(countDiags)
 	}
 
 	return diags
