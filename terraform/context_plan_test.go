@@ -6725,3 +6725,23 @@ resource "test_resource" "foo" {
 		}
 	}
 }
+
+func TestContext2Plan_variableCustomValidationsSensitive(t *testing.T) {
+	m := testModule(t, "validate-variable-custom-validations-child-sensitive")
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), `Invalid value for variable: Value must not be "nope".`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	}
+}
