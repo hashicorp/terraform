@@ -556,18 +556,20 @@ func TestRemote_StateMgr_versionCheckLatest(t *testing.T) {
 
 func TestRemote_VerifyWorkspaceTerraformVersion(t *testing.T) {
 	testCases := []struct {
-		local   string
-		remote  string
-		wantErr bool
+		local      string
+		remote     string
+		operations bool
+		wantErr    bool
 	}{
-		{"0.13.5", "0.13.5", false},
-		{"0.14.0", "0.13.5", true},
-		{"0.14.0", "0.14.1", false},
-		{"0.14.0", "1.0.99", false},
-		{"0.14.0", "1.1.0", true},
-		{"1.2.0", "1.2.99", false},
-		{"1.2.0", "1.3.0", true},
-		{"0.15.0", "latest", false},
+		{"0.13.5", "0.13.5", true, false},
+		{"0.14.0", "0.13.5", true, true},
+		{"0.14.0", "0.13.5", false, false},
+		{"0.14.0", "0.14.1", true, false},
+		{"0.14.0", "1.0.99", true, false},
+		{"0.14.0", "1.1.0", true, true},
+		{"1.2.0", "1.2.99", true, false},
+		{"1.2.0", "1.3.0", true, true},
+		{"0.15.0", "latest", true, false},
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("local %s, remote %s", tc.local, tc.remote), func(t *testing.T) {
@@ -598,6 +600,7 @@ func TestRemote_VerifyWorkspaceTerraformVersion(t *testing.T) {
 				b.organization,
 				b.workspace,
 				tfe.WorkspaceUpdateOptions{
+					Operations:       tfe.Bool(tc.operations),
 					TerraformVersion: tfe.String(tc.remote),
 				},
 			); err != nil {
