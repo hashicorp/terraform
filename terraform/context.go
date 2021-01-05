@@ -530,6 +530,20 @@ The -target option is not for routine use, and is provided only for exceptional 
 		))
 	}
 
+	var plan *plans.Plan
+	var planDiags tfdiags.Diagnostics
+	switch {
+	case c.destroy:
+		plan, planDiags = c.destroyPlan()
+	default:
+		plan, planDiags = c.plan()
+	}
+	diags = diags.Append(planDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(c.variables))
 	for k, iv := range c.variables {
 		// We use cty.DynamicPseudoType here so that we'll save both the
@@ -547,29 +561,22 @@ The -target option is not for routine use, and is provided only for exceptional 
 		varVals[k] = dv
 	}
 
-	plan := &plans.Plan{
-		VariableValues:  varVals,
-		TargetAddrs:     c.targets,
-		ProviderSHA256s: c.providerSHA256s,
-	}
-
-	switch {
-	case c.destroy:
-		diags = diags.Append(c.destroyPlan(plan))
-	default:
-		diags = diags.Append(c.plan(plan))
-	}
+	// insert the run-specific data from the context into the plan; variables,
+	// targets and provider SHAs.
+	plan.VariableValues = varVals
+	plan.TargetAddrs = c.targets
+	plan.ProviderSHA256s = c.providerSHA256s
 
 	return plan, diags
 }
 
-func (c *Context) plan(plan *plans.Plan) tfdiags.Diagnostics {
+func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	// Do the walk
@@ -577,9 +584,11 @@ func (c *Context) plan(plan *plans.Plan) tfdiags.Diagnostics {
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		return diags
+		return nil, diags
 	}
-	plan.Changes = c.changes
+	plan := &plans.Plan{
+		Changes: c.changes,
+	}
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
@@ -590,11 +599,12 @@ func (c *Context) plan(plan *plans.Plan) tfdiags.Diagnostics {
 	// to Apply work as expected.
 	c.state = refreshedState
 
-	return diags
+	return plan, diags
 }
 
-func (c *Context) destroyPlan(destroyPlan *plans.Plan) tfdiags.Diagnostics {
+func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	destroyPlan := &plans.Plan{}
 	c.changes = plans.NewChanges()
 
 	// A destroy plan starts by running Refresh to read any pending data
@@ -602,17 +612,10 @@ func (c *Context) destroyPlan(destroyPlan *plans.Plan) tfdiags.Diagnostics {
 	// a "destroy plan" is only creating delete changes, and is essentially a
 	// local operation.
 	if !c.skipRefresh {
-		refreshPlan := &plans.Plan{
-			VariableValues:  destroyPlan.VariableValues,
-			TargetAddrs:     c.targets,
-			ProviderSHA256s: c.providerSHA256s,
-		}
-
-		refreshDiags := c.plan(refreshPlan)
-
+		refreshPlan, refreshDiags := c.plan()
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
-			return diags
+			return nil, diags
 		}
 
 		// insert the refreshed state into the destroy plan result, and discard
@@ -624,7 +627,7 @@ func (c *Context) destroyPlan(destroyPlan *plans.Plan) tfdiags.Diagnostics {
 	graph, graphDiags := c.Graph(GraphTypePlanDestroy, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	// Do the walk
@@ -632,11 +635,11 @@ func (c *Context) destroyPlan(destroyPlan *plans.Plan) tfdiags.Diagnostics {
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		return diags
+		return nil, diags
 	}
 
 	destroyPlan.Changes = c.changes
-	return diags
+	return destroyPlan, diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them
