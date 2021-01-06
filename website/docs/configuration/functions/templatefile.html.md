@@ -78,7 +78,7 @@ The `templatefile` function renders the template:
 
 ```
 > templatefile(
-               "${path.module}/backends.tmpl",
+               "${path.module}/config.tmpl",
                {
                  config = {
                    "x"   = "y"
