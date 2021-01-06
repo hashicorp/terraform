@@ -233,7 +233,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, state, planDiags := n.plan(ctx, diff, state, false)
+	diffApply, _, planDiags := n.plan(ctx, diff, state, false)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -265,7 +265,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	var applyError error
-	state, applyError, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy(), applyError)
+	state, applyDiags, applyError := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy(), applyError)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
@@ -283,7 +283,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
-	applyError, applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate, applyError)
+	applyProvisionersDiags, applyError := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate, applyError)
 	diags = diags.Append(applyProvisionersDiags)
 	if diags.HasErrors() {
 		return diags

@@ -1536,33 +1536,33 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 // evalApplyProvisioners determines if provisioners need to be run, and if so
 // executes the provisioners for a resource and returns an updated error if
 // provisioning fails.
-func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen, applyErr error) (error, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen, applyErr error) (tfdiags.Diagnostics, error) {
 	var diags tfdiags.Diagnostics
 
 	if state == nil {
 		log.Printf("[TRACE] evalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
-		return applyErr, nil
+		return nil, applyErr
 	}
 	if applyErr != nil {
 		// We're already tainted, so just return out
-		return applyErr, nil
+		return nil, applyErr
 	}
 	if when == configs.ProvisionerWhenCreate && !createNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
-		return applyErr, nil
+		return nil, applyErr
 	}
 	if state.Status == states.ObjectTainted {
 		// No point in provisioning an object that is already tainted, since
 		// it's going to get recreated on the next apply anyway.
 		log.Printf("[TRACE] evalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return applyErr, nil
+		return nil, applyErr
 	}
 
 	provs := filterProvisioners(n.Config, when)
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
-		return applyErr, nil
+		return nil, applyErr
 	}
 
 	// Call pre hook
@@ -1570,7 +1570,7 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return h.PreProvisionInstance(n.Addr, state.Value)
 	}))
 	if diags.HasErrors() {
-		return applyErr, diags
+		return diags, applyErr
 	}
 
 	// If there are no errors, then we append it to our output error
@@ -1579,14 +1579,14 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 	if err != nil {
 		applyErr = multierror.Append(applyErr, err)
 		log.Printf("[TRACE] evalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", n.Addr)
-		return applyErr, nil
+		return nil, applyErr
 	}
 
 	// Call post hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostProvisionInstance(n.Addr, state.Value)
 	}))
-	return applyErr, diags
+	return diags, applyErr
 }
 
 // filterProvisioners filters the provisioners on the resource to only
@@ -1808,7 +1808,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
 	createBeforeDestroy bool,
-	applyError error) (*states.ResourceInstanceObject, error, tfdiags.Diagnostics) {
+	applyError error) (*states.ResourceInstanceObject, tfdiags.Diagnostics, error) {
 
 	var diags tfdiags.Diagnostics
 	if state == nil {
@@ -1817,13 +1817,13 @@ func (n *NodeAbstractResourceInstance) apply(
 	var newState *states.ResourceInstanceObject
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return newState, applyError, diags.Append(err)
+		return newState, diags.Append(err), applyError
 	}
 	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return newState, applyError, diags
+		return newState, diags, applyError
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -1836,7 +1836,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return newState, applyError, diags
+			return newState, diags, applyError
 		}
 	}
 
@@ -1845,13 +1845,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			n.Addr,
 		))
-		return newState, applyError, diags
+		return newState, diags, applyError
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return newState, applyError, diags
+		return newState, diags, applyError
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -1879,7 +1879,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Status:              state.Status,
 			Value:               change.After,
 		}
-		return newState, applyError, diags
+		return newState, diags, applyError
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
@@ -1948,7 +1948,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return newState, applyError, diags
+		return newState, diags, applyError
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -2099,8 +2099,8 @@ func (n *NodeAbstractResourceInstance) apply(
 		// At this point, if we have an error in diags (and hadn't already returned), we return it as an error and clear the diags.
 		applyError = diags.Err()
 		log.Printf("[DEBUG] %s: apply errored", n.Addr)
-		return newState, applyError, nil
+		return newState, nil, applyError
 	}
 
-	return newState, applyError, diags
+	return newState, diags, applyError
 }
