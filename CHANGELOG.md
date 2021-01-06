@@ -9,6 +9,7 @@ BUG FIXES:
 * backend/remote: Disable remote Terraform workspace version check when the remote workspace is in local operations mode ([GH-27407])
 * core: Fix panic when using `sensitive` values as arguments to data sources ([GH-27335])
 * core: Fix panic when using `sensitive` values as `count` arguments on validate ([GH-27410])
+* core: Fix panic when passing `sensitive` values to module input variables which have custom variable validation ([GH-27412])
 
 ## 0.14.3 (December 17, 2020)
 
