@@ -1,12 +1,12 @@
-## 0.13.6 (Unreleased)
+## 0.13.6 (January 06, 2021)
 
 UPGRADE NOTES:
 
-* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.13.6 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. [GH-26692]
+* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.13.6 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. ([#26692](https://github.com/hashicorp/terraform/issues/26692))
 
 BUG FIXES:
 
-* init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks [GH-27092]
+* init: setting `-get-plugins` to `false` will now cause a warning, as this flag has been a no-op since 0.13.0 and usage is better served through using `provider_installation` blocks ([#27092](https://github.com/hashicorp/terraform/issues/27092))
 
 
 ## 0.13.5 (October 21, 2020)
