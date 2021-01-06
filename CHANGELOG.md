@@ -1,16 +1,16 @@
-## 0.14.4 (Unreleased)
+## 0.14.4 (January 06, 2021)
 
 UPGRADE NOTES:
 
-* This release disables the remote Terraform version check feature for plan and apply operations. This fixes an issue with using custom Terraform version bundles in Terraform Enterprise. [GH-27319]
+* This release disables the remote Terraform version check feature for plan and apply operations. This fixes an issue with using custom Terraform version bundles in Terraform Enterprise. ([#27319](https://github.com/hashicorp/terraform/issues/27319))
 
 BUG FIXES:
 
-* backend/remote: Disable remote Terraform workspace version check when the remote workspace is in local operations mode ([GH-27407])
-* core: Fix panic when using `sensitive` values as arguments to data sources ([GH-27335])
-* core: Fix panic when using `sensitive` values as `count` arguments on validate ([GH-27410])
-* core: Fix panic when passing `sensitive` values to module input variables which have custom variable validation ([GH-27412])
-* dependencies: Upgrade HCL to v2.8.2, fixing several bugs with `sensitive` values ([GH-27420])
+* backend/remote: Disable remote Terraform workspace version check when the remote workspace is in local operations mode ([[#27407](https://github.com/hashicorp/terraform/issues/27407)])
+* core: Fix panic when using `sensitive` values as arguments to data sources ([[#27335](https://github.com/hashicorp/terraform/issues/27335)])
+* core: Fix panic when using `sensitive` values as `count` arguments on validate ([[#27410](https://github.com/hashicorp/terraform/issues/27410)])
+* core: Fix panic when passing `sensitive` values to module input variables which have custom variable validation ([[#27412](https://github.com/hashicorp/terraform/issues/27412)])
+* dependencies: Upgrade HCL to v2.8.2, fixing several bugs with `sensitive` values ([[#27420](https://github.com/hashicorp/terraform/issues/27420)])
 
 ## 0.14.3 (December 17, 2020)
 
