@@ -1,8 +1,8 @@
-## 0.12.30 (Unreleased)
+## 0.12.30 (January 06, 2021)
 
 UPGRADE NOTES:
 
-* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.12.30 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. [GH-26692]
+* The builtin provider's `terraform_remote_state` data source no longer enforces Terraform version checks on the remote state file. This allows Terraform 0.12.30 to access remote state from future Terraform versions, up until a future incompatible state file version upgrade is required. ([#26692](https://github.com/hashicorp/terraform/issues/26692))
 
 ## 0.12.29 (July 22, 2020)
 
