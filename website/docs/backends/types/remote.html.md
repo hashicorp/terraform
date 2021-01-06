@@ -28,7 +28,7 @@ Currently the remote backend supports the following Terraform commands:
 
 - `apply`
 - `console` (supported in Terraform >= v0.11.12)
-- `destroy` (requires manually setting `CONFIRM_DESTROY=1` on the workspace)
+- `destroy`
 - `fmt`
 - `get`
 - `graph` (supported in Terraform >= v0.11.12)
