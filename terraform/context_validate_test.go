@@ -595,8 +595,8 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
-	m := testModule(t, "validate-bad-pc-empty")
+func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
+	m := testModule(t, "validate-skipped-pc-empty")
 	p := testProvider("aws")
 	p.GetSchemaReturn = &ProviderSchema{
 		Provider: &configschema.Block{
@@ -619,12 +619,12 @@ func TestContext2Validate_providerConfig_badEmpty(t *testing.T) {
 	})
 
 	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
-		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
+		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
 	diags := c.Validate()
-	if !diags.HasErrors() {
-		t.Fatalf("succeeded; want error")
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 }
 

@@ -48,6 +48,14 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())
 
+	// if a provider config is empty (only an alias), return early and don't continue
+	// validation. validate doesn't need to fully configure the provider itself, so
+	// skipping a provider with an implied configuration won't prevent other validation from completing.
+	_, noConfigDiags := configBody.Content(&hcl.BodySchema{})
+	if !noConfigDiags.HasErrors() {
+		return nil
+	}
+
 	resp := provider.GetSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -64,19 +72,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 
 	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	if evalDiags.HasErrors() {
-		if n.Config == nil {
-			// If there isn't an explicit "provider" block in the configuration,
-			// this error message won't be very clear. Add some detail to the
-			// error message in this case.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider configuration",
-				fmt.Sprintf(providerConfigErr, evalDiags.Err(), n.Addr.Provider),
-			))
-			return diags
-		} else {
-			return diags.Append(evalDiags)
-		}
+		return diags.Append(evalDiags)
 	}
 	diags = diags.Append(evalDiags)
 

@@ -196,6 +196,40 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	}
 }
 
+func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
+	config := &configs.Provider{
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	})
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("foo"),
+	}
+
+	n := &NodeApplyableProvider{&NodeAbstractProvider{
+		Addr:   providerAddr,
+		Config: config,
+	}}
+
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
+	if err := n.Execute(ctx, walkValidate); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if ctx.ConfigureProviderCalled {
+		t.Fatal("should not be called")
+	}
+}
+
 func TestNodeApplyableProvider_Validate(t *testing.T) {
 	provider := &MockProvider{
 		GetSchemaReturn: &ProviderSchema{
@@ -233,7 +267,28 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("missing required config", func(t *testing.T) {
+	t.Run("invalid", func(t *testing.T) {
+		config := &configs.Provider{
+			Name: "test",
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"region": cty.MapValEmpty(cty.String),
+			}),
+		}
+
+		node := NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Config: config,
+			},
+		}
+
+		diags := node.ValidateProvider(ctx, provider)
+		if !diags.HasErrors() {
+			t.Error("missing expected error with invalid config")
+		}
+	})
+
+	t.Run("empty config", func(t *testing.T) {
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
 				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -241,8 +296,8 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 		}
 
 		diags := node.ValidateProvider(ctx, provider)
-		if !diags.HasErrors() {
-			t.Error("missing expected error with invalid config")
+		if diags.HasErrors() {
+			t.Errorf("unexpected error with empty config: %s", diags.Err())
 		}
 	})
 }
