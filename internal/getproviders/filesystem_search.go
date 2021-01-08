@@ -118,7 +118,8 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		// filesystem object below.
 		info, err = os.Stat(fullPath)
 		if err != nil {
-			return fmt.Errorf("failed to read metadata about %s: %s", fullPath, err)
+			log.Printf("[WARN] failed to read metadata about %s: %s", fullPath, err)
+			return nil
 		}
 
 		switch len(parts) {
