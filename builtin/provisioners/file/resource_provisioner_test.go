@@ -95,3 +95,10 @@ func TestResourceProvider_Validate_bad_to_many_src(t *testing.T) {
 		t.Fatal("Should have errors")
 	}
 }
+
+// Validate that Stop can Close can be called even when not provisioning.
+func TestResourceProvisioner_StopClose(t *testing.T) {
+	p := New()
+	p.Stop()
+	p.Close()
+}
