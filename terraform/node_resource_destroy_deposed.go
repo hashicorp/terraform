@@ -174,7 +174,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyError, applyDiags := n.apply(ctx, state, change, nil, false, applyError)
+	state, applyDiags, applyError := n.apply(ctx, state, change, nil, false, applyError)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags

@@ -255,8 +255,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	cpm := make(map[string]*graphNodeCloseProvider)
 	var err error
 
-	for _, v := range pm {
-		p := v.(GraphNodeProvider)
+	for _, p := range pm {
 		key := p.ProviderAddr().String()
 
 		// get the close provider of this type if we alread created it

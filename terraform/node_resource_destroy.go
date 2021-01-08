@@ -175,7 +175,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// Run destroy provisioners if not tainted
 	if state != nil && state.Status != states.ObjectTainted {
 		var applyProvisionersDiags tfdiags.Diagnostics
-		provisionerErr, applyProvisionersDiags = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
+		applyProvisionersDiags, provisionerErr = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
 		diags = diags.Append(applyProvisionersDiags)
 		if diags.HasErrors() {
 			return diags
@@ -195,7 +195,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 		var applyDiags tfdiags.Diagnostics
 		// we pass a nil configuration to apply because we are destroying
-		state, provisionerErr, applyDiags = n.apply(ctx, state, changeApply, nil, false, provisionerErr)
+		state, applyDiags, provisionerErr = n.apply(ctx, state, changeApply, nil, false, provisionerErr)
 		diags.Append(applyDiags)
 		if diags.HasErrors() {
 			return diags

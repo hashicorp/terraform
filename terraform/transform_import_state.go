@@ -22,13 +22,13 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 
 		// This is only likely to happen in misconfigured tests
 		if t.Config == nil {
-			return fmt.Errorf("Cannot import into an empty configuration.")
+			return fmt.Errorf("cannot import into an empty configuration")
 		}
 
 		// Get the module config
 		modCfg := t.Config.Descendent(target.Addr.Module.Module())
 		if modCfg == nil {
-			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
+			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
 		}
 
 		providerAddr := addrs.AbsProviderConfig{

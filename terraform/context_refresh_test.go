@@ -1094,7 +1094,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 		t.Fatal("successfully created context; want error")
 	}
 
-	if !regexp.MustCompile(`Failed to instantiate provider ".+"`).MatchString(diags.Err().Error()) {
+	if !regexp.MustCompile(`failed to instantiate provider ".+"`).MatchString(diags.Err().Error()) {
 		t.Fatalf("wrong error: %s", diags.Err())
 	}
 }
