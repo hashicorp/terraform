@@ -1821,16 +1821,16 @@ func (n *NodeAbstractResourceInstance) apply(
 	if state == nil {
 		state = &states.ResourceInstanceObject{}
 	}
-	var newState *states.ResourceInstanceObject
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return newState, diags.Append(err), applyError
+		return nil, diags.Append(err), applyError
 	}
 	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return newState, diags, applyError
+		return nil, diags, applyError
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -1843,7 +1843,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return newState, diags, applyError
+			return nil, diags, applyError
 		}
 	}
 
@@ -1852,13 +1852,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			n.Addr,
 		))
-		return newState, diags, applyError
+		return nil, diags, applyError
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return newState, diags, applyError
+		return nil, diags, applyError
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -1870,6 +1870,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	unmarkedBefore, beforePaths := change.Before.UnmarkDeepWithPaths()
 	unmarkedAfter, afterPaths := change.After.UnmarkDeepWithPaths()
 
+	var newState *states.ResourceInstanceObject
 	// If we have an Update action, our before and after values are equal,
 	// and only differ on their sensitivity, the newVal is the after val
 	// and we should not communicate with the provider. We do need to update
@@ -2071,8 +2072,6 @@ func (n *NodeAbstractResourceInstance) apply(
 		}
 	}
 
-	newStatus := states.ObjectReady
-
 	// Sometimes providers return a null value when an operation fails for some
 	// reason, but we'd rather keep the prior state so that the error can be
 	// corrected on a subsequent run. We must only do this for null new value
@@ -2084,18 +2083,12 @@ func (n *NodeAbstractResourceInstance) apply(
 		// deleted then our next refresh will detect that and fix it up.
 		// If change.Action is Create then change.Before will also be null,
 		// which is fine.
-		newVal = change.Before
-
-		// If we're recovering the previous state, we also want to restore the
-		// the tainted status of the object.
-		if state.Status == states.ObjectTainted {
-			newStatus = states.ObjectTainted
-		}
+		newState = state.DeepCopy()
 	}
 
 	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
 		newState = &states.ResourceInstanceObject{
-			Status:              newStatus,
+			Status:              states.ObjectReady,
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
