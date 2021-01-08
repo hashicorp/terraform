@@ -905,7 +905,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if workspace.Operations == false {
+	if !workspace.Operations {
 		return nil
 	}
 

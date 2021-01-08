@@ -121,7 +121,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 			}
 		}
 
-		if found == false && !allowMissing {
+		if !found && !allowMissing {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unknown module",
