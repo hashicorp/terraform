@@ -10,6 +10,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 var LengthFunc = function.New(&function.Spec{
@@ -381,6 +382,83 @@ var MatchkeysFunc = function.New(&function.Spec{
 	},
 })
 
+// OneFunc returns either the first element of a one-element list, or null
+// if given a zero-element list.
+var OneFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "list",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		ty := args[0].Type()
+		switch {
+		case ty.IsListType() || ty.IsSetType():
+			return ty.ElementType(), nil
+		case ty.IsTupleType():
+			etys := ty.TupleElementTypes()
+			switch len(etys) {
+			case 0:
+				// No specific type information, so we'll ultimately return
+				// a null value of unknown type.
+				return cty.DynamicPseudoType, nil
+			case 1:
+				return etys[0], nil
+			}
+		}
+		return cty.NilType, function.NewArgErrorf(0, "must be a list, set, or tuple value with either zero or one elements")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		val := args[0]
+		ty := val.Type()
+
+		// Our parameter spec above doesn't set AllowUnknown or AllowNull,
+		// so we can assume our top-level collection is both known and non-null
+		// in here.
+
+		switch {
+		case ty.IsListType() || ty.IsSetType():
+			lenVal := val.Length()
+			if !lenVal.IsKnown() {
+				return cty.UnknownVal(retType), nil
+			}
+			var l int
+			err := gocty.FromCtyValue(lenVal, &l)
+			if err != nil {
+				// It would be very strange to get here, because that would
+				// suggest that the length is either not a number or isn't
+				// an integer, which would suggest a bug in cty.
+				return cty.NilVal, fmt.Errorf("invalid collection length: %s", err)
+			}
+			switch l {
+			case 0:
+				return cty.NullVal(retType), nil
+			case 1:
+				var ret cty.Value
+				// We'll use an iterator here because that works for both lists
+				// and sets, whereas indexing directly would only work for lists.
+				// Since we've just checked the length, we should only actually
+				// run this loop body once.
+				for it := val.ElementIterator(); it.Next(); {
+					_, ret = it.Element()
+				}
+				return ret, nil
+			}
+		case ty.IsTupleType():
+			etys := ty.TupleElementTypes()
+			switch len(etys) {
+			case 0:
+				return cty.NullVal(retType), nil
+			case 1:
+				ret := val.Index(cty.NumberIntVal(0))
+				return ret, nil
+			}
+		}
+		return cty.NilVal, function.NewArgErrorf(0, "must be a list, set, or tuple value with either zero or one elements")
+	},
+})
+
 // SumFunc constructs a function that returns the sum of all
 // numbers provided in a list
 var SumFunc = function.New(&function.Spec{
@@ -593,6 +671,12 @@ func Map(args ...cty.Value) (cty.Value, error) {
 // whose indexes match the corresponding indexes of values in another list.
 func Matchkeys(values, keys, searchset cty.Value) (cty.Value, error) {
 	return MatchkeysFunc.Call([]cty.Value{values, keys, searchset})
+}
+
+// One returns either the first element of a one-element list, or null
+// if given a zero-element list..
+func One(list cty.Value) (cty.Value, error) {
+	return OneFunc.Call([]cty.Value{list})
 }
 
 // Sum adds numbers in a list, set, or tuple
