@@ -93,6 +93,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"md5":              funcs.Md5Func,
 			"merge":            stdlib.MergeFunc,
 			"min":              stdlib.MinFunc,
+			"one":              funcs.OneFunc,
 			"parseint":         stdlib.ParseIntFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              stdlib.PowFunc,
