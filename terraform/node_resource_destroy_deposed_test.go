@@ -26,7 +26,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	)
 
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
@@ -86,7 +86,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 	)
 
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),

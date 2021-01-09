@@ -1418,7 +1418,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("yo"),
 			"foo": cty.NullVal(cty.String),
@@ -10402,13 +10402,12 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 		},
 	}
 	rrcPMs := map[string]cty.Value{}
-	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 		rrcPMs[req.TypeName] = req.ProviderMeta
-		newState, err := p.GetSchemaReturn.ResourceTypes[req.TypeName].CoerceValue(p.ReadResourceResponse.NewState)
+		newState, err := p.GetSchemaReturn.ResourceTypes[req.TypeName].CoerceValue(req.PriorState)
 		if err != nil {
 			panic(err)
 		}
-		resp := p.ReadResourceResponse
 		resp.NewState = newState
 		return resp
 	}
@@ -10792,7 +10791,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("yo"),
 			"foo": cty.StringVal("bar"),
@@ -10848,7 +10847,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("yo"),
 			"foo": cty.StringVal("bar"),
@@ -11497,7 +11496,7 @@ output "output" {
 	nullP.ApplyResourceChangeFn = testApplyFn
 	nullP.PlanResourceChangeFn = testDiffFn
 
-	nullP.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	nullP.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":     cty.StringVal("ID"),
 			"output": cty.StringVal("valid"),

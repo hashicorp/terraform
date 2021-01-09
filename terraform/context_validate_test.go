@@ -398,7 +398,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 		},
 	})
 
-	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -582,7 +582,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
+	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -618,7 +618,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
+	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
@@ -714,7 +714,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = providers.PrepareProviderConfigResponse{
+	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -878,7 +878,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -1877,7 +1877,7 @@ resource "test_instance" "a" {
 		},
 	}
 
-	p.ValidateResourceTypeConfigResponse = providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
 		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
 	}
 

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
@@ -26,30 +25,30 @@ type MockProvider struct {
 	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
 
 	PrepareProviderConfigCalled   bool
-	PrepareProviderConfigResponse providers.PrepareProviderConfigResponse
+	PrepareProviderConfigResponse *providers.PrepareProviderConfigResponse
 	PrepareProviderConfigRequest  providers.PrepareProviderConfigRequest
 	PrepareProviderConfigFn       func(providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse
 
 	ValidateResourceTypeConfigCalled   bool
 	ValidateResourceTypeConfigTypeName string
-	ValidateResourceTypeConfigResponse providers.ValidateResourceTypeConfigResponse
+	ValidateResourceTypeConfigResponse *providers.ValidateResourceTypeConfigResponse
 	ValidateResourceTypeConfigRequest  providers.ValidateResourceTypeConfigRequest
 	ValidateResourceTypeConfigFn       func(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse
 
 	ValidateDataSourceConfigCalled   bool
 	ValidateDataSourceConfigTypeName string
-	ValidateDataSourceConfigResponse providers.ValidateDataSourceConfigResponse
+	ValidateDataSourceConfigResponse *providers.ValidateDataSourceConfigResponse
 	ValidateDataSourceConfigRequest  providers.ValidateDataSourceConfigRequest
 	ValidateDataSourceConfigFn       func(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
-	UpgradeResourceStateResponse providers.UpgradeResourceStateResponse
+	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
 
 	ConfigureCalled   bool
-	ConfigureResponse providers.ConfigureResponse
+	ConfigureResponse *providers.ConfigureResponse
 	ConfigureRequest  providers.ConfigureRequest
 	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
 
@@ -58,27 +57,27 @@ type MockProvider struct {
 	StopResponse error
 
 	ReadResourceCalled   bool
-	ReadResourceResponse providers.ReadResourceResponse
+	ReadResourceResponse *providers.ReadResourceResponse
 	ReadResourceRequest  providers.ReadResourceRequest
 	ReadResourceFn       func(providers.ReadResourceRequest) providers.ReadResourceResponse
 
 	PlanResourceChangeCalled   bool
-	PlanResourceChangeResponse providers.PlanResourceChangeResponse
+	PlanResourceChangeResponse *providers.PlanResourceChangeResponse
 	PlanResourceChangeRequest  providers.PlanResourceChangeRequest
 	PlanResourceChangeFn       func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
 
 	ApplyResourceChangeCalled   bool
-	ApplyResourceChangeResponse providers.ApplyResourceChangeResponse
+	ApplyResourceChangeResponse *providers.ApplyResourceChangeResponse
 	ApplyResourceChangeRequest  providers.ApplyResourceChangeRequest
 	ApplyResourceChangeFn       func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 
 	ImportResourceStateCalled   bool
-	ImportResourceStateResponse providers.ImportResourceStateResponse
+	ImportResourceStateResponse *providers.ImportResourceStateResponse
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
 
 	ReadDataSourceCalled   bool
-	ReadDataSourceResponse providers.ReadDataSourceResponse
+	ReadDataSourceResponse *providers.ReadDataSourceResponse
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
@@ -140,7 +139,7 @@ func (p *MockProvider) getDatasourceSchema(name string) providers.Schema {
 	return dataSchema
 }
 
-func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -149,8 +148,13 @@ func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 	if p.PrepareProviderConfigFn != nil {
 		return p.PrepareProviderConfigFn(r)
 	}
-	p.PrepareProviderConfigResponse.PreparedConfig = r.Config
-	return p.PrepareProviderConfigResponse
+
+	if p.PrepareProviderConfigResponse != nil {
+		return *p.PrepareProviderConfigResponse
+	}
+
+	resp.PreparedConfig = r.Config
+	return resp
 }
 
 func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
@@ -173,7 +177,11 @@ func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 		return p.ValidateResourceTypeConfigFn(r)
 	}
 
-	return p.ValidateResourceTypeConfigResponse
+	if p.ValidateResourceTypeConfigResponse != nil {
+		return *p.ValidateResourceTypeConfigResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
@@ -195,10 +203,14 @@ func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 		return p.ValidateDataSourceConfigFn(r)
 	}
 
-	return p.ValidateDataSourceConfigResponse
+	if p.ValidateDataSourceConfigResponse != nil {
+		return *p.ValidateDataSourceConfigResponse
+	}
+
+	return resp
 }
 
-func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -213,31 +225,32 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return p.UpgradeResourceStateFn(r)
 	}
 
-	resp := p.UpgradeResourceStateResponse
-
-	if resp.UpgradedState == cty.NilVal {
-		switch {
-		case r.RawStateFlatmap != nil:
-			v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(err)
-				return resp
-			}
-			resp.UpgradedState = v
-		case len(r.RawStateJSON) > 0:
-			v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
-
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(err)
-				return resp
-			}
-			resp.UpgradedState = v
-		}
+	if p.UpgradeResourceStateResponse != nil {
+		return *p.UpgradeResourceStateResponse
 	}
+
+	switch {
+	case r.RawStateFlatmap != nil:
+		v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.UpgradedState = v
+	case len(r.RawStateJSON) > 0:
+		v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
+
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.UpgradedState = v
+	}
+
 	return resp
 }
 
-func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.ConfigureResponse {
+func (p *MockProvider) Configure(r providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -248,7 +261,11 @@ func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.Configu
 		return p.ConfigureFn(r)
 	}
 
-	return p.ConfigureResponse
+	if p.ConfigureResponse != nil {
+		return *p.ConfigureResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) Stop() error {
@@ -265,7 +282,7 @@ func (p *MockProvider) Stop() error {
 	return p.StopResponse
 }
 
-func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -276,24 +293,25 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.R
 		return p.ReadResourceFn(r)
 	}
 
-	resp := p.ReadResourceResponse
-	if resp.NewState != cty.NilVal {
-		// make sure the NewState fits the schema
-		// This isn't always the case for the existing tests
+	if p.ReadResourceResponse != nil {
+		resp = *p.ReadResourceResponse
+
+		// Make sure the NewState conforms to the schema.
+		// This isn't always the case for the existing tests.
 		newState, err := p.GetSchemaReturn.ResourceTypes[r.TypeName].CoerceValue(resp.NewState)
 		if err != nil {
-			panic(err)
+			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
 		return resp
 	}
 
-	// just return the same state we received
+	// otherwise just return the same state we received
 	resp.NewState = r.PriorState
 	return resp
 }
 
-func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -304,10 +322,14 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return p.PlanResourceChangeFn(r)
 	}
 
-	return p.PlanResourceChangeResponse
+	if p.PlanResourceChangeResponse != nil {
+		return *p.PlanResourceChangeResponse
+	}
+
+	return resp
 }
 
-func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 	p.Lock()
 	p.ApplyResourceChangeCalled = true
 	p.ApplyResourceChangeRequest = r
@@ -317,7 +339,10 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return p.ApplyResourceChangeFn(r)
 	}
 
-	return p.ApplyResourceChangeResponse
+	if p.ApplyResourceChangeResponse != nil {
+		return *p.ApplyResourceChangeResponse
+	}
+	return resp
 }
 
 func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
@@ -330,28 +355,31 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 		return p.ImportResourceStateFn(r)
 	}
 
-	// fixup the cty value to match the schema
-	for i, res := range p.ImportResourceStateResponse.ImportedResources {
-		schema := p.GetSchemaReturn.ResourceTypes[res.TypeName]
-		if schema == nil {
-			resp.Diagnostics = resp.Diagnostics.Append(errors.New("no schema found for " + res.TypeName))
-			return resp
-		}
+	if p.ImportResourceStateResponse != nil {
+		resp = *p.ImportResourceStateResponse
+		// fixup the cty value to match the schema
+		for i, res := range resp.ImportedResources {
+			schema := p.GetSchemaReturn.ResourceTypes[res.TypeName]
+			if schema == nil {
+				resp.Diagnostics = resp.Diagnostics.Append(errors.New("no schema found for " + res.TypeName))
+				return resp
+			}
 
-		var err error
-		res.State, err = schema.CoerceValue(res.State)
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+			var err error
+			res.State, err = schema.CoerceValue(res.State)
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
 
-		p.ImportResourceStateResponse.ImportedResources[i] = res
+			resp.ImportedResources[i] = res
+		}
 	}
 
-	return p.ImportResourceStateResponse
+	return resp
 }
 
-func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -362,7 +390,10 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) provide
 		return p.ReadDataSourceFn(r)
 	}
 
-	return p.ReadDataSourceResponse
+	if p.ReadDataSourceResponse != nil {
+		resp = *p.ReadDataSourceResponse
+	}
+	return resp
 }
 
 func (p *MockProvider) Close() error {

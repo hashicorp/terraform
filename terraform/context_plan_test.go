@@ -1873,7 +1873,7 @@ func TestContext2Plan_computedInFunction(t *testing.T) {
 		},
 	}
 	p.PlanResourceChangeFn = testDiffFn
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"computed": cty.ListVal([]cty.Value{
 				cty.StringVal("foo"),
@@ -2015,7 +2015,7 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	schema := p.GetSchemaReturn.DataSources["aws_data_source"]
 	ty := schema.ImpliedType()
 
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		// This should not be called, because the configuration for the
 		// data resource contains an unknown value for "foo".
 		Diagnostics: tfdiags.Diagnostics(nil).Append(fmt.Errorf("ReadDataSource called, but should not have been")),
@@ -5412,7 +5412,7 @@ output "out" {
 	})
 
 	p := testProvider("aws")
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("data_id"),
 			"foo": cty.StringVal("foo"),
@@ -5459,7 +5459,7 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("data_id"),
 			"foo": cty.StringVal("foo"),
@@ -6114,7 +6114,7 @@ data "test_data_source" "foo" {}
 		},
 	}
 
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("data_id"),
 			"foo": cty.StringVal("foo"),
@@ -6261,7 +6261,7 @@ data "test_data_source" "d" {
 `})
 
 	p := testProvider("test")
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("this"),
 			"foo": cty.NullVal(cty.String),

@@ -49,7 +49,7 @@ func TestContext2Refresh(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readState,
 	}
 	p.PlanResourceChangeFn = testDiffFn
@@ -514,7 +514,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 	})
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
 	}
 	p.PlanResourceChangeFn = testDiffFn
@@ -542,7 +542,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	})
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("foo"),
 		}),
@@ -700,7 +700,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 	})
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("foo"),
 		}),
@@ -785,7 +785,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetSchemaReturn.ResourceTypes["aws_instance"].ImpliedType()),
 	}
 
@@ -841,7 +841,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 
 	p.ReadResourceFn = nil
 	p.PlanResourceChangeFn = testDiffFn
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
 
@@ -1142,7 +1142,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 
 	p.ReadResourceFn = nil
 	p.PlanResourceChangeFn = testDiffFn
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
 
@@ -1333,7 +1333,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 			"test_thing": 5,
 		},
 	}
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"name": cty.StringVal("foo"),
 		}),
@@ -1420,7 +1420,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 			"test_thing": 5,
 		},
 	}
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"name": cty.StringVal("foo"),
 		}),
@@ -1545,7 +1545,7 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 		},
 	}
 	p.PlanResourceChangeFn = testDiffFn
-	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"compute": cty.StringVal("value"),
 		}),
