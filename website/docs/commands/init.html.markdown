@@ -147,7 +147,8 @@ You can modify `terraform init`'s plugin behavior with the following options:
     -> Note: Since Terraform 0.13, this option has been superseded by the
     [`provider_installation`](./cli-config.html#provider-installation) and
     [`plugin_cache_dir`](./cli-config.html#plugin_cache_dir) settings.
-    It should not be used in Terraform versions 0.13+.
+    It should not be used in Terraform versions 0.13+, and this option
+    was removed in Terraform 0.15.
 - `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
