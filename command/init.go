@@ -36,7 +36,6 @@ func (c *InitCommand) Run(args []string) int {
 	var flagFromModule string
 	var flagBackend, flagGet, flagUpgrade, getPlugins bool
 	var flagPluginPath FlagStringSlice
-	var flagVerifyPlugins bool
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
@@ -52,7 +51,6 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
-	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -936,7 +934,6 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
 		"-upgrade":        completePredictBoolean,
-		"-verify-plugins": completePredictBoolean,
 	}
 }
 
@@ -1005,9 +1002,6 @@ Options:
   -upgrade=false       If installing modules (-get) or plugins, ignore
                        previously-downloaded objects and install the
                        latest version allowed within configured constraints.
-
-  -verify-plugins=true Verify the authenticity and integrity of automatically
-                       downloaded plugins.
 `
 	return strings.TrimSpace(helpText)
 }
