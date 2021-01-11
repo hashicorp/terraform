@@ -1,9 +1,11 @@
 ## 0.15.0 (Unreleased)
 
-UPGRADE NOTES:
+BREAKING CHANGES:
 
 * config: The `list` and `map` functions, both of which were deprecated since Terraform v0.12, are now removed. You can replace uses of these functions with `tolist([...])` and `tomap({...})` respectively. ([#26818](https://github.com/hashicorp/terraform/issues/26818))
 * cli: Interrupting execution will now cause terraform to exit with a non-0 status. ([#26738](https://github.com/hashicorp/terraform/issues/26738))
+* cli: The `-lock` and `lock-timeout` flags have been removed from init [GH-27464]
+* cli: The no-op `-verify-plugins` flag has been removed from init [GH-27461]
 * backend/atlas: the `atlas` backend, which was deprecated since v0.12, has been removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
 * backend/gcs: The `path` config argument, which was deprecated since v0.11, has been removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
 
