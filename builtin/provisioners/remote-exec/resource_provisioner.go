@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -21,13 +20,17 @@ import (
 )
 
 func New() provisioners.Interface {
-	return &provisioner{}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &provisioner{
+		ctx:    ctx,
+		cancel: cancel,
+	}
 }
 
 type provisioner struct {
-	// this stored from the running context, so that Stop() can cancel the
-	// command
-	mu     sync.Mutex
+	// We store a context here tied to the lifetime of the provisioner.
+	// This allows the Stop method to cancel any in-flight requests.
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -82,11 +85,6 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 }
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
-	p.mu.Lock()
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel = cancel
-	p.mu.Unlock()
-
 	comm, err := communicator.New(req.Connection)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -104,7 +102,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	}
 
 	// Copy and execute each script
-	if err := runScripts(ctx, req.UIOutput, comm, scripts); err != nil {
+	if err := runScripts(p.ctx, req.UIOutput, comm, scripts); err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
@@ -113,13 +111,12 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 }
 
 func (p *provisioner) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.cancel()
 	return nil
 }
 
 func (p *provisioner) Close() error {
+	p.cancel()
 	return nil
 }
 
