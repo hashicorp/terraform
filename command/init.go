@@ -47,8 +47,6 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&getPlugins, "get-plugins", true, "no-op flag, use provider_installation blocks to customize provider installation")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
@@ -930,8 +928,6 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-from-module":    completePredictModuleSource,
 		"-get":            completePredictBoolean,
 		"-input":          completePredictBoolean,
-		"-lock":           completePredictBoolean,
-		"-lock-timeout":   complete.PredictAnything,
 		"-no-color":       complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
@@ -987,10 +983,6 @@ Options:
 
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
-
-  -lock=true           Lock the state file when locking is supported.
-
-  -lock-timeout=0s     Duration to retry a state lock.
 
   -no-color            If specified, output won't contain any color.
 
