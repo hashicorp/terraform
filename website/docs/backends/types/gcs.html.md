@@ -67,7 +67,7 @@ credential/authentication file. Make sure that the scope of the VM/Cluster is se
 
 ### Running Terraform outside of Google Cloud
 
-If you are running terraform outside of Google Cloud, generate a service account key and set the `GOOGLE_APPPLICATION_CREDENTIALS` environment variable to
+If you are running terraform outside of Google Cloud, generate a service account key and set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to
 the path of the service account key. Terraform will use that key for authentication.
 
 ### Impersonating Service Accounts
