@@ -231,18 +231,14 @@ func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
 }
 
 func TestNodeApplyableProvider_Validate(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Required: true,
-					},
-				},
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Required: true,
 			},
 		},
-	}
+	})
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 
@@ -307,18 +303,14 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 //TestNodeApplyableProvider_ConfigProvider_config_fn_err for
 //providers.ConfigureRequest responses.
 func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Optional: true,
 			},
 		},
-	}
+	})
 	// For this test, we're returning an error for an optional argument. This
 	// can happen for example if an argument is only conditionally required.
 	provider.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
@@ -393,18 +385,14 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 
 //This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureRequest
 func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Optional: true,
 			},
 		},
-	}
+	})
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 	// For this test, provider.PrepareConfigFn will succeed every time but the
