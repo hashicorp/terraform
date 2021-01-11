@@ -1275,6 +1275,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 }
 
 func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.State) {
+	state = state.DeepCopy()
 	m := testModule(t, "empty")
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
@@ -1371,6 +1372,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 }
 
 func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *states.State) {
+	state = state.DeepCopy()
 	m := testModule(t, "empty")
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
@@ -1451,6 +1453,12 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: req.Config,
+		}
+	}
+
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -1493,6 +1501,8 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	}
 
 	wantHookCalls := []*testHookCall{
+		{"PreDiff", "data.null_data_source.testing"},
+		{"PostDiff", "data.null_data_source.testing"},
 		{"PreDiff", "data.null_data_source.testing"},
 		{"PostDiff", "data.null_data_source.testing"},
 		{"PostStateUpdate", ""},
@@ -9561,6 +9571,18 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	p := testProvider("null")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("new"),
+				"foo": cty.NullVal(cty.String),
+			}),
+		}
+	}
+
+	tp := testProvider("test")
+	tp.ApplyResourceChangeFn = testApplyFn
+	tp.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -9581,13 +9603,38 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	)
 	root.SetResourceInstanceCurrent(
 		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_resource",
+			Name: "a",
+		}.Instance(addrs.IntKey(0)),
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"a"}`),
+			Dependencies: []addrs.ConfigResource{
+				addrs.ConfigResource{
+					Resource: addrs.Resource{
+						Mode: addrs.DataResourceMode,
+						Type: "null_data_source",
+						Name: "d",
+					},
+					Module: addrs.RootModule,
+				},
+			},
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	root.SetResourceInstanceCurrent(
+		addrs.Resource{
 			Mode: addrs.DataResourceMode,
 			Type: "null_data_source",
 			Name: "d",
 		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"data"}`),
+			AttrsJSON: []byte(`{"id":"old"}`),
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("null"),
@@ -9597,15 +9644,14 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 
 	Providers := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(tp),
 	}
 
-	hook := &testHook{}
 	ctx := testContext2(t, &ContextOpts{
 		Config:    m,
 		Providers: Providers,
 		State:     state,
 		Destroy:   true,
-		Hooks:     []Hook{hook},
 	})
 
 	plan, diags := ctx.Plan()
@@ -9625,6 +9671,19 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	ctx, diags = NewContext(ctxOpts)
 	if diags.HasErrors() {
 		t.Fatalf("failed to create context for plan: %s", diags.Err())
+	}
+
+	tp.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		foo := req.Config.GetAttr("foo")
+		if !foo.IsKnown() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown config value foo"))
+			return resp
+		}
+
+		if foo.AsString() != "new" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("wrong config value: %q", foo.AsString()))
+		}
+		return resp
 	}
 
 	_, diags = ctx.Apply()
