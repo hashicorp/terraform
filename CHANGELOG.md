@@ -22,6 +22,7 @@ BUG FIXES:
 * cli: TF_LOG levels other than `trace` will now work correctly ([#26632](https://github.com/hashicorp/terraform/issues/26632))
 * cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` ([#26685](https://github.com/hashicorp/terraform/issues/26685))
 * command/console: expressions using `path` (`path.root`, `path.module`) now return the same result as they would in a configuration ([#27263](https://github.com/hashicorp/terraform/issues/27263))
+* command/show: fix issue with child_modules not properly displaying in certain circumstances [GH-27352]
 * command/state list: fix bug where nested modules' resources were missing from `state list` output ([#27268](https://github.com/hashicorp/terraform/issues/27268))
 * core: validate will now ignore providers without configuration ([#24896](https://github.com/hashicorp/terraform/issues/24896))
 
