@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
@@ -321,6 +322,7 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 
 	// otherwise just return the same state we received
 	resp.NewState = r.PriorState
+	resp.Private = r.Private
 	return resp
 }
 
@@ -345,6 +347,50 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
+	// The default plan behavior is to accept the proposed value, and mark all
+	// nil computed attributes as unknown.
+	val, err := cty.Transform(r.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		// We're only concerned with known null values, which can be computed
+		// by the provider.
+		if !v.IsKnown() {
+			return v, nil
+		}
+
+		attrSchema := schema.Block.AttributeByPath(path)
+		if attrSchema == nil {
+			// this is an intermediate path which does not represent an attribute
+			return v, nil
+		}
+
+		// get the current configuration value, to detect when a
+		// computed+optional attributes has become unset
+		configVal, err := path.Apply(r.Config)
+		if err != nil {
+			return v, err
+		}
+
+		switch {
+		case attrSchema.Computed && !attrSchema.Optional && v.IsNull():
+			// this is the easy path, this value is not yet set, and _must_ be computed
+			return cty.UnknownVal(v.Type()), nil
+
+		case attrSchema.Computed && attrSchema.Optional && !v.IsNull() && configVal.IsNull():
+			// If an optional+computed value has gone from set to unset, it
+			// becomes computed. (this was not possible to do with legacy
+			// providers)
+			return cty.UnknownVal(v.Type()), nil
+		}
+
+		return v, nil
+	})
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.PlannedPrivate = r.PriorPrivate
+	resp.PlannedState = val
+
 	return resp
 }
 
@@ -361,6 +407,51 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	if p.ApplyResourceChangeResponse != nil {
 		return *p.ApplyResourceChangeResponse
 	}
+
+	schema, ok := p.getSchema().ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
+	// if the value is nil, we return that directly to correspond to a delete
+	if r.PlannedState.IsNull() {
+		resp.NewState = cty.NullVal(schema.Block.ImpliedType())
+		return resp
+	}
+
+	val, err := schema.Block.CoerceValue(r.PlannedState)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	// the default behavior will be to create the minimal valid apply value by
+	// setting unknowns (which correspond to computed attributes) to a zero
+	// value.
+	val, _ = cty.Transform(val, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() {
+			ty := v.Type()
+			switch {
+			case ty == cty.String:
+				return cty.StringVal(""), nil
+			case ty == cty.Number:
+				return cty.NumberIntVal(0), nil
+			case ty == cty.Bool:
+				return cty.False, nil
+			case ty.IsMapType():
+				return cty.MapValEmpty(ty.ElementType()), nil
+			case ty.IsListType():
+				return cty.ListValEmpty(ty.ElementType()), nil
+			default:
+				return cty.NullVal(ty), nil
+			}
+		}
+		return v, nil
+	})
+
+	resp.NewState = val
+	resp.Private = r.PlannedPrivate
 
 	return resp
 }

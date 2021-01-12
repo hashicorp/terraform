@@ -85,28 +85,32 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
+	schema := &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	p := testProvider("test")
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(schema)
+
 	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
 	}
 	ctx := &MockEvalContext{
-		StateState:       state.SyncWrapper(),
-		ProviderProvider: p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
-						},
-					},
-				},
-			},
-		},
-		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		StateState:           state.SyncWrapper(),
+		ProviderProvider:     p,
+		ProviderSchemaSchema: schema,
+		ChangesChanges:       plans.NewChanges().SyncWrapper(),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{

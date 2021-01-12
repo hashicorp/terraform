@@ -401,10 +401,6 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 
 func testProvider(prefix string) *MockProvider {
 	p := new(MockProvider)
-	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-		return providers.ReadResourceResponse{NewState: req.PriorState}
-	}
-
 	p.GetSchemaResponse = testProviderSchema(prefix)
 
 	return p
