@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/terminal"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
@@ -48,6 +49,7 @@ var Ui cli.Ui
 
 func initCommands(
 	originalWorkingDir string,
+	streams *terminal.Streams,
 	config *cliconfig.Config,
 	services *disco.Disco,
 	providerSrc getproviders.Source,
