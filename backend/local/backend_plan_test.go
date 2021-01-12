@@ -51,7 +51,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	defer cleanup()
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
-	const msg = `You didn't specify an "-out" parameter`
+	const msg = `You didn't use the -out option`
 
 	// When we're "in automation" we omit certain text from the
 	// plan output. However, testing for the absense of text is
@@ -77,7 +77,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 
 		output := b.CLI.(*cli.MockUi).OutputWriter.String()
 		if !strings.Contains(output, msg) {
-			t.Fatalf("missing next-steps message when not in automation")
+			t.Fatalf("missing next-steps message when not in automation\nwant: %s\noutput:\n%s", msg, output)
 		}
 	}
 
@@ -331,8 +331,8 @@ func TestLocal_planTainted(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
 -/+ destroy and then create replacement
 
 Terraform will perform the following actions:
@@ -433,8 +433,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	// it's also possible for there to be _multiple_ deposed objects, in the
 	// unlikely event that create_before_destroy _keeps_ crashing across
 	// subsequent runs.
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
   + create
   - destroy
 
@@ -507,8 +507,8 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
 +/- create replacement and then destroy
 
 Terraform will perform the following actions:
