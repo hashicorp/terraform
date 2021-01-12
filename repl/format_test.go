@@ -90,8 +90,20 @@ EOT_`,
 			`5`,
 		},
 		{
+			cty.NumberIntVal(1234567890),
+			`1234567890`,
+		},
+		{
 			cty.NumberFloatVal(5.2),
 			`5.2`,
+		},
+		{
+			cty.NumberFloatVal(123456789.0),
+			`123456789`,
+		},
+		{
+			cty.NumberFloatVal(123456789.01),
+			`123456789.01`,
 		},
 		{
 			cty.False,
