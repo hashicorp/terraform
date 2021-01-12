@@ -172,10 +172,10 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
 
 			if len(stmts) > 0 {
-				fmt.Fprint(&buf, color.Color("    [dark_gray]|----------------[reset]\n"))
+				fmt.Fprint(&buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
 			}
 			for _, stmt := range stmts {
-				fmt.Fprintf(&buf, color.Color("    [dark_gray]|[reset] %s\n"), stmt)
+				fmt.Fprintf(&buf, color.Color("    [dark_gray]│[reset] %s\n"), stmt)
 			}
 		}
 
