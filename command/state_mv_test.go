@@ -293,8 +293,9 @@ func TestStateMv_resourceToInstanceErr(t *testing.T) {
 	expectedErr := `
 Error: Invalid target address
 
-Cannot move test_instance.foo to test_instance.bar[0]: the target must also be
-a whole resource.
+Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
+resource (not a resource instance) so the target must also be a whole
+resource.
 
 `
 	errOutput := ui.ErrorWriter.String()

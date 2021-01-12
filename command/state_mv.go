@@ -184,7 +184,7 @@ func (c *StateMvCommand) Run(args []string) int {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					msgInvalidTarget,
-					fmt.Sprintf("Cannot move %s to %s: the target must also be a whole resource.", addrFrom, destAddr),
+					fmt.Sprintf("Cannot move %s to %s: the source is a whole resource (not a resource instance) so the target must also be a whole resource.", addrFrom, destAddr),
 				))
 				c.showDiagnostics(diags)
 				return 1
