@@ -37,6 +37,10 @@ more information, see [CLI Config File](/docs/commands/cli-config.html).
 Use the [`terraform providers`](/docs/commands/providers.html) command to get information
 about the providers required by the current working directory's configuration.
 
+Use the [`terraform version`](/docs/commands/version.html) command (or
+`terraform -version`) to show the specific provider versions installed for the
+current working directory.
+
 Use the [`terraform providers schema`](/docs/commands/providers/schema.html) command to
 get machine-readable information about the resources and configuration options
 offered by each provider.
