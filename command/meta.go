@@ -22,8 +22,8 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
@@ -50,6 +50,15 @@ type Meta struct {
 	// situations where we need to refer back to the original working directory
 	// for some reason.
 	OriginalWorkingDir string
+
+	// Streams tracks the raw Stdout, Stderr, and Stdin handles along with
+	// some basic metadata about them, such as whether each is connected to
+	// a terminal, how wide the possible terminal is, etc.
+	//
+	// For historical reasons this might not be set in unit test code, and
+	// so functions working with this field must check if it's nil and
+	// do some default behavior instead if so, rather than panicking.
+	Streams *terminal.Streams
 
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
@@ -288,15 +297,42 @@ func (m *Meta) UIInput() terraform.UIInput {
 	}
 }
 
+// OutputColumns returns the number of columns that normal (non-error) UI
+// output should be wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Output or Info methods of m.Ui.
+func (m *Meta) OutputColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stdout.Columns()
+}
+
+// ErrorColumns returns the number of columns that error UI output should be
+// wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Error or Warn methods of m.Ui.
+func (m *Meta) ErrorColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stderr.Columns()
+}
+
 // StdinPiped returns true if the input is piped.
 func (m *Meta) StdinPiped() bool {
-	fi, err := wrappedstreams.Stdin().Stat()
-	if err != nil {
-		// If there is an error, let's just say its not piped
+	if m.Streams == nil {
+		// If we don't have m.Streams populated then we're presumably in a unit
+		// test that doesn't properly populate Meta, so we'll just say the
+		// output _isn't_ piped because that's the common case and so most likely
+		// to be useful to a unit test.
 		return false
 	}
-
-	return fi.Mode()&os.ModeNamedPipe != 0
+	return !m.Streams.Stdin.IsTerminal()
 }
 
 // InterruptibleContext returns a context.Context that will be cancelled

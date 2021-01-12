@@ -80,6 +80,7 @@ func initCommands(
 
 	meta := command.Meta{
 		OriginalWorkingDir: originalWorkingDir,
+		Streams:            streams,
 
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),

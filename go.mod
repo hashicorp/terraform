@@ -80,7 +80,6 @@ require (
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
 	github.com/masterzen/winrm v0.0.0-20200615185753-c42b5136ff88
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.4
 	github.com/miekg/dns v1.0.8 // indirect
