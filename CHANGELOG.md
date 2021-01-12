@@ -9,6 +9,7 @@ UPGRADE NOTES:
 BUG FIXES:
 
 * backend/remote: Disable remote Terraform workspace version check when the remote workspace is in local operations mode ([[#27407](https://github.com/hashicorp/terraform/issues/27407)])
+* cli: Fix formatting of long integers in outputs and console ([#27479](https://github.com/hashicorp/terraform/issues/27479)])
 * core: Fix panic when using `sensitive` values as arguments to data sources ([[#27335](https://github.com/hashicorp/terraform/issues/27335)])
 * core: Fix panic when using `sensitive` values as `count` arguments on validate ([[#27410](https://github.com/hashicorp/terraform/issues/27410)])
 * core: Fix panic when passing `sensitive` values to module input variables which have custom variable validation ([[#27412](https://github.com/hashicorp/terraform/issues/27412)])
