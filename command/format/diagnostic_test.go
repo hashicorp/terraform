@@ -94,8 +94,8 @@ Whatever shall we do?
 
   on test.tf line 1:
    1: test [underline]source[reset] code
-    [dark_gray]|----------------[reset]
-    [dark_gray]|[reset] [bold]boop.beep[reset] is "blah"
+    [dark_gray]├────────────────[reset]
+    [dark_gray]│[reset] [bold]boop.beep[reset] is "blah"
 
 Whatever shall we do?
 `,
@@ -127,8 +127,8 @@ Whatever shall we do?
 
   on test.tf line 1:
    1: test [underline]source[reset] code
-    [dark_gray]|----------------[reset]
-    [dark_gray]|[reset] [bold]boop.beep[reset] has a sensitive value
+    [dark_gray]├────────────────[reset]
+    [dark_gray]│[reset] [bold]boop.beep[reset] has a sensitive value
 
 Whatever shall we do?
 `,
@@ -160,8 +160,8 @@ Whatever shall we do?
 
   on test.tf line 1:
    1: test [underline]source[reset] code
-    [dark_gray]|----------------[reset]
-    [dark_gray]|[reset] [bold]boop.beep[reset] is a string, known only after apply
+    [dark_gray]├────────────────[reset]
+    [dark_gray]│[reset] [bold]boop.beep[reset] is a string, known only after apply
 
 Whatever shall we do?
 `,
@@ -193,8 +193,8 @@ Whatever shall we do?
 
   on test.tf line 1:
    1: test [underline]source[reset] code
-    [dark_gray]|----------------[reset]
-    [dark_gray]|[reset] [bold]boop.beep[reset] will be known only after apply
+    [dark_gray]├────────────────[reset]
+    [dark_gray]│[reset] [bold]boop.beep[reset] will be known only after apply
 
 Whatever shall we do?
 `,
