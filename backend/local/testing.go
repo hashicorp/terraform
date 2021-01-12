@@ -72,7 +72,21 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 	if schema == nil {
 		schema = &terraform.ProviderSchema{} // default schema is empty
 	}
-	p.GetSchemaReturn = schema
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider:      providers.Schema{Block: schema.Provider},
+		ProviderMeta:  providers.Schema{Block: schema.ProviderMeta},
+		ResourceTypes: map[string]providers.Schema{},
+		DataSources:   map[string]providers.Schema{},
+	}
+	for name, res := range schema.ResourceTypes {
+		p.GetSchemaResponse.ResourceTypes[name] = providers.Schema{
+			Block:   res,
+			Version: int64(schema.ResourceTypeSchemaVersions[name]),
+		}
+	}
+	for name, dat := range schema.DataSources {
+		p.GetSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
+	}
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		rSchema, _ := schema.SchemaForResourceType(addrs.ManagedResourceMode, req.TypeName)

@@ -177,9 +177,9 @@ func TestApply_parallelism(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
 		provider := &terraform.MockProvider{}
-		provider.GetSchemaReturn = &terraform.ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				name + "_instance": {},
+		provider.GetSchemaResponse = &providers.GetSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				name + "_instance": {Block: &configschema.Block{}},
 			},
 		}
 		provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
@@ -359,13 +359,15 @@ func TestApply_error(t *testing.T) {
 		resp.PlannedState = cty.ObjectVal(s)
 		return
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":    {Type: cty.String, Optional: true, Computed: true},
-					"ami":   {Type: cty.String, Optional: true},
-					"error": {Type: cty.Bool, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":    {Type: cty.String, Optional: true, Computed: true},
+						"ami":   {Type: cty.String, Optional: true},
+						"error": {Type: cty.Bool, Optional: true},
+					},
 				},
 			},
 		},
@@ -903,11 +905,13 @@ func TestApply_shutdown(t *testing.T) {
 		return
 	}
 
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -959,12 +963,12 @@ func TestApply_state(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}),
 	}
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}),
@@ -1089,11 +1093,13 @@ func TestApply_vars(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"value": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -1143,11 +1149,13 @@ func TestApply_varFile(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"value": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -1207,11 +1215,13 @@ func TestApply_varFileDefault(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"value": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -1270,11 +1280,13 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"value": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"value": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -1327,7 +1339,7 @@ func TestApply_backup(t *testing.T) {
 	backupPath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}),
@@ -1381,7 +1393,7 @@ func TestApply_disableBackup(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-	p.PlanResourceChangeResponse = providers.PlanResourceChangeResponse{
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
 		PlannedState: cty.ObjectVal(map[string]cty.Value{
 			"ami": cty.StringVal("bar"),
 		}),
@@ -1538,13 +1550,15 @@ output = test
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func applyFixtureSchema() *providers.GetSchemaResponse {
+	return &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -1553,12 +1567,12 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 
 // applyFixtureProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/apply. This mock has
-// GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
+// GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
 func applyFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaReturn = applyFixtureSchema()
+	p.GetSchemaResponse = applyFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
