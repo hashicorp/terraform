@@ -629,6 +629,8 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 		return
 	}
 
+	outputWidth := m.ErrorColumns()
+
 	diags = diags.ConsolidateWarnings(1)
 
 	// Since warning messages are generally competing
@@ -654,11 +656,7 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 
 	for _, diag := range diags {
-		// TODO: Actually measure the terminal width and pass it here.
-		// For now, we don't have easy access to the writer that
-		// ui.Error (etc) are writing to and thus can't interrogate
-		// to see if it's a terminal and what size it is.
-		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), 78)
+		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
 		switch diag.Severity() {
 		case tfdiags.Error:
 			m.Ui.Error(msg)

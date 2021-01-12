@@ -59,8 +59,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
-		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
@@ -169,8 +169,8 @@ func TestPrimaryChdirOption(t *testing.T) {
 		t.Errorf("incorrect plan tally; want 0 to add:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
-		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/format"
 )
 
 // backend.CLI impl.
@@ -62,4 +63,18 @@ func (b *Local) errorColumns() int {
 		return 78 // placeholder just so we don't panic
 	}
 	return b.Streams.Stderr.Columns()
+}
+
+// outputHorizRule will call b.CLI.Output with enough horizontal line
+// characters to fill an entire row of output.
+//
+// This function does nothing if the backend doesn't have a CLI attached.
+//
+// If UI color is enabled, the rule will get a dark grey coloring to try to
+// visually de-emphasize it.
+func (b *Local) outputHorizRule() {
+	if b.CLI == nil {
+		return
+	}
+	b.CLI.Output(format.HorizontalRule(b.CLIColor, b.outputColumns()))
 }
