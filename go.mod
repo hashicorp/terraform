@@ -123,7 +123,8 @@ require (
 	golang.org/x/mod v0.3.0
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
+	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
+	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb
 	google.golang.org/api v0.34.0
