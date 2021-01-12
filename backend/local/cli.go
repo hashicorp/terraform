@@ -10,6 +10,7 @@ import (
 func (b *Local) CLIInit(opts *backend.CLIOpts) error {
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
+	b.Streams = opts.Streams
 	b.ShowDiagnostics = opts.ShowDiagnostics
 	b.ContextOpts = opts.ContextOpts
 	b.OpInput = opts.Input
@@ -33,4 +34,32 @@ func (b *Local) CLIInit(opts *backend.CLIOpts) error {
 	}
 
 	return nil
+}
+
+// outputColumns returns the number of text character cells any non-error
+// output should be wrapped to.
+//
+// This is the number of columns to use if you are calling b.CLI.Output or
+// b.CLI.Info.
+func (b *Local) outputColumns() int {
+	if b.Streams == nil {
+		// We can potentially get here in tests, if they don't populate the
+		// CLIOpts fully.
+		return 78 // placeholder just so we don't panic
+	}
+	return b.Streams.Stdout.Columns()
+}
+
+// errorColumns returns the number of text character cells any error
+// output should be wrapped to.
+//
+// This is the number of columns to use if you are calling b.CLI.Error or
+// b.CLI.Warn.
+func (b *Local) errorColumns() int {
+	if b.Streams == nil {
+		// We can potentially get here in tests, if they don't populate the
+		// CLIOpts fully.
+		return 78 // placeholder just so we don't panic
+	}
+	return b.Streams.Stderr.Columns()
 }

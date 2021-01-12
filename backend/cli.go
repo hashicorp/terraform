@@ -1,9 +1,11 @@
 package backend
 
 import (
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // CLI is an optional interface that can be implemented to be initialized
@@ -47,6 +49,12 @@ type CLIOpts struct {
 	// output will be done. If CLIColor is nil then no coloring will be done.
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
+
+	// Streams describes the low-level streams for Stdout, Stderr and Stdin,
+	// including some metadata about whether they are terminals. Most output
+	// should go via the object in field CLI above, but Streams can be useful
+	// for tailoring the output to fit the attached terminal, for example.
+	Streams *terminal.Streams
 
 	// ShowDiagnostics is a function that will format and print diagnostic
 	// messages to the UI.
