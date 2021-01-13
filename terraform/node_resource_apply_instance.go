@@ -326,7 +326,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, state, &applyErr))
+	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(applyDiags)
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
