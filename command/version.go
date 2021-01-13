@@ -16,7 +16,6 @@ import (
 type VersionCommand struct {
 	Meta
 
-	Revision          string
 	Version           string
 	VersionPrerelease string
 	CheckFunc         VersionCheckFunc
@@ -25,7 +24,6 @@ type VersionCommand struct {
 
 type VersionOutput struct {
 	Version            string            `json:"terraform_version"`
-	Revision           string            `json:"terraform_revision"`
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
@@ -80,10 +78,6 @@ func (c *VersionCommand) Run(args []string) int {
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
-
-		if c.Revision != "" {
-			fmt.Fprintf(&versionString, " (%s)", c.Revision)
-		}
 	}
 
 	// We'll also attempt to print out the selected plugin versions. We do
@@ -139,7 +133,6 @@ func (c *VersionCommand) Run(args []string) int {
 
 		output := VersionOutput{
 			Version:            versionOutput,
-			Revision:           c.Revision,
 			Platform:           c.Platform.String(),
 			ProviderSelections: selectionsOutput,
 			Outdated:           outdated,
