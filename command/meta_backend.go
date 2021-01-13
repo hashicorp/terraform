@@ -1115,6 +1115,11 @@ func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tf
 		// an error
 		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
 		diags = diags.Append(versionDiags)
+		// If there are no errors resulting from this check, we do not need to
+		// check again
+		if !diags.HasErrors() {
+			rb.IgnoreVersionConflict()
+		}
 	}
 
 	return diags
