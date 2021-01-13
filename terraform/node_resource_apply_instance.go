@@ -265,34 +265,36 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
-	// keep the applyDiags separate to handle the error case independently
-	// we must add these into diags before returning
+	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	diags = diags.Append(n.writeChange(ctx, nil, ""))
-
-	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyDiags.Err())
-
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
-	if diags.HasErrors() {
-		return diags.Append(applyDiags)
+	err = n.writeChange(ctx, nil, "")
+	if err != nil {
+		return diags.Append(err)
 	}
 
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
+
+	err = n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
+	if err != nil {
+		return diags.Append(err)
+	}
+
+	// Run Provisioners
 	createNew := (diffApply.Action == plans.Create || diffApply.Action.IsReplace())
 	applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, createNew, configs.ProvisionerWhenCreate)
 	// the provisioner errors count as port of the apply error, so we can bundle the diags
-	applyDiags = applyDiags.Append(applyProvisionersDiags)
+	diags = diags.Append(applyProvisionersDiags)
 
-	applyErr := applyDiags.Err()
-	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, applyErr)
+	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
-	if diags.HasErrors() {
-		return diags.Append(applyDiags)
+	err = n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
+	if err != nil {
+		return diags.Append(err)
 	}
 
-	if createBeforeDestroyEnabled && applyErr != nil {
+	if createBeforeDestroyEnabled && diags.HasErrors() {
 		if deposedKey == states.NotDeposed {
 			// This should never happen, and so it always indicates a bug.
 			// We should evaluate this node only if we've previously deposed
@@ -327,7 +329,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
-	diags = diags.Append(applyDiags)
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }
