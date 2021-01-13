@@ -403,8 +403,8 @@ wrap onto multiple lines. Thank-you very much for listening.
 To fix this, run this very long command:
   terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
 
-Here is a coda which is also long enough to wrap and so it should eventually
-make it onto multiple lines. THE END
+Here is a coda which is also long enough to wrap and so it should
+eventually make it onto multiple lines. THE END
 `
 	output := Diagnostic(diags[0], nil, color, 76)
 
