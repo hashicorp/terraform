@@ -435,7 +435,8 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "resource types don't match") {
+	errOutput := strings.Replace(ui.ErrorWriter.String(), "\n", " ", -1)
+	if !strings.Contains(errOutput, "resource types don't match") {
 		t.Fatalf("expected initialization error, got:\n%s", ui.ErrorWriter.String())
 	}
 }

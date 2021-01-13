@@ -183,11 +183,11 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	}
 
 	if desc.Detail != "" {
-		if width != 0 {
+		if width > 1 {
 			lines := strings.Split(desc.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width))
+					line = wordwrap.WrapString(line, uint(width-1))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}

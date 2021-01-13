@@ -16,7 +16,10 @@ import (
 // This is intended for printing to the UI via mitchellh/cli.UI.Output, or
 // similar, which will automatically append a trailing newline too.
 func HorizontalRule(color *colorstring.Colorize, width int) string {
-	rule := strings.Repeat("─", width)
+	if width <= 1 {
+		return "\n"
+	}
+	rule := strings.Repeat("─", width-1)
 	if color == nil { // sometimes unit tests don't populate this properly
 		return "\n" + rule
 	}
@@ -34,7 +37,7 @@ func HorizontalRule(color *colorstring.Colorize, width int) string {
 // unbroken. This allows including literal segments in the output, such as
 // code snippets or filenames, where word wrapping would be confusing.
 func WordWrap(str string, width int) string {
-	if width == 0 {
+	if width <= 1 {
 		// Silly edge case. We'll just return the original string to avoid
 		// panicking or doing other weird stuff.
 		return str
@@ -44,7 +47,7 @@ func WordWrap(str string, width int) string {
 	lines := strings.Split(str, "\n")
 	for i, line := range lines {
 		if !strings.HasPrefix(line, " ") {
-			line = wordwrap.WrapString(line, uint(width))
+			line = wordwrap.WrapString(line, uint(width-1))
 		}
 		if i > 0 {
 			buf.WriteByte('\n') // reintroduce the newlines we skipped in Scan
