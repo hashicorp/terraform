@@ -48,11 +48,9 @@ func TestContext2Refresh(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readState,
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -282,7 +280,6 @@ func TestContext2Refresh_targeted(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -361,7 +358,6 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -448,7 +444,6 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -480,7 +475,6 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 			},
 		},
 	})
-	p.PlanResourceChangeFn = testDiffFn
 
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
@@ -513,11 +507,9 @@ func TestContext2Refresh_delete(t *testing.T) {
 		State: state,
 	})
 
-	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -541,13 +533,11 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		State: nil,
 	})
 
-	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("foo"),
 		}),
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	_, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -561,7 +551,6 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 func TestContext2Refresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	m := testModule(t, "refresh-basic")
 
 	state := states.NewState()
@@ -623,7 +612,6 @@ func TestContext2Refresh_modules(t *testing.T) {
 			NewState: new,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -640,7 +628,6 @@ func TestContext2Refresh_modules(t *testing.T) {
 func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 	m := testModule(t, "refresh-module-input-computed-output")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
@@ -675,7 +662,6 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	m := testModule(t, "refresh-module-var-module")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -699,13 +685,11 @@ func TestContext2Refresh_noState(t *testing.T) {
 		},
 	})
 
-	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("foo"),
 		}),
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	if _, diags := ctx.Refresh(); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
@@ -714,6 +698,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 
 func TestContext2Refresh_output(t *testing.T) {
 	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{},
 		ResourceTypes: map[string]*configschema.Block{
@@ -732,7 +717,6 @@ func TestContext2Refresh_output(t *testing.T) {
 			},
 		},
 	})
-	p.PlanResourceChangeFn = testDiffFn
 
 	m := testModule(t, "refresh-output")
 
@@ -768,7 +752,6 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	// Refresh creates a partial plan for any instances that don't have
 	// remote objects yet, to get stub values for interpolation. Therefore
 	// we need to make DiffFn available to let that complete.
-	p.PlanResourceChangeFn = testDiffFn
 
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{},
@@ -784,7 +767,6 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 		},
 	})
 
-	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
 	}
@@ -839,8 +821,6 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p.ReadResourceFn = nil
-	p.PlanResourceChangeFn = testDiffFn
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
@@ -949,7 +929,6 @@ func TestContext2Refresh_dataState(t *testing.T) {
 			State: readStateVal,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1015,7 +994,6 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 			State: cty.ObjectVal(m),
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1053,7 +1031,6 @@ func TestContext2Refresh_tainted(t *testing.T) {
 			NewState: cty.ObjectVal(m),
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s, diags := ctx.Refresh()
 	if diags.HasErrors() {
@@ -1076,9 +1053,6 @@ func TestContext2Refresh_tainted(t *testing.T) {
 // Providers was _empty_.
 func TestContext2Refresh_unknownProvider(t *testing.T) {
 	m := testModule(t, "refresh-unknown-provider")
-	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1140,8 +1114,6 @@ func TestContext2Refresh_vars(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	p.ReadResourceFn = nil
-	p.PlanResourceChangeFn = testDiffFn
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: readStateVal,
 	}
@@ -1195,7 +1167,6 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 			NewState: req.PriorState,
 		}
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1265,7 +1236,6 @@ func TestContext2Validate(t *testing.T) {
 			},
 		},
 	})
-	p.PlanResourceChangeFn = testDiffFn
 
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
@@ -1284,8 +1254,6 @@ func TestContext2Validate(t *testing.T) {
 func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	m := testModule(t, "update-resource-provider")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
-	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1338,7 +1306,6 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 			"name": cty.StringVal("foo"),
 		}),
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1425,7 +1392,6 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 			"name": cty.StringVal("foo"),
 		}),
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	s := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -1503,7 +1469,6 @@ data "aws_data_source" "foo" {
 		resp.State = req.Config
 		return
 	}
-	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1544,7 +1509,6 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 			},
 		},
 	})
-	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
 			"compute": cty.StringVal("value"),
@@ -1653,8 +1617,6 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1722,8 +1684,6 @@ resource "aws_instance" "bar" {
 	})
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,

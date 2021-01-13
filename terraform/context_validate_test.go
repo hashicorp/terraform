@@ -1024,8 +1024,6 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	m := testModule(t, "validate-targeted")
 	p := testProvider("aws")
 	pr := simpleMockProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
@@ -1117,8 +1115,6 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	m := testModule(t, "input-interpolate-var")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"template_file": {
@@ -1152,8 +1148,6 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	m := testModule(t, "validate-computed-module-var-ref")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
@@ -1186,8 +1180,6 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 
 	m := testModule(t, "issue-9549")
 	p := testProvider("template")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -1691,7 +1683,6 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1720,7 +1711,6 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1752,7 +1742,6 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1835,7 +1824,6 @@ output "out" {
 	})
 
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{

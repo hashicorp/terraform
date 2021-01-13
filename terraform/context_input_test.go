@@ -17,8 +17,6 @@ import (
 func TestContext2Input_provider(t *testing.T) {
 	m := testModule(t, "input-provider")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -89,8 +87,6 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	m := testModule(t, "input-provider-multi")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -158,8 +154,6 @@ func TestContext2Input_providerMulti(t *testing.T) {
 func TestContext2Input_providerOnce(t *testing.T) {
 	m := testModule(t, "input-provider-once")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -178,8 +172,6 @@ func TestContext2Input_providerId(t *testing.T) {
 	m := testModule(t, "input-provider")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -241,10 +233,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	input := new(MockUIInput)
 
 	m := testModule(t, "input-provider-vars")
-
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -317,8 +306,6 @@ func TestContext2Input_providerVars(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-with-vars")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -363,8 +350,6 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-with-vars-and-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -383,8 +368,6 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-submodule-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
-	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
