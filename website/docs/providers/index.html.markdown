@@ -20,7 +20,8 @@ browse its documentation.
 Provider documentation in the Registry is versioned; you can use the version
 menu in the header to change which version you're viewing.
 
-Learn more about provider documentation rendering on the [provider registry documentation](https://www.terraform.io/docs/registry/providers/docs.html).
+Learn more about writing, generating, and rendering provider documentation
+in the [provider publishing documentation](/docs/registry/providers/docs.html).
 
 ## Temporary Provider Documentation
 
