@@ -191,8 +191,8 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		// we pass a nil configuration to apply because we are destroying
 		s, d := n.apply(ctx, state, changeApply, nil, false)
 		state, diags = s, diags.Append(d)
-		// we must keep applyDiags separate until returning in order to process
-		// the error independently
+		// we don't return immediately here on error, so that the state can be
+		// finalized
 
 		err := n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
 		if err != nil {
