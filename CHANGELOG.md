@@ -28,6 +28,7 @@ BUG FIXES:
 * command/console: expressions using `path` (`path.root`, `path.module`) now return the same result as they would in a configuration ([#27263](https://github.com/hashicorp/terraform/issues/27263))
 * command/show: fix issue with child_modules not properly displaying in certain circumstances [GH-27352]
 * command/state list: fix bug where nested modules' resources were missing from `state list` output ([#27268](https://github.com/hashicorp/terraform/issues/27268))
+* command/state mv: fix display names in errors and improve error when failing to target a whole resource [GH-27482]
 * core: validate will now ignore providers without configuration ([#24896](https://github.com/hashicorp/terraform/issues/24896))
 
 ## Previous Releases
