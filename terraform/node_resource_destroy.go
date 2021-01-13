@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -194,12 +195,17 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// are only removed from state.
 	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 		var applyDiags tfdiags.Diagnostics
+		var applyErr error
 		// we pass a nil configuration to apply because we are destroying
-		state, applyDiags, provisionerErr = n.apply(ctx, state, changeApply, nil, false, provisionerErr)
+		state, applyDiags, applyErr = n.apply(ctx, state, changeApply, nil, false)
 		diags.Append(applyDiags)
 		if diags.HasErrors() {
 			return diags
 		}
+
+		// if we got an apply error, combine it with the provisioner error
+		provisionerErr = multierror.Append(provisionerErr, applyErr)
+
 		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 		if diags.HasErrors() {
 			return diags

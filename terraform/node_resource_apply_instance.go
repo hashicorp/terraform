@@ -264,8 +264,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	var applyError error
-	state, applyDiags, applyError := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy(), applyError)
+	state, applyDiags, applyError := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags

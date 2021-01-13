@@ -12553,13 +12553,13 @@ func TestContext2Apply_errorRestoreStatus(t *testing.T) {
 
 	state, diags = ctx.Apply()
 
-	if len(diags) != 2 {
-		t.Fatal("expected 1 error and 1 warning")
-	}
-
 	errString := diags.ErrWithWarnings().Error()
 	if !strings.Contains(errString, "oops") || !strings.Contains(errString, "warned") {
 		t.Fatalf("error missing expected info: %q", errString)
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("expected 1 error and 1 warning, got: %q", errString)
 	}
 
 	res := state.ResourceInstance(addr)

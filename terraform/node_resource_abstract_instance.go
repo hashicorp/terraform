@@ -1814,8 +1814,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
-	createBeforeDestroy bool,
-	applyError error) (*states.ResourceInstanceObject, tfdiags.Diagnostics, error) {
+	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics, error) {
 
 	var diags tfdiags.Diagnostics
 	if state == nil {
@@ -1824,13 +1823,13 @@ func (n *NodeAbstractResourceInstance) apply(
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, diags.Append(err), applyError
+		return nil, diags.Append(err), nil
 	}
 	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return nil, diags, applyError
+		return nil, diags, nil
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -1843,7 +1842,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return nil, diags, applyError
+			return nil, diags, nil
 		}
 	}
 
@@ -1852,13 +1851,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			n.Addr,
 		))
-		return nil, diags, applyError
+		return nil, diags, nil
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, diags, applyError
+		return nil, diags, nil
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -1886,7 +1885,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Status:              state.Status,
 			Value:               change.After,
 		}
-		return newState, diags, applyError
+		return newState, diags, nil
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
@@ -1955,7 +1954,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return nil, diags, applyError
+		return nil, diags, nil
 	}
 
 	// After this point we have a type-conforming result object and so we

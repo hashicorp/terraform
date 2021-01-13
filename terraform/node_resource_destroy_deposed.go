@@ -152,7 +152,6 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	var change *plans.ResourceInstanceChange
-	var applyError error
 
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
@@ -174,7 +173,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyDiags, applyError := n.apply(ctx, state, change, nil, false, applyError)
+	state, applyDiags, applyError := n.apply(ctx, state, change, nil, false)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
