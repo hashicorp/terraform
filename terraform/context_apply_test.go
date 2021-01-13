@@ -12468,3 +12468,45 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 		t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
 	}
 }
+
+func TestContext2Apply_errorRestorePrivateData(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": "",
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{
+		// we error during apply, which will trigger core to preserve the last
+		// known state, including private data
+		Diagnostics: tfdiags.Diagnostics(nil).Append(errors.New("oops")),
+	}
+
+	addr := mustResourceInstanceAddr("test_object.a")
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+			Private:   []byte("private"),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	state, _ = ctx.Apply()
+	if string(state.ResourceInstance(addr).Current.Private) != "private" {
+		t.Fatal("missing private data in state")
+	}
+}
