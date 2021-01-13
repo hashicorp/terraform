@@ -1920,14 +1920,16 @@ func (n *NodeAbstractResourceInstance) apply(
 			newVal = cty.NullVal(schema.ImpliedType())
 		}
 
-		// Ideally we'd produce an error or warning here if newVal is nil and
-		// there are no errors in diags, because that indicates a buggy
-		// provider not properly reporting its result, but unfortunately many
-		// of our historical test mocks behave in this way and so producing
-		// a diagnostic here fails hundreds of tests. Instead, we must just
-		// silently retain the old value for now. Returning a nil value with
-		// no errors is still always considered a bug in the provider though,
-		// and should be fixed for any "real" providers that do it.
+		if !diags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced an invalid nil value after apply for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.String(), n.Addr.String(),
+				),
+			))
+		}
 	}
 
 	var conformDiags tfdiags.Diagnostics

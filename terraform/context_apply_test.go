@@ -12522,3 +12522,38 @@ resource "test_object" "a" {
 		t.Fatalf("incorrect diagnostics, got %d values with %s", len(diags), diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Apply_nilResponse(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatal("expected and error")
+	}
+
+	errString := diags.ErrWithWarnings().Error()
+	if !strings.Contains(errString, "invalid nil value") {
+		t.Fatalf("error missing expected info: %q", errString)
+	}
+}
