@@ -20,6 +20,9 @@ browse its documentation.
 Provider documentation in the Registry is versioned; you can use the version
 menu in the header to change which version you're viewing.
 
+Learn more about writing, generating, and rendering provider documentation
+in the [provider publishing documentation](/docs/registry/providers/docs.html).
+
 ## Temporary Provider Documentation
 
 The following providers will be published on the Terraform Registry soon, but
@@ -36,3 +39,8 @@ the links below:
 - [MySQL](/docs/providers/mysql/index.html)
 - [Rubrik](/docs/providers/rubrik/index.html)
 - [Rundeck](/docs/providers/rundeck/index.html)
+
+## Useful tools
+
+- [Doc preview tool](https://registry.terraform.io/tools/doc-preview)
+- [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs)
