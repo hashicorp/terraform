@@ -12510,3 +12510,69 @@ func TestContext2Apply_errorRestorePrivateData(t *testing.T) {
 		t.Fatal("missing private data in state")
 	}
 }
+
+func TestContext2Apply_errorRestoreStatus(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": "",
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		// We error during apply, but return the current object state.
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("oops"))
+		// return a warning too to make sure it isn't dropped
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("warned"))
+		resp.NewState = req.PriorState
+		resp.Private = req.PlannedPrivate
+		return resp
+	}
+
+	addr := mustResourceInstanceAddr("test_object.a")
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Private:   []byte("private"),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	state, diags = ctx.Apply()
+
+	if len(diags) != 2 {
+		t.Fatal("expected 1 error and 1 warning")
+	}
+
+	errString := diags.ErrWithWarnings().Error()
+	if !strings.Contains(errString, "oops") || !strings.Contains(errString, "warned") {
+		t.Fatalf("error missing expected info: %q", errString)
+	}
+
+	res := state.ResourceInstance(addr)
+	if res == nil {
+		t.Fatal("resource was removed from state")
+	}
+
+	if res.Current.Status != states.ObjectTainted {
+		t.Fatal("resource should still be tainted in the state")
+	}
+
+	if string(res.Current.Private) != "private" {
+		t.Fatalf("incorrect private data, got %q", res.Current.Private)
+	}
+
+}

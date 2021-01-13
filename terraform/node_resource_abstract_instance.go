@@ -1870,7 +1870,6 @@ func (n *NodeAbstractResourceInstance) apply(
 	unmarkedBefore, beforePaths := change.Before.UnmarkDeepWithPaths()
 	unmarkedAfter, afterPaths := change.After.UnmarkDeepWithPaths()
 
-	var newState *states.ResourceInstanceObject
 	// If we have an Update action, our before and after values are equal,
 	// and only differ on their sensitivity, the newVal is the after val
 	// and we should not communicate with the provider. We do need to update
@@ -1880,7 +1879,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	eq := eqV.IsKnown() && eqV.True()
 	if change.Action == plans.Update && eq && !marksEqual(beforePaths, afterPaths) {
 		// Copy the previous state, changing only the value
-		newState = &states.ResourceInstanceObject{
+		newState := &states.ResourceInstanceObject{
 			CreateBeforeDestroy: state.CreateBeforeDestroy,
 			Dependencies:        state.Dependencies,
 			Private:             state.Private,
@@ -1956,7 +1955,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return newState, diags, applyError
+		return nil, diags, applyError
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -2072,35 +2071,40 @@ func (n *NodeAbstractResourceInstance) apply(
 		}
 	}
 
-	// Sometimes providers return a null value when an operation fails for some
-	// reason, but we'd rather keep the prior state so that the error can be
-	// corrected on a subsequent run. We must only do this for null new value
-	// though, or else we may discard partial updates the provider was able to
-	// complete.
-	if diags.HasErrors() && newVal.IsNull() {
-		// Otherwise, we'll continue but using the prior state as the new value,
-		// making this effectively a no-op. If the item really _has_ been
-		// deleted then our next refresh will detect that and fix it up.
-		// If change.Action is Create then change.Before will also be null,
-		// which is fine.
-		newState = state.DeepCopy()
-	}
+	switch {
+	case diags.HasErrors() && newVal.IsNull():
+		// Sometimes providers return a null value when an operation fails for
+		// some reason, but we'd rather keep the prior state so that the error
+		// can be corrected on a subsequent run. We must only do this for null
+		// new value though, or else we may discard partial updates the
+		// provider was able to complete. Otherwise, we'll continue using the
+		// prior state as the new value, making this effectively a no-op.  If
+		// the item really _has_ been deleted then our next refresh will detect
+		// that and fix it up.
+		return state.DeepCopy(), nil, diags.Err()
 
-	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
-		newState = &states.ResourceInstanceObject{
+	case diags.HasErrors() && !newVal.IsNull():
+		// if we have an error, make sure we restore the object status in the new state
+		newState := &states.ResourceInstanceObject{
+			Status:              state.Status,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: createBeforeDestroy,
+		}
+		return newState, nil, diags.Err()
+
+	case !newVal.IsNull():
+		// Non error case with a new state
+		newState := &states.ResourceInstanceObject{
 			Status:              states.ObjectReady,
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
 		}
-	}
+		return newState, diags, nil
 
-	if diags.HasErrors() {
-		// At this point, if we have an error in diags (and hadn't already returned), we return it as an error and clear the diags.
-		applyError = diags.Err()
-		log.Printf("[DEBUG] %s: apply errored", n.Addr)
-		return newState, nil, applyError
+	default:
+		// Non error case, were the object was deleted
+		return nil, diags, nil
 	}
-
-	return newState, diags, applyError
 }
