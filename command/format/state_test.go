@@ -92,43 +92,49 @@ func testProvider() *terraform.MockProvider {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
 
-	p.GetSchemaReturn = testProviderSchema()
+	p.GetSchemaResponse = testProviderSchema()
 
 	return p
 }
 
-func testProviderSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"region": {Type: cty.String, Optional: true},
+func testProviderSchema() *providers.GetSchemaResponse {
+	return &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":      {Type: cty.String, Computed: true},
-					"foo":     {Type: cty.String, Optional: true},
-					"woozles": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"nested": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"compute": {Type: cty.String, Optional: true},
-								"value":   {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":      {Type: cty.String, Computed: true},
+						"foo":     {Type: cty.String, Optional: true},
+						"woozles": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"nested": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"compute": {Type: cty.String, Optional: true},
+									"value":   {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},
 				},
 			},
 		},
-		DataSources: map[string]*configschema.Block{
+		DataSources: map[string]providers.Schema{
 			"test_data_source": {
-				Attributes: map[string]*configschema.Attribute{
-					"compute": {Type: cty.String, Optional: true},
-					"value":   {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"compute": {Type: cty.String, Optional: true},
+						"value":   {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -139,7 +145,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
+			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
 		},
 	}
 }

@@ -27,7 +27,7 @@ func TestLocal_applyBasic(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("yes"),
 		"ami": cty.StringVal("bar"),
 	})}
@@ -70,7 +70,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
@@ -101,7 +101,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{}
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
@@ -193,7 +193,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("yes"),
 		"ami": cty.StringVal("bar"),
 	})}

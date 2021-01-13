@@ -401,11 +401,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 
 func testProvider(prefix string) *MockProvider {
 	p := new(MockProvider)
-	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-		return providers.ReadResourceResponse{NewState: req.PriorState}
-	}
-
-	p.GetSchemaReturn = testProviderSchema(prefix)
+	p.GetSchemaResponse = testProviderSchema(prefix)
 
 	return p
 }
@@ -465,8 +461,8 @@ func testCheckDeadlock(t *testing.T, f func()) {
 	}
 }
 
-func testProviderSchema(name string) *ProviderSchema {
-	return &ProviderSchema{
+func testProviderSchema(name string) *providers.GetSchemaResponse {
+	return getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"region": {
@@ -708,8 +704,7 @@ func testProviderSchema(name string) *ProviderSchema {
 				},
 			},
 		},
-	}
-
+	})
 }
 
 // contextForPlanViaFile is a helper that creates a temporary plan file, then

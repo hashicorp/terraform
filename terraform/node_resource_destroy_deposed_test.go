@@ -26,7 +26,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	)
 
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
@@ -85,28 +85,32 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
+	schema := &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(schema)
+
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
 	}
 	ctx := &MockEvalContext{
-		StateState:       state.SyncWrapper(),
-		ProviderProvider: p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
-						},
-					},
-				},
-			},
-		},
-		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		StateState:           state.SyncWrapper(),
+		ProviderProvider:     p,
+		ProviderSchemaSchema: schema,
+		ChangesChanges:       plans.NewChanges().SyncWrapper(),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{
@@ -143,7 +147,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 		},
 	})
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
 
 	obj := &states.ResourceInstanceObject{
 		Value: cty.ObjectVal(map[string]cty.Value{

@@ -22,7 +22,7 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -63,7 +63,7 @@ func TestContextImport_countIndex(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -125,7 +125,7 @@ func TestContextImport_collision(t *testing.T) {
 		}),
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -164,7 +164,7 @@ func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				State: cty.ObjectVal(map[string]cty.Value{
@@ -205,7 +205,7 @@ func TestContextImport_missingType(t *testing.T) {
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -269,7 +269,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -341,7 +341,7 @@ func TestContextImport_providerConfig(t *testing.T) {
 				},
 			})
 
-			p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+			p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 				ImportedResources: []providers.ImportedResource{
 					{
 						TypeName: "aws_instance",
@@ -396,7 +396,7 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -435,7 +435,7 @@ func TestContextImport_refresh(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -448,7 +448,7 @@ func TestContextImport_refresh(t *testing.T) {
 
 	p.ReadResourceFn = nil
 
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("foo"),
 			"foo": cty.StringVal("bar"),
@@ -486,7 +486,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -534,7 +534,7 @@ func TestContextImport_module(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -576,7 +576,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -618,7 +618,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -654,7 +654,7 @@ func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -672,9 +672,9 @@ func TestContextImport_multiState(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -723,7 +723,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -741,9 +741,9 @@ func TestContextImport_multiStateSame(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -829,7 +829,7 @@ resource "test_resource" "unused" {
 `,
 	})
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -842,9 +842,9 @@ resource "test_resource" "unused" {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_resource",
@@ -854,7 +854,7 @@ resource "test_resource" "unused" {
 			},
 		},
 	}
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_resource",

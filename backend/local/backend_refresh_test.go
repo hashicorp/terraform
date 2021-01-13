@@ -24,7 +24,7 @@ func TestLocal_refresh(t *testing.T) {
 	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
@@ -76,7 +76,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -119,7 +119,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
@@ -165,7 +165,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", schema)
 	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 

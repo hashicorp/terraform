@@ -19,7 +19,7 @@ func TestContext2Input_provider(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -39,7 +39,7 @@ func TestContext2Input_provider(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	inp := &MockUIInput{
 		InputReturnMap: map[string]string{
@@ -91,7 +91,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -111,7 +111,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	inp := &MockUIInput{
 		InputReturnMap: map[string]string{
@@ -180,7 +180,7 @@ func TestContext2Input_providerId(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -200,7 +200,7 @@ func TestContext2Input_providerId(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -245,7 +245,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	p := testProvider("aws")
 	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -263,7 +263,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -405,7 +405,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	p := testProvider("null")
 	m := testModule(t, "input-module-data-vars")
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		DataSources: map[string]*configschema.Block{
 			"null_data_source": {
 				Attributes: map[string]*configschema.Attribute{
@@ -413,7 +413,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
 			State: req.Config,

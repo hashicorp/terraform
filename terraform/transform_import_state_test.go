@@ -14,7 +14,7 @@ import (
 func TestGraphNodeImportStateExecute(t *testing.T) {
 	state := states.NewState()
 	provider := testProvider("aws")
-	provider.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	provider.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
