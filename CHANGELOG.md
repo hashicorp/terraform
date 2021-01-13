@@ -7,6 +7,7 @@ BREAKING CHANGES:
 * cli: `-lock` and `lock-timeout` flags removed from init [GH-27464]
 * cli: `-verify-plugins` flag removed from init [GH-27461]
 * cli: `-get-plugins` flag removed from init [GH-27463]
+* cli: `terraform version -json` will no longer return the revision field [GH-27484] 
 * backend/atlas: the `atlas` backend, which was deprecated since v0.12, has been removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
 * backend/gcs: The `path` config argument, which was deprecated since v0.11, has been removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
 
