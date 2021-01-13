@@ -12510,3 +12510,115 @@ func TestContext2Apply_errorRestorePrivateData(t *testing.T) {
 		t.Fatal("missing private data in state")
 	}
 }
+
+func TestContext2Apply_errorRestoreStatus(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": "",
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		// We error during apply, but return the current object state.
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("oops"))
+		// return a warning too to make sure it isn't dropped
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("warned"))
+		resp.NewState = req.PriorState
+		resp.Private = req.PlannedPrivate
+		return resp
+	}
+
+	addr := mustResourceInstanceAddr("test_object.a")
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Private:   []byte("private"),
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	state, diags = ctx.Apply()
+
+	errString := diags.ErrWithWarnings().Error()
+	if !strings.Contains(errString, "oops") || !strings.Contains(errString, "warned") {
+		t.Fatalf("error missing expected info: %q", errString)
+	}
+
+	if len(diags) != 2 {
+		t.Fatalf("expected 1 error and 1 warning, got: %q", errString)
+	}
+
+	res := state.ResourceInstance(addr)
+	if res == nil {
+		t.Fatal("resource was removed from state")
+	}
+
+	if res.Current.Status != states.ObjectTainted {
+		t.Fatal("resource should still be tainted in the state")
+	}
+
+	if string(res.Current.Private) != "private" {
+		t.Fatalf("incorrect private data, got %q", res.Current.Private)
+	}
+}
+
+func TestContext2Apply_nonConformingResponse(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "x"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	respDiags := tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("warned"))
+	respDiags = respDiags.Append(errors.New("oops"))
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{
+		// Don't lose these diagnostics
+		Diagnostics: respDiags,
+		// This state is missing required attributes, and should produce an error
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("x"),
+		}),
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	errString := diags.ErrWithWarnings().Error()
+	if !strings.Contains(errString, "oops") || !strings.Contains(errString, "warned") {
+		t.Fatalf("error missing expected info: %q", errString)
+	}
+
+	// we should have more than the ones returned from the provider, and they
+	// should not be coalesced into a single value
+	if len(diags) < 3 {
+		t.Fatalf("incorrect diagnostics, got %d values with %s", len(diags), diags.ErrWithWarnings())
+	}
+}
