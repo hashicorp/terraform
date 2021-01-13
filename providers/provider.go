@@ -14,11 +14,11 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetSchema() GetSchemaResponse
 
-	// PrepareProviderConfig allows the provider to validate the configuration.
-	// The PrepareProviderConfigResponse.PreparedConfig field is unused. The
+	// ValidateProviderConfig allows the provider to validate the configuration.
+	// The ValidateProviderConfigResponse.PreparedConfig field is unused. The
 	// final configuration is not stored in the state, and any modifications
 	// that need to be made must be made during the Configure method call.
-	PrepareProviderConfig(PrepareProviderConfigRequest) PrepareProviderConfigResponse
+	ValidateProviderConfig(ValidateProviderConfigRequest) ValidateProviderConfigResponse
 
 	// ValidateResourceTypeConfig allows the provider to validate the resource
 	// configuration values.
@@ -95,12 +95,12 @@ type Schema struct {
 	Block   *configschema.Block
 }
 
-type PrepareProviderConfigRequest struct {
+type ValidateProviderConfigRequest struct {
 	// Config is the raw configuration value for the provider.
 	Config cty.Value
 }
 
-type PrepareProviderConfigResponse struct {
+type ValidateProviderConfigResponse struct {
 	// PreparedConfig is unused.
 	PreparedConfig cty.Value
 	// Diagnostics contains any warnings or errors from the method call.

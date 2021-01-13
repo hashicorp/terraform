@@ -1,4 +1,4 @@
-package plugin
+package plugin6
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/logging"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin/convert"
+	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
+	"github.com/hashicorp/terraform/plugin6/convert"
 	"github.com/hashicorp/terraform/providers"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -22,18 +22,18 @@ var logger = logging.HCLogger()
 // GRPCProviderPlugin implements plugin.GRPCPlugin for the go-plugin package.
 type GRPCProviderPlugin struct {
 	plugin.Plugin
-	GRPCProvider func() proto.ProviderServer
+	GRPCProvider func() proto6.ProviderServer
 }
 
 func (p *GRPCProviderPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
 	return &GRPCProvider{
-		client: proto.NewProviderClient(c),
+		client: proto6.NewProviderClient(c),
 		ctx:    ctx,
 	}, nil
 }
 
 func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-	proto.RegisterProviderServer(s, p.GRPCProvider())
+	proto6.RegisterProviderServer(s, p.GRPCProvider())
 	return nil
 }
 
@@ -51,7 +51,7 @@ type GRPCProvider struct {
 	TestServer *grpc.Server
 
 	// Proto client use to make the grpc service calls.
-	client proto.ProviderClient
+	client proto6.ProviderClient
 
 	// this context is created by the plugin package, and is canceled when the
 	// plugin process ends.
@@ -61,6 +61,13 @@ type GRPCProvider struct {
 	// serialize the state for requests.
 	mu      sync.Mutex
 	schemas providers.GetSchemaResponse
+}
+
+func New(client proto6.ProviderClient, ctx context.Context) GRPCProvider {
+	return GRPCProvider{
+		client: client,
+		ctx:    ctx,
+	}
 }
 
 // getSchema is used internally to get the saved provider schema.  The schema
@@ -116,7 +123,7 @@ func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
 }
 
 func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
-	logger.Trace("GRPCProvider: GetSchema")
+	logger.Trace("GRPCProvider.v6: GetSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -133,7 +140,7 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	// API to fetch individual resource schemas.
 	// Note: this option is marked as EXPERIMENTAL in the grpc API.
 	const maxRecvSize = 64 << 20
-	protoResp, err := p.client.GetSchema(p.ctx, new(proto.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
+	protoResp, err := p.client.GetSchema(p.ctx, new(proto6.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
@@ -167,7 +174,7 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 }
 
 func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
-	logger.Trace("GRPCProvider: PrepareProviderConfig")
+	logger.Trace("GRPCProvider.v6: ValidateProviderConfig")
 
 	schema := p.getSchema()
 	ty := schema.Provider.Block.ImpliedType()
@@ -178,29 +185,22 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfig
 		return resp
 	}
 
-	protoReq := &proto.PrepareProviderConfig_Request{
-		Config: &proto.DynamicValue{Msgpack: mp},
+	protoReq := &proto6.ValidateProviderConfig_Request{
+		Config: &proto6.DynamicValue{Msgpack: mp},
 	}
 
-	protoResp, err := p.client.PrepareProviderConfig(p.ctx, protoReq)
+	protoResp, err := p.client.ValidateProviderConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp
 	}
-
-	config, err := decodeDynamicValue(protoResp.PreparedConfig, ty)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
-		return resp
-	}
-	resp.PreparedConfig = config
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 	return resp
 }
 
 func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
-	logger.Trace("GRPCProvider: ValidateResourceTypeConfig")
+	logger.Trace("GRPCProvider.v6: ValidateResourceTypeConfig")
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -209,9 +209,9 @@ func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 		return resp
 	}
 
-	protoReq := &proto.ValidateResourceTypeConfig_Request{
+	protoReq := &proto6.ValidateResourceTypeConfig_Request{
 		TypeName: r.TypeName,
-		Config:   &proto.DynamicValue{Msgpack: mp},
+		Config:   &proto6.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.ValidateResourceTypeConfig(p.ctx, protoReq)
@@ -225,7 +225,7 @@ func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTy
 }
 
 func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
-	logger.Trace("GRPCProvider: ValidateDataSourceConfig")
+	logger.Trace("GRPCProvider.v6: ValidateDataSourceConfig")
 
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 
@@ -235,9 +235,9 @@ func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 		return resp
 	}
 
-	protoReq := &proto.ValidateDataSourceConfig_Request{
+	protoReq := &proto6.ValidateDataSourceConfig_Request{
 		TypeName: r.TypeName,
-		Config:   &proto.DynamicValue{Msgpack: mp},
+		Config:   &proto6.DynamicValue{Msgpack: mp},
 	}
 
 	protoResp, err := p.client.ValidateDataSourceConfig(p.ctx, protoReq)
@@ -250,14 +250,14 @@ func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 }
 
 func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
-	logger.Trace("GRPCProvider: UpgradeResourceState")
+	logger.Trace("GRPCProvider.v6: UpgradeResourceState")
 
 	resSchema := p.getResourceSchema(r.TypeName)
 
-	protoReq := &proto.UpgradeResourceState_Request{
+	protoReq := &proto6.UpgradeResourceState_Request{
 		TypeName: r.TypeName,
 		Version:  int64(r.Version),
-		RawState: &proto.RawState{
+		RawState: &proto6.RawState{
 			Json:    r.RawStateJSON,
 			Flatmap: r.RawStateFlatmap,
 		},
@@ -287,7 +287,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 }
 
 func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.ConfigureResponse) {
-	logger.Trace("GRPCProvider: Configure")
+	logger.Trace("GRPCProvider.v6: Configure")
 
 	schema := p.getSchema()
 
@@ -300,9 +300,9 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 		return resp
 	}
 
-	protoReq := &proto.Configure_Request{
+	protoReq := &proto6.Configure_Request{
 		TerraformVersion: r.TerraformVersion,
-		Config: &proto.DynamicValue{
+		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
 	}
@@ -317,9 +317,9 @@ func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.C
 }
 
 func (p *GRPCProvider) Stop() error {
-	logger.Trace("GRPCProvider: Stop")
+	logger.Trace("GRPCProvider.v6: Stop")
 
-	resp, err := p.client.Stop(p.ctx, new(proto.Stop_Request))
+	resp, err := p.client.Stop(p.ctx, new(proto6.Stop_Request))
 	if err != nil {
 		return err
 	}
@@ -331,7 +331,7 @@ func (p *GRPCProvider) Stop() error {
 }
 
 func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
-	logger.Trace("GRPCProvider: ReadResource")
+	logger.Trace("GRPCProvider.v6: ReadResource")
 
 	resSchema := p.getResourceSchema(r.TypeName)
 	metaSchema := p.getProviderMetaSchema()
@@ -342,9 +342,9 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		return resp
 	}
 
-	protoReq := &proto.ReadResource_Request{
+	protoReq := &proto6.ReadResource_Request{
 		TypeName:     r.TypeName,
-		CurrentState: &proto.DynamicValue{Msgpack: mp},
+		CurrentState: &proto6.DynamicValue{Msgpack: mp},
 		Private:      r.Private,
 	}
 
@@ -354,7 +354,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
-		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
+		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ReadResource(p.ctx, protoReq)
@@ -376,7 +376,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 }
 
 func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
-	logger.Trace("GRPCProvider: PlanResourceChange")
+	logger.Trace("GRPCProvider.v6: PlanResourceChange")
 
 	resSchema := p.getResourceSchema(r.TypeName)
 	metaSchema := p.getProviderMetaSchema()
@@ -399,11 +399,11 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return resp
 	}
 
-	protoReq := &proto.PlanResourceChange_Request{
+	protoReq := &proto6.PlanResourceChange_Request{
 		TypeName:         r.TypeName,
-		PriorState:       &proto.DynamicValue{Msgpack: priorMP},
-		Config:           &proto.DynamicValue{Msgpack: configMP},
-		ProposedNewState: &proto.DynamicValue{Msgpack: propMP},
+		PriorState:       &proto6.DynamicValue{Msgpack: priorMP},
+		Config:           &proto6.DynamicValue{Msgpack: configMP},
+		ProposedNewState: &proto6.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
 	}
 
@@ -413,7 +413,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
-		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
+		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.PlanResourceChange(p.ctx, protoReq)
@@ -436,13 +436,11 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
-	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
-
 	return resp
 }
 
 func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
-	logger.Trace("GRPCProvider: ApplyResourceChange")
+	logger.Trace("GRPCProvider.v6: ApplyResourceChange")
 
 	resSchema := p.getResourceSchema(r.TypeName)
 	metaSchema := p.getProviderMetaSchema()
@@ -463,11 +461,11 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return resp
 	}
 
-	protoReq := &proto.ApplyResourceChange_Request{
+	protoReq := &proto6.ApplyResourceChange_Request{
 		TypeName:       r.TypeName,
-		PriorState:     &proto.DynamicValue{Msgpack: priorMP},
-		PlannedState:   &proto.DynamicValue{Msgpack: plannedMP},
-		Config:         &proto.DynamicValue{Msgpack: configMP},
+		PriorState:     &proto6.DynamicValue{Msgpack: priorMP},
+		PlannedState:   &proto6.DynamicValue{Msgpack: plannedMP},
+		Config:         &proto6.DynamicValue{Msgpack: configMP},
 		PlannedPrivate: r.PlannedPrivate,
 	}
 
@@ -477,7 +475,7 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
-		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
+		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ApplyResourceChange(p.ctx, protoReq)
@@ -496,15 +494,13 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	}
 	resp.NewState = state
 
-	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
-
 	return resp
 }
 
 func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
-	logger.Trace("GRPCProvider: ImportResourceState")
+	logger.Trace("GRPCProvider.v6: ImportResourceState")
 
-	protoReq := &proto.ImportResourceState_Request{
+	protoReq := &proto6.ImportResourceState_Request{
 		TypeName: r.TypeName,
 		Id:       r.ID,
 	}
@@ -536,7 +532,7 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 }
 
 func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
-	logger.Trace("GRPCProvider: ReadDataSource")
+	logger.Trace("GRPCProvider.v6: ReadDataSource")
 
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 	metaSchema := p.getProviderMetaSchema()
@@ -547,9 +543,9 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		return resp
 	}
 
-	protoReq := &proto.ReadDataSource_Request{
+	protoReq := &proto6.ReadDataSource_Request{
 		TypeName: r.TypeName,
-		Config: &proto.DynamicValue{
+		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
 	}
@@ -560,7 +556,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 			resp.Diagnostics = resp.Diagnostics.Append(err)
 			return resp
 		}
-		protoReq.ProviderMeta = &proto.DynamicValue{Msgpack: metaMP}
+		protoReq.ProviderMeta = &proto6.DynamicValue{Msgpack: metaMP}
 	}
 
 	protoResp, err := p.client.ReadDataSource(p.ctx, protoReq)
@@ -582,7 +578,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 
 // closing the grpc connection is final, and terraform will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
-	logger.Trace("GRPCProvider: Close")
+	logger.Trace("GRPCProvider.v6: Close")
 
 	// Make sure to stop the server if we're not running within go-plugin.
 	if p.TestServer != nil {
@@ -603,7 +599,7 @@ func (p *GRPCProvider) Close() error {
 }
 
 // Decode a DynamicValue from either the JSON or MsgPack encoding.
-func decodeDynamicValue(v *proto.DynamicValue, ty cty.Type) (cty.Value, error) {
+func decodeDynamicValue(v *proto6.DynamicValue, ty cty.Type) (cty.Value, error) {
 	// always return a valid value
 	var err error
 	res := cty.NullVal(ty)

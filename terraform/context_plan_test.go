@@ -79,7 +79,7 @@ func TestContext2Plan_basic(t *testing.T) {
 		}
 	}
 
-	if !p.PrepareProviderConfigCalled {
+	if !p.ValidateProviderConfigCalled {
 		t.Fatal("provider config was not checked before Configure")
 	}
 

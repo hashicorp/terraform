@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var mapLabelNames = []string{"key"}
@@ -183,9 +184,46 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 }
 
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
-	return &hcldec.AttrSpec{
-		Name:     name,
-		Type:     a.Type,
-		Required: a.Required,
+	ret := &hcldec.AttrSpec{Name: name}
+
+	if a.NestedType != nil {
+		var optAttrs []string
+		optAttrs = listOptionalAttrsFromBlock(a.NestedType.Block, optAttrs)
+		ty := a.NestedType.Block.ImpliedType()
+		if !ty.IsObjectType() {
+			panic("unpossible")
+		}
+
+		switch a.NestedType.Nesting {
+		case NestingList:
+			ret.Type = cty.List(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		case NestingSet:
+			ret.Type = cty.Set(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		case NestingMap:
+			ret.Type = cty.Map(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		// TODO: NestingGroup?
+		default: // NestingSingle or no nesting
+			ret.Type = cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs)
+		}
+		ret.Required = a.NestedType.MinItems > 0
+
+		return ret
 	}
+
+	ret.Type = a.Type
+	return ret
+}
+
+func listOptionalAttrsFromBlock(b Block, optAttrs []string) []string {
+	for name, attr := range b.Attributes {
+		if attr.Optional == true {
+			optAttrs = append(optAttrs, name)
+		}
+	}
+
+	for _, block := range b.BlockTypes {
+		listOptionalAttrsFromBlock(block.Block, optAttrs)
+	}
+
+	return optAttrs
 }

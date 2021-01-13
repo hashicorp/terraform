@@ -50,7 +50,7 @@ func (s simple) GetSchema() providers.GetSchemaResponse {
 	return s.schema
 }
 
-func (s simple) PrepareProviderConfig(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }
 

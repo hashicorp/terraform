@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -25,6 +26,9 @@ type CachedProvider struct {
 	// both slashes and backslashes as long as the separators are consistent
 	// within a particular path string.
 	PackageDir string
+
+	// ProtocolVersions identifies the protocol version(s) supported by this cashe entry.
+	ProtocolVersions versions.List
 }
 
 // PackageLocation returns the package directory given in the PackageDir field

@@ -31,10 +31,10 @@ func (p *Provider) GetSchema() providers.GetSchemaResponse {
 }
 
 // ValidateProviderConfig is used to validate the configuration values.
-func (p *Provider) PrepareProviderConfig(req providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// At this moment there is nothing to configure for the terraform provider,
 	// so we will happily return without taking any action
-	var res providers.PrepareProviderConfigResponse
+	var res providers.ValidateProviderConfigResponse
 	res.PreparedConfig = req.Config
 	return res
 }

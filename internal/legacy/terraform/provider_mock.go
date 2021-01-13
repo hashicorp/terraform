@@ -24,10 +24,10 @@ type MockProvider struct {
 	GetSchemaCalled bool
 	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
 
-	PrepareProviderConfigCalled   bool
-	PrepareProviderConfigResponse providers.PrepareProviderConfigResponse
-	PrepareProviderConfigRequest  providers.PrepareProviderConfigRequest
-	PrepareProviderConfigFn       func(providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse
+	ValidateProviderConfigCalled   bool
+	ValidateProviderConfigResponse providers.ValidateProviderConfigResponse
+	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
+	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
 
 	ValidateResourceTypeConfigCalled   bool
 	ValidateResourceTypeConfigTypeName string
@@ -124,17 +124,17 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	return ret
 }
 
-func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.PrepareProviderConfigCalled = true
-	p.PrepareProviderConfigRequest = r
-	if p.PrepareProviderConfigFn != nil {
-		return p.PrepareProviderConfigFn(r)
+	p.ValidateProviderConfigCalled = true
+	p.ValidateProviderConfigRequest = r
+	if p.ValidateProviderConfigFn != nil {
+		return p.ValidateProviderConfigFn(r)
 	}
-	p.PrepareProviderConfigResponse.PreparedConfig = r.Config
-	return p.PrepareProviderConfigResponse
+	p.ValidateProviderConfigResponse.PreparedConfig = r.Config
+	return p.ValidateProviderConfigResponse
 }
 
 func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {

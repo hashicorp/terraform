@@ -181,7 +181,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.PrepareProviderConfigCalled {
+	if !p.ValidateProviderConfigCalled {
 		t.Fatal("Prepare provider config should be called")
 	}
 

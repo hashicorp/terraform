@@ -3,8 +3,8 @@ package grpcwrap
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin/convert"
+	proto "github.com/hashicorp/terraform/internal/tfplugin6"
+	"github.com/hashicorp/terraform/plugin6/convert"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -14,7 +14,7 @@ import (
 // New wraps a providers.Interface to implement a grpc ProviderServer.
 // This is useful for creating a test binary out of an internal provider
 // implementation.
-func Provider(p providers.Interface) tfplugin5.ProviderServer {
+func Provider(p providers.Interface) proto.ProviderServer {
 	return &provider{
 		provider: p,
 		schema:   p.GetSchema(),
@@ -26,34 +26,34 @@ type provider struct {
 	schema   providers.GetSchemaResponse
 }
 
-func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
-	resp := &tfplugin5.GetProviderSchema_Response{
-		ResourceSchemas:   make(map[string]*tfplugin5.Schema),
-		DataSourceSchemas: make(map[string]*tfplugin5.Schema),
+func (p *provider) GetSchema(_ context.Context, req *proto.GetProviderSchema_Request) (*proto.GetProviderSchema_Response, error) {
+	resp := &proto.GetProviderSchema_Response{
+		ResourceSchemas:   make(map[string]*proto.Schema),
+		DataSourceSchemas: make(map[string]*proto.Schema),
 	}
 
-	resp.Provider = &tfplugin5.Schema{
-		Block: &tfplugin5.Schema_Block{},
+	resp.Provider = &proto.Schema{
+		Block: &proto.Schema_Block{},
 	}
 	if p.schema.Provider.Block != nil {
 		resp.Provider.Block = convert.ConfigSchemaToProto(p.schema.Provider.Block)
 	}
 
-	resp.ProviderMeta = &tfplugin5.Schema{
-		Block: &tfplugin5.Schema_Block{},
+	resp.ProviderMeta = &proto.Schema{
+		Block: &proto.Schema_Block{},
 	}
 	if p.schema.ProviderMeta.Block != nil {
 		resp.ProviderMeta.Block = convert.ConfigSchemaToProto(p.schema.ProviderMeta.Block)
 	}
 
 	for typ, res := range p.schema.ResourceTypes {
-		resp.ResourceSchemas[typ] = &tfplugin5.Schema{
+		resp.ResourceSchemas[typ] = &proto.Schema{
 			Version: res.Version,
 			Block:   convert.ConfigSchemaToProto(res.Block),
 		}
 	}
 	for typ, dat := range p.schema.DataSources {
-		resp.DataSourceSchemas[typ] = &tfplugin5.Schema{
+		resp.DataSourceSchemas[typ] = &proto.Schema{
 			Version: dat.Version,
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
@@ -65,8 +65,8 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 	return resp, nil
 }
 
-func (p *provider) PrepareProviderConfig(_ context.Context, req *tfplugin5.PrepareProviderConfig_Request) (*tfplugin5.PrepareProviderConfig_Response, error) {
-	resp := &tfplugin5.PrepareProviderConfig_Response{}
+func (p *provider) ValidateProviderConfig(_ context.Context, req *proto.ValidateProviderConfig_Request) (*proto.ValidateProviderConfig_Response, error) {
+	resp := &proto.ValidateProviderConfig_Response{}
 	ty := p.schema.Provider.Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -75,7 +75,7 @@ func (p *provider) PrepareProviderConfig(_ context.Context, req *tfplugin5.Prepa
 		return resp, nil
 	}
 
-	prepareResp := p.provider.PrepareProviderConfig(providers.PrepareProviderConfigRequest{
+	prepareResp := p.provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
 		Config: configVal,
 	})
 
@@ -84,8 +84,8 @@ func (p *provider) PrepareProviderConfig(_ context.Context, req *tfplugin5.Prepa
 	return resp, nil
 }
 
-func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.ValidateResourceTypeConfig_Request) (*tfplugin5.ValidateResourceTypeConfig_Response, error) {
-	resp := &tfplugin5.ValidateResourceTypeConfig_Response{}
+func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *proto.ValidateResourceTypeConfig_Request) (*proto.ValidateResourceTypeConfig_Response, error) {
+	resp := &proto.ValidateResourceTypeConfig_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -103,8 +103,8 @@ func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.
 	return resp, nil
 }
 
-func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.ValidateDataSourceConfig_Request) (*tfplugin5.ValidateDataSourceConfig_Response, error) {
-	resp := &tfplugin5.ValidateDataSourceConfig_Response{}
+func (p *provider) ValidateDataSourceConfig(_ context.Context, req *proto.ValidateDataSourceConfig_Request) (*proto.ValidateDataSourceConfig_Response, error) {
+	resp := &proto.ValidateDataSourceConfig_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -122,8 +122,8 @@ func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.Va
 	return resp, nil
 }
 
-func (p *provider) UpgradeResourceState(_ context.Context, req *tfplugin5.UpgradeResourceState_Request) (*tfplugin5.UpgradeResourceState_Response, error) {
-	resp := &tfplugin5.UpgradeResourceState_Response{}
+func (p *provider) UpgradeResourceState(_ context.Context, req *proto.UpgradeResourceState_Request) (*proto.UpgradeResourceState_Response, error) {
+	resp := &proto.UpgradeResourceState_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
 	upgradeResp := p.provider.UpgradeResourceState(providers.UpgradeResourceStateRequest{
@@ -148,8 +148,8 @@ func (p *provider) UpgradeResourceState(_ context.Context, req *tfplugin5.Upgrad
 	return resp, nil
 }
 
-func (p *provider) Configure(_ context.Context, req *tfplugin5.Configure_Request) (*tfplugin5.Configure_Response, error) {
-	resp := &tfplugin5.Configure_Response{}
+func (p *provider) Configure(_ context.Context, req *proto.Configure_Request) (*proto.Configure_Response, error) {
+	resp := &proto.Configure_Response{}
 	ty := p.schema.Provider.Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -167,8 +167,8 @@ func (p *provider) Configure(_ context.Context, req *tfplugin5.Configure_Request
 	return resp, nil
 }
 
-func (p *provider) ReadResource(_ context.Context, req *tfplugin5.ReadResource_Request) (*tfplugin5.ReadResource_Response, error) {
-	resp := &tfplugin5.ReadResource_Response{}
+func (p *provider) ReadResource(_ context.Context, req *proto.ReadResource_Request) (*proto.ReadResource_Response, error) {
+	resp := &proto.ReadResource_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
 	stateVal, err := decodeDynamicValue(req.CurrentState, ty)
@@ -206,8 +206,8 @@ func (p *provider) ReadResource(_ context.Context, req *tfplugin5.ReadResource_R
 	return resp, nil
 }
 
-func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanResourceChange_Request) (*tfplugin5.PlanResourceChange_Response, error) {
-	resp := &tfplugin5.PlanResourceChange_Response{}
+func (p *provider) PlanResourceChange(_ context.Context, req *proto.PlanResourceChange_Request) (*proto.PlanResourceChange_Response, error) {
+	resp := &proto.PlanResourceChange_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
 	priorStateVal, err := decodeDynamicValue(req.PriorState, ty)
@@ -263,8 +263,8 @@ func (p *provider) PlanResourceChange(_ context.Context, req *tfplugin5.PlanReso
 	return resp, nil
 }
 
-func (p *provider) ApplyResourceChange(_ context.Context, req *tfplugin5.ApplyResourceChange_Request) (*tfplugin5.ApplyResourceChange_Response, error) {
-	resp := &tfplugin5.ApplyResourceChange_Response{}
+func (p *provider) ApplyResourceChange(_ context.Context, req *proto.ApplyResourceChange_Request) (*proto.ApplyResourceChange_Response, error) {
+	resp := &proto.ApplyResourceChange_Response{}
 	ty := p.schema.ResourceTypes[req.TypeName].Block.ImpliedType()
 
 	priorStateVal, err := decodeDynamicValue(req.PriorState, ty)
@@ -316,8 +316,8 @@ func (p *provider) ApplyResourceChange(_ context.Context, req *tfplugin5.ApplyRe
 	return resp, nil
 }
 
-func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportResourceState_Request) (*tfplugin5.ImportResourceState_Response, error) {
-	resp := &tfplugin5.ImportResourceState_Response{}
+func (p *provider) ImportResourceState(_ context.Context, req *proto.ImportResourceState_Request) (*proto.ImportResourceState_Response, error) {
+	resp := &proto.ImportResourceState_Response{}
 
 	importResp := p.provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: req.TypeName,
@@ -333,7 +333,7 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 			continue
 		}
 
-		resp.ImportedResources = append(resp.ImportedResources, &tfplugin5.ImportResourceState_ImportedResource{
+		resp.ImportedResources = append(resp.ImportedResources, &proto.ImportResourceState_ImportedResource{
 			TypeName: res.TypeName,
 			State:    state,
 			Private:  res.Private,
@@ -343,8 +343,8 @@ func (p *provider) ImportResourceState(_ context.Context, req *tfplugin5.ImportR
 	return resp, nil
 }
 
-func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSource_Request) (*tfplugin5.ReadDataSource_Response, error) {
-	resp := &tfplugin5.ReadDataSource_Response{}
+func (p *provider) ReadDataSource(_ context.Context, req *proto.ReadDataSource_Request) (*proto.ReadDataSource_Response, error) {
+	resp := &proto.ReadDataSource_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue(req.Config, ty)
@@ -379,8 +379,8 @@ func (p *provider) ReadDataSource(_ context.Context, req *tfplugin5.ReadDataSour
 	return resp, nil
 }
 
-func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.Stop_Response, error) {
-	resp := &tfplugin5.Stop_Response{}
+func (p *provider) Stop(context.Context, *proto.Stop_Request) (*proto.Stop_Response, error) {
+	resp := &proto.Stop_Response{}
 	err := p.provider.Stop()
 	if err != nil {
 		resp.Error = err.Error()
@@ -389,7 +389,7 @@ func (p *provider) Stop(context.Context, *tfplugin5.Stop_Request) (*tfplugin5.St
 }
 
 // decode a DynamicValue from either the JSON or MsgPack encoding.
-func decodeDynamicValue(v *tfplugin5.DynamicValue, ty cty.Type) (cty.Value, error) {
+func decodeDynamicValue(v *proto.DynamicValue, ty cty.Type) (cty.Value, error) {
 	// always return a valid value
 	var err error
 	res := cty.NullVal(ty)
@@ -407,9 +407,9 @@ func decodeDynamicValue(v *tfplugin5.DynamicValue, ty cty.Type) (cty.Value, erro
 }
 
 // encode a cty.Value into a DynamicValue msgpack payload.
-func encodeDynamicValue(v cty.Value, ty cty.Type) (*tfplugin5.DynamicValue, error) {
+func encodeDynamicValue(v cty.Value, ty cty.Type) (*proto.DynamicValue, error) {
 	mp, err := msgpack.Marshal(v, ty)
-	return &tfplugin5.DynamicValue{
+	return &proto.DynamicValue{
 		Msgpack: mp,
 	}, err
 }

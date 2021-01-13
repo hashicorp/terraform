@@ -104,7 +104,7 @@ func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
 	).Return(&proto.PrepareProviderConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.PrepareProviderConfig(providers.PrepareProviderConfigRequest{Config: cfg})
+	resp := p.ValidateProviderConfig(providers.ValidateProviderConfigRequest{Config: cfg})
 	checkDiags(t, resp.Diagnostics)
 }
 

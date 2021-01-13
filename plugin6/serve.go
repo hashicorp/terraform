@@ -1,9 +1,8 @@
-package plugin
+package plugin6
 
 import (
 	"github.com/hashicorp/go-plugin"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin6"
+	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 const (
@@ -43,8 +42,6 @@ type ServeOpts struct {
 	// added to the GRPC functions when possible.
 	GRPCProviderFunc    GRPCProviderFunc
 	GRPCProvisionerFunc GRPCProvisionerFunc
-
-	GRPCProviderFuncV6 plugin6.GRPCProviderFunc
 }
 
 // Serve serves a plugin. This function never returns and should be the final
@@ -61,23 +58,12 @@ func pluginSet(opts *ServeOpts) map[int]plugin.PluginSet {
 	plugins := map[int]plugin.PluginSet{}
 
 	// add the new protocol versions if they're configured
-	if opts.GRPCProviderFunc != nil || opts.GRPCProvisionerFunc != nil {
-		plugins[5] = plugin.PluginSet{}
+	if opts.GRPCProviderFunc != nil {
+		plugins[6] = plugin.PluginSet{}
 		if opts.GRPCProviderFunc != nil {
-			plugins[5]["provider"] = &GRPCProviderPlugin{
+			plugins[6]["provider"] = &GRPCProviderPlugin{
 				GRPCProvider: opts.GRPCProviderFunc,
 			}
-		}
-		if opts.GRPCProvisionerFunc != nil {
-			plugins[5]["provisioner"] = &GRPCProvisionerPlugin{
-				GRPCProvisioner: opts.GRPCProvisionerFunc,
-			}
-		}
-	}
-
-	if opts.GRPCProviderFuncV6 != nil {
-		plugins[6]["provider"] = &plugin6.GRPCProviderPlugin{
-			GRPCProvider: opts.GRPCProviderFuncV6,
 		}
 	}
 	return plugins

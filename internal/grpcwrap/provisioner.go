@@ -11,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/plugin/convert"
 	"github.com/hashicorp/terraform/provisioners"
+	"github.com/zclconf/go-cty/cty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
+	"github.com/zclconf/go-cty/cty/msgpack"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer.
@@ -46,7 +49,7 @@ func (p *provisioner) ValidateProvisionerConfig(_ context.Context, req *tfplugin
 	resp := &tfplugin5.ValidateProvisionerConfig_Response{}
 	ty := p.schema.ImpliedType()
 
-	configVal, err := decodeDynamicValue(req.Config, ty)
+	configVal, err := decodeDynamicValue5(req.Config, ty)
 	if err != nil {
 		resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, err)
 		return resp, nil
@@ -66,14 +69,14 @@ func (p *provisioner) ProvisionResource(req *tfplugin5.ProvisionResource_Request
 	srvResp := &tfplugin5.ProvisionResource_Response{}
 
 	ty := p.schema.ImpliedType()
-	configVal, err := decodeDynamicValue(req.Config, ty)
+	configVal, err := decodeDynamicValue5(req.Config, ty)
 	if err != nil {
 		srvResp.Diagnostics = convert.AppendProtoDiag(srvResp.Diagnostics, err)
 		srv.Send(srvResp)
 		return nil
 	}
 
-	connVal, err := decodeDynamicValue(req.Connection, shared.ConnectionBlockSupersetSchema.ImpliedType())
+	connVal, err := decodeDynamicValue5(req.Connection, shared.ConnectionBlockSupersetSchema.ImpliedType())
 	if err != nil {
 		srvResp.Diagnostics = convert.AppendProtoDiag(srvResp.Diagnostics, err)
 		srv.Send(srvResp)
@@ -113,4 +116,22 @@ func (o uiOutput) Output(s string) {
 	if err != nil {
 		log.Printf("[ERROR] %s", err)
 	}
+}
+
+// decode a DynamicValue from either the JSON or MsgPack encoding.
+func decodeDynamicValue5(v *tfplugin5.DynamicValue, ty cty.Type) (cty.Value, error) {
+	// always return a valid value
+	var err error
+	res := cty.NullVal(ty)
+	if v == nil {
+		return res, nil
+	}
+
+	switch {
+	case len(v.Msgpack) > 0:
+		res, err = msgpack.Unmarshal(v.Msgpack, ty)
+	case len(v.Json) > 0:
+		res, err = ctyjson.Unmarshal(v.Json, ty)
+	}
+	return res, err
 }

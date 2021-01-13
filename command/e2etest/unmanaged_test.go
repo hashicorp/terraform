@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform/e2e"
 	"github.com/hashicorp/terraform/internal/grpcwrap"
 	simple "github.com/hashicorp/terraform/internal/provider-simple"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
-	tfplugin "github.com/hashicorp/terraform/plugin"
+	proto "github.com/hashicorp/terraform/internal/tfplugin6"
+	tfplugin "github.com/hashicorp/terraform/plugin6"
 )
 
 // The tests in this file are for the "unmanaged provider workflow", which
@@ -116,7 +116,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		},
 		GRPCServer: plugin.DefaultGRPCServer,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			5: plugin.PluginSet{
+			6: plugin.PluginSet{
 				"provider": &tfplugin.GRPCProviderPlugin{
 					GRPCProvider: func() proto.ProviderServer {
 						return provider

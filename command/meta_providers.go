@@ -16,7 +16,9 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/providercache"
+
 	tfplugin "github.com/hashicorp/terraform/plugin"
+	tfplugin6 "github.com/hashicorp/terraform/plugin6"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -330,10 +332,17 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 		}
 
 		// store the client so that the plugin can kill the child process
-		p := raw.(*tfplugin.GRPCProvider)
-		p.PluginClient = client
-
-		return p, nil
+		protoVer := client.NegotiatedVersion()
+		switch protoVer {
+		case 5:
+			p := raw.(*tfplugin.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		default:
+			p := raw.(*tfplugin6.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		}
 	}
 }
 
@@ -362,15 +371,7 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,
-		}
-		// TODO: we probably shouldn't hardcode the protocol version
-		// here, but it'll do for now, because only one protocol
-		// version is supported. Eventually, we'll probably want to
-		// sneak it into the JSON ReattachConfigs.
-		if plugins, ok := tfplugin.VersionedPlugins[5]; !ok {
-			return nil, fmt.Errorf("no supported plugins for protocol 5")
-		} else {
-			config.Plugins = plugins
+			VersionedPlugins: tfplugin.VersionedPlugins,
 		}
 
 		client := plugin.NewClient(config)
@@ -384,8 +385,17 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			return nil, err
 		}
 
-		p := raw.(*tfplugin.GRPCProvider)
-		return p, nil
+		protoVer := client.NegotiatedVersion()
+		switch protoVer {
+		case 5:
+			p := raw.(*tfplugin.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		default:
+			p := raw.(*tfplugin6.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		}
 	}
 }
 

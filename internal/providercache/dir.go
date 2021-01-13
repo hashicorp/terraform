@@ -172,9 +172,10 @@ func (d *Dir) fillMetaCache() error {
 
 			log.Printf("[TRACE] providercache.fillMetaCache: including %s as a candidate package for %s %s", meta.Location, providerAddr, meta.Version)
 			data[providerAddr] = append(data[providerAddr], CachedProvider{
-				Provider:   providerAddr,
-				Version:    meta.Version,
-				PackageDir: filepath.ToSlash(packageDir),
+				Provider:         providerAddr,
+				Version:          meta.Version,
+				PackageDir:       filepath.ToSlash(packageDir),
+				ProtocolVersions: meta.ProtocolVersions,
 			})
 		}
 	}

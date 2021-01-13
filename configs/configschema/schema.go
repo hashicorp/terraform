@@ -40,6 +40,9 @@ type Attribute struct {
 	// Type is a type specification that the attribute's value must conform to.
 	Type cty.Type
 
+	// NestedType indicates that this Attribute has a NestedBlock-style object. This field conflicts with Type.
+	NestedType *NestedBlock
+
 	// Description is an English-language description of the purpose and
 	// usage of the attribute. A description should be concise and use only
 	// one or two sentences, leaving full definition to longer-form
@@ -72,7 +75,7 @@ type Attribute struct {
 	Deprecated bool
 }
 
-// NestedBlock represents the embedding of one block within another.
+// NestedType represents the embedding of a block-like object within an Attriubte.
 type NestedBlock struct {
 	// Block is the description of the block that's nested.
 	Block

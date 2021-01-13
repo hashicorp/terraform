@@ -172,7 +172,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		val := req.Config.GetAttr("value")
 		if val.IsKnown() {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value isn't computed"))
@@ -492,7 +492,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		if req.Config.GetAttr("foo").IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
 		}
@@ -534,7 +534,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		if req.Config.GetAttr("foo").IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
 		}
