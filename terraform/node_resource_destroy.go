@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 
@@ -136,7 +135,6 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	// These vars are updated through pointers at various stages below.
 	var changeApply *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
-	var provisionerErr error
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -173,42 +171,37 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		return diags
 	}
 
+	var applyDiags tfdiags.Diagnostics
+	var applyProvisionersDiags tfdiags.Diagnostics
 	// Run destroy provisioners if not tainted
 	if state != nil && state.Status != states.ObjectTainted {
-		var applyProvisionersDiags tfdiags.Diagnostics
-		applyProvisionersDiags, provisionerErr = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy, provisionerErr)
-		diags = diags.Append(applyProvisionersDiags)
-		if diags.HasErrors() {
-			return diags
-		}
+		applyProvisionersDiags = n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy)
+		// keep the diags separate from the main set until we handle the cleanup
+
+		provisionerErr := applyProvisionersDiags.Err()
 		if provisionerErr != nil {
 			// If we have a provisioning error, then we just call
 			// the post-apply hook now.
 			diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
-			if diags.HasErrors() {
-				return diags
-			}
+			return diags.Append(applyProvisionersDiags)
 		}
 	}
+
+	// provisioner and apply diags are handled together from here down
+	applyDiags = applyDiags.Append(applyProvisionersDiags)
 
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
-		var applyDiags tfdiags.Diagnostics
-		var applyErr error
 		// we pass a nil configuration to apply because we are destroying
-		state, applyDiags, applyErr = n.apply(ctx, state, changeApply, nil, false)
-		diags.Append(applyDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// if we got an apply error, combine it with the provisioner error
-		provisionerErr = multierror.Append(provisionerErr, applyErr)
+		s, d := n.apply(ctx, state, changeApply, nil, false)
+		state, applyDiags = s, applyDiags.Append(d)
+		// we must keep applyDiags separate until returning in order to process
+		// the error independently
 
 		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState))
 		if diags.HasErrors() {
-			return diags
+			return diags.Append(applyDiags)
 		}
 	} else {
 		log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
@@ -216,11 +209,11 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 		state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, state, &provisionerErr))
-	if diags.HasErrors() {
-		return diags
-	}
+	// create the err value for postApplyHook
+	applyErr := applyDiags.Err()
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyErr))
 
+	diags = diags.Append(applyDiags)
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
 }

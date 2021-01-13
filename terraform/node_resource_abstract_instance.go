@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -248,8 +247,6 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *sta
 			return h.PostApply(n.Addr, nil, newState, *err)
 		}))
 	}
-
-	diags = diags.Append(*err)
 
 	return diags
 }
@@ -1543,33 +1540,29 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 // evalApplyProvisioners determines if provisioners need to be run, and if so
 // executes the provisioners for a resource and returns an updated error if
 // provisioning fails.
-func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen, applyErr error) (tfdiags.Diagnostics, error) {
+func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if state == nil {
 		log.Printf("[TRACE] evalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
-		return nil, applyErr
-	}
-	if applyErr != nil {
-		// We're already tainted, so just return out
-		return nil, applyErr
+		return nil
 	}
 	if when == configs.ProvisionerWhenCreate && !createNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
-		return nil, applyErr
+		return nil
 	}
 	if state.Status == states.ObjectTainted {
 		// No point in provisioning an object that is already tainted, since
 		// it's going to get recreated on the next apply anyway.
 		log.Printf("[TRACE] evalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return nil, applyErr
+		return nil
 	}
 
 	provs := filterProvisioners(n.Config, when)
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
-		return nil, applyErr
+		return nil
 	}
 
 	// Call pre hook
@@ -1577,23 +1570,22 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return h.PreProvisionInstance(n.Addr, state.Value)
 	}))
 	if diags.HasErrors() {
-		return diags, applyErr
+		return diags
 	}
 
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
 	err := n.applyProvisioners(ctx, state, when, provs)
 	if err != nil {
-		applyErr = multierror.Append(applyErr, err)
+		diags = diags.Append(err)
 		log.Printf("[TRACE] evalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", n.Addr)
-		return nil, applyErr
+		return diags
 	}
 
 	// Call post hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+	return diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostProvisionInstance(n.Addr, state.Value)
 	}))
-	return diags, applyErr
 }
 
 // filterProvisioners filters the provisioners on the resource to only
@@ -1814,7 +1806,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
-	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics, error) {
+	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 
 	var diags tfdiags.Diagnostics
 	if state == nil {
@@ -1823,13 +1815,13 @@ func (n *NodeAbstractResourceInstance) apply(
 
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, diags.Append(err), nil
+		return nil, diags.Append(err)
 	}
 	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return nil, diags, nil
+		return nil, diags
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -1842,7 +1834,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return nil, diags, nil
+			return nil, diags
 		}
 	}
 
@@ -1851,13 +1843,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			n.Addr,
 		))
-		return nil, diags, nil
+		return nil, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return nil, diags, nil
+		return nil, diags
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -1885,7 +1877,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Status:              state.Status,
 			Value:               change.After,
 		}
-		return newState, diags, nil
+		return newState, diags
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
@@ -1954,7 +1946,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return nil, diags, nil
+		return nil, diags
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -2080,7 +2072,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// prior state as the new value, making this effectively a no-op.  If
 		// the item really _has_ been deleted then our next refresh will detect
 		// that and fix it up.
-		return state.DeepCopy(), nil, diags.Err()
+		return state.DeepCopy(), diags
 
 	case diags.HasErrors() && !newVal.IsNull():
 		// if we have an error, make sure we restore the object status in the new state
@@ -2090,7 +2082,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
 		}
-		return newState, nil, diags.Err()
+		return newState, diags
 
 	case !newVal.IsNull():
 		// Non error case with a new state
@@ -2100,10 +2092,10 @@ func (n *NodeAbstractResourceInstance) apply(
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
 		}
-		return newState, diags, nil
+		return newState, diags
 
 	default:
 		// Non error case, were the object was deleted
-		return nil, diags, nil
+		return nil, diags
 	}
 }

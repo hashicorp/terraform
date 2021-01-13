@@ -173,28 +173,21 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyDiags, applyError := n.apply(ctx, state, change, nil, false)
-	diags = diags.Append(applyDiags)
-	if diags.HasErrors() {
-		return diags
-	}
+	state, applyDiags := n.apply(ctx, state, change, nil, false)
+	// we need to keep the apply diagnostics separate until we return, so that
+	// we can handle the apply error case independently
 
 	// Always write the resource back to the state deposed. If it
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state))
 	if diags.HasErrors() {
-		return diags
+		return diags.Append(applyDiags)
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	if applyError != nil {
-		return diags.Append(applyError)
-	}
+	applyErr := applyDiags.Err()
+	diags = diags.Append(n.postApplyHook(ctx, state, &applyErr))
+	diags = diags.Append(applyDiags)
 
 	return diags.Append(updateStateHook(ctx))
 }
