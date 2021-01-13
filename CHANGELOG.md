@@ -2,14 +2,20 @@
 
 BREAKING CHANGES:
 
-* config: The `list` and `map` functions, both of which were deprecated since Terraform v0.12, are now removed. You can replace uses of these functions with `tolist([...])` and `tomap({...})` respectively. ([#26818](https://github.com/hashicorp/terraform/issues/26818))
-* cli: Interrupting execution will now cause terraform to exit with a non-0 status. ([#26738](https://github.com/hashicorp/terraform/issues/26738))
-* cli: `-lock` and `lock-timeout` flags removed from init [GH-27464]
-* cli: `-verify-plugins` flag removed from init [GH-27461]
-* cli: `-get-plugins` flag removed from init [GH-27463]
-* cli: `terraform version -json` will no longer return the revision field [GH-27484] 
-* backend/atlas: the `atlas` backend, which was deprecated since v0.12, has been removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
-* backend/gcs: The `path` config argument, which was deprecated since v0.11, has been removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
+* The `list` and `map` functions, both of which were deprecated since Terraform v0.12, are now removed. You can replace uses of these functions with `tolist([...])` and `tomap({...})` respectively. ([#26818](https://github.com/hashicorp/terraform/issues/26818))
+* Terraform now requires UTF-8 character encoding and virtual terminal support when running on Windows. This unifies Terraform's terminal handling on Windows with that of other platforms, as per [Microsoft recommendations](https://docs.microsoft.com/en-us/windows/console/classic-vs-vt). Terraform previously required these terminal features on all other platforms, and now requires them on Windows too.
+    
+    UTF-8 and virtual terminal support were introduced across various Windows 10 updates, and so Terraform is no longer officially supported on the original release of Windows 10 or on Windows 8 and earlier. However, there are currently no technical measures to artificially _prevent_ Terraform from running on these obsolete Windows releases, and so you _may_ still be able to use Terraform v0.15 on older Window versions if you either disable formatting (using the `-no-color`) option, or if you use a third-party terminal emulator package such as [ConEmu](https://conemu.github.io/), [Cmder](https://cmder.net/), or [mintty](https://mintty.github.io/).
+    
+    We strongly encourage planning to migrate to a newer version of Windows rather than relying on these workarounds for the long term, because the Terraform team will test future releases only on up-to-date Windows 10 and can therefore not guarantee ongoing support for older versions.
+    
+* Interrupting execution will now cause terraform to exit with a non-zero exit status. ([#26738](https://github.com/hashicorp/terraform/issues/26738))
+* The `-lock` and `-lock-timeout` options are no longer available on `terraform init` [GH-27464]
+* The `-verify-plugins=false` option is no longer available on `terraform init`. (Terraform now _always_ verifies plugins.) [GH-27461]
+* The `-get-plugins=false` option is no longer available on `terraform init`. (Terraform now _always_ installs plugins.) [GH-27463]
+* `terraform version -json` output no longer includes the (previously-unpopulated) "revision" property [GH-27484] 
+* The `atlas` backend, which was deprecated since Terraform v0.12, is now removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
+* In the `gcs` backend the `path` config argument, which was deprecated since Terraform v0.11, is now removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
 
 ENHANCEMENTS:
 
@@ -18,6 +24,7 @@ ENHANCEMENTS:
 * cli: The family of error messages with the summary "Invalid for_each argument" will now include some additional context about which external values contributed to the result. ([#26747](https://github.com/hashicorp/terraform/issues/26747))
 * cli: Typing an invalid top-level command, like `terraform destory` instead of `destroy`, will now print out a specific error message about the command being invalid, rather than just printing out the usual help directory. ([#26967](https://github.com/hashicorp/terraform/issues/26967))
 * cli: Plugin crashes will now be reported with more detail, pointing out the plugin name and the method call along with the stack trace ([#26694](https://github.com/hashicorp/terraform/issues/26694))
+* cli: Terraform now uses UTF-8 and full VT mode even when running on Windows. Previously Terraform was using the "classic" Windows console API, which was far more limited in what formatting sequences it supported and which characters it could render. [GH-27487]
 * provisioner/remote-exec: Can now run in a mode that expects the remote system to be running Windows and excuting commands using the Windows command interpreter, rather than a Unix-style shell. Specify the `target_platform` as `"windows"` in the `connection` block. ([#26865](https://github.com/hashicorp/terraform/issues/26865))
 
 BUG FIXES:
