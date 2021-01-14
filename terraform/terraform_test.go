@@ -248,10 +248,10 @@ func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen stat
 
 const testTerraformInputProviderOnlyStr = `
 aws_instance.foo:
-  ID = foo
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = us-west-2
-  type = aws_instance
+  type = 
 `
 
 const testTerraformApplyStr = `

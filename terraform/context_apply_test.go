@@ -34,8 +34,8 @@ import (
 func TestContext2Apply_basic(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -75,7 +75,6 @@ func TestContext2Apply_unstable(t *testing.T) {
 
 	m := testModule(t, "apply-unstable")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -132,8 +131,8 @@ func TestContext2Apply_unstable(t *testing.T) {
 func TestContext2Apply_escape(t *testing.T) {
 	m := testModule(t, "apply-escape")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -162,8 +161,8 @@ aws_instance.bar:
 func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	m := testModule(t, "apply-resource-count-one-list")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -193,7 +192,6 @@ test = [foo]`)
 func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 	m := testModule(t, "apply-resource-count-zero-list")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -354,7 +352,6 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 
 	var globalState *states.State
 	{
-		p.ApplyResourceChangeFn = testApplyFn
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
 			Providers: map[addrs.Provider]providers.Factory{
@@ -533,8 +530,8 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	m := testModule(t, "apply-map-var-through-module")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -573,8 +570,8 @@ module.test:
 func TestContext2Apply_refCount(t *testing.T) {
 	m := testModule(t, "apply-ref-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -606,8 +603,8 @@ func TestContext2Apply_refCount(t *testing.T) {
 func TestContext2Apply_providerAlias(t *testing.T) {
 	m := testModule(t, "apply-provider-alias")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -690,8 +687,8 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 func TestContext2Apply_providerWarning(t *testing.T) {
 	m := testModule(t, "apply-provider-warning")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.SimpleWarning("just a warning"))
 		return
@@ -732,7 +729,6 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 	// A module with only outputs (no resources)
 	m := testModule(t, "apply-empty-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -761,8 +757,8 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -808,8 +804,8 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	m := testModule(t, "apply-good-create-before-update")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -858,8 +854,8 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 	m := testModule(t, "apply-cbd-depends-non-cbd")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -921,8 +917,8 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	h := new(MockHook)
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -982,8 +978,8 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 	m := testModule(t, "apply-cbd-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1060,8 +1056,8 @@ aws_instance.bar.1:
 func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 	m := testModule(t, "apply-cbd-deposed-only")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1113,7 +1109,6 @@ aws_instance.bar:
 func TestContext2Apply_destroyComputed(t *testing.T) {
 	m := testModule(t, "apply-destroy-computed")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1159,7 +1154,6 @@ func TestContext2Apply_destroyDependsOn(t *testing.T) {
 func testContext2Apply_destroyDependsOn(t *testing.T) {
 	m := testModule(t, "apply-destroy-depends-on")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -1278,7 +1272,6 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.Sta
 	state = state.DeepCopy()
 	m := testModule(t, "empty")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	// Record the order we see Apply
 	var actual []string
@@ -1375,7 +1368,6 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *stat
 	state = state.DeepCopy()
 	m := testModule(t, "empty")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// Record the order we see Apply
@@ -1416,7 +1408,6 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *stat
 func TestContext2Apply_dataBasic(t *testing.T) {
 	m := testModule(t, "apply-data-basic")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 		State: cty.ObjectVal(map[string]cty.Value{
@@ -1451,7 +1442,6 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 func TestContext2Apply_destroyData(t *testing.T) {
 	m := testModule(t, "apply-destroy-data-resource")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
@@ -1519,7 +1509,6 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 	// just doing a `terraform destroy`.
 	m := testModule(t, "apply-destroy-cbd")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1563,7 +1552,6 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	m := testModule(t, "apply-destroy-mod-var-provider-config")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -1676,8 +1664,8 @@ func getContextForApply_destroyCrossProviders(t *testing.T, m *configs.Config, p
 func TestContext2Apply_minimal(t *testing.T) {
 	m := testModule(t, "apply-minimal")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1854,8 +1842,8 @@ aws_instance.foo:
 func TestContext2Apply_cancelProvisioner(t *testing.T) {
 	m := testModule(t, "apply-cancel-provisioner")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	pr := testProvisioner()
 	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
@@ -1937,8 +1925,8 @@ aws_instance.foo: (tainted)
 func TestContext2Apply_compute(t *testing.T) {
 	m := testModule(t, "apply-compute")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -2064,7 +2052,6 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -2125,7 +2112,6 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -2242,8 +2228,8 @@ aws_instance.foo.1:
 func TestContext2Apply_countVariable(t *testing.T) {
 	m := testModule(t, "apply-count-variable")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -2270,8 +2256,8 @@ func TestContext2Apply_countVariable(t *testing.T) {
 func TestContext2Apply_countVariableRef(t *testing.T) {
 	m := testModule(t, "apply-count-variable-ref")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -2303,7 +2289,6 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-provisioner-interp-count")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	pr := testProvisioner()
@@ -2355,8 +2340,8 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 func TestContext2Apply_foreachVariable(t *testing.T) {
 	m := testModule(t, "plan-for-each-unknown-value")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -2388,8 +2373,8 @@ func TestContext2Apply_foreachVariable(t *testing.T) {
 func TestContext2Apply_moduleBasic(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -2506,8 +2491,8 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 	m := testModule(t, "apply-module-provider-inherit-alias")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
 		val := req.Config.GetAttr("value")
@@ -2557,8 +2542,8 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	// 2. Apply an empty configuration against the same state, which should
 	//    then clean up both the instances and the containing resource objects.
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"test_thing": {
@@ -2632,7 +2617,6 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 	m := testModule(t, "apply-module-provider-inherit-alias-orphan")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -2688,7 +2672,6 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 	m := testModule(t, "apply-module-orphan-provider-inherit")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -2732,7 +2715,6 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 	m := testModule(t, "apply-module-orphan-provider-inherit")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -2776,7 +2758,6 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 	m := testModule(t, "apply-module-grandchild-provider-inherit")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var callLock sync.Mutex
@@ -2823,8 +2804,8 @@ func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
 	m := testModule(t, "apply-module-only-provider")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pTest := testProvider("test")
 	pTest.ApplyResourceChangeFn = testApplyFn
 	pTest.PlanResourceChangeFn = testDiffFn
@@ -2856,8 +2837,8 @@ func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
 func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 	m := testModule(t, "apply-module-provider-alias")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -2884,7 +2865,6 @@ func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 	m := testModule(t, "apply-module-provider-alias")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -2924,7 +2904,6 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 	m := testModule(t, "apply-module-provider-close-nested")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -2963,8 +2942,8 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 	m := testModule(t, "apply-ref-existing")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -3003,7 +2982,6 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	m := testModule(t, "apply-module-var-resource-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -3053,8 +3031,8 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 func TestContext2Apply_moduleBool(t *testing.T) {
 	m := testModule(t, "apply-module-bool")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -3083,8 +3061,8 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 func TestContext2Apply_moduleTarget(t *testing.T) {
 	m := testModule(t, "plan-targeted-cross-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -3131,8 +3109,8 @@ module.B:
 func TestContext2Apply_multiProvider(t *testing.T) {
 	m := testModule(t, "apply-multi-provider")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	pDO := testProvider("do")
 	pDO.ApplyResourceChangeFn = testApplyFn
@@ -3170,7 +3148,6 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-provider-destroy")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
@@ -3291,7 +3268,6 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 	m := testModule(t, "apply-multi-provider-destroy-child")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
@@ -3412,7 +3388,6 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 func TestContext2Apply_multiVar(t *testing.T) {
 	m := testModule(t, "apply-multi-var")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// First, apply with a count of 3
@@ -3498,7 +3473,6 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	var configsLock sync.Mutex
 
 	p.ApplyResourceChangeFn = testApplyFn
-
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		proposed := req.ProposedNewState
 		configsLock.Lock()
@@ -3699,7 +3673,6 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 func TestContext2Apply_multiVarOrder(t *testing.T) {
 	m := testModule(t, "apply-multi-var-order")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// First, apply with a count of 3
@@ -3733,7 +3706,6 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 	m := testModule(t, "apply-multi-var-order-interp")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// First, apply with a count of 3
@@ -3771,8 +3743,8 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 	{
 		m := testModule(t, "apply-multi-var-count-dec")
 		p := testProvider("aws")
-		p.ApplyResourceChangeFn = testApplyFn
 		p.PlanResourceChangeFn = testDiffFn
+		p.ApplyResourceChangeFn = testApplyFn
 		ctx := testContext2(t, &ContextOpts{
 			Config: m,
 			Providers: map[addrs.Provider]providers.Factory{
@@ -3878,7 +3850,6 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 func TestContext2Apply_multiVarMissingState(t *testing.T) {
 	m := testModule(t, "apply-multi-var-missing-state")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -3914,7 +3885,6 @@ func TestContext2Apply_multiVarMissingState(t *testing.T) {
 func TestContext2Apply_outputOrphan(t *testing.T) {
 	m := testModule(t, "apply-output-orphan")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -3949,7 +3919,6 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	m := testModule(t, "apply-output-orphan-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -4004,7 +3973,6 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 func TestContext2Apply_providerComputedVar(t *testing.T) {
 	m := testModule(t, "apply-provider-computed")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	pTest := testProvider("test")
@@ -4040,7 +4008,6 @@ func TestContext2Apply_providerComputedVar(t *testing.T) {
 func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 	m := testModule(t, "apply-provider-configure-disabled")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -4076,8 +4043,8 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 	m := testModule(t, "apply-provisioner-module")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	pr := testProvisioner()
 	pr.GetSchemaResponse = provisioners.GetSchemaResponse{
@@ -4123,8 +4090,8 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	m := testModule(t, "apply-provisioner-compute")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 
 		val := req.Config.GetAttr("command").AsString()
@@ -4261,9 +4228,9 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 func TestContext2Apply_provisionerFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail")
 	p := testProvider("aws")
-	pr := testProvisioner()
 	p.PlanResourceChangeFn = testDiffFn
 	p.ApplyResourceChangeFn = testApplyFn
+	pr := testProvisioner()
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("EXPLOSION"))
 		return
@@ -4299,8 +4266,8 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create-before")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("EXPLOSION"))
 		return
@@ -4660,8 +4627,8 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-continue")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provisioner error"))
@@ -4708,7 +4675,6 @@ func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-continue")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provisioner error"))
@@ -4746,7 +4712,6 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		val := req.Config.GetAttr("command").AsString()
@@ -4802,7 +4767,6 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("provisioner error"))
@@ -4860,7 +4824,6 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy-continue")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var l sync.Mutex
@@ -4930,7 +4893,6 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy-fail")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var l sync.Mutex
@@ -5002,8 +4964,8 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 	m := testModule(t, "apply-provisioner-destroy")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	destroyCalled := false
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
@@ -5076,8 +5038,8 @@ aws_instance.foo["a"]:
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	pr := testProvisioner()
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
@@ -5124,8 +5086,8 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-self-ref")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		val := req.Config.GetAttr("command")
 		if val.AsString() != "bar" {
@@ -5173,8 +5135,8 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-multi-self-ref")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		lock.Lock()
 		defer lock.Unlock()
@@ -5233,8 +5195,8 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 	m := testModule(t, "apply-provisioner-multi-self-ref-single")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		lock.Lock()
 		defer lock.Unlock()
@@ -5290,7 +5252,6 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-explicit-self-ref")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		val := req.Config.GetAttr("command")
@@ -5360,7 +5321,6 @@ func TestContext2Apply_provisionerForEachSelfRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-for-each-self")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
@@ -5397,8 +5357,8 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	m := testModule(t, "apply-provisioner-diff")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -5503,7 +5463,6 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 		State: state,
 	})
 
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	//func(info *InstanceInfo, s *InstanceState, rc *ResourceConfig) (*InstanceDiff, error) {
 	//    d := &InstanceDiff{
@@ -5546,7 +5505,6 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	m := testModule(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5606,7 +5564,6 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	m := testModule(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5669,7 +5626,6 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	m := testModule(t, "apply-destroy-module-resource-prefix")
 	h := new(MockHook)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -5724,7 +5680,6 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 func TestContext2Apply_destroyNestedModule(t *testing.T) {
 	m := testModule(t, "apply-destroy-nested-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -5766,7 +5721,6 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 	m := testModule(t, "apply-destroy-deeply-nested-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -5808,7 +5762,6 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-destroy-module-with-attrs")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var state *states.State
@@ -5889,7 +5842,6 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-destroy-mod-var-and-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var state *states.State
@@ -5966,7 +5918,6 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 	m := testModule(t, "apply-destroy-mod-var-and-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var state *states.State
@@ -6045,7 +5996,6 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-destroy-mod-var-and-count-nested")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var state *states.State
@@ -6122,7 +6072,6 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
@@ -6216,7 +6165,6 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		State: state,
 	})
 
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -6238,7 +6186,6 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 	m := testModule(t, "apply-destroy-provisioner")
 	p := testProvider("aws")
 	pr := testProvisioner()
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -6608,7 +6555,6 @@ func TestContext2Apply_hook(t *testing.T) {
 	m := testModule(t, "apply-good")
 	h := new(MockHook)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -6641,7 +6587,6 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 	m := testModule(t, "apply-blank")
 	h := new(MockHook)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -6693,8 +6638,8 @@ func TestContext2Apply_idAttr(t *testing.T) {
 		},
 	})
 
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
@@ -6723,8 +6668,8 @@ func TestContext2Apply_idAttr(t *testing.T) {
 func TestContext2Apply_outputBasic(t *testing.T) {
 	m := testModule(t, "apply-output")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6801,8 +6746,8 @@ func TestContext2Apply_outputAdd(t *testing.T) {
 func TestContext2Apply_outputList(t *testing.T) {
 	m := testModule(t, "apply-output-list")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6829,8 +6774,8 @@ func TestContext2Apply_outputList(t *testing.T) {
 func TestContext2Apply_outputMulti(t *testing.T) {
 	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6857,8 +6802,8 @@ func TestContext2Apply_outputMulti(t *testing.T) {
 func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	m := testModule(t, "apply-output-multi-index")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -6946,8 +6891,8 @@ func TestContext2Apply_taintX(t *testing.T) {
 func TestContext2Apply_taintDep(t *testing.T) {
 	m := testModule(t, "apply-taint-dep")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -6998,8 +6943,8 @@ func TestContext2Apply_taintDep(t *testing.T) {
 func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 	m := testModule(t, "apply-taint-dep-requires-new")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -7050,8 +6995,8 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 func TestContext2Apply_targeted(t *testing.T) {
 	m := testModule(t, "apply-targeted")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7090,8 +7035,8 @@ aws_instance.foo:
 func TestContext2Apply_targetedCount(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7132,8 +7077,8 @@ aws_instance.foo.2:
 func TestContext2Apply_targetedCountIndex(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7166,7 +7111,6 @@ aws_instance.foo.1:
 func TestContext2Apply_targetedDestroy(t *testing.T) {
 	m := testModule(t, "destroy-targeted")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -7248,7 +7192,6 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 	m := testModule(t, "apply-destroy-targeted-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -7301,7 +7244,6 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 	m := testModule(t, "apply-targeted-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -7381,7 +7323,6 @@ module.child:
 func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 	m := testModule(t, "apply-targeted-count")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	foo := &states.ResourceInstanceObjectSrc{
@@ -7471,8 +7412,8 @@ aws_instance.foo.1:
 func TestContext2Apply_targetedModule(t *testing.T) {
 	m := testModule(t, "apply-targeted-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7520,8 +7461,8 @@ module.child:
 func TestContext2Apply_targetedModuleDep(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-dep")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7572,8 +7513,8 @@ module.child:
 func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-unrelated-outputs")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	_ = state.EnsureModule(addrs.RootModuleInstance.Child("child2", addrs.NoKey))
@@ -7623,8 +7564,8 @@ module.child2:
 func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-resource")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -7665,7 +7606,6 @@ module.child:
 func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
 	m := testModule(t, "apply-targeted-resource-orphan-module")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -7704,7 +7644,6 @@ func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
 func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp = testDiffFn(req)
 		planned := resp.PlannedState.AsValueMap()
@@ -7712,6 +7651,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 		resp.PlannedState = cty.ObjectVal(planned)
 		return resp
 	}
+	p.ApplyResourceChangeFn = testApplyFn
 
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -7752,7 +7692,6 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 func TestContext2Apply_unknownAttributeInterpolate(t *testing.T) {
 	m := testModule(t, "apply-unknown-interpolate")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -7870,8 +7809,8 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -8072,7 +8011,6 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 // GH-7824
 func TestContext2Apply_issue7824(t *testing.T) {
 	p := testProvider("template")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -8128,8 +8066,8 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	// Create a provider. We use "template" here just to match the repro
 	// we got from the issue itself.
 	p := testProvider("template")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"template_file": {
@@ -8294,8 +8232,8 @@ aws_instance.ifailedprovisioners: (tainted)
 func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 	m := testModule(t, "apply-ignore-changes-create")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	instanceSchema := p.GetSchemaResponse.ResourceTypes["aws_instance"].Block
 	instanceSchema.Attributes["required_field"] = &configschema.Attribute{
@@ -8343,7 +8281,6 @@ aws_instance.foo:
 func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 	m := testModule(t, "apply-ignore-changes-dep")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
@@ -8438,8 +8375,8 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 func TestContext2Apply_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "apply-ignore-changes-wildcard")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	instanceSchema := p.GetSchemaResponse.ResourceTypes["aws_instance"].Block
 	instanceSchema.Attributes["required_field"] = &configschema.Attribute{
@@ -8487,7 +8424,6 @@ aws_instance.foo:
 func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-destroy-nested-module-with-attrs")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	var state *states.State
@@ -8686,7 +8622,6 @@ resource "null_instance" "depends" {
 func TestContext2Apply_terraformWorkspace(t *testing.T) {
 	m := testModule(t, "apply-terraform-workspace")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -8717,7 +8652,6 @@ func TestContext2Apply_terraformWorkspace(t *testing.T) {
 func TestContext2Apply_multiRef(t *testing.T) {
 	m := testModule(t, "apply-multi-ref")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -8744,8 +8678,8 @@ func TestContext2Apply_multiRef(t *testing.T) {
 func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
 	m := testModule(t, "apply-targeted-module-recursive")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -8818,7 +8752,6 @@ result_3 = hello world
 func TestContext2Apply_destroyWithLocals(t *testing.T) {
 	m := testModule(t, "apply-destroy-with-locals")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -8874,7 +8807,6 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 	}
 
 	p.PlanResourceChangeFn = testDiffFn
-	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -8921,7 +8853,6 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 func TestContext2Apply_destroyWithProviders(t *testing.T) {
 	m := testModule(t, "destroy-module-with-provider")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -9079,7 +9010,6 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-interpolated-count")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	Providers := map[addrs.Provider]providers.Factory{
@@ -9133,7 +9063,6 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "plan-destroy-interpolated-count")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	providers := map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
@@ -9199,7 +9128,6 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	m := testModule(t, "apply-resource-scale-in")
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	Providers := map[addrs.Provider]providers.Factory{
@@ -9431,7 +9359,6 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 
 		p := testProvider("aws")
 		p.PlanResourceChangeFn = testDiffFn
-		p.ApplyResourceChangeFn = testApplyFn
 
 		instanceSchema := &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
@@ -9569,7 +9496,6 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-destroy-data-cycle")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
@@ -9581,7 +9507,6 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	}
 
 	tp := testProvider("test")
-	tp.ApplyResourceChangeFn = testApplyFn
 	tp.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -9917,7 +9842,6 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 func TestContext2Apply_cbdCycle(t *testing.T) {
 	m, snap := testModuleWithSnapshot(t, "apply-cbd-cycle")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	state := states.NewState()
@@ -10179,7 +10103,6 @@ func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -10248,7 +10171,6 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 	m := testModule(t, "provider-meta-unset")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -10296,7 +10218,6 @@ func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -10336,7 +10257,6 @@ func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
 func TestContext2Apply_ProviderMeta_plan_setInvalid(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
@@ -10390,7 +10310,6 @@ func TestContext2Apply_ProviderMeta_plan_setInvalid(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
@@ -10469,7 +10388,6 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// we need a schema for plan/apply so they don't error
@@ -10538,7 +10456,6 @@ func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
 	m := testModule(t, "provider-meta-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	// we need a matching schema for plan/apply so they don't error
@@ -10618,7 +10535,6 @@ func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 	m := testModule(t, "provider-meta-data-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
@@ -10714,7 +10630,6 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 	m := testModule(t, "provider-meta-data-unset")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
@@ -10783,7 +10698,6 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 	m := testModule(t, "provider-meta-data-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -10829,7 +10743,6 @@ func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
 	m := testModule(t, "provider-meta-data-set")
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	schema := p.ProviderSchema()
 	schema.ProviderMeta = &configschema.Block{
@@ -10916,8 +10829,8 @@ output "out" {
 	})
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
@@ -10977,7 +10890,6 @@ resource "aws_instance" "cbd" {
 	})
 
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -11109,7 +11021,6 @@ output "c" {
 }`})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -11178,7 +11089,6 @@ output "myoutput" {
 `})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
@@ -11302,7 +11212,6 @@ locals {
 	)
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		n := r.ProposedNewState.AsValueMap()
@@ -11592,7 +11501,6 @@ output "outputs" {
 `})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		return providers.ReadDataSourceResponse{
@@ -11672,7 +11580,6 @@ resource "test_resource" "a" {
 `})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		proposed := req.ProposedNewState.AsValueMap()
 		proposed["id"] = cty.UnknownVal(cty.String)
@@ -11744,7 +11651,6 @@ resource "test_instance" "b" {
 `})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -11807,7 +11713,6 @@ resource "test_resource" "c" {
 `})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -11909,7 +11814,6 @@ resource "test_resource" "foo" {
 			},
 		},
 	})
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -11988,7 +11892,6 @@ resource "test_resource" "foo" {
 	})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -12057,7 +11960,6 @@ resource "test_resource" "baz" {
 	})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -12122,7 +12024,6 @@ resource "test_resource" "foo" {
 	})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	ctx := testContext2(t, &ContextOpts{
@@ -12274,8 +12175,8 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 		req.UIOutput.Output(fmt.Sprintf("Executing: %q", command.AsString()))
 		return
 	}
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
 
 	h := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
@@ -12425,7 +12326,6 @@ resource "test_instance" "a" {
 func TestContext2Apply_dataSensitive(t *testing.T) {
 	m := testModule(t, "apply-data-sensitive")
 	p := testProvider("null")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 		// add the required id
@@ -12620,5 +12520,40 @@ resource "test_object" "a" {
 	// should not be coalesced into a single value
 	if len(diags) < 3 {
 		t.Fatalf("incorrect diagnostics, got %d values with %s", len(diags), diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Apply_nilResponse(t *testing.T) {
+	// empty config to remove our resource
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags = ctx.Apply()
+	if !diags.HasErrors() {
+		t.Fatal("expected and error")
+	}
+
+	errString := diags.ErrWithWarnings().Error()
+	if !strings.Contains(errString, "invalid nil value") {
+		t.Fatalf("error missing expected info: %q", errString)
 	}
 }

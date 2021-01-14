@@ -3830,7 +3830,6 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 			},
 		},
 	})
-	p.ApplyResourceChangeFn = testApplyFn
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -4701,7 +4700,6 @@ func TestContext2Plan_moduleMapLiteral(t *testing.T) {
 			},
 		},
 	})
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		s := req.ProposedNewState.AsValueMap()
 		m := s["tags"].AsValueMap()
@@ -4964,7 +4962,6 @@ func TestContext2Plan_createBeforeDestroy_depends_datasource(t *testing.T) {
 func TestContext2Plan_listOrder(t *testing.T) {
 	m := testModule(t, "plan-list-order")
 	p := testProvider("aws")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -6101,7 +6098,6 @@ data "test_data_source" "foo" {}
 // for_each can reference a resource with 0 instances
 func TestContext2Plan_scaleInForEach(t *testing.T) {
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -6237,7 +6233,6 @@ data "test_data_source" "d" {
 
 func TestContext2Plan_dataReferencesResource(t *testing.T) {
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source should not be read"))
@@ -6285,7 +6280,6 @@ data "test_data_source" "e" {
 
 func TestContext2Plan_skipRefresh(t *testing.T) {
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 	p.PlanResourceChangeFn = testDiffFn
 
 	m := testModuleInline(t, map[string]string{
@@ -6331,7 +6325,6 @@ resource "test_instance" "a" {
 
 func TestContext2Plan_dataInModuleDependsOn(t *testing.T) {
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	readDataSourceB := false
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
@@ -6625,7 +6618,6 @@ resource "test_resource" "foo" {
 	})
 
 	p := testProvider("test")
-	p.ApplyResourceChangeFn = testApplyFn
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
