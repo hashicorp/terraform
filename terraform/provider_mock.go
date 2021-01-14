@@ -134,7 +134,7 @@ func (p *MockProvider) ProviderSchema() *ProviderSchema {
 	return schema
 }
 
-func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 

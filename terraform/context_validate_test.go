@@ -765,7 +765,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
