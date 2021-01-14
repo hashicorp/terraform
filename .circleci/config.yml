@@ -3,6 +3,10 @@ version: 2.1
 orbs:
   slack: circleci/slack@3.4.2
 
+references:
+  images:
+    middleman: &MIDDLEMAN_IMAGE docker.mirror.hashicorp.services/hashicorp/middleman-hashicorp:0.3.44
+
 executors:
   go:
     docker:
@@ -176,6 +180,97 @@ jobs:
           name: test docker build for 'full' image
           command: docker build -t test-docker-full .
 
+  # Based on a similar job in terraform-website repo.
+  website-link-check:
+    docker:
+      - image: *MIDDLEMAN_IMAGE
+    steps:
+      - checkout:
+          path: terraform
+
+      - run:
+          name: Determine changed website files, if any
+          working_directory: terraform
+          command: |
+            # Figure out what the current branch forked from. Compare against
+            # master and the set of "vX.Y" branches, and choose whichever branch
+            # we're the *fewest* commits ahead of.
+            # The point here isn't to perfectly predict where this will be
+            # merged; all we really care about is determining which commits are
+            # *unique to this PR,* so we don't accidentally complain about
+            # problems you had nothing to do with.
+            PARENT_BRANCH=$(
+              for br in $(git branch -rl --format='%(refname:short)' | grep -E '^origin/(master|v\d+\.\d+)$'); do
+                new_commits=$(git rev-list --first-parent ^${br} HEAD | wc -l);
+                echo "${br} ${new_commits}";
+              done \
+              | sort -n -k2 \
+              | head -n1 \
+              | awk '{print $1}';
+            )
+            echo "Checking current branch against: ${PARENT_BRANCH}"
+            MERGE_BASE=$(git merge-base HEAD ${PARENT_BRANCH})
+            git diff --name-only -z --diff-filter=AMRCT ${MERGE_BASE}..HEAD -- ./website/ > /tmp/changed-website-files.txt
+              # --name-only: Return a list of affected files but don't show the changes.
+              # -z: Make that a null-separated list (instead of newline-separated), and
+              #     DON'T mangle non-ASCII characters.
+              # --diff-filter=AMRCT: Only list files that were added, modified, renamed,
+              #     copied, or had their type changed (file, symlink, etc.). In
+              #     particular, we don't want to check deleted files.
+              # ${MERGE_BASE}..HEAD: Only consider files that have
+              #     changed since this branch diverged from its parent branch.
+              # -- ./website/: Only consider files in the website directory.
+            echo "Changed website files:"
+            cat /tmp/changed-website-files.txt | tr '\0' '\n'
+              # Need to use "tr" for display because it's a null-separated list.
+
+      - run:
+          name: Exit early if there's nothing to check
+          command: |
+            if [ ! -s /tmp/changed-website-files.txt ]; then
+              circleci-agent step halt
+            fi
+
+      - run:
+          name: Check out terraform-website repo
+          command: git clone git@github.com:hashicorp/terraform-website.git
+
+      - run:
+          name: Use local checkout for terraform submodule, instead of cloning again
+          working_directory: terraform-website
+          command: |
+            # Set submodule's URL to our existing checkout.
+            # (Using `pwd` because git's behavior with strictly relative paths is unreliable.)
+            git config --file=.gitmodules submodule.ext/terraform.url $(pwd)/../terraform/.git
+            # Make it so `make sync` will grab our current branch instead of stable-website.
+            git config --file=.gitmodules submodule.ext/terraform.branch HEAD
+
+      - run:
+          name: Init/update terraform-website submodules
+          working_directory: terraform-website
+          command: make sync
+
+      - run:
+          name: Set up terraform-website dependencies
+          working_directory: terraform-website/content
+          # If this does anything interesting, then the container needs an update.
+          command: bundle check || bundle install --path vendor/bundle --retry=3
+
+      - run:
+          name: Run middleman in background
+          working_directory: terraform-website/content
+          background: true
+          command: bundle exec middleman server
+
+      - run:
+          name: Wait for server to start
+          command: until curl -sS http://localhost:4567/ > /dev/null; do sleep 1; done
+
+      - run:
+          name: Check links in changed pages
+          working_directory: terraform-website/content
+          command: cat /tmp/changed-website-files.txt | bundle exec ./scripts/check-pr-links.rb
+
 workflows:
   version: 2
   test:
@@ -203,3 +298,7 @@ workflows:
       - build-386
       - build-amd64
       - build-arm
+
+  website-test:
+    jobs:
+      - website-link-check
