@@ -338,10 +338,12 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			p := raw.(*tfplugin.GRPCProvider)
 			p.PluginClient = client
 			return p, nil
-		default:
+		case 6:
 			p := raw.(*tfplugin6.GRPCProvider)
 			p.PluginClient = client
 			return p, nil
+		default:
+			panic("unsupported protocol version")
 		}
 	}
 }
@@ -371,7 +373,12 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,
-			VersionedPlugins: tfplugin.VersionedPlugins,
+		}
+
+		if plugins, ok := tfplugin.VersionedPlugins[6]; !ok {
+			return nil, fmt.Errorf("no supported plugins for protocol 6")
+		} else {
+			config.Plugins = plugins
 		}
 
 		client := plugin.NewClient(config)
@@ -385,17 +392,20 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			return nil, err
 		}
 
-		protoVer := client.NegotiatedVersion()
-		switch protoVer {
-		case 5:
-			p := raw.(*tfplugin.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
-		default:
-			p := raw.(*tfplugin6.GRPCProvider)
-			p.PluginClient = client
-			return p, nil
-		}
+		// FIXME
+		// protoVer := client.NegotiatedVersion()
+		// switch protoVer {
+		// case 5:
+		// 	p := raw.(*tfplugin.GRPCProvider)
+		// 	p.PluginClient = client
+		// 	return p, nil
+		// case 6:
+		p := raw.(*tfplugin6.GRPCProvider)
+		p.PluginClient = client
+		return p, nil
+		// default:
+		// 	panic("unsupported protocol version")
+		// }
 	}
 }
 

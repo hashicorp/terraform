@@ -145,7 +145,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	}
 
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
-	tf.AddEnv("PLUGIN_PROTOCOL_VERSION=5")
+	tf.AddEnv("PLUGIN_PROTOCOL_VERSION=6")
 
 	//// INIT
 	stdout, stderr, err := tf.Run("init")
