@@ -48,29 +48,6 @@ endif
 		--workdir /terraform-website \
 		hashicorp/middleman-hashicorp:${VERSION}
 
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
-	@echo "==> Testing core website in Docker..."
-	-@docker stop "tf-website-core-temp"
-	@docker run \
-		--detach \
-		--rm \
-		--name "tf-website-core-temp" \
-		--publish "4567:4567" \
-		--volume "$(shell pwd)/website:/website" \
-		--volume "$(shell pwd):/ext/terraform" \
-		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
-		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
-		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
-		--workdir /terraform-website \
-		hashicorp/middleman-hashicorp:${VERSION}
-	$(WEBSITE_PATH)/content/scripts/check-links.sh "http://127.0.0.1:4567" "/" "/docs/providers/*"
-	@docker stop "tf-website-core-temp"
-
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
