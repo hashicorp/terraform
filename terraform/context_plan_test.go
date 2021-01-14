@@ -6714,3 +6714,29 @@ output "planned" {
 		}
 	}
 }
+
+func TestContext2Plan_createOutput(t *testing.T) {
+	// this should always plan a NoOp change for the output
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+output "planned" {
+  value = 1
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  states.NewState(),
+	})
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Outputs {
+		if c.Action != plans.Create {
+			t.Fatalf("expected Create change, got %s for %q", c.Action, c.Addr)
+		}
+	}
+}
