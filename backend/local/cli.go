@@ -56,6 +56,8 @@ func (b *Local) outputColumns() int {
 //
 // This is the number of columns to use if you are calling b.CLI.Error or
 // b.CLI.Warn.
+//
+//lint:ignore U1000 TODO
 func (b *Local) errorColumns() int {
 	if b.Streams == nil {
 		// We can potentially get here in tests, if they don't populate the
