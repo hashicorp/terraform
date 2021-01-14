@@ -451,10 +451,12 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// strip any marks here just to be sure we don't panic on the True comparison
 		val, _ = val.UnmarkDeep()
 
-		var action plans.Action
+		action := plans.Update
 		switch {
-		case val.IsNull():
-			action = plans.Delete
+		case val.IsNull() && before.IsNull():
+			// This is separate from the NoOp case below, since we can ignore
+			// sensitivity here if there are only null values.
+			action = plans.NoOp
 
 		case before.IsNull():
 			action = plans.Create
@@ -467,9 +469,6 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			// only one we can act on, and the state will have been loaded
 			// without any marks to consider.
 			action = plans.NoOp
-
-		default:
-			action = plans.Update
 		}
 
 		change := &plans.OutputChange{
