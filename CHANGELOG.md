@@ -39,6 +39,8 @@ BUG FIXES:
 * command/taint: show resource name in -allow-missing warning [GH-27501]
 * command/untaint: show resource name in -allow-missing warning [GH-27502]
 * core: validate will now ignore providers without configuration ([#24896](https://github.com/hashicorp/terraform/issues/24896))
+* core: refresh data sources during destroy [GH-27408]
+* core: don't plan changes for outputs that remain null [GH-27512]
 
 ## Previous Releases
 
