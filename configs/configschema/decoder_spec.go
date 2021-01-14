@@ -191,7 +191,7 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 		optAttrs = listOptionalAttrsFromBlock(a.NestedType.Block, optAttrs)
 		ty := a.NestedType.Block.ImpliedType()
 		if !ty.IsObjectType() {
-			panic("unpossible")
+			panic("NestedType must be an Object")
 		}
 
 		switch a.NestedType.Nesting {
@@ -201,7 +201,6 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 			ret.Type = cty.Set(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
 		case NestingMap:
 			ret.Type = cty.Map(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
-		// TODO: NestingGroup?
 		default: // NestingSingle or no nesting
 			ret.Type = cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs)
 		}
@@ -211,6 +210,7 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 	}
 
 	ret.Type = a.Type
+	ret.Required = a.Required
 	return ret
 }
 
