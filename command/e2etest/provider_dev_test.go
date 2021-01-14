@@ -73,4 +73,12 @@ func TestProviderDevOverrides(t *testing.T) {
 	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
 	}
+
+	stdout, _, err = tf.Run("plan")
+	if err != nil {
+		t.Fatalf("unexpected error: %s\n%s", err, stderr)
+	}
+	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
+		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
+	}
 }

@@ -64,6 +64,8 @@ func (c *PlanCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
+	diags = diags.Append(c.providerDevOverrideWarnings())
+
 	var backendConfig *configs.Backend
 	var configDiags tfdiags.Diagnostics
 	backendConfig, configDiags = c.loadBackendConfig(configPath)
