@@ -619,7 +619,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -659,7 +659,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
