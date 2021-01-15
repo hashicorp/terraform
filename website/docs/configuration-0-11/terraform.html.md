@@ -41,7 +41,7 @@ that must be met to perform operations on this configuration. If the
 running Terraform version doesn't meet these constraints, an error
 is shown. See the section below dedicated to this option.
 
-See [backends](/docs/backends/index.html) for more detail on the `backend`
+See [backends](/docs/language/settings/backends/configuration.html) for more detail on the `backend`
 configuration.
 
 **No value within the `terraform` block can use interpolations.** The

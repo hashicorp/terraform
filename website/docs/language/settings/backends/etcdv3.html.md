@@ -27,7 +27,7 @@ terraform {
 ```
 
 Note that for the access credentials we recommend using a
-[partial configuration](/docs/backends/config.html).
+[partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration).
 
 ## Data Source Configuration
 

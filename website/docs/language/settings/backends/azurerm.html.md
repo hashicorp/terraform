@@ -75,7 +75,7 @@ terraform {
 }
 ```
 
--> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/backends/config.html) for the credentials.
+-> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/language/settings/backends/configuration.html#partial-configuration) for the credentials.
 
 ## Data Source Configuration
 
