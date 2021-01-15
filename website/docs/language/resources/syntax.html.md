@@ -111,9 +111,7 @@ To browse the publicly available providers and their documentation, see
 -> **Note:** Provider documentation used to be hosted directly on terraform.io,
 as part of Terraform's core documentation. Although some provider documentation
 might still be hosted here, the Terraform Registry is now the main home for all
-public provider docs. (The exception is the built-in
-[`terraform` provider](/docs/providers/terraform/index.html) for reading state
-data, since it is not available on the Terraform Registry.)
+public provider docs.
 
 ## Resource Behavior
 

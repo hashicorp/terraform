@@ -33,7 +33,7 @@ If the `in_cluster_config` flag is set the backend will attempt to use a [servic
 
 For most use cases either `in_cluster_config` or `load_config_file` will need to be set to `true`. If both flags are set the configuration from `load_config_file` will be used.
 
-Note that for the access credentials we recommend using a [partial configuration](/docs/backends/config.html#partial-configuration).
+Note that for the access credentials we recommend using a [partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration).
 
 
 ## Example Referencing

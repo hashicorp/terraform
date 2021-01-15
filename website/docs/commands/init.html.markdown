@@ -75,7 +75,7 @@ activating credentials) before running `terraform init`.
 ## Backend Initialization
 
 During init, the root configuration directory is consulted for
-[backend configuration](/docs/backends/config.html) and the chosen backend
+[backend configuration](/docs/language/settings/backends/configuration.html) and the chosen backend
 is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
@@ -91,7 +91,7 @@ when the working directory was already previously initialized for a particular
 backend.
 
 The `-backend-config=...` option can be used for
-[partial backend configuration](/docs/backends/config.html#partial-configuration),
+[partial backend configuration](/docs/language/settings/backends/configuration.html#partial-configuration),
 in situations where the backend settings are dynamic or sensitive and so cannot
 be statically specified in the configuration file.
 

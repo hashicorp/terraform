@@ -32,7 +32,9 @@ createdb terraform_backend
 
 This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/9.5/reference-client.html) which are installed along with the database server.
 
-We recommend using a [partial configuration](/docs/backends/config.html#partial-configuration) for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
+We recommend using a
+[partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration)
+for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
 
 ```hcl
 terraform {

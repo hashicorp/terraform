@@ -27,7 +27,7 @@ terraform {
 This will create a container called `terraform-state` and an object within that container called `tfstate.tf`. It will enable versioning using the `terraform-state-archive` container to contain the older version.
 
 For the access credentials we recommend using a
-[partial configuration](/docs/backends/config.html).
+[partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration).
 
 ## Data Source Configuration
 

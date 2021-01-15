@@ -158,7 +158,7 @@ The following arguments are supported:
 
     The `config` object can use any arguments that would be valid in the
     equivalent `terraform { backend "<TYPE>" { ... } }` block. See
-    [the documentation of your chosen backend](/docs/backends/types/index.html)
+    [the documentation of your chosen backend](/docs/language/settings/backends/index.html)
     for details.
 
     -> **Note:** If the backend configuration requires a nested block, specify
