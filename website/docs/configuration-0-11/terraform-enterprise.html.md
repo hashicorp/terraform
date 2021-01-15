@@ -15,7 +15,7 @@ feature that was removed in Terraform 0.12.
 
 The [`terraform push` command](/docs/commands/push.html) uploads a configuration to a Terraform Enterprise (legacy) environment. The name of the environment (and the organization it's in) can be specified on the command line, or as part of the Terraform configuration in an `atlas` block.
 
-The `atlas` block does not configure remote state; it only configures the push command. For remote state, [use a `terraform { backend "<NAME>" {...} }` block](/docs/backends/config.html).
+The `atlas` block does not configure remote state; it only configures the push command. For remote state, use a `terraform { backend "<NAME>" {...} }` block.
 
 This page assumes you're familiar with the
 [configuration syntax](./syntax.html)

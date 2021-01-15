@@ -41,7 +41,7 @@ The arguments used in the block's body are specific to the chosen backend type; 
 
 Some backends allow providing access credentials directly as part of the configuration for use in unusual situations, for pragmatic reasons. However, in normal use we _do not_ recommend including access credentials as part of the backend configuration. Instead, leave those arguments completely unset and provide credentials via the credentials files or environment variables that are conventional for the target system, as described in the documentation for each backend.
 
-See _[Backend Types](/docs/backends/types/index.html)_ for details about each supported backend type and its configuration arguments.
+See the list of backend types in the navigation sidebar for details about each supported backend type and its configuration arguments.
 
 ### Default Backend
 
@@ -71,7 +71,7 @@ the arguments are omitted, we call this a _partial configuration_.
 
 With a partial configuration, the remaining configuration arguments must be
 provided as part of
-[the initialization process](/docs/backends/init.html#backend-initialization).
+[the initialization process](/docs/cli/init/index.html).
 There are several ways to supply the remaining arguments:
 
   * **File**: A configuration file may be specified via the `init` command line.
@@ -145,7 +145,7 @@ both the configuration itself as well as the type of backend (for example
 from "consul" to "s3").
 
 Terraform will automatically detect any changes in your configuration
-and request a [reinitialization](/docs/backends/init.html). As part of
+and request a [reinitialization](/docs/cli/init/index.html). As part of
 the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
@@ -161,7 +161,7 @@ want to migrate your state. You can respond "no" in this scenario.
 
 If you no longer want to use any backend, you can simply remove the
 configuration from the file. Terraform will detect this like any other
-change and prompt you to [reinitialize](/docs/backends/init.html).
+change and prompt you to [reinitialize](/docs/cli/init/index.html).
 
 As part of the reinitialization, Terraform will ask if you'd like to migrate
 your state back down to normal local state. Once this is complete then

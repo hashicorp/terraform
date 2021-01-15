@@ -65,9 +65,11 @@ prior to forcing the overwrite.
 ## State Locking
 
 Backends are responsible for supporting [state locking](/docs/language/state/locking.html)
-if possible. Not all backend types support state locking. In the
-[list of supported backend types](/docs/backends/types/index.html) we explicitly note
-whether locking is supported.
+if possible.
+
+Not all backends support locking. The
+[documentation for each backend](/docs/language/settings/backends/index.html)
+includes details on whether it supports locking or not.
 
 For more information on state locking, view the
 [page dedicated to state locking](/docs/language/state/locking.html).
