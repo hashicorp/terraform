@@ -16,7 +16,7 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 - This page documents how to configure settings for providers.
 
-- The [Provider Requirements](./provider-requirements.html) page documents how
+- The [Provider Requirements](/docs/language/providers/requirements.html) page documents how
   to declare providers so Terraform can install them.
 
 ## Provider Configuration
@@ -24,8 +24,8 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 Provider configurations belong in the root module of a Terraform configuration.
 (Child modules receive their provider configurations from the root module; for
 more information, see
-[The Module `providers` Meta-Argument](/docs/configuration/meta-arguments/module-providers.html)
-and [Module Development: Providers Within Modules](/docs/modules/providers.html).)
+[The Module `providers` Meta-Argument](/docs/language/meta-arguments/module-providers.html)
+and [Module Development: Providers Within Modules](/docs/language/modules/develop/providers.html).)
 
 A provider configuration is created using a `provider` block:
 
@@ -37,7 +37,7 @@ provider "google" {
 ```
 
 The name given in the block header (`"google"` in this example) is the
-[local name](./provider-requirements.html#local-names) of the provider to
+[local name](/docs/language/providers/requirements.html#local-names) of the provider to
 configure. This provider should already be included in a `required_providers`
 block.
 
@@ -46,7 +46,7 @@ the provider. Most arguments in this section are defined by the provider itself;
 in this example both `project` and `region` are specific to the `google`
 provider.
 
-You can use [expressions](/docs/configuration/expressions/index.html) in the values of these
+You can use [expressions](/docs/language/expressions/index.html) in the values of these
 configuration arguments, but can only reference values that are known before the
 configuration is applied. This means you can safely reference input variables,
 but not attributes exported by resources (with an exception for resource
@@ -68,7 +68,7 @@ and available for all `provider` blocks:
 
 - [`alias`, for using the same provider with different configurations for different resources][inpage-alias]
 - [`version`, which we no longer recommend][inpage-versions] (use
-  [provider requirements](./provider-requirements.html) instead)
+  [provider requirements](/docs/language/providers/requirements.html) instead)
 
 Unlike many other objects in the Terraform language, a `provider` block may
 be omitted if its contents would otherwise be empty. Terraform assumes an
@@ -157,7 +157,7 @@ module "aws_vpc" {
 ```
 
 Modules have some special requirements when passing in providers; see
-[The Module `providers` Meta-Argument](/docs/configuration/meta-arguments/module-providers.html)
+[The Module `providers` Meta-Argument](/docs/language/meta-arguments/module-providers.html)
 for more details. In most cases, only _root modules_ should define provider
 configurations, with all child modules obtaining their provider configurations
 from their parents.
@@ -170,13 +170,13 @@ from their parents.
 
 The `version` meta-argument specifies a version constraint for a provider, and
 works the same way as the `version` argument in a
-[`required_providers` block](./provider-requirements.html). The version
+[`required_providers` block](/docs/language/providers/requirements.html). The version
 constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
 **The `version` argument in provider configurations is deprecated.**
 In Terraform 0.13 and later, version constraints should always be declared in
-[the `required_providers` block](./provider-requirements.html). The `version`
+[the `required_providers` block](/docs/language/providers/requirements.html). The `version`
 argument will be removed in a future version of Terraform.
 
 -> **Note:** The `version` meta-argument made sense before Terraform 0.13, since

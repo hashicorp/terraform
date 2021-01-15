@@ -11,7 +11,7 @@ description: |-
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
-[your infrastructure configuration](/docs/configuration/index.html).
+[your infrastructure configuration](/docs/language/index.html).
 
 ## Location
 
@@ -394,7 +394,7 @@ provider_installation {
 With development overrides in effect, the `terraform init` command will still
 attempt to select a suitable published version of your provider to install and
 record in
-[the dependency lock file](/docs/configuration/dependency-lock.html)
+[the dependency lock file](/docs/language/dependency-lock.html)
 for future use, but other commands like
 `terraform apply` will disregard the lock file's entry for `hashicorp/null` and
 will use the given directory instead. Once your new changes are included in a

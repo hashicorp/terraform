@@ -22,4 +22,4 @@ configuration changes.
 
 - [The `terraform untaint` command](/docs/commands/untaint.html) undoes a
   previous taint, or can preserve a resource that was automatically tainted due
-  to failed [provisioners](/docs/provisioners/index.html).
+  to failed [provisioners](/docs/language/resources/provisioners/syntax.html).

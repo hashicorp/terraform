@@ -194,8 +194,8 @@ block would create a dependency cycle.
 ## Suppressing Provisioner Logs in CLI Output
 
 The configuration for a `provisioner` block may use sensitive values, such as
-[`sensitive` variables](/docs/configuration/variables.html#suppressing-values-in-cli-output) or
-[`sensitive` output values](/docs/configuration/outputs.html#sensitive-suppressing-values-in-cli-output).
+[`sensitive` variables](/docs/language/values/variables.html#suppressing-values-in-cli-output) or
+[`sensitive` output values](/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output).
 In this case, all log output from the provisioner is automatically suppressed to
 prevent the sensitive values from being displayed.
 

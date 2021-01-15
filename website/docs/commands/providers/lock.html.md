@@ -11,7 +11,7 @@ description: |-
 
 The `terraform providers lock` consults upstream registries (by default) in
 order to write provider dependency information into
-[the dependency lock file](/docs/configuration/dependency-lock.html).
+[the dependency lock file](/docs/language/dependency-lock.html).
 
 The common way to update the dependency lock file is as a side-effect of normal
 provider installation during
@@ -35,7 +35,7 @@ automatic approach may not be sufficient:
   on both Windows and Linux) and the upstream registry for a provider is unable
   to provide signed checksums using the latest hashing scheme, subsequent runs
   of Terraform on other platforms may
-  [add additional checksums to the lock file](/docs/configuration/dependency-lock.html#new-provider-package-checksums).
+  [add additional checksums to the lock file](/docs/language/dependency-lock.html#new-provider-package-checksums).
   You can avoid that by pre-populating hashes for all of the platforms you
   intend to use, using the `terraform providers lock` command.
 
@@ -49,7 +49,7 @@ With no additional command line arguments, `terraform providers lock` will
 analyze the configuration in the current working directory to find all of
 the providers it depends on, and it will fetch the necessary data about those
 providers from their origin registries and then update
-[the dependency lock file](/docs/configuration/dependency-lock.html) to
+[the dependency lock file](/docs/language/dependency-lock.html) to
 include a selected version for each provider and all of the package checksums
 that are covered by the provider developer's cryptographic signature.
 

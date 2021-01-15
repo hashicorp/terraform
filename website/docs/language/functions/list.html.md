@@ -20,7 +20,7 @@ tolist([a, b, c])
 
 The `[ ... ]` brackets construct a tuple value, and then the `tolist` function
 then converts it to a list. For more information on the value types in the
-Terraform language, see [Type Constraints](../types.html).
+Terraform language, see [Type Constraints](/docs/language/expressions/types.html).
 
 ## Related Functions
 

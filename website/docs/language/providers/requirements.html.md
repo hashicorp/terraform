@@ -17,7 +17,7 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 - This page documents how to declare providers so Terraform can install them.
 
-- The [Provider Configuration](./providers.html) page documents how to configure
+- The [Provider Configuration](/docs/language/providers/configuration.html) page documents how to configure
   settings for providers.
 
 ## Requiring Providers
@@ -41,7 +41,7 @@ terraform {
 ```
 
 The `required_providers` block must be nested inside the top-level
-[`terraform` block](terraform.html) (which can also contain other settings).
+[`terraform` block](/docs/language/settings/index.html) (which can also contain other settings).
 
 Each argument in the `required_providers` block enables one provider. The key
 determines the provider's [local name](#local-names) (its unique identifier
@@ -78,7 +78,7 @@ Local names must be unique per-module.
 Outside of the `required_providers` block, Terraform configurations always refer
 to providers by their local names. For example, the following configuration
 declares `mycloud` as the local name for `mycorp/mycloud`, then uses that local
-name when [configuring the provider](./providers.html):
+name when [configuring the provider](/docs/language/providers/configuration.html):
 
 ```hcl
 terraform {
@@ -208,7 +208,7 @@ avoiding typing.
 
 Each provider plugin has its own set of available versions, allowing the
 functionality of the provider to evolve over time. Each provider dependency you
-declare should have a [version constraint](./version-constraints.html) given in
+declare should have a [version constraint](/docs/language/expressions/version-constraints.html) given in
 the `version` argument so Terraform can select a single version per provider
 that all modules are compatible with.
 
@@ -218,7 +218,7 @@ a version constraint for every provider your module depends on.
 
 To ensure Terraform always installs the same provider versions for a given
 configuration, you can use Terraform CLI to create a
-[dependency lock file](/docs/configuration/dependency-lock.html)
+[dependency lock file](/docs/language/dependency-lock.html)
 and commit it to version control along with your configuration. If a lock file
 is present, Terraform Cloud, CLI, and Enterprise will all obey it when
 installing providers.
@@ -270,7 +270,7 @@ incompatibilities, and let the root module manage the maximum version.
 While most Terraform providers are distributed separately as plugins, there
 is currently one provider that is built in to Terraform itself, which
 provides
-[the `terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+[the `terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
 
 Because this provider is built in to Terraform, you don't need to declare it
 in the `required_providers` block in order to use its features. However, for

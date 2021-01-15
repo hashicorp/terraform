@@ -56,7 +56,7 @@ as results:
 Terraform supports some other less-common numeric operations as
 [functions](function-calls.html). For example, you can calculate exponents
 using
-[the `pow` function](../functions/pow.html).
+[the `pow` function](/docs/language/functions/pow.html).
 
 ## Equality Operators
 

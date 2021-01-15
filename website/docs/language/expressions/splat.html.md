@@ -48,7 +48,7 @@ tuples. To get a similar result with a map or object value you must use
 Resources that use the `for_each` argument will appear in expressions as a map
 of objects, so you can't use splat expressions with those resources.
 For more information, see
-[Referring to Resource Instances](/docs/configuration/meta-arguments/for_each.html#referring-to-instances).
+[Referring to Resource Instances](/docs/language/meta-arguments/for_each.html#referring-to-instances).
 
 ## Single Values as Lists
 

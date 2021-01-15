@@ -56,14 +56,14 @@ The command-line flags are all optional. The list of available flags are:
   apply.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used. This setting
+  Ignored when [remote state](/docs/language/state/remote.html) is used. This setting
   does not persist and other commands, such as init, may not be aware of the
   alternate statefile. To configure an alternate statefile path which is
-  available to all terraform commands, use the [local backend](/docs/backends/types/local.html).
+  available to all terraform commands, use the [local backend](/docs/language/settings/backends/local.html).
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. For more
@@ -72,11 +72,11 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [literal expressions](/docs/configuration/expressions/types.html) in the
+  [literal expressions](/docs/language/expressions/types.html) in the
   Terraform language, so list and map values can be specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/configuration/variables.html#variable-definitions-tfvars-files). If
+  a [variable file](/docs/language/values/variables.html#variable-definitions-tfvars-files). If
   a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files

@@ -17,4 +17,4 @@ caused confusion due to other uses of the word "environment", both within
 Terraform itself and within organizations using Terraform.
 
 As of 0.10, the preferred term is "workspace". For more information on
-workspaces, see [the main Workspaces page](/docs/state/workspaces.html).
+workspaces, see [the main Workspaces page](/docs/language/state/workspaces.html).

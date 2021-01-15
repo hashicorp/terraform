@@ -9,7 +9,7 @@ description: |-
 # Command: state replace-provider
 
 The `terraform state replace-provider` command is used to replace the provider
-for resources in a [Terraform state](/docs/state/index.html).
+for resources in a [Terraform state](/docs/language/state/index.html).
 
 ## Usage
 

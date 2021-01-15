@@ -25,14 +25,14 @@ is set to an empty list (`<ATTR> = []`).
 Most users do not need to know any further details of this "nested block or
 empty list" behavior. However, read further if you need to:
 
-- Use Terraform's [JSON syntax](/docs/configuration/syntax-json.html) with this
+- Use Terraform's [JSON syntax](/docs/language/syntax/json.html) with this
   type of resource.
 - Create a reusable module that wraps this type of resource.
 
 ## Details
 
 In Terraform v0.12 and later, the language makes a distinction between
-[argument syntax and nested block syntax](/docs/configuration/syntax.html#arguments-and-blocks)
+[argument syntax and nested block syntax](/docs/language/syntax/configuration.html#arguments-and-blocks)
 within blocks:
 
 * Argument syntax sets a named argument for the containing object. If the
@@ -46,7 +46,7 @@ within blocks:
   merging in with any explicitly-defined arguments.
 
 The distinction between these is particularly important for
-[JSON syntax](/docs/configuration/syntax-json.html)
+[JSON syntax](/docs/language/syntax/json.html)
 because the same primitive JSON constructs (lists and objects) will be
 interpreted differently depending on whether a particular name is an argument
 or a nested block type.
@@ -153,7 +153,7 @@ example = [
 
 For the arguments that use the attributes-as-blocks usage mode, the above is
 a better pattern than using
-[`dynamic` blocks](/docs/configuration/expressions/dynamic-blocks.html)
+[`dynamic` blocks](/docs/language/expressions/dynamic-blocks.html)
 because the case where the
 caller provides an empty list will result in explicitly assigning an empty
 list value, rather than assigning no value at all and thus retaining and
@@ -163,7 +163,7 @@ dynamically-generating _normal_ nested blocks, though.
 ## In JSON syntax
 
 Arguments that use this special mode are specified in JSON syntax always using
-the [JSON expression mapping](/docs/configuration/syntax-json.html#expression-mapping)
+the [JSON expression mapping](/docs/language/syntax/json.html#expression-mapping)
 to produce a list of objects.
 
 The interpretation of these values in JSON syntax is, therefore, equivalent

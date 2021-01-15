@@ -23,7 +23,7 @@ itself having created all objects. If you import existing objects into Terraform
 be careful to import each remote object to only one Terraform resource address.
 If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
-[the State section](/docs/state/).
+[the State section](/docs/language/state/index.html).
 
 To import a resource, first write a resource block for it in your
 configuration, establishing the name by which it will be known to Terraform:

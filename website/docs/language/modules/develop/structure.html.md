@@ -54,8 +54,8 @@ don't need to do any extra work to follow the standard structure.
 * **Variables and outputs should have descriptions.** All variables and
   outputs should have one or two sentence descriptions that explain their
   purpose. This is used for documentation. See the documentation for
-  [variable configuration](/docs/configuration/variables.html) and
-  [output configuration](/docs/configuration/outputs.html) for more details.
+  [variable configuration](/docs/language/values/variables.html) and
+  [output configuration](/docs/language/values/outputs.html) for more details.
 
 * **Nested modules**. Nested modules should exist under the `modules/`
   subdirectory. Any nested module with a `README.md` is considered usable

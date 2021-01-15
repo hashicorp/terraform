@@ -10,7 +10,7 @@ description: |-
 
 The `terraform state show` command is used to show the attributes of a
 single resource in the
-[Terraform state](/docs/state/index.html).
+[Terraform state](/docs/language/state/index.html).
 
 ## Usage
 
@@ -26,7 +26,7 @@ in [resource addressing format](/docs/commands/state/addressing.html).
 The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 The output of `terraform state show` is intended for human consumption, not
 programmatic consumption. To extract state data for use in other software, use
@@ -61,7 +61,7 @@ $ terraform state show 'module.foo.packet_device.worker'
 ## Example: Show a Resource configured with count
 
 The example below shows the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/configuration/meta-arguments/count.html):
+[`count`](/docs/language/meta-arguments/count.html):
 
 ```shell
 $ terraform state show 'packet_device.worker[0]'
@@ -70,7 +70,7 @@ $ terraform state show 'packet_device.worker[0]'
 ## Example: Show a Resource configured with for_each
 
 The example below shows the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/configuration/meta-arguments/for_each.html):
+[`for_each`](/docs/language/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

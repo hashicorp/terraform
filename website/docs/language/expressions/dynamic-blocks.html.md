@@ -83,9 +83,9 @@ nested block. If you need to declare resource instances based on a nested
 data structure or combinations of elements from multiple data structures you
 can use Terraform expressions and functions to derive a suitable value.
 For some common examples of such situations, see the
-[`flatten`](/docs/configuration/functions/flatten.html)
+[`flatten`](/docs/language/functions/flatten.html)
 and
-[`setproduct`](/docs/configuration/functions/setproduct.html)
+[`setproduct`](/docs/language/functions/setproduct.html)
 functions.
 
 ## Multi-level Nested Block Structures
@@ -150,5 +150,5 @@ nested blocks using directly-corresponding attributes from an input variable
 then that might suggest that your module is not creating a useful abstraction.
 It may be better for the calling module to define the resource itself then
 pass information about it into your module. For more information on this design
-tradeoff, see [When to Write a Module](/docs/modules/#when-to-write-a-module)
-and [Module Composition](/docs/modules/composition.html).
+tradeoff, see [When to Write a Module](/docs/language/modules/develop/index.html#when-to-write-a-module)
+and [Module Composition](/docs/language/modules/develop/composition.html).

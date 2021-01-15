@@ -36,18 +36,18 @@ following sections.
 The nested `backend` block configures which backend Terraform should use.
 
 The syntax and behavior of the `backend` block is described in [Backend
-Configuration](./backend.html).
+Configuration](/docs/language/settings/backends/configuration.html).
 
 ## Specifying a Required Terraform Version
 
 The `required_version` setting accepts a [version constraint
-string,](./version-constraints.html) which specifies which versions of Terraform
+string,](/docs/language/expressions/version-constraints.html) which specifies which versions of Terraform
 can be used with your configuration.
 
 If the running version of Terraform doesn't match the constraints specified,
 Terraform will produce an error and exit without taking any further actions.
 
-When you use [child modules](/docs/configuration/blocks/modules/index.html), each module can specify its own
+When you use [child modules](/docs/language/modules/index.html), each module can specify its own
 version requirements. The requirements of all modules in the tree must be
 satisfied.
 
@@ -58,7 +58,7 @@ a minimum Terraform version that has behavior expected by the configuration.
 The `required_version` setting applies only to the version of Terraform CLI.
 Terraform's resource types are implemented by provider plugins,
 whose release cycles are independent of Terraform CLI and of each other.
-Use [the `required_providers` block](./provider-requirements.html) to manage
+Use [the `required_providers` block](/docs/language/providers/requirements.html) to manage
 the expected versions for each provider you use.
 
 ## Specifying Provider Requirements
@@ -80,7 +80,7 @@ terraform {
 }
 ```
 
-For more information, see [Provider Requirements](./provider-requirements.html).
+For more information, see [Provider Requirements](/docs/language/providers/requirements.html).
 
 ## Experimental Language Features
 

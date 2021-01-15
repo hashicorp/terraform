@@ -11,7 +11,7 @@ description: |-
 -> **Note:** This function is available only in Terraform 0.15 and later.
 
 ~> **Experimental:** This function is part of
-[the optional attributes experiment](../types.html#experimental-optional-object-type-attributes)
+[the optional attributes experiment](/docs/language/expressions/type-constraints.html#experimental-optional-object-type-attributes)
 and is only available in modules where the `module_variable_optional_attrs`
 experiment is explicitly enabled.
 
@@ -30,7 +30,7 @@ defaults(input_value, defaults)
 ```
 
 The `defaults` function expects that the `input_value` argument will be the
-value of an input variable with an exact [type constraint](../types.html)
+value of an input variable with an exact [type constraint](/docs/language/expressions/types.html)
 (not containing `any`). The function will then visit every attribute in
 the data structure, including attributes of nested objects, and apply the
 default values given in the defaults object.

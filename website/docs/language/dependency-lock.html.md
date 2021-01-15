@@ -14,9 +14,9 @@ information here is not relevant to those versions.
 A Terraform configuration may refer to two different kinds of external
 dependency that come from outside of its own codebase:
 
-* [Providers](./provider-requirements.html), which are plugins for Terraform
+* [Providers](/docs/language/providers/requirements.html), which are plugins for Terraform
   that extend it with support for interacting with various external systems.
-* [Modules](/docs/configuration/blocks/modules/index.html), which allow
+* [Modules](/docs/language/modules/index.html), which allow
   splitting out groups of Terraform configuration constructs (written in the
   Terraform language) into reusable abstractions.
 
@@ -26,7 +26,7 @@ reason, Terraform must determine which versions of those dependencies are
 potentially compatible with the current configuration and which versions are
 currently selected for use.
 
-[Version constraints](./version-constraints.html) within the configuration
+[Version constraints](/docs/language/expressions/version-constraints.html) within the configuration
 itself determine which versions of dependencies are _potentially_ compatible,
 but after selecting a specific version of each dependency Terraform remembers
 the decisions it made in a _dependency lock file_ so that it can (by default)
@@ -157,7 +157,7 @@ propsed changes. The following sections will describe these common situations.
 ### Dependency on a new provider
 
 If you add a new entry to the
-[provider requirements](./provider-requirements.html) for any module in your
+[provider requirements](/docs/language/providers/requirements.html) for any module in your
 configuration, or if you add an external module that includes a new provider
 dependency itself, `terraform init` will respond to that by selecting the
 newest version of that provider which meets all of the version constraints

@@ -5,7 +5,7 @@ page_title: "Manipulating State - Terraform CLI"
 
 # Manipulating Terraform State
 
-Terraform uses [state data](/docs/state/index.html) to remember which
+Terraform uses [state data](/docs/language/state/index.html) to remember which
 real-world object corresponds to each resource in the configuration;
 this allows it to modify an existing object when its resource declaration
 changes.

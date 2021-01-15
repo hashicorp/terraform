@@ -16,7 +16,7 @@ This function supports a subset of [YAML 1.2](https://yaml.org/spec/1.2/spec.htm
 as described below.
 
 This function maps YAML values to
-[Terraform language values](/docs/configuration/expressions/types.html)
+[Terraform language values](/docs/language/expressions/types.html)
 in the following way:
 
 | YAML type     | Terraform type                                                     |

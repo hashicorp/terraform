@@ -15,7 +15,7 @@ passwords.
 
 When using local state, state is stored in plain-text JSON files.
 
-When using [remote state](/docs/state/remote.html), state is only ever held in
+When using [remote state](/docs/language/state/remote.html), state is only ever held in
 memory when used by Terraform. It may be encrypted at rest, but this depends on
 the specific remote state backend.
 

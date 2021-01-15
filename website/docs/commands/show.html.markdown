@@ -18,7 +18,7 @@ flag.
 
 -> **Note:** When using the `-json` command-line flag, any sensitive values in
 Terraform state will be displayed in plain text. For more information, see
-[Sensitive Data in State](/docs/state/sensitive-data.html).
+[Sensitive Data in State](/docs/language/state/sensitive-data.html).
 
 ## JSON Output
 

@@ -10,7 +10,7 @@ description: |-
 
 The `terraform fmt` command is used to rewrite Terraform configuration files
 to a canonical format and style. This command applies a subset of
-the [Terraform language style conventions](/docs/configuration/style.html),
+the [Terraform language style conventions](/docs/language/syntax/style.html),
 along with other minor adjustments for readability.
 
 Other Terraform commands that generate Terraform configuration will produce

@@ -17,25 +17,25 @@ directly in terms of physical objects.
 
 The `.tf` files in your working directory when you run [`terraform plan`](/docs/commands/plan.html)
 or [`terraform apply`](/docs/commands/apply.html) together form the _root_
-module. That module may [call other modules](/docs/configuration/blocks/modules/syntax.html#calling-a-child-module)
+module. That module may [call other modules](/docs/language/modules/syntax.html#calling-a-child-module)
 and connect them together by passing output values from one to input values
 of another.
 
-To learn how to _use_ modules, see [the Modules configuration section](/docs/configuration/blocks/modules/index.html).
+To learn how to _use_ modules, see [the Modules configuration section](/docs/language/modules/index.html).
 This section is about _creating_ re-usable modules that other configurations
 can include using `module` blocks.
 
 ## Module structure
 
 Re-usable modules are defined using all of the same
-[configuration language](/docs/configuration/) concepts we use in root modules.
+[configuration language](/docs/language/index.html) concepts we use in root modules.
 Most commonly, modules use:
 
-* [Input variables](/docs/configuration/variables.html) to accept values from
+* [Input variables](/docs/language/values/variables.html) to accept values from
   the calling module.
-* [Output values](/docs/configuration/outputs.html) to return results to the
+* [Output values](/docs/language/values/outputs.html) to return results to the
   calling module, which it can then use to populate arguments elsewhere.
-* [Resources](/docs/configuration/blocks/resources/index.html) to define one or more
+* [Resources](/docs/language/resources/index.html) to define one or more
   infrastructure objects that the module will manage.
 
 To define a module, create a new directory for it and place one or more `.tf`

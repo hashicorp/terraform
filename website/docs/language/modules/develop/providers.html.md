@@ -54,10 +54,10 @@ to reintroduce the provider configuration.
 ## Provider Version Constraints in Modules
 
 Although provider _configurations_ are shared between modules, each module must
-declare its own [provider requirements](/docs/configuration/provider-requirements.html), so that
+declare its own [provider requirements](/docs/language/providers/requirements.html), so that
 Terraform can ensure that there is a single version of the provider that is
 compatible with all modules in the configuration and to specify the
-[source address](/docs/configuration/provider-requirements.html#source-addresses) that serves as
+[source address](/docs/language/providers/requirements.html#source-addresses) that serves as
 the global (module-agnostic) identifier for a provider.
 
 To declare that a module requires particular versions of a specific provider,
@@ -80,7 +80,7 @@ however, specify any of the configuration settings that determine what remote
 endpoints the provider will access, such as an AWS region; configuration
 settings come from provider _configurations_, and a particular overall Terraform
 configuration can potentially have
-[several different configurations for the same provider](/docs/configuration/providers.html#alias-multiple-provider-configurations).
+[several different configurations for the same provider](/docs/language/providers/configuration.html#alias-multiple-provider-configurations).
 
 If you are writing a shared Terraform module, constrain only the minimum
 required provider version using a `>=` constraint. This should specify the
@@ -121,10 +121,10 @@ resource "aws_s3_bucket" "example" {
 We recommend using this approach when a single configuration for each provider
 is sufficient for an entire configuration.
 
-~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](/docs/configuration/provider-requirements.html). This is especially important for non-HashiCorp providers.
+~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](/docs/language/providers/requirements.html). This is especially important for non-HashiCorp providers.
 
 In more complex situations there may be
-[multiple provider configurations](/docs/configuration/providers.html#alias-multiple-provider-configurations),
+[multiple provider configurations](/docs/language/providers/configuration.html#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
 its parent. For such situations, you must pass providers explicitly.
 
@@ -161,7 +161,7 @@ module "example" {
 ```
 
 The `providers` argument within a `module` block is similar to
-[the `provider` argument](/docs/configuration/meta-arguments/resource-provider.html)
+[the `provider` argument](/docs/language/meta-arguments/resource-provider.html)
 within a resource, but is a map rather than a single string because a module may
 contain resources from many different providers.
 
@@ -231,7 +231,7 @@ valid, it is not necessary: proxy configuration blocks are needed only to
 establish which _aliased_ provider configurations a child module expects.
 Don't use a proxy configuration block if a module only needs a single default
 provider configuration, and don't use proxy configuration blocks only to imply
-[provider requirements](/docs/configuration/provider-requirements.html).
+[provider requirements](/docs/language/providers/requirements.html).
 
 ## Legacy Shared Modules with Provider Configurations
 

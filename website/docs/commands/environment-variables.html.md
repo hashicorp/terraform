@@ -59,7 +59,7 @@ export TF_VAR_alist='[1,2,3]'
 export TF_VAR_amap='{ foo = "bar", baz = "qux" }'
 ```
 
-For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/configuration/variables.html).
+For more on how to use `TF_VAR_name` in context, check out the section on [Variable Configuration](/docs/language/values/variables.html).
 
 ## TF_CLI_ARGS and TF_CLI_ARGS_name
 
@@ -114,7 +114,7 @@ export TF_WORKSPACE=your_workspace
 Using this environment variable is recommended only for non-interactive usage, since in a local shell environment it can be easy to forget the variable is set and apply changes to the wrong state.
 
 For more information regarding workspaces, check out the section on [Using Workspaces]
-(https://www.terraform.io/docs/state/workspaces.html).
+(https://www.terraform.io/docs/language/state/workspaces.html).
 
 ## TF_IN_AUTOMATION
 
@@ -159,4 +159,4 @@ If `TF_IGNORE` is set to "trace", Terraform will output debug messages to displa
 export TF_IGNORE=trace
 ```
 
-For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/backends/types/remote.html#excluding-files-from-upload-with-terraformignore).
+For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/language/settings/backends/remote.html#excluding-files-from-upload-with-terraformignore).

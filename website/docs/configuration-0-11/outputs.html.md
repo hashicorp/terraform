@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Output Values](../configuration/outputs.html).
+[Configuration Language: Output Values](/docs/language/values/outputs.html).
 
 Outputs define values that will be highlighted to the user
 when Terraform applies, and can be queried easily using the

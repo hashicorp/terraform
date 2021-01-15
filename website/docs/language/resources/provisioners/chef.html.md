@@ -10,7 +10,7 @@ description: |-
 
 The `chef` provisioner installs, configures and runs the Chef Client on a remote
 resource. The `chef` provisioner supports both `ssh` and `winrm` type
-[connections](/docs/provisioners/connection.html).
+[connections](/docs/language/resources/provisioners/connection.html).
 
 !> **Note:** This provisioner was removed in the 0.15.0 version of Terraform after being deprecated as of Terraform 0.13.4. For most common situations there are better alternatives to using provisioners. For more information, see [the main Provisioners page](./).
 
@@ -68,7 +68,7 @@ The following arguments are supported:
 
 * `attributes_json (string)` - (Optional) A raw JSON string with initial node attributes
   for the new node. These can also be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html).
+  [the `file` function](/docs/language/functions/file.html).
 
 * `channel (string)` - (Optional) The Chef Client release channel to install from. If not
   set, the `stable` channel will be used.
@@ -127,7 +127,7 @@ The following arguments are supported:
 
 * `prevent_sudo (boolean)` - (Optional) Prevent the use of the `sudo` command while installing, configuring
   and running the initial Chef Client run. This option is only used with `ssh` type
-  [connections](/docs/provisioners/connection.html).
+  [connections](/docs/language/resources/provisioners/connection.html).
 
 * `recreate_client (boolean)` - (Optional) If `true`, first delete any existing Chef Node and
   Client before registering the new Chef Client.
@@ -145,7 +145,7 @@ The following arguments are supported:
 * `secret_key (string)` - (Optional) The contents of the secret key that is used
   by the Chef Client to decrypt data bags on the Chef Server. The key will be uploaded to the remote
   machine. This can also be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html).
+  [the `file` function](/docs/language/functions/file.html).
 
 * `server_url (string)` - (Required) The URL to the Chef server. This includes the path to
   the organization. See the example.
@@ -167,11 +167,11 @@ The following arguments are supported:
 
 * `user_key (string)` - (Required) The contents of the user key that will be used to
   authenticate with the Chef Server. This can also be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html).
+  [the `file` function](/docs/language/functions/file.html).
 
 * `vault_json (string)` - (Optional) A raw JSON string with Chef Vaults and Items to which the new node
   should have access. These can also be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html).
+  [the `file` function](/docs/language/functions/file.html).
 
 * `version (string)` - (Optional) The Chef Client version to install on the remote machine.
   If not set, the latest available version will be installed.
