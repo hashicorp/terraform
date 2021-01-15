@@ -1638,7 +1638,12 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		log.Printf("[TRACE] applyProvisioners: provisioning %s with %q", n.Addr, prov.Type)
 
 		// Get the provisioner
-		provisioner := ctx.Provisioner(prov.Type)
+		provisioner, err := ctx.Provisioner(prov.Type)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags.Err()
+		}
+
 		schema := ctx.ProvisionerSchema(prov.Type)
 
 		config, configDiags := evalScope(ctx, prov.Config, self, schema)

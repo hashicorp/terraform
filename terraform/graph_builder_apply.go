@@ -108,10 +108,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Provisioner-related transformations
-		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
-		&ProvisionerTransformer{},
-
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
@@ -162,7 +158,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
-		&CloseProvisionerTransformer{},
 
 		// close the root module
 		&CloseRootModuleTransformer{},

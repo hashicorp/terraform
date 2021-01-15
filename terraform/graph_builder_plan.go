@@ -115,10 +115,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		// Provisioner-related transformations
-		&MissingProvisionerTransformer{Provisioners: b.Components.ResourceProvisioners()},
-		&ProvisionerTransformer{},
-
 		// add providers
 		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
 
