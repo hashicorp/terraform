@@ -8,10 +8,6 @@ description: |-
 
 # `uuidv5` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `uuidv5` generates a _name-based_ UUID, as described in
 [RFC 4122 section 4.3](https://tools.ietf.org/html/rfc4122#section-4.3),
 also known as a "version 5" UUID.

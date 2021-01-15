@@ -9,10 +9,6 @@ description: |-
 
 # `timestamp` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `timestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.
 
 In the Terraform language, timestamps are conventionally represented as

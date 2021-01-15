@@ -8,10 +8,6 @@ description: |-
 
 # `lookup` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `lookup` retrieves the value of a single element from a map, given its key.
 If the given key does not exist, the given default value is returned instead.
 

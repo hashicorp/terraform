@@ -9,10 +9,6 @@ description: |-
 
 # `setsubtract` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 The `setsubtract` function returns a new set containing the elements from the first set that are not present in the second set. In other words, it computes the
 [relative complement](https://en.wikipedia.org/wiki/Complement_(set_theory)#Relative_complement) of the first set in the second set.
 

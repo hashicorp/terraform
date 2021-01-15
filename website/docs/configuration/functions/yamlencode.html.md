@@ -8,10 +8,6 @@ description: |-
 
 # `yamlencode` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `yamlencode` encodes a given value to a string using
 [YAML 1.2](https://yaml.org/spec/1.2/spec.html) block syntax.
 
