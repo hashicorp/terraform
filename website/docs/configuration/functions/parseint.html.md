@@ -8,10 +8,6 @@ description: |-
 
 # `parseint` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `parseint` parses the given string as a representation of an integer in
 the specified base and returns the resulting number. The base must be between 2
 and 62 inclusive.

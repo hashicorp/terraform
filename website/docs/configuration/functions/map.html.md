@@ -8,10 +8,6 @@ description: |-
 
 # `map` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 The `map` function is no longer available. Prior to Terraform v0.12 it was
 the only available syntax for writing a literal map inside an expression,
 but Terraform v0.12 introduced a new first-class syntax.

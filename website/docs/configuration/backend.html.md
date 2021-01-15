@@ -5,10 +5,6 @@ page_title: "Backend Configuration - Configuration Language"
 
 # Backend Configuration
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Terraform Settings](../configuration-0-11/terraform.html).
-
 
 Each Terraform configuration can specify a backend, which defines exactly where
 and how operations are performed, where [state](/docs/state/index.html)

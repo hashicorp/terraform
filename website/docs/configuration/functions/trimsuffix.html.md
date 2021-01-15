@@ -9,10 +9,6 @@ description: |-
 
 # `trimsuffix` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `trimsuffix` removes the specified suffix from the end of the given string.
 
 ## Examples

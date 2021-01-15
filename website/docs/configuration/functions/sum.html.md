@@ -9,10 +9,6 @@ description: |-
 
 # `sum` Function
 
--> **Note:** This page is about Terraform 0.13 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `sum` takes a list or set of numbers and returns the sum of those numbers.
 
 

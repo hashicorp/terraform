@@ -8,10 +8,6 @@ description: |-
 
 # `fileset` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `fileset` enumerates a set of regular file names given a path and pattern.
 The path is automatically removed from the resulting set of file names and any
 result still containing path separators always returns forward slash (`/`) as

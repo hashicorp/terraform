@@ -8,10 +8,6 @@ description: |-
 
 # Output Values
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Output Values](../configuration-0-11/outputs.html).
-
 > **Hands-on:** Try the [Output Data From
 Terraform](https://learn.hashicorp.com/tutorials/terraform/outputs?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 tutorial on HashiCorp Learn.

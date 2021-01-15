@@ -9,10 +9,6 @@ description: |-
 
 # Local Values
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Local Values](../configuration-0-11/locals.html).
-
 > **Hands-on:** Try the [Simplify Terraform Configuration with
 Locals](https://learn.hashicorp.com/tutorials/terraform/locals?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 tutorial on HashiCorp Learn.
