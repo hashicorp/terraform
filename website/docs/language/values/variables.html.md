@@ -17,7 +17,7 @@ and allowing modules to be shared between different configurations.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.
-When you declare them in [child modules](/docs/configuration/blocks/modules/index.html),
+When you declare them in [child modules](/docs/language/modules/index.html),
 the calling module should pass values in the `module` block.
 
 If you're familiar with traditional programming languages, it can be useful to
@@ -32,7 +32,7 @@ compare Terraform modules to function definitions:
 variable is being discussed. Other kinds of variables in Terraform include
 _environment variables_ (set by the shell where Terraform runs) and _expression
 variables_ (used to indirectly represent a value in an
-[expression](/docs/configuration/expressions/index.html)).
+[expression](/docs/language/expressions/index.html)).
 
 ## Declaring an Input Variable
 
@@ -70,11 +70,11 @@ be unique among all variables in the same module. This name is used to
 assign a value to the variable from outside and to reference the variable's
 value from within the module.
 
-The name of a variable can be any valid [identifier](./syntax.html#identifiers)
+The name of a variable can be any valid [identifier](/docs/language/syntax/configuration.html#identifiers)
 _except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
-[module configuration blocks](/docs/configuration/blocks/modules/syntax.html), and cannot be
+[module configuration blocks](/docs/language/modules/syntax.html), and cannot be
 declared as variable names.
 
 ## Arguments
@@ -102,7 +102,7 @@ configuration.
 [inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
-[type of value](/docs/configuration/expressions/types.html) that will be accepted as
+[type of value](/docs/language/expressions/types.html) that will be accepted as
 the value for a variable. If no type constraint is set then a value of any type
 is accepted.
 
@@ -129,7 +129,7 @@ collections:
 The keyword `any` may be used to indicate that any type is acceptable. For
 more information on the meaning and behavior of these different types, as well
 as detailed information about automatic conversion of complex types, see
-[Type Constraints](./types.html).
+[Type Constraints](/docs/language/expressions/types.html).
 
 If both the `type` and `default` arguments are specified, the given default
 value must be convertible to the specified type.
@@ -183,7 +183,7 @@ The expression can refer only to the variable that the condition applies to,
 and _must not_ produce errors.
 
 If the failure of an expression is the basis of the validation decision, use
-[the `can` function](./functions/can.html) to detect such errors. For example:
+[the `can` function](/docs/language/functions/can.html) to detect such errors. For example:
 
 ```hcl
 variable "image_id" {
@@ -213,7 +213,7 @@ using a sentence structure similar to the above examples.
 
 Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
 
-Sensitive values are still recorded in the [state](/docs/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/state/sensitive-data.html).
+Sensitive values are still recorded in the [state](/docs/language/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
 
 A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
 
@@ -300,7 +300,7 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 ## Using Input Variable Values
 
 Within the module that declared a variable, its value can be accessed from
-within [expressions](/docs/configuration/expressions/index.html) as `var.<NAME>`,
+within [expressions](/docs/language/expressions/index.html) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
 -> **Note:** Input variables are _created_ by a `variable` block, but you
@@ -330,7 +330,7 @@ can be set in a number of ways:
 The following sections describe these options in more detail. This section does
 not apply to _child_ modules, where values for input variables are instead
 assigned in the configuration of their parent module, as described in
-[_Modules_](/docs/configuration/blocks/modules/index.html).
+[_Modules_](/docs/language/modules/index.html).
 
 ### Variables on the Command Line
 
@@ -413,7 +413,7 @@ and lower case letters as in the above example.
 
 When variable values are provided in a variable definitions file, you can use
 Terraform's usual syntax for
-[literal expressions](/docs/configuration/expressions/types.html#literal-expressions)
+[literal expressions](/docs/language/expressions/types.html#literal-expressions)
 to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment

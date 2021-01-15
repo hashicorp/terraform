@@ -17,7 +17,7 @@ these by calling a backend either **standard** or **enhanced**. All backends
 must implement **standard** functionality. These are defined below:
 
   * **Standard**: State management, functionality covered in
-    [State Storage & Locking](/docs/backends/state.html)
+    [State Storage & Locking](/docs/language/state/backends.html)
 
   * **Enhanced**: Everything in standard plus
     [remote operations](/docs/backends/operations.html).

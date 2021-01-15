@@ -59,7 +59,7 @@ determines which mode it uses:
   all of the desired remote workspace names. For example, set
   `prefix = "networking-"` to use Terraform cloud workspaces with
   names like `networking-dev` and `networking-prod`. This is helpful when
-  mapping multiple Terraform CLI [workspaces](../../state/workspaces.html)
+  mapping multiple Terraform CLI [workspaces](/docs/language/state/workspaces.html)
   used in a single Terraform configuration to multiple Terraform Cloud
   workspaces.
 
@@ -70,7 +70,7 @@ the Terraform CLI workspace `prod` within the current configuration. Remote
 Terraform operations such as `plan` and `apply` executed against that Terraform
 CLI workspace will be executed in the Terraform Cloud workspace `networking-prod`.
 
-Additionally, the [`${terraform.workspace}`](../../state/workspaces.html#current-workspace-interpolation)
+Additionally, the [`${terraform.workspace}`](/docs/language/state/workspaces.html#current-workspace-interpolation)
 interpolation sequence should be removed from Terraform configurations that run
 remote operations against Terraform Cloud workspaces. The reason for this is that
 each Terraform Cloud workspace currently only uses the single `default` Terraform

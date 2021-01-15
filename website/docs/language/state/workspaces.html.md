@@ -10,7 +10,7 @@ description: |-
 
 Each Terraform configuration has an associated [backend](/docs/backends/index.html)
 that defines how operations are executed and where persistent data such as
-[the Terraform state](https://www.terraform.io/docs/state/purpose.html) are
+[the Terraform state](https://www.terraform.io/docs/language/state/purpose.html) are
 stored.
 
 The persistent data stored in the backend belongs to a _workspace_. Initially
@@ -25,16 +25,16 @@ credentials.
 
 Multiple workspaces are currently supported by the following backends:
 
- * [AzureRM](/docs/backends/types/azurerm.html)
- * [Consul](/docs/backends/types/consul.html)
- * [COS](/docs/backends/types/cos.html)
- * [GCS](/docs/backends/types/gcs.html)
- * [Kubernetes](/docs/backends/types/kubernetes.html)
- * [Local](/docs/backends/types/local.html)
- * [Manta](/docs/backends/types/manta.html)
- * [Postgres](/docs/backends/types/pg.html)
- * [Remote](/docs/backends/types/remote.html)
- * [S3](/docs/backends/types/s3.html)
+ * [AzureRM](/docs/language/settings/backends/azurerm.html)
+ * [Consul](/docs/language/settings/backends/consul.html)
+ * [COS](/docs/language/settings/backends/cos.html)
+ * [GCS](/docs/language/settings/backends/gcs.html)
+ * [Kubernetes](/docs/language/settings/backends/kubernetes.html)
+ * [Local](/docs/language/settings/backends/local.html)
+ * [Manta](/docs/language/settings/backends/manta.html)
+ * [Postgres](/docs/language/settings/backends/pg.html)
+ * [Remote](/docs/language/settings/backends/remote.html)
+ * [S3](/docs/language/settings/backends/s3.html)
 
 In the 0.9 line of Terraform releases, this concept was known as "environment".
 It was renamed in 0.10 based on feedback about confusion caused by the
@@ -81,7 +81,7 @@ Within your Terraform configuration, you may include the name of the current
 workspace using the `${terraform.workspace}` interpolation sequence. This can
 be used anywhere interpolations are allowed. However, it should **not** be
 used in remote operations against Terraform Cloud workspaces. For an
-explanation, see the [remote backend](../backends/types/remote.html#workspaces)
+explanation, see the [remote backend](/docs/language/settings/backends/remote.html#workspaces)
 document.
 
 Referencing the current workspace is useful for changing behavior based
@@ -146,7 +146,7 @@ In this case, the backend used for each deployment often belongs to that
 deployment, with different credentials and access controls. Named workspaces
 are _not_ a suitable isolation mechanism for this scenario.
 
-Instead, use one or more [re-usable modules](/docs/modules/index.html) to
+Instead, use one or more [re-usable modules](/docs/language/modules/develop/index.html) to
 represent the common elements, and then represent each instance as a separate
 configuration that instantiates those common elements in the context of a
 different backend. In that case, the root module of each configuration will
@@ -176,7 +176,7 @@ another using paired resources types and data sources. For example:
 
 * If a Terraform state for one configuration is stored in a remote backend
   that is accessible to other configurations then
-  [`terraform_remote_state`](/docs/providers/terraform/d/remote_state.html)
+  [`terraform_remote_state`](/docs/language/state/remote-state-data.html)
   can be used to directly consume its root module outputs from those other
   configurations. This creates a tighter coupling between configurations,
   but avoids the need for the "producer" configuration to explicitly
@@ -194,9 +194,9 @@ local-only `terraform.tfstate`; some teams commit these files to version
 control, although using a remote backend instead is recommended when there are
 multiple collaborators.
 
-For [remote state](/docs/state/remote.html), the workspaces are stored
+For [remote state](/docs/language/state/remote.html), the workspaces are stored
 directly in the configured [backend](/docs/backends/). For example, if you
-use [Consul](/docs/backends/types/consul.html), the workspaces are stored
+use [Consul](/docs/language/settings/backends/consul.html), the workspaces are stored
 by appending the workspace name to the state path. To ensure that
 workspace names are stored correctly and safely in all backends, the name
 must be valid to use in a URL path segment without escaping.

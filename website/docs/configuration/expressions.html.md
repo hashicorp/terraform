@@ -21,7 +21,7 @@ Terraform's types are `string`, `number`, `bool`, `list`, `tuple`, `map`,
 `object`, and `null`.
 
 This information has moved to
-[Types and Values](/docs/configuration/expressions/types.html).
+[Types and Values](/docs/language/expressions/types.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -40,7 +40,7 @@ You can refer to certain values by name, like `var.some_variable` or
 `aws_instance.example.ami`.
 
 This information has moved to
-[References to Values](/docs/configuration/expressions/references.html).
+[References to Values](/docs/language/expressions/references.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -57,7 +57,7 @@ Operators are expressions that transform other expressions, like adding two
 numbers (`+`) or comparing two values to get a bool (`==`, `>=`, etc.).
 
 This information has moved to
-[Operators](/docs/configuration/expressions/references.html).
+[Operators](/docs/language/expressions/references.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -69,7 +69,7 @@ The `condition ? true_val : false_val` expression chooses between two
 expressions based on a bool condition.
 
 This information has moved to
-[Conditional Expressions](/docs/configuration/expressions/conditionals.html).
+[Conditional Expressions](/docs/language/expressions/conditionals.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -83,7 +83,7 @@ This information has moved to
 Terraform's functions can be called like `function_name(arg1, arg2)`.
 
 This information has moved to
-[Function Calls](/docs/configuration/expressions/function-calls.html).
+[Function Calls](/docs/language/expressions/function-calls.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -97,7 +97,7 @@ Expressions like `[for s in var.list : upper(s)]` can transform a complex type
 value into another complex type value.
 
 This information has moved to
-[For Expressions](/docs/configuration/expressions/for.html).
+[For Expressions](/docs/language/expressions/for.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -112,7 +112,7 @@ Expressions like `var.list[*].id` can extract simpler collections from complex
 collections.
 
 This information has moved to
-[Splat Expressions](/docs/configuration/expressions/splat.html).
+[Splat Expressions](/docs/language/expressions/splat.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -127,7 +127,7 @@ The special `dynamic` block type serves the same purpose as a `for` expression,
 except it creates multiple repeatable nested blocks instead of a complex value.
 
 This information has moved to
-[Dynamic Blocks](/docs/configuration/expressions/dynamic-blocks.html).
+[Dynamic Blocks](/docs/language/expressions/dynamic-blocks.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -152,6 +152,6 @@ Strings can also include escape sequences like `\n`, interpolation sequences
 (`${ ... }`), and template sequences (`%{ ... }`).
 
 This information has moved to
-[Strings and Templates](/docs/configuration/expressions/strings.html).
+[Strings and Templates](/docs/language/expressions/strings.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>

@@ -12,7 +12,7 @@ description: |-
 
 Stores the state in the [etcd](https://coreos.com/etcd/) KV store with a given prefix.
 
-This backend supports [state locking](/docs/state/locking.html).
+This backend supports [state locking](/docs/language/state/locking.html).
 
 ## Example Configuration
 

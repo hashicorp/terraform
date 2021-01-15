@@ -31,7 +31,7 @@ The command-line flags are all optional. The list of available flags are:
     for processing complex data types.
 * `-no-color` - If specified, output won't contain any color.
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-    Ignored when [remote state](/docs/state/remote.html) is used.
+    Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 ## Examples
 

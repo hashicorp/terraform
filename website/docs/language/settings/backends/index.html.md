@@ -6,13 +6,13 @@ page_title: "Backend Overview - Configuration Language"
 # Backends
 
 Each Terraform configuration can specify a backend, which defines where
-and how operations are performed, where [state](/docs/state/index.html)
+and how operations are performed, where [state](/docs/language/state/index.html)
 snapshots are stored, etc.
 
 The rest of this page introduces the concept of backends; the other pages in
 this section document how to configure and use backends.
 
-- [Backend Configuration](/docs/configuration/backend.html) documents the form
+- [Backend Configuration](/docs/language/settings/backends/configuration.html) documents the form
   of a `backend` block, which selects and configures a backend for a
   Terraform configuration.
 - This section also includes a page for each of Terraform's built-in backends,
@@ -58,7 +58,7 @@ There are two areas of Terraform's behavior that are determined by the backend:
 
 ### State
 
-Terraform uses persistent [state](/docs/state/index.html) data to keep track of
+Terraform uses persistent [state](/docs/language/state/index.html) data to keep track of
 the resources it manages. Since it needs the state in order to know which
 real-world infrastructure objects correspond to the resources in a
 configuration, everyone working with a given collection of infrastructure

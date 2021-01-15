@@ -5,9 +5,9 @@ page_title: "The Module providers Meta-Argument - Configuration Language"
 
 # The Module `providers` Meta-Argument
 
-In a [module call](/docs/configuration/blocks/modules/syntax.html) block, the
+In a [module call](/docs/language/modules/syntax.html) block, the
 optional `providers` meta-argument specifies which
-[provider configurations](/docs/configuration/providers.html) from the parent
+[provider configurations](/docs/language/providers/configuration.html) from the parent
 module will be available inside the child module.
 
 ```hcl
@@ -120,4 +120,4 @@ names it needs.
 
 For more details and guidance about working with providers inside a re-usable
 child module, see
-[Module Development: Providers Within Modules](/docs/modules/providers.html).
+[Module Development: Providers Within Modules](/docs/language/modules/develop/providers.html).

@@ -18,7 +18,7 @@ This data source is built into Terraform, and is always available; you do not
 need to require or configure a provider in order to use it.
 
 -> **Note:** This data source is implemented by a built-in provider, whose
-[source address](/docs/configuration/provider-requirements.html#source-addresses)
+[source address](/docs/language/providers/requirements.html#source-addresses)
 is `terraform.io/builtin/terraform`. That provider does not include any other
 resources or data sources.
 
@@ -81,14 +81,14 @@ or the
 Some of the data stores listed above are specifically designed for storing
 small configuration values, while others are generic blob storage systems. For
 those generic systems, you can use
-[the `jsonencode` function](https://www.terraform.io/docs/configuration/functions/jsonencode.html)
+[the `jsonencode` function](https://www.terraform.io/docs/language/functions/jsonencode.html)
 and
-[the `jsondecode` function](https://www.terraform.io/docs/configuration/functions/jsondecode.html) respectively
+[the `jsondecode` function](https://www.terraform.io/docs/language/functions/jsondecode.html) respectively
 to store and retrieve structured data.
 
 You can encapsulate the implementation details of retrieving your published
 configuration data by writing a
-[data-only module](/docs/modules/composition.html#data-only-modules)
+[data-only module](/docs/language/modules/develop/composition.html#data-only-modules)
 containing the necessary data source configuration and any necessary
 post-processing such as JSON decoding. You can then change that module later
 if you switch to a different strategy for sharing data between multiple
@@ -172,8 +172,8 @@ The following arguments are supported:
 In addition to the above, the following attributes are exported:
 
 * (v0.12+) `outputs` - An object containing every root-level
-  [output](/docs/configuration/outputs.html) in the remote state.
-* (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/docs/configuration/outputs.html)
+  [output](/docs/language/values/outputs.html) in the remote state.
+* (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/docs/language/values/outputs.html)
   in the remote state appears as a top level attribute on the data source.
 
 ## Root Outputs Only

@@ -15,7 +15,7 @@ of the result of decoding that string.
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).
 
 This function maps JSON values to
-[Terraform language values](/docs/configuration/expressions/types.html)
+[Terraform language values](/docs/language/expressions/types.html)
 in the following way:
 
 | JSON type | Terraform type                                               |

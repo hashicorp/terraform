@@ -7,7 +7,7 @@ page_title: "Managing Plugins - Terraform CLI"
 
 Terraform relies on plugins called "providers" in order to manage various types
 of resources. (For more information about providers, see
-[Providers](/docs/configuration/blocks/providers/index.html) in the Terraform
+[Providers](/docs/language/providers/index.html) in the Terraform
 language docs.)
 
 -> **Note:** Providers are currently the only plugin type most Terraform users
@@ -15,7 +15,7 @@ will interact with. Terraform also supports third-party provisioner plugins, but
 we discourage their use.
 
 Terraform downloads and/or installs any providers
-[required](/docs/configuration/provider-requirements.html) by a configuration
+[required](/docs/language/providers/requirements.html) by a configuration
 when [initializing](/docs/cli/init/index.html) a working directory. By default,
 this works without any additional interaction but requires network access to
 download providers from their source registry.

@@ -9,7 +9,7 @@ description: |-
 # Command: get
 
 The `terraform get` command is used to download and update
-[modules](/docs/modules/index.html) mentioned in the root module.
+[modules](/docs/language/modules/develop/index.html) mentioned in the root module.
 
 ## Usage
 

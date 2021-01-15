@@ -29,7 +29,7 @@ resource instance, and then potentially update or delete that object in
 response to future configuration changes.
 
 For more information on why Terraform requires state and why Terraform cannot
-function without state, please see the page [state purpose](/docs/state/purpose.html).
+function without state, please see the page [state purpose](/docs/language/state/purpose.html).
 
 ## Inspection and Modification
 

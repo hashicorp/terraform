@@ -36,7 +36,7 @@ instance resource.
 
 ### Resources
 
-`<RESOURCE TYPE>.<NAME>` represents a [managed resource](/docs/configuration/blocks/resources/index.html) of
+`<RESOURCE TYPE>.<NAME>` represents a [managed resource](/docs/language/resources/index.html) of
 the given type and name.
 
 The value of a resource reference can vary, depending on whether the resource
@@ -58,26 +58,43 @@ For more information about how to use resource references, see
 
 ### Input Variables
 
-`var.<NAME>` is the value of the [input variable](/docs/configuration/variables.html) of the given name.
+`var.<NAME>` is the value of the [input variable](/docs/language/values/variables.html) of the given name.
 
 ### Local Values
 
-`local.<NAME>` is the value of the [local value](/docs/configuration/locals.html) of the given name.
+`local.<NAME>` is the value of the [local value](/docs/language/values/locals.html) of the given name.
 
 ### Child Module Outputs
 
-* `module.<MODULE NAME>.<OUTPUT NAME>` is the value of the specified
-  [output value](/docs/configuration/outputs.html) from a
-  [child module](/docs/configuration/blocks/modules/index.html) called by the
-  current module.
+`module.<MODULE NAME>` is an value representing the results of
+[a `module` block](/docs/language/modules/syntax.html).
+
+If the corresponding `module` block does not have either `count` nor `for_each`
+set then the value will be an object with one attribute for each output value
+defined in the child module. To access one of the module's
+[output values](/docs/language/values/outputs.html), use `module.<MODULE NAME>.<OUTPUT NAME>`.
+
+If the corresponding `module` uses `for_each` then the value will be a map
+of objects whose keys correspond with the keys in the `for_each` expression,
+and whose values are each objects with one attribute for each output value
+defined in the child module, each representing one module instance.
+
+If the corresponding module uses `count` then the result is similar to for
+`for_each` except that the value is a _list_ with the requested number of
+elements, each one representing one module instance.
 
 ### Data Sources
 
-* `data.<DATA TYPE>.<NAME>` is an object representing a
-  [data resource](/docs/configuration/data-sources.html) of the given data
-  source type and name. If the resource has the `count` argument set, the value
-  is a list of objects representing its instances. If the resource has the `for_each`
-  argument set, the value is a map of objects representing its instances.
+`data.<DATA TYPE>.<NAME>` is an object representing a
+[data resource](/docs/language/data-sources/index.html) of the given data
+source type and name. If the resource has the `count` argument set, the value
+is a list of objects representing its instances. If the resource has the `for_each`
+argument set, the value is a map of objects representing its instances.
+
+For more information, see
+[References to Resource Attributes](#references-to-resource-attributes), which
+also applies to data resources aside from the addition of the `data.` prefix
+to mark the reference as for a data resource.
 
 ### Filesystem and Workspace Info
 
@@ -89,7 +106,7 @@ For more information about how to use resource references, see
   uses of Terraform run it from a directory other than the root module
   directory, causing these paths to be different.
 * `terraform.workspace` is the name of the currently selected
-  [workspace](/docs/state/workspaces.html).
+  [workspace](/docs/language/state/workspaces.html).
 
 ### Block-Local Values
 
@@ -99,15 +116,15 @@ These local names are described in the documentation for the specific contexts
 where they appear. Some of most common local names are:
 
 - `count.index`, in resources that use
-  [the `count` meta-argument](/docs/configuration/meta-arguments/count.html).
+  [the `count` meta-argument](/docs/language/meta-arguments/count.html).
 - `each.key` / `each.value`, in resources that use
-  [the `for_each` meta-argument](/docs/configuration/meta-arguments/for_each.html).
-- `self`, in [provisioner](/docs/provisioners/index.html) and
-  [connection](/docs/provisioners/connection.html) blocks.
+  [the `for_each` meta-argument](/docs/language/meta-arguments/for_each.html).
+- `self`, in [provisioner](/docs/language/resources/provisioners/syntax.html) and
+  [connection](/docs/language/resources/provisioners/connection.html) blocks.
 
 -> **Note:** Local names are often referred to as _variables_ or
 _temporary variables_ in their documentation. These are not [input
-variables](/docs/configuration/variables.html); they are just arbitrary names
+variables](/docs/language/values/variables.html); they are just arbitrary names
 that temporarily represent a value.
 
 ## Named Values and Dependencies
@@ -184,7 +201,7 @@ for use in references, as follows:
     `{for k, device in aws_instance.example.device : k => device.size}`.
 
 When a resource has the
-[`count`](/docs/configuration/meta-arguments/count.html)
+[`count`](/docs/language/meta-arguments/count.html)
 argument set, the resource itself becomes a _list_ of instance objects rather than
 a single object. In that case, access the attributes of the instances using
 either [splat expressions](./splat.html) or index syntax:
@@ -194,7 +211,7 @@ either [splat expressions](./splat.html) or index syntax:
 * `aws_instance.example[0].id` returns just the id of the first instance.
 
 When a resource has the
-[`for_each`](/docs/configuration/meta-arguments/for_each.html)
+[`for_each`](/docs/language/meta-arguments/for_each.html)
 argument set, the resource itself becomes a _map_ of instance objects rather than
 a single object, and attributes of instances must be specified by key, or can
 be accessed using a [`for` expression](./for.html).
@@ -257,9 +274,9 @@ a plan involving that attribute.
 
 The treatment of these particular sensitive values is currently different than
 for values in
-[input variables](/docs/configuration/variables.html)
+[input variables](/docs/language/values/variables.html)
 and
-[output values](/docs/configuration/outputs.html)
+[output values](/docs/language/values/outputs.html)
 that have `sensitive = true` set. Sensitive resource attributes will be
 obscured in the plan when they appear directly, but other values that you
 _derive_ from a sensitive resource attribute will not themselves be considered
@@ -267,7 +284,7 @@ sensitive, and so Terraform will include those derived values in its output
 without redacting them.
 
 Terraform v0.14.0 and later has an
-[experimental feature](/docs/configuration/terraform.html#experimental-language-features)
+[experimental feature](/docs/language/settings/index.html#experimental-language-features)
 to treat resource attributes that are marked as sensitive in the same way as
 sensitive input variables and output values, so that Terraform will consider
 any derived values as sensitive too. You can activate that experiment for your

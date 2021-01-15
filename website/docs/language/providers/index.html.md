@@ -13,8 +13,8 @@ configuration (like endpoint URLs or cloud regions) before they can be used.
 
 ## What Providers Do
 
-Each provider adds a set of [resource types](/docs/configuration/blocks/resources/index.html)
-and/or [data sources](/docs/configuration/data-sources.html) that Terraform can
+Each provider adds a set of [resource types](/docs/language/resources/index.html)
+and/or [data sources](/docs/language/data-sources/index.html) that Terraform can
 manage.
 
 Every resource type is implemented by a provider; without providers, Terraform
@@ -38,13 +38,13 @@ providers for most major infrastructure platforms.
 To use resources from a given provider, you need to include some information
 about it in your configuration. See the following pages for details:
 
-- [Provider Requirements](/docs/configuration/provider-requirements.html)
+- [Provider Requirements](/docs/language/providers/requirements.html)
   documents how to declare providers so Terraform can install them.
 
-- [Provider Configuration](/docs/configuration/providers.html)
+- [Provider Configuration](/docs/language/providers/configuration.html)
   documents how to configure settings for providers.
 
-- [Dependency Lock File](/docs/configuration/dependency-lock.html)
+- [Dependency Lock File](/docs/language/dependency-lock.html)
   documents an additional HCL file that can be included with a configuration,
   which tells Terraform to always use a specific set of provider versions.
 
@@ -64,7 +64,7 @@ about it in your configuration. See the following pages for details:
 
 To ensure Terraform always installs the same provider versions for a given
 configuration, you can use Terraform CLI to create a
-[dependency lock file](/docs/configuration/dependency-lock.html)
+[dependency lock file](/docs/language/dependency-lock.html)
 and commit it to version control along with your configuration. If a lock file
 is present, Terraform Cloud, CLI, and Enterprise will all obey it when
 installing providers.

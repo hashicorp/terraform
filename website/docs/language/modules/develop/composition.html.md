@@ -310,7 +310,7 @@ Most modules contain `resource` blocks and thus describe infrastructure to be
 created and managed. It may sometimes be useful to write modules that do not
 describe any new infrastructure at all, but merely retrieve information about
 existing infrastructure that was created elsewhere using
-[data sources](/docs/configuration/data-sources.html).
+[data sources](/docs/language/data-sources/index.html).
 
 As with conventional modules, we suggest using this technique only when the
 module raises the level of abstraction in some way, in this case by
@@ -346,7 +346,7 @@ data sources, or it could read saved information from a Consul cluster using
 [`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys),
 or it might read the outputs directly from the state of the configuration that
 manages the network using
-[`terraform_remote_state`](https://www.terraform.io/docs/providers/terraform/d/remote_state.html).
+[`terraform_remote_state`](https://www.terraform.io/docs/language/state/remote-state-data.html).
 
 The key benefit of this approach is that the source of this information can
 change over time without updating every configuration that depends on it.

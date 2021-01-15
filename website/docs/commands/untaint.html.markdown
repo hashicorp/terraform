@@ -52,11 +52,11 @@ certain cases, see above note). The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](/docs/language/state/remote.html) is used.
 
 * `-ignore-remote-version` - When using the enhanced remote backend with
   Terraform Cloud, continue even if remote and local Terraform versions differ.

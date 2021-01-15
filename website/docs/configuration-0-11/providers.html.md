@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Providers](../configuration/providers.html).
+[Configuration Language: Providers](/docs/language/providers/index.html).
 
 Providers are responsible in Terraform for managing the lifecycle
 of a [resource](./resources.html): create,

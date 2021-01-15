@@ -81,9 +81,9 @@ nested block. If you need to declare resource instances based on a nested
 data structure or combinations of elements from multiple data structures you
 can use Terraform expressions and functions to derive a suitable value.
 For some common examples of such situations, see the
-[`flatten`](/docs/configuration/functions/flatten.html)
+[`flatten`](/docs/language/functions/flatten.html)
 and
-[`setproduct`](/docs/configuration/functions/setproduct.html)
+[`setproduct`](/docs/language/functions/setproduct.html)
 functions.
 
 ## Best Practices for `dynamic` Blocks

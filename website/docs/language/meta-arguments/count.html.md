@@ -12,14 +12,14 @@ previous versions can only use it with resources.
 
 > **Hands-on:** Try the [Manage Similar Resources With Count](https://learn.hashicorp.com/tutorials/terraform/count?in=terraform/0-13&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
-By default, a [resource block](/docs/configuration/blocks/resources/syntax.html) configures one real
+By default, a [resource block](/docs/language/resources/syntax.html) configures one real
 infrastructure object. (Similarly, a
-[module block](/docs/configuration/blocks/modules/syntax.html) includes a
+[module block](/docs/language/modules/syntax.html) includes a
 child module's contents into the configuration one time.)
 However, sometimes you want to manage several similar objects (like a fixed
 pool of compute instances) without writing a separate block for each one.
 Terraform has two ways to do this:
-`count` and [`for_each`](/docs/configuration/meta-arguments/for_each.html).
+`count` and [`for_each`](/docs/language/meta-arguments/for_each.html).
 
 If a resource or module block includes a `count` argument whose value is a whole number,
 Terraform will create that many instances.
@@ -58,7 +58,7 @@ This object has one attribute:
 
 ## Using Expressions in `count`
 
-The `count` meta-argument accepts numeric [expressions](/docs/configuration/expressions/index.html).
+The `count` meta-argument accepts numeric [expressions](/docs/language/expressions/index.html).
 However, unlike most arguments, the `count` value must be known
 _before_ Terraform performs any remote resource actions. This means `count`
 can't refer to any resource attributes that aren't known until after a

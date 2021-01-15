@@ -10,7 +10,7 @@ description: |-
 # JSON Configuration Syntax
 
 Most Terraform configurations are written in
-[the native Terraform language syntax](./syntax.html), which is designed to be
+[the native Terraform language syntax](/docs/language/syntax/configuration.html), which is designed to be
 relatively easy for humans to read and update.
 
 Terraform also supports an alternative syntax that is JSON-compatible. This
@@ -94,7 +94,7 @@ different (see the [block-type-specific exceptions](#block-type-specific-excepti
   correspond either to argument names or to nested block type names.
 
 * Where a property corresponds to an argument that accepts
-  [arbitrary expressions](/docs/configuration/expressions/index.html) in the native syntax, the
+  [arbitrary expressions](/docs/language/expressions/index.html) in the native syntax, the
   property value is mapped to an expression as described under
   [_Expression Mapping_](#expression-mapping) below. For arguments that
   do _not_ accept arbitrary expressions, the interpretation of the property
@@ -111,7 +111,7 @@ different (see the [block-type-specific exceptions](#block-type-specific-excepti
 ## Expression Mapping
 
 Since JSON grammar is not able to represent all of the Terraform language
-[expression syntax](/docs/configuration/expressions/index.html), JSON values interpreted as expressions
+[expression syntax](/docs/language/expressions/index.html), JSON values interpreted as expressions
 are mapped as follows:
 
 | JSON    | Terraform Language Interpretation                                                                             |
@@ -123,7 +123,7 @@ are mapped as follows:
 | Array   | Each element is mapped per this table, producing a `tuple(...)` value with suitable element types.            |
 | Null    | A literal `null`.                                                                                             |
 
-[string template]: /docs/configuration/expressions/strings.html#string-templates
+[string template]: /docs/language/expressions/strings.html#string-templates
 
 When a JSON string is encountered in a location where arbitrary expressions are
 expected, its value is first parsed as a [string template][]

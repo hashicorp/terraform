@@ -17,4 +17,4 @@ Cloud or Terraform Enterprise.
 
 Notably, this documentation does not cover the syntax and usage of the Terraform
 language. For that, see the
-[Terraform Language Documentation](/docs/configuration/index.html).
+[Terraform Language Documentation](/docs/language/index.html).

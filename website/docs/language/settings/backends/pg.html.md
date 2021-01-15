@@ -12,7 +12,7 @@ description: |-
 
 Stores the state in a [Postgres database](https://www.postgresql.org) version 9.5 or newer.
 
-This backend supports [state locking](/docs/state/locking.html).
+This backend supports [state locking](/docs/language/state/locking.html).
 
 ## Example Configuration
 
@@ -54,7 +54,7 @@ terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?
 
 ## Data Source Configuration
 
-To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -81,7 +81,7 @@ Postgres version 9.5 or newer is required to support advisory locks and the "ON 
 
 This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
 
-The table is keyed by the [workspace](/docs/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
+The table is keyed by the [workspace](/docs/language/state/workspaces.html) name. If workspaces are not in use, the name `default` is used.
 
 Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](https://www.terraform.io/docs/commands/force-unlock.html) is not supported, because these database-native locks will automatically unlock when the session is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
 

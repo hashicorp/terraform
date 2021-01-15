@@ -42,7 +42,7 @@ directory, located at `%APPDATA%\terraform.d\plugins` on Windows and
 
 For more information, see:
 
-- [Configuring Providers](/docs/configuration/providers.html)
+- [Configuring Providers](/docs/language/providers/configuration.html)
 
 For developer-centric documentation, see:
 

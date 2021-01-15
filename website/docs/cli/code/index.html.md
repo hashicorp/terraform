@@ -5,7 +5,7 @@ page_title: "Writing and Modifying Code - Terraform CLI"
 
 # Writing and Modifying Terraform Code
 
-The [Terraform language](/docs/configuration/index.html) is Terraform's primary
+The [Terraform language](/docs/language/index.html) is Terraform's primary
 user interface, and all of Terraform's workflows rely on configurations written
 in the Terraform language.
 
@@ -15,7 +15,7 @@ potentially save you time and effort.
 
 - [The `terraform console` command](/docs/commands/console.html) starts an
   interactive shell for evaluating Terraform
-  [expressions](/docs/configuration/expressions/index.html), which can be a faster way
+  [expressions](/docs/language/expressions/index.html), which can be a faster way
   to verify that a particular resource argument results in the value you expect.
 
 

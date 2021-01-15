@@ -6,7 +6,7 @@ page_title: "The lifecycle Meta-Argument - Configuration Language"
 # The `lifecycle` Meta-Argument
 
 The general lifecycle for resources is described in the
-[Resource Behavior](/docs/configuration/blocks/resources/behavior.html) page. Some details of
+[Resource Behavior](/docs/language/resources/behavior.html) page. Some details of
 that behavior can be customized using the special nested `lifecycle` block
 within a resource block body:
 

@@ -10,7 +10,7 @@ description: |-
 
 The `terraform state` command is used for advanced state management.
 As your Terraform usage becomes more advanced, there are some cases where
-you may need to modify the [Terraform state](/docs/state/index.html).
+you may need to modify the [Terraform state](/docs/language/state/index.html).
 Rather than modify the state directly, the `terraform state` commands can
 be used in many cases instead.
 

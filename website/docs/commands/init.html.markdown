@@ -98,7 +98,7 @@ be statically specified in the configuration file.
 ## Child Module Installation
 
 During init, the configuration is searched for `module` blocks, and the source
-code for referenced [modules](/docs/modules/) is retrieved from the locations
+code for referenced [modules](/docs/language/modules/develop/index.html) is retrieved from the locations
 given in their `source` arguments.
 
 Re-running init with modules already installed will install the sources for
@@ -126,10 +126,10 @@ Terraform installs providers using
 [the provider installation settings in the CLI configuration](./cli-config.html#provider-installation).
 
 For more information about specifying which providers are required for each
-of your modules, see [Provider Requirements](/docs/configuration/provider-requirements.html).
+of your modules, see [Provider Requirements](/docs/language/providers/requirements.html).
 
 After successful installation, Terraform writes information about the selected
-providers to [the dependency lock file](/docs/configuration/dependency-lock.html).
+providers to [the dependency lock file](/docs/language/dependency-lock.html).
 You should commit this file to your version control system to ensure that
 when you run `terraform init` again in future Terraform will select exactly
 the same provider versions. Use the `-upgrade` option if you want Terraform

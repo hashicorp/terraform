@@ -9,7 +9,7 @@ description: |-
 # Command: state rm
 
 The `terraform state rm` command is used to remove items from the
-[Terraform state](/docs/state/index.html). This command can remove
+[Terraform state](/docs/language/state/index.html). This command can remove
 single resources, single instances of a resource, entire modules,
 and more.
 
@@ -83,7 +83,7 @@ $ terraform state rm 'module.foo.packet_device.worker'
 ## Example: Remove a Resource configured with count
 
 The example below removes the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/configuration/meta-arguments/count.html):
+[`count`](/docs/language/meta-arguments/count.html):
 
 ```shell
 $ terraform state rm 'packet_device.worker[0]'
@@ -92,7 +92,7 @@ $ terraform state rm 'packet_device.worker[0]'
 ## Example: Remove a Resource configured with for_each
 
 The example below removes the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/configuration/meta-arguments/for_each.html):
+[`for_each`](/docs/language/meta-arguments/for_each.html):
 
 Linux, Mac OS, and UNIX:
 

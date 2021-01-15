@@ -10,7 +10,7 @@ description: |-
 
 The `puppet` provisioner installs, configures and runs the Puppet agent on a
 remote resource. The `puppet` provisioner supports both `ssh` and `winrm` type
-[connections](/docs/provisioners/connection.html).
+[connections](/docs/language/resources/provisioners/connection.html).
 
 !> **Note:** This provisioner has been deprecated as of Terraform 0.13.4 and will be
 removed in a future version of Terraform. For most common situations there are better

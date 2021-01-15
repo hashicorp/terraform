@@ -7,7 +7,7 @@ page_title: "Provisioning Infrastructure - Terraform CLI"
 
 Terraform's primary function is to create, modify, and destroy infrastructure
 resources to match the desired state described in a
-[Terraform configuration](/docs/configuration/index.html).
+[Terraform configuration](/docs/language/index.html).
 
 When people refer to "running Terraform," they generally mean performing these
 provisioning actions in order to affect real infrastructure objects. The
