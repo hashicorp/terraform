@@ -108,12 +108,12 @@ block would create a dependency cycle.
 
 * `private_key` - The contents of an SSH key to use for the connection. These can
   be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html). This takes
+  [the `file` function](/docs/language/functions/file.html). This takes
   preference over the password if provided.
 
 * `certificate` - The contents of a signed CA Certificate. The certificate argument must be
   used in conjunction with a `private_key`. These can
-  be loaded from a file on disk using the [the `file` function](/docs/configuration/functions/file.html).
+  be loaded from a file on disk using the [the `file` function](/docs/language/functions/file.html).
 
 * `agent` - Set to `false` to disable using `ssh-agent` to authenticate. On Windows the
   only supported SSH authentication agent is
@@ -161,9 +161,9 @@ The `ssh` connection also supports the following fields to facilitate connnectio
 
 * `bastion_private_key` - The contents of an SSH key file to use for the bastion
   host. These can be loaded from a file on disk using
-  [the `file` function](/docs/configuration/functions/file.html).
+  [the `file` function](/docs/language/functions/file.html).
   Defaults to the value of the `private_key` field.
 
 * `bastion_certificate` - The contents of a signed CA Certificate. The certificate argument
   must be used in conjunction with a `bastion_private_key`. These can be loaded from
-  a file on disk using the [the `file` function](/docs/configuration/functions/file.html).
+  a file on disk using the [the `file` function](/docs/language/functions/file.html).

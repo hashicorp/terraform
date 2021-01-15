@@ -9,7 +9,7 @@ description: |-
 # Command: state push
 
 The `terraform state push` command is used to manually upload a local
-state file to [remote state](/docs/state/remote.html). This command also
+state file to [remote state](/docs/language/state/remote.html). This command also
 works with local state.
 
 This command should rarely be used. It is meant only as a utility in case
@@ -20,7 +20,7 @@ manual intervention is necessary with the remote state.
 Usage: `terraform state push [options] PATH`
 
 This command will push the state specified by PATH to the currently
-configured [backend](/docs/configuration/blocks/backends/index.html).
+configured [backend](/docs/language/settings/backends/index.html).
 
 If PATH is "-" then the state data to push is read from stdin. This data
 is loaded completely into memory and verified prior to being written to

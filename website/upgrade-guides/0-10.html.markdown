@@ -37,7 +37,7 @@ In the short term, it just means a smaller distribution package and thus
 avoiding the need to download tens of providers that may never be used.
 
 Provider plugins are now also versioned separately from Terraform itself.
-[Version constraints](/docs/configuration/providers.html#provider-versions)
+[Version constraints](/docs/language/providers/configuration.html#provider-versions)
 can be specified in configuration to ensure that new major releases
 (which may have breaking changes) are not automatically installed.
 
@@ -48,7 +48,7 @@ step after a Terraform configuration is cloned from version control, and
 will also install any necessary modules and configure any remote backend.
 
 **Action:** For "production" configurations, consider adding
-[provider version constraints](/docs/configuration/providers.html#provider-versions),
+[provider version constraints](/docs/language/providers/configuration.html#provider-versions),
 as suggested by the `terraform init` output, to prevent new major versions
 of plugins from being automatically installed in future.
 

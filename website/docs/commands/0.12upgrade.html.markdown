@@ -71,13 +71,13 @@ the change.
 Once upgraded the configuration will no longer be compatible with Terraform
 v0.11 and earlier. When upgrading a shared module that is called from multiple
 configurations, you may need to
-[fix existing configurations to a previous version](/docs/configuration/blocks/modules/syntax.html#version)
+[fix existing configurations to a previous version](/docs/language/modules/syntax.html#version)
 to allow for a gradual upgrade. If the module is published via
 [a Terraform registry](/docs/registry/), assign a new _major_ version number
 to the upgraded module source to represent the fact that this is a breaking
 change for v0.11 callers. If a module is installed directly from a version
 control system such as Git,
-[use specific revisions](https://www.terraform.io/docs/modules/sources.html#selecting-a-revision)
+[use specific revisions](https://www.terraform.io/docs/language/modules/sources.html#selecting-a-revision)
 to control which version is used by which caller.
 
 The command-line options are all optional. The available options are:

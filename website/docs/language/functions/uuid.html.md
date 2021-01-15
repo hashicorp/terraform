@@ -19,11 +19,11 @@ This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not
 recommend using the `uuid` function in resource configurations, but it can
 be used with care in conjunction with
-[the `ignore_changes` lifecycle meta-argument](/docs/configuration/meta-arguments/lifecycle.html#ignore_changes).
+[the `ignore_changes` lifecycle meta-argument](/docs/language/meta-arguments/lifecycle.html#ignore_changes).
 
 In most cases we recommend using [the `random` provider](https://registry.terraform.io/providers/hashicorp/random/latest/docs)
 instead, since it allows the one-time generation of random values that are
-then retained in the Terraform [state](/docs/state/index.html) for use by
+then retained in the Terraform [state](/docs/language/state/index.html) for use by
 future operations. In particular,
 [`random_id`](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) can generate results with
 equivalent randomness to the `uuid` function.

@@ -19,9 +19,9 @@ uses:
   to a parent module.
 - A root module can use outputs to print certain values in the CLI output after
   running `terraform apply`.
-- When using [remote state](/docs/state/remote.html), root module outputs can be
+- When using [remote state](/docs/language/state/remote.html), root module outputs can be
   accessed by other configurations via a
-  [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+  [`terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
 
 Resource instances managed by Terraform each export attributes whose values
 can be used elsewhere in configuration. Output values are a way to expose some
@@ -42,11 +42,11 @@ output "instance_ip_addr" {
 ```
 
 The label immediately after the `output` keyword is the name, which must be a
-valid [identifier](./syntax.html#identifiers). In a root module, this name is
+valid [identifier](/docs/language/syntax/configuration.html#identifiers). In a root module, this name is
 displayed to the user; in a child module, it can be used to access the output's
 value.
 
-The `value` argument takes an [expression](/docs/configuration/expressions/index.html)
+The `value` argument takes an [expression](/docs/language/expressions/index.html)
 whose result is to be returned to the user. In this example, the expression
 refers to the `private_ip` attribute exposed by an `aws_instance` resource
 defined elsewhere in this module (not shown). Any valid expression is allowed
@@ -151,9 +151,9 @@ Changes to Outputs:
 -> **Note:** In Terraform versions prior to Terraform 0.14, setting an output value in the root module as sensitive would prevent Terraform from showing its value in the list of outputs at the end of `terraform apply`. However, the value could still display in the CLI output for other reasons, like if the value is referenced in an expression for a resource argument.
 
 Sensitive output values are still recorded in the
-[state](/docs/state/index.html), and so will be visible to anyone who is able
+[state](/docs/language/state/index.html), and so will be visible to anyone who is able
 to access the state data. For more information, see
-[_Sensitive Data in State_](/docs/state/sensitive-data.html).
+[_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
 
 <a id="depends_on"></a>
 
@@ -169,7 +169,7 @@ correctly determine the dependencies between resources defined in different
 modules.
 
 Just as with
-[resource dependencies](/docs/configuration/blocks/resources/behavior.html#resource-dependencies),
+[resource dependencies](/docs/language/resources/behavior.html#resource-dependencies),
 Terraform analyzes the `value` expression for an output value and automatically
 determines a set of dependencies, but in less-common cases there are
 dependencies that cannot be recognized implicitly. In these rare cases, the

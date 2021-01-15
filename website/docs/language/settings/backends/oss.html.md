@@ -43,7 +43,7 @@ Terraform state will be written into the file `path/mystate/version-1.tfstate`. 
 
 To make use of the OSS remote state in another configuration, use the
 [`terraform_remote_state` data
-source](/docs/providers/terraform/d/remote_state.html).
+source](/docs/language/state/remote-state-data.html).
 
 ```hcl
 terraform {

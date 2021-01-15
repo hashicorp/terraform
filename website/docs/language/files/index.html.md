@@ -9,7 +9,7 @@ page_title: "Files and Directories - Configuration Language"
 
 Code in the Terraform language is stored in plain text files with the `.tf` file
 extension. There is also
-[a JSON-based variant of the language](/docs/configuration/syntax-json.html) that is named with
+[a JSON-based variant of the language](/docs/language/syntax/json.html) that is named with
 the `.tf.json` file extension.
 
 Files containing Terraform code are often called _configuration files._
@@ -34,7 +34,7 @@ treating the entire module as a single document. Separating various blocks into
 different files is purely for the convenience of readers and maintainers, and
 has no effect on the module's behavior.
 
-A Terraform module can use [module calls](/docs/configuration/blocks/modules/index.html) to
+A Terraform module can use [module calls](/docs/language/modules/index.html) to
 explicitly include other modules into the configuration. These child modules can
 come from local directories (nested in the parent module's directory, or
 anywhere else on disk), or from external sources like the

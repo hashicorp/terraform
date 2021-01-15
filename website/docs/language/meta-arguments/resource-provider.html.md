@@ -9,7 +9,7 @@ The `provider` meta-argument specifies which provider configuration to use for a
 overriding Terraform's default behavior of selecting one based on the resource
 type name. Its value should be an unquoted `<PROVIDER>.<ALIAS>` reference.
 
-As described in [Provider Configuration](/docs/configuration/providers.html), you can optionally
+As described in [Provider Configuration](/docs/language/providers/configuration.html), you can optionally
 create multiple configurations for a single provider (usually to manage
 resources in different regions of multi-region services). Each provider can have
 one default configuration, and any number of alternate configurations that
@@ -51,7 +51,7 @@ ensure that the provider is fully configured before any resource actions
 are taken.
 
 The `provider` meta-argument expects
-[a `<PROVIDER>.<ALIAS>` reference](/docs/configuration/providers.html#referring-to-alternate-provider-configurations),
+[a `<PROVIDER>.<ALIAS>` reference](/docs/language/providers/configuration.html#referring-to-alternate-provider-configurations),
 which does not need to be quoted. Arbitrary expressions are not permitted for
 `provider` because it must be resolved while Terraform is constructing the
 dependency graph, before it is safe to evaluate expressions.

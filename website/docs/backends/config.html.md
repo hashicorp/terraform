@@ -129,7 +129,7 @@ the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using multiple [workspaces](/docs/state/workspaces.html),
+If you're using multiple [workspaces](/docs/language/state/workspaces.html),
 Terraform can copy all workspaces to the destination. If Terraform detects
 you have multiple workspaces, it will ask if this is what you want to do.
 

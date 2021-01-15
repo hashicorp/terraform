@@ -23,7 +23,7 @@ tomap({
 
 The `{ ... }` braces construct an object value, and then the `tomap` function
 then converts it to a map. For more information on the value types in the
-Terraform language, see [Type Constraints](../types.html).
+Terraform language, see [Type Constraints](/docs/language/expressions/types.html).
 
 ## Related Functions
 

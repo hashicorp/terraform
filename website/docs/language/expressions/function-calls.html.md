@@ -8,7 +8,7 @@ page_title: "Function Calls - Configuration Language"
 > **Hands-on:** Try the [Perform Dynamic Operations with Functions](https://learn.hashicorp.com/tutorials/terraform/functions?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 The Terraform language has a number of
-[built-in functions](/docs/configuration/functions.html) that can be used
+[built-in functions](/docs/language/functions/index.html) that can be used
 in expressions to transform and combine values. These
 are similar to the operators but all follow a common syntax:
 
@@ -33,7 +33,7 @@ A function call expression evaluates to the function's return value.
 ## Available Functions
 
 For a full list of available functions, see
-[the function reference](/docs/configuration/functions.html).
+[the function reference](/docs/language/functions/index.html).
 
 ## Expanding Function Arguments
 
@@ -50,8 +50,8 @@ The expansion symbol is three periods (`...`), not a Unicode ellipsis character
 
 ## Using Sensitive Data as Function Arguments
 
-When using sensitive data, such as [an input variable](https://www.terraform.io/docs/configuration/variables.html#suppressing-values-in-cli-output)
-or [an output defined](https://www.terraform.io/docs/configuration/outputs.html#sensitive-suppressing-values-in-cli-output) as sensitive
+When using sensitive data, such as [an input variable](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output)
+or [an output defined](https://www.terraform.io/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output) as sensitive
 as function arguments, the result of the function call will be marked as sensitive.
 
 This is a conservative behavior that is true irrespective of the function being
@@ -80,10 +80,10 @@ those it can be helpful to know when Terraform will call them in relation to
 other events that occur in a Terraform run.
 
 The small set of special functions includes
-[`file`](../functions/file.html),
-[`templatefile`](../functions/templatefile.html),
-[`timestamp`](../functions/timestamp.html),
-and [`uuid`](../functions/uuid.html).
+[`file`](/docs/language/functions/file.html),
+[`templatefile`](/docs/language/functions/templatefile.html),
+[`timestamp`](/docs/language/functions/timestamp.html),
+and [`uuid`](/docs/language/functions/uuid.html).
 If you are not working with these functions then you don't need
 to read this section, although the information here may still be interesting
 background information.

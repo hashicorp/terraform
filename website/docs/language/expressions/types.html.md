@@ -93,7 +93,7 @@ The values in a map
 can be arbitrary expressions.
 
 The keys in a map must be strings; they can be left unquoted if
-they are a valid [identifier](/docs/configuration/syntax.html#identifiers), but must be quoted
+they are a valid [identifier](/docs/language/syntax/configuration.html#identifiers), but must be quoted
 otherwise. You can use a non-literal string expression as a key by wrapping it in
 parentheses, like `(var.business_unit_tag_name) = "SRE"`.
 
@@ -124,7 +124,7 @@ offer different ways to restrict the allowed values for input variables and
 resource arguments.
 
 For complete details about these types (and an explanation of why the difference
-usually doesn't matter), see [Type Constraints](/docs/configuration/types.html).
+usually doesn't matter), see [Type Constraints](/docs/language/expressions/type-constraints.html).
 
 ## Type Conversion
 

@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Modules](../configuration/modules.html).
+[Configuration Language: Modules](/docs/language/modules/index.html).
 
 A _module_ is a container for multiple resources that are used together.
 
@@ -27,7 +27,7 @@ and re-used.
 This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
-created, and published in [the dedicated _Modules_ section](/docs/modules/index.html).
+created, and published in [the dedicated _Modules_ section](/docs/language/modules/develop/index.html).
 
 ## Calling a Child Module
 
@@ -62,7 +62,7 @@ Terraform CLI. Its value is either the path to a local directory of the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
 sequences; interpolations are not allowed. For more information on
-possible values for this argument, see [Module Sources](/docs/modules/sources.html).
+possible values for this argument, see [Module Sources](/docs/language/modules/sources.html).
 
 The same source address can be specified in multiple `module` blocks to create
 multiple copies of the resources defined within, possibly with different
@@ -161,7 +161,7 @@ future features.
 
 Since modules are a complex feature in their own right, further detail
 about how modules can be used, created, and published is included in
-[the dedicated section on modules](/docs/modules/index.html).
+[the dedicated section on modules](/docs/language/modules/develop/index.html).
 
 ## Providers within Modules
 

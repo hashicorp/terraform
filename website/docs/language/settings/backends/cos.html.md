@@ -11,7 +11,7 @@ description: |-
 **Kind: Standard (with locking)**
 
 Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
-This backend also supports [state locking](/docs/state/locking.html).
+This backend also supports [state locking](/docs/language/state/locking.html).
 
 ~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
 on the COS bucket to allow for state recovery in the case of accidental deletions and human error.
@@ -33,7 +33,7 @@ Terraform state will be written into the file `terraform/state/terraform.tfstate
 
 ## Data Source Configuration
 
-To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
 
 ```hcl
 data "terraform_remote_state" "foo" {

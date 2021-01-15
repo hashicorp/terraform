@@ -26,12 +26,12 @@ itself having created all objects. If you import existing objects into Terraform
 be careful to import each remote object to only one Terraform resource address.
 If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
-[the State section](/docs/state/).
+[the State section](/docs/language/state/index.html).
 
 ## Currently State Only
 
 The current implementation of Terraform import can only import resources
-into the [state](/docs/state/). It does not generate configuration. A future
+into the [state](/docs/language/state/index.html). It does not generate configuration. A future
 version of Terraform will also generate configuration.
 
 Because of this, prior to running `terraform import` it is necessary to write
@@ -44,7 +44,7 @@ importing existing resources.
 ## Remote Backends
 
 When using Terraform import on the command line with a [remote
-backend](/docs/backends/types/remote.html), such as Terraform Cloud, the import
+backend](/docs/language/settings/backends/remote.html), such as Terraform Cloud, the import
 command runs locally, unlike commands such as apply, which run inside your
 Terraform Cloud environment. Because of this, the import command will not have
 access to information from the remote backend, such as workspace variables.

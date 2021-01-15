@@ -18,7 +18,7 @@ or just to gain a deeper or more holistic understanding of your infrastructure.
 - [The `terraform graph` command](/docs/commands/graph.html) creates a visual
   representation of a configuration or a set of planned changes.
 - [The `terraform output` command](/docs/commands/output.html) can get the
-  values for the top-level [output values](/docs/configuration/outputs.html) of
+  values for the top-level [output values](/docs/language/values/outputs.html) of
   a configuration, which are often helpful when making use of the infrastructure
   Terraform has provisioned.
 - [The `terraform show` command](/docs/commands/show.html) can generate

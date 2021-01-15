@@ -7,7 +7,7 @@ page_title: "Backend Configuration - Configuration Language"
 
 
 Each Terraform configuration can specify a backend, which defines exactly where
-and how operations are performed, where [state](/docs/state/index.html)
+and how operations are performed, where [state](/docs/language/state/index.html)
 snapshots are stored, etc. Most non-trivial Terraform configurations configure
 a remote backend so that multiple people can work with the same infrastructure.
 
@@ -150,7 +150,7 @@ the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using multiple [workspaces](/docs/state/workspaces.html),
+If you're using multiple [workspaces](/docs/language/state/workspaces.html),
 Terraform can copy all workspaces to the destination. If Terraform detects
 you have multiple workspaces, it will ask if this is what you want to do.
 

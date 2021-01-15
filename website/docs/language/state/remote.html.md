@@ -25,7 +25,7 @@ in your configuration's root module.
 ## Delegation and Teamwork
 
 Remote state allows you to share
-[output values](/docs/configuration/outputs.html) with other configurations.
+[output values](/docs/language/values/outputs.html) with other configurations.
 This allows your infrastructure to be decomposed into smaller components.
 
 Put another way, remote state also allows teams to share infrastructure
@@ -39,7 +39,7 @@ you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
 
 For example usage, see
-[the `terraform_remote_state` data source](/docs/providers/terraform/d/remote_state.html).
+[the `terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
 
 While remote state can be a convenient, built-in mechanism for sharing data
 between configurations, you may prefer to use more general stores to
@@ -53,7 +53,7 @@ another that consumes those values using
 ## Locking and Teamwork
 
 For fully-featured remote backends, Terraform can also use
-[state locking](/docs/state/locking.html) to prevent concurrent runs of
+[state locking](/docs/language/state/locking.html) to prevent concurrent runs of
 Terraform against the same state.
 
 [Terraform Cloud by HashiCorp](https://www.hashicorp.com/products/terraform/)

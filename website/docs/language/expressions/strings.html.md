@@ -75,8 +75,8 @@ allowed, but conventionally this identifier is in all-uppercase and begins with
 ### Generating JSON or YAML
 
 Don't use "heredoc" strings to generate JSON or YAML. Instead, use
-[the `jsonencode` function](../functions/jsonencode.html) or
-[the `yamlencode` function](../functions/yamlencode.html) so that Terraform
+[the `jsonencode` function](/docs/language/functions/jsonencode.html) or
+[the `yamlencode` function](/docs/language/functions/yamlencode.html) so that Terraform
 can be responsible for guaranteeing valid JSON or YAML syntax.
 
 ```hcl

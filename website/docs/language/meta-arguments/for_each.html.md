@@ -13,14 +13,14 @@ it with resources.
 
 > **Hands-on:** Try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/tutorials/terraform/for-each?in=terraform/0-13&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
-By default, a [resource block](/docs/configuration/blocks/resources/syntax.html) configures one real
+By default, a [resource block](/docs/language/resources/syntax.html) configures one real
 infrastructure object (and similarly, a
-[module block](/docs/configuration/blocks/modules/syntax.html) includes a
+[module block](/docs/language/modules/syntax.html) includes a
 child module's contents into the configuration one time).
 However, sometimes you want to manage several similar objects (like a fixed
 pool of compute instances) without writing a separate block for each one.
 Terraform has two ways to do this:
-[`count`](/docs/configuration/meta-arguments/count.html) and `for_each`.
+[`count`](/docs/language/meta-arguments/count.html) and `for_each`.
 
 If a resource or module block includes a `for_each` argument whose value is a map or
 a set of strings, Terraform will create one instance for each member of
@@ -107,16 +107,16 @@ that cannot be determined before apply, and a `-target` may be needed.
 including `uuid`, `bcrypt`, or `timestamp`, as their evaluation is deferred during the
 main evaluation step.
 
-Sensitive values, such as [sensitive input variables](https://www.terraform.io/docs/configuration/variables.html#suppressing-values-in-cli-output),
-[sensitive outputs](https://www.terraform.io/docs/configuration/outputs.html#sensitive-suppressing-values-in-cli-output),
-or [sensitive resource attributes](https://www.terraform.io/docs/configuration/expressions/references.html#sensitive-resource-attributes)
+Sensitive values, such as [sensitive input variables](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output),
+[sensitive outputs](https://www.terraform.io/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output),
+or [sensitive resource attributes](https://www.terraform.io/docs/language/expressions/references.html#sensitive-resource-attributes)
 (if the `provider_sensitive_attrs` experiment is enabled), cannot be used as arguments
 to `for_each`. The value used in `for_each` is used to identify the resource instance
 and will always be disclosed in UI output, which is why sensitive values are not allowed.
 Attempts to use sensitive values as `for_each` arguments will result in an error.
 
 If you transform a value containing sensitive data into an argument to be used in `for_each`, be aware that
-[most functions in Terraform will return a sensitive result if given an argument with any sensitive content](https://www.terraform.io/docs/configuration/expressions/function-calls.html#using-sensitive-data-as-function-arguments).
+[most functions in Terraform will return a sensitive result if given an argument with any sensitive content](https://www.terraform.io/docs/language/expressions/function-calls.html#using-sensitive-data-as-function-arguments).
 In many cases, you can achieve similar results to a function used for this purpose by
 using a `for` expression. For example, if you would like to call `keys(local.map)`, where
 `local.map` is an object with sensitive values (but non-sensitive keys), you can create a
@@ -124,7 +124,7 @@ value to pass to  `for_each` with `toset([for k,v in local.map : k])`.
 
 ## Using Expressions in `for_each`
 
-The `for_each` meta-argument accepts map or set [expressions](/docs/configuration/expressions/index.html).
+The `for_each` meta-argument accepts map or set [expressions](/docs/language/expressions/index.html).
 However, unlike most arguments, the `for_each` value must be known
 _before_ Terraform performs any remote resource actions. This means `for_each`
 can't refer to any resource attributes that aren't known until after a
@@ -133,7 +133,7 @@ an object is created).
 
 The `for_each` value must be a map or set with one element per desired
 resource instance. When providing a set, you must use an expression that
-explicitly returns a set value, like the [`toset`](/docs/configuration/functions/toset.html)
+explicitly returns a set value, like the [`toset`](/docs/language/functions/toset.html)
 function; to prevent unwanted surprises during conversion, the `for_each`
 argument does not implicitly convert lists or tuples to sets.
 If you need to declare resource instances based on a nested
@@ -142,10 +142,10 @@ can use Terraform expressions and functions to derive a suitable value.
 For example:
 
 * Transform a multi-level nested structure into a flat list by
-  [using nested `for` expressions with the `flatten` function](/docs/configuration/functions/flatten.html#flattening-nested-structures-for-for_each).
+  [using nested `for` expressions with the `flatten` function](/docs/language/functions/flatten.html#flattening-nested-structures-for-for_each).
 * Produce an exhaustive list of combinations of elements from two or more
   collections by
-  [using the `setproduct` function inside a `for` expression](/docs/configuration/functions/setproduct.html#finding-combinations-for-for_each).
+  [using the `setproduct` function inside a `for` expression](/docs/language/functions/setproduct.html#finding-combinations-for-for_each).
 
 ## Referring to Instances
 
@@ -172,7 +172,7 @@ as a whole.
 ## Using Sets
 
 The Terraform language doesn't have a literal syntax for
-[set values](/docs/configuration/types.html#collection-types), but you can use the `toset`
+[set values](/docs/language/expressions/type-constraints.html#collection-types), but you can use the `toset`
 function to explicitly convert a list of strings to a set:
 
 ```hcl
@@ -201,7 +201,7 @@ removes any duplicate elements. `toset(["b", "a", "b"])` will produce a set
 containing only `"a"` and `"b"` in no particular order; the second `"b"` is
 discarded.
 
-If you are writing a module with an [input variable](/docs/configuration/variables.html) that
+If you are writing a module with an [input variable](/docs/language/values/variables.html) that
 will be used as a set of strings for `for_each`, you can set its type to
 `set(string)` to avoid the need for an explicit type conversion:
 

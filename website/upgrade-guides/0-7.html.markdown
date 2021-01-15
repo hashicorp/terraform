@@ -101,7 +101,7 @@ For most users, this change will not affect your day-to-day usage of Terraform. 
 
 ## Migrating to Data Sources
 
-With the addition of [Data Sources](/docs/configuration/data-sources.html), there are several resources that were acting as Data Sources that are now deprecated. Existing configurations will continue to work, but will print a deprecation warning when a data source is used as a resource.
+With the addition of [Data Sources](/docs/language/data-sources/index.html), there are several resources that were acting as Data Sources that are now deprecated. Existing configurations will continue to work, but will print a deprecation warning when a data source is used as a resource.
 
  * `atlas_artifact`
  * `template_file`

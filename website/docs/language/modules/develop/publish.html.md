@@ -14,7 +14,7 @@ If you've built a module that you intend to be reused, we recommend
 your module, generate documentation, and more.
 
 Published modules can be easily consumed by Terraform, and users can
-[constrain module versions](/docs/configuration/blocks/modules/syntax.html#version)
+[constrain module versions](/docs/language/modules/syntax.html#version)
 for safe and predictable updates. The following example shows how a caller
 might use a module from the Terraform Registry:
 
@@ -32,11 +32,11 @@ the same benefits.
 
 Although the registry is the native mechanism for distributing re-usable
 modules, Terraform can also install modules from
-[various other sources](/docs/modules/sources.html). The alternative sources
+[various other sources](/docs/language/modules/sources.html). The alternative sources
 do not support the first-class versioning mechanism, but some sources have
 their own mechanisms for selecting particular VCS commits, etc.
 
 We recommend that modules distributed via other protocols still use the
-[standard module structure](/docs/modules/structure.html) so that they can
+[standard module structure](/docs/language/modules/develop/structure.html) so that they can
 be used in a similar way as a registry module or be published on the registry
 at a later time.

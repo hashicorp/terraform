@@ -10,8 +10,8 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Expressions](/docs/configuration/expressions/index.html) and
-[Configuration Language: Functions](../configuration/functions.html).
+[Configuration Language: Expressions](/docs/language/expressions/index.html) and
+[Configuration Language: Functions](/docs/language/functions/index.html).
 
 Embedded within strings in Terraform, whether you're using the
 Terraform syntax or JSON syntax, you can interpolate other values. These
@@ -77,7 +77,7 @@ syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_bl
 
 The syntax is `module.<NAME>.<OUTPUT>`. For example `${module.foo.bar}` will
 interpolate the `bar` output from the `foo`
-[module](/docs/modules/index.html).
+[module](/docs/language/modules/develop/index.html).
 
 #### Count information
 

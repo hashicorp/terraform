@@ -12,7 +12,7 @@ description: |-
 
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
-This backend supports [state locking](/docs/state/locking.html).
+This backend supports [state locking](/docs/language/state/locking.html).
 
 ## Example Configuration
 

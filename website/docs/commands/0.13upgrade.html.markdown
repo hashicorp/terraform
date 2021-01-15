@@ -23,7 +23,7 @@ providers are in use for a module, detect the source address for those
 providers where possible, and record this information in a
 [`required_providers` block][required-providers].
 
-[required-providers]: /docs/configuration/provider-requirements.html
+[required-providers]: /docs/language/providers/requirements.html
 
 ~> Note: the command ignores `.tf.json` files and override files in the module.
 

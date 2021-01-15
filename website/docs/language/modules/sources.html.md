@@ -7,7 +7,7 @@ description: The source argument within a module block specifies the location of
 
 # Module Sources
 
-The `source` argument in [a `module` block](/docs/configuration/blocks/modules/syntax.html)
+The `source` argument in [a `module` block](/docs/language/modules/syntax.html)
 tells Terraform where to find the source code for the desired child module.
 
 Terraform uses this during the module installation step of `terraform init`
@@ -123,7 +123,7 @@ the `remote` backend.
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
-[version constraints](/docs/configuration/blocks/modules/syntax.html#version).
+[version constraints](/docs/language/modules/syntax.html#version).
 
 You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).

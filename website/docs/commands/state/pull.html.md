@@ -9,7 +9,7 @@ description: |-
 # Command: state pull
 
 The `terraform state pull` command is used to manually download and output
-the state from [remote state](/docs/state/remote.html). This command also
+the state from [remote state](/docs/language/state/remote.html). This command also
 works with local state.
 
 ## Usage

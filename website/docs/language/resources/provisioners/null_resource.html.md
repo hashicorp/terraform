@@ -16,8 +16,8 @@ resource, you can associate them with a `null_resource`.
 
 Instances of [`null_resource`][null] are treated like normal resources, but they
 don't do anything. Like with any other resource, you can configure
-[provisioners](/docs/provisioners/index.html) and [connection
-details](/docs/provisioners/connection.html) on a `null_resource`. You can also
+[provisioners](/docs/language/resources/provisioners/syntax.html) and [connection
+details](/docs/language/resources/provisioners/connection.html) on a `null_resource`. You can also
 use its `triggers` argument and any meta-arguments to control exactly where in
 the dependency graph its provisioners will run.
 

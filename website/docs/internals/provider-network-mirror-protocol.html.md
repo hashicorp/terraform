@@ -36,7 +36,7 @@ instead.
 Each Terraform provider has an associated address which uniquely identifies it
 within Terraform. A provider address has the syntax `hostname/namespace/type`,
 which is described in more detail in
-[the Provider Requirements documentation](/docs/configuration/provider-requirements.html).
+[the Provider Requirements documentation](/docs/language/providers/requirements.html).
 
 By default, the `hostname` portion of a provider address serves both as part
 of its unique identifier _and_ as the location of the registry to retrieve it

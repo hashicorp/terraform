@@ -55,7 +55,7 @@ attributes the resource supports.
 
 ### Providers
 
-Each resource type is implemented by a [provider](/docs/configuration/provider-requirements.html),
+Each resource type is implemented by a [provider](/docs/language/providers/requirements.html),
 which is a plugin for Terraform that offers a collection of resource types. A
 provider usually provides resources to manage a single cloud or on-premises
 infrastructure platform. Providers are distributed separately from Terraform
@@ -68,16 +68,16 @@ access their remote APIs, and the root module must provide that configuration.
 
 For more information, see:
 
-- [Provider Requirements](/docs/configuration/provider-requirements.html), for declaring which
+- [Provider Requirements](/docs/language/providers/requirements.html), for declaring which
   providers a module uses.
-- [Provider Configuration](/docs/configuration/providers.html), for configuring provider settings.
+- [Provider Configuration](/docs/language/providers/configuration.html), for configuring provider settings.
 
 Terraform usually automatically determines which provider to use based on a
 resource type's name. (By convention, resource type names start with their
 provider's preferred local name.) When using multiple configurations of a
 provider (or non-preferred local provider names), you must use the `provider`
 meta-argument to manually choose an alternate provider configuration. See
-[the `provider` meta-argument](/docs/configuration/meta-arguments/resource-provider.html) for more details.
+[the `provider` meta-argument](/docs/language/meta-arguments/resource-provider.html) for more details.
 
 ### Resource Arguments
 
@@ -86,7 +86,7 @@ selected resource type. The resource type's documentation lists which arguments
 are available and how their values should be formatted.
 
 The values for resource arguments can make full use of
-[expressions](/docs/configuration/expressions/index.html) and other dynamic Terraform
+[expressions](/docs/language/expressions/index.html) and other dynamic Terraform
 language features.
 
 There are also some _meta-arguments_ that are defined by Terraform itself
@@ -119,7 +119,7 @@ data, since it is not available on the Terraform Registry.)
 
 For more information about how Terraform manages resources when applying a
 configuration, see
-[Resource Behavior](/docs/configuration/blocks/resources/behavior.html).
+[Resource Behavior](/docs/language/resources/behavior.html).
 
 ## Meta-Arguments
 
@@ -128,12 +128,12 @@ any resource type to change the behavior of resources.
 
 The following meta-arguments are documented on separate pages:
 
-- [`depends_on`, for specifying hidden dependencies](/docs/configuration/meta-arguments/depends_on.html)
-- [`count`, for creating multiple resource instances according to a count](/docs/configuration/meta-arguments/count.html)
-- [`for_each`, to create multiple instances according to a map, or set of strings](/docs/configuration/meta-arguments/for_each.html)
-- [`provider`, for selecting a non-default provider configuration](/docs/configuration/meta-arguments/resource-provider.html)
-- [`lifecycle`, for lifecycle customizations](/docs/configuration/meta-arguments/lifecycle.html)
-- [`provisioner` and `connection`, for taking extra actions after resource creation](/docs/configuration/blocks/resources/provisioners/index.html)
+- [`depends_on`, for specifying hidden dependencies](/docs/language/meta-arguments/depends_on.html)
+- [`count`, for creating multiple resource instances according to a count](/docs/language/meta-arguments/count.html)
+- [`for_each`, to create multiple instances according to a map, or set of strings](/docs/language/meta-arguments/for_each.html)
+- [`provider`, for selecting a non-default provider configuration](/docs/language/meta-arguments/resource-provider.html)
+- [`lifecycle`, for lifecycle customizations](/docs/language/meta-arguments/lifecycle.html)
+- [`provisioner` and `connection`, for taking extra actions after resource creation](/docs/language/resources/provisioners/index.html)
 
 ## Operation Timeouts
 

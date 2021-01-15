@@ -43,11 +43,11 @@ The `terraform refresh` command accepts the following options:
   to 10.
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/internals/resource-addressing.html) to target. Operation will
@@ -56,11 +56,11 @@ The `terraform refresh` command accepts the following options:
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
-  [literal expressions](/docs/configuration/expressions/types.html) in the
+  [literal expressions](/docs/language/expressions/types.html) in the
   Terraform language, so list and map values can be specified via this flag.
 
 * `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/configuration/variables.html#variable-definitions-tfvars-files). If
+  a [variable file](/docs/language/values/variables.html#variable-definitions-tfvars-files). If
   a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files

@@ -105,7 +105,7 @@ started, but when using Terraform in a team it is important for everyone
 to be working with the same state so that operations will be applied to the
 same remote objects.
 
-[Remote state](/docs/state/remote.html) is the recommended solution
+[Remote state](/docs/language/state/remote.html) is the recommended solution
 to this problem. With a fully-featured state backend, Terraform can use
 remote locking as a measure to avoid two or more different users accidentally
 running Terraform at the same time, and thus ensure that each Terraform run

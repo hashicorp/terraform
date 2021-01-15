@@ -117,9 +117,9 @@ elements all have a consistent type:
 ## Finding combinations for `for_each`
 
 The
-[resource `for_each`](/docs/configuration/meta-arguments/for_each.html)
+[resource `for_each`](/docs/language/meta-arguments/for_each.html)
 and
-[`dynamic` block](/docs/configuration/expressions/dynamic-blocks.html)
+[`dynamic` block](/docs/language/expressions/dynamic-blocks.html)
 language features both require a collection value that has one element for
 each repetition.
 

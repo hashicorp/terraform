@@ -129,7 +129,7 @@ For sets of other types, Terraform uses an arbitrary ordering that may change
 in future versions of Terraform. For that reason, we recommend converting the
 result of such an expression to itself be a set so that it's clear elsewhere
 in the configuration that the result is unordered. You can use
-[the `toset` function](../functions/toset.html)
+[the `toset` function](/docs/language/functions/toset.html)
 to concisely convert a `for` expression result to be of a set type.
 
 ```hcl

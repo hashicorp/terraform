@@ -9,7 +9,7 @@ description: |-
 # Command: state list
 
 The `terraform state list` command is used to list resources within a
-[Terraform state](/docs/state/index.html).
+[Terraform state](/docs/language/state/index.html).
 
 ## Usage
 
@@ -30,7 +30,7 @@ in [resource addressing format](/docs/commands/state/addressing.html).
 The command-line flags are all optional. The list of available flags are:
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/language/state/remote.html) is used.
 * `-id=id` - ID of resources to show. Ignored when unset.
 
 ## Example: All Resources

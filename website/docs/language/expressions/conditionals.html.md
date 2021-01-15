@@ -60,7 +60,7 @@ be some uncertainty about the expected result type.
 
 The following example is contrived because it would be easier to write the
 constant `"12"` instead of the type conversion in this case, but shows how to
-use [`tostring`](../functions/tostring.html) to explicitly convert a number to
+use [`tostring`](/docs/language/functions/tostring.html) to explicitly convert a number to
 a string.
 
 ```hcl

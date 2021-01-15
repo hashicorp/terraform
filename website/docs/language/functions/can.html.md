@@ -19,7 +19,7 @@ fallback values for failing expressions.
 
 The primary purpose of `can` is to turn an error condition into a boolean
 validation result when writing
-[custom variable validation rules](../variables.html#custom-validation-rules).
+[custom variable validation rules](/docs/language/values/variables.html#custom-validation-rules).
 For example:
 
 ```

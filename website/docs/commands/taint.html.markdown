@@ -59,11 +59,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/state/remote.html) is used.
+  Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used. Ignored when
-  [remote state](/docs/state/remote.html) is used.
+  [remote state](/docs/language/state/remote.html) is used.
 
 * `-ignore-remote-version` - When using the enhanced remote backend with
   Terraform Cloud, continue even if remote and local Terraform versions differ.
@@ -104,7 +104,7 @@ Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as ta
 ```
 
 Although we recommend that most configurations use only one level of nesting
-and employ [module composition](/docs/modules/composition.html), it's possible
+and employ [module composition](/docs/language/modules/develop/composition.html), it's possible
 to have multiple levels of nested modules. In that case the resource instance
 address must include all of the steps to the target instance, as in the
 following example:
