@@ -9,10 +9,6 @@ description: |-
 
 # Input Variables
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Input Variables](../configuration-0-11/variables.html).
-
 > **Hands-on:** Try the [Customize Terraform Configuration with Variables](https://learn.hashicorp.com/tutorials/terraform/variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 Input variables serve as parameters for a Terraform module, allowing aspects

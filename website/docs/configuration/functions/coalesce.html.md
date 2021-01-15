@@ -9,10 +9,6 @@ description: |-
 
 # `coalesce` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `coalesce` takes any number of arguments and returns the first one
 that isn't null or an empty string.
 

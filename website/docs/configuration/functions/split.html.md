@@ -9,10 +9,6 @@ description: |-
 
 # `split` Function
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Interpolation Syntax](../../configuration-0-11/interpolation.html).
-
 `split` produces a list by dividing a given string at all occurrences of a
 given separator.
 

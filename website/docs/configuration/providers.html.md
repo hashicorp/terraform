@@ -8,10 +8,6 @@ description: |-
 
 # Provider Configuration
 
--> **Note:** This page is about Terraform 0.12 and later. For Terraform 0.11 and
-earlier, see
-[0.11 Configuration Language: Providers](../configuration-0-11/providers.html).
-
 Terraform relies on plugins called "providers" to interact with remote systems.
 
 Terraform configurations must declare which providers they require, so that
