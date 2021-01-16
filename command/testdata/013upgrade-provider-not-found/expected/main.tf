@@ -16,7 +16,7 @@ terraform {
       #
       # For more information, see the provider source documentation:
       #
-      # https://www.terraform.io/docs/configuration/providers.html#provider-source
+      # https://www.terraform.io/docs/language/providers/requirements.html
       version = "~> 2.0.0"
     }
     foo = {

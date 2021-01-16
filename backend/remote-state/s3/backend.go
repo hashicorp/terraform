@@ -327,7 +327,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		AssumeRoleExternalID:      data.Get("external_id").(string),
 		AssumeRolePolicy:          data.Get("assume_role_policy").(string),
 		AssumeRoleSessionName:     data.Get("session_name").(string),
-		CallerDocumentationURL:    "https://www.terraform.io/docs/backends/types/s3.html",
+		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:                "S3 Backend",
 		CredsFilename:             data.Get("shared_credentials_file").(string),
 		DebugLogging:              logging.IsDebugOrHigher(),
