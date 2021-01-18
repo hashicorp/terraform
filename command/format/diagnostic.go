@@ -71,135 +71,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), desc.Summary)
 
 	if sourceRefs.Subject != nil {
-		// We'll borrow HCL's range implementation here, because it has some
-		// handy features to help us produce a nice source code snippet.
-		highlightRange := sourceRefs.Subject.ToHCL()
-		snippetRange := highlightRange
-		if sourceRefs.Context != nil {
-			snippetRange = sourceRefs.Context.ToHCL()
-		}
-
-		// Make sure the snippet includes the highlight. This should be true
-		// for any reasonable diagnostic, but we'll make sure.
-		snippetRange = hcl.RangeOver(snippetRange, highlightRange)
-		if snippetRange.Empty() {
-			snippetRange.End.Byte++
-			snippetRange.End.Column++
-		}
-		if highlightRange.Empty() {
-			highlightRange.End.Byte++
-			highlightRange.End.Column++
-		}
-
-		var src []byte
-		if sources != nil {
-			src = sources[snippetRange.Filename]
-		}
-		if src == nil {
-			// This should generally not happen, as long as sources are always
-			// loaded through the main loader. We may load things in other
-			// ways in weird cases, so we'll tolerate it at the expense of
-			// a not-so-helpful error message.
-			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
-		} else {
-			file, offset := parseRange(src, highlightRange)
-
-			headerRange := highlightRange
-
-			contextStr := hcled.ContextString(file, offset-1)
-			if contextStr != "" {
-				contextStr = ", in " + contextStr
-			}
-
-			fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
-
-			// Config snippet rendering
-			sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
-			for sc.Scan() {
-				lineRange := sc.Range()
-				if !lineRange.Overlaps(snippetRange) {
-					continue
-				}
-				if !lineRange.Overlap(highlightRange).Empty() {
-					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
-					before := beforeRange.SliceBytes(src)
-					highlighted := highlightedRange.SliceBytes(src)
-					after := afterRange.SliceBytes(src)
-					fmt.Fprintf(
-						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
-						lineRange.Start.Line,
-						before, highlighted, after,
-					)
-				} else {
-					fmt.Fprintf(
-						&buf, "%4d: %s\n",
-						lineRange.Start.Line,
-						lineRange.SliceBytes(src),
-					)
-				}
-			}
-
-		}
-
-		if fromExpr := diag.FromExpr(); fromExpr != nil {
-			// We may also be able to generate information about the dynamic
-			// values of relevant variables at the point of evaluation, then.
-			// This is particularly useful for expressions that get evaluated
-			// multiple times with different values, such as blocks using
-			// "count" and "for_each", or within "for" expressions.
-			expr := fromExpr.Expression
-			ctx := fromExpr.EvalContext
-			vars := expr.Variables()
-			stmts := make([]string, 0, len(vars))
-			seen := make(map[string]struct{}, len(vars))
-		Traversals:
-			for _, traversal := range vars {
-				for len(traversal) > 1 {
-					val, diags := traversal.TraverseAbs(ctx)
-					if diags.HasErrors() {
-						// Skip anything that generates errors, since we probably
-						// already have the same error in our diagnostics set
-						// already.
-						traversal = traversal[:len(traversal)-1]
-						continue
-					}
-
-					traversalStr := traversalStr(traversal)
-					if _, exists := seen[traversalStr]; exists {
-						continue Traversals // don't show duplicates when the same variable is referenced multiple times
-					}
-					switch {
-					case val.IsMarked():
-						// We won't say anything at all about sensitive values,
-						// because we might give away something that was
-						// sensitive about them.
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
-					case !val.IsKnown():
-						if ty := val.Type(); ty != cty.DynamicPseudoType {
-							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
-						} else {
-							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
-						}
-					case val.IsNull():
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
-					default:
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is %s"), traversalStr, compactValueStr(val)))
-					}
-					seen[traversalStr] = struct{}{}
-				}
-			}
-
-			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
-
-			if len(stmts) > 0 {
-				fmt.Fprint(&buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
-			}
-			for _, stmt := range stmts {
-				fmt.Fprintf(&buf, color.Color("    [dark_gray]│[reset] %s\n"), stmt)
-			}
-		}
-
-		buf.WriteByte('\n')
+		buf = appendSourceSnippets(buf, diag, sources, color)
 	}
 
 	if desc.Detail != "" {
@@ -407,4 +279,140 @@ func compactValueStr(val cty.Value) string {
 	default:
 		return ty.FriendlyName()
 	}
+}
+
+func appendSourceSnippets(buf bytes.Buffer, diag tfdiags.Diagnostic, sources map[string][]byte, color *colorstring.Colorize) bytes.Buffer {
+	sourceRefs := diag.Source()
+
+	// We'll borrow HCL's range implementation here, because it has some
+	// handy features to help us produce a nice source code snippet.
+	highlightRange := sourceRefs.Subject.ToHCL()
+	snippetRange := highlightRange
+	if sourceRefs.Context != nil {
+		snippetRange = sourceRefs.Context.ToHCL()
+	}
+
+	// Make sure the snippet includes the highlight. This should be true
+	// for any reasonable diagnostic, but we'll make sure.
+	snippetRange = hcl.RangeOver(snippetRange, highlightRange)
+	if snippetRange.Empty() {
+		snippetRange.End.Byte++
+		snippetRange.End.Column++
+	}
+	if highlightRange.Empty() {
+		highlightRange.End.Byte++
+		highlightRange.End.Column++
+	}
+
+	var src []byte
+	if sources != nil {
+		src = sources[snippetRange.Filename]
+	}
+	if src == nil {
+		// This should generally not happen, as long as sources are always
+		// loaded through the main loader. We may load things in other
+		// ways in weird cases, so we'll tolerate it at the expense of
+		// a not-so-helpful error message.
+		fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
+	} else {
+		file, offset := parseRange(src, highlightRange)
+
+		headerRange := highlightRange
+
+		contextStr := hcled.ContextString(file, offset-1)
+		if contextStr != "" {
+			contextStr = ", in " + contextStr
+		}
+
+		fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
+
+		// Config snippet rendering
+		sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
+		for sc.Scan() {
+			lineRange := sc.Range()
+			if !lineRange.Overlaps(snippetRange) {
+				continue
+			}
+			if !lineRange.Overlap(highlightRange).Empty() {
+				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
+				before := beforeRange.SliceBytes(src)
+				highlighted := highlightedRange.SliceBytes(src)
+				after := afterRange.SliceBytes(src)
+				fmt.Fprintf(
+					&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
+					lineRange.Start.Line,
+					before, highlighted, after,
+				)
+			} else {
+				fmt.Fprintf(
+					&buf, "%4d: %s\n",
+					lineRange.Start.Line,
+					lineRange.SliceBytes(src),
+				)
+			}
+		}
+
+	}
+
+	if fromExpr := diag.FromExpr(); fromExpr != nil {
+		// We may also be able to generate information about the dynamic
+		// values of relevant variables at the point of evaluation, then.
+		// This is particularly useful for expressions that get evaluated
+		// multiple times with different values, such as blocks using
+		// "count" and "for_each", or within "for" expressions.
+		expr := fromExpr.Expression
+		ctx := fromExpr.EvalContext
+		vars := expr.Variables()
+		stmts := make([]string, 0, len(vars))
+		seen := make(map[string]struct{}, len(vars))
+	Traversals:
+		for _, traversal := range vars {
+			for len(traversal) > 1 {
+				val, diags := traversal.TraverseAbs(ctx)
+				if diags.HasErrors() {
+					// Skip anything that generates errors, since we probably
+					// already have the same error in our diagnostics set
+					// already.
+					traversal = traversal[:len(traversal)-1]
+					continue
+				}
+
+				traversalStr := traversalStr(traversal)
+				if _, exists := seen[traversalStr]; exists {
+					continue Traversals // don't show duplicates when the same variable is referenced multiple times
+				}
+				switch {
+				case val.IsMarked():
+					// We won't say anything at all about sensitive values,
+					// because we might give away something that was
+					// sensitive about them.
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
+				case !val.IsKnown():
+					if ty := val.Type(); ty != cty.DynamicPseudoType {
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
+					} else {
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
+					}
+				case val.IsNull():
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
+				default:
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is %s"), traversalStr, compactValueStr(val)))
+				}
+				seen[traversalStr] = struct{}{}
+			}
+		}
+
+		sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
+
+		if len(stmts) > 0 {
+			fmt.Fprint(&buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
+		}
+		for _, stmt := range stmts {
+			fmt.Fprintf(&buf, color.Color("    [dark_gray]│[reset] %s\n"), stmt)
+		}
+	}
+
+	buf.WriteByte('\n')
+
+	return buf
 }
