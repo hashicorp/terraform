@@ -77,22 +77,17 @@ type EvalContext interface {
 	ProviderInput(addrs.AbsProviderConfig) map[string]cty.Value
 	SetProviderInput(addrs.AbsProviderConfig, map[string]cty.Value)
 
-	// InitProvisioner initializes the provisioner with the given name.
-	// It is an error to initialize the same provisioner more than once.
-	InitProvisioner(string) error
-
 	// Provisioner gets the provisioner instance with the given name (already
 	// initialized) or returns nil if the provisioner isn't initialized.
-	Provisioner(string) provisioners.Interface
+	Provisioner(string) (provisioners.Interface, error)
 
 	// ProvisionerSchema retrieves the main configuration schema for a
 	// particular provisioner, which must have already been initialized with
 	// InitProvisioner.
 	ProvisionerSchema(string) *configschema.Block
 
-	// CloseProvisioner closes provisioner connections that aren't needed
-	// anymore.
-	CloseProvisioner(string) error
+	// CloseProvisioner closes all provisioner plugins.
+	CloseProvisioners() error
 
 	// EvaluateBlock takes the given raw configuration block and associated
 	// schema and evaluates it to produce a value of an object type that
