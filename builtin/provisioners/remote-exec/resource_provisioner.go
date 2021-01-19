@@ -116,7 +116,6 @@ func (p *provisioner) Stop() error {
 }
 
 func (p *provisioner) Close() error {
-	p.cancel()
 	return nil
 }
 
