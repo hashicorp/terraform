@@ -736,7 +736,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			if thirdPartySigned {
 				c.Ui.Info(fmt.Sprintf("\nPartner and community providers are signed by their developers.\n" +
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
-					"https://www.terraform.io/docs/plugins/signing.html"))
+					"https://www.terraform.io/docs/cli/plugins/signing.html"))
 			}
 		},
 		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
@@ -1056,7 +1056,7 @@ Options:
   -no-color            If specified, output won't contain any color.
 
   -plugin-dir          Directory containing plugin binaries. This overrides all
-                       default search paths for plugins, and prevents the 
+                       default search paths for plugins, and prevents the
                        automatic installation of plugins. This flag can be used
                        multiple times.
 
