@@ -20,5 +20,5 @@ Converting a resource to be importable is also relatively simple, so if
 you're interested in contributing that functionality, the Terraform team
 would be grateful.
 
-To make a resource importable, please see the
-[plugin documentation on writing a resource](/docs/plugins/provider.html).
+To make a resource importable, please see
+[Extending Terraform: Resources — Import](/docs/extend/resources/import.html).

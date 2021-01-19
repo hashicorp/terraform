@@ -21,7 +21,7 @@ state file that matches the given address.
 
 This command requires an address that points to a single resource in the
 state. Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](/docs/cli/state/resource-addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
