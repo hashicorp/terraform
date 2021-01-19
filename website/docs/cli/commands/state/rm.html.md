@@ -39,7 +39,7 @@ of this command, backups are required.
 
 This command requires one or more addresses that point to a resources in the
 state. Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](/docs/cli/state/resource-addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 

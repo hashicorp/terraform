@@ -36,7 +36,7 @@ for each state file.
 
 This command requires a source and destination address of the item to move.
 Addresses are
-in [resource addressing format](/docs/commands/state/addressing.html).
+in [resource addressing format](/docs/cli/state/resource-addressing.html).
 
 The command-line flags are all optional. The list of available flags are:
 
