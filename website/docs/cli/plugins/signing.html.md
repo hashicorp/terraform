@@ -1,7 +1,6 @@
 ---
-layout: "registry"
+layout: "docs"
 page_title: "Plugin Signing"
-sidebar_current: "docs-plugins-signing"
 description: |-
   Terraform plugin signing trust levels
 ---
@@ -15,7 +14,7 @@ description: |-
 Terraform providers installed from the Registry are cryptographically signed, and the signature is verified at time of installation. There are three types of provider signatures, each with different trust implications:
 
 * **Signed by HashiCorp** - are built, signed, and supported by HashiCorp.
-* **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has 
+* **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has
 verified the ownership of the private key and we provide a chain of trust to the CLI to verify this
 programatically.
 * **Self-signed** - are built, signed, and supported by a third party. HashiCorp does not provide a
