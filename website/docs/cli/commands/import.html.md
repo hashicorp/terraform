@@ -11,7 +11,7 @@ description: |-
 > **Hands-on:** Try the [Import Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/state-import?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 The `terraform import` command is used to
-[import existing resources](/docs/import/index.html)
+[import existing resources](/docs/cli/import/index.html)
 into Terraform.
 
 ## Usage
@@ -21,7 +21,7 @@ Usage: `terraform import [options] ADDRESS ID`
 Import will find the existing resource from ID and import it into your Terraform
 state at the given ADDRESS.
 
-ADDRESS must be a valid [resource address](/docs/internals/resource-addressing.html).
+ADDRESS must be a valid [resource address](/docs/cli/state/resource-addressing.html).
 Because any resource address is valid, the import command can import resources
 into modules as well as directly into the root of your state.
 

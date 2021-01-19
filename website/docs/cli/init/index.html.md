@@ -47,7 +47,7 @@ plugins, and downloading modules. Under some conditions (usually when changing
 from one backend to another), it might ask the user for guidance or
 confirmation.
 
-For details, see [the `terraform init` command](/docs/commands/init.html).
+For details, see [the `terraform init` command](/docs/cli/commands/init.html).
 
 ## Reinitialization
 

@@ -6,7 +6,7 @@ page_title: "Overview - Configuration Language"
 # Terraform Language Documentation
 
 This is the documentation for Terraform's configuration language. It is relevant
-to users of [Terraform CLI](/docs/cli-index.html),
+to users of [Terraform CLI](/docs/cli/index.html),
 [Terraform Cloud](/docs/cloud/index.html), and
 [Terraform Enterprise](/docs/enterprise/index.html).
 

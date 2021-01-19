@@ -51,7 +51,7 @@ to signify that it is a lock file for various items that Terraform caches in
 the `.terraform` subdirectory of your working directory.
 
 Terraform automatically creates or updates the dependency lock file each time
-you run [the `terraform init` command](/docs/commands/init.html). You should
+you run [the `terraform init` command](/docs/cli/commands/init.html). You should
 include this file in your version control repository so that you can discuss
 potential changes to your external dependencies via code review, just as you
 would discuss potential changes to your configuration itself.
@@ -139,7 +139,7 @@ There are two special considerations with the "trust on first use" model:
 
     To avoid this problem you can pre-populate checksums for a variety of
     different platforms in your lock file using
-    [the `terraform providers lock` command](/docs/commands/providers/lock.html),
+    [the `terraform providers lock` command](/docs/cli/commands/providers/lock.html),
     which will then allow future calls to `terraform init` to verify that the
     packages available in your chosen mirror match the official packages from
     the provider's origin registry.
@@ -304,7 +304,7 @@ The two hashing schemes currently supported are:
     packages indexed in the origin registry. This is an effective scheme for
     verifying the official release packages when installed from a registry, but
     it's not suitable for verifying packages that come from other
-    [provider installation methods](/docs/commands/cli-config.html#provider-installation),
+    [provider installation methods](/docs/cli/config/config-file.html#provider-installation),
     such as filesystem mirrors using the unpacked directory layout.
 
 * `h1:`: a mnemonic for "hash scheme 1", which is the current preferred hashing
@@ -345,7 +345,7 @@ your configuration on new target platforms, or if you are installing providers
 from a mirror that therefore can't provide official signed checksums, you
 can ask Terraform to pre-populate hashes for a chosen set of platforms
 using
-[the `terraform providers lock` command](/docs/commands/providers/lock.html):
+[the `terraform providers lock` command](/docs/cli/commands/providers/lock.html):
 
 ```
 terraform providers lock \

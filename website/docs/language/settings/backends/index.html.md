@@ -29,14 +29,14 @@ this section document how to configure and use backends.
 
 ## Where Backends are Used
 
-Backend configuration is only used by [Terraform CLI](/docs/cli-index.html).
+Backend configuration is only used by [Terraform CLI](/docs/cli/index.html).
 Terraform Cloud and Terraform Enterprise always use their own state storage when
 performing Terraform runs, so they ignore any backend block in the
 configuration.
 
 But since it's common to
 [use Terraform CLI alongside Terraform Cloud](/docs/cloud/run/cli.html)
-(and since certain state operations, like [tainting](/docs/commands/taint.html),
+(and since certain state operations, like [tainting](/docs/cli/commands/taint.html),
 can only be performed on the CLI), we recommend that Terraform Cloud users
 include a backend block in their configurations and configure the `remote`
 backend to use the relevant Terraform Cloud workspace(s).

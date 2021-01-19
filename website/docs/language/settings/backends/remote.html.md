@@ -94,8 +94,8 @@ running any remote operations against them.
 ## Example Configurations
 
 ->  **Note:** We recommend omitting the token from the configuration, and instead using
-  [`terraform login`](/docs/commands/login.html) or manually configuring
-  `credentials` in the [CLI config file](/docs/commands/cli-config.html#credentials).
+  [`terraform login`](/docs/cli/commands/login.html) or manually configuring
+  `credentials` in the [CLI config file](/docs/cli/config/config-file.html#credentials).
 
 ### Basic Configuration
 
@@ -177,9 +177,9 @@ The following configuration options are supported:
   targeted workspace(s).
 * `token` - (Optional) The token used to authenticate with the remote backend.
   We recommend omitting the token from the configuration, and instead using
-  [`terraform login`](/docs/commands/login.html) or manually configuring
+  [`terraform login`](/docs/cli/commands/login.html) or manually configuring
   `credentials` in the
-  [CLI config file](/docs/commands/cli-config.html#credentials).
+  [CLI config file](/docs/cli/config/config-file.html#credentials).
 * `workspaces` - (Required) A block specifying which remote workspace(s) to use.
   The `workspaces` block supports the following keys:
 

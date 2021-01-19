@@ -560,7 +560,7 @@ Operator precedences is the standard mathematical order of operations:
 "${2 * (4 + 3) * 3}" # computes to 42
 ```
 
-You can use the [terraform console](/docs/commands/console.html) command to
+You can use the [terraform console](/docs/cli/commands/console.html) command to
 try the math operations.
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,

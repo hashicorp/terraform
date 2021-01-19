@@ -66,9 +66,9 @@ The command-line flags are all optional. The list of available flags are:
   [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. For more
+  Address](/docs/cli/state/resource-addressing.html) to target. For more
   information, see
-  [the targeting docs from `terraform plan`](/docs/commands/plan.html#resource-targeting).
+  [the targeting docs from `terraform plan`](/docs/cli/commands/plan.html#resource-targeting).
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
@@ -100,6 +100,6 @@ current working directory.
 If your previous use of this legacy pattern was also relying on Terraform
 writing the `.terraform` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](environment-variables.html#tf_data_dir)
+[the `TF_DATA_DIR` environment variable](/docs/cli/config/environment-variables.html#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.

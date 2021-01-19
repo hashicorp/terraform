@@ -28,7 +28,7 @@ in the navigation) if you are upgrading directly from an earlier version.
 As of v0.10, provider plugins are no longer included in the main Terraform
 distribution. Instead, they are distributed separately and installed
 automatically by
-[the `terraform init` command](/docs/commands/init.html).
+[the `terraform init` command](/docs/cli/commands/init.html).
 
 In the long run, this new approach should be beneficial to anyone who wishes
 to upgrade a specific provider to get new functionality without also
@@ -104,9 +104,9 @@ For example, if `module.example` contains a module itself, called
 `module.example` _and_ `module.example.module.examplechild`.
 
 This also applies to other Terraform features that use
-[resource addressing](/docs/internals/resource-addressing.html) syntax.
+[resource addressing](/docs/cli/state/resource-addressing.html) syntax.
 This includes some of the subcommands of
-[`terraform state`](/docs/commands/state/index.html).
+[`terraform state`](/docs/cli/commands/state/index.html).
 
 **Action:** If running Terraform with `-target` in automation, review usage
 to ensure that selecting additional resources in child modules will not have

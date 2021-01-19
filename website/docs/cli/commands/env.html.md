@@ -9,5 +9,5 @@ description: |-
 # Command: env
 
 The `terraform env` command is deprecated.
-[The `terraform workspace` command](/docs/commands/workspace/)
+[The `terraform workspace` command](/docs/cli/commands/workspace/index.html)
 should be used instead.

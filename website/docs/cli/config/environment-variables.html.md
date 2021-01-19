@@ -145,7 +145,7 @@ export TF_REGISTRY_CLIENT_TIMEOUT=15
 
 ## TF_CLI_CONFIG_FILE
 
-The location of the [Terraform CLI configuration file](/docs/commands/cli-config.html).
+The location of the [Terraform CLI configuration file](/docs/cli/config/config-file.html).
 
 ```shell
 export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"

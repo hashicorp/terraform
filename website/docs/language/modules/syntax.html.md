@@ -168,7 +168,7 @@ after moving code across modules to ensure that no resources are deleted by
 surprise.
 
 If you want to make sure an existing resource is preserved, use
-[the `terraform state mv` command](/docs/commands/state/mv.html) to inform
+[the `terraform state mv` command](/docs/cli/commands/state/mv.html) to inform
 Terraform that it has moved to a different module.
 
 When passing resource addresses to `terraform state mv`, resources within child
@@ -186,7 +186,7 @@ elsewhere in your configuration.
 
 ## Tainting resources within a module
 
-The [taint command](/docs/commands/taint.html) can be used to _taint_ specific
+The [taint command](/docs/cli/commands/taint.html) can be used to _taint_ specific
 resources within a module:
 
 ```shell

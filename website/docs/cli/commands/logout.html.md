@@ -26,5 +26,5 @@ the remote server, so it will remain valid until manually revoked.
 
 By default, Terraform will remove the token stored in plain text in a local CLI
 configuration file called `credentials.tfrc.json`. If you have configured a
-[credentials helper program](cli-config.html#credentials-helpers), Terraform
+[credentials helper program](/docs/cli/config/config-file.html#credentials-helpers), Terraform
 will use the helper's `forget` command to remove it.

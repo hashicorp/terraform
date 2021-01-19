@@ -50,7 +50,7 @@ The `terraform refresh` command accepts the following options:
   [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. Operation will
+  Address](/docs/cli/state/resource-addressing.html) to target. Operation will
   be limited to this resource and its dependencies. This flag can be used
   multiple times.
 

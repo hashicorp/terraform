@@ -101,7 +101,7 @@ will be read or written in the given directory instead.
 There are two exceptions where Terraform will use the original working directory
 even when you specify `-chdir=...`:
 
-* Settings in the [CLI Configuration](cli-config.html) are not for a specific
+* Settings in the [CLI Configuration](/docs/cli/config/config-file.html) are not for a specific
   subcommand and Terraform processes them before acting on the `-chdir`
   option.
 
@@ -154,7 +154,7 @@ Checkpoint itself can be entirely disabled for all HashiCorp products by
 setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
 
 Alternatively, settings in
-[the CLI configuration file](/docs/commands/cli-config.html) can be used to
+[the CLI configuration file](/docs/cli/config/config-file.html) can be used to
 disable checkpoint features. The following checkpoint-related settings are
 supported in this file:
 

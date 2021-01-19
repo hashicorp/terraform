@@ -303,7 +303,7 @@ registry, by implementing
 
 Running an additional service just to distribute a single provider internally
 may be undesirable, so Terraform also supports
-[other provider installation methods](/docs/commands/cli-config.html#provider-installation),
+[other provider installation methods](/docs/cli/config/config-file.html#provider-installation),
 including placing provider plugins directly in specific directories in the
 local filesystem, via _filesystem mirrors_.
 
@@ -332,7 +332,7 @@ terraform {
 
 To make version 1.0.0 of this provider available for installation from the
 local filesystem, choose one of the
-[implied local mirror directories](/docs/commands/cli-config.html#implied-local-mirror-directories)
+[implied local mirror directories](/docs/cli/config/config-file.html#implied-local-mirror-directories)
 and create a directory structure under it like this:
 
 ```

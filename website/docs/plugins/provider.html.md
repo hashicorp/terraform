@@ -186,7 +186,7 @@ structure. This structure has the following fields:
       you may keep that field nil.
 
   * `Importer` - If this is non-nil, then this resource is
-    [importable](/docs/import/importability.html). It is recommended to
+    [importable](/docs/cli/import/importability.html). It is recommended to
     implement this.
 
 The CRUD operations in more detail, along with their contracts:

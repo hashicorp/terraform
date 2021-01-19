@@ -35,7 +35,7 @@ written to disk and the CLI usage is the same as if it were local state.
 All `terraform state` subcommands that modify the state write backup
 files. The path of these backup file can be controlled with `-backup`.
 
-Subcommands that are read-only (such as [list](/docs/commands/state/list.html))
+Subcommands that are read-only (such as [list](/docs/cli/commands/state/list.html))
 do not write any backup files since they aren't modifying the state.
 
 Note that backups for state modification _can not be disabled_. Due to

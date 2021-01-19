@@ -15,7 +15,7 @@ API token for Terraform Cloud, Terraform Enterprise, or any other host that offe
 where it is possible to launch a web browser on the same host where Terraform
 is running. If you are running Terraform in an unattended automation scenario,
 you can
-[configure credentials manually in the CLI configuration](https://www.terraform.io/docs/commands/cli-config.html#credentials).
+[configure credentials manually in the CLI configuration](https://www.terraform.io/docs/cli/config/config-file.html#credentials).
 
 ## Usage
 
@@ -34,7 +34,7 @@ not as desired.
 
 If you don't wish to store your API token in the default location, you can
 optionally configure a
-[credentials helper program](cli-config.html#credentials-helpers) which knows
+[credentials helper program](/docs/cli/config/config-file.html#credentials-helpers) which knows
 how to store and later retrieve credentials in some other system, such as
 your organization's existing secrets management system.
 

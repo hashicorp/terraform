@@ -123,7 +123,7 @@ third-party provider registry, `terraform init` will automatically find,
 download, and install the necessary provider plugins. If you cannot or do not
 wish to install providers from their origin registries, you can customize how
 Terraform installs providers using
-[the provider installation settings in the CLI configuration](./cli-config.html#provider-installation).
+[the provider installation settings in the CLI configuration](/docs/cli/config/config-file.html#provider-installation).
 
 For more information about specifying which providers are required for each
 of your modules, see [Provider Requirements](/docs/language/providers/requirements.html).
@@ -145,14 +145,14 @@ You can modify `terraform init`'s plugin behavior with the following options:
 - `-get-plugins=false` — Skip plugin installation.
 
     -> Note: Since Terraform 0.13, this option has been superseded by the
-    [`provider_installation`](./cli-config.html#provider-installation) and
-    [`plugin_cache_dir`](./cli-config.html#plugin_cache_dir) settings.
+    [`provider_installation`](/docs/cli/config/config-file.html#provider-installation) and
+    [`plugin_cache_dir`](/docs/cli/config/config-file.html#plugin_cache_dir) settings.
     It should not be used in Terraform versions 0.13+.
 - `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
   filesystem mirror then we recommend
-  [configuring Terraform's installation methods globally](./cli-config.html#provider-installation).
+  [configuring Terraform's installation methods globally](/docs/cli/config/config-file.html#provider-installation).
   You can use `-plugin-dir` as a one-time override for exceptional situations,
   such as if you are testing a local build of a provider plugin you are
   currently developing.
@@ -186,6 +186,6 @@ current working directory.
 If your previous use of this legacy pattern was also relying on Terraform
 writing the `.terraform` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](environment-variables.html#tf_data_dir)
+[the `TF_DATA_DIR` environment variable](/docs/cli/config/environment-variables.html#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.

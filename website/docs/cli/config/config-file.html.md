@@ -33,7 +33,7 @@ as just `terraform.rc`. Use `dir` from PowerShell or Command Prompt to
 confirm the filename.
 
 The location of the Terraform CLI configuration file can also be specified
-using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/commands/environment-variables.html).
+using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/cli/config/environment-variables.html).
 
 ## Configuration File Syntax
 
@@ -60,7 +60,7 @@ The following settings can be set in the CLI configuration file:
   See [Credentials Helpers](#credentials-helpers) below for more information.
 
 - `disable_checkpoint` — when set to `true`, disables
-  [upgrade and security bulletin checks](/docs/commands/index.html#upgrade-and-security-bulletin-checks)
+  [upgrade and security bulletin checks](/docs/cli/commands/index.html#upgrade-and-security-bulletin-checks)
   that require reaching out to HashiCorp-provided network services.
 
 - `disable_checkpoint_signature` — when set to `true`, allows the upgrade and
@@ -93,7 +93,7 @@ credentials "app.terraform.io" {
 }
 ```
 
-If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](./login.html)
+If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](/docs/cli/commands/login.html)
 to get credentials and automatically save them in the CLI configuration. If
 not, you can manually write `credentials` blocks.
 

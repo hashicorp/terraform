@@ -17,11 +17,11 @@ resources with the same configuration.
 - Most Terraform commands (including [provisioning](/docs/cli/run/index.html)
   and [state manipulation](/docs/cli/state/index.html) commands) only interact
   with the currently selected workspace.
-- Use [the `terraform workspace select` command](/docs/commands/workspace/select.html)
+- Use [the `terraform workspace select` command](/docs/cli/commands/workspace/select.html)
   to change the currently selected workspace.
-- Use the [`terraform workspace list`](/docs/commands/workspace/list.html),
-  [`terraform workspace new`](/docs/commands/workspace/new.html), and
-  [`terraform workspace delete`](/docs/commands/workspace/delete.html) commands
+- Use the [`terraform workspace list`](/docs/cli/commands/workspace/list.html),
+  [`terraform workspace new`](/docs/cli/commands/workspace/new.html), and
+  [`terraform workspace delete`](/docs/cli/commands/workspace/delete.html) commands
   to manage the available workspaces in the current working directory.
 
 -> **Note:** Terraform Cloud and Terraform CLI both have features called

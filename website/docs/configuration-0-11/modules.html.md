@@ -386,7 +386,7 @@ giving each instance a unique name -- here `module "assets_bucket"` and
 Resources from child modules are prefixed with `module.<module-instance-name>`
 when displayed in plan output and elsewhere in the UI. For example, the
 `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
-instances of this module produce S3 bucket resources with [_resource addresses_](/docs/internals/resource-addressing.html)
+instances of this module produce S3 bucket resources with [_resource addresses_](/docs/cli/state/resource-addressing.html)
 `module.assets_bucket.aws_s3_bucket.example` and `module.media_bucket.aws_s3_bucket.example`
 respectively. These full addresses are used within the UI and on the command
 line, but are not valid within interpolation expressions due to the
@@ -405,7 +405,7 @@ several regions or datacenters.
 
 ## Tainting resources within a module
 
-The [taint command](/docs/commands/taint.html) can be used to _taint_ specific
+The [taint command](/docs/cli/commands/taint.html) can be used to _taint_ specific
 resources within a module:
 
 ```shell

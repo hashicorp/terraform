@@ -22,7 +22,7 @@ expressions.
 
 You can experiment with the behavior of Terraform's expressions from
 the Terraform expression console, by running
-[the `terraform console` command](/docs/commands/console.html).
+[the `terraform console` command](/docs/cli/commands/console.html).
 
 The other pages in this section describe the features of Terraform's
 expression syntax.

@@ -12,4 +12,4 @@ Terraform is able to import existing infrastructure. This allows you take
 resources you've created by some other means and bring it under Terraform management.
 
 To learn more about this, please visit the
-[pages dedicated to import](/docs/import/index.html).
+[pages dedicated to import](/docs/cli/import/index.html).
