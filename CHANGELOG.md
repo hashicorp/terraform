@@ -1,5 +1,9 @@
 ## 0.14.5 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/pg: The Postgres backend now supports the "scram-sha-256" authentication method. [GH-26886]
+
 BUG FIXES:
 
 * cli: Fix formatting of long integers in outputs and console ([#27479](https://github.com/hashicorp/terraform/issues/27479))
