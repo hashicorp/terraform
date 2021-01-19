@@ -57,7 +57,7 @@ Terraform state.
 
 It is also possible to import to resources in child modules, using their paths,
 and to single instances of a resource with `count` or `for_each` set. See
-[_Resource Addressing_](/docs/internals/resource-addressing.html) for more
+[_Resource Addressing_](/docs/cli/state/resource-addressing.html) for more
 details on how to specify a target resource.
 
 The syntax of the given ID is dependent on the resource type being imported.
@@ -83,4 +83,4 @@ a `resource` block in configuration for each secondary resource. If this is
 not done, Terraform will plan to destroy the imported objects on the next run.
 
 If you want to rename or otherwise move the imported resources, the
-[state management commands](/docs/commands/state/index.html) can be used.
+[state management commands](/docs/cli/commands/state/index.html) can be used.

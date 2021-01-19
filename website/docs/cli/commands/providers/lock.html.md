@@ -15,11 +15,11 @@ order to write provider dependency information into
 
 The common way to update the dependency lock file is as a side-effect of normal
 provider installation during
-[`terraform init`](../init.html), but there are several situations where that
+[`terraform init`](/docs/cli/commands/init.html), but there are several situations where that
 automatic approach may not be sufficient:
 
 * If you are running Terraform in an environment that uses
-  [alternative provider installation methods](../cli-config.html#provider-installation),
+  [alternative provider installation methods](/docs/cli/config/config-file.html#provider-installation),
   such as filesystem or network mirrors, normal provider installation will not
   access the origin registry for a provider and therefore Terraform will not
   be able to populate all of the possible package checksums for the selected
@@ -150,7 +150,7 @@ multiple times and specify a different subset of your providers each time.
 
 The `-fs-mirror` and `-net-mirror` options have the same meaning as
 `filesystem_mirror` and `network_mirror` blocks in
-[the provider installation methods configuration](../cli-config.html#provider-installation),
+[the provider installation methods configuration](/docs/cli/config/config-file.html#provider-installation),
 but specify only a single method in order to be explicit about where you
 intend to derive the package checksum information from.
 

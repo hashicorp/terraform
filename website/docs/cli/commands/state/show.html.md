@@ -30,7 +30,7 @@ The command-line flags are all optional. The list of available flags are:
 
 The output of `terraform state show` is intended for human consumption, not
 programmatic consumption. To extract state data for use in other software, use
-[`terraform show -json`](../show.html#json-output) and decode the result
+[`terraform show -json`](/docs/cli/commands/show.html#json-output) and decode the result
 using the documented structure.
 
 ## Example: Show a Resource

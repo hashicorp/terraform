@@ -21,7 +21,7 @@ Terraform CLI supports several workflows for interacting with state:
 - [Forcing Re-creation (Tainting)](/docs/cli/state/taint.html)
 - [Moving Resources](/docs/cli/state/move.html)
 - Importing Pre-existing Resources (documented in the
-  [Importing Infrastructure](/docs/import/index.html) section)
+  [Importing Infrastructure](/docs/cli/import/index.html) section)
 - [Disaster Recovery](/docs/cli/state/recover.html)
 
 ~> **Important:** Modifying state data outside a normal plan or apply can cause

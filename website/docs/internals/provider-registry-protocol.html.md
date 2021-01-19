@@ -42,7 +42,7 @@ where:
 * `hostname` is the registry host that the provider is considered to have
   originated from, and the default location Terraform will consult for
   information about the provider
-  [unless overridden in the CLI configuration](/docs/commands/cli-config.html#provider-installation).
+  [unless overridden in the CLI configuration](/docs/cli/config/config-file.html#provider-installation).
 * `namespace` is the name of a namespace, unique on a particular hostname, that
   can contain one or more providers that are somehow related. On the public
   Terraform Registry the "namespace" represents the organization that is
@@ -78,7 +78,7 @@ to see it as an entirely separate provider that will _not_ be usable by modules
 that declare a dependency on `hashicorp/azurerm`. If your goal is to create
 an alternative local distribution source for an existing provider -- that is,
 a _mirror_ of the provider -- refer to
-[the provider installation method configuration](/docs/commands/cli-config.html#provider-installation)
+[the provider installation method configuration](/docs/cli/config/config-file.html#provider-installation)
 instead.
 
 ## Provider Versions

@@ -15,8 +15,8 @@ Modules can be used to create lightweight abstractions, so that you can
 describe your infrastructure in terms of its architecture, rather than
 directly in terms of physical objects.
 
-The `.tf` files in your working directory when you run [`terraform plan`](/docs/commands/plan.html)
-or [`terraform apply`](/docs/commands/apply.html) together form the _root_
+The `.tf` files in your working directory when you run [`terraform plan`](/docs/cli/commands/plan.html)
+or [`terraform apply`](/docs/cli/commands/apply.html) together form the _root_
 module. That module may [call other modules](/docs/language/modules/syntax.html#calling-a-child-module)
 and connect them together by passing output values from one to input values
 of another.

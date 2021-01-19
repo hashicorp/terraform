@@ -18,4 +18,4 @@ section offer a more abstract view of the Terraform language.
   don't have a readily available HCL library.
 - [Style Conventions](/docs/language/syntax/style.html) documents some commonly
   accepted formatting guidelines for Terraform code. These conventions can be
-  enforced automatically with [`terraform fmt`](/docs/commands/fmt.html).
+  enforced automatically with [`terraform fmt`](/docs/cli/commands/fmt.html).

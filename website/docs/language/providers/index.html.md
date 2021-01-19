@@ -60,7 +60,7 @@ about it in your configuration. See the following pages for details:
 
     To save time and bandwidth, Terraform CLI supports an optional plugin
     cache. You can enable the cache using the `plugin_cache_dir` setting in
-    [the CLI configuration file](/docs/commands/cli-config.html).
+    [the CLI configuration file](/docs/cli/config/config-file.html).
 
 To ensure Terraform always installs the same provider versions for a given
 configuration, you can use Terraform CLI to create a

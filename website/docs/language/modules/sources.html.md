@@ -129,7 +129,7 @@ You can learn more about the registry at the
 [Terraform Registry documentation](/docs/registry/modules/use.html#using-modules).
 
 To access modules from a private registry, you may need to configure an access
-token [in the CLI config](/docs/commands/cli-config.html#credentials). Use the
+token [in the CLI config](/docs/cli/config/config-file.html#credentials). Use the
 same hostname as used in the module source string. For a private registry
 within Terraform Cloud, use the same authentication token as you would
 use with the Enterprise API or command-line clients.

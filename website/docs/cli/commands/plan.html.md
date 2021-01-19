@@ -73,7 +73,7 @@ The available options are:
   Ignored when [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
-  Address](/docs/internals/resource-addressing.html) to target. This flag can
+  Address](/docs/cli/state/resource-addressing.html) to target. This flag can
   be used multiple times. See below for more information.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
@@ -93,7 +93,7 @@ The available options are:
 
 The `-target` option can be used to focus Terraform's attention on only a
 subset of resources.
-[Resource Address](/docs/internals/resource-addressing.html) syntax is used
+[Resource Address](/docs/cli/state/resource-addressing.html) syntax is used
 to specify the constraint. The resource address is interpreted as follows:
 
 * If the given address has a _resource spec_, only the specified resource
@@ -150,6 +150,6 @@ current working directory.
 If your previous use of this legacy pattern was also relying on Terraform
 writing the `.terraform` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](environment-variables.html#tf_data_dir)
+[the `TF_DATA_DIR` environment variable](/docs/cli/config/environment-variables.html#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.

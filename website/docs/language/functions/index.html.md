@@ -30,7 +30,7 @@ for this section includes a list of all of the available built-in functions.
 
 You can experiment with the behavior of Terraform's built-in functions from
 the Terraform expression console, by running
-[the `terraform console` command](/docs/commands/console.html):
+[the `terraform console` command](/docs/cli/commands/console.html):
 
 ```
 > max(5, 12, 9)

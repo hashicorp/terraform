@@ -18,7 +18,7 @@ but it can also be stored remotely, which works better in a team environment.
 
 Terraform uses this local state to create plans and make changes to your
 infrastructure. Prior to any operation, Terraform does a
-[refresh](/docs/commands/refresh.html) to update the state with the
+[refresh](/docs/cli/commands/refresh.html) to update the state with the
 real infrastructure.
 
 The primary purpose of Terraform state is to store bindings between objects in
@@ -35,7 +35,7 @@ function without state, please see the page [state purpose](/docs/language/state
 
 While the format of the state files are just JSON, direct file editing
 of the state is discouraged. Terraform provides the
-[terraform state](/docs/commands/state/index.html) command to perform
+[terraform state](/docs/cli/commands/state/index.html) command to perform
 basic modifications of the state using the CLI.
 
 The CLI usage and output of the state commands is structured to be
@@ -68,10 +68,10 @@ in new versions.
 Alternatively, there are several integration points which produce JSON output
 that is specifically intended for consumption by external software:
 
-* [The `terraform output` command](/docs/commands/output.html)
+* [The `terraform output` command](/docs/cli/commands/output.html)
 has a `-json` option, for obtaining either the full set of root module output
 values or a specific named output value from the latest state snapshot.
-* [The `terraform show` command](/docs/commands/show.html) has a `-json`
+* [The `terraform show` command](/docs/cli/commands/show.html) has a `-json`
 option for inspecting the latest state snapshot in full, and also for
 inspecting saved plan files which include a copy of the prior state at the
 time the plan was made.

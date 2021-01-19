@@ -17,7 +17,7 @@ Usage: `terraform version [options]`
 
 With no additional arguments, `version` will display the version of Terraform,
 the platform it's installed on, installed providers, and the results of upgrade
-and security checks [unless disabled](/docs/commands/index.html#upgrade-and-security-bulletin-checks).
+and security checks [unless disabled](/docs/cli/commands/index.html#upgrade-and-security-bulletin-checks).
 
 This command has one optional flag:
 

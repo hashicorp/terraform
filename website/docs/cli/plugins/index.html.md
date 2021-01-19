@@ -30,29 +30,29 @@ environments.
 
 Terraform's configuration file includes options for caching downloaded plugins,
 or explicitly specifying a local or HTTPS mirror to install plugins from. For
-more information, see [CLI Config File](/docs/commands/cli-config.html).
+more information, see [CLI Config File](/docs/cli/config/config-file.html).
 
 ## Getting Plugin Information
 
-Use the [`terraform providers`](/docs/commands/providers.html) command to get information
+Use the [`terraform providers`](/docs/cli/commands/providers.html) command to get information
 about the providers required by the current working directory's configuration.
 
-Use the [`terraform version`](/docs/commands/version.html) command (or
+Use the [`terraform version`](/docs/cli/commands/version.html) command (or
 `terraform -version`) to show the specific provider versions installed for the
 current working directory.
 
-Use the [`terraform providers schema`](/docs/commands/providers/schema.html) command to
+Use the [`terraform providers schema`](/docs/cli/commands/providers/schema.html) command to
 get machine-readable information about the resources and configuration options
 offered by each provider.
 
 ## Managing Plugin Installation
 
-Use the [`terraform providers mirror`](/docs/commands/providers/mirror.html) command to
+Use the [`terraform providers mirror`](/docs/cli/commands/providers/mirror.html) command to
 download local copies of every provider required by the current working
 directory's configuration. This directory will use the nested directory layout
 that Terraform expects when installing plugins from a local source, so you can
 transfer it directly to an airgapped system that runs Terraform.
 
-Use the [`terraform providers lock`](/docs/commands/providers/lock.html) command
+Use the [`terraform providers lock`](/docs/cli/commands/providers/lock.html) command
 to update the lock file that Terraform uses to ensure predictable runs when
 using ambiguous provider version constraints.

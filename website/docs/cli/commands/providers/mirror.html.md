@@ -19,7 +19,7 @@ from provider registries as part of initializing the current working directory.
 Sometimes Terraform is running in an environment where that isn't possible,
 such as on an isolated network without access to the Terraform Registry. In
 that case,
-[explicit installation method configuration](../cli-config.html#explicit-installation-method-configuration)
+[explicit installation method configuration](/docs/cli/config/config-file.html#explicit-installation-method-configuration)
 allows you to configure Terraform, when running on a particular system, to
 consult only a local filesystem directory where you've created a local mirror
 of the necessary plugins, and to skip accessing the upstream registry at all.

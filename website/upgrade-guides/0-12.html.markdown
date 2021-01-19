@@ -16,7 +16,7 @@ to cover the most common upgrade concerns and issues.
 For most users, upgrading configuration should be completely automatic. Some
 simple configurations will require no changes at all, and most other
 configurations can be prepared by running
-[the automatic upgrade tool](/docs/commands/0.12upgrade.html). Please read on
+[the automatic upgrade tool](/docs/cli/commands/0.12upgrade.html). Please read on
 for more information and recommendations on the upgrade process.
 
 -> If you are a developer maintaining a provider plugin, please see

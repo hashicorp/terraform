@@ -159,7 +159,7 @@ network mirrors:
   across a mixture of platforms then, in addition to making sure that your
   mirrors include packages for all of the necessary platforms, you may choose
   to use
-  [the new `terraform providers lock` command](/docs/commands/providers/lock.html)
+  [the new `terraform providers lock` command](/docs/cli/commands/providers/lock.html)
   to pre-enter the required lock file entries for all of the platforms you
   intend to use.
 
@@ -265,9 +265,9 @@ Cloud in particular that this approach was previously mis-documented.
 
 If you aren't intending to upload the provider plugin to Terraform Cloud as
 part of your configuration, we recommend instead installing to one of
-[the other implied mirror directories](/docs/commands/cli-config.html#implied-local-mirror-directories),
+[the other implied mirror directories](/docs/cli/config/config-file.html#implied-local-mirror-directories),
 or you can explicitly configure some
-[custom provider installation methods](/docs/commands/cli-config.html#provider-installation)
+[custom provider installation methods](/docs/cli/config/config-file.html#provider-installation)
 if your needs are more complicated.
 
 ## Concise Terraform Plan Output

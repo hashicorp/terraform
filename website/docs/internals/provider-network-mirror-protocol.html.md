@@ -18,7 +18,7 @@ implement to provide an alternative installation source for Terraform providers,
 regardless of their origin registries.
 
 Terraform uses network mirrors only if you activate them explicitly in
-[the CLI configuration's `provider_installation` block](/docs/commands/cli-config.html#provider-installation).
+[the CLI configuration's `provider_installation` block](/docs/cli/config/config-file.html#provider-installation).
 When enabled, a network mirror can serve providers belonging to any registry
 hostname, which can allow an organization to serve all of the Terraform
 providers they intend to use from an internal server, rather than from each
@@ -96,7 +96,7 @@ base URL from the above CLI configuration example.
 ### Authentication
 
 If the CLI configuration includes
-[credentials](/docs/commands/cli-config.html#credentials) for the hostname
+[credentials](/docs/cli/config/config-file.html#credentials) for the hostname
 given in the network mirror base URL, Terraform will include those credentials
 in its requests for operations described below.
 
@@ -264,7 +264,7 @@ in the appropriate nested subdirectories, and ensure that your system is
 configured to serve `.json` files with the `application/json` media type.
 
 As a convenience, Terraform CLI includes
-[the `terraform providers mirror` subcommand](https://www.terraform.io/docs/commands/providers/mirror.html),
+[the `terraform providers mirror` subcommand](https://www.terraform.io/docs/cli/commands/providers/mirror.html),
 which will analyze the current configuration for the providers it requires,
 download the packages for those providers from their origin registries, and
 place them into a local directory suitable for use as a mirror.

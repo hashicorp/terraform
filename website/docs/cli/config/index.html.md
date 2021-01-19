@@ -14,9 +14,9 @@ most of the global settings relate to advanced or automated workflows, or
 unusual environmental conditions like running Terraform on an airgapped
 instance.
 
-- The [CLI config file](/docs/commands/cli-config.html) configures provider
+- The [CLI config file](/docs/cli/config/config-file.html) configures provider
   installation and security features.
-- Several [environment variables](/docs/commands/environment-variables.html) can
+- Several [environment variables](/docs/cli/config/environment-variables.html) can
   configure Terraform's inputs and outputs; this includes some alternate ways to
   provide information that is usually passed on the command line or read from
   the state of the shell.

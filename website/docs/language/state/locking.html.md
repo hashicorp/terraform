@@ -27,7 +27,7 @@ includes details on whether it supports locking or not.
 
 ## Force Unlock
 
-Terraform has a [force-unlock command](/docs/commands/force-unlock.html)
+Terraform has a [force-unlock command](/docs/cli/commands/force-unlock.html)
 to manually unlock the state if unlocking failed.
 
 **Be very careful with this command.** If you unlock the state when someone
