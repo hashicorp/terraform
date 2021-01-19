@@ -99,6 +99,12 @@ github.com/apparentlymart/go-cidr v1.1.0/go.mod h1:EBcsNrHc3zQeuaeCeCtQruQm+n9/Y
 github.com/apparentlymart/go-dump v0.0.0-20180507223929-23540a00eaa3/go.mod h1:oL81AME2rN47vu18xqj1S1jPIPuN7afo62yKTNn3XMM=
 github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0 h1:MzVXffFUye+ZcSR6opIgz9Co7WcDx6ZcY+RjfFHoA0I=
 github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0/go.mod h1:oL81AME2rN47vu18xqj1S1jPIPuN7afo62yKTNn3XMM=
+github.com/apparentlymart/go-mingit v0.0.1 h1:nfZCEq08MyD7CH7Um0mMcMcFYyI06vShI0GkXMBBc5U=
+github.com/apparentlymart/go-mingit v0.0.1/go.mod h1:XVyZ5yxRs9x+mdOrDnU4RGr+SV/wWbJcTkF+u73jri4=
+github.com/apparentlymart/go-mingit v0.0.2-0.20210127221521-7aad13ae01c4 h1:aFJWL3HfuXHDDrrEFefB7X8TOrHWarOGEfc4OkADEyI=
+github.com/apparentlymart/go-mingit v0.0.2-0.20210127221521-7aad13ae01c4/go.mod h1:XVyZ5yxRs9x+mdOrDnU4RGr+SV/wWbJcTkF+u73jri4=
+github.com/apparentlymart/go-mingit v0.0.2-0.20210127222211-ae09ff7acceb h1:Xmn6dfcGdbTa3AXiH6P39BxdirXVo4qH2/isS5HmRc8=
+github.com/apparentlymart/go-mingit v0.0.2-0.20210127222211-ae09ff7acceb/go.mod h1:XVyZ5yxRs9x+mdOrDnU4RGr+SV/wWbJcTkF+u73jri4=
 github.com/apparentlymart/go-textseg v1.0.0 h1:rRmlIsPEEhUTIKQb7T++Nz/A5Q6C9IuX2wFoYVvnCs0=
 github.com/apparentlymart/go-textseg v1.0.0/go.mod h1:z96Txxhf3xSFMPmb5X/1W05FF/Nj9VFpLOpjS5yuumk=
 github.com/apparentlymart/go-textseg/v12 v12.0.0 h1:bNEQyAGak9tojivJNkoqWErVCQbjdL7GzRt3F8NvfJ0=
@@ -582,6 +588,8 @@ github.com/zclconf/go-cty v1.1.0/go.mod h1:xnAOWiHeOqg2nWS62VtQ7pbOu17FtxJNW8RLE
 github.com/zclconf/go-cty v1.2.0/go.mod h1:hOPWgoHbaTUnI5k4D2ld+GRpFJSCe6bCM7m1q/N4PQ8=
 github.com/zclconf/go-cty v1.7.1 h1:AvsC01GMhMLFL8CgEYdHGM+yLnnDOwhPAYcgTkeF0Gw=
 github.com/zclconf/go-cty v1.7.1/go.mod h1:VDR4+I79ubFBGm1uJac1226K5yANQFHeauxPBoP54+o=
+github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b h1:FosyBZYxY34Wul7O/MSKey3txpPYyCqVO5ZyceuQJEI=
+github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b/go.mod h1:ZRKQfBXbGkpdV6QMzT3rU1kSTAnfu1dO8dPKjYprgj8=
 github.com/zclconf/go-cty-yaml v1.0.2 h1:dNyg4QLTrv2IfJpm7Wtxi55ed5gLGOlPrZ6kMd51hY0=
 github.com/zclconf/go-cty-yaml v1.0.2/go.mod h1:IP3Ylp0wQpYm50IHK8OZWKMu6sPJIUgKa8XhiVHura0=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
