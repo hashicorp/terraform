@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/internal/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/tfdiags"
 

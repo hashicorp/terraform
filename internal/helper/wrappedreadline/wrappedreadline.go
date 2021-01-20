@@ -14,7 +14,7 @@ import (
 
 	"github.com/chzyer/readline"
 
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/internal/helper/wrappedstreams"
 )
 
 // Override overrides the values in readline.Config that need to be

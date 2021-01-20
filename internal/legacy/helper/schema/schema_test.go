@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/configs/hcl2shim"
-	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/internal/legacy/helper/hashcode"
 	"github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/internal/legacy/helper/acctest"
 )
 
 func TestBackend_impl(t *testing.T) {
