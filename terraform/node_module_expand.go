@@ -140,9 +140,9 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 // wait on this node.
 // Besides providing a root node for dependency ordering, nodeCloseModule also
 // cleans up state after all the module nodes have been evaluated, removing
-// empty resources and modules from the state, and closes a remaining
-// provisioner plugins which do not have a lifecycle controlled controlled by
-// individual graph nodes.
+// empty resources and modules from the state.
+// The root module instance also closes any remaining provisioner plugins which
+// do not have a lifecycle controlled by individual graph nodes.
 type nodeCloseModule struct {
 	Addr addrs.Module
 }

@@ -77,8 +77,7 @@ type EvalContext interface {
 	ProviderInput(addrs.AbsProviderConfig) map[string]cty.Value
 	SetProviderInput(addrs.AbsProviderConfig, map[string]cty.Value)
 
-	// Provisioner gets the provisioner instance with the given name (already
-	// initialized) or returns nil if the provisioner isn't initialized.
+	// Provisioner gets the provisioner instance with the given name.
 	Provisioner(string) (provisioners.Interface, error)
 
 	// ProvisionerSchema retrieves the main configuration schema for a
