@@ -67,7 +67,12 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner, hasCount, hasForEach bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	provisioner := ctx.Provisioner(p.Type)
+	provisioner, err := ctx.Provisioner(p.Type)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
 	if provisioner == nil {
 		return diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
 	}

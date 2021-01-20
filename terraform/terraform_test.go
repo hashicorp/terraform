@@ -170,8 +170,10 @@ func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	}
 }
 
-func testProvisionerFuncFixed(rp provisioners.Interface) provisioners.Factory {
+func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
+		// make sure this provisioner has has not been closed
+		rp.CloseCalled = false
 		return rp, nil
 	}
 }

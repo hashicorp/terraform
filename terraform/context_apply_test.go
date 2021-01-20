@@ -9801,14 +9801,17 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 		return resp
 	}
 
-	pr := testProvisioner()
-	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
-		host := req.Connection.GetAttr("host")
-		if host.IsNull() || !host.IsKnown() {
-			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid host value: %#v", host))
-		}
+	provisionerFactory := func() (provisioners.Interface, error) {
+		pr := testProvisioner()
+		pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+			host := req.Connection.GetAttr("host")
+			if host.IsNull() || !host.IsKnown() {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid host value: %#v", host))
+			}
 
-		return resp
+			return resp
+		}
+		return pr, nil
 	}
 
 	Providers := map[addrs.Provider]providers.Factory{
@@ -9816,7 +9819,7 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 	}
 
 	provisioners := map[string]provisioners.Factory{
-		"shell": testProvisionerFuncFixed(pr),
+		"shell": provisionerFactory,
 	}
 
 	hook := &testHook{}
@@ -12163,6 +12166,7 @@ output "out" {
 func TestContext2Apply_provisionerSensitive(t *testing.T) {
 	m := testModule(t, "apply-provisioner-sensitive")
 	p := testProvider("aws")
+
 	pr := testProvisioner()
 	pr.ProvisionResourceFn = func(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 		if req.Config.ContainsMarked() {
@@ -12200,6 +12204,9 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 		logDiagnostics(t, diags)
 		t.Fatal("plan failed")
 	}
+
+	// "restart" provisioner
+	pr.CloseCalled = false
 
 	state, diags := ctx.Apply()
 	if diags.HasErrors() {
