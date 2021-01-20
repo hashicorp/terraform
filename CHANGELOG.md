@@ -8,6 +8,7 @@ BUG FIXES:
 
 * cli: Fix formatting of long integers in outputs and console ([#27479](https://github.com/hashicorp/terraform/issues/27479))
 * cli: Fix redundant check of remote workspace version for local operations ([#27498](https://github.com/hashicorp/terraform/pull/27498))
+* cli: Fix missing check of remote workspace version for state migration [GH-27556]
 
 ## 0.14.4 (January 06, 2021)
 
