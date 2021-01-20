@@ -1,15 +1,15 @@
-## 0.14.5 (Unreleased)
+## 0.14.5 (January 20, 2021)
 
 ENHANCEMENTS:
 
-* backend/pg: The Postgres backend now supports the "scram-sha-256" authentication method. [GH-26886]
+* backend/pg: The Postgres backend now supports the "scram-sha-256" authentication method. ([#26886](https://github.com/hashicorp/terraform/issues/26886))
 
 BUG FIXES:
 
 * cli: Fix formatting of long integers in outputs and console ([#27479](https://github.com/hashicorp/terraform/issues/27479))
 * cli: Fix redundant check of remote workspace version for local operations ([#27498](https://github.com/hashicorp/terraform/pull/27498))
-* cli: Fix missing check of remote workspace version for state migration [GH-27556]
-* cli: Fix world-writable permissions on dependency lock file [GH-27205]
+* cli: Fix missing check of remote workspace version for state migration ([#27556](https://github.com/hashicorp/terraform/issues/27556))
+* cli: Fix world-writable permissions on dependency lock file ([#27205](https://github.com/hashicorp/terraform/issues/27205))
 
 ## 0.14.4 (January 06, 2021)
 
