@@ -112,10 +112,15 @@ func (n *evalReadDataPlan) Eval(ctx EvalContext) (interface{}, error) {
 
 	// if we have a prior value, we can check for any irregularities in the response
 	if !priorVal.IsNull() {
+		// We drop marks on the values used here as the result is only
+		// temporarily used for validation.
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		unmarkedPriorVal, _ := priorVal.UnmarkDeep()
+
 		// While we don't propose planned changes for data sources, we can
 		// generate a proposed value for comparison to ensure the data source
 		// is returning a result following the rules of the provider contract.
-		proposedVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+		proposedVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
 		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
 			// Resources have the LegacyTypeSystem field to signal when they are
 			// using an SDK which may not produce precise values. While data

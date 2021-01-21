@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
@@ -52,6 +53,90 @@ resource "test_object" "a" {
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.Create {
 			t.Fatalf("expected Create action for missing %s, got %s", c.Addr, c.Action)
+		}
+	}
+}
+
+func TestContext2Plan_noChangeDataSourceSensitiveNestedSet(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "bar" {
+  sensitive = true
+  default   = "baz"
+}
+
+data "test_data_source" "foo" {
+  foo {
+    bar = var.bar
+  }
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetSchemaReturn = &ProviderSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+		},
+	}
+
+	p.ReadDataSourceResponse = providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data_id"),
+			"foo": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")})}),
+		}),
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.test_data_source.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data_id", "foo":[{"bar":"baz"}]}`),
+			AttrSensitivePaths: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("foo"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.NoOp {
+			t.Fatalf("expected NoOp, got: %q %s", res.Addr, res.Action)
 		}
 	}
 }
