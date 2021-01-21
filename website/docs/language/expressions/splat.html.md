@@ -40,7 +40,7 @@ The above expression is equivalent to the following `for` expression:
 ```
 
 Splat expressions are for lists only (and thus cannot be used [to reference resources
-created with `for_each`](/docs/configuration/meta-arguments/for_each.html#referring-to-instances),
+created with `for_each`](/docs/language/meta-arguments/for_each.html#referring-to-instances),
 which are represented as maps in Terraform). However, if a splat expression is applied
 to a value that is _not_ a list or tuple then the value is automatically wrapped in
 a single-element list before processing.

@@ -62,10 +62,10 @@ For expressions are particularly useful when combined with other language
 features to combine collections together in various ways. For example,
 the following two patterns are commonly used when constructing map values
 to use with
-[the `for_each` meta-argument](/docs/configuration/meta-arguments/for_each.html):
+[the `for_each` meta-argument](/docs/language/meta-arguments/for_each.html):
 
 * Transform a multi-level nested structure into a flat list by
-  [using nested `for` expressions with the `flatten` function](/docs/configuration/functions/flatten.html#flattening-nested-structures-for-for_each).
+  [using nested `for` expressions with the `flatten` function](/docs/language/functions/flatten.html#flattening-nested-structures-for-for_each).
 * Produce an exhaustive list of combinations of elements from two or more
   collections by
-  [using the `setproduct` function inside a `for` expression](/docs/configuration/functions/setproduct.html#finding-combinations-for-for_each).
+  [using the `setproduct` function inside a `for` expression](/docs/language/functions/setproduct.html#finding-combinations-for-for_each).
