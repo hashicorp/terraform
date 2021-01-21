@@ -493,7 +493,7 @@ func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
 	// If our prior value was tainted then we actually want this to appear
 	// as a replace change, even though so far we've been treating it as a
 	// create.
-	if action == plans.Create && priorValTainted != cty.NilVal {
+	if action == plans.Create && !priorValTainted.IsNull() {
 		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
