@@ -1,5 +1,9 @@
 ## 0.14.6 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix "Invalid planned change" error when planning tainted resource which no longer exists [GH-27563]
+
 ## 0.14.5 (January 20, 2021)
 
 ENHANCEMENTS:
