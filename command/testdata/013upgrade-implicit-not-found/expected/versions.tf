@@ -10,7 +10,7 @@ terraform {
       #
       # For more information, see the provider source documentation:
       #
-      # https://www.terraform.io/docs/configuration/providers.html#provider-source
+      # https://www.terraform.io/docs/language/providers/requirements.html
     }
   }
   required_version = ">= 0.13"

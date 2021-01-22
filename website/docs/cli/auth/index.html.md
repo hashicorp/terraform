@@ -25,5 +25,5 @@ Terraform Cloud user account.
 
 For details, see:
 
-- [The `terraform login` command](/docs/commands/login.html)
-- [The `terraform logout` command](/docs/commands/logout.html)
+- [The `terraform login` command](/docs/cli/commands/login.html)
+- [The `terraform logout` command](/docs/cli/commands/logout.html)

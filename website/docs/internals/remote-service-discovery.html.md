@@ -85,14 +85,14 @@ version 1 of the module registry protocol:
 
 At present, the following service identifiers are in use:
 
-* `login.v1`: [login protocol version 1](/docs/commands/login.html)
+* `login.v1`: [login protocol version 1](/docs/cli/commands/login.html)
 * `modules.v1`: [module registry API version 1](module-registry-protocol.html)
 * `providers.v1`: [provider registry API version 1](provider-registry-protocol.html)
 
 ## Authentication
 
 If credentials for the given hostname are available in
-[the CLI config](/docs/commands/cli-config.html) then they will be included
+[the CLI config](/docs/cli/config/config-file.html) then they will be included
 in the request for the discovery document.
 
 The credentials may also be provided to endpoints declared in the discovery

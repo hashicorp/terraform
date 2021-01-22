@@ -5,7 +5,7 @@ page_title: "Manipulating State - Terraform CLI"
 
 # Manipulating Terraform State
 
-Terraform uses [state data](/docs/state/index.html) to remember which
+Terraform uses [state data](/docs/language/state/index.html) to remember which
 real-world object corresponds to each resource in the configuration;
 this allows it to modify an existing object when its resource declaration
 changes.
@@ -21,7 +21,7 @@ Terraform CLI supports several workflows for interacting with state:
 - [Forcing Re-creation (Tainting)](/docs/cli/state/taint.html)
 - [Moving Resources](/docs/cli/state/move.html)
 - Importing Pre-existing Resources (documented in the
-  [Importing Infrastructure](/docs/import/index.html) section)
+  [Importing Infrastructure](/docs/cli/import/index.html) section)
 - [Disaster Recovery](/docs/cli/state/recover.html)
 
 ~> **Important:** Modifying state data outside a normal plan or apply can cause

@@ -18,7 +18,7 @@ pages.
 ## Syntax and Elements of Module Blocks
 
 This information has moved to
-[Module Blocks](/docs/configuration/blocks/modules/syntax.html).
+[Module Blocks](/docs/language/modules/syntax.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -29,8 +29,8 @@ This information has moved to
 ## Multiple Instances with `count` and `for_each`
 
 This information has moved to
-[`count`](/docs/configuration/meta-arguments/count.html) and
-[`for_each`](/docs/configuration/meta-arguments/for_each.html).
+[`count`](/docs/language/meta-arguments/count.html) and
+[`for_each`](/docs/language/meta-arguments/for_each.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
@@ -46,9 +46,9 @@ This information has moved to
 ## Handling Provider Configurations in Re-usable Modules
 
 This information has moved to
-[The `providers` Meta-Argument](/docs/configuration/meta-arguments/module-providers.html)
+[The `providers` Meta-Argument](/docs/language/meta-arguments/module-providers.html)
 (for users of re-usable modules) and
-[Providers Within Modules](/docs/modules/providers.html)
+[Providers Within Modules](/docs/language/modules/develop/providers.html)
 (for module developers).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>

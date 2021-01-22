@@ -7,7 +7,7 @@ page_title: "Provisioning Infrastructure - Terraform CLI"
 
 Terraform's primary function is to create, modify, and destroy infrastructure
 resources to match the desired state described in a
-[Terraform configuration](/docs/configuration/index.html).
+[Terraform configuration](/docs/language/index.html).
 
 When people refer to "running Terraform," they generally mean performing these
 provisioning actions in order to affect real infrastructure objects. The
@@ -38,7 +38,7 @@ resulting actions are as expected. However, `terraform plan` can also save its
 plan as a runnable artifact, which `terraform apply` can use to carry out those
 exact changes.
 
-For details, see [the `terraform plan` command](/docs/commands/plan.html).
+For details, see [the `terraform plan` command](/docs/cli/commands/plan.html).
 
 ## Applying
 
@@ -54,7 +54,7 @@ running a new plan. You can use this to reliably perform an exact set of
 pre-approved changes, even if the configuration or the state of the real
 infrastructure has changed in the minutes since the original plan was created.
 
-For details, see [the `terraform apply` command](/docs/commands/apply.html).
+For details, see [the `terraform apply` command](/docs/cli/commands/apply.html).
 
 ## Destroying
 
@@ -68,4 +68,4 @@ and then running an apply, except that it doesn't require editing the
 configuration. This is more convenient if you intend to provision similar
 resources at a later date.
 
-For details, see [the `terraform destroy` command](/docs/commands/destroy.html).
+For details, see [the `terraform destroy` command](/docs/cli/commands/destroy.html).
