@@ -45,6 +45,7 @@ data "terraform_remote_state" "foo" {
 
 The following configuration options / environment variables are supported:
 
+
  * `address` / `TF_HTTP_ADDRESS` - (Required) The address of the REST endpoint
  * `update_method` / `TF_HTTP_UPDATE_METHOD` - (Optional) HTTP method to use
    when updating state. Defaults to `POST`.
@@ -60,6 +61,7 @@ The following configuration options / environment variables are supported:
    authentication
  * `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
    authentication
+ * `token` - (Optional) The token for HTTP bearer authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.
  * `retry_max` / `TF_HTTP_RETRY_MAX` – (Optional) The number of HTTP request
