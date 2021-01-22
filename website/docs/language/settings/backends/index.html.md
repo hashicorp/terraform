@@ -98,3 +98,13 @@ target Terraform Cloud workspace determine whether operations run remotely or
 locally. If local operations are configured, Terraform uses the `remote` backend
 for state and the `local` backend for operations, like with the other state
 backends.
+
+### Backend Types
+
+Terraform's backends are divided into two main types, according to how they
+handle state and operations:
+
+- **Enhanced** backends can both store state and perform operations. There are
+  only two enhanced backends: `local` and `remote`.
+- **Standard** backends only store state, and rely on the `local` backend for
+  performing operations.
