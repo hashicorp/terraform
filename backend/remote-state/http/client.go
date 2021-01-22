@@ -28,11 +28,16 @@ type httpClient struct {
 	UnlockURL    *url.URL
 	UnlockMethod string
 
+	// Workspaces
+	WorkspacesURL    *url.URL
+	WorkspacesMethod string
+
 	// HTTP
 	Client   *retryablehttp.Client
 	Username string
 	Password string
 
+	workspace    string
 	lockID       string
 	jsonLockInfo []byte
 }
@@ -80,8 +85,17 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 	c.lockID = ""
 
+	// Copy the target URL
+	base := *c.UnlockURL
+
+	if c.workspace != "" {
+		query := base.Query()
+		query.Set("workspace", c.workspace)
+		base.RawQuery = query.Encode()
+	}
+
 	jsonLockInfo := info.Marshal()
-	resp, err := c.httpRequest(c.LockMethod, c.LockURL, &jsonLockInfo, "lock")
+	resp, err := c.httpRequest(c.LockMethod, &base, &jsonLockInfo, "lock")
 	if err != nil {
 		return "", err
 	}
@@ -118,7 +132,16 @@ func (c *httpClient) Unlock(id string) error {
 		return nil
 	}
 
-	resp, err := c.httpRequest(c.UnlockMethod, c.UnlockURL, &c.jsonLockInfo, "unlock")
+	// Copy the target URL
+	base := *c.UnlockURL
+
+	if c.workspace != "" {
+		query := base.Query()
+		query.Set("workspace", c.workspace)
+		base.RawQuery = query.Encode()
+	}
+
+	resp, err := c.httpRequest(c.UnlockMethod, &base, &c.jsonLockInfo, "unlock")
 	if err != nil {
 		return err
 	}
@@ -133,7 +156,16 @@ func (c *httpClient) Unlock(id string) error {
 }
 
 func (c *httpClient) Get() (*remote.Payload, error) {
-	resp, err := c.httpRequest("GET", c.URL, nil, "get state")
+	// Copy the target URL
+	base := *c.URL
+
+	if c.workspace != "" {
+		query := base.Query()
+		query.Set("workspace", c.workspace)
+		base.RawQuery = query.Encode()
+	}
+
+	resp, err := c.httpRequest("GET", &base, nil, "get state")
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +233,12 @@ func (c *httpClient) Put(data []byte) error {
 		base.RawQuery = query.Encode()
 	}
 
+	if c.workspace != "" {
+		query := base.Query()
+		query.Set("workspace", c.workspace)
+		base.RawQuery = query.Encode()
+	}
+
 	/*
 		// Set the force query parameter if needed
 		if force {
@@ -230,8 +268,17 @@ func (c *httpClient) Put(data []byte) error {
 }
 
 func (c *httpClient) Delete() error {
+	// Copy the target URL
+	base := *c.URL
+
+	if c.workspace != "" {
+		query := base.Query()
+		query.Set("workspace", c.workspace)
+		base.RawQuery = query.Encode()
+	}
+
 	// Make the request
-	resp, err := c.httpRequest("DELETE", c.URL, nil, "delete state")
+	resp, err := c.httpRequest("DELETE", &base, nil, "delete state")
 	if err != nil {
 		return err
 	}
@@ -243,5 +290,37 @@ func (c *httpClient) Delete() error {
 		return nil
 	default:
 		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+	}
+}
+
+func (c *httpClient) Workspaces() ([]string, error) {
+	if c.WorkspacesURL == nil {
+		return nil, nil
+	}
+
+	resp, err := c.httpRequest(c.WorkspacesMethod, c.WorkspacesURL, nil, "get workspaces")
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("HTTP remote workspaces: failed to read body")
+		}
+		var workspaces []string
+		err = json.Unmarshal(body, &workspaces)
+		if err != nil {
+			return nil, fmt.Errorf("HTTP remote workspaces: failed to unmarshal body")
+		}
+		return workspaces, nil
+	case http.StatusUnauthorized:
+		return nil, fmt.Errorf("HTTP remote workspaces endpoint requires auth")
+	case http.StatusForbidden:
+		return nil, fmt.Errorf("HTTP remote workspaces endpoint invalid auth")
+	default:
+		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
 }

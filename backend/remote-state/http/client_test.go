@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -92,6 +93,33 @@ func TestHTTPClient(t *testing.T) {
 	}
 	client = &httpClient{URL: url, Client: retryablehttp.NewClient()}
 	remote.TestClient(t, client)
+
+	// Test workspaces
+	workspacehandler := new(testHTTPHandler)
+	ts = httptest.NewServer(http.HandlerFunc(workspacehandler.HandleWorkspaces))
+	defer ts.Close()
+
+	url, err = url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("Parse: %s", err)
+	}
+	client = &httpClient{
+		URL:              url,
+		WorkspacesURL:    url,
+		WorkspacesMethod: "OPTIONS",
+		Client:           retryablehttp.NewClient(),
+		workspace:        "test-workspace",
+	}
+	remote.TestClient(t, client)
+
+	workspaces, err := client.Workspaces()
+	if err != nil {
+		t.Fatalf("Failed to get workspaces: %s", err)
+	}
+	expectedWorkspaces := []string{"test-workspace", "test-workspace2"}
+	if !reflect.DeepEqual(workspaces, expectedWorkspaces) {
+		t.Fatalf("Workspaces %s do not match expected workspaces %s", workspaces, expectedWorkspaces)
+	}
 }
 
 type testHTTPHandler struct {
@@ -102,8 +130,17 @@ type testHTTPHandler struct {
 func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		// Should not set this query parameter on default workspace
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		w.Write(h.Data)
 	case "PUT":
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r.Body); err != nil {
 			w.WriteHeader(500)
@@ -111,20 +148,36 @@ func (h *testHTTPHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(201)
 		h.Data = buf.Bytes()
 	case "POST":
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		buf := new(bytes.Buffer)
 		if _, err := io.Copy(buf, r.Body); err != nil {
 			w.WriteHeader(500)
 		}
 		h.Data = buf.Bytes()
 	case "LOCK":
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		if h.Locked {
 			w.WriteHeader(423)
 		} else {
 			h.Locked = true
 		}
 	case "UNLOCK":
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		h.Locked = false
 	case "DELETE":
+		_, found := r.URL.Query()["workspace"]
+		if found {
+			w.WriteHeader(500)
+		}
 		h.Data = nil
 		w.WriteHeader(200)
 	default:
@@ -153,6 +206,56 @@ func (h *testHTTPHandler) HandleWebDAV(w http.ResponseWriter, r *http.Request) {
 	case "DELETE":
 		h.Data = nil
 		w.WriteHeader(200)
+	default:
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Sprintf("Unknown method: %s", r.Method)))
+	}
+}
+
+// Test workspaces
+func (h *testHTTPHandler) HandleWorkspaces(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		workspace := r.URL.Query().Get("workspace")
+		if workspace != "test-workspace" {
+			w.WriteHeader(500)
+		}
+		w.Write(h.Data)
+	case "PUT":
+		workspace := r.URL.Query().Get("workspace")
+		if workspace != "test-workspace" {
+			w.WriteHeader(500)
+		}
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r.Body); err != nil {
+			w.WriteHeader(500)
+		}
+		w.WriteHeader(201)
+		h.Data = buf.Bytes()
+	case "POST":
+		workspace := r.URL.Query().Get("workspace")
+		if workspace != "test-workspace" {
+			w.WriteHeader(500)
+		}
+		buf := new(bytes.Buffer)
+		if _, err := io.Copy(buf, r.Body); err != nil {
+			w.WriteHeader(500)
+		}
+		h.Data = buf.Bytes()
+	case "DELETE":
+		workspace := r.URL.Query().Get("workspace")
+		if workspace != "test-workspace" {
+			w.WriteHeader(500)
+		}
+		h.Data = nil
+		w.WriteHeader(200)
+	case "OPTIONS":
+		workspaces, err := json.Marshal([]string{"test-workspace", "test-workspace2"})
+		if err != nil {
+			w.WriteHeader(500)
+		}
+		w.WriteHeader(200)
+		w.Write(workspaces)
 	default:
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Sprintf("Unknown method: %s", r.Method)))

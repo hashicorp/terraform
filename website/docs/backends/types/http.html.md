@@ -56,6 +56,13 @@ The following configuration options / environment variables are supported:
    unlock REST endpoint. Defaults to disabled.
  * `unlock_method` / `TF_HTTP_UNLOCK_METHOD` - (Optional) The HTTP method to use
    when unlocking. Defaults to `UNLOCK`.
+ * `workspaces` / `TF_HTTP_WORKSPACES` - (Optional) Wether to enable workspaces
+   use on the REST endpoint. Defaults to `false`. Overriden by setting
+   `workspaces_address`.
+ * `workspaces_address` / `TF_HTTP_WORKSPACES_ADDRESS` - (Optional) The address of
+   the workspaces REST endpoint. Defaults to disabled.
+ * `workspaces_method` / `TF_HTTP_WORKSPACES_METHOD` - (Optional) The HTTP method
+   to use when listing workspaces. Defaults to `OPTIONS`.
  * `username` / `TF_HTTP_USERNAME` - (Optional) The username for HTTP basic
    authentication
  * `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
