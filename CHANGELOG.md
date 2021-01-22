@@ -4,6 +4,7 @@ BUG FIXES:
 
 * core: Fix "Invalid planned change" error when planning tainted resource which no longer exists [GH-27563]
 * core: Fix panic when refreshing data source which contains sensitive values [GH-27567]
+* core: Fix init with broken link in plugin_cache_dir [GH-27447]
 
 ## 0.14.5 (January 20, 2021)
 
