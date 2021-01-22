@@ -3,9 +3,12 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-cleanhttp"
@@ -14,6 +17,10 @@ import (
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
+)
+
+var (
+	ErrWorkspaceDisabled = errors.New("workspace_enabled is not true, workspaces disabled")
 )
 
 func New() backend.Backend {
@@ -70,7 +77,7 @@ func New() backend.Backend {
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Default:     false,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_SKIP_CERT", false),
 				Description: "Whether to skip TLS verification.",
 			},
 			"retry_max": &schema.Schema{
@@ -91,6 +98,62 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_WAIT_MAX", 30),
 				Description: "The maximum time in seconds to wait between HTTP request attempts.",
 			},
+			"workspace_enabled": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_ENABLED", false),
+				Description: "Enable workspace support.",
+			},
+			"workspace_path_element": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_PATH_ELEMENT", "<workspace>"),
+				Description: "The URL path string to replace with the active workspace name.",
+			},
+			"workspace_list_address": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_LIST_ADDRESS", nil),
+				Description: "The address of the workspace list REST endpoint.",
+			},
+			"workspace_list_method": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_LIST_METHOD", "GET"),
+				Description: "The HTTP method to use when fetching workspace list",
+			},
+			"workspace_delete_address": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_DELETE_ADDRESS", nil),
+				Description: "The address of the workspace delete REST endpoint.",
+			},
+			"workspace_delete_method": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACE_DELETE_METHOD", "DELETE"),
+				Description: "The HTTP method to use when deleting a workspace.",
+			},
+			"headers": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				DefaultFunc: func() (interface{}, error) {
+					v, err := schema.EnvDefaultFunc("TF_HTTP_HEADERS", nil)()
+					if err != nil || v == nil {
+						return nil, err
+					}
+					decode := map[string]interface{}{}
+					err = json.Unmarshal([]byte(v.(string)), &decode)
+					if err != nil {
+						return nil, err
+					}
+					return decode, nil
+				},
+				Elem: &schema.Schema{
+					Type:        schema.TypeString,
+					Description: "Header Value",
+				},
+			},
 		},
 	}
 
@@ -101,6 +164,13 @@ func New() backend.Backend {
 
 type Backend struct {
 	*schema.Backend
+
+	workspaceEnabled     bool
+	workspacePathElement string
+
+	updateURL *url.URL
+	lockURL   *url.URL
+	unlockURL *url.URL
 
 	client *httpClient
 }
@@ -118,6 +188,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	updateMethod := data.Get("update_method").(string)
+	b.updateURL = updateURL
 
 	var lockURL *url.URL
 	if v, ok := data.GetOk("lock_address"); ok && v.(string) != "" {
@@ -132,6 +203,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	lockMethod := data.Get("lock_method").(string)
+	b.lockURL = lockURL
 
 	var unlockURL *url.URL
 	if v, ok := data.GetOk("unlock_address"); ok && v.(string) != "" {
@@ -146,6 +218,15 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	unlockMethod := data.Get("unlock_method").(string)
+	b.unlockURL = unlockURL
+
+	headers := map[string]string{}
+	rawHeaders := data.Get("headers").(map[string]interface{})
+	if rawHeaders != nil {
+		for k, v := range rawHeaders {
+			headers[k] = v.(string)
+		}
+	}
 
 	client := cleanhttp.DefaultPooledClient()
 
@@ -163,6 +244,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
 
 	b.client = &httpClient{
+		Headers:      headers,
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
 
@@ -177,21 +259,106 @@ func (b *Backend) configure(ctx context.Context) error {
 		// accessible only for testing use
 		Client: rClient,
 	}
+
+	b.workspaceEnabled = data.Get("workspace_enabled").(bool)
+
+	if b.workspaceEnabled {
+		b.workspacePathElement = data.Get("workspace_path_element").(string)
+		if b.workspacePathElement == "" {
+			return fmt.Errorf("workspace_path_element required when workspace_enabled is true")
+		}
+
+		workspaceListURL, err := url.Parse(data.Get("workspace_list_address").(string))
+		if err != nil {
+			return fmt.Errorf("failed to parse workspace_list_address URL: %s", err)
+		}
+		if workspaceListURL.Scheme != "http" && workspaceListURL.Scheme != "https" {
+			return fmt.Errorf("workspace_list_address must be HTTP or HTTPS")
+		}
+		workspaceListMethod := data.Get("workspace_list_method").(string)
+
+		// optional
+		var workspaceDeleteURL *url.URL
+		if v, ok := data.GetOk("workspace_delete_address"); ok && v.(string) != "" {
+			var err error
+			workspaceDeleteURL, err = url.Parse(data.Get("workspace_delete_address").(string))
+			if err != nil {
+				return fmt.Errorf("failed to parse workspace_delete_address URL: %s", err)
+			}
+			if workspaceDeleteURL.Scheme != "http" && workspaceDeleteURL.Scheme != "https" {
+				return fmt.Errorf("workspace_delete_address must be HTTP or HTTPS")
+			}
+		} else { // default to stateUrl
+			u := *updateURL
+			workspaceDeleteURL = &u
+		}
+		workspaceDeleteMethod := data.Get("workspace_delete_method").(string)
+
+		b.client.WorkspaceListURL = workspaceListURL
+		b.client.WorkspaceListMethod = workspaceListMethod
+		b.client.WorkspaceDeleteURL = workspaceDeleteURL
+		b.client.WorkspaceDeleteMethod = workspaceDeleteMethod
+	}
+
 	return nil
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
-	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+	if b.workspaceEnabled {
+		updateUrl, err := b.workspaceUrlSubstitute(b.updateURL, b.workspacePathElement, name)
+		if err != nil {
+			return nil, err
+		}
+		b.client.URL = updateUrl
+
+		lockUrl, err := b.workspaceUrlSubstitute(b.lockURL, b.workspacePathElement, name)
+		if err != nil {
+			return nil, err
+		}
+		b.client.LockURL = lockUrl
+
+		unlockUrl, err := b.workspaceUrlSubstitute(b.unlockURL, b.workspacePathElement, name)
+		if err != nil {
+			return nil, err
+		}
+		b.client.UnlockURL = unlockUrl
+
+	} else {
+		if name != backend.DefaultStateName {
+			return nil, ErrWorkspaceDisabled
+		}
 	}
 
 	return &remote.State{Client: b.client}, nil
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+	if !b.workspaceEnabled {
+		return nil, ErrWorkspaceDisabled
+	}
+	return b.client.WorkspaceList()
 }
 
-func (b *Backend) DeleteWorkspace(string) error {
-	return backend.ErrWorkspacesNotSupported
+func (b *Backend) workspaceUrlSubstitute(u *url.URL, old string, new string) (*url.URL, error) {
+	origPath := u.RawPath
+	if origPath == "" {
+		origPath = u.Path
+	}
+	newPath := strings.ReplaceAll(origPath, old, new)
+	newUrl, err := u.Parse(newPath)
+	if err != nil {
+		return nil, err
+	}
+	return newUrl, nil
+}
+
+func (b *Backend) DeleteWorkspace(del string) error {
+	if !b.workspaceEnabled {
+		return ErrWorkspaceDisabled
+	}
+	u, err := b.workspaceUrlSubstitute(b.client.WorkspaceDeleteURL, b.workspacePathElement, del)
+	if err != nil {
+		return err
+	}
+	return b.client.WorkspaceDelete(u)
 }

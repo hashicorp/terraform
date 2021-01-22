@@ -60,7 +60,7 @@ The following configuration options / environment variables are supported:
    authentication
  * `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
    authentication
- * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
+ * `skip_cert_verification` / `TF_HTTP_SKIP_CERT` - (Optional) Whether to skip TLS verification.
    Defaults to `false`.
  * `retry_max` / `TF_HTTP_RETRY_MAX` – (Optional) The number of HTTP request
    retries. Defaults to `2`.
@@ -68,3 +68,15 @@ The following configuration options / environment variables are supported:
    seconds to wait between HTTP request attempts. Defaults to `1`.
  * `retry_wait_max` / `TF_HTTP_RETRY_WAIT_MAX` – (Optional) The maximum time in
    seconds to wait between HTTP request attempts. Defaults to `30`.
+ * `workspace_enabled` / `TF_HTTP_WORKSPACE_ENABLED` (Optional) Enable workspace support
+   Defaults to `false`.
+ * `workspace_path_element` / `TF_HTTP_WORKSPACE_PATH_ELEMENT` (Required when workspace_enabled is true) String to replace with workspace name in address URLs.
+   Defaults to `<workspace>`.
+ * `workspace_list_address` / `TF_HTTP_WORKSPACE_LIST_ADDRESS` - (Required when workspace_enabled is true) The address of the REST endpoint returning a JSON array of workspace names.
+ * `workspace_list_method` / `TF_HTTP_WORKSPACE_LIST_METHOD`- (Optional) The HTTP method for the REST endpoint for workspace list.
+   Defaults to `GET`.
+ * `workspace_delete_address` / `TF_HTTP_WORKSPACE_DELETE_ADDRESS` - (Optional) The address of the REST endpoint to delete a workspace.
+   Defaults to the value of `address`.
+ * `workspace_delete_method` / `TF_HTTP_WORKSPACE_DELETE_METHOD` - (Optional) The HTTP method for the REST endpoint for workspace delete.
+   Defaults to `DELETE`.
+ * `headers` / `TF_HTTP_HEADERS` - (Optional) Map of HTTP headers to include with every request.
