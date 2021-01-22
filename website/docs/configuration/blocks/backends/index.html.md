@@ -67,7 +67,7 @@ resources must be able to access the same state data.
 The `local` backend stores state as a local file on disk, but every other
 backend stores state in a remote service of some kind, which allows multiple
 people to access it. Accessing state in a remote service generally requires some
-kind of access credentials, since state date contains extremely sensitive
+kind of access credentials, since state data contains extremely sensitive
 information.
 
 Some backends act like plain "remote disks" for state files; others support
