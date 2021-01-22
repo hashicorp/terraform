@@ -14,6 +14,8 @@ Stores the state in the [Consul](https://www.consul.io/) KV store at a given pat
 
 This backend supports [state locking](/docs/state/locking.html).
 
+__Note:__ Consul agent must be installed on the node running terraform for [sessions](https://www.consul.io/docs/internals/sessions.html) and session locking to work.
+
 ## Example Configuration
 
 ```hcl
@@ -59,3 +61,4 @@ The following configuration options / environment variables are supported:
  * `ca_file` / `CONSUL_CACERT` - (Optional) A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.
  * `cert_file` / `CONSUL_CLIENT_CERT` - (Optional) A path to a PEM-encoded certificate provided to the remote agent; requires use of `key_file`.
  * `key_file` / `CONSUL_CLIENT_KEY` - (Optional) A path to a PEM-encoded private key, required if `cert_file` is specified.
+ 
