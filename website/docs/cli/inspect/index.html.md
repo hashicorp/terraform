@@ -15,19 +15,19 @@ Terraform CLI includes some commands for inspecting or transforming this data.
 You can use these to integrate other tools with Terraform's infrastructure data,
 or just to gain a deeper or more holistic understanding of your infrastructure.
 
-- [The `terraform graph` command](/docs/commands/graph.html) creates a visual
+- [The `terraform graph` command](/docs/cli/commands/graph.html) creates a visual
   representation of a configuration or a set of planned changes.
-- [The `terraform output` command](/docs/commands/output.html) can get the
-  values for the top-level [output values](/docs/configuration/outputs.html) of
+- [The `terraform output` command](/docs/cli/commands/output.html) can get the
+  values for the top-level [output values](/docs/language/values/outputs.html) of
   a configuration, which are often helpful when making use of the infrastructure
   Terraform has provisioned.
-- [The `terraform show` command](/docs/commands/show.html) can generate
+- [The `terraform show` command](/docs/cli/commands/show.html) can generate
   human-readable versions of a state file or plan file, or generate
   machine-readable versions that can be integrated with other tools.
-- [The `terraform state list` command](/docs/commands/state/list.html) can list
+- [The `terraform state list` command](/docs/cli/commands/state/list.html) can list
   the resources being managed by the current working directory and workspace,
   providing a complete or filtered list.
-- [The `terraform state show` command](/docs/commands/state/show.html) can print
+- [The `terraform state show` command](/docs/cli/commands/state/show.html) can print
   all of the attributes of a given resource being managed by the current working
   directory and workspace, including generated read-only attributes like the
   unique ID assigned by the cloud provider.

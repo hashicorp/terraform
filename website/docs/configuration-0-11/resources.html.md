@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Resources](../configuration/resources.html).
+[Configuration Language: Resources](/docs/language/resources/index.html).
 
 The most important thing you'll configure with Terraform are
 resources. Resources are a component of your infrastructure.
@@ -176,7 +176,7 @@ could automatically do this a better way.
 Within a resource, you can optionally have a **connection block**.
 Connection blocks describe to Terraform how to connect to the
 resource for
-[provisioning](/docs/provisioners/index.html). This block doesn't
+[provisioning](/docs/language/resources/provisioners/syntax.html). This block doesn't
 need to be present if you're using only local provisioners, or
 if you're not provisioning at all.
 
@@ -184,13 +184,13 @@ Resources provide some data on their own, such as an IP address,
 but other data must be specified by the user.
 
 The full list of settings that can be specified are listed on
-the [provisioner connection page](/docs/provisioners/connection.html).
+the [provisioner connection page](/docs/language/resources/provisioners/connection.html).
 
 ### Provisioners
 
 Within a resource, you can specify zero or more **provisioner
 blocks**. Provisioner blocks configure
-[provisioners](/docs/provisioners/index.html).
+[provisioners](/docs/language/resources/provisioners/syntax.html).
 
 Within the provisioner block is provisioner-specific configuration,
 much like resource-specific configuration.

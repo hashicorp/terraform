@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Providers](../configuration/providers.html).
+[Configuration Language: Providers](/docs/language/providers/index.html).
 
 Providers are responsible in Terraform for managing the lifecycle
 of a [resource](./resources.html): create,
@@ -79,7 +79,7 @@ distributed by HashiCorp. See [Third-party Plugins](#third-party-plugins) below
 for installation instructions.
 
 For more information, see
-[the `terraform init` command](/docs/commands/init.html).
+[the `terraform init` command](/docs/cli/commands/init.html).
 
 ## Provider Versions
 
@@ -118,7 +118,7 @@ provider "aws" {
 ```
 
 This special argument applies to _all_ providers.
-[`terraform providers`](/docs/commands/providers.html) can be used to
+[`terraform providers`](/docs/cli/commands/providers.html) can be used to
 view the specified version constraints for all providers used in the
 current configuration.
 
@@ -295,7 +295,7 @@ use of a local directory as a shared plugin cache, which then allows each
 distinct plugin binary to be downloaded only once.
 
 To enable the plugin cache, use the `plugin_cache_dir` setting in
-[the CLI configuration file](https://www.terraform.io/docs/commands/cli-config.html).
+[the CLI configuration file](https://www.terraform.io/docs/cli/config/config-file.html).
 For example:
 
 ```hcl
