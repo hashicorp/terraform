@@ -55,6 +55,12 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UNLOCK_METHOD", "UNLOCK"),
 				Description: "The HTTP method to use when unlocking",
 			},
+			"locking": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_LOCKING", false),
+				Description: "Wether to enable locking use on REST endpoint",
+			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -146,6 +152,18 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	unlockMethod := data.Get("unlock_method").(string)
+
+	if data.Get("locking").(bool) {
+		// Use default address if no lock_address is provided
+		if lockURL == nil {
+			lockURL = updateURL
+		}
+
+		// Use default address if no unlock_address is provided
+		if unlockURL == nil {
+			unlockURL = updateURL
+		}
+	}
 
 	client := cleanhttp.DefaultPooledClient()
 
