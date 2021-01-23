@@ -226,7 +226,6 @@ func TestInit_getUpgradeModules(t *testing.T) {
 
 	args := []string{
 		"-get=true",
-		"-get-plugins=false",
 		"-upgrade",
 		testFixturePath("init-get"),
 	}
@@ -844,7 +843,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	args := []string{"-input=false", "-backend-config=path=foo"}
-	if code := c.Run([]string{"-input=false"}); code != 0 {
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter)
 	}
 
@@ -975,7 +974,7 @@ func TestInit_getProvider(t *testing.T) {
 			Version:          999,
 			Lineage:          "123-456-789",
 			TerraformVersion: "999.0.0",
-			Outputs:          make(map[string]interface{}, 0),
+			Outputs:          make(map[string]interface{}),
 			Resources:        make([]map[string]interface{}, 0),
 		}
 		src, err := json.MarshalIndent(fs, "", "  ")
@@ -984,6 +983,9 @@ func TestInit_getProvider(t *testing.T) {
 		}
 		src = append(src, '\n')
 		_, err = f.Write(src)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		ui := new(cli.MockUi)
 		m.Ui = ui
@@ -1048,85 +1050,6 @@ func TestInit_getProviderSource(t *testing.T) {
 	betweenPath := fmt.Sprintf(".terraform/providers/registry.terraform.io/hashicorp/gamma/2.0.0/%s", getproviders.CurrentPlatform)
 	if _, err := os.Stat(betweenPath); os.IsNotExist(err) {
 		t.Error("provider 'gamma' not downloaded")
-	}
-}
-
-func TestInit_getProviderInLegacyPluginCacheDir(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	testCopyDir(t, testFixturePath("init-legacy-provider-cache"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// The test fixture has placeholder os_arch directories which we must
-	// now rename to match the current platform, or else the entries inside
-	// will be ignored.
-	platformStr := getproviders.CurrentPlatform.String()
-	if err := os.Rename(
-		".terraform/plugins/example.com/test/b/1.1.0/os_arch",
-		".terraform/plugins/example.com/test/b/1.1.0/"+platformStr,
-	); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Rename(
-		".terraform/plugins/registry.terraform.io/hashicorp/c/2.0.0/os_arch",
-		".terraform/plugins/registry.terraform.io/hashicorp/c/2.0.0/"+platformStr,
-	); err != nil {
-		t.Fatal(err)
-	}
-
-	// An empty MultiSource serves as a way to make sure no providers are
-	// actually available for installation, which suits us here because
-	// we're testing an error case.
-	providerSource := getproviders.MultiSource{}
-
-	ui := cli.NewMockUi()
-	m := Meta{
-		Ui:             ui,
-		ProviderSource: providerSource,
-	}
-
-	c := &InitCommand{
-		Meta: m,
-	}
-
-	args := []string{
-		"-backend=false",
-	}
-	if code := c.Run(args); code == 0 {
-		t.Fatalf("succeeded; want error\n%s", ui.OutputWriter.String())
-	}
-
-	// We remove all of the newlines so that we don't need to contend with
-	// the automatic word wrapping that our diagnostic printer does.
-	stderr := strings.Replace(ui.ErrorWriter.String(), "\n", " ", -1)
-
-	if got, want := stderr, `example.com/test/a: no available releases match the given constraints`; !strings.Contains(got, want) {
-		t.Errorf("missing error about example.com/test/a\nwant substring: %s\n%s", want, got)
-	}
-	if got, want := stderr, `example.com/test/b: no available releases match the given constraints`; !strings.Contains(got, want) {
-		t.Errorf("missing error about example.com/test/b\nwant substring: %s\n%s", want, got)
-	}
-	if got, want := stderr, `hashicorp/c: no available releases match the given constraints`; !strings.Contains(got, want) {
-		t.Errorf("missing error about registry.terraform.io/hashicorp/c\nwant substring: %s\n%s", want, got)
-	}
-
-	if got, want := stderr, `terraform.d/plugins/example.com/test/a`; strings.Contains(got, want) {
-		// We _don't_ expect to see a warning about the "a" provider, because
-		// there's no copy of that in the legacy plugin cache dir.
-		t.Errorf("unexpected suggested path for local example.com/test/a\ndon't want substring: %s\n%s", want, got)
-	}
-	if got, want := stderr, `terraform.d/plugins/example.com/test/b/1.1.0/`+platformStr; !strings.Contains(got, want) {
-		// ...but we should see a warning about the "b" provider, because
-		// there's an entry for that in the legacy cache dir.
-		t.Errorf("missing suggested path for local example.com/test/b 1.0.0 on %s\nwant substring: %s\n%s", platformStr, want, got)
-	}
-	if got, want := stderr, `terraform.d/plugins/registry.terraform.io/hashicorp/c`; strings.Contains(got, want) {
-		// We _don't_ expect to see a warning about the "a" provider, even
-		// though it's in the cache dir, because it's an official provider
-		// and so we assume it ended up there as a result of normal provider
-		// installation in Terraform 0.13.
-		t.Errorf("unexpected suggested path for local hashicorp/c\ndon't want substring: %s\n%s", want, got)
 	}
 }
 

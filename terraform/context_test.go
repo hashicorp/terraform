@@ -401,11 +401,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 
 func testProvider(prefix string) *MockProvider {
 	p := new(MockProvider)
-	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
-		return providers.ReadResourceResponse{NewState: req.PriorState}
-	}
-
-	p.GetSchemaReturn = testProviderSchema(prefix)
+	p.GetSchemaResponse = testProviderSchema(prefix)
 
 	return p
 }
@@ -443,20 +439,6 @@ func checkStateString(t *testing.T, state *states.State, expected string) {
 	}
 }
 
-func resourceState(resourceType, resourceID string) *ResourceState {
-	providerResource := strings.Split(resourceType, "_")
-	return &ResourceState{
-		Type: resourceType,
-		Primary: &InstanceState{
-			ID: resourceID,
-			Attributes: map[string]string{
-				"id": resourceID,
-			},
-		},
-		Provider: "provider." + providerResource[0],
-	}
-}
-
 // Test helper that gives a function 3 seconds to finish, assumes deadlock and
 // fails test if it does not.
 func testCheckDeadlock(t *testing.T, f func()) {
@@ -479,8 +461,8 @@ func testCheckDeadlock(t *testing.T, f func()) {
 	}
 }
 
-func testProviderSchema(name string) *ProviderSchema {
-	return &ProviderSchema{
+func testProviderSchema(name string) *providers.GetSchemaResponse {
+	return getSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"region": {
@@ -613,15 +595,6 @@ func testProviderSchema(name string) *ProviderSchema {
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"network_interface_id": {Type: cty.String, Optional: true},
-								"device_index":         {Type: cty.Number, Optional: true},
-							},
-						},
-						Nesting: configschema.NestingSet,
-					},
 					"nesting_single": {
 						Block: configschema.Block{
 							Attributes: map[string]*configschema.Attribute{
@@ -731,8 +704,7 @@ func testProviderSchema(name string) *ProviderSchema {
 				},
 			},
 		},
-	}
-
+	})
 }
 
 // contextForPlanViaFile is a helper that creates a temporary plan file, then
@@ -1067,18 +1039,6 @@ func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
 		}
 	}
 }
-
-const testContextGraph = `
-root: root
-aws_instance.bar
-  aws_instance.bar -> provider.aws
-aws_instance.foo
-  aws_instance.foo -> provider.aws
-provider.aws
-root
-  root -> aws_instance.bar
-  root -> aws_instance.foo
-`
 
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)

@@ -59,8 +59,8 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
-		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
@@ -107,7 +107,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 
 	stateResources := state.RootModule().Resources
 	var gotResources []string
-	for n, _ := range stateResources {
+	for n := range stateResources {
 		gotResources = append(gotResources, n)
 	}
 	sort.Strings(gotResources)
@@ -154,13 +154,13 @@ func TestPrimaryChdirOption(t *testing.T) {
 	defer tf.Close()
 
 	//// INIT
-	stdout, stderr, err := tf.Run("-chdir=subdir", "init")
+	_, stderr, err := tf.Run("-chdir=subdir", "init")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
 	}
 
 	//// PLAN
-	stdout, stderr, err = tf.Run("-chdir=subdir", "plan", "-out=tfplan")
+	stdout, stderr, err := tf.Run("-chdir=subdir", "plan", "-out=tfplan")
 	if err != nil {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
@@ -169,8 +169,8 @@ func TestPrimaryChdirOption(t *testing.T) {
 		t.Errorf("incorrect plan tally; want 0 to add:\n%s", stdout)
 	}
 
-	if !strings.Contains(stdout, "This plan was saved to: tfplan") {
-		t.Errorf("missing \"This plan was saved to...\" message in plan output\n%s", stdout)
+	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
+		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)

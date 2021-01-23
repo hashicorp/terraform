@@ -32,6 +32,8 @@ func (b *Local) opPlan(
 
 	var diags tfdiags.Diagnostics
 
+	outputColumns := b.outputColumns()
+
 	if op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -150,6 +152,7 @@ func (b *Local) opPlan(
 
 		if runningOp.PlanEmpty {
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
+			b.CLI.Output("\n" + strings.TrimSpace(format.WordWrap(planNoChangesDetail, outputColumns)))
 			// Even if there are no changes, there still could be some warnings
 			b.ShowDiagnostics(diags)
 			return
@@ -166,15 +169,15 @@ func (b *Local) opPlan(
 		// tool which is presumed to provide its own UI for further actions.
 		if !b.RunningInAutomation {
 
-			b.CLI.Output("\n------------------------------------------------------------------------")
+			b.outputHorizRule()
 
 			if path := op.PlanOutPath; path == "" {
 				b.CLI.Output(fmt.Sprintf(
-					"\n" + strings.TrimSpace(planHeaderNoOutput) + "\n",
+					"\n" + strings.TrimSpace(format.WordWrap(planHeaderNoOutput, outputColumns)) + "\n",
 				))
 			} else {
 				b.CLI.Output(fmt.Sprintf(
-					"\n"+strings.TrimSpace(planHeaderYesOutput)+"\n",
+					"\n"+strings.TrimSpace(format.WordWrap(planHeaderYesOutput, outputColumns))+"\n",
 					path, path,
 				))
 			}
@@ -183,7 +186,7 @@ func (b *Local) opPlan(
 }
 
 func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize())
+	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize(), b.outputColumns())
 }
 
 // RenderPlan renders the given plan to the given UI.
@@ -206,7 +209,7 @@ func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *t
 // output values will not currently be rendered because their prior values
 // are currently stored only in the prior state. (see the docstring for
 // func planHasSideEffects for why this is and when that might change)
-func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize) {
+func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize, width int) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -220,7 +223,7 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 	}
 
 	headerBuf := &bytes.Buffer{}
-	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(planHeaderIntro))
+	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(format.WordWrap(planHeaderIntro, width)))
 	if counts[plans.Create] > 0 {
 		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(plans.Create))
 	}
@@ -330,18 +333,15 @@ func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 }
 
 const planHeaderIntro = `
-An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
 `
 
 const planHeaderNoOutput = `
-Note: You didn't specify an "-out" parameter to save this plan, so Terraform
-can't guarantee that exactly these actions will be performed if
-"terraform apply" is subsequently run.
+Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly these actions if you run "terraform apply" now.
 `
 
 const planHeaderYesOutput = `
-This plan was saved to: %s
+Saved the plan to: %s
 
 To perform exactly these actions, run the following command to apply:
     terraform apply %q
@@ -349,14 +349,8 @@ To perform exactly these actions, run the following command to apply:
 
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
-
-This means that Terraform did not detect any differences between your
-configuration and real physical resources that exist. As a result, no
-actions need to be performed.
 `
 
-const planRefreshing = `
-[reset][bold]Refreshing Terraform state in-memory prior to plan...[reset]
-The refreshed state will be used to calculate this plan, but will not be
-persisted to local or remote state storage.
+const planNoChangesDetail = `
+That Terraform did not detect any differences between your configuration and the remote system(s). As a result, there are no actions to take.
 `

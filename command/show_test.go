@@ -408,18 +408,22 @@ func TestShow_json_output_state(t *testing.T) {
 // showFixtureSchema returns a schema suitable for processing the configuration
 // in testdata/show. This schema should be assigned to a mock provider
 // named "test".
-func showFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"region": {Type: cty.String, Optional: true},
+func showFixtureSchema() *providers.GetSchemaResponse {
+	return &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -428,12 +432,12 @@ func showFixtureSchema() *terraform.ProviderSchema {
 
 // showFixtureProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/show. This mock has
-// GetSchemaReturn, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
+// GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
 // Terraform Core.
 func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaReturn = showFixtureSchema()
+	p.GetSchemaResponse = showFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		idVal := req.ProposedNewState.GetAttr("id")
 		amiVal := req.ProposedNewState.GetAttr("ami")

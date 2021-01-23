@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language](../configuration/index.html).
+[Configuration Language](/docs/language/index.html).
 
 Terraform uses text files to describe infrastructure and to set variables.
 These text files are called Terraform _configurations_ and end in

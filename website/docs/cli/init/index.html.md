@@ -7,7 +7,7 @@ page_title: "Initializing Working Directories - Terraform CLI"
 
 Terraform expects to be invoked from a working directory that contains
 configuration files written in
-[the Terraform language](/docs/configuration/index.html). Terraform uses
+[the Terraform language](/docs/language/index.html). Terraform uses
 configuration content from this directory, and also uses the directory to store
 settings, cached plugins and modules, and sometimes state data.
 
@@ -47,7 +47,7 @@ plugins, and downloading modules. Under some conditions (usually when changing
 from one backend to another), it might ask the user for guidance or
 confirmation.
 
-For details, see [the `terraform init` command](/docs/commands/init.html).
+For details, see [the `terraform init` command](/docs/cli/commands/init.html).
 
 ## Reinitialization
 

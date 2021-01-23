@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -52,77 +53,41 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	state, err = n.ReadResourceInstanceState(ctx, addr)
+	state, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	validateSelfRef := &EvalValidateSelfRef{
-		Addr:           addr.Resource,
-		Config:         config.Config,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(validateSelfRef.Eval(ctx))
+	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	readDataPlan := &evalReadDataPlan{
-		evalReadData: evalReadData{
-			Addr:           addr.Resource,
-			Config:         n.Config,
-			Provider:       &provider,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			OutputChange:   &change,
-			State:          &state,
-			dependsOn:      n.dependsOn,
-		},
-	}
-	diags = diags.Append(readDataPlan.Eval(ctx))
+	change, state, planDiags := n.planDataSource(ctx, state)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
 	// write the data source into both the refresh state and the
 	// working state
-	writeRefreshState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		targetState:    refreshState,
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, refreshState))
+	if diags.HasErrors() {
+		return diags
 	}
-	diags = diags.Append(writeRefreshState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 
@@ -134,82 +99,51 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var instanceRefreshState *states.ResourceInstanceObject
 	var instancePlanState *states.ResourceInstanceObject
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	validateSelfRef := &EvalValidateSelfRef{
-		Addr:           addr.Resource,
-		Config:         config.Config,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(validateSelfRef.Eval(ctx))
+	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	instanceRefreshState, err = n.ReadResourceInstanceState(ctx, addr)
+	instanceRefreshState, err = n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
 	}
-	refreshLifecycle := &EvalRefreshLifecycle{
-		Addr:                     addr,
-		Config:                   n.Config,
-		State:                    &instanceRefreshState,
-		ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-	}
-	diags = diags.Append(refreshLifecycle.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
+
+	// In 0.13 we could be refreshing a resource with no config.
+	// We should be operating on managed resource, but check here to be certain
+	if n.Config == nil || n.Config.Managed == nil {
+		log.Printf("[WARN] managedResourceExecute: no Managed config value found in instance state for %q", n.Addr)
+	} else {
+		if instanceRefreshState != nil {
+			instanceRefreshState.CreateBeforeDestroy = n.Config.Managed.CreateBeforeDestroy || n.ForceCreateBeforeDestroy
+		}
 	}
 
 	// Refresh, maybe
 	if !n.skipRefresh {
-		refresh := &EvalRefresh{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			Provider:       &provider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			Output:         &instanceRefreshState,
-		}
-		diags := diags.Append(refresh.Eval(ctx))
+		s, refreshDiags := n.refresh(ctx, instanceRefreshState)
+		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
+		instanceRefreshState = s
 
-		writeRefreshState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &instanceRefreshState,
-			targetState:    refreshState,
-			Dependencies:   &n.Dependencies,
-		}
-		diags = diags.Append(writeRefreshState.Eval(ctx))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, n.Dependencies, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
 	}
 
 	// Plan the instance
-	diff := &EvalDiff{
-		Addr:                addr.Resource,
-		Config:              n.Config,
-		CreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-		Provider:            &provider,
-		ProviderAddr:        n.ResolvedProvider,
-		ProviderMetas:       n.ProviderMetas,
-		ProviderSchema:      &providerSchema,
-		State:               &instanceRefreshState,
-		OutputChange:        &change,
-		OutputState:         &instancePlanState,
-	}
-	diags = diags.Append(diff.Eval(ctx))
+	change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
+	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -219,22 +153,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		State:          &instancePlanState,
-		ProviderSchema: &providerSchema,
-	}
-	diags = diags.Append(writeState.Eval(ctx))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, n.Dependencies, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	diags = diags.Append(writeDiff.Eval(ctx))
+	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }

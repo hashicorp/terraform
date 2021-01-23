@@ -81,6 +81,11 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 			continue
 		}
 
+		// Validation condition may be marked if the input variable is bound to
+		// a sensitive value. This is irrelevant to the validation process, so
+		// we discard the marks now.
+		result, _ = result.Unmark()
+
 		if result.False() {
 			if expr != nil {
 				diags = diags.Append(&hcl.Diagnostic{

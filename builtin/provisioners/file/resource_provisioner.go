@@ -2,96 +2,129 @@ package file
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/terraform/communicator"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/mitchellh/go-homedir"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func Provisioner() terraform.ResourceProvisioner {
-	return &schema.Provisioner{
-		Schema: map[string]*schema.Schema{
-			"source": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"content"},
-			},
-
-			"content": &schema.Schema{
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"source"},
-			},
-
-			"destination": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-		},
-
-		ApplyFunc:    applyFn,
-		ValidateFunc: validateFn,
+func New() provisioners.Interface {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &provisioner{
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
-func applyFn(ctx context.Context) error {
-	connState := ctx.Value(schema.ProvRawStateKey).(*terraform.InstanceState)
-	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
+type provisioner struct {
+	// We store a context here tied to the lifetime of the provisioner.
+	// This allows the Stop method to cancel any in-flight requests.
+	ctx    context.Context
+	cancel context.CancelFunc
+}
 
-	// Get a new communicator
-	comm, err := communicator.New(connState)
+func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"source": {
+				Type:     cty.String,
+				Optional: true,
+			},
+
+			"content": {
+				Type:     cty.String,
+				Optional: true,
+			},
+
+			"destination": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	resp.Provisioner = schema
+	return resp
+}
+
+func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
+	cfg, err := p.GetSchema().Provisioner.CoerceValue(req.Config)
 	if err != nil {
-		return err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+	}
+
+	source := cfg.GetAttr("source")
+	content := cfg.GetAttr("content")
+
+	switch {
+	case !source.IsNull() && !content.IsNull():
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("Cannot set both 'source' and 'content'"))
+		return resp
+	case source.IsNull() && content.IsNull():
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("Must provide one of 'source' or 'content'"))
+		return resp
+	}
+
+	return resp
+}
+
+func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+	comm, err := communicator.New(req.Connection)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
 	// Get the source
-	src, deleteSource, err := getSrc(data)
+	src, deleteSource, err := getSrc(req.Config)
 	if err != nil {
-		return err
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 	if deleteSource {
 		defer os.Remove(src)
 	}
 
 	// Begin the file copy
-	dst := data.Get("destination").(string)
-
-	if err := copyFiles(ctx, comm, src, dst); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validateFn(c *terraform.ResourceConfig) (ws []string, es []error) {
-	if !c.IsSet("source") && !c.IsSet("content") {
-		es = append(es, fmt.Errorf("Must provide one of 'source' or 'content'"))
+	dst := req.Config.GetAttr("destination").AsString()
+	if err := copyFiles(p.ctx, comm, src, dst); err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
 	}
 
-	return ws, es
+	return resp
 }
 
 // getSrc returns the file to use as source
-func getSrc(data *schema.ResourceData) (string, bool, error) {
-	src := data.Get("source").(string)
-	if content, ok := data.GetOk("content"); ok {
+func getSrc(v cty.Value) (string, bool, error) {
+	content := v.GetAttr("content")
+	src := v.GetAttr("source")
+
+	switch {
+	case !content.IsNull():
 		file, err := ioutil.TempFile("", "tf-file-content")
 		if err != nil {
 			return "", true, err
 		}
 
-		if _, err = file.WriteString(content.(string)); err != nil {
+		if _, err = file.WriteString(content.AsString()); err != nil {
 			return "", true, err
 		}
 
 		return file.Name(), true, nil
-	}
 
-	expansion, err := homedir.Expand(src)
-	return expansion, false, err
+	case !src.IsNull():
+		expansion, err := homedir.Expand(src.AsString())
+		return expansion, false, err
+
+	default:
+		panic("source and content cannot both be null")
+	}
 }
 
 // copyFiles is used to copy the files from a source to a destination
@@ -138,5 +171,15 @@ func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst str
 	if err != nil {
 		return fmt.Errorf("Upload failed: %v", err)
 	}
+
 	return err
+}
+
+func (p *provisioner) Stop() error {
+	p.cancel()
+	return nil
+}
+
+func (p *provisioner) Close() error {
+	return nil
 }

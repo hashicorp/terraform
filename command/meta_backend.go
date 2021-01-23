@@ -29,6 +29,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -160,7 +161,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &terraform.BackendState{
+		m.backendState = &legacy.BackendState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -307,6 +308,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
+		Streams:             m.Streams,
 		ShowDiagnostics:     m.showDiagnostics,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
@@ -461,7 +463,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	s := sMgr.State()
 	if s == nil {
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = terraform.NewState()
+		s = legacy.NewState()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 	} else {
@@ -818,9 +820,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -902,9 +904,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -996,7 +998,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clis
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *terraform.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *legacy.BackendState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -1114,6 +1116,11 @@ func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tf
 		// an error
 		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
 		diags = diags.Append(versionDiags)
+		// If there are no errors resulting from this check, we do not need to
+		// check again
+		if !diags.HasErrors() {
+			rb.IgnoreVersionConflict()
+		}
 	}
 
 	return diags
@@ -1238,13 +1245,4 @@ Successfully unset the backend %q. Terraform will now operate locally.
 const successBackendSet = `
 Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.
-`
-
-const errBackendLegacy = `
-This working directory is configured to use the legacy remote state features
-from Terraform 0.8 or earlier. Remote state changed significantly in Terraform
-0.9 and the automatic upgrade mechanism has now been removed.
-
-To upgrade, please first use Terraform v0.11 to complete the upgrade steps:
-    https://www.terraform.io/docs/backends/legacy-0-8.html
 `

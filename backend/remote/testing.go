@@ -175,7 +175,7 @@ func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 			},
 		},
 	})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 

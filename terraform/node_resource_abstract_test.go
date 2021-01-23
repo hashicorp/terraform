@@ -6,6 +6,10 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeAbstractResourceProvider(t *testing.T) {
@@ -103,6 +107,131 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 			got := node.Provider()
 			if got != test.Want {
 				t.Errorf("wrong result\naddr:  %s\nconfig: %#v\ngot:   %s\nwant:  %s", test.Addr, test.Config, got, test.Want)
+			}
+		})
+	}
+}
+
+func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+
+	tests := map[string]struct {
+		State              *states.State
+		Node               *NodeAbstractResource
+		ExpectedInstanceId string
+	}{
+		"ReadState gets primary instance state": {
+			State: states.BuildState(func(s *states.SyncState) {
+				providerAddr := addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				}
+				oneAddr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Absolute(addrs.RootModuleInstance)
+				s.SetResourceProvider(oneAddr, providerAddr)
+				s.SetResourceInstanceCurrent(oneAddr.Instance(addrs.NoKey), &states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"i-abc123"}`),
+				}, providerAddr)
+			}),
+			Node: &NodeAbstractResource{
+				Addr:             mustConfigResourceAddr("aws_instance.bar"),
+				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+	}
+
+	for k, test := range tests {
+		t.Run(k, func(t *testing.T) {
+			ctx := new(MockEvalContext)
+			ctx.StateState = test.State.SyncWrapper()
+			ctx.PathPath = addrs.RootModuleInstance
+			ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+			ctx.ProviderProvider = providers.Interface(mockProvider)
+
+			got, err := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+			if err != nil {
+				t.Fatalf("[%s] Got err: %#v", k, err.Error())
+			}
+
+			expected := test.ExpectedInstanceId
+
+			if !(got != nil && got.Value.GetAttr("id") == cty.StringVal(expected)) {
+				t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, got)
+			}
+		})
+	}
+}
+
+func TestNodeAbstractResource_ReadResourceInstanceStateDeposed(t *testing.T) {
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+
+	tests := map[string]struct {
+		State              *states.State
+		Node               *NodeAbstractResource
+		ExpectedInstanceId string
+	}{
+		"ReadStateDeposed gets deposed instance": {
+			State: states.BuildState(func(s *states.SyncState) {
+				providerAddr := addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("aws"),
+					Module:   addrs.RootModule,
+				}
+				oneAddr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "aws_instance",
+					Name: "bar",
+				}.Absolute(addrs.RootModuleInstance)
+				s.SetResourceProvider(oneAddr, providerAddr)
+				s.SetResourceInstanceDeposed(oneAddr.Instance(addrs.NoKey), states.DeposedKey("00000001"), &states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"id":"i-abc123"}`),
+				}, providerAddr)
+			}),
+			Node: &NodeAbstractResource{
+				Addr:             mustConfigResourceAddr("aws_instance.bar"),
+				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+	}
+	for k, test := range tests {
+		t.Run(k, func(t *testing.T) {
+			ctx := new(MockEvalContext)
+			ctx.StateState = test.State.SyncWrapper()
+			ctx.PathPath = addrs.RootModuleInstance
+			ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+			ctx.ProviderProvider = providers.Interface(mockProvider)
+
+			key := states.DeposedKey("00000001") // shim from legacy state assigns 0th deposed index this key
+
+			got, err := test.Node.readResourceInstanceStateDeposed(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance), key)
+			if err != nil {
+				t.Fatalf("[%s] Got err: %#v", k, err.Error())
+			}
+
+			expected := test.ExpectedInstanceId
+
+			if !(got != nil && got.Value.GetAttr("id") == cty.StringVal(expected)) {
+				t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, got)
 			}
 		})
 	}

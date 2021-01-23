@@ -44,7 +44,7 @@ Upgrade guide sections:
 * [New Filesystem Layout for Local Copies of Providers](#new-filesystem-layout-for-local-copies-of-providers)
   * [Special considerations for in-house providers](#in-house-providers)
 * [Destroy-time provisioners may not refer to other resources](#destroy-time-provisioners-may-not-refer-to-other-resources)
-* [Data resource reads can no longer be disabled by `-refresh=false`](#data-resource-reads-can-no-longer-be-disabled-by--refresh-false)
+* [Data resource reads can no longer be disabled by `-refresh=false`](#data-resource-reads-can-no-longer-be-disabled-by-refresh-false)
 * [Frequently Asked Questions](#frequently-asked-questions)
 
 ## Before You Upgrade
@@ -117,7 +117,7 @@ following command:
 
 As mentioned in the error message, Terraform v0.13 includes an automatic
 upgrade command
-[`terraform 0.13upgrade`](/docs/commands/0.13upgrade.html)
+[`terraform 0.13upgrade`](/docs/cli/commands/0.13upgrade.html)
 that is able to automatically generate source addresses for unlabelled
 providers by consulting the same lookup table that was previously used for
 Terraform v0.12 provider installation. This command will automatically modify
@@ -129,18 +129,18 @@ because it will generate the recommended explicit source addresses for
 providers in the "hashicorp" namespace.
 
 For more information on declaring provider dependencies, see
-[Provider Requirements](/docs/configuration/provider-requirements.html).
+[Provider Requirements](/docs/language/providers/requirements.html).
 That page also includes some guidance on how to write provider dependencies
 for a module that must remain compatible with both Terraform v0.12 and
 Terraform v0.13; the `terraform 0.13upgrade` result includes a conservative
 version constraint for Terraform v0.13 or later, which you can weaken to
 `>= 0.12.26` if you follow the guidelines in
-[v0.12-Compatible Provider Requirements](/docs/configuration/provider-requirements.html#v012-compatible-provider-requirements).
+[v0.12-Compatible Provider Requirements](/docs/language/providers/requirements.html#v0-12-compatible-provider-requirements).
 
 Each module must declare its own set of provider requirements, so if you have
 a configuration which calls other modules then you'll need to run this upgrade
 command for each module separately.
-[The `terraform 0.13upgrade documentation`](/docs/commands/0.13upgrade.html)
+[The `terraform 0.13upgrade documentation`](/docs/cli/commands/0.13upgrade.html)
 includes an example of running the upgrade process across all directories under
 a particular prefix that contain `.tf` files using some common Unix command line
 tools, which may be useful if you want to upgrade all modules in a single
@@ -149,7 +149,7 @@ repository at once.
 After you've added explicit provider source addresses to your configuration,
 run `terraform init` again to re-run the provider installer.
 
--> **Action:** Either run [`terraform 0.13upgrade`](/docs/commands/0.13upgrade.html) for each of your modules, or manually update the provider declarations to use explicit source addresses.
+-> **Action:** Either run [`terraform 0.13upgrade`](/docs/cli/commands/0.13upgrade.html) for each of your modules, or manually update the provider declarations to use explicit source addresses.
 
 The upgrade tool described above only updates references in your configuration.
 The Terraform state also includes references to provider configurations which
@@ -232,12 +232,12 @@ Terraform under:
 
 Terraform v0.13 introduces some additional options for customizing where
 Terraform looks for providers in the local filesystem. For more information on
-those new options, see [Provider Installation](/docs/commands/cli-config.html#provider-installation).
+those new options, see [Provider Installation](/docs/cli/config/config-file.html#provider-installation).
 
 If you use only providers that are automatically installable from Terraform
 provider registries but still want to avoid Terraform re-downloading them from
 registries each time, Terraform v0.13 includes
-[the `terraform providers mirror` command](/docs/commands/providers/mirror.html)
+[the `terraform providers mirror` command](/docs/cli/commands/providers/mirror.html)
 which you can use to automatically populate a local directory based on the
 requirements of the current configuration file:
 
@@ -408,7 +408,7 @@ The provisioner's `connection` configuration can refer to that value via
 `self`, whereas referring directly to `aws_instance.example.private_ip` in that
 context is forbidden.
 
-[Provisioners are a last resort](/docs/provisioners/#provisioners-are-a-last-resort),
+[Provisioners are a last resort](/docs/language/resources/provisioners/syntax.html#provisioners-are-a-last-resort),
 so we recommend avoiding both create-time and destroy-time provisioners wherever
 possible. Other options for destroy-time actions include using `systemd` to
 run commands within your virtual machines during shutdown or using virtual
@@ -441,7 +441,7 @@ accurate plan, and so there is no replacement mechanism in Terraform v0.13
 to restore the previous behavior.
 
 ## Frequently Asked Questions
-### Why do I see `-/provider` during init? 
+### Why do I see `-/provider` during init?
 
 Provider source addresses starting with `registry.terraform.io/-/` are a special
 way Terraform marks legacy addresses where the true namespace is unknown. For
@@ -473,7 +473,7 @@ While this does not cause any problems for Terraform, it has been confusing. You
 may circumvent this by using the `terraform state replace-provider` subcommand
 to tell Terraform exactly what provider addresses are required in state.
 Continuing from the example above, the following commands tell Terraform the
-source address for the `null` and `random` providers: 
+source address for the `null` and `random` providers:
 
 ```
 terraform state replace-provider -- -/random registry.terraform.io/hashicorp/random

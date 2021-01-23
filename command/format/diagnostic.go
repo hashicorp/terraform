@@ -31,11 +31,31 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 
 	var buf bytes.Buffer
 
+	// these leftRule* variables are markers for the beginning of the lines
+	// containing the diagnostic that are intended to help sighted users
+	// better understand the information heirarchy when diagnostics appear
+	// alongside other information or alongside other diagnostics.
+	//
+	// Without this, it seems (based on folks sharing incomplete messages when
+	// asking questions, or including extra content that's not part of the
+	// diagnostic) that some readers have trouble easily identifying which
+	// text belongs to the diagnostic and which does not.
+	var leftRuleLine, leftRuleStart, leftRuleEnd string
+	var leftRuleWidth int // in visual character cells
+
 	switch diag.Severity() {
 	case tfdiags.Error:
-		buf.WriteString(color.Color("\n[bold][red]Error: [reset]"))
+		buf.WriteString(color.Color("[bold][red]Error: [reset]"))
+		leftRuleLine = color.Color("[red]│[reset] ")
+		leftRuleStart = color.Color("[red]╷[reset]")
+		leftRuleEnd = color.Color("[red]╵[reset]")
+		leftRuleWidth = 2
 	case tfdiags.Warning:
-		buf.WriteString(color.Color("\n[bold][yellow]Warning: [reset]"))
+		buf.WriteString(color.Color("[bold][yellow]Warning: [reset]"))
+		leftRuleLine = color.Color("[yellow]│[reset] ")
+		leftRuleStart = color.Color("[yellow]╷[reset]")
+		leftRuleEnd = color.Color("[yellow]╵[reset]")
+		leftRuleWidth = 2
 	default:
 		// Clear out any coloring that might be applied by Terraform's UI helper,
 		// so our result is not context-sensitive.
@@ -172,10 +192,10 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
 
 			if len(stmts) > 0 {
-				fmt.Fprint(&buf, color.Color("    [dark_gray]|----------------[reset]\n"))
+				fmt.Fprint(&buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
 			}
 			for _, stmt := range stmts {
-				fmt.Fprintf(&buf, color.Color("    [dark_gray]|[reset] %s\n"), stmt)
+				fmt.Fprintf(&buf, color.Color("    [dark_gray]│[reset] %s\n"), stmt)
 			}
 		}
 
@@ -183,11 +203,12 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	}
 
 	if desc.Detail != "" {
-		if width != 0 {
+		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
+		if paraWidth > 0 {
 			lines := strings.Split(desc.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width))
+					line = wordwrap.WrapString(line, uint(paraWidth))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
@@ -196,7 +217,30 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 		}
 	}
 
-	return buf.String()
+	// Before we return, we'll finally add the left rule prefixes to each
+	// line so that the overall message is visually delimited from what's
+	// around it. We'll do that by scanning over what we already generated
+	// and adding the prefix for each line.
+	var ruleBuf strings.Builder
+	sc := bufio.NewScanner(&buf)
+	ruleBuf.WriteString(leftRuleStart)
+	ruleBuf.WriteByte('\n')
+	for sc.Scan() {
+		line := sc.Text()
+		prefix := leftRuleLine
+		if line == "" {
+			// Don't print the space after the line if there would be nothing
+			// after it anyway.
+			prefix = strings.TrimSpace(prefix)
+		}
+		ruleBuf.WriteString(prefix)
+		ruleBuf.WriteString(line)
+		ruleBuf.WriteByte('\n')
+	}
+	ruleBuf.WriteString(leftRuleEnd)
+	ruleBuf.WriteByte('\n')
+
+	return ruleBuf.String()
 }
 
 // DiagnosticWarningsCompact is an alternative to Diagnostic for when all of

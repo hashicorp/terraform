@@ -10,13 +10,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 	sshagent "github.com/xanzy/ssh-agent"
+	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -49,46 +49,123 @@ const (
 // only keys we look at. If a PrivateKey is given, that is used instead
 // of a password.
 type connectionInfo struct {
-	User               string
-	Password           string
-	PrivateKey         string `mapstructure:"private_key"`
-	Certificate        string `mapstructure:"certificate"`
-	Host               string
-	HostKey            string `mapstructure:"host_key"`
-	Port               int
-	Agent              bool
-	Timeout            string
-	ScriptPath         string        `mapstructure:"script_path"`
-	TargetPlatform     string        `mapstructure:"target_platform"`
-	TimeoutVal         time.Duration `mapstructure:"-"`
-	ProxyHost          string        `mapstructure:"proxy_host"`
-	ProxyPort          string        `mapstructure:"proxy_port"`
-	ProxyUserName      string        `mapstructure:"proxy_user_name"`
-	ProxyUserPassword  string        `mapstructure:"proxy_user_password"`
-	BastionUser        string        `mapstructure:"bastion_user"`
-	BastionPassword    string        `mapstructure:"bastion_password"`
-	BastionPrivateKey  string        `mapstructure:"bastion_private_key"`
-	BastionCertificate string        `mapstructure:"bastion_certificate"`
-	BastionHost        string        `mapstructure:"bastion_host"`
-	BastionHostKey     string        `mapstructure:"bastion_host_key"`
-	BastionPort        int           `mapstructure:"bastion_port"`
+	User           string
+	Password       string
+	PrivateKey     string
+	Certificate    string
+	Host           string
+	HostKey        string
+	Port           int
+	Agent          bool
+	ScriptPath     string
+	TargetPlatform string
+	Timeout        string
+	TimeoutVal     time.Duration
 
-	AgentIdentity string `mapstructure:"agent_identity"`
+	ProxyHost          string
+	ProxyPort          int
+	ProxyUserName      string
+	ProxyUserPassword  string
+
+	BastionUser        string
+	BastionPassword    string
+	BastionPrivateKey  string
+	BastionCertificate string
+	BastionHost        string
+	BastionHostKey     string
+	BastionPort        int
+
+	AgentIdentity string
 }
 
-// parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
-// a ConnectionInfo struct
-func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
+// decodeConnInfo decodes the given cty.Value using the same behavior as the
+// lgeacy mapstructure decoder in order to preserve as much of the existing
+// logic as possible for compatibility.
+func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 	connInfo := &connectionInfo{}
-	decConf := &mapstructure.DecoderConfig{
-		WeaklyTypedInput: true,
-		Result:           connInfo,
+	if v.IsNull() {
+		return connInfo, nil
 	}
-	dec, err := mapstructure.NewDecoder(decConf)
+
+	for k, v := range v.AsValueMap() {
+		if v.IsNull() {
+			continue
+		}
+
+		switch k {
+		case "user":
+			connInfo.User = v.AsString()
+		case "password":
+			connInfo.Password = v.AsString()
+		case "private_key":
+			connInfo.PrivateKey = v.AsString()
+		case "certificate":
+			connInfo.Certificate = v.AsString()
+		case "host":
+			connInfo.Host = v.AsString()
+		case "host_key":
+			connInfo.HostKey = v.AsString()
+		case "port":
+			p, err := strconv.Atoi(v.AsString())
+			if err != nil {
+				return nil, err
+			}
+			connInfo.Port = p
+		case "agent":
+			connInfo.Agent = v.True()
+		case "script_path":
+			connInfo.ScriptPath = v.AsString()
+		case "target_platform":
+			connInfo.TargetPlatform = v.AsString()
+		case "timeout":
+			connInfo.Timeout = v.AsString()
+        case "proxy_host":
+            connInfo.ProxyHost = v.AsString()
+        case "proxy_port":
+            p, err := strconv.Atoi(v.AsString())
+            if err != nil {
+                return nil, err
+            }
+            connInfo.ProxyPort = p
+        case "proxy_user_name":
+            connInfo.ProxyUserName = v.AsString()
+        case "proxy_user_password":
+            connInfo.ProxyUserPassword = v.AsString()
+		case "bastion_user":
+			connInfo.BastionUser = v.AsString()
+		case "bastion_password":
+			connInfo.BastionPassword = v.AsString()
+		case "bastion_private_key":
+			connInfo.BastionPrivateKey = v.AsString()
+		case "bastion_certificate":
+			connInfo.BastionCertificate = v.AsString()
+		case "bastion_host":
+			connInfo.BastionHost = v.AsString()
+		case "bastion_host_key":
+			connInfo.BastionHostKey = v.AsString()
+		case "bastion_port":
+			p, err := strconv.Atoi(v.AsString())
+			if err != nil {
+				return nil, err
+			}
+			connInfo.BastionPort = p
+		case "agent_identity":
+			connInfo.AgentIdentity = v.AsString()
+		}
+	}
+	return connInfo, nil
+}
+
+// parseConnectionInfo is used to convert the raw configuration into the
+// *connectionInfo struct.
+func parseConnectionInfo(v cty.Value) (*connectionInfo, error) {
+	v, err := shared.ConnectionBlockSupersetSchema.CoerceValue(v)
 	if err != nil {
 		return nil, err
 	}
-	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
+
+	connInfo, err := decodeConnInfo(v)
+	if err != nil {
 		return nil, err
 	}
 
@@ -97,7 +174,8 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	//
 	// And if SSH_AUTH_SOCK is not set, there's no agent to connect to, so we
 	// shouldn't try.
-	if s.Ephemeral.ConnInfo["agent"] == "" && os.Getenv("SSH_AUTH_SOCK") != "" {
+	agent := v.GetAttr("agent")
+	if agent.IsNull() && os.Getenv("SSH_AUTH_SOCK") != "" {
 		connInfo.Agent = true
 	}
 
@@ -199,8 +277,8 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 
 	var proxyAddr string
 
-	if connInfo.ProxyHost != "" && connInfo.ProxyPort != "" {
-		proxyAddr = connInfo.ProxyHost + ":" + connInfo.ProxyPort
+	if connInfo.ProxyHost != ""  {
+		proxyAddr = connInfo.ProxyHost + ":" + strconv.Itoa(connInfo.ProxyPort)
 
 		if connInfo.ProxyUserName != "" && connInfo.ProxyUserPassword != "" {
 			proxyAddr = connInfo.ProxyUserName + ":" + connInfo.ProxyUserPassword + "@" + proxyAddr
@@ -361,7 +439,7 @@ func readPrivateKey(pk string) (ssh.AuthMethod, error) {
 }
 
 func connectToAgent(connInfo *connectionInfo) (*sshAgent, error) {
-	if connInfo.Agent != true {
+	if !connInfo.Agent {
 		// No agent configured
 		return nil, nil
 	}
@@ -495,13 +573,6 @@ func (s *sshAgent) sortSigners(signers []ssh.Signer) {
 			head++
 			continue
 		}
-	}
-
-	ss := []string{}
-	for _, signer := range signers {
-		pk := signer.PublicKey()
-		k := pk.(*agent.Key)
-		ss = append(ss, k.Comment)
 	}
 }
 

@@ -5,10 +5,6 @@ import (
 	"testing"
 )
 
-func intPtr(i int) *int {
-	return &i
-}
-
 func prettyJSON(o interface{}) (string, error) {
 	bytes, err := json.MarshalIndent(o, "", "\t")
 	if err != nil {

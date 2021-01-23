@@ -3,7 +3,6 @@ package statefile
 import (
 	"encoding/json"
 	"fmt"
-	"sync"
 
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -95,8 +94,6 @@ type outputStateV2 struct {
 	// Value contains the value of the output, in the structure described
 	// by the Type field.
 	Value interface{} `json:"value"`
-
-	mu sync.Mutex
 }
 
 type moduleStateV2 struct {
@@ -178,8 +175,6 @@ type resourceStateV2 struct {
 	// e.g. "aws_instance" goes with the "aws" provider.
 	// If the resource block contained a "provider" key, that value will be set here.
 	Provider string `json:"provider"`
-
-	mu sync.Mutex
 }
 
 type instanceStateV2 struct {

@@ -3,23 +3,19 @@ package winrm
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestProvisioner_defaultHTTPSPort(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "127.0.0.1",
-				"https":    "true",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("Administrator"),
+		"password": cty.StringVal("supersecret"),
+		"host":     cty.StringVal("127.0.0.1"),
+		"https":    cty.True,
+	})
 
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -32,22 +28,18 @@ func TestProvisioner_defaultHTTPSPort(t *testing.T) {
 }
 
 func TestProvisioner_connInfo(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "127.0.0.1",
-				"port":     "5985",
-				"https":    "true",
-				"use_ntlm": "true",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("Administrator"),
+		"password": cty.StringVal("supersecret"),
+		"host":     cty.StringVal("127.0.0.1"),
+		"port":     cty.StringVal("5985"),
+		"https":    cty.True,
+		"use_ntlm": cty.True,
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -100,23 +92,18 @@ CqDUFjhydXxYRsxXBBrEiLOE5BdtJR1sH/QHxIJe23C9iHI2nS1NbLziNEApLwC4
 GnSud83VUo9G9w==
 -----END CERTIFICATE-----
 `
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("Administrator"),
+		"password": cty.StringVal("supersecret"),
+		"host":     cty.StringVal("127.0.0.1"),
+		"port":     cty.StringVal("5985"),
+		"https":    cty.True,
+		"timeout":  cty.StringVal("30s"),
+		"cacert":   cty.StringVal(caCert),
+	})
 
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "127.0.0.1",
-				"port":     "5985",
-				"https":    "true",
-				"timeout":  "30s",
-				"cacert":   caCert,
-			},
-		},
-	}
-
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -148,21 +135,17 @@ GnSud83VUo9G9w==
 }
 
 func TestProvisioner_connInfoIpv6(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "::1",
-				"port":     "5985",
-				"https":    "true",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("Administrator"),
+		"password": cty.StringVal("supersecret"),
+		"host":     cty.StringVal("::1"),
+		"port":     cty.StringVal("5985"),
+		"https":    cty.True,
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -191,21 +174,17 @@ func TestProvisioner_connInfoIpv6(t *testing.T) {
 }
 
 func TestProvisioner_connInfoHostname(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":     "winrm",
-				"user":     "Administrator",
-				"password": "supersecret",
-				"host":     "example.com",
-				"port":     "5985",
-				"https":    "true",
-				"timeout":  "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":     cty.StringVal("winrm"),
+		"user":     cty.StringVal("Administrator"),
+		"password": cty.StringVal("supersecret"),
+		"host":     cty.StringVal("example.com"),
+		"port":     cty.StringVal("5985"),
+		"https":    cty.True,
+		"timeout":  cty.StringVal("30s"),
+	})
 
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -235,38 +214,26 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 
 func TestProvisioner_formatDuration(t *testing.T) {
 	cases := map[string]struct {
-		InstanceState *terraform.InstanceState
-		Result        string
+		Config map[string]cty.Value
+		Result string
 	}{
 		"testSeconds": {
-			InstanceState: &terraform.InstanceState{
-				Ephemeral: terraform.EphemeralState{
-					ConnInfo: map[string]string{
-						"timeout": "90s",
-					},
-				},
+			Config: map[string]cty.Value{
+				"timeout": cty.StringVal("90s"),
 			},
 
 			Result: "PT1M30S",
 		},
 		"testMinutes": {
-			InstanceState: &terraform.InstanceState{
-				Ephemeral: terraform.EphemeralState{
-					ConnInfo: map[string]string{
-						"timeout": "5m",
-					},
-				},
+			Config: map[string]cty.Value{
+				"timeout": cty.StringVal("5m"),
 			},
 
 			Result: "PT5M",
 		},
 		"testHours": {
-			InstanceState: &terraform.InstanceState{
-				Ephemeral: terraform.EphemeralState{
-					ConnInfo: map[string]string{
-						"timeout": "1h",
-					},
-				},
+			Config: map[string]cty.Value{
+				"timeout": cty.StringVal("1h"),
 			},
 
 			Result: "PT1H",
@@ -274,7 +241,10 @@ func TestProvisioner_formatDuration(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		conf, err := parseConnectionInfo(tc.InstanceState)
+		// host is required in the schema
+		tc.Config["host"] = cty.StringVal("")
+
+		conf, err := parseConnectionInfo(cty.ObjectVal(tc.Config))
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}

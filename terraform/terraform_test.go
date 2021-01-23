@@ -12,12 +12,10 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -32,18 +30,7 @@ import (
 const fixtureDir = "./testdata"
 
 func TestMain(m *testing.M) {
-	// We want to shadow on tests just to make sure the shadow graph works
-	// in case we need it and to find any race issues.
-	experiment.SetEnabled(experiment.X_shadow, true)
-
-	experiment.Flag(flag.CommandLine)
 	flag.Parse()
-
-	// Make sure shadow operations fail our real tests
-	contextFailOnShadowError = true
-
-	// Always DeepCopy the Diff on every Plan during a test
-	contextTestDeepCopyOnPlan = true
 
 	// We have fmt.Stringer implementations on lots of objects that hide
 	// details that we very often want to see in tests, so we just disable
@@ -53,37 +40,6 @@ func TestMain(m *testing.M) {
 	spew.Config.DisableMethods = true
 
 	os.Exit(m.Run())
-}
-
-func tempDir(t *testing.T) string {
-	t.Helper()
-
-	dir, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.RemoveAll(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return dir
-}
-
-// tempEnv lets you temporarily set an environment variable. It returns
-// a function to defer to reset the old value.
-// the old value that should be set via a defer.
-func tempEnv(t *testing.T, k string, v string) func() {
-	t.Helper()
-
-	old, oldOk := os.LookupEnv(k)
-	os.Setenv(k, v)
-	return func() {
-		if !oldOk {
-			os.Unsetenv(k)
-		} else {
-			os.Setenv(k, old)
-		}
-	}
 }
 
 func testModule(t *testing.T, name string) *configs.Config {
@@ -208,28 +164,16 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 	)
 }
 
-// testSetResourceInstanceDeposed is a helper function for tests that sets a
-// Deposed resource instance for the given module.
-func testSetResourceInstanceDeposed(module *states.Module, resource, attrsJson, provider string, key states.DeposedKey) {
-	module.SetResourceInstanceDeposed(
-		mustResourceInstanceAddr(resource).Resource,
-		key,
-		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectTainted,
-			AttrsJSON: []byte(attrsJson),
-		},
-		mustProviderConfig(provider),
-	)
-}
-
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	return func() (providers.Interface, error) {
 		return rp, nil
 	}
 }
 
-func testProvisionerFuncFixed(rp provisioners.Interface) ProvisionerFactory {
+func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
+		// make sure this provisioner has has not been closed
+		rp.CloseCalled = false
 		return rp, nil
 	}
 }
@@ -264,22 +208,6 @@ func mustProviderConfig(s string) addrs.AbsProviderConfig {
 		panic(diags.Err())
 	}
 	return p
-}
-
-func instanceObjectIdForTests(obj *states.ResourceInstanceObject) string {
-	v := obj.Value
-	if v.IsNull() || !v.IsKnown() {
-		return ""
-	}
-	idVal := v.GetAttr("id")
-	if idVal.IsNull() || !idVal.IsKnown() {
-		return ""
-	}
-	idVal, err := convert.Convert(idVal, cty.String)
-	if err != nil {
-		return "<invalid>" // placeholder value
-	}
-	return idVal.AsString()
 }
 
 // HookRecordApplyOrder is a test hook that records the order of applies
@@ -320,59 +248,12 @@ func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen stat
 // Below are all the constant strings that are the expected output for
 // various tests.
 
-const testTerraformInputProviderStr = `
-aws_instance.bar:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  bar = override
-  foo = us-east-1
-  type = aws_instance
-aws_instance.foo:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  bar = baz
-  num = 2
-  type = aws_instance
-`
-
 const testTerraformInputProviderOnlyStr = `
 aws_instance.foo:
-  ID = foo
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = us-west-2
-  type = aws_instance
-`
-
-const testTerraformInputVarOnlyStr = `
-aws_instance.foo:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  foo = us-east-1
-  type = aws_instance
-`
-
-const testTerraformInputVarOnlyUnsetStr = `
-aws_instance.foo:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  bar = baz
-  foo = foovalue
-  type = aws_instance
-`
-
-const testTerraformInputVarsStr = `
-aws_instance.bar:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  bar = override
-  foo = us-east-1
-  type = aws_instance
-aws_instance.foo:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
-  bar = baz
-  num = 2
-  type = aws_instance
+  type = 
 `
 
 const testTerraformApplyStr = `
@@ -1169,199 +1050,6 @@ aws_instance.bar:
   map.Hello = World
   string = baz
   type = aws_instance
-`
-
-const testTerraformPlanStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanComputedIdStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "<computed>"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  foo:  "" => "<computed>"
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanCountIndexZeroStr = `
-DIFF:
-
-CREATE: aws_instance.foo
-  foo:  "" => "0"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanEmptyStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-CREATE: aws_instance.foo
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanEscapedVarStr = `
-DIFF:
-
-CREATE: aws_instance.foo
-  foo:  "" => "bar-${baz}"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModulesStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-module.child:
-  CREATE: aws_instance.foo
-    num:  "" => "2"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModuleCycleStr = `
-DIFF:
-
-CREATE: aws_instance.b
-CREATE: aws_instance.c
-  some_input: "" => "<computed>"
-  type:       "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModuleInputStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-
-module.child:
-  CREATE: aws_instance.foo
-    foo:  "" => "42"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModuleInputComputedStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  compute:       "" => "foo"
-  compute_value: "" => "<computed>"
-  foo:           "" => "<computed>"
-  type:          "" => "aws_instance"
-
-module.child:
-  CREATE: aws_instance.foo
-    foo:  "" => "<computed>"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanModuleVarIntStr = `
-DIFF:
-
-module.child:
-  CREATE: aws_instance.foo
-    num:  "" => "2"
-    type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformPlanMultipleTaintStr = `
-DIFF:
-
-DESTROY/CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-aws_instance.bar: (2 tainted)
-  ID = <not created>
-  Tainted ID 1 = baz
-  Tainted ID 2 = zip
-aws_instance.foo:
-  ID = bar
-  num = 2
-`
-
-const testTerraformPlanVarMultiCountOneStr = `
-DIFF:
-
-CREATE: aws_instance.bar
-  foo:  "" => "2"
-  type: "" => "aws_instance"
-CREATE: aws_instance.foo
-  num:  "" => "2"
-  type: "" => "aws_instance"
-
-STATE:
-
-<no state>
-`
-
-const testTerraformInputHCL = `
-hcl_instance.hcltest:
-  ID = foo
-  provider = provider["registry.terraform.io/hashicorp/hcl"]
-  bar.w = z
-  bar.x = y
-  foo.# = 2
-  foo.0 = a
-  foo.1 = b
-  type = hcl_instance
 `
 
 const testTerraformRefreshDataRefDataStr = `

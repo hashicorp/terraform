@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -33,7 +32,7 @@ func TestImport(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -43,11 +42,13 @@ func TestImport(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -84,7 +85,7 @@ func TestImport_providerConfig(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -94,16 +95,20 @@ func TestImport_providerConfig(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -191,7 +196,7 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -201,16 +206,20 @@ func TestImport_remoteState(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -338,7 +347,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -348,16 +357,20 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -412,7 +425,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -422,23 +435,29 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"test_instance": {
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
 				},
 			},
 		},
-		DataSources: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+		DataSources: map[string]providers.Schema{
 			"test_data": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -469,7 +488,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -479,16 +498,20 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -542,7 +565,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -552,16 +575,20 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -616,7 +643,7 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 	}
 
 	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_instance",
@@ -626,11 +653,13 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},
@@ -753,11 +782,13 @@ func TestImportModuleVarFile(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -823,11 +854,13 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"foo": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -966,16 +999,4 @@ const testImportStr = `
 test_instance.foo:
   ID = yay
   provider = provider["registry.terraform.io/hashicorp/test"]
-`
-
-const testImportCustomProviderStr = `
-test_instance.foo:
-  ID = yay
-  provider = provider["registry.terraform.io/hashicorp/test"].alias
-`
-
-const testImportProviderMismatchStr = `
-test_instance.foo:
-  ID = yay
-  provider = provider["registry.terraform.io/hashicorp/test-beta"]
 `

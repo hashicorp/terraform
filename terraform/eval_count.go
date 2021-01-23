@@ -60,6 +60,10 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		return nullCount, diags
 	}
 
+	// Unmark the count value, sensitive values are allowed in count but not for_each,
+	// as using it here will not disclose the sensitive value
+	countVal, _ = countVal.Unmark()
+
 	switch {
 	case countVal.IsNull():
 		diags = diags.Append(&hcl.Diagnostic{

@@ -22,13 +22,13 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 
 		// This is only likely to happen in misconfigured tests
 		if t.Config == nil {
-			return fmt.Errorf("Cannot import into an empty configuration.")
+			return fmt.Errorf("cannot import into an empty configuration")
 		}
 
 		// Get the module config
 		modCfg := t.Config.Descendent(target.Addr.Module.Module())
 		if modCfg == nil {
-			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
+			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
 		}
 
 		providerAddr := addrs.AbsProviderConfig{
@@ -120,7 +120,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	// Reset our states
 	n.states = nil
 
-	provider, _, err := GetProvider(ctx, n.ResolvedProvider)
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -267,46 +267,20 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 	}
 
 	state := n.State.AsInstanceObject()
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
+
+	// Refresh
+	riNode := &NodeAbstractResourceInstance{
+		Addr: n.TargetAddr,
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: n.ResolvedProvider,
+		},
+	}
+	state, refreshDiags := riNode.refresh(ctx, state)
+	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	// EvalRefresh
-	evalRefresh := &EvalRefresh{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Output:         &state,
-	}
-	diags = diags.Append(evalRefresh.Eval(ctx))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// Verify the existance of the imported resource
-	if state.Value.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %s, the provider detected that no object exists with the given id. Only pre-existing objects can be imported; check that the id is correct and that it is associated with the provider's configured region or endpoint, or use \"terraform apply\" to create a new remote object for this resource.",
-				n.TargetAddr.Resource.String(),
-			),
-		))
-		return diags
-	}
-
-	//EvalWriteState
-	evalWriteState := &EvalWriteState{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	diags = diags.Append(evalWriteState.Eval(ctx))
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, nil, workingState))
 	return diags
 }

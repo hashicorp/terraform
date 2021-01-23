@@ -130,7 +130,7 @@ func (c *PackageCommand) Run(args []string) int {
 			localSource := getproviders.NewFilesystemMirrorSource(absPluginDir)
 			if available, err := localSource.AllAvailablePackages(); err == nil {
 				for found := range available {
-					c.ui.Info(fmt.Sprintf("Found provider %q in %q. p", found.String(), pluginDir))
+					c.ui.Info(fmt.Sprintf("Found provider %q in %q.", found.String(), pluginDir))
 					foundLocally[found] = struct{}{}
 				}
 			}

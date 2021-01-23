@@ -1,60 +1,51 @@
 package terraform
 
-// FIXME: Update these tests for the new OrphanResourceCountTransformer
-// interface that expects to be given a list of instance addresses that
-// exist in config.
-
-/*
 import (
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
-		tf := &OrphanResourceCountTransformer{
+		tf := &OrphanResourceInstanceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			Count:    1,
 			Addr: addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
-			State: state,
+			InstanceAddrs: []addrs.AbsResourceInstance{mustResourceInstanceAddr("aws_instance.foo[0]")},
+			State:         state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -69,46 +60,43 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 }
 
 func TestOrphanResourceCountTransformer_zero(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
-		tf := &OrphanResourceCountTransformer{
+		tf := &OrphanResourceInstanceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			Count:    0,
 			Addr: addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
-			State: state,
+			InstanceAddrs: []addrs.AbsResourceInstance{},
+			State:         state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -122,101 +110,44 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 	}
 }
 
-func TestOrphanResourceCountTransformer_oneNoIndex(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.2": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	{
-		tf := &OrphanResourceCountTransformer{
-			Concrete: testOrphanResourceConcreteFunc,
-			Count:    1,
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
-			State: state,
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformOrphanResourceCountOneNoIndexStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
 func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.1": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.web").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-	})
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
-		tf := &OrphanResourceCountTransformer{
+		tf := &OrphanResourceInstanceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			Count:    1,
 			Addr: addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
-			State: state,
+			InstanceAddrs: []addrs.AbsResourceInstance{mustResourceInstanceAddr("aws_instance.foo[0]")},
+			State:         state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -225,114 +156,6 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTransformOrphanResourceCountOneIndexStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-func TestOrphanResourceCountTransformer_zeroAndNone(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	{
-		tf := &OrphanResourceCountTransformer{
-			Concrete: testOrphanResourceConcreteFunc,
-			Count:    -1,
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
-			State: state,
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformOrphanResourceCountZeroAndNoneStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
-	}
-}
-
-func TestOrphanResourceCountTransformer_zeroAndNoneCount(t *testing.T) {
-	state := MustShimLegacyState(&State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-
-					"aws_instance.foo.0": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	{
-		tf := &OrphanResourceCountTransformer{
-			Concrete: testOrphanResourceConcreteFunc,
-			Count:    2,
-			Addr: addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
-			State: state,
-		}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformOrphanResourceCountZeroAndNoneCountStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
@@ -357,10 +180,7 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
-				Module:   addrs.RootModuleInstance,
-			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		)
 
 		// NoKey'd resource
@@ -376,25 +196,20 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
-				Module:   addrs.RootModuleInstance,
-			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 		)
 	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	{
-		tf := &OrphanResourceCountTransformer{
+		tf := &OrphanResourceInstanceCountTransformer{
 			Concrete: testOrphanResourceConcreteFunc,
-			// No keys in this ForEach ensure both our resources end
-			// up orphaned in this test
-			ForEach: map[string]cty.Value{},
 			Addr: addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
-			State: state,
+			InstanceAddrs: []addrs.AbsResourceInstance{},
+			State:         state,
 		}
 		if err := tf.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -413,11 +228,7 @@ aws_instance.foo[2] (orphan)
 `
 
 const testTransformOrphanResourceCountZeroStr = `
-aws_instance.foo (orphan)
-aws_instance.foo[2] (orphan)
-`
-
-const testTransformOrphanResourceCountOneNoIndexStr = `
+aws_instance.foo[0] (orphan)
 aws_instance.foo[2] (orphan)
 `
 
@@ -425,17 +236,7 @@ const testTransformOrphanResourceCountOneIndexStr = `
 aws_instance.foo[1] (orphan)
 `
 
-const testTransformOrphanResourceCountZeroAndNoneStr = `
-aws_instance.foo[0] (orphan)
-`
-
-const testTransformOrphanResourceCountZeroAndNoneCountStr = `
-aws_instance.foo (orphan)
-`
-
 const testTransformOrphanResourceForEachStr = `
 aws_instance.foo (orphan)
 aws_instance.foo["bar"] (orphan)
-  aws_instance.foo (orphan)
 `
-*/

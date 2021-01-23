@@ -641,7 +641,10 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	// accidentally upgrade state with a new code path, and the version check
 	// logic is coarser and simpler.
 	if !b.ignoreVersionConflict {
-		if workspace.TerraformVersion != tfversion.String() {
+		wsv := workspace.TerraformVersion
+		// Explicitly ignore the pseudo-version "latest" here, as it will cause
+		// plan and apply to always fail.
+		if wsv != tfversion.String() && wsv != "latest" {
 			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String())
 		}
 	}
@@ -691,18 +694,21 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		}
 	}
 
+	// Terraform remote version conflicts are not a concern for operations. We
+	// are in one of three states:
+	//
+	// - Running remotely, in which case the local version is irrelevant;
+	// - Workspace configured for local operations, in which case the remote
+	//   version is meaningless;
+	// - Forcing local operations with a remote backend, which should only
+	//   happen in the Terraform Cloud worker, in which case the Terraform
+	//   versions by definition match.
+	b.IgnoreVersionConflict()
+
 	// Check if we need to use the local backend to run the operation.
 	if b.forceLocal || !w.Operations {
-		if !w.Operations {
-			// Workspace is explicitly configured for local operations, so its
-			// configured Terraform version is meaningless
-			b.IgnoreVersionConflict()
-		}
 		return b.local.Operation(ctx, op)
 	}
-
-	// Running remotely so we don't care about version conflicts
-	b.IgnoreVersionConflict()
 
 	// Set the remote workspace name.
 	op.Workspace = w.Name
@@ -888,6 +894,19 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 			fmt.Sprintf("Workspace read failed: %s", err),
 		))
 		return diags
+	}
+
+	// If the workspace has the pseudo-version "latest", all bets are off. We
+	// cannot reasonably determine what the intended Terraform version is, so
+	// we'll skip version verification.
+	if workspace.TerraformVersion == "latest" {
+		return nil
+	}
+
+	// If the workspace has remote operations disabled, the remote Terraform
+	// version is effectively meaningless, so we'll skip version verification.
+	if workspace.Operations == false {
+		return nil
 	}
 
 	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)

@@ -68,8 +68,6 @@ var DefaultsFunc = function.New(&function.Spec{
 })
 
 func defaultsApply(input, fallback cty.Value) cty.Value {
-	const fallbackArgIdx = 1
-
 	wantTy := input.Type()
 	if !(input.IsKnown() && fallback.IsKnown()) {
 		return cty.UnknownVal(wantTy)

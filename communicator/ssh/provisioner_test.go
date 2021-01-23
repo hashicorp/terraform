@@ -3,28 +3,23 @@ package ssh
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestProvisioner_connInfo(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":        "ssh",
-				"user":        "root",
-				"password":    "supersecret",
-				"private_key": "someprivatekeycontents",
-				"certificate": "somecertificate",
-				"host":        "127.0.0.1",
-				"port":        "22",
-				"timeout":     "30s",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":         cty.StringVal("ssh"),
+		"user":         cty.StringVal("root"),
+		"password":     cty.StringVal("supersecret"),
+		"private_key":  cty.StringVal("someprivatekeycontents"),
+		"certificate":  cty.StringVal("somecertificate"),
+		"host":         cty.StringVal("127.0.0.1"),
+		"port":         cty.StringVal("22"),
+		"timeout":      cty.StringVal("30s"),
+		"bastion_host": cty.StringVal("127.0.1.1"),
+	})
 
-				"bastion_host": "127.0.1.1",
-			},
-		},
-	}
-
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -74,24 +69,18 @@ func TestProvisioner_connInfo(t *testing.T) {
 }
 
 func TestProvisioner_connInfoIpv6(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":        "ssh",
-				"user":        "root",
-				"password":    "supersecret",
-				"private_key": "someprivatekeycontents",
-				"certificate": "somecertificate",
-				"host":        "::1",
-				"port":        "22",
-				"timeout":     "30s",
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":         cty.StringVal("ssh"),
+		"user":         cty.StringVal("root"),
+		"password":     cty.StringVal("supersecret"),
+		"private_key":  cty.StringVal("someprivatekeycontents"),
+		"host":         cty.StringVal("::1"),
+		"port":         cty.StringVal("22"),
+		"timeout":      cty.StringVal("30s"),
+		"bastion_host": cty.StringVal("::1"),
+	})
 
-				"bastion_host": "::1",
-			},
-		},
-	}
-
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -106,22 +95,18 @@ func TestProvisioner_connInfoIpv6(t *testing.T) {
 }
 
 func TestProvisioner_connInfoHostname(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":         "ssh",
-				"user":         "root",
-				"password":     "supersecret",
-				"private_key":  "someprivatekeycontents",
-				"host":         "example.com",
-				"port":         "22",
-				"timeout":      "30s",
-				"bastion_host": "example.com",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":         cty.StringVal("ssh"),
+		"user":         cty.StringVal("root"),
+		"password":     cty.StringVal("supersecret"),
+		"private_key":  cty.StringVal("someprivatekeycontents"),
+		"host":         cty.StringVal("example.com"),
+		"port":         cty.StringVal("22"),
+		"timeout":      cty.StringVal("30s"),
+		"bastion_host": cty.StringVal("example.com"),
+	})
 
-	conf, err := parseConnectionInfo(r)
+	conf, err := parseConnectionInfo(v)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -136,21 +121,16 @@ func TestProvisioner_connInfoHostname(t *testing.T) {
 }
 
 func TestProvisioner_connInfoEmptyHostname(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type":        "ssh",
-				"user":        "root",
-				"password":    "supersecret",
-				"private_key": "someprivatekeycontents",
-				"host":        "",
-				"port":        "22",
-				"timeout":     "30s",
-			},
-		},
-	}
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":        cty.StringVal("ssh"),
+		"user":        cty.StringVal("root"),
+		"password":    cty.StringVal("supersecret"),
+		"private_key": cty.StringVal("someprivatekeycontents"),
+		"port":        cty.StringVal("22"),
+		"timeout":     cty.StringVal("30s"),
+	})
 
-	_, err := parseConnectionInfo(r)
+	_, err := parseConnectionInfo(v)
 	if err == nil {
 		t.Fatalf("bad: should not allow empty host")
 	}

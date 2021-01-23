@@ -12,7 +12,10 @@ import (
 // planning a pure-destroy.
 //
 // Planning a pure destroy operation is simple because we can ignore most
-// ordering configuration and simply reverse the state.
+// ordering configuration and simply reverse the state. This graph mainly
+// exists for targeting, because we need to walk the destroy dependencies to
+// ensure we plan the required resources. Without the requirement for
+// targeting, the plan could theoretically be created directly from the state.
 type DestroyPlanGraphBuilder struct {
 	// Config is the configuration tree to build the plan from.
 	Config *configs.Config
@@ -72,6 +75,7 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			State:           b.State,
 		},
 
+		// Create the delete changes for root module outputs.
 		&OutputTransformer{
 			Config:  b.Config,
 			Destroy: true,
@@ -93,8 +97,6 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 			Schemas: b.Schemas,
 		},
 
-		// Target. Note we don't set "Destroy: true" here since we already
-		// created proper destroy ordering.
 		&TargetsTransformer{Targets: b.Targets},
 
 		// Close opened plugin connections

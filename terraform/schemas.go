@@ -106,7 +106,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			// future calls.
 			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to instantiate provider %q to obtain schema: %s", name, err),
+				fmt.Errorf("failed to instantiate provider %q to obtain schema: %s", name, err),
 			)
 			return
 		}
@@ -120,7 +120,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			// future calls.
 			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provider %q: %s", name, resp.Diagnostics.Err()),
+				fmt.Errorf("failed to retrieve schema from provider %q: %s", name, resp.Diagnostics.Err()),
 			)
 			return
 		}
@@ -200,14 +200,12 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			// future calls.
 			schemas[name] = &configschema.Block{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to instantiate provisioner %q to obtain schema: %s", name, err),
+				fmt.Errorf("failed to instantiate provisioner %q to obtain schema: %s", name, err),
 			)
 			return
 		}
 		defer func() {
-			if closer, ok := provisioner.(ResourceProvisionerCloser); ok {
-				closer.Close()
-			}
+			provisioner.Close()
 		}()
 
 		resp := provisioner.GetSchema()
@@ -216,7 +214,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 			// future calls.
 			schemas[name] = &configschema.Block{}
 			diags = diags.Append(
-				fmt.Errorf("Failed to retrieve schema from provisioner %q: %s", name, resp.Diagnostics.Err()),
+				fmt.Errorf("failed to retrieve schema from provisioner %q: %s", name, resp.Diagnostics.Err()),
 			)
 			return
 		}
@@ -275,11 +273,4 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 // the given resource address. Returns nil if no such schema is available.
 func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ps.SchemaForResourceType(addr.Mode, addr.Type)
-}
-
-// ProviderSchemaRequest is used to describe to a ResourceProvider which
-// aspects of schema are required, when calling the GetSchema method.
-type ProviderSchemaRequest struct {
-	ResourceTypes []string
-	DataSources   []string
 }

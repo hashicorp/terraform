@@ -8,29 +8,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestCommunicator_new(t *testing.T) {
-	r := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
-			ConnInfo: map[string]string{
-				"type": "telnet",
-				"host": "127.0.0.1",
-			},
-		},
+	cfg := map[string]cty.Value{
+		"type": cty.StringVal("telnet"),
+		"host": cty.StringVal("127.0.0.1"),
 	}
-	if _, err := New(r); err == nil {
+
+	if _, err := New(cty.ObjectVal(cfg)); err == nil {
 		t.Fatalf("expected error with telnet")
 	}
 
-	r.Ephemeral.ConnInfo["type"] = "ssh"
-	if _, err := New(r); err != nil {
+	cfg["type"] = cty.StringVal("ssh")
+	if _, err := New(cty.ObjectVal(cfg)); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
-	r.Ephemeral.ConnInfo["type"] = "winrm"
-	if _, err := New(r); err != nil {
+	cfg["type"] = cty.StringVal("winrm")
+	if _, err := New(cty.ObjectVal(cfg)); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }

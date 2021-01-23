@@ -538,17 +538,3 @@ func ReferencesFromConfig(body hcl.Body, schema *configschema.Block) []*addrs.Re
 	refs, _ := lang.ReferencesInBlock(body, schema)
 	return refs
 }
-
-func modulePrefixStr(p addrs.ModuleInstance) string {
-	return p.String()
-}
-
-func modulePrefixList(result []string, prefix string) []string {
-	if prefix != "" {
-		for i, v := range result {
-			result[i] = fmt.Sprintf("%s.%s", prefix, v)
-		}
-	}
-
-	return result
-}

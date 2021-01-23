@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -23,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 var equateEmpty = cmpopts.EquateEmpty()
@@ -41,9 +39,9 @@ func TestRefresh(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -96,7 +94,7 @@ func TestRefresh_empty(t *testing.T) {
 	}
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -133,9 +131,9 @@ func TestRefresh_lockedState(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -178,9 +176,9 @@ func TestRefresh_cwd(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -250,9 +248,9 @@ func TestRefresh_defaultState(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -313,9 +311,9 @@ func TestRefresh_outPath(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -366,7 +364,7 @@ func TestRefresh_var(t *testing.T) {
 			Ui:               ui,
 		},
 	}
-	p.GetSchemaReturn = refreshVarFixtureSchema()
+	p.GetSchemaResponse = refreshVarFixtureSchema()
 
 	args := []string{
 		"-var", "foo=bar",
@@ -397,7 +395,7 @@ func TestRefresh_varFile(t *testing.T) {
 			Ui:               ui,
 		},
 	}
-	p.GetSchemaReturn = refreshVarFixtureSchema()
+	p.GetSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -433,7 +431,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 			Ui:               ui,
 		},
 	}
-	p.GetSchemaReturn = refreshVarFixtureSchema()
+	p.GetSchemaResponse = refreshVarFixtureSchema()
 
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
@@ -484,12 +482,14 @@ func TestRefresh_varsUnset(t *testing.T) {
 			Ui:               ui,
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -541,9 +541,9 @@ func TestRefresh_backup(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("changed"),
 		}),
@@ -605,9 +605,9 @@ func TestRefresh_disableBackup(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaReturn = refreshFixtureSchema()
+	p.GetSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("yes"),
 		}),
@@ -664,12 +664,14 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 			Ui:               ui,
 		},
 	}
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -691,34 +693,17 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	}
 }
 
-// newInstanceState creates a new states.ResourceInstanceObjectSrc with the
-// given value for its single id attribute. It is named newInstanceState for
-// historical reasons, because it was originally written for the poorly-named
-// terraform.InstanceState type.
-func newInstanceState(id string) *states.ResourceInstanceObjectSrc {
-	attrs := map[string]interface{}{
-		"id": id,
-	}
-	attrsJSON, err := json.Marshal(attrs)
-	if err != nil {
-		panic(fmt.Sprintf("failed to marshal attributes: %s", err)) // should never happen
-	}
-	return &states.ResourceInstanceObjectSrc{
-		AttrsJSON: attrsJSON,
-		Status:    states.ObjectReady,
-	}
-}
-
-// refreshFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
-func refreshFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func refreshFixtureSchema() *providers.GetSchemaResponse {
+	return &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -728,17 +713,21 @@ func refreshFixtureSchema() *terraform.ProviderSchema {
 // refreshVarFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh-var . This schema should be
 // assigned to a mock provider named "test".
-func refreshVarFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"value": {Type: cty.String, Optional: true},
+func refreshVarFixtureSchema() *providers.GetSchemaResponse {
+	return &providers.GetSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"value": {Type: cty.String, Optional: true},
+				},
 			},
 		},
-		ResourceTypes: map[string]*configschema.Block{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Optional: true, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
 				},
 			},
 		},

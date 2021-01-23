@@ -51,7 +51,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 	defer cleanup()
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
-	const msg = `You didn't specify an "-out" parameter`
+	const msg = `You didn't use the -out option`
 
 	// When we're "in automation" we omit certain text from the
 	// plan output. However, testing for the absense of text is
@@ -77,7 +77,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 
 		output := b.CLI.(*cli.MockUi).OutputWriter.String()
 		if !strings.Contains(output, msg) {
-			t.Fatalf("missing next-steps message when not in automation")
+			t.Fatalf("missing next-steps message when not in automation\nwant: %s\noutput:\n%s", msg, output)
 		}
 	}
 
@@ -331,8 +331,8 @@ func TestLocal_planTainted(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
 -/+ destroy and then create replacement
 
 Terraform will perform the following actions:
@@ -433,8 +433,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	// it's also possible for there to be _multiple_ deposed objects, in the
 	// unlikely event that create_before_destroy _keeps_ crashing across
 	// subsequent runs.
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
   + create
   - destroy
 
@@ -507,8 +507,8 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 		t.Fatal("plan should not be empty")
 	}
 
-	expectedOutput := `An execution plan has been generated and is shown below.
-Resource actions are indicated with the following symbols:
+	expectedOutput := `Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
 +/- create replacement and then destroy
 
 Terraform will perform the following actions:
@@ -559,7 +559,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
 	outDir := testTempDir(t)
@@ -593,10 +593,6 @@ func TestLocal_planDestroy(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not be called")
-	}
-
 	if run.PlanEmpty {
 		t.Fatal("plan should not be empty")
 	}
@@ -613,7 +609,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
-	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_withDataSource())
 
 	b.CLI = cli.NewMockUi()
@@ -649,14 +645,6 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not be called")
-	}
-
-	if p.ReadDataSourceCalled {
-		t.Fatal("ReadDataSourceCalled should not be called")
-	}
-
 	if run.PlanEmpty {
 		t.Fatal("plan should not be empty")
 	}
@@ -690,7 +678,7 @@ Plan: 0 to add, 0 to change, 1 to destroy.`
 }
 
 func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
-	addrs := make([]string, len(resources), len(resources))
+	addrs := make([]string, len(resources))
 	for i, r := range resources {
 		addrs[i] = r.Addr.String()
 	}

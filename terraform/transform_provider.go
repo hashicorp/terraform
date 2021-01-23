@@ -67,6 +67,7 @@ type GraphNodeProviderConsumer interface {
 	// ProvidedBy returns the address of the provider configuration the node
 	// refers to, if available. The following value types may be returned:
 	//
+	//   nil + exact true: the node does not require a provider
 	// * addrs.LocalProviderConfig: the provider was set in the resource config
 	// * addrs.AbsProviderConfig + exact true: the provider configuration was
 	//   taken from the instance state.
@@ -111,9 +112,14 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		// Does the vertex _directly_ use a provider?
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
+			providerAddr, exact := pv.ProvidedBy()
+			if providerAddr == nil && exact {
+				// no provider is required
+				continue
+			}
+
 			requested[v] = make(map[string]ProviderRequest)
 
-			providerAddr, exact := pv.ProvidedBy()
 			var absPc addrs.AbsProviderConfig
 
 			switch p := providerAddr.(type) {
@@ -225,7 +231,6 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 			if p, ok := target.(*graphNodeProxyProvider); ok {
 				g.Remove(p)
 				target = p.Target()
-				key = target.(GraphNodeProvider).ProviderAddr().String()
 			}
 
 			log.Printf("[DEBUG] ProviderTransformer: %q (%T) needs %s", dag.VertexName(v), v, dag.VertexName(target))
@@ -250,8 +255,7 @@ func (t *CloseProviderTransformer) Transform(g *Graph) error {
 	cpm := make(map[string]*graphNodeCloseProvider)
 	var err error
 
-	for _, v := range pm {
-		p := v.(GraphNodeProvider)
+	for _, p := range pm {
 		key := p.ProviderAddr().String()
 
 		// get the close provider of this type if we alread created it
@@ -431,18 +435,6 @@ func providerVertexMap(g *Graph) map[string]GraphNodeProvider {
 	return m
 }
 
-func closeProviderVertexMap(g *Graph) map[string]GraphNodeCloseProvider {
-	m := make(map[string]GraphNodeCloseProvider)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeCloseProvider); ok {
-			addr := pv.CloseProviderAddr()
-			m[addr.String()] = pv
-		}
-	}
-
-	return m
-}
-
 type graphNodeCloseProvider struct {
 	Addr addrs.AbsProviderConfig
 }
@@ -464,11 +456,6 @@ func (n *graphNodeCloseProvider) ModulePath() addrs.Module {
 // GraphNodeExecutable impl.
 func (n *graphNodeCloseProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	return diags.Append(ctx.CloseProvider(n.Addr))
-}
-
-// GraphNodeDependable impl.
-func (n *graphNodeCloseProvider) DependableName() []string {
-	return []string{n.Name()}
 }
 
 func (n *graphNodeCloseProvider) CloseProviderAddr() addrs.AbsProviderConfig {

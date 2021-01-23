@@ -432,12 +432,17 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// the diff
 		sensitiveBefore := false
 		before := cty.NullVal(cty.DynamicPseudoType)
+
+		// is this output new to our state?
+		newOutput := true
+
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
 			for name, o := range mod.OutputValues {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
+					newOutput = false
 					break
 				}
 			}
@@ -451,12 +456,15 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// strip any marks here just to be sure we don't panic on the True comparison
 		val, _ = val.UnmarkDeep()
 
-		var action plans.Action
+		action := plans.Update
 		switch {
-		case val.IsNull():
-			action = plans.Delete
+		case val.IsNull() && before.IsNull():
+			// This is separate from the NoOp case below, since we can ignore
+			// sensitivity here when there are only null values.
+			action = plans.NoOp
 
-		case before.IsNull():
+		case newOutput:
+			// This output was just added to the configuration
 			action = plans.Create
 
 		case val.IsWhollyKnown() &&
@@ -467,9 +475,6 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			// only one we can act on, and the state will have been loaded
 			// without any marks to consider.
 			action = plans.NoOp
-
-		default:
-			action = plans.Update
 		}
 
 		change := &plans.OutputChange{
@@ -487,7 +492,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			// Should never happen, since we just constructed this right above
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
-		log.Printf("[TRACE] ExecuteWriteOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
@@ -496,12 +501,12 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// The state itself doesn't represent unknown values, so we null them
 		// out here and then we'll save the real unknown value in the planned
 		// changeset below, if we have one on this graph walk.
-		log.Printf("[TRACE] EvalWriteOutput: Saving value for %s in state", n.Addr)
+		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
 		unmarkedVal, _ := val.UnmarkDeep()
 		stateVal := cty.UnknownAsNull(unmarkedVal)
 		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
 	} else {
-		log.Printf("[TRACE] EvalWriteOutput: Removing %s from state (it is now null)", n.Addr)
+		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 	}
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/internal/copy"
-	copydir "github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -154,7 +153,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 	// these two paths are not pointing at the same physical directory on
 	// disk. This compares the files by their OS-level device and directory
 	// entry identifiers, not by their virtual filesystem paths.
-	if same, err := copydir.SameFile(absNew, absCurrent); same {
+	if same, err := copy.SameFile(absNew, absCurrent); same {
 		return nil, fmt.Errorf("cannot install existing provider directory %s to itself", targetDir)
 	} else if err != nil {
 		return nil, fmt.Errorf("failed to determine if %s and %s are the same: %s", sourceDir, targetDir, err)

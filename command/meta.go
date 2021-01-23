@@ -22,15 +22,16 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/experiment"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Meta are the meta-options that are available on all or most commands.
@@ -49,6 +50,15 @@ type Meta struct {
 	// situations where we need to refer back to the original working directory
 	// for some reason.
 	OriginalWorkingDir string
+
+	// Streams tracks the raw Stdout, Stderr, and Stdin handles along with
+	// some basic metadata about them, such as whether each is connected to
+	// a terminal, how wide the possible terminal is, etc.
+	//
+	// For historical reasons this might not be set in unit test code, and
+	// so functions working with this field must check if it's nil and
+	// do some default behavior instead if so, rather than panicking.
+	Streams *terminal.Streams
 
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
@@ -147,7 +157,7 @@ type Meta struct {
 	configLoader *configload.Loader
 
 	// backendState is the currently active backend state
-	backendState *terraform.BackendState
+	backendState *legacy.BackendState
 
 	// Variables for the context (private)
 	variableArgs rawFlags
@@ -196,7 +206,6 @@ type Meta struct {
 	stateOutPath     string
 	backupPath       string
 	parallelism      int
-	provider         string
 	stateLock        bool
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
@@ -288,15 +297,42 @@ func (m *Meta) UIInput() terraform.UIInput {
 	}
 }
 
+// OutputColumns returns the number of columns that normal (non-error) UI
+// output should be wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Output or Info methods of m.Ui.
+func (m *Meta) OutputColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stdout.Columns()
+}
+
+// ErrorColumns returns the number of columns that error UI output should be
+// wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Error or Warn methods of m.Ui.
+func (m *Meta) ErrorColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stderr.Columns()
+}
+
 // StdinPiped returns true if the input is piped.
 func (m *Meta) StdinPiped() bool {
-	fi, err := wrappedstreams.Stdin().Stat()
-	if err != nil {
-		// If there is an error, let's just say its not piped
+	if m.Streams == nil {
+		// If we don't have m.Streams populated then we're presumably in a unit
+		// test that doesn't properly populate Meta, so we'll just say the
+		// output _isn't_ piped because that's the common case and so most likely
+		// to be useful to a unit test.
 		return false
 	}
-
-	return fi.Mode()&os.ModeNamedPipe != 0
+	return !m.Streams.Stdin.IsTerminal()
 }
 
 // InterruptibleContext returns a context.Context that will be cancelled
@@ -498,9 +534,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f.Var(varValues, "var", "variables")
 	f.Var(varFiles, "var-file", "variable file")
 
-	// Experimental features
-	experiment.Flag(f)
-
 	// commands that bypass locking will supply their own flag on this var,
 	// but set the initial meta value to true as a failsafe.
 	m.stateLock = true
@@ -596,6 +629,8 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 		return
 	}
 
+	outputWidth := m.ErrorColumns()
+
 	diags = diags.ConsolidateWarnings(1)
 
 	// Since warning messages are generally competing
@@ -621,63 +656,16 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 
 	for _, diag := range diags {
-		// TODO: Actually measure the terminal width and pass it here.
-		// For now, we don't have easy access to the writer that
-		// ui.Error (etc) are writing to and thus can't interrogate
-		// to see if it's a terminal and what size it is.
-		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), 78)
+		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
 		switch diag.Severity() {
 		case tfdiags.Error:
-			m.Ui.Error(msg)
+			m.Ui.Error(strings.TrimSpace(msg))
 		case tfdiags.Warning:
-			m.Ui.Warn(msg)
+			m.Ui.Warn(strings.TrimSpace(msg))
 		default:
-			m.Ui.Output(msg)
+			m.Ui.Output(strings.TrimSpace(msg))
 		}
 	}
-}
-
-// outputShadowError outputs the error from ctx.ShadowError. If the
-// error is nil then nothing happens. If output is false then it isn't
-// outputted to the user (you can define logic to guard against outputting).
-func (m *Meta) outputShadowError(err error, output bool) bool {
-	// Do nothing if no error
-	if err == nil {
-		return false
-	}
-
-	// If not outputting, do nothing
-	if !output {
-		return false
-	}
-
-	// Write the shadow error output to a file
-	path := fmt.Sprintf("terraform-error-%d.log", time.Now().UTC().Unix())
-	if err := ioutil.WriteFile(path, []byte(err.Error()), 0644); err != nil {
-		// If there is an error writing it, just let it go
-		log.Printf("[ERROR] Error writing shadow error: %s", err)
-		return false
-	}
-
-	// Output!
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][bold][yellow]\nExperimental feature failure! Please report a bug.\n\n"+
-			"This is not an error. Your Terraform operation completed successfully.\n"+
-			"Your real infrastructure is unaffected by this message.\n\n"+
-			"[reset][yellow]While running, Terraform sometimes tests experimental features in the\n"+
-			"background. These features cannot affect real state and never touch\n"+
-			"real infrastructure. If the features work properly, you see nothing.\n"+
-			"If the features fail, this message appears.\n\n"+
-			"You can report an issue at: https://github.com/hashicorp/terraform/issues\n\n"+
-			"The failure was written to %q. Please\n"+
-			"double check this file contains no sensitive information and report\n"+
-			"it with your issue.\n\n"+
-			"This is not an error. Your terraform operation completed successfully\n"+
-			"and your real infrastructure is unaffected by this message.",
-		path,
-	)))
-
-	return true
 }
 
 // WorkspaceNameEnvVar is the name of the environment variable that can be used
@@ -688,14 +676,14 @@ func (m *Meta) outputShadowError(err error, output bool) bool {
 // and `terraform workspace delete`.
 const WorkspaceNameEnvVar = "TF_WORKSPACE"
 
-var invalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
+var errInvalidWorkspaceNameEnvVar = fmt.Errorf("Invalid workspace name set using %s", WorkspaceNameEnvVar)
 
 // Workspace returns the name of the currently configured workspace, corresponding
 // to the desired named state.
 func (m *Meta) Workspace() (string, error) {
 	current, overridden := m.WorkspaceOverridden()
 	if overridden && !validWorkspaceName(current) {
-		return "", invalidWorkspaceNameEnvVar
+		return "", errInvalidWorkspaceNameEnvVar
 	}
 	return current, nil
 }

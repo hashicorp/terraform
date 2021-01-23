@@ -26,7 +26,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 	)
 
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
@@ -85,28 +85,32 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
+	schema := &ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	}
+
 	p := testProvider("test")
-	p.UpgradeResourceStateResponse = providers.UpgradeResourceStateResponse{
+	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(schema)
+
+	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{
 			"id": cty.StringVal("bar"),
 		}),
 	}
 	ctx := &MockEvalContext{
-		StateState:       state.SyncWrapper(),
-		ProviderProvider: p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
-						},
-					},
-				},
-			},
-		},
-		ChangesChanges: plans.NewChanges().SyncWrapper(),
+		StateState:           state.SyncWrapper(),
+		ProviderProvider:     p,
+		ProviderSchemaSchema: schema,
+		ChangesChanges:       plans.NewChanges().SyncWrapper(),
 	}
 
 	node := NodeDestroyDeposedResourceInstanceObject{
@@ -127,4 +131,48 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 	if !state.Empty() {
 		t.Fatalf("resources left in state after destroy")
 	}
+}
+
+func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *testing.T) {
+	state := states.NewState()
+	ctx := new(MockEvalContext)
+	ctx.StateState = state.SyncWrapper()
+	ctx.PathPath = addrs.RootModuleInstance
+	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	})
+	ctx.ProviderProvider = mockProvider
+	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+
+	obj := &states.ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("i-abc123"),
+		}),
+		Status: states.ObjectReady,
+	}
+	node := &NodeDestroyDeposedResourceInstanceObject{
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+			Addr: mustResourceInstanceAddr("aws_instance.foo"),
+		},
+		DeposedKey: states.NewDeposedKey(),
+	}
+	err := node.writeResourceInstanceState(ctx, obj)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err.Error())
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo: (1 deposed)
+  ID = <not created>
+  provider = provider["registry.terraform.io/hashicorp/aws"]
+  Deposed ID 1 = i-abc123
+	`)
 }

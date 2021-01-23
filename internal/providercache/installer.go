@@ -65,6 +65,12 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	}
 }
 
+// ProviderSource returns the getproviders.Source that the installer would
+// use for installing any new providers.
+func (i *Installer) ProviderSource() getproviders.Source {
+	return i.source
+}
+
 // SetGlobalCacheDir activates a second tier of caching for the receiving
 // installer, with the given directory used as a read-through cache for
 // installation operations that need to retrieve new packages.
@@ -385,7 +391,7 @@ NeedProvider:
 				// implementation, so we don't worry about potentially
 				// creating a duplicate here.
 				newHashes = append(newHashes, newHash)
-				lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+				locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 				if cb := evts.LinkFromCacheSuccess; cb != nil {
 					cb(provider, version, new.PackageDir)
@@ -511,7 +517,7 @@ NeedProvider:
 			// and so the hashes would cover only the current platform.
 			newHashes = append(newHashes, meta.AcceptableHashes()...)
 		}
-		lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+		locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)

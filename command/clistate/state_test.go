@@ -2,7 +2,6 @@ package clistate
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -18,7 +17,7 @@ func TestUnlock(t *testing.T) {
 
 	err := l.Unlock(nil)
 	if err != nil {
-		fmt.Printf(err.Error())
+		t.Log(err.Error())
 	} else {
 		t.Error("expected error")
 	}

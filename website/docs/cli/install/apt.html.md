@@ -123,7 +123,7 @@ You can select a specific version to install by including it in the
 `apt install` command line, as follows:
 
 ```bash
-sudo apt install terraform==0.14.0
+sudo apt install terraform=0.14.0
 ```
 
 If your workflow requires using multiple versions of Terraform at the same

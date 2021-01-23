@@ -17,7 +17,7 @@ type Provider struct {
 }
 
 // NewProvider returns a new terraform provider
-func NewProvider() *Provider {
+func NewProvider() providers.Interface {
 	return &Provider{}
 }
 
