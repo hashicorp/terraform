@@ -179,7 +179,7 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 					"  ProxyUserName: %s\n"+
 					"  ProxyUserPassword: %s",
 				c.connInfo.ProxyHost,
-				c.connInfo.ProxyPort,
+				strconv.Itoa(c.connInfo.ProxyPort),
 				c.connInfo.ProxyUserName,
 				c.connInfo.ProxyUserPassword,
 			))

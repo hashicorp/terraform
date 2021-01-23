@@ -62,10 +62,10 @@ type connectionInfo struct {
 	Timeout        string
 	TimeoutVal     time.Duration
 
-	ProxyHost          string
-	ProxyPort          int
-	ProxyUserName      string
-	ProxyUserPassword  string
+	ProxyHost         string
+	ProxyPort         int
+	ProxyUserName     string
+	ProxyUserPassword string
 
 	BastionUser        string
 	BastionPassword    string
@@ -119,18 +119,18 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 			connInfo.TargetPlatform = v.AsString()
 		case "timeout":
 			connInfo.Timeout = v.AsString()
-        case "proxy_host":
-            connInfo.ProxyHost = v.AsString()
-        case "proxy_port":
-            p, err := strconv.Atoi(v.AsString())
-            if err != nil {
-                return nil, err
-            }
-            connInfo.ProxyPort = p
-        case "proxy_user_name":
-            connInfo.ProxyUserName = v.AsString()
-        case "proxy_user_password":
-            connInfo.ProxyUserPassword = v.AsString()
+		case "proxy_host":
+			connInfo.ProxyHost = v.AsString()
+		case "proxy_port":
+			p, err := strconv.Atoi(v.AsString())
+			if err != nil {
+				return nil, err
+			}
+			connInfo.ProxyPort = p
+		case "proxy_user_name":
+			connInfo.ProxyUserName = v.AsString()
+		case "proxy_user_password":
+			connInfo.ProxyUserPassword = v.AsString()
 		case "bastion_user":
 			connInfo.BastionUser = v.AsString()
 		case "bastion_password":
@@ -277,7 +277,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 
 	var proxyAddr string
 
-	if connInfo.ProxyHost != ""  {
+	if connInfo.ProxyHost != "" {
 		proxyAddr = connInfo.ProxyHost + ":" + strconv.Itoa(connInfo.ProxyPort)
 
 		if connInfo.ProxyUserName != "" && connInfo.ProxyUserPassword != "" {
