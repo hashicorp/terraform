@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* cli: Running `init` will re-use installed providers rather than refetching the provider [GH-27582]
+* cli: Re-running `init` will re-use installed providers rather than refetching the provider [GH-27582]
 * core: Fix "Invalid planned change" error when planning tainted resource which no longer exists [GH-27563]
 * core: Fix panic when refreshing data source which contains sensitive values [GH-27567]
 * core: Fix init with broken link in plugin_cache_dir [GH-27447]
