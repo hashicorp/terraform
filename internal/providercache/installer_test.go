@@ -553,6 +553,103 @@ func TestEnsureProviderVersions(t *testing.T) {
 				}
 			},
 		},
+		"skipped install of one previously-locked and installed provider": {
+			Source: getproviders.NewMockSource(
+				[]getproviders.PackageMeta{
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("2.0.0"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+				},
+				nil,
+			),
+			LockFile: `
+				provider "example.com/foo/beep" {
+					version     = "2.0.0"
+					constraints = ">= 2.0.0"
+					hashes = [
+						"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+					]
+				}
+			`,
+			Prepare: func(t *testing.T, inst *Installer, dir *Dir) {
+				_, err := dir.InstallPackage(
+					context.Background(),
+					getproviders.PackageMeta{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("2.0.0"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+					nil,
+				)
+				if err != nil {
+					t.Fatalf("installation to the test dir failed: %s", err)
+				}
+			},
+			Mode: InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				beepProvider: getproviders.MustParseVersionConstraints(">= 2.0.0"),
+			},
+			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
+				if allCached := dir.AllAvailablePackages(); len(allCached) != 1 {
+					t.Errorf("wrong number of cache directory entries; want only one\n%s", spew.Sdump(allCached))
+				}
+				if allLocked := locks.AllProviders(); len(allLocked) != 1 {
+					t.Errorf("wrong number of provider lock entries; want only one\n%s", spew.Sdump(allLocked))
+				}
+
+				gotLock := locks.Provider(beepProvider)
+				wantLock := depsfile.NewProviderLock(
+					beepProvider,
+					getproviders.MustParseVersion("2.0.0"),
+					getproviders.MustParseVersionConstraints(">= 2.0.0"),
+					[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+				)
+				if diff := cmp.Diff(wantLock, gotLock, depsfile.ProviderLockComparer); diff != "" {
+					t.Errorf("wrong lock entry\n%s", diff)
+				}
+
+				gotEntry := dir.ProviderLatestVersion(beepProvider)
+				wantEntry := &CachedProvider{
+					Provider:   beepProvider,
+					Version:    getproviders.MustParseVersion("2.0.0"),
+					PackageDir: filepath.Join(dir.BasePath(), "example.com/foo/beep/2.0.0/bleep_bloop"),
+				}
+				if diff := cmp.Diff(wantEntry, gotEntry); diff != "" {
+					t.Errorf("wrong cache entry\n%s", diff)
+				}
+			},
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								beepProvider: getproviders.MustParseVersionConstraints(">= 2.0.0"),
+							},
+						},
+					},
+					beepProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{">= 2.0.0", true},
+						},
+						{
+							Event:    "QueryPackagesSuccess",
+							Provider: beepProvider,
+							Args:     "2.0.0",
+						},
+					},
+				}
+			},
+		},
 		"successful upgrade of one previously-locked provider": {
 			Source: getproviders.NewMockSource(
 				[]getproviders.PackageMeta{
