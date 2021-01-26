@@ -20,7 +20,7 @@ this name must not already exist.
 If the `-state` flag is given, the state specified by the given path
 will be copied to initialize the state for this new workspace.
 
-The command-line flags are all optional. The only supported flag is:
+The command-line flags are all optional. The supported flags are:
 
 * `-lock`         - Lock the state file when locking is supported. Defaults to true.
 * `-lock-timeout` - Duration to retry a state lock. Default 0s.
