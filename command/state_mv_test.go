@@ -1243,6 +1243,13 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 	testStateOutput(t, backups[0], testStateMvOnlyResourceInModule_original)
 }
 
+func TestStateMvHelp(t *testing.T) {
+	c := &StateMvCommand{}
+	if strings.ContainsRune(c.Help(), '\t') {
+		t.Fatal("help text contains tab character, which will result in poor formatting")
+	}
+}
+
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo
