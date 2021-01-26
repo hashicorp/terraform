@@ -16,6 +16,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+var disabledColorize = &colorstring.Colorize{
+	Colors:  colorstring.DefaultColors,
+	Disable: true,
+}
+
 // Diagnostic formats a single diagnostic message.
 //
 // The width argument specifies at what column the diagnostic messages will
@@ -113,6 +118,57 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	ruleBuf.WriteByte('\n')
 
 	return ruleBuf.String()
+}
+
+// DiagnosticPlain is an alternative to Diagnostic which minimises the use of
+// virtual terminal formatting sequences.
+//
+// It is intended for use in automation and other contexts in which diagnostic
+// messages are parsed from the Terraform output.
+func DiagnosticPlain(diag tfdiags.Diagnostic, sources map[string][]byte, width int) string {
+	if diag == nil {
+		// No good reason to pass a nil diagnostic in here...
+		return ""
+	}
+
+	var buf bytes.Buffer
+
+	switch diag.Severity() {
+	case tfdiags.Error:
+		buf.WriteString("\nError: ")
+	case tfdiags.Warning:
+		buf.WriteString("\nWarning: ")
+	default:
+		buf.WriteString("\n")
+	}
+
+	desc := diag.Description()
+	sourceRefs := diag.Source()
+
+	// We don't wrap the summary, since we expect it to be terse, and since
+	// this is where we put the text of a native Go error it may not always
+	// be pure text that lends itself well to word-wrapping.
+	fmt.Fprintf(&buf, "%s\n\n", desc.Summary)
+
+	if sourceRefs.Subject != nil {
+		buf = appendSourceSnippets(buf, diag, sources, disabledColorize)
+	}
+
+	if desc.Detail != "" {
+		if width > 1 {
+			lines := strings.Split(desc.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(line, uint(width-1))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", desc.Detail)
+		}
+	}
+
+	return buf.String()
 }
 
 // DiagnosticWarningsCompact is an alternative to Diagnostic for when all of

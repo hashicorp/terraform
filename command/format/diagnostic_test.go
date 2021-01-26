@@ -230,6 +230,212 @@ func TestDiagnostic(t *testing.T) {
 	}
 }
 
+func TestDiagnosticPlain(t *testing.T) {
+
+	tests := map[string]struct {
+		Diag interface{}
+		Want string
+	}{
+		"sourceless error": {
+			tfdiags.Sourceless(
+				tfdiags.Error,
+				"A sourceless error",
+				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
+			),
+			`
+Error: A sourceless error
+
+It has no source references but it does
+have a pretty long detail that should
+wrap over multiple lines.
+`,
+		},
+		"sourceless warning": {
+			tfdiags.Sourceless(
+				tfdiags.Warning,
+				"A sourceless warning",
+				"It has no source references but it does have a pretty long detail that should wrap over multiple lines.",
+			),
+			`
+Warning: A sourceless warning
+
+It has no source references but it does
+have a pretty long detail that should
+wrap over multiple lines.
+`,
+		},
+		"error with source code subject": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and known expression": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.StringVal("blah"),
+						}),
+					},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep is "blah"
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and expression referring to sensitive value": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.StringVal("blah").Mark("sensitive"),
+						}),
+					},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep has a sensitive value
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown string expression": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.String),
+						}),
+					},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep is a string, known only after apply
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown expression of unknown type": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.DynamicPseudoType),
+						}),
+					},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep will be known only after apply
+
+Whatever shall we do?
+`,
+		},
+	}
+
+	sources := map[string][]byte{
+		"test.tf": []byte(`test source code`),
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(test.Diag) // to normalize it into a tfdiag.Diagnostic
+			diag := diags[0]
+			got := strings.TrimSpace(DiagnosticPlain(diag, sources, 40))
+			want := strings.TrimSpace(test.Want)
+			if got != want {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			}
+		})
+	}
+}
+
 func TestDiagnosticWarningsCompact(t *testing.T) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(tfdiags.SimpleWarning("foo"))
@@ -390,6 +596,49 @@ func TestDiagnostic_emptyOverlapHighlightContext(t *testing.T) {
 	}
 }
 
+func TestDiagnosticPlain_emptyOverlapHighlightContext(t *testing.T) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Some error",
+		Detail:   "...",
+		Subject: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 3, Column: 10, Byte: 38},
+			End:      hcl.Pos{Line: 4, Column: 1, Byte: 39},
+		},
+		Context: &hcl.Range{
+			Filename: "source.tf",
+			Start:    hcl.Pos{Line: 2, Column: 13, Byte: 27},
+			End:      hcl.Pos{Line: 4, Column: 1, Byte: 39},
+		},
+	})
+	sources := map[string][]byte{
+		"source.tf": []byte(`variable "x" {
+  default = {
+    "foo"
+  }
+`),
+	}
+
+	expected := `
+Error: Some error
+
+  on source.tf line 3, in variable "x":
+   2:   default = {
+   3:     "foo"
+   4:   }
+
+...
+`
+	output := DiagnosticPlain(diags[0], sources, 80)
+
+	if output != expected {
+		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}
+
 func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
 	var diags tfdiags.Diagnostics
 
@@ -417,6 +666,34 @@ func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
 ╵
 `
 	output := Diagnostic(diags[0], nil, color, 76)
+
+	if output != expected {
+		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}
+
+func TestDiagnosticPlain_wrapDetailIncludingCommand(t *testing.T) {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Everything went wrong",
+		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
+	})
+
+	expected := `
+Error: Everything went wrong
+
+This is a very long sentence about whatever went wrong which is supposed to
+wrap onto multiple lines. Thank-you very much for listening.
+
+To fix this, run this very long command:
+  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
+
+Here is a coda which is also long enough to wrap and so it should
+eventually make it onto multiple lines. THE END
+`
+	output := DiagnosticPlain(diags[0], nil, 76)
 
 	if output != expected {
 		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)

@@ -656,14 +656,20 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 
 	for _, diag := range diags {
-		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
+		var msg string
+		if m.Color {
+			msg = format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
+		} else {
+			msg = format.DiagnosticPlain(diag, m.configSources(), outputWidth)
+		}
+
 		switch diag.Severity() {
 		case tfdiags.Error:
-			m.Ui.Error(strings.TrimSpace(msg))
+			m.Ui.Error(msg)
 		case tfdiags.Warning:
-			m.Ui.Warn(strings.TrimSpace(msg))
+			m.Ui.Warn(msg)
 		default:
-			m.Ui.Output(strings.TrimSpace(msg))
+			m.Ui.Output(msg)
 		}
 	}
 }

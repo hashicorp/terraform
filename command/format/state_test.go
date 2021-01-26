@@ -9,14 +9,8 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 )
-
-var disabledColorize = &colorstring.Colorize{
-	Colors:  colorstring.DefaultColors,
-	Disable: true,
-}
 
 func TestState(t *testing.T) {
 	tests := []struct {
