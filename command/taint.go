@@ -21,14 +21,12 @@ type TaintCommand struct {
 
 func (c *TaintCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	var module string
 	var allowMissing bool
 	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("taint")
-	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
+	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "allow missing")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -44,11 +42,6 @@ func (c *TaintCommand) Run(args []string) int {
 	if len(args) != 1 {
 		c.Ui.Error("The taint command expects exactly one argument.")
 		cmdFlags.Usage()
-		return 1
-	}
-
-	if module != "" {
-		c.Ui.Error("The -module option is no longer used. Instead, include the module path in the main resource address, like \"module.foo.module.bar.null_resource.baz\".")
 		return 1
 	}
 

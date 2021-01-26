@@ -43,12 +43,6 @@ certain cases, see above note). The list of available flags are:
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
-* `-module=path` - The module path where the resource to untaint exists.
-    By default this is the root path. Other modules can be specified by
-    a period-separated list. Example: "foo" would reference the module
-    "foo" but "foo.bar" would reference the "bar" module in the "foo"
-    module.
-
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
