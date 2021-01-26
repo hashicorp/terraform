@@ -1286,7 +1286,7 @@ func (m schemaMap) diffString(
 
 	if os == ns && !all && !computed {
 		// They're the same value. If there old value is not blank or we
-		// have an ID, then return right away since we're already setup.
+		// have an ID, then return right away since we're already set up.
 		if os != "" || d.Id() != "" {
 			return nil
 		}

@@ -39,7 +39,7 @@ func (b *Local) opApply(
 		return
 	}
 
-	// Setup our count hook that keeps track of resource changes
+	// Set up our count hook that keeps track of resource changes
 	countHook := new(CountHook)
 	stateHook := new(StateHook)
 	if b.ContextOpts == nil {
@@ -137,7 +137,7 @@ func (b *Local) opApply(
 		}
 	}
 
-	// Setup our hook for continuous state updates
+	// Set up our hook for continuous state updates
 	stateHook.StateMgr = opState
 
 	// Start the apply in a goroutine so that we can be interrupted.

@@ -110,7 +110,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 		workingdir = wdVal.AsString()
 	}
 
-	// Setup the reader that will read the output from the command.
+	// Set up the reader that will read the output from the command.
 	// We use an os.Pipe so that the *os.File can be passed directly to the
 	// process, and not rely on goroutines copying the data which may block.
 	// See golang.org/issue/18874
@@ -124,7 +124,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	cmdEnv = os.Environ()
 	cmdEnv = append(cmdEnv, env...)
 
-	// Setup the command
+	// Set up the command
 	cmd := exec.CommandContext(p.ctx, cmdargs[0], cmdargs[1:]...)
 	cmd.Stderr = pw
 	cmd.Stdout = pw

@@ -65,7 +65,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			errMigrateLoadStates), opts.TwoType, err)
 	}
 
-	// Setup defaults
+	// Set up defaults
 	opts.oneEnv = backend.DefaultStateName
 	opts.twoEnv = backend.DefaultStateName
 	opts.force = m.forceInitCopy

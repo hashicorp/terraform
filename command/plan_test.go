@@ -285,7 +285,7 @@ func TestPlan_outBackend(t *testing.T) {
 		)
 	})
 
-	// Setup our backend state
+	// Set up our backend state
 	dataState, srv := testBackendState(t, originalState, 200)
 	defer srv.Close()
 	testStateFileRemote(t, dataState)

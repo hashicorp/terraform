@@ -10,14 +10,14 @@ import (
 )
 
 func TestMain_cliArgsFromEnv(t *testing.T) {
-	// Setup the state. This test really messes with the environment and
+	// Set up the state. This test really messes with the environment and
 	// global state so we set things up to be restored.
 
 	// Restore original CLI args
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
-	// Setup test command and restore that
+	// Set up test command and restore that
 	Commands = make(map[string]cli.CommandFactory)
 	defer func() {
 		Commands = nil
@@ -122,7 +122,7 @@ func TestMain_cliArgsFromEnv(t *testing.T) {
 				}
 			}
 
-			// Setup the args
+			// Set up the args
 			args := make([]string, len(tc.Args)+1)
 			args[0] = oldArgs[0] // process name
 			copy(args[1:], tc.Args)
@@ -153,7 +153,7 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 	oldArgs := os.Args
 	defer func() { os.Args = oldArgs }()
 
-	// Setup test command and restore that
+	// Set up test command and restore that
 	Commands = make(map[string]cli.CommandFactory)
 	defer func() {
 		Commands = nil
@@ -211,7 +211,7 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			// Setup test command and restore that
+			// Set up test command and restore that
 			testCommandName := tc.Command
 			testCommand := &testCommandCLI{}
 			defer func() { delete(Commands, testCommandName) }()
@@ -229,7 +229,7 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 				}
 			}
 
-			// Setup the args
+			// Set up the args
 			args := make([]string, len(tc.Args)+1)
 			args[0] = oldArgs[0] // process name
 			copy(args[1:], tc.Args)
