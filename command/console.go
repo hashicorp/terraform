@@ -110,7 +110,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		}
 	}()
 
-	// Setup the UI so we can output directly to stdout
+	// Set up the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
 		Writer:      wrappedstreams.Stdout(),
 		ErrorWriter: wrappedstreams.Stderr(),

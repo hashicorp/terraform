@@ -71,7 +71,7 @@ func realMain() int {
 		// there is a panic. Otherwise, we delete it.
 		logTempFile, err := ioutil.TempFile("", "terraform-log")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
+			fmt.Fprintf(os.Stderr, "Couldn't set up logging tempfile: %s", err)
 			return 1
 		}
 		// Now that we have the file, close it and leave it for the wrapped

@@ -59,7 +59,7 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// Setup our count hook that keeps track of resource changes
+	// Set up our count hook that keeps track of resource changes
 	countHook := new(CountHook)
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)

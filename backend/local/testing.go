@@ -125,7 +125,7 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 		b.ContextOpts = &terraform.ContextOpts{}
 	}
 
-	// Setup our provider
+	// Set up our provider
 	b.ContextOpts.Providers = map[addrs.Provider]providers.Factory{
 		addrs.NewDefaultProvider(name): providers.FactoryFixed(p),
 	}

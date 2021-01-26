@@ -630,7 +630,7 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 	// Disable test mode so input is called
 	test = false
 
-	// Setup reader/writers
+	// Set up reader/writers
 	testInputResponse = answers
 	defaultInputReader = bytes.NewBufferString("")
 	defaultInputWriter = new(bytes.Buffer)
@@ -651,7 +651,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 	// Disable test mode so input is called
 	test = false
 
-	// Setup reader/writers
+	// Set up reader/writers
 	defaultInputReader = bytes.NewBufferString("")
 	defaultInputWriter = new(bytes.Buffer)
 

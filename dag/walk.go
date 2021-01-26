@@ -298,7 +298,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Start all the new vertices. We do this at the end so that all
-	// the edge waiters and changes are setup above.
+	// the edge waiters and changes are set up above.
 	for _, raw := range newVerts {
 		v := raw.(Vertex)
 		go w.walkVertex(v, w.vertexMap[v])
