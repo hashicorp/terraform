@@ -210,10 +210,6 @@ Options:
 
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -module=path            The module path where the resource lives. By default
-						  this will be root. Child modules can be specified by
-						  names. Ex. "consul" or "consul.vpc" (nested modules).
-
   -state=path             Path to read and save state (unless state-out
                           is specified). Defaults to "terraform.tfstate".
 
