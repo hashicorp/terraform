@@ -9,7 +9,6 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -27,13 +26,12 @@ type OutputCommand struct {
 
 func (c *OutputCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	var module, statePath string
+	var statePath string
 	var jsonOutput, rawOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("output")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.BoolVar(&rawOutput, "raw", false, "raw")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
-	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -101,35 +99,12 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	moduleAddr := addrs.RootModuleInstance
-	if module != "" {
-		// This option was supported prior to 0.12.0, but no longer supported
-		// because we only persist the root module outputs in state.
-		// (We could perhaps re-introduce this by doing an eval walk here to
-		// repopulate them, similar to how "terraform console" does it, but
-		// that requires more thought since it would imply this command
-		// supporting remote operations, which is a big change.)
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unsupported option",
-			"The -module option is no longer supported since Terraform 0.12, because now only root outputs are persisted in the state.",
-		))
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	state := stateStore.State()
 	if state == nil {
 		state = states.NewState()
 	}
 
-	mod := state.Module(moduleAddr)
-	if mod == nil {
-		c.Ui.Error(fmt.Sprintf(
-			"The module %s could not be found. There is nothing to output.",
-			module))
-		return 1
-	}
+	mod := state.RootModule()
 
 	if !jsonOutput && (state.Empty() || len(mod.OutputValues) == 0) {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -190,7 +165,7 @@ func (c *OutputCommand) Run(args []string) int {
 			c.Ui.Output(string(jsonOutputs))
 			return 0
 		} else {
-			c.Ui.Output(outputsAsString(state, moduleAddr, false))
+			c.Ui.Output(outputsAsString(state, false))
 			return 0
 		}
 	}
