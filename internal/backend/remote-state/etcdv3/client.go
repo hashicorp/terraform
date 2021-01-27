@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
-	etcdv3sync "github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3sync "go.etcd.io/etcd/clientv3/concurrency"
 )
 
 const (
