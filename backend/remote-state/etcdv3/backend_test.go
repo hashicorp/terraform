@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/hashicorp/terraform/backend"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 var (
