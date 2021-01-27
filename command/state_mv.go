@@ -492,8 +492,8 @@ Options:
                           used. This can be a new or existing path.
 
   -ignore-remote-version  Continue even if remote and local Terraform versions
-                          differ. This may result in an unusable workspace, and
-                          should be used with extreme caution.
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)
