@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
@@ -178,7 +177,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if !c.Destroy {
-		if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
+		if outputs := outputsAsString(op.State, true); outputs != "" {
 			c.Ui.Output(c.Colorize().Color(outputs))
 		}
 	}
@@ -315,16 +314,12 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeHeader bool) string {
+func outputsAsString(state *states.State, includeHeader bool) string {
 	if state == nil {
 		return ""
 	}
 
-	ms := state.Module(modPath)
-	if ms == nil {
-		return ""
-	}
-
+	ms := state.RootModule()
 	outputs := ms.OutputValues
 	outputBuf := new(bytes.Buffer)
 	if len(outputs) > 0 {

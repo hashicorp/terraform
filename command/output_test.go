@@ -268,35 +268,6 @@ func TestOutput_jsonEmptyOutputs(t *testing.T) {
 	}
 }
 
-func TestMissingModuleOutput(t *testing.T) {
-	originalState := states.BuildState(func(s *states.SyncState) {
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-			cty.StringVal("bar"),
-			false,
-		)
-	})
-	statePath := testStateFile(t, originalState)
-
-	ui := new(cli.MockUi)
-	c := &OutputCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-module", "not_existing_module",
-		"blah",
-	}
-
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-}
-
 func TestOutput_badVar(t *testing.T) {
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(
