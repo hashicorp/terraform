@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -61,6 +62,8 @@ type Meta struct {
 	// so functions working with this field must check if it's nil and
 	// do some default behavior instead if so, rather than panicking.
 	Streams *terminal.Streams
+
+	View *views.View
 
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
@@ -499,6 +502,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 }
 
 // defaultFlagSet creates a default flag set for commands.
+// See also command/arguments/default.go
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.SetOutput(ioutil.Discard)
@@ -581,9 +585,9 @@ func (m *Meta) parseTargetFlags() tfdiags.Diagnostics {
 	return diags
 }
 
-// process will process the meta-parameters out of the arguments. This
+// process will process any -no-color entries out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
-// slice.
+// slice, and update the Meta and Ui.
 func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
@@ -615,6 +619,10 @@ func (m *Meta) process(args []string) []string {
 			WarnColor:  "[yellow]",
 			Ui:         m.oldUi,
 		},
+	}
+
+	if m.View != nil {
+		m.View.EnableColor(m.Color)
 	}
 
 	return args

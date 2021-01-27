@@ -38,10 +38,12 @@ func TestApply(t *testing.T) {
 	p := applyFixtureProvider()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -73,10 +75,12 @@ func TestApply_path(t *testing.T) {
 	p := applyFixtureProvider()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -112,10 +116,12 @@ func TestApply_approveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -154,10 +160,12 @@ func TestApply_approveYes(t *testing.T) {
 	defaultInputWriter = new(bytes.Buffer)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -196,10 +204,12 @@ func TestApply_lockedState(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -240,10 +250,12 @@ func TestApply_lockedStateWait(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -336,10 +348,12 @@ func TestApply_parallelism(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -364,10 +378,12 @@ func TestApply_configInvalid(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -401,10 +417,12 @@ func TestApply_defaultState(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -442,10 +460,12 @@ func TestApply_error(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -534,10 +554,12 @@ func TestApply_input(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -579,10 +601,12 @@ func TestApply_inputPartial(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -616,10 +640,12 @@ func TestApply_noArgs(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -655,10 +681,12 @@ func TestApply_plan(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -687,10 +715,12 @@ func TestApply_plan_backup(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -719,10 +749,12 @@ func TestApply_plan_noBackup(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -797,10 +829,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -844,10 +878,12 @@ func TestApply_planWithVarFile(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -875,10 +911,12 @@ func TestApply_planVars(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -943,10 +981,12 @@ func TestApply_refresh(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -995,10 +1035,12 @@ func TestApply_shutdown(t *testing.T) {
 	p := testProvider()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 			ShutdownCh:       shutdownCh,
 		},
 	}
@@ -1107,10 +1149,12 @@ func TestApply_state(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1170,10 +1214,12 @@ func TestApply_stateNoExist(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1194,10 +1240,12 @@ func TestApply_sensitiveOutput(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1212,7 +1260,7 @@ func TestApply_sensitiveOutput(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
+	output := done(t).Stdout()
 	if !strings.Contains(output, "notsensitive = \"Hello world\"") {
 		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
 	}
@@ -1232,10 +1280,12 @@ func TestApply_vars(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1293,10 +1343,12 @@ func TestApply_varFile(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1354,10 +1406,12 @@ func TestApply_varFileDefault(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1414,10 +1468,12 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1493,10 +1549,12 @@ func TestApply_backup(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1552,10 +1610,12 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1623,10 +1683,12 @@ func TestApply_terraformEnv(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1658,8 +1720,9 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		newCmd := &WorkspaceNewCommand{}
-		newCmd.Meta = Meta{Ui: ui}
+		newCmd.Meta = Meta{Ui: ui, View: view}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
@@ -1669,8 +1732,9 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	{
 		args := []string{"test"}
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		selCmd := &WorkspaceSelectCommand{}
-		selCmd.Meta = Meta{Ui: ui}
+		selCmd.Meta = Meta{Ui: ui, View: view}
 		if code := selCmd.Run(args); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
@@ -1678,10 +1742,12 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1728,10 +1794,12 @@ func TestApply_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1763,9 +1831,11 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 			defer testChdir(t, td)()
 
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			c := &ApplyCommand{
 				Meta: Meta{
-					Ui: ui,
+					Ui:   ui,
+					View: view,
 				},
 			}
 
