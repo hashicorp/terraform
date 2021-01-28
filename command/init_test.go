@@ -1620,6 +1620,137 @@ provider "registry.terraform.io/hashicorp/test" {
 	}
 }
 
+func TestInit_providerLockFileReadonly(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-provider-lock-file"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.2.3"},
+	})
+	defer close()
+
+	lockFile := ".terraform.lock.hcl"
+
+	// The hash in here is for the fake package that newMockProviderSource produces
+	// (so it'll change if newMockProviderSource starts producing different contents)
+	inputLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version     = "1.2.3"
+  constraints = "1.2.3"
+  hashes = [
+    "zh:e919b507a91e23a00da5c2c4d0b64bcc7900b68d43b3951ac0f6e5d80387fbdc",
+  ]
+}
+`)
+
+	badLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version     = "1.2.3"
+  constraints = "1.2.3"
+  hashes = [
+    "zh:0000000000000000000000000000000000000000000000000000000000000000",
+  ]
+}
+`)
+
+	updatedLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+
+provider "registry.terraform.io/hashicorp/test" {
+  version     = "1.2.3"
+  constraints = "1.2.3"
+  hashes = [
+    "h1:wlbEC2mChQZ2hhgUhl6SeVLPP7fMqOFUZAQhQ9GIIno=",
+    "zh:e919b507a91e23a00da5c2c4d0b64bcc7900b68d43b3951ac0f6e5d80387fbdc",
+  ]
+}
+`)
+
+	cases := []struct {
+		desc  string
+		input string
+		args  []string
+		ok    bool
+		want  string
+	}{
+		{
+			desc:  "default",
+			input: inputLockFile,
+			args:  []string{},
+			ok:    true,
+			want:  updatedLockFile,
+		},
+		{
+			desc:  "readonly",
+			input: inputLockFile,
+			args:  []string{"-lockfile=readonly"},
+			ok:    true,
+			want:  inputLockFile,
+		},
+		{
+			desc:  "conflict",
+			input: inputLockFile,
+			args:  []string{"-lockfile=readonly", "-upgrade"},
+			ok:    false,
+			want:  inputLockFile,
+		},
+		{
+			desc:  "checksum mismatch",
+			input: badLockFile,
+			args:  []string{"-lockfile=readonly"},
+			ok:    false,
+			want:  badLockFile,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			ui := new(cli.MockUi)
+			m := Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				ProviderSource:   providerSource,
+			}
+
+			c := &InitCommand{
+				Meta: m,
+			}
+
+			// write input lockfile
+			if err := ioutil.WriteFile(lockFile, []byte(tc.input), 0644); err != nil {
+				t.Fatalf("failed to write input lockfile: %s", err)
+			}
+
+			code := c.Run(tc.args)
+			if tc.ok && code != 0 {
+				t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+			}
+			if !tc.ok && code == 0 {
+				t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
+			}
+
+			buf, err := ioutil.ReadFile(lockFile)
+			if err != nil {
+				t.Fatalf("failed to read dependency lock file %s: %s", lockFile, err)
+			}
+			buf = bytes.TrimSpace(buf)
+			if diff := cmp.Diff(tc.want, string(buf)); diff != "" {
+				t.Errorf("wrong dependency lock file contents\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestInit_pluginDirReset(t *testing.T) {
 	td := testTempDir(t)
 	defer os.RemoveAll(td)

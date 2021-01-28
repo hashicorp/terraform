@@ -157,6 +157,7 @@ You can modify `terraform init`'s plugin behavior with the following options:
   You can use `-plugin-dir` as a one-time override for exceptional situations,
   such as if you are testing a local build of a provider plugin you are
   currently developing.
+- `-lockfile=MODE` Set dependency lockfile mode. Currently only "readonly" is valid.
 
 ## Running `terraform init` in automation
 

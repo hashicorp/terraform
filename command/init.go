@@ -32,7 +32,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagFromModule string
+	var flagFromModule, flagLockfile string
 	var flagBackend, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
@@ -47,6 +47,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
+	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set dependency lockfile mode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -260,7 +261,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
+	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath, flagLockfile)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -391,7 +392,7 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
@@ -725,6 +726,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
+		if flagLockfile == "readonly" {
+			c.Ui.Error("The -upgrade flag conflicts with -lockfile=readonly.")
+			return true, true, diags
+		}
+
 		mode = providercache.InstallUpgrades
 	}
 	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
@@ -752,6 +758,12 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// it's the smallest change relative to what came before it, which was
 	// a hidden JSON file specifically for tracking providers.)
 	if !newLocks.Equal(previousLocks) {
+		// if readonly mode, suppress changes
+		if flagLockfile == "readonly" {
+			log.Println("[DEBUG] init: detected changing dependencies, but suppressed by readonly mode")
+			return true, false, diags
+		}
+
 		if previousLocks.Empty() {
 			// A change from empty to non-empty is special because it suggests
 			// we're running "terraform init" for the first time against a
@@ -960,6 +972,10 @@ Options:
   -upgrade=false       If installing modules (-get) or plugins, ignore
                        previously-downloaded objects and install the
                        latest version allowed within configured constraints.
+
+  -lockfile=MODE       Set dependency lockfile mode.
+                       Currently only "readonly" is valid.
+
 `
 	return strings.TrimSpace(helpText)
 }
