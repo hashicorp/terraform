@@ -140,3 +140,55 @@ data "test_data_source" "foo" {
 		}
 	}
 }
+
+func TestContext2Plan_orphanDataInstance(t *testing.T) {
+	// ensure the planned replacement of the data source is evaluated properly
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "a" {
+  for_each = { new = "ok" }
+}
+
+output "out" {
+  value = [ for k, _ in data.test_object.a: k ]
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`data.test_object.a["old"]`), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	change, err := plan.Changes.Outputs[0].Decode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := cty.TupleVal([]cty.Value{cty.StringVal("new")})
+
+	if change.After.Equals(expected).False() {
+		t.Fatalf("expected %#v, got %#v\n", expected, change.After)
+	}
+}

@@ -50,8 +50,14 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) error {
 	// A data source that is no longer in the config is removed from the state
 	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)
-	state := ctx.RefreshState()
-	state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+
+	// we need to update both the refresh state to refresh the current data
+	// source, and the working state for plan-time evaluations.
+	refreshState := ctx.RefreshState()
+	refreshState.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+
+	workingState := ctx.State()
+	workingState.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	return nil
 }
 
