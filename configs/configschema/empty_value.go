@@ -26,6 +26,18 @@ func (b *Block) EmptyValue() cty.Value {
 // the value that would be returned if there were no definition of the attribute
 // at all, ignoring any required constraint.
 func (a *Attribute) EmptyValue() cty.Value {
+	if a.NestedType != nil {
+		switch a.NestedType.Nesting {
+		case NestingList:
+			return cty.NullVal(cty.List(a.NestedType.ImpliedType()))
+		case NestingSet:
+			return cty.NullVal(cty.Set(a.NestedType.ImpliedType()))
+		case NestingMap:
+			return cty.NullVal(cty.Map(a.NestedType.ImpliedType()))
+		default: // NestingSingle, NestingGroup, or no NestingMode
+			return cty.NullVal(a.NestedType.ImpliedType())
+		}
+	}
 	return cty.NullVal(a.Type)
 }
 

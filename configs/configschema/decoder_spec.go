@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var mapLabelNames = []string{"key"}
@@ -183,9 +184,52 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 }
 
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
-	return &hcldec.AttrSpec{
-		Name:     name,
-		Type:     a.Type,
-		Required: a.Required,
+	ret := &hcldec.AttrSpec{Name: name}
+	if a == nil {
+		return ret
 	}
+
+	if a.NestedType != nil {
+		// FIXME: a panic() is a bad UX. Fix this, probably by extending
+		// InternalValidate() to check Attribute schemas as well and calling it
+		// when we get the schema from the provider in Context().
+		if a.Type != cty.NilType {
+			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")
+		}
+
+		var optAttrs []string
+		optAttrs = listOptionalAttrsFromBlock(a.NestedType.Block, optAttrs)
+		ty := a.NestedType.Block.ImpliedType()
+
+		switch a.NestedType.Nesting {
+		case NestingList:
+			ret.Type = cty.List(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		case NestingSet:
+			ret.Type = cty.Set(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		case NestingMap:
+			ret.Type = cty.Map(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+		default: // NestingSingle, NestingGroup, or no NestingMode
+			ret.Type = cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs)
+		}
+		ret.Required = a.NestedType.MinItems > 0
+		return ret
+	}
+
+	ret.Type = a.Type
+	ret.Required = a.Required
+	return ret
+}
+
+func listOptionalAttrsFromBlock(b Block, optAttrs []string) []string {
+	for name, attr := range b.Attributes {
+		if attr.Optional == true {
+			optAttrs = append(optAttrs, name)
+		}
+	}
+
+	for _, block := range b.BlockTypes {
+		listOptionalAttrsFromBlock(block.Block, optAttrs)
+	}
+
+	return optAttrs
 }
