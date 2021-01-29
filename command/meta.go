@@ -250,8 +250,11 @@ func (m *Meta) StateOutPath() string {
 
 // Colorize returns the colorization structure for a command.
 func (m *Meta) Colorize() *colorstring.Colorize {
+	colors := colorstring.DefaultColors
+	colors["purple"] = "38;5;57"
+
 	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
+		Colors:  colors,
 		Disable: !m.color,
 		Reset:   true,
 	}

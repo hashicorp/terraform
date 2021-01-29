@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -111,29 +113,15 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	clientConfig, err := host.ServiceOAuthClient("login.v1")
+	var terraformCloudServiceURL *url.URL
+
 	switch err.(type) {
 	case nil:
 		// Great! No problem, then.
 	case *disco.ErrServiceNotProvided:
-		// This is also fine! We'll try the manual token creation process.
-	case *disco.ErrVersionNotSupported:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
-		))
-	default:
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
-		))
-	}
-
-	// If login service is unavailable, check for a TFE v2 API as fallback
-	var service *url.URL
-	if clientConfig == nil {
-		service, err = host.ServiceURL("tfe.v2")
+		// Ok! Are we speaking to Terraform Cloud/Enterprise? If so we'll try Terraform Cloud/Enterprise's
+		// manual token creation process.
+		terraformCloudServiceURL, err = host.ServiceURL("tfe.v2")
 		switch err.(type) {
 		case nil:
 			// Success!
@@ -156,6 +144,18 @@ func (c *LoginCommand) Run(args []string) int {
 				fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
 			))
 		}
+	case *disco.ErrVersionNotSupported:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Host does not support Terraform login",
+			fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
+		))
+	default:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Host does not support Terraform login",
+			fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
+		))
 	}
 
 	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
@@ -174,7 +174,7 @@ func (c *LoginCommand) Run(args []string) int {
 	var token svcauth.HostCredentialsToken
 	var tokenDiags tfdiags.Diagnostics
 
-	// Prefer Terraform login if available
+	// Fetch the token
 	if clientConfig != nil {
 		var oauthToken *oauth2.Token
 
@@ -195,8 +195,8 @@ func (c *LoginCommand) Run(args []string) int {
 		if oauthToken != nil {
 			token = svcauth.HostCredentialsToken(oauthToken.AccessToken)
 		}
-	} else if service != nil {
-		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, service)
+	} else if terraformCloudServiceURL != nil {
+		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, terraformCloudServiceURL)
 	}
 
 	diags = diags.Append(tokenDiags)
@@ -220,17 +220,68 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
+	if terraformCloudServiceURL != nil {
+		if hostname == "app.terraform.io" { // Terraform Cloud
+			var motd struct {
+				Message string        `json:"msg"`
+				Errors  []interface{} `json:"errors"`
+			}
+
+			req, _ := http.NewRequest("GET", fmt.Sprintf("https://%s/api/terraform/motd?source=terraform-login", hostname), nil)
+			if err != nil {
+				diags = diags.Append(err)
+				c.showDiagnostics(diags)
+				return 1
+			}
+			req.Header.Set("Authorization", "Bearer "+token.Token())
+
+			resp, err := httpclient.New().Do(req)
+			if err == nil {
+				body, _ := ioutil.ReadAll(resp.Body)
+				defer resp.Body.Close()
+
+				json.Unmarshal(body, &motd)
+			}
+
+			// Use the message payload, else a default message if the platform-provided
+			// message is unavailable for any reason - be it the request failing or any
+			// sort of platform error returned.
+			if motd.Errors == nil && motd.Message != "" {
+				c.Ui.Output(
+					c.Colorize().Color(motd.Message),
+				)
+			} else {
+				c.Ui.Output(
+					fmt.Sprintf(
+						c.Colorize().Color(strings.TrimSpace(`
+[green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
+`)),
+					) + "\n",
+				)
+			}
+		} else { // Terraform Enterprise
+			c.Ui.Output(
+				fmt.Sprintf(
+					c.Colorize().Color(strings.TrimSpace(`
+[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]
+`)),
+					dispHostname,
+				) + "\n",
+			)
+		}
+	} else {
+		c.Ui.Output(
+			fmt.Sprintf(
+				c.Colorize().Color(strings.TrimSpace(`
 [green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
 
 The new API token will be used for any future Terraform command that must make
 authenticated requests to %s.
 `)),
-			dispHostname,
-		) + "\n",
-	)
+				dispHostname,
+			) + "\n",
+		)
+	}
 
 	return 0
 }

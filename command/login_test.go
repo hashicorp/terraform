@@ -87,8 +87,7 @@ func TestLogin(t *testing.T) {
 				},
 			})
 			svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
-				// This represents a Terraform Enterprise instance which does not
-				// yet support the login API, but does support the TFE tokens API.
+				// This represents a Terraform Enterprise instance which supports the TFE tokens API.
 				"tfe.v2":   ts.URL + "/api/v2",
 				"tfe.v2.1": ts.URL + "/api/v2",
 				"tfe.v2.2": ts.URL + "/api/v2",
@@ -196,7 +195,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("TFE host", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
 		defer testInputMap(t, map[string]string{
@@ -218,7 +217,7 @@ func TestLogin(t *testing.T) {
 		}
 	}))
 
-	t.Run("TFE host without login support, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("TFE host, incorrectly pasted token", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste an invalid token.
 		defer testInputMap(t, map[string]string{
 			"approve": "yes",
