@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -725,49 +724,6 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 
 	if !plan.Changes.Empty() {
 		t.Fatalf("expected empty plan to be written")
-	}
-}
-
-// TestLocal_planScaleOutNoDupeCount tests a Refresh/Plan sequence when a
-// resource count is scaled out. The scaled out node needs to exist in the
-// graph and run through a plan-style sequence during the refresh phase, but
-// can conflate the count if its post-diff count hooks are not skipped. This
-// checks to make sure the correct resource count is ultimately given to the
-// UI.
-func TestLocal_planScaleOutNoDupeCount(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
-	TestLocalProvider(t, b, "test", planFixtureSchema())
-	testStateFile(t, b.StatePath, testPlanState())
-
-	actual := new(CountHook)
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, actual)
-
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
-
-	op, configCleanup := testOperationPlan(t, "./testdata/plan-scaleout")
-	defer configCleanup()
-	op.PlanRefresh = true
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("bad: %s", err)
-	}
-	<-run.Done()
-	if run.Result != backend.OperationSuccess {
-		t.Fatalf("plan operation failed")
-	}
-
-	expected := new(CountHook)
-	expected.ToAdd = 1
-	expected.ToChange = 0
-	expected.ToRemoveAndAdd = 0
-	expected.ToRemove = 0
-
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("Expected %#v, got %#v instead.",
-			expected, actual)
 	}
 }
 

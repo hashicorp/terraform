@@ -59,14 +59,9 @@ func (b *Local) opPlan(
 		return
 	}
 
-	// Set up our count hook that keeps track of resource changes
-	countHook := new(CountHook)
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
-	old := b.ContextOpts.Hooks
-	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook)
 
 	// Get our context
 	tfCtx, configSnap, opState, ctxDiags := b.context(op)
