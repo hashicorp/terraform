@@ -195,6 +195,49 @@ func TestAssertObjectCompatible(t *testing.T) {
 			},
 		},
 		{
+			// This tests the codepath that leads to couldHaveUnknownBlockPlaceholder,
+			// where a set may be sensitive and need to be unmarked before it
+			// is iterated upon
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"configuration": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"sensitive_fields": {
+									Nesting: configschema.NestingSet,
+									Block:   schemaWithFoo,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"configuration": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive_fields": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("secret"),
+							}),
+						}).Mark("sensitive"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"configuration": cty.TupleVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive_fields": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("secret"),
+							}),
+						}).Mark("sensitive"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		{
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id": {
