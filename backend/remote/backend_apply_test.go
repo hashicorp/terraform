@@ -775,8 +775,8 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
 	}
-	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-		t.Fatalf("expected apply summery in output: %s", output)
+	if !run.State.HasResources() {
+		t.Fatalf("expected resources in state")
 	}
 }
 
@@ -833,8 +833,8 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
 	}
-	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-		t.Fatalf("expected apply summery in output: %s", output)
+	if !run.State.HasResources() {
+		t.Fatalf("expected resources in state")
 	}
 }
 
@@ -1396,13 +1396,22 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 				}
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()
 				hasRemote := strings.Contains(output, "Running apply in the remote backend")
-				if !tc.forceLocal && tc.hasOperations && !hasRemote {
-					t.Fatalf("missing remote backend header in output: %s", output)
-				} else if (tc.forceLocal || !tc.hasOperations) && hasRemote {
-					t.Fatalf("unexpected remote backend header in output: %s", output)
-				}
-				if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-					t.Fatalf("expected apply summary in output: %s", output)
+				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
+				hasResources := run.State.HasResources()
+				if !tc.forceLocal && tc.hasOperations {
+					if !hasRemote {
+						t.Errorf("missing remote backend header in output: %s", output)
+					}
+					if !hasSummary {
+						t.Errorf("expected apply summary in output: %s", output)
+					}
+				} else {
+					if hasRemote {
+						t.Errorf("unexpected remote backend header in output: %s", output)
+					}
+					if !hasResources {
+						t.Errorf("expected resources in state")
+					}
 				}
 			}
 		})

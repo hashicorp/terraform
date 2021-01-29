@@ -87,6 +87,10 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
+	// Set up our count hook that keeps track of resource changes
+	countHook := new(CountHook)
+	c.ExtraHooks = append(c.ExtraHooks, countHook)
+
 	// Load the backend
 	var be backend.Enhanced
 	var beDiags tfdiags.Diagnostics
@@ -172,8 +176,36 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.showDiagnostics(err)
 		return 1
 	}
+
 	if op.Result != backend.OperationSuccess {
 		return op.Result.ExitStatus()
+	}
+
+	// Show the count results from the operation
+	if c.Destroy {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Destroy complete! Resources: %d destroyed.",
+			countHook.Removed)))
+	} else {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Apply complete! Resources: %d added, %d changed, %d destroyed.",
+			countHook.Added,
+			countHook.Changed,
+			countHook.Removed)))
+	}
+
+	// only show the state file help message if the state is local.
+	if (countHook.Added > 0 || countHook.Changed > 0) && c.Meta.stateOutPath != "" {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset]\n"+
+				"The state of your infrastructure has been saved to the path\n"+
+				"below. This state is required to modify and destroy your\n"+
+				"infrastructure, so keep it safe. To inspect the complete state\n"+
+				"use the `terraform show` command.\n\n"+
+				"State path: %s",
+			c.Meta.stateOutPath)))
 	}
 
 	if !c.Destroy {
