@@ -72,11 +72,19 @@ You can create this workspace with the "new" subcommand.`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
 
-	envCreated = `
+	envCreatedEmpty = `
 [reset][green][bold]Created and switched to workspace %q![reset][green]
 
 You're now on a new, empty workspace. Workspaces isolate their state,
 so if you run "terraform plan" Terraform will not see any existing state
+for this configuration.
+`
+
+	envCreatedFromState = `
+[reset][green][bold]Created and switched to workspace %q![reset][green]
+
+You're now on a new, pre-populated workspace. Workspaces isolate their state,
+so if you run "terraform plan" Terraform will use the provided existing state
 for this configuration.
 `
 
