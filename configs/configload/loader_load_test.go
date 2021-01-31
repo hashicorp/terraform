@@ -108,6 +108,21 @@ func TestLoaderLoadConfig_moduleExpand(t *testing.T) {
 	}
 }
 
+func TestLoaderLoadConfig_moduleExpandDoubleAlias(t *testing.T) {
+	// This tests for when valid configs are passing a provider through as a proxy,
+	// either with or without an alias present.
+	fixtureDir := filepath.Clean("testdata/expand-modules/alias-renamed-twice")
+	loader, err := NewLoader(&Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	_, diags := loader.LoadConfig(fixtureDir)
+	assertNoDiagnostics(t, diags)
+}
+
 func TestLoaderLoadConfig_moduleExpandValid(t *testing.T) {
 	// This tests for when valid configs are passing a provider through as a proxy,
 	// either with or without an alias present.
