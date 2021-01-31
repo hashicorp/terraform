@@ -109,8 +109,9 @@ func TestLoaderLoadConfig_moduleExpand(t *testing.T) {
 }
 
 func TestLoaderLoadConfig_moduleExpandDoubleAlias(t *testing.T) {
-	// This tests for when valid configs are passing a provider through as a proxy,
-	// either with or without an alias present.
+	// This tests for when a module calls another module, and passes in
+	// the correct alias the child is expecting.
+	// https://github.com/hashicorp/terraform/issues/27539
 	fixtureDir := filepath.Clean("testdata/expand-modules/alias-renamed-twice")
 	loader, err := NewLoader(&Config{
 		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
