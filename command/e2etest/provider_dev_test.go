@@ -61,7 +61,8 @@ func TestProviderDevOverrides(t *testing.T) {
 	// dev overrides are always ready to use and don't need any special action
 	// to "install" them. This test is mimicking the a happy path of going
 	// directly from "go build" to validate/plan/apply without interacting
-	// with any registries, mirrors, lock files, etc.
+	// with any registries, mirrors, lock files, etc. To verify "terraform
+	// init" does actually show a warning, that behavior is tested at the end.
 	stdout, stderr, err = tf.Run("validate")
 	if err != nil {
 		t.Fatalf("unexpected error: %s\n%s", err, stderr)
@@ -72,5 +73,16 @@ func TestProviderDevOverrides(t *testing.T) {
 	}
 	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
 		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
+	}
+
+	stdout, stderr, err = tf.Run("init")
+	if err == nil {
+		t.Fatal("expected error: Failed to query available provider packages")
+	}
+	if got, want := stdout, `Provider development overrides are in effect`; !strings.Contains(got, want) {
+		t.Errorf("stdout doesn't include the warning about development overrides\nwant: %s\n%s", want, got)
+	}
+	if got, want := stderr, `Failed to query available provider packages`; !strings.Contains(got, want) {
+		t.Errorf("stderr doesn't include the error about listing unavailable development provider\nwant: %s\n%s", want, got)
 	}
 }
