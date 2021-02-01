@@ -579,6 +579,253 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// Attributes with NestedTypes
+		"NestedType attr, no computed, all match": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, plan matches, no prior": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType attr no computed, invalid change in plan": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new c value"),
+					}),
+				}),
+			}),
+			[]string{
+				`.a[0].b: planned value cty.StringVal("new c value") does not match config value cty.StringVal("c value")`,
+			},
+		},
+		"NestedType attr, no computed, invalid change in plan sensitive": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:      cty.String,
+										Optional:  true,
+										Sensitive: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new b value"),
+					}),
+				}),
+			}),
+			[]string{
+				`.a[0].b: sensitive planned value does not match config value`,
+			},
+		},
+		"NestedType attr, no computed, diff suppression in plan": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"), // plan uses value from prior object
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, all null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.NestedBlock{
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"b": {
+										Type:     cty.String,
+										Optional: true,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			nil,
+		},
 	}
 
 	for name, test := range tests {
