@@ -7,6 +7,7 @@ BUG FIXES:
 * core: Fix panic when refreshing data source which contains sensitive values [GH-27567]
 * core: Fix init with broken link in plugin_cache_dir [GH-27447]
 * core: Prevent evaluation of removed data source instances during plan [GH-27621]
+* core: don't plan changes for outputs that remain null [GH-27512]
 
 ## 0.14.5 (January 20, 2021)
 
