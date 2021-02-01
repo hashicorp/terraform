@@ -418,12 +418,17 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// the diff
 		sensitiveBefore := false
 		before := cty.NullVal(cty.DynamicPseudoType)
+
+		// is this output new to our state?
+		newOutput := true
+
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
 			for name, o := range mod.OutputValues {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
+					newOutput = false
 					break
 				}
 			}
@@ -437,12 +442,15 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// strip any marks here just to be sure we don't panic on the True comparison
 		val, _ = val.UnmarkDeep()
 
-		var action plans.Action
+		action := plans.Update
 		switch {
-		case val.IsNull():
-			action = plans.Delete
+		case val.IsNull() && before.IsNull():
+			// This is separate from the NoOp case below, since we can ignore
+			// sensitivity here when there are only null values.
+			action = plans.NoOp
 
-		case before.IsNull():
+		case newOutput:
+			// This output was just added to the configuration
 			action = plans.Create
 
 		case val.IsWhollyKnown() &&
@@ -453,9 +461,6 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			// only one we can act on, and the state will have been loaded
 			// without any marks to consider.
 			action = plans.NoOp
-
-		default:
-			action = plans.Update
 		}
 
 		change := &plans.OutputChange{
