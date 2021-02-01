@@ -423,6 +423,12 @@ the backend configuration is present and valid.
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
+	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// any overridden providers, so we'll warn about it to avoid later
+	// confusion when Terraform ends up using a different provider than the
+	// lock file called for.
+	diags = diags.Append(c.providerDevOverrideInitWarnings())
+
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
 	reqs, hclDiags := config.ProviderRequirements()
@@ -753,12 +759,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		},
 	}
 	ctx = evts.OnContext(ctx)
-
-	// Dev overrides cause the result of "terraform init" to be irrelevant for
-	// any overridden providers, so we'll warn about it to avoid later
-	// confusion when Terraform ends up using a different provider than the
-	// lock file called for.
-	diags = diags.Append(c.providerDevOverrideWarnings())
 
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
