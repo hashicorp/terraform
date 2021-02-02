@@ -7,11 +7,12 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * cli: Rerunning `init` will reuse installed providers rather than fetching the provider again [GH-27582]
+* config: Fix panic when applying a config using sensitive values in some block sets [GH-27635]
 * core: Fix "Invalid planned change" error when planning tainted resource which no longer exists [GH-27563]
 * core: Fix panic when refreshing data source which contains sensitive values [GH-27567]
 * core: Fix init with broken link in plugin_cache_dir [GH-27447]
 * core: Prevent evaluation of removed data source instances during plan [GH-27621]
-* core: don't plan changes for outputs that remain null [GH-27512]
+* core: Don't plan changes for outputs that remain null [GH-27512]
 
 ## 0.14.5 (January 20, 2021)
 
