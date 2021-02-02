@@ -104,7 +104,7 @@ func (c *RefreshCommand) Run(args []string) int {
 
 func (c *RefreshCommand) Help() string {
 	helpText := `
-Usage: terraform refresh [options] [dir]
+Usage: terraform refresh [options]
 
   Update the state file of your infrastructure with metadata that matches
   the physical resources they are tracking.

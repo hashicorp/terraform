@@ -72,42 +72,6 @@ func TestInit_multipleArgs(t *testing.T) {
 	}
 }
 
-func TestInit_fromModule_explicitDest(t *testing.T) {
-	td := tempDir(t)
-	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	if _, err := os.Stat(DefaultStateFilename); err == nil {
-		// This should never happen; it indicates a bug in another test
-		// is causing a terraform.tfstate to get left behind in our directory
-		// here, which can interfere with our init process in a way that
-		// isn't relevant to this test.
-		fullPath, _ := filepath.Abs(DefaultStateFilename)
-		t.Fatalf("some other test has left terraform.tfstate behind:\n%s", fullPath)
-	}
-
-	args := []string{
-		"-from-module=" + testFixturePath("init"),
-		td,
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat(filepath.Join(td, "hello.tf")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
-
 func TestInit_fromModule_cwdDest(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -161,6 +125,10 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	if err := os.Chdir("foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
 	ui := new(cli.MockUi)
 	c := &InitCommand{
 		Meta: Meta{
@@ -170,8 +138,7 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 	}
 
 	args := []string{
-		"-from-module=.",
-		"foo",
+		"-from-module=./..",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -212,7 +179,7 @@ func TestInit_get(t *testing.T) {
 func TestInit_getUpgradeModules(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	os.MkdirAll(td, 0755)
+	testCopyDir(t, testFixturePath("init-get"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -227,7 +194,6 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	args := []string{
 		"-get=true",
 		"-upgrade",
-		testFixturePath("init-get"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("command did not complete successfully:\n%s", ui.ErrorWriter.String())
@@ -484,7 +450,7 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	}
 
 	output := ui.ErrorWriter.String()
-	if got, want := output, `Module directory ./input.config does not exist`; !strings.Contains(got, want) {
+	if got, want := output, `Too many command line arguments`; !strings.Contains(got, want) {
 		t.Fatalf("wrong output\ngot:\n%s\n\nwant: message containing %q", got, want)
 	}
 }
@@ -678,41 +644,6 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	errMsg := ui.ErrorWriter.String()
 	if !strings.Contains(errMsg, "Warning: Missing backend configuration") {
 		t.Fatal("expected missing backend block warning, got", errMsg)
-	}
-}
-
-func TestInit_targetSubdir(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	// copy the source into a subdir
-	testCopyDir(t, testFixturePath("init-backend"), filepath.Join(td, "source"))
-
-	ui := new(cli.MockUi)
-	c := &InitCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
-		},
-	}
-
-	args := []string{
-		"source",
-	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	if _, err := os.Stat(filepath.Join(td, DefaultDataDir, DefaultStateFilename)); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// a data directory should not have been added to out working dir
-	if _, err := os.Stat(filepath.Join(td, "source", DefaultDataDir)); !os.IsNotExist(err) {
-		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -913,11 +844,11 @@ func TestInit_getProvider(t *testing.T) {
 	ui := new(cli.MockUi)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
-		"exact": []string{"1.2.3"},
+		"exact": {"1.2.3"},
 		// config requires >= 2.3.3
-		"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
+		"greater-than": {"2.3.4", "2.3.3", "2.3.0"},
 		// config specifies
-		"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
 	defer close()
 	m := Meta{
@@ -1015,10 +946,10 @@ func TestInit_getProviderSource(t *testing.T) {
 	ui := new(cli.MockUi)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
-		"acme/alpha": []string{"1.2.3"},
+		"acme/alpha": {"1.2.3"},
 		// config doesn't specify versions for other providers
-		"registry.example.com/acme/beta": []string{"1.0.0"},
-		"gamma":                          []string{"2.0.0"},
+		"registry.example.com/acme/beta": {"1.0.0"},
+		"gamma":                          {"2.0.0"},
 	})
 	defer close()
 	m := Meta{
@@ -1166,8 +1097,8 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// unknown provider, and the registry source will allow us to look up the
 	// appropriate namespace if possible.
 	providerSource, psClose := newMockProviderSource(t, map[string][]string{
-		"hashicorp/foo":           []string{"1.2.3"},
-		"terraform-providers/baz": []string{"2.3.4"}, // this will not be installed
+		"hashicorp/foo":           {"1.2.3"},
+		"terraform-providers/baz": {"2.3.4"}, // this will not be installed
 	})
 	defer psClose()
 	registrySource, rsClose := testRegistrySource(t)
@@ -1223,15 +1154,14 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	configDirName := "init-required-providers"
-	testCopyDir(t, testFixturePath(configDirName), filepath.Join(td, configDirName))
+	testCopyDir(t, testFixturePath("init-required-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test":      []string{"1.2.3", "1.2.4"},
-		"test-beta": []string{"1.2.4"},
-		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
+		"test":      {"1.2.3", "1.2.4"},
+		"test-beta": {"1.2.4"},
+		"source":    {"1.2.2", "1.2.3", "1.2.1"},
 	})
 	defer close()
 
@@ -1246,7 +1176,7 @@ func TestInit_providerSource(t *testing.T) {
 		Meta: m,
 	}
 
-	args := []string{configDirName}
+	args := []string{}
 
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -1330,15 +1260,14 @@ func TestInit_cancel(t *testing.T) {
 	// platforms) were sent to it, testing that it is interruptible.
 
 	td := tempDir(t)
-	configDirName := "init-required-providers"
-	testCopyDir(t, testFixturePath(configDirName), filepath.Join(td, configDirName))
+	testCopyDir(t, testFixturePath("init-required-providers"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, closeSrc := newMockProviderSource(t, map[string][]string{
-		"test":      []string{"1.2.3", "1.2.4"},
-		"test-beta": []string{"1.2.4"},
-		"source":    []string{"1.2.2", "1.2.3", "1.2.1"},
+		"test":      {"1.2.3", "1.2.4"},
+		"test-beta": {"1.2.4"},
+		"source":    {"1.2.2", "1.2.3", "1.2.1"},
 	})
 	defer closeSrc()
 
@@ -1359,7 +1288,7 @@ func TestInit_cancel(t *testing.T) {
 		Meta: m,
 	}
 
-	args := []string{configDirName}
+	args := []string{}
 
 	if code := c.Run(args); code == 0 {
 		t.Fatalf("succeeded; wanted error")
@@ -1382,11 +1311,11 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
-		"exact": []string{"1.2.3"},
+		"exact": {"1.2.3"},
 		// config requires >= 2.3.3
-		"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
+		"greater-than": {"2.3.4", "2.3.3", "2.3.0"},
 		// config specifies > 1.0.0 , < 3.0.0
-		"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
 	defer close()
 
@@ -1398,8 +1327,8 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	}
 
 	installFakeProviderPackages(t, &m, map[string][]string{
-		"exact":        []string{"0.0.1"},
-		"greater-than": []string{"2.3.3"},
+		"exact":        {"0.0.1"},
+		"greater-than": {"2.3.3"},
 	})
 
 	c := &InitCommand{
@@ -1506,11 +1435,11 @@ func TestInit_getProviderMissing(t *testing.T) {
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for exact version 1.2.3
-		"exact": []string{"1.2.4"},
+		"exact": {"1.2.4"},
 		// config requires >= 2.3.3
-		"greater-than": []string{"2.3.4", "2.3.3", "2.3.0"},
+		"greater-than": {"2.3.4", "2.3.3", "2.3.0"},
 		// config specifies
-		"between": []string{"3.4.5", "2.3.4", "1.2.3"},
+		"between": {"3.4.5", "2.3.4", "1.2.3"},
 	})
 	defer close()
 
@@ -1716,14 +1645,14 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	// for a moment that they are provider cache directories just because that
 	// allows us to lean on our existing test helper functions to do this.
 	for i, def := range [][]string{
-		[]string{"exact", "1.2.3"},
-		[]string{"greater-than", "2.3.4"},
-		[]string{"between", "2.3.4"},
+		{"exact", "1.2.3"},
+		{"greater-than", "2.3.4"},
+		{"between", "2.3.4"},
 	} {
 		name, version := def[0], def[1]
 		dir := providercache.NewDir(pluginPath[i])
 		installFakeProviderPackagesElsewhere(t, dir, map[string][]string{
-			name: []string{version},
+			name: {version},
 		})
 	}
 
@@ -1789,7 +1718,7 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// but we should ignore it because -plugin-dir is set and thus this
 	// source is temporarily overridden during install.
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"between": []string{"2.3.4"},
+		"between": {"2.3.4"},
 	})
 	defer close()
 
@@ -1816,13 +1745,13 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	// for a moment that they are provider cache directories just because that
 	// allows us to lean on our existing test helper functions to do this.
 	for i, def := range [][]string{
-		[]string{"exact", "1.2.3"},
-		[]string{"greater-than", "2.3.4"},
+		{"exact", "1.2.3"},
+		{"greater-than", "2.3.4"},
 	} {
 		name, version := def[0], def[1]
 		dir := providercache.NewDir(pluginPath[i])
 		installFakeProviderPackagesElsewhere(t, dir, map[string][]string{
-			name: []string{version},
+			name: {version},
 		})
 	}
 

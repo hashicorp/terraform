@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/backend"
@@ -36,7 +36,13 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	configPath, err := ModulePath(cmdFlags.Args())
+	args = cmdFlags.Args()
+	var planPath string
+	if len(args) > 0 {
+		planPath = args[0]
+		args = args[1:]
+	}
+	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -48,16 +54,14 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	var plan *plans.Plan
-	planFile, err := c.PlanFile(configPath)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	if planFile != nil {
-		// Reset for backend loading
-		configPath = ""
+	// Try to load plan if path is specified
+	var planFile *planfile.Reader
+	if planPath != "" {
+		planFile, err = c.PlanFile(planPath)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
 	}
 
 	var diags tfdiags.Diagnostics
@@ -112,7 +116,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
-	if plan != nil {
+	if planFile != nil {
 		graphType = terraform.GraphTypeApply
 	}
 
@@ -163,10 +167,10 @@ func (c *GraphCommand) Run(args []string) int {
 
 func (c *GraphCommand) Help() string {
 	helpText := `
-Usage: terraform graph [options] [DIR]
+Usage: terraform graph [options]
 
   Outputs the visual execution graph of Terraform resources according to
-  configuration files in DIR (or the current directory if omitted).
+  configuration files in the current directory.
 
   The graph is outputted in DOT format. The typical program that can
   read this format is GraphViz, but many web services are also available

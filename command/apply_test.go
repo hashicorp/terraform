@@ -26,6 +26,12 @@ import (
 )
 
 func TestApply(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
@@ -41,7 +47,6 @@ func TestApply(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -59,6 +64,12 @@ func TestApply(t *testing.T) {
 
 // test apply with locked state
 func TestApply_lockedState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	unlock, err := testLockState(testDataDir, statePath)
@@ -79,7 +90,6 @@ func TestApply_lockedState(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("expected error")
@@ -93,6 +103,12 @@ func TestApply_lockedState(t *testing.T) {
 
 // test apply with locked state, waiting for unlock
 func TestApply_lockedStateWait(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	unlock, err := testLockState(testDataDir, statePath)
@@ -121,7 +137,6 @@ func TestApply_lockedStateWait(t *testing.T) {
 		"-state", statePath,
 		"-lock-timeout", "4s",
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("lock should have succeeded in less than 3s: %s", ui.ErrorWriter)
@@ -157,6 +172,12 @@ func (t *hwm) Max() int {
 }
 
 func TestApply_parallelism(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("parallelism"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	par := 4
@@ -217,7 +238,6 @@ func TestApply_parallelism(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 		fmt.Sprintf("-parallelism=%d", par),
-		testFixturePath("parallelism"),
 	}
 
 	// Run in a goroutine. We can get any errors from the ui.OutputWriter
@@ -258,6 +278,12 @@ func TestApply_parallelism(t *testing.T) {
 }
 
 func TestApply_configInvalid(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-config-invalid"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -270,7 +296,6 @@ func TestApply_configInvalid(t *testing.T) {
 	args := []string{
 		"-state", testTempFile(t),
 		"-auto-approve",
-		testFixturePath("apply-config-invalid"),
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
@@ -278,7 +303,12 @@ func TestApply_configInvalid(t *testing.T) {
 }
 
 func TestApply_defaultState(t *testing.T) {
-	td := testTempDir(t)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := filepath.Join(td, DefaultStateFilename)
 
 	// Change to the temporary directory
@@ -308,7 +338,6 @@ func TestApply_defaultState(t *testing.T) {
 
 	args := []string{
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -325,6 +354,12 @@ func TestApply_defaultState(t *testing.T) {
 }
 
 func TestApply_error(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-error"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -376,7 +411,6 @@ func TestApply_error(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply-error"),
 	}
 	if ui.ErrorWriter != nil {
 		t.Logf("stdout:\n%s", ui.OutputWriter.String())
@@ -400,6 +434,12 @@ func TestApply_error(t *testing.T) {
 }
 
 func TestApply_input(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-input"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
@@ -426,7 +466,6 @@ func TestApply_input(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply-input"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -444,6 +483,12 @@ result = foo
 // When only a partial set of the variables are set, Terraform
 // should still ask for the unset ones by default (with -input=true)
 func TestApply_inputPartial(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-input-partial"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
@@ -467,7 +512,6 @@ func TestApply_inputPartial(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 		"-var", "foo=foovalue",
-		testFixturePath("apply-input-partial"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -484,14 +528,11 @@ foo = foovalue
 }
 
 func TestApply_noArgs(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("apply")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)
 
@@ -517,9 +558,6 @@ func TestApply_noArgs(t *testing.T) {
 	}
 
 	state := testStateRead(t, statePath)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
@@ -800,6 +838,12 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 }
 
 func TestApply_refresh(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -831,7 +875,6 @@ func TestApply_refresh(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -861,6 +904,12 @@ func TestApply_refresh(t *testing.T) {
 }
 
 func TestApply_shutdown(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-shutdown"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	cancelled := make(chan struct{})
 	shutdownCh := make(chan struct{})
 
@@ -920,7 +969,6 @@ func TestApply_shutdown(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply-shutdown"),
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -943,6 +991,12 @@ func TestApply_shutdown(t *testing.T) {
 }
 
 func TestApply_state(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -986,7 +1040,6 @@ func TestApply_state(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1031,6 +1084,12 @@ func TestApply_state(t *testing.T) {
 }
 
 func TestApply_stateNoExist(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -1042,7 +1101,6 @@ func TestApply_stateNoExist(t *testing.T) {
 
 	args := []string{
 		"idontexist.tfstate",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
@@ -1050,6 +1108,12 @@ func TestApply_stateNoExist(t *testing.T) {
 }
 
 func TestApply_sensitiveOutput(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-sensitive-output"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -1064,7 +1128,6 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-auto-approve",
-		testFixturePath("apply-sensitive-output"),
 	}
 
 	if code := c.Run(args); code != 0 {
@@ -1081,6 +1144,12 @@ func TestApply_sensitiveOutput(t *testing.T) {
 }
 
 func TestApply_vars(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -1120,7 +1189,6 @@ func TestApply_vars(t *testing.T) {
 		"-auto-approve",
 		"-var", "foo=bar",
 		"-state", statePath,
-		testFixturePath("apply-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1132,6 +1200,12 @@ func TestApply_vars(t *testing.T) {
 }
 
 func TestApply_varFile(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
@@ -1176,7 +1250,6 @@ func TestApply_varFile(t *testing.T) {
 		"-auto-approve",
 		"-var-file", varFilePath,
 		"-state", statePath,
-		testFixturePath("apply-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1188,22 +1261,18 @@ func TestApply_varFile(t *testing.T) {
 }
 
 func TestApply_varFileDefault(t *testing.T) {
-	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	statePath := testTempFile(t)
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(varFileDir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -1241,7 +1310,6 @@ func TestApply_varFileDefault(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		testFixturePath("apply-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1253,22 +1321,18 @@ func TestApply_varFileDefault(t *testing.T) {
 }
 
 func TestApply_varFileDefaultJSON(t *testing.T) {
-	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars.json")
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	varFilePath := filepath.Join(td, "terraform.tfvars.json")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	statePath := testTempFile(t)
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(varFileDir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -1306,7 +1370,6 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		testFixturePath("apply-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1318,6 +1381,12 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 }
 
 func TestApply_backup(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -1358,7 +1427,6 @@ func TestApply_backup(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 		"-backup", backupPath,
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1389,6 +1457,12 @@ func TestApply_backup(t *testing.T) {
 }
 
 func TestApply_disableBackup(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
@@ -1412,7 +1486,6 @@ func TestApply_disableBackup(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 		"-backup", "-",
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1462,6 +1535,12 @@ func TestApply_disableBackup(t *testing.T) {
 
 // Test that the Terraform env is passed through
 func TestApply_terraformEnv(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	statePath := testTempFile(t)
 
 	p := testProvider()
@@ -1476,7 +1555,6 @@ func TestApply_terraformEnv(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		testFixturePath("apply-terraform-env"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -1495,7 +1573,7 @@ output = default
 func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	os.MkdirAll(td, 0755)
+	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
@@ -1531,7 +1609,6 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 
 	args := []string{
 		"-auto-approve",
-		testFixturePath("apply-terraform-env"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

@@ -14,8 +14,10 @@ import (
 )
 
 func TestGraph(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("graph"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
@@ -25,9 +27,7 @@ func TestGraph(t *testing.T) {
 		},
 	}
 
-	args := []string{
-		testFixturePath("graph"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
@@ -57,14 +57,10 @@ func TestGraph_multipleArgs(t *testing.T) {
 }
 
 func TestGraph_noArgs(t *testing.T) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(testFixturePath("graph")); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("graph"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{

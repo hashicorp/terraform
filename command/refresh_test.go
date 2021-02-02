@@ -27,6 +27,12 @@ import (
 var equateEmpty = cmpopts.EquateEmpty()
 
 func TestRefresh(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -49,7 +55,6 @@ func TestRefresh(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -100,9 +105,7 @@ func TestRefresh_empty(t *testing.T) {
 		}),
 	}
 
-	args := []string{
-		td,
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -113,6 +116,12 @@ func TestRefresh_empty(t *testing.T) {
 }
 
 func TestRefresh_lockedState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -141,7 +150,6 @@ func TestRefresh_lockedState(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh"),
 	}
 
 	if code := c.Run(args); code == 0 {
@@ -214,6 +222,12 @@ func TestRefresh_cwd(t *testing.T) {
 }
 
 func TestRefresh_defaultState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := testState()
 
 	// Write the state file in a temporary directory with the
@@ -258,7 +272,6 @@ func TestRefresh_defaultState(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -290,6 +303,12 @@ func TestRefresh_defaultState(t *testing.T) {
 }
 
 func TestRefresh_outPath(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -322,7 +341,6 @@ func TestRefresh_outPath(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 		"-state-out", outPath,
-		testFixturePath("refresh"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -353,6 +371,12 @@ func TestRefresh_outPath(t *testing.T) {
 }
 
 func TestRefresh_var(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-var"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -369,7 +393,6 @@ func TestRefresh_var(t *testing.T) {
 	args := []string{
 		"-var", "foo=bar",
 		"-state", statePath,
-		testFixturePath("refresh-var"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -384,6 +407,12 @@ func TestRefresh_var(t *testing.T) {
 }
 
 func TestRefresh_varFile(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-var"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -405,7 +434,6 @@ func TestRefresh_varFile(t *testing.T) {
 	args := []string{
 		"-var-file", varFilePath,
 		"-state", statePath,
-		testFixturePath("refresh-var"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -420,6 +448,12 @@ func TestRefresh_varFile(t *testing.T) {
 }
 
 func TestRefresh_varFileDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-var"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -433,24 +467,13 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	}
 	p.GetSchemaResponse = refreshVarFixtureSchema()
 
-	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(varFileDir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
-
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh-var"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -465,6 +488,12 @@ func TestRefresh_varFileDefault(t *testing.T) {
 }
 
 func TestRefresh_varsUnset(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-unset-var"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	// Disable test mode so input would be asked
 	test = false
 	defer func() { test = true }()
@@ -497,7 +526,6 @@ func TestRefresh_varsUnset(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh-unset-var"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -505,6 +533,12 @@ func TestRefresh_varsUnset(t *testing.T) {
 }
 
 func TestRefresh_backup(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -553,7 +587,6 @@ func TestRefresh_backup(t *testing.T) {
 		"-state", statePath,
 		"-state-out", outPath,
 		"-backup", backupPath,
-		testFixturePath("refresh"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -584,6 +617,12 @@ func TestRefresh_backup(t *testing.T) {
 }
 
 func TestRefresh_disableBackup(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -617,7 +656,6 @@ func TestRefresh_disableBackup(t *testing.T) {
 		"-state", statePath,
 		"-state-out", outPath,
 		"-backup", "-",
-		testFixturePath("refresh"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -653,6 +691,12 @@ func TestRefresh_disableBackup(t *testing.T) {
 }
 
 func TestRefresh_displaysOutputs(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-output"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	state := testState()
 	statePath := testStateFile(t, state)
 
@@ -679,7 +723,6 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("refresh-output"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

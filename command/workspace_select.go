@@ -26,7 +26,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) == 0 {
+	if len(args) != 1 {
 		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
@@ -129,7 +129,7 @@ func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform workspace select NAME [DIR]
+Usage: terraform workspace select NAME
 
   Select a different Terraform workspace.
 

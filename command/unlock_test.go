@@ -56,7 +56,7 @@ func TestUnlock(t *testing.T) {
 		"-force",
 	}
 
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 }
