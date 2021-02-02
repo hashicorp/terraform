@@ -150,7 +150,7 @@ func TestGraph_plan(t *testing.T) {
 	}
 
 	args := []string{
-		planPath,
+		"-plan", planPath,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())

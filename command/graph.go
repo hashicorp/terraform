@@ -23,6 +23,7 @@ func (c *GraphCommand) Run(args []string) int {
 	var graphTypeStr string
 	var moduleDepth int
 	var verbose bool
+	var planPath string
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("graph")
@@ -30,19 +31,14 @@ func (c *GraphCommand) Run(args []string) int {
 	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
 	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
 	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
+	cmdFlags.StringVar(&planPath, "plan", "", "plan")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	var planPath string
-	if len(args) > 0 {
-		planPath = args[0]
-		args = args[1:]
-	}
-	configPath, err := ModulePath(args)
+	configPath, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -170,7 +166,7 @@ func (c *GraphCommand) Help() string {
 Usage: terraform graph [options]
 
   Outputs the visual execution graph of Terraform resources according to
-  configuration files in the current directory.
+  either the current configuration or an execution plan.
 
   The graph is outputted in DOT format. The typical program that can
   read this format is GraphViz, but many web services are also available
@@ -183,6 +179,9 @@ Usage: terraform graph [options]
   argument.
 
 Options:
+
+  -plan=tfplan     Render graph using the specified plan file instead of the
+                   configuration in the current directory.
 
   -draw-cycles     Highlight any cycles in the graph with colored edges.
                    This helps when diagnosing cycle errors.
