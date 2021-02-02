@@ -1,5 +1,9 @@
 ## 0.14.6 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/s3: Add support for AWS Single-Sign On (SSO) cached credentials [GH-27620]
+
 BUG FIXES:
 
 * cli: Rerunning `init` will reuse installed providers rather than fetching the provider again [GH-27582]
