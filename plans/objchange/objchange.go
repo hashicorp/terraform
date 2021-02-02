@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 )
 
-// ProposedNewObject constructs a proposed new object value by combining the
+// ProposedNew constructs a proposed new object value by combining the
 // computed attribute values from "prior" with the configured attribute values
 // from "config".
 //
@@ -24,7 +24,7 @@ import (
 // heuristic based on matching non-computed attribute values and so it may
 // produce strange results with more "extreme" cases, such as a nested set
 // block where _all_ attributes are computed.
-func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
+func ProposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	// If the config and prior are both null, return early here before
 	// populating the prior block. The prevents non-null blocks from appearing
 	// the proposed state value.
@@ -39,10 +39,10 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 		// below by giving us one non-null level of object to pull values from.
 		prior = AllAttributesNull(schema)
 	}
-	return proposedNewObject(schema, prior, config)
+	return proposedNew(schema, prior, config)
 }
 
-// PlannedDataResourceObject is similar to ProposedNewObject but tailored for
+// PlannedDataResourceObject is similar to proposedNewBlock but tailored for
 // planning data resources in particular. Specifically, it replaces the values
 // of any Computed attributes not set in the configuration with an unknown
 // value, which serves as a placeholder for a value to be filled in by the
@@ -51,27 +51,27 @@ func ProposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 // Data resources are different because the planning of them is handled
 // entirely within Terraform Core and not subject to customization by the
 // provider. This function is, in effect, producing an equivalent result to
-// passing the ProposedNewObject result into a provider's PlanResourceChange
+// passing the proposedNewBlock result into a provider's PlanResourceChange
 // function, assuming a fixed implementation of PlanResourceChange that just
 // fills in unknown values as needed.
 func PlannedDataResourceObject(schema *configschema.Block, config cty.Value) cty.Value {
-	// Our trick here is to run the ProposedNewObject logic with an
+	// Our trick here is to run the proposedNewBlock logic with an
 	// entirely-unknown prior value. Because of cty's unknown short-circuit
 	// behavior, any operation on prior returns another unknown, and so
 	// unknown values propagate into all of the parts of the resulting value
 	// that would normally be filled in by preserving the prior state.
 	prior := cty.UnknownVal(schema.ImpliedType())
-	return proposedNewObject(schema, prior, config)
+	return proposedNew(schema, prior, config)
 }
 
-func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.Value {
+func proposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if config.IsNull() || !config.IsKnown() {
 		// This is a weird situation, but we'll allow it anyway to free
 		// callers from needing to specifically check for these cases.
 		return prior
 	}
 	if (!prior.Type().IsObjectType()) || (!config.Type().IsObjectType()) {
-		panic("ProposedNewObject only supports object-typed values")
+		panic("ProposedNew only supports object-typed values")
 	}
 
 	// From this point onwards, we can assume that both values are non-null
@@ -107,7 +107,7 @@ func proposedNewObject(schema *configschema.Block, prior, config cty.Value) cty.
 			// should've been caught during an earlier validation step, and
 			// so we don't really care about that here.
 			if attr.NestedType != nil {
-				newV = proposedNewNestedBlock(attr.NestedType, priorV, configV)
+				newV = proposedNewObject(attr.NestedType, priorV, configV)
 			} else {
 				newV = configV
 			}
@@ -134,7 +134,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 	switch schema.Nesting {
 
 	case configschema.NestingSingle, configschema.NestingGroup:
-		newV = ProposedNewObject(&schema.Block, prior, config)
+		newV = ProposedNew(&schema.Block, prior, config)
 
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.
@@ -154,7 +154,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 				}
 				priorEV := prior.Index(idx)
 
-				newEV := ProposedNewObject(&schema.Block, priorEV, configEV)
+				newEV := ProposedNew(&schema.Block, priorEV, configEV)
 				newVals = append(newVals, newEV)
 			}
 			// Despite the name, a NestingList might also be a tuple, if
@@ -197,7 +197,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 					}
 					priorEV := prior.GetAttr(name)
 
-					newEV := ProposedNewObject(&schema.Block, priorEV, configEV)
+					newEV := ProposedNew(&schema.Block, priorEV, configEV)
 					newVals[name] = newEV
 				}
 				// Although we call the nesting mode "map", we actually use
@@ -225,7 +225,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 					}
 					priorEV := prior.Index(idx)
 
-					newEV := ProposedNewObject(&schema.Block, priorEV, configEV)
+					newEV := ProposedNew(&schema.Block, priorEV, configEV)
 					newVals[k] = newEV
 				}
 				newV = cty.MapVal(newVals)
@@ -272,7 +272,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 					priorEV = cty.NullVal(schema.ImpliedType())
 				}
 
-				newEV := ProposedNewObject(&schema.Block, priorEV, configEV)
+				newEV := ProposedNew(&schema.Block, priorEV, configEV)
 				newVals = append(newVals, newEV)
 			}
 			newV = cty.SetVal(newVals)
@@ -298,7 +298,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 // value and the one-indexed element is the corresponding "compare value".
 //
 // This is intended to help correlate prior elements with configured elements
-// in ProposedNewObject. The result is a heuristic rather than an exact science,
+// in proposedNewBlock. The result is a heuristic rather than an exact science,
 // since e.g. two separate elements may reduce to the same value through this
 // process. The caller must therefore be ready to deal with duplicates.
 func setElementCompareValues(schema *configschema.Block, set cty.Value, isConfig bool) [][2]cty.Value {
@@ -414,4 +414,163 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 	}
 
 	return cty.ObjectVal(attrs)
+}
+
+func proposedNewObject(schema *configschema.Object, prior, config cty.Value) cty.Value {
+	var newV cty.Value
+
+	// switch schema.Nesting {
+
+	// case configschema.NestingSingle, configschema.NestingGroup:
+	// 	newV = ProposedNew(&schema.Block, prior, config)
+
+	// case configschema.NestingList:
+	// 	// Nested blocks are correlated by index.
+	// 	configVLen := 0
+	// 	if config.IsKnown() && !config.IsNull() {
+	// 		configVLen = config.LengthInt()
+	// 	}
+	// 	if configVLen > 0 {
+	// 		newVals := make([]cty.Value, 0, configVLen)
+	// 		for it := config.ElementIterator(); it.Next(); {
+	// 			idx, configEV := it.Element()
+	// 			if prior.IsKnown() && (prior.IsNull() || !prior.HasIndex(idx).True()) {
+	// 				// If there is no corresponding prior element then
+	// 				// we just take the config value as-is.
+	// 				newVals = append(newVals, configEV)
+	// 				continue
+	// 			}
+	// 			priorEV := prior.Index(idx)
+
+	// 			newEV := ProposedNew(&schema.Block, priorEV, configEV)
+	// 			newVals = append(newVals, newEV)
+	// 		}
+	// 		// Despite the name, a NestingList might also be a tuple, if
+	// 		// its nested schema contains dynamically-typed attributes.
+	// 		if config.Type().IsTupleType() {
+	// 			newV = cty.TupleVal(newVals)
+	// 		} else {
+	// 			newV = cty.ListVal(newVals)
+	// 		}
+	// 	} else {
+	// 		// Despite the name, a NestingList might also be a tuple, if
+	// 		// its nested schema contains dynamically-typed attributes.
+	// 		if config.Type().IsTupleType() {
+	// 			newV = cty.EmptyTupleVal
+	// 		} else {
+	// 			newV = cty.ListValEmpty(schema.ImpliedType())
+	// 		}
+	// 	}
+
+	// case configschema.NestingMap:
+	// 	// Despite the name, a NestingMap may produce either a map or
+	// 	// object value, depending on whether the nested schema contains
+	// 	// dynamically-typed attributes.
+	// 	if config.Type().IsObjectType() {
+	// 		// Nested blocks are correlated by key.
+	// 		configVLen := 0
+	// 		if config.IsKnown() && !config.IsNull() {
+	// 			configVLen = config.LengthInt()
+	// 		}
+	// 		if configVLen > 0 {
+	// 			newVals := make(map[string]cty.Value, configVLen)
+	// 			atys := config.Type().AttributeTypes()
+	// 			for name := range atys {
+	// 				configEV := config.GetAttr(name)
+	// 				if !prior.IsKnown() || prior.IsNull() || !prior.Type().HasAttribute(name) {
+	// 					// If there is no corresponding prior element then
+	// 					// we just take the config value as-is.
+	// 					newVals[name] = configEV
+	// 					continue
+	// 				}
+	// 				priorEV := prior.GetAttr(name)
+
+	// 				newEV := ProposedNew(&schema.Block, priorEV, configEV)
+	// 				newVals[name] = newEV
+	// 			}
+	// 			// Although we call the nesting mode "map", we actually use
+	// 			// object values so that elements might have different types
+	// 			// in case of dynamically-typed attributes.
+	// 			newV = cty.ObjectVal(newVals)
+	// 		} else {
+	// 			newV = cty.EmptyObjectVal
+	// 		}
+	// 	} else {
+	// 		configVLen := 0
+	// 		if config.IsKnown() && !config.IsNull() {
+	// 			configVLen = config.LengthInt()
+	// 		}
+	// 		if configVLen > 0 {
+	// 			newVals := make(map[string]cty.Value, configVLen)
+	// 			for it := config.ElementIterator(); it.Next(); {
+	// 				idx, configEV := it.Element()
+	// 				k := idx.AsString()
+	// 				if prior.IsKnown() && (prior.IsNull() || !prior.HasIndex(idx).True()) {
+	// 					// If there is no corresponding prior element then
+	// 					// we just take the config value as-is.
+	// 					newVals[k] = configEV
+	// 					continue
+	// 				}
+	// 				priorEV := prior.Index(idx)
+
+	// 				newEV := ProposedNew(&schema.Block, priorEV, configEV)
+	// 				newVals[k] = newEV
+	// 			}
+	// 			newV = cty.MapVal(newVals)
+	// 		} else {
+	// 			newV = cty.MapValEmpty(schema.ImpliedType())
+	// 		}
+	// 	}
+
+	// case configschema.NestingSet:
+	// 	if !config.Type().IsSetType() {
+	// 		panic("configschema.NestingSet value is not a set as expected")
+	// 	}
+
+	// 	// Nested blocks are correlated by comparing the element values
+	// 	// after eliminating all of the computed attributes. In practice,
+	// 	// this means that any config change produces an entirely new
+	// 	// nested object, and we only propagate prior computed values
+	// 	// if the non-computed attribute values are identical.
+	// 	var cmpVals [][2]cty.Value
+	// 	if prior.IsKnown() && !prior.IsNull() {
+	// 		cmpVals = setElementCompareValues(&schema.Block, prior, false)
+	// 	}
+	// 	configVLen := 0
+	// 	if config.IsKnown() && !config.IsNull() {
+	// 		configVLen = config.LengthInt()
+	// 	}
+	// 	if configVLen > 0 {
+	// 		used := make([]bool, len(cmpVals)) // track used elements in case multiple have the same compare value
+	// 		newVals := make([]cty.Value, 0, configVLen)
+	// 		for it := config.ElementIterator(); it.Next(); {
+	// 			_, configEV := it.Element()
+	// 			var priorEV cty.Value
+	// 			for i, cmp := range cmpVals {
+	// 				if used[i] {
+	// 					continue
+	// 				}
+	// 				if cmp[1].RawEquals(configEV) {
+	// 					priorEV = cmp[0]
+	// 					used[i] = true // we can't use this value on a future iteration
+	// 					break
+	// 				}
+	// 			}
+	// 			if priorEV == cty.NilVal {
+	// 				priorEV = cty.NullVal(schema.ImpliedType())
+	// 			}
+
+	// 			newEV := ProposedNew(&schema.Block, priorEV, configEV)
+	// 			newVals = append(newVals, newEV)
+	// 		}
+	// 		newV = cty.SetVal(newVals)
+	// 	} else {
+	// 		newV = cty.SetValEmpty(schema.Block.ImpliedType())
+	// 	}
+
+	// default:
+	// 	// Should never happen, since the above cases are comprehensive.
+	// 	panic(fmt.Sprintf("unsupported block nesting mode %s", schema.Nesting))
+	// }
+	return newV
 }

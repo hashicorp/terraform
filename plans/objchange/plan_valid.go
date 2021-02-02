@@ -56,7 +56,7 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 	for name, attrS := range schema.Attributes {
 		var moreErrs []error
 		if attrS.NestedType != nil {
-			moreErrs = assertPlannedBlockValid(name, attrS.NestedType, impTy, priorState, config, plannedState, path)
+			// moreErrs = assertPlannedBlockValid(name, attrS.NestedType, impTy, priorState, config, plannedState, path)
 		} else {
 			moreErrs = assertPlannedAttrValid(name, attrS, priorState, config, plannedState, path)
 		}
@@ -266,7 +266,7 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 
 	// If this attribute has a nested block, validate the inner block
 	if attrS.NestedType != nil {
-		return assertPlanValid(&attrS.NestedType.Block, priorV, configV, plannedV, path)
+		// return assertPlanValid(&attrS.NestedType.Block, priorV, configV, plannedV, path)
 	}
 
 	// If none of the above conditions match, the provider has made an invalid

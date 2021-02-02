@@ -34,14 +34,12 @@ func TestProposedNewObject(t *testing.T) {
 						Computed: true,
 					},
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSingle,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -111,14 +109,12 @@ func TestProposedNewObject(t *testing.T) {
 						Optional: true,
 					},
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSingle,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -183,14 +179,12 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSet,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -247,14 +241,12 @@ func TestProposedNewObject(t *testing.T) {
 						Computed: true,
 					},
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSingle,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -313,18 +305,16 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSingle,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
-									"bleep": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -386,14 +376,12 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -481,18 +469,16 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.DynamicPseudoType,
-										Required: true,
-									},
-									"blub": {
-										Type:     cty.DynamicPseudoType,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.DynamicPseudoType,
+									Required: true,
+								},
+								"blub": {
+									Type:     cty.DynamicPseudoType,
+									Optional: true,
 								},
 							},
 						},
@@ -578,14 +564,12 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingMap,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -677,14 +661,12 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingMap,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.DynamicPseudoType,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.DynamicPseudoType,
+									Required: true,
 								},
 							},
 						},
@@ -778,18 +760,16 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSet,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
-									"bleep": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -882,14 +862,12 @@ func TestProposedNewObject(t *testing.T) {
 				},
 				Attributes: map[string]*configschema.Attribute{
 					"bloop": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSet,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"blop": {
-										Type:     cty.String,
-										Required: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
 								},
 							},
 						},
@@ -1224,7 +1202,7 @@ func TestProposedNewObject(t *testing.T) {
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := ProposedNewObject(test.Schema, test.Prior, test.Config)
+			got := ProposedNew(test.Schema, test.Prior, test.Config)
 			if !got.RawEquals(test.Want) {
 				t.Errorf("wrong result\ngot:  %swant: %s", dump.Value(got), dump.Value(test.Want))
 			}

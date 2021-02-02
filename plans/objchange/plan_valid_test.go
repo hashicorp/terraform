@@ -585,14 +585,12 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -627,14 +625,12 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -667,14 +663,12 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -709,15 +703,13 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:      cty.String,
-										Optional:  true,
-										Sensitive: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:      cty.String,
+									Optional:  true,
+									Sensitive: true,
 								},
 							},
 						},
@@ -752,14 +744,12 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -794,14 +784,40 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
-						NestedType: &configschema.NestedBlock{
+						NestedType: &configschema.Object{
 							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"b": {
-										Type:     cty.String,
-										Optional: true,
-									},
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, all zero value": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
@@ -825,6 +841,183 @@ func TestAssertPlanValid(t *testing.T) {
 				}))),
 			}),
 			nil,
+		},
+		"NestedType NestingSet attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			nil,
+		},
+		"NestedType deep nested optional set attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bleep": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"bloop": {
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"blome": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.Set(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.List(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+			// should not error, and error text is incorrect for attribute types
+			nil,
+		},
+		"NestedType nested computed list attribute": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType nested list attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+
+			// provider returned the old value
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			[]string{"something about an error"},
 		},
 	}
 

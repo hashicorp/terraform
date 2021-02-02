@@ -42,7 +42,7 @@ type Attribute struct {
 	Type cty.Type
 
 	// NestedType indicates that the attribute is a NestedBlock-style object.
-	// This field conflicts with Type. The difference between an Object
+	// This field conflicts with Type.
 	NestedType *Object
 
 	// Description is an English-language description of the purpose and
