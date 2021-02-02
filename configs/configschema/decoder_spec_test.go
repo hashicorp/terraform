@@ -473,13 +473,11 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType with required string": {
 			&Attribute{
-				NestedType: &NestedBlock{
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+				NestedType: &Object{
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -502,17 +500,15 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType with optional attributes": {
 			&Attribute{
-				NestedType: &NestedBlock{
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Optional: true,
-							},
-							"bar": {
-								Type:     cty.String,
-								Optional: true,
-							},
+				NestedType: &Object{
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"bar": {
+							Type:     cty.String,
+							Optional: true,
 						},
 					},
 				},
@@ -536,13 +532,11 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType with missing required string": {
 			&Attribute{
-				NestedType: &NestedBlock{
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+				NestedType: &Object{
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -564,14 +558,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		// NestedModes
 		"NestedType NestingModeList valid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingList,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -602,14 +594,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType NestingModeList invalid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingList,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -631,14 +621,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType NestingModeSet valid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingSet,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -669,14 +657,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType NestingModeSet invalid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingSet,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -698,14 +684,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType NestingModeMap valid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingMap,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -736,14 +720,12 @@ func TestAttributeDecoderSpec(t *testing.T) {
 		},
 		"NestedType NestingModeMap invalid": {
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingMap,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"foo": {
-								Type:     cty.String,
-								Required: true,
-							},
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
 						},
 					},
 				},
@@ -796,7 +778,7 @@ func TestAttributeDecoderSpec_panic(t *testing.T) {
 		Type: cty.Object(map[string]cty.Type{
 			"nested_attribute": cty.String,
 		}),
-		NestedType: &NestedBlock{},
+		NestedType: &Object{},
 		Optional:   true,
 	}
 

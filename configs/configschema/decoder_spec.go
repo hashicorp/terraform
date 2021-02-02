@@ -198,18 +198,18 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 		}
 
 		var optAttrs []string
-		optAttrs = listOptionalAttrsFromBlock(a.NestedType.Block, optAttrs)
-		ty := a.NestedType.Block.ImpliedType()
+		optAttrs = listOptionalAttrsFromObject(a.NestedType, optAttrs)
+		ty := a.NestedType.ImpliedType()
 
 		switch a.NestedType.Nesting {
 		case NestingList:
-			ret.Type = cty.List(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+			ret.Type = cty.List(ty)
 		case NestingSet:
-			ret.Type = cty.Set(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+			ret.Type = cty.Set(ty)
 		case NestingMap:
-			ret.Type = cty.Map(cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs))
+			ret.Type = cty.Map(ty)
 		default: // NestingSingle, NestingGroup, or no NestingMode
-			ret.Type = cty.ObjectWithOptionalAttrs(ty.AttributeTypes(), optAttrs)
+			ret.Type = ty
 		}
 		ret.Required = a.NestedType.MinItems > 0
 		return ret
@@ -220,15 +220,11 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 	return ret
 }
 
-func listOptionalAttrsFromBlock(b Block, optAttrs []string) []string {
-	for name, attr := range b.Attributes {
+func listOptionalAttrsFromObject(o *Object, optAttrs []string) []string {
+	for name, attr := range o.Attributes {
 		if attr.Optional == true {
 			optAttrs = append(optAttrs, name)
 		}
-	}
-
-	for _, block := range b.BlockTypes {
-		listOptionalAttrsFromBlock(block.Block, optAttrs)
 	}
 
 	return optAttrs

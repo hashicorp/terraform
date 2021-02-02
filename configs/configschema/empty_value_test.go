@@ -188,12 +188,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					// no Nesting set should behave the same as NestingSingle
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
@@ -203,12 +201,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingSingle,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
@@ -218,12 +214,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingGroup, // functionally equivalent to NestingSingle in a NestedType
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
@@ -233,12 +227,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingList,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
@@ -250,12 +242,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingMap,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
@@ -267,12 +257,10 @@ func TestAttributeEmptyValue(t *testing.T) {
 		},
 		{
 			&Attribute{
-				NestedType: &NestedBlock{
+				NestedType: &Object{
 					Nesting: NestingSet,
-					Block: Block{
-						Attributes: map[string]*Attribute{
-							"str": {Type: cty.String, Required: true},
-						},
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
 					},
 				},
 			},
