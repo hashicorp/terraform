@@ -52,11 +52,13 @@ func TestConsole_basic(t *testing.T) {
 }
 
 func TestConsole_tfvars(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	// Write a terraform.tvars
-	varFilePath := filepath.Join(tmp, "terraform.tfvars")
+	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -85,9 +87,7 @@ func TestConsole_tfvars(t *testing.T) {
 	defer testStdinPipe(t, strings.NewReader("var.foo\n"))()
 	outCloser := testStdoutCapture(t, &output)
 
-	args := []string{
-		testFixturePath("apply-vars"),
-	}
+	args := []string{}
 	code := c.Run(args)
 	outCloser()
 	if code != 0 {
@@ -106,9 +106,13 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	// "terraform console" producing an interactive prompt for those variables
 	// or producing errors. Instead, it should allow evaluation in that
 	// partial context but see the unset variables values as being unknown.
-
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	//
+	// This test fixture includes variable "foo" {}, which we are
+	// intentionally not setting here.
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
@@ -134,11 +138,7 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	defer testStdinPipe(t, strings.NewReader("var.foo\n"))()
 	outCloser := testStdoutCapture(t, &output)
 
-	args := []string{
-		// This test fixture includes variable "foo" {}, which we are
-		// intentionally not setting here.
-		testFixturePath("apply-vars"),
-	}
+	args := []string{}
 	code := c.Run(args)
 	outCloser()
 
@@ -152,8 +152,10 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 }
 
 func TestConsole_variables(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("variables"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -171,9 +173,7 @@ func TestConsole_variables(t *testing.T) {
 		"local.snack_bar\n":  "[\n  \"popcorn\",\n  (sensitive),\n]\n",
 	}
 
-	args := []string{
-		testFixturePath("variables"),
-	}
+	args := []string{}
 
 	for cmd, val := range commands {
 		var output bytes.Buffer
@@ -214,9 +214,7 @@ func TestConsole_modules(t *testing.T) {
 		"local.foo\n":                      "3\n",
 	}
 
-	args := []string{
-		testFixturePath("modules"),
-	}
+	args := []string{}
 
 	for cmd, val := range commands {
 		var output bytes.Buffer

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -98,6 +99,11 @@ func TestPlan_plan(t *testing.T) {
 }
 
 func TestPlan_destroy(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -131,7 +137,6 @@ func TestPlan_destroy(t *testing.T) {
 		"-destroy",
 		"-out", outPath,
 		"-state", statePath,
-		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -146,8 +151,10 @@ func TestPlan_destroy(t *testing.T) {
 }
 
 func TestPlan_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -158,9 +165,7 @@ func TestPlan_noState(t *testing.T) {
 		},
 	}
 
-	args := []string{
-		testFixturePath("plan"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -179,10 +184,11 @@ func TestPlan_noState(t *testing.T) {
 }
 
 func TestPlan_outPath(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
-	td := testTempDir(t)
 	outPath := filepath.Join(td, "test.plan")
 
 	p := planFixtureProvider()
@@ -200,7 +206,6 @@ func TestPlan_outPath(t *testing.T) {
 
 	args := []string{
 		"-out", outPath,
-		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -210,6 +215,11 @@ func TestPlan_outPath(t *testing.T) {
 }
 
 func TestPlan_outPathNoChange(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -232,7 +242,6 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	})
 	statePath := testStateFile(t, originalState)
 
-	td := testTempDir(t)
 	outPath := filepath.Join(td, "test.plan")
 
 	p := planFixtureProvider()
@@ -247,7 +256,6 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	args := []string{
 		"-out", outPath,
 		"-state", statePath,
-		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -360,8 +368,11 @@ func TestPlan_outBackend(t *testing.T) {
 }
 
 func TestPlan_refreshFalse(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -374,7 +385,6 @@ func TestPlan_refreshFalse(t *testing.T) {
 
 	args := []string{
 		"-refresh=false",
-		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -386,6 +396,12 @@ func TestPlan_refreshFalse(t *testing.T) {
 }
 
 func TestPlan_state(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
@@ -400,7 +416,6 @@ func TestPlan_state(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -422,18 +437,16 @@ func TestPlan_state(t *testing.T) {
 }
 
 func TestPlan_stateDefault(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Generate state and move it to the default path
 	originalState := testState()
 	statePath := testStateFile(t, originalState)
-
-	// Change to that directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(filepath.Dir(statePath)); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
+	os.Rename(statePath, path.Join(td, "terraform.tfstate"))
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
@@ -444,10 +457,7 @@ func TestPlan_stateDefault(t *testing.T) {
 		},
 	}
 
-	args := []string{
-		"-state", statePath,
-		testFixturePath("plan"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -514,8 +524,11 @@ func TestPlan_validate(t *testing.T) {
 }
 
 func TestPlan_vars(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
@@ -535,7 +548,6 @@ func TestPlan_vars(t *testing.T) {
 
 	args := []string{
 		"-var", "foo=bar",
-		testFixturePath("plan-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -547,8 +559,11 @@ func TestPlan_vars(t *testing.T) {
 }
 
 func TestPlan_varsUnset(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	// The plan command will prompt for interactive input of var.foo.
 	// We'll answer "bar" to that prompt, which should then allow this
@@ -569,9 +584,7 @@ func TestPlan_varsUnset(t *testing.T) {
 		},
 	}
 
-	args := []string{
-		testFixturePath("plan-vars"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -581,8 +594,11 @@ func TestPlan_varsUnset(t *testing.T) {
 // processing of user input:
 // https://github.com/hashicorp/terraform/issues/26035
 func TestPlan_providerArgumentUnset(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	// Disable test mode so input would be asked
 	test = false
@@ -631,17 +647,18 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 		},
 	}
 
-	args := []string{
-		testFixturePath("plan"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 }
 
 func TestPlan_varFile(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
@@ -666,7 +683,6 @@ func TestPlan_varFile(t *testing.T) {
 
 	args := []string{
 		"-var-file", varFilePath,
-		testFixturePath("plan-vars"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -678,20 +694,16 @@ func TestPlan_varFile(t *testing.T) {
 }
 
 func TestPlan_varFileDefault(t *testing.T) {
-	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := os.Chdir(varFileDir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	defer os.Chdir(cwd)
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
@@ -709,9 +721,7 @@ func TestPlan_varFileDefault(t *testing.T) {
 		return
 	}
 
-	args := []string{
-		testFixturePath("plan-vars"),
-	}
+	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
@@ -722,8 +732,11 @@ func TestPlan_varFileDefault(t *testing.T) {
 }
 
 func TestPlan_varFileWithDecls(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
@@ -741,7 +754,6 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 
 	args := []string{
 		"-var-file", varFilePath,
-		testFixturePath("plan-vars"),
 	}
 	if code := c.Run(args); code == 0 {
 		t.Fatalf("succeeded; want failure\n\n%s", ui.OutputWriter.String())
@@ -796,6 +808,12 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 }
 
 func TestPlan_shutdown(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-shutdown"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	cancelled := make(chan struct{})
 	shutdownCh := make(chan struct{})
 
@@ -847,14 +865,7 @@ func TestPlan_shutdown(t *testing.T) {
 		},
 	}
 
-	code := c.Run([]string{
-		// Unfortunately it seems like this test can inadvertently pick up
-		// leftover state from other tests without this. Ideally we should
-		// find which test is leaving a terraform.tfstate behind and stop it
-		// doing that, but this will stop this test flapping for now.
-		"-state=nonexistent.tfstate",
-		testFixturePath("apply-shutdown"),
-	})
+	code := c.Run([]string{})
 	if code != 1 {
 		t.Errorf("wrong exit code %d; want 1\noutput:\n%s", code, ui.OutputWriter.String())
 	}

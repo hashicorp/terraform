@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -50,6 +51,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	var diags tfdiags.Diagnostics
 
 	args = cmdFlags.Args()
+	var planPath string
+	if len(args) > 0 {
+		planPath = args[0]
+		args = args[1:]
+	}
+
 	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -62,11 +69,14 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	planFile, err := c.PlanFile(configPath)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
+	// Try to load plan if path is specified
+	var planFile *planfile.Reader
+	if planPath != "" {
+		planFile, err = c.PlanFile(planPath)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
 	}
 	if c.Destroy && planFile != nil {
 		c.Ui.Error("Destroy can't be called with a plan file.")
@@ -297,7 +307,7 @@ Options:
 
 func (c *ApplyCommand) helpDestroy() string {
 	helpText := `
-Usage: terraform destroy [options] [DIR]
+Usage: terraform destroy [options]
 
   Destroy Terraform-managed infrastructure.
 
