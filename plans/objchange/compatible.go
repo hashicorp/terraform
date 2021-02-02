@@ -357,6 +357,10 @@ func couldHaveUnknownBlockPlaceholder(v cty.Value, blockS *configschema.NestedBl
 			return false // treated as if the list were empty, so we would see zero iterations below
 		}
 
+		// Unmark before we call ElementIterator in case this iterable is marked sensitive.
+		// This can arise in the case where a member of a Set is sensitive, and thus the
+		// whole Set is marked sensitive
+		v, _ := v.Unmark()
 		// For all other nesting modes, our value should be something iterable.
 		for it := v.ElementIterator(); it.Next(); {
 			_, ev := it.Element()
