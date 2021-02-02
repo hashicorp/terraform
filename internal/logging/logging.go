@@ -81,7 +81,7 @@ func HCLogger() hclog.Logger {
 // newHCLogger returns a new hclog.Logger instance with the given name
 func newHCLogger(name string) hclog.Logger {
 	logOutput := io.Writer(os.Stderr)
-	logLevel := globalLogLevel()
+	logLevel, json := globalLogLevel()
 
 	if logPath := os.Getenv(envLogFile); logPath != "" {
 		f, err := os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
@@ -97,6 +97,7 @@ func newHCLogger(name string) hclog.Logger {
 		Level:             logLevel,
 		Output:            logOutput,
 		IndependentLevels: true,
+		JSONFormat:        json,
 	})
 }
 
@@ -127,7 +128,8 @@ func NewProviderLogger(prefix string) hclog.Logger {
 
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
-	return strings.ToUpper(globalLogLevel().String())
+	ll, _ := globalLogLevel()
+	return strings.ToUpper(ll.String())
 }
 
 func providerLogLevel() hclog.Level {
@@ -139,18 +141,24 @@ func providerLogLevel() hclog.Level {
 	return parseLogLevel(providerEnvLevel)
 }
 
-func globalLogLevel() hclog.Level {
+func globalLogLevel() (hclog.Level, bool) {
+	var json bool
 	envLevel := strings.ToUpper(os.Getenv(envLog))
 	if envLevel == "" {
 		envLevel = strings.ToUpper(os.Getenv(envLogCore))
-
 	}
-	return parseLogLevel(envLevel)
+	if envLevel == "JSON" {
+		json = true
+	}
+	return parseLogLevel(envLevel), json
 }
 
 func parseLogLevel(envLevel string) hclog.Level {
 	if envLevel == "" {
 		return hclog.Off
+	}
+	if envLevel == "JSON" {
+		envLevel = "TRACE"
 	}
 
 	logLevel := hclog.Trace
@@ -166,7 +174,7 @@ func parseLogLevel(envLevel string) hclog.Level {
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace
 func IsDebugOrHigher() bool {
-	level := globalLogLevel()
+	level, _ := globalLogLevel()
 	return level == hclog.Debug || level == hclog.Trace
 }
 
