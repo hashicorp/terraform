@@ -63,6 +63,91 @@ func TestApply(t *testing.T) {
 	}
 }
 
+func TestApply_approveNo(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Answer approval request with "no"
+	defaultInputReader = bytes.NewBufferString("no\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	p := applyFixtureProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	if got, want := ui.OutputWriter.String(), "Apply cancelled"; !strings.Contains(got, want) {
+		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
+	}
+
+	if _, err := os.Stat(statePath); err == nil || !os.IsNotExist(err) {
+		t.Fatalf("state file should not exist")
+	}
+}
+
+func TestApply_approveYes(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Answer approval request with "yes"
+	defaultInputReader = bytes.NewBufferString("yes\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+}
+
 // test apply with locked state
 func TestApply_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty

@@ -24,7 +24,7 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh, autoApprove bool
+	var refresh, autoApprove bool
 	args = c.Meta.process(args)
 	cmdName := "apply"
 	if c.Destroy {
@@ -33,9 +33,6 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.extendedFlagSet(cmdName)
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
-	if c.Destroy {
-		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")
-	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
@@ -160,7 +157,6 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = configPath
 	opReq.Destroy = c.Destroy
-	opReq.DestroyForce = destroyForce
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
 	opReq.Type = backend.OperationTypeApply
@@ -318,8 +314,6 @@ Options:
                          ".backup" extension. Set to "-" to disable backup.
 
   -auto-approve          Skip interactive approval before destroying.
-
-  -force                 Deprecated: same as auto-approve.
 
   -lock=true             Lock the state file when locking is supported.
 

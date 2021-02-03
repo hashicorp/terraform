@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -109,6 +110,123 @@ func TestApply_destroy(t *testing.T) {
 
 	actualStr = strings.TrimSpace(backupStateFile.State.String())
 	expectedStr = strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+	}
+}
+
+func TestApply_destroyApproveNo(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Create some existing state
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Answer approval request with "no"
+	defaultInputReader = bytes.NewBufferString("no\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	p := applyFixtureProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	if got, want := ui.OutputWriter.String(), "Destroy cancelled"; !strings.Contains(got, want) {
+		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
+	}
+}
+
+func TestApply_destroyApproveYes(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Answer approval request with "yes"
+	defaultInputReader = bytes.NewBufferString("yes\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(testApplyDestroyStr)
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
