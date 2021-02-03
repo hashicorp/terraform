@@ -18,6 +18,12 @@ import (
 )
 
 func TestApply_destroy(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -64,7 +70,6 @@ func TestApply_destroy(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Log(ui.OutputWriter.String())
@@ -233,6 +238,12 @@ func TestApply_destroyApproveYes(t *testing.T) {
 }
 
 func TestApply_destroyLockedState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -272,7 +283,6 @@ func TestApply_destroyLockedState(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 		"-state", statePath,
-		testFixturePath("apply"),
 	}
 
 	if code := c.Run(args); code == 0 {
@@ -286,6 +296,12 @@ func TestApply_destroyLockedState(t *testing.T) {
 }
 
 func TestApply_destroyPlan(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	planPath := testPlanFileNoop(t)
 
 	p := testProvider()
@@ -305,9 +321,50 @@ func TestApply_destroyPlan(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "plan file") {
+		t.Fatal("expected command output to refer to plan file, but got:", output)
+	}
+}
+
+func TestApply_destroyPath(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := applyFixtureProvider()
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-auto-approve",
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "-chdir") {
+		t.Fatal("expected command output to refer to -chdir flag, but got:", output)
+	}
 }
 
 func TestApply_destroyTargeted(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -383,7 +440,6 @@ func TestApply_destroyTargeted(t *testing.T) {
 		"-auto-approve",
 		"-target", "test_instance.foo",
 		"-state", statePath,
-		testFixturePath("apply-destroy-targeted"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())

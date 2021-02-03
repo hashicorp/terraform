@@ -63,6 +63,36 @@ func TestApply(t *testing.T) {
 	}
 }
 
+func TestApply_path(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := applyFixtureProvider()
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-auto-approve",
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	output := ui.ErrorWriter.String()
+	if !strings.Contains(output, "-chdir") {
+		t.Fatal("expected command output to refer to -chdir flag, but got:", output)
+	}
+}
+
 func TestApply_approveNo(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
