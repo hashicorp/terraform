@@ -659,7 +659,7 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
-		"NestedType attr no computed, invalid change in plan": {
+		"NestedType, no computed, invalid change in plan": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"a": {
@@ -925,7 +925,6 @@ func TestAssertPlanValid(t *testing.T) {
 					}),
 				}),
 			}),
-
 			cty.ObjectVal(map[string]cty.Value{
 				"bleep": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -937,8 +936,69 @@ func TestAssertPlanValid(t *testing.T) {
 					}),
 				}),
 			}),
-			// should not error, and error text is incorrect for attribute types
 			nil,
+		},
+		"NestedType deep nested set": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bleep": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"bloop": {
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"blome": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			// Note: bloop is null in the config
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.Set(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+			// provider sends back the prior value, not matching the config
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			nil, // we cannot validate individual set elements, and trust the provider's response
 		},
 		"NestedType nested computed list attribute": {
 			&configschema.Block{
@@ -1017,7 +1077,46 @@ func TestAssertPlanValid(t *testing.T) {
 					}),
 				}),
 			}),
-			[]string{"something about an error"},
+			[]string{".bloop: planned for existence but config wants absense"},
+		},
+		"NestedType nested set attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			// provider returned the old value
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			[]string{".bloop: planned for existence but config wants absense"},
 		},
 	}
 
