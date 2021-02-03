@@ -39,7 +39,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	ctx := context.TODO()
 	blob, err := c.giovanniBlobClient.Get(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if blob.Response.StatusCode == 404 {
+		if blob.Response.Response != nil && blob.Response.StatusCode == 404 {
 			return nil, nil
 		}
 		return nil, err
