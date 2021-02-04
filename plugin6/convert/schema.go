@@ -175,35 +175,57 @@ func schemaNestedBlock(b *proto.Schema_NestedBlock) *configschema.NestedBlock {
 	return nb
 }
 
-func schemaNestedType(b *proto.Schema_NestedType) *configschema.NestedBlock {
+func schemaNestedType(b *proto.Schema_Object) *configschema.Object {
 	var nesting configschema.NestingMode
 	switch b.Nesting {
-	case proto.Schema_NestedType_SINGLE:
+	case proto.Schema_Object_SINGLE:
 		nesting = configschema.NestingSingle
-	case proto.Schema_NestedType_LIST:
+	case proto.Schema_Object_LIST:
 		nesting = configschema.NestingList
-	case proto.Schema_NestedType_MAP:
+	case proto.Schema_Object_MAP:
 		nesting = configschema.NestingMap
-	case proto.Schema_NestedType_SET:
+	case proto.Schema_Object_SET:
 		nesting = configschema.NestingSet
 	default:
 		// In all other cases we'll leave it as the zero value (invalid) and
 		// let the caller validate it and deal with this.
 	}
 
-	nt := &configschema.NestedBlock{
+	ret := &configschema.Object{
 		Nesting:  nesting,
 		MinItems: int(b.MinItems),
 		MaxItems: int(b.MaxItems),
 	}
 
-	nested := ProtoObjectToConfigSchema(b.Object)
-	nt.Block = *nested
-	return nt
+	for _, a := range b.Attributes {
+		attr := &configschema.Attribute{
+			Description:     a.Description,
+			DescriptionKind: schemaStringKind(a.DescriptionKind),
+			Required:        a.Required,
+			Optional:        a.Optional,
+			Computed:        a.Computed,
+			Sensitive:       a.Sensitive,
+			Deprecated:      a.Deprecated,
+		}
+
+		if a.Type != nil {
+			if err := json.Unmarshal(a.Type, &attr.Type); err != nil {
+				panic(err)
+			}
+		}
+
+		if a.NestedType != nil {
+			attr.NestedType = schemaNestedType(a.NestedType)
+		}
+
+		ret.Attributes[a.Name] = attr
+	}
+
+	return ret
 }
 
-func ProtoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Block {
-	block := &configschema.Block{
+func ProtoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Object {
+	object := &configschema.Object{
 		Attributes: make(map[string]*configschema.Attribute),
 	}
 
@@ -228,10 +250,10 @@ func ProtoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Block {
 			attr.NestedType = schemaNestedType(a.NestedType)
 		}
 
-		block.Attributes[a.Name] = attr
+		object.Attributes[a.Name] = attr
 	}
 
-	return block
+	return object
 }
 
 // sortedKeys returns the lexically sorted keys from the given map. This is
@@ -250,32 +272,22 @@ func sortedKeys(m interface{}) []string {
 	return keys
 }
 
-func protoSchemaNestedType(name string, b *configschema.NestedBlock) *proto.Schema_NestedType {
-	var nesting proto.Schema_NestedType_NestingMode
+func protoSchemaNestedType(name string, b *configschema.Object) *proto.Schema_Object {
+	var nesting proto.Schema_Object_NestingMode
 	switch b.Nesting {
 	case configschema.NestingSingle:
-		nesting = proto.Schema_NestedType_SINGLE
+		nesting = proto.Schema_Object_SINGLE
 	case configschema.NestingList:
-		nesting = proto.Schema_NestedType_LIST
+		nesting = proto.Schema_Object_LIST
 	case configschema.NestingSet:
-		nesting = proto.Schema_NestedType_SET
+		nesting = proto.Schema_Object_SET
 	case configschema.NestingMap:
-		nesting = proto.Schema_NestedType_MAP
+		nesting = proto.Schema_Object_MAP
 	default:
-		nesting = proto.Schema_NestedType_INVALID
+		nesting = proto.Schema_Object_INVALID
 	}
-	return &proto.Schema_NestedType{
-		Object:   ConfigSchemaObjectToProto(&b.Block),
-		Nesting:  nesting,
-		MinItems: int64(b.MinItems),
-		MaxItems: int64(b.MaxItems),
-	}
-}
 
-// ConfigSchemaObjectToProto takes a *configschema.Block and converts it to a
-// proto.Schema_Object for a grpc response.
-func ConfigSchemaObjectToProto(b *configschema.Block) *proto.Schema_Object {
-	block := &proto.Schema_Object{}
+	attributes := make([]*proto.Schema_Attribute, len(b.Attributes))
 
 	for _, name := range sortedKeys(b.Attributes) {
 		a := b.Attributes[name]
@@ -303,8 +315,13 @@ func ConfigSchemaObjectToProto(b *configschema.Block) *proto.Schema_Object {
 			attr.NestedType = protoSchemaNestedType(name, a.NestedType)
 		}
 
-		block.Attributes = append(block.Attributes, attr)
+		attributes = append(attributes, attr)
 	}
 
-	return block
+	return &proto.Schema_Object{
+		Attributes: attributes,
+		Nesting:    nesting,
+		MinItems:   int64(b.MinItems),
+		MaxItems:   int64(b.MaxItems),
+	}
 }

@@ -90,7 +90,7 @@ message Schema {
     message Attribute {
         string name = 1;
         bytes type = 2;
-        NestedType nested_type = 10;
+        Object nested_type = 10;
         string description = 3;
         bool required = 4;
         bool optional = 5;
@@ -117,7 +117,7 @@ message Schema {
         int64 max_items = 5;
     }
 
-    message NestedType {
+    message Object {
         enum NestingMode {
             INVALID = 0;
             SINGLE = 1;
@@ -126,14 +126,10 @@ message Schema {
             MAP = 4;
         }
 
-        Object object = 2;
+        repeated Attribute attributes = 1;
         NestingMode nesting = 3;
         int64 min_items = 4;
         int64 max_items = 5;
-    }
-
-    message Object {
-        repeated Attribute attributes = 2;
     }
 
     // The version of the schema.
