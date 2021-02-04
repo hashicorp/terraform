@@ -1,18 +1,18 @@
-## 0.14.6 (Unreleased)
+## 0.14.6 (February 04, 2021)
 
 ENHANCEMENTS:
 
-* backend/s3: Add support for AWS Single-Sign On (SSO) cached credentials [GH-27620]
+* backend/s3: Add support for AWS Single-Sign On (SSO) cached credentials ([#27620](https://github.com/hashicorp/terraform/issues/27620))
 
 BUG FIXES:
 
-* cli: Rerunning `init` will reuse installed providers rather than fetching the provider again [GH-27582]
-* config: Fix panic when applying a config using sensitive values in some block sets [GH-27635]
-* core: Fix "Invalid planned change" error when planning tainted resource which no longer exists [GH-27563]
-* core: Fix panic when refreshing data source which contains sensitive values [GH-27567]
-* core: Fix init with broken link in plugin_cache_dir [GH-27447]
-* core: Prevent evaluation of removed data source instances during plan [GH-27621]
-* core: Don't plan changes for outputs that remain null [GH-27512]
+* cli: Rerunning `init` will reuse installed providers rather than fetching the provider again ([#27582](https://github.com/hashicorp/terraform/issues/27582))
+* config: Fix panic when applying a config using sensitive values in some block sets ([#27635](https://github.com/hashicorp/terraform/issues/27635))
+* core: Fix "Invalid planned change" error when planning tainted resource which no longer exists ([#27563](https://github.com/hashicorp/terraform/issues/27563))
+* core: Fix panic when refreshing data source which contains sensitive values ([#27567](https://github.com/hashicorp/terraform/issues/27567))
+* core: Fix init with broken link in plugin_cache_dir ([#27447](https://github.com/hashicorp/terraform/issues/27447))
+* core: Prevent evaluation of removed data source instances during plan ([#27621](https://github.com/hashicorp/terraform/issues/27621))
+* core: Don't plan changes for outputs that remain null ([#27512](https://github.com/hashicorp/terraform/issues/27512))
 
 ## 0.14.5 (January 20, 2021)
 
