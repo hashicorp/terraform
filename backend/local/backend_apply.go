@@ -79,7 +79,7 @@ func (b *Local) opApply(
 
 		trivialPlan := plan.Changes.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		if mustConfirm {
 			var desc, query string
 			if op.Destroy {

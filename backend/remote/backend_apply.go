@@ -170,8 +170,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return r, diags.Err()
 	}
 
-	mustConfirm := (op.UIIn != nil && op.UIOut != nil) &&
-		((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove))
+	mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
 
 	if !w.AutoApply {
 		if mustConfirm {
