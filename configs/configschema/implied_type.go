@@ -40,3 +40,37 @@ func (b *Block) ContainsSensitive() bool {
 	}
 	return false
 }
+
+// ImpliedType returns the cty.Type that would result from decoding a NestedType
+// Attribute using the receiving block schema.
+//
+// ImpliedType always returns a result, even if the given schema is
+// inconsistent. Code that creates configschema.Object objects should be tested
+// using the InternalValidate method to detect any inconsistencies that would
+// cause this method to fall back on defaults and assumptions.
+func (o *Object) ImpliedType() cty.Type {
+	if o == nil {
+		return cty.EmptyObject
+	}
+
+	attrTys := make(map[string]cty.Type, len(o.Attributes))
+	for name, attrS := range o.Attributes {
+		attrTys[name] = attrS.Type
+	}
+
+	var optAttrs []string
+	optAttrs = listOptionalAttrsFromObject(o, optAttrs)
+
+	return cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
+}
+
+// ContainsSensitive returns true if any of the attributes of the receiving
+// Object are marked as sensitive.
+func (o *Object) ContainsSensitive() bool {
+	for _, attrS := range o.Attributes {
+		if attrS.Sensitive {
+			return true
+		}
+	}
+	return false
+}

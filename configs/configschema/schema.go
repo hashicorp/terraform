@@ -38,7 +38,12 @@ type Block struct {
 // Attribute represents a configuration attribute, within a block.
 type Attribute struct {
 	// Type is a type specification that the attribute's value must conform to.
+	// It conflicts with NestedType.
 	Type cty.Type
+
+	// NestedType indicates that the attribute is a NestedBlock-style object.
+	// This field conflicts with Type.
+	NestedType *Object
 
 	// Description is an English-language description of the purpose and
 	// usage of the attribute. A description should be concise and use only
@@ -72,6 +77,25 @@ type Attribute struct {
 	Deprecated bool
 }
 
+// Object represents the embedding of a structural object inside an Attribute.
+type Object struct {
+	// Attributes describes the nested attributes which may appear inside the
+	// Object.
+	Attributes map[string]*Attribute
+
+	// Nesting provides the nesting mode for this Object, which determines how
+	// many instances of the Object are allowed, how many labels it expects, and
+	// how the resulting data will be converted into a data structure.
+	Nesting NestingMode
+
+	// MinItems and MaxItems set, for the NestingList and NestingSet nesting
+	// modes, lower and upper limits on the number of child blocks allowed
+	// of the given type. If both are left at zero, no limit is applied.
+	// These fields are ignored for other nesting modes and must both be left
+	// at zero.
+	MinItems, MaxItems int
+}
+
 // NestedBlock represents the embedding of one block within another.
 type NestedBlock struct {
 	// Block is the description of the block that's nested.
@@ -97,6 +121,8 @@ type NestedBlock struct {
 // NestingMode is an enumeration of modes for nesting blocks inside other
 // blocks.
 type NestingMode int
+
+// Object represents the embedding of a NestedBl
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=NestingMode
 

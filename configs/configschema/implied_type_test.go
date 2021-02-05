@@ -122,3 +122,59 @@ func TestBlockImpliedType(t *testing.T) {
 		})
 	}
 }
+
+func TestObjectImpliedType(t *testing.T) {
+	tests := map[string]struct {
+		Schema *Object
+		Want   cty.Type
+	}{
+		"nil": {
+			nil,
+			cty.EmptyObject,
+		},
+		"empty": {
+			&Object{},
+			cty.EmptyObject,
+		},
+		"attributes": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"optional": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"required": {
+						Type:     cty.Number,
+						Required: true,
+					},
+					"computed": {
+						Type:     cty.List(cty.Bool),
+						Computed: true,
+					},
+					"optional_computed": {
+						Type:     cty.Map(cty.Bool),
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectWithOptionalAttrs(
+				map[string]cty.Type{
+					"optional":          cty.String,
+					"required":          cty.Number,
+					"computed":          cty.List(cty.Bool),
+					"optional_computed": cty.Map(cty.Bool),
+				},
+				[]string{"optional", "optional_computed"},
+			),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := test.Schema.ImpliedType()
+			if !got.Equals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
