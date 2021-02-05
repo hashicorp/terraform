@@ -49,7 +49,7 @@ func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source 
 	// for a legacy provider whose type name matches the type of the given
 	// provider. This should then find a suitable answer for any provider
 	// that was originally auto-installable in v0.12 and earlier but moved
-	// into a non-default namespace as part of introducing the heirarchical
+	// into a non-default namespace as part of introducing the hierarchical
 	// provider namespace.
 	//
 	// To achieve that, we need to find the direct registry client in

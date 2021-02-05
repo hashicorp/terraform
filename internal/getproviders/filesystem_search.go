@@ -23,7 +23,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 	ret := make(map[addrs.Provider]PackageMetaList)
 
 	// We don't support symlinks at intermediate points inside the directory
-	// heirarchy because that could potentially cause our walk to get into
+	// hierarchy because that could potentially cause our walk to get into
 	// an infinite loop, but as a measure of pragmatism we'll allow the
 	// top-level location itself to be a symlink, so that a user can
 	// potentially keep their plugins in a non-standard location but use a
@@ -69,7 +69,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 
 			if (info.Mode() & os.ModeSymlink) != 0 {
 				// We don't allow symlinks for intermediate steps in the
-				// heirarchy because otherwise this walk would risk getting
+				// hierarchy because otherwise this walk would risk getting
 				// itself into an infinite loop, but if we do find one then
 				// we'll warn about it to help with debugging.
 				log.Printf("[WARN] Provider plugin search ignored symlink %s: only the base directory %s may be a symlink", fullPath, originalBaseDir)
