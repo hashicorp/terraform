@@ -190,6 +190,18 @@ func (c *Config) ProviderRequirements() (getproviders.Requirements, hcl.Diagnost
 	return reqs, diags
 }
 
+// ProviderRequirementsShallow searches only the direct receiver for explicit
+// and implicit dependencies on providers. Descendant modules are ignored.
+//
+// If the returned diagnostics includes errors then the resulting Requirements
+// may be incomplete.
+func (c *Config) ProviderRequirementsShallow() (getproviders.Requirements, hcl.Diagnostics) {
+	reqs := make(getproviders.Requirements)
+	diags := c.addProviderRequirements(reqs, false)
+
+	return reqs, diags
+}
+
 // ProviderRequirementsByModule searches the full tree of modules under the
 // receiver for both explicit and implicit dependencies on providers,
 // constructing a tree where the requirements are broken out by module.
