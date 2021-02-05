@@ -74,10 +74,21 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Ui.Error(err.Error())
 			return 1
 		}
-	}
-	if c.Destroy && planFile != nil {
-		c.Ui.Error("Destroy can't be called with a plan file.")
-		return 1
+
+		// If the path doesn't look like a plan, both planFile and err will be
+		// nil. In that case, the user is probably trying to use the positional
+		// argument to specify a configuration path. Point them at -chdir.
+		if planFile == nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load %q as a plan file. Did you mean to use -chdir?", planPath))
+			return 1
+		}
+
+		// If we successfully loaded a plan but this is a destroy operation,
+		// explain that this is not supported.
+		if c.Destroy {
+			c.Ui.Error("Destroy can't be called with a plan file.")
+			return 1
+		}
 	}
 	if planFile != nil {
 		// Reset the config path for backend loading
