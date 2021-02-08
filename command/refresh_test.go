@@ -736,6 +736,97 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	}
 }
 
+// Config with multiple resources, targeting refresh of a subset
+func TestRefresh_targeted(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("refresh-targeted"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	state := testState()
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{
+		"-target", "test_instance.foo",
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	got := ui.OutputWriter.String()
+	if want := "test_instance.foo: Refreshing"; !strings.Contains(got, want) {
+		t.Fatalf("expected output to contain %q, got:\n%s", want, got)
+	}
+	if doNotWant := "test_instance.bar: Refreshing"; strings.Contains(got, doNotWant) {
+		t.Fatalf("expected output not to contain %q, got:\n%s", doNotWant, got)
+	}
+}
+
+// Diagnostics for invalid -target flags
+func TestRefresh_targetFlagsDiags(t *testing.T) {
+	testCases := map[string]string{
+		"test_instance.": "Dot must be followed by attribute name.",
+		"test_instance":  "Resource specification must include a resource type and name.",
+	}
+
+	for target, wantDiag := range testCases {
+		t.Run(target, func(t *testing.T) {
+			td := testTempDir(t)
+			defer os.RemoveAll(td)
+			defer testChdir(t, td)()
+
+			ui := new(cli.MockUi)
+			c := &RefreshCommand{
+				Meta: Meta{
+					Ui: ui,
+				},
+			}
+
+			args := []string{
+				"-target", target,
+			}
+			if code := c.Run(args); code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			}
+
+			got := ui.ErrorWriter.String()
+			if !strings.Contains(got, target) {
+				t.Fatalf("bad error output, want %q, got:\n%s", target, got)
+			}
+			if !strings.Contains(got, wantDiag) {
+				t.Fatalf("bad error output, want %q, got:\n%s", wantDiag, got)
+			}
+		})
+	}
+}
+
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
 func refreshFixtureSchema() *providers.GetSchemaResponse {

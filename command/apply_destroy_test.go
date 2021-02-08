@@ -358,7 +358,10 @@ func TestApply_destroyPath(t *testing.T) {
 	}
 }
 
-func TestApply_destroyTargeted(t *testing.T) {
+// Config with multiple resources with dependencies, targeting destroy of a
+// root node, expecting all other resources to be destroyed due to
+// dependencies.
+func TestApply_destroyTargetedDependencies(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
 	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
@@ -485,6 +488,156 @@ func TestApply_destroyTargeted(t *testing.T) {
 	expectedStr := strings.TrimSpace(originalState.String())
 	if actualStr != expectedStr {
 		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\nb%s", actualStr, expectedStr)
+	}
+}
+
+// Config with multiple resources with dependencies, targeting destroy of a
+// leaf node, expecting the other resources to remain.
+func TestApply_destroyTargeted(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"i-ab123"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_load_balancer",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte(`{"id":"i-abc123"}`),
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
+				Status:       states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	wantState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"i-ab123"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+			"test_load_balancer": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":        {Type: cty.String, Computed: true},
+						"instances": {Type: cty.List(cty.String), Optional: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Destroy: true,
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	// Run the apply command pointing to our existing state
+	args := []string{
+		"-auto-approve",
+		"-target", "test_load_balancer.foo",
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify a new state exists
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	stateFile, err := statefile.Read(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if stateFile == nil || stateFile.State == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	actualStr := strings.TrimSpace(stateFile.State.String())
+	expectedStr := strings.TrimSpace(wantState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\nb%s", actualStr, expectedStr)
+	}
+
+	// Should have a backup file
+	f, err = os.Open(statePath + DefaultBackupExtension)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	backupStateFile, err := statefile.Read(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	backupActualStr := strings.TrimSpace(backupStateFile.State.String())
+	backupExpectedStr := strings.TrimSpace(originalState.String())
+	if backupActualStr != backupExpectedStr {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\nb%s", backupActualStr, backupExpectedStr)
 	}
 }
 
