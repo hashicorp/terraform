@@ -126,7 +126,7 @@ many other programming language ecosystems.
 
 ### In-house providers and internal mirrors
 
-Terraform v0.13 introduced a new heirarchical namespace for providers, which
+Terraform v0.13 introduced a new hierarchical namespace for providers, which
 was an important pre-requisite for introducing a dependency lock file in
 v0.14 which can support a mixture of official, partner, community and in-house
 providers in a single configuration.
