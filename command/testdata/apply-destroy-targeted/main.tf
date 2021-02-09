@@ -3,5 +3,5 @@ resource "test_instance" "foo" {
 }
 
 resource "test_load_balancer" "foo" {
-  instances = ["${test_instance.foo.*.id}"]
+  instances = test_instance.foo.*.id
 }

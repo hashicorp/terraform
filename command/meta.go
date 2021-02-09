@@ -15,6 +15,8 @@ import (
 	"time"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
@@ -164,7 +166,8 @@ type Meta struct {
 	input        bool
 
 	// Targets for this context (private)
-	targets []addrs.Targetable
+	targets     []addrs.Targetable
+	targetFlags []string
 
 	// Internal fields
 	color bool
@@ -523,7 +526,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f := m.defaultFlagSet(n)
 
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
+	f.Var((*FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
 	if m.variableArgs.items == nil {
@@ -539,6 +542,43 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	m.stateLock = true
 
 	return f
+}
+
+// parseTargetFlags must be called for any commands supporting -target
+// arguments. This method attempts to parse each -target flag into an
+// addrs.Target, storing in the Meta.targets slice.
+//
+// If any flags cannot be parsed, we rewrap the first error diagnostic with a
+// custom title to clarify the source of the error. The normal approach of
+// directly returning the diags from HCL or the addrs package results in
+// confusing incorrect "source" results when presented.
+func (m *Meta) parseTargetFlags() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	m.targets = nil
+	for _, tf := range m.targetFlags {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tf), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tf),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		target, targetDiags := addrs.ParseTarget(traversal)
+		if targetDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tf),
+				targetDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		m.targets = append(m.targets, target.Subject)
+	}
+	return diags
 }
 
 // process will process the meta-parameters out of the arguments. This

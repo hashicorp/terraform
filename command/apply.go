@@ -42,10 +42,15 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	diags := c.parseTargetFlags()
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	args = cmdFlags.Args()
 	var planPath string
