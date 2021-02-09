@@ -338,3 +338,93 @@ func TestCidrSubnets(t *testing.T) {
 		})
 	}
 }
+
+func TestCidrNet(t *testing.T) {
+	tests := []struct {
+		Subnet  cty.Value
+		Netmask cty.Value
+		Want    cty.Value
+		Err     bool
+	}{
+		{
+			cty.StringVal("192.168.1.0"),
+			cty.StringVal("255.255.255.0"),
+			cty.StringVal("192.168.1.0/24"),
+			false,
+		},
+		{
+			cty.StringVal("10.10.10.6"),
+			cty.StringVal("255.255.254.0"),
+			cty.StringVal("10.10.10.0/23"),
+			false,
+		},
+		{
+			cty.StringVal("192.168.0.200"),
+			cty.StringVal("255.255.255.128"),
+			cty.StringVal("192.168.0.128/25"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("cidrnet(%#v, %#v)", test.Subnet, test.Netmask), func(t *testing.T) {
+			got, err := CidrNet(test.Subnet, test.Netmask)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestCidrBitmask(t *testing.T) {
+	tests := []struct {
+		Netmask cty.Value
+		Want    cty.Value
+		Err     bool
+	}{
+		{
+			cty.StringVal("255.255.255.0"),
+			cty.NumberIntVal(24),
+			false,
+		},
+		{
+			cty.StringVal("255.255.254.0"),
+			cty.NumberIntVal(23),
+			false,
+		},
+		{
+			cty.StringVal("255.255.255.128"),
+			cty.NumberIntVal(25),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("cidrbitmask(%#v)", test.Netmask), func(t *testing.T) {
+			got, err := CidrBitmask(test.Netmask)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
