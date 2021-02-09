@@ -314,6 +314,9 @@ NeedProvider:
 		if installed := i.targetDir.ProviderVersion(provider, version); installed != nil {
 			if len(preferredHashes) > 0 {
 				if matches, _ := installed.MatchesAnyHash(preferredHashes); matches {
+					if cb := evts.ProviderAlreadyInstalled; cb != nil {
+						cb(provider, version)
+					}
 					continue
 				}
 			}
