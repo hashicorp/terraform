@@ -65,6 +65,21 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	}
 }
 
+// Clone returns a new Installer which has the a new target directory but
+// the same optional global cache directory, the same installation sources,
+// and the same built-in/unmanaged providers. The result can be mutated further
+// using the various setter methods without affecting the original.
+func (i *Installer) Clone(targetDir *Dir) *Installer {
+	// For now all of our setter methods just overwrite field values in
+	// their entirety, rather than mutating things on the other side of
+	// the shared pointers, and so we can safely just shallow-copy the
+	// root. We might need to be more careful here if in future we add
+	// methods that allow deeper mutations through the stored pointers.
+	ret := *i
+	ret.targetDir = targetDir
+	return &ret
+}
+
 // ProviderSource returns the getproviders.Source that the installer would
 // use for installing any new providers.
 func (i *Installer) ProviderSource() getproviders.Source {
@@ -86,6 +101,12 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory %s", cacheDir.baseDir, i.targetDir.baseDir))
 	}
 	i.globalCacheDir = cacheDir
+}
+
+// HasGlobalCacheDir returns true if someone has previously called
+// SetGlobalCacheDir to configure a global cache directory for this installer.
+func (i *Installer) HasGlobalCacheDir() bool {
+	return i.globalCacheDir != nil
 }
 
 // SetBuiltInProviderTypes tells the receiver to consider the type names in the

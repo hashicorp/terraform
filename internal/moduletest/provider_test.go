@@ -48,7 +48,7 @@ func TestProvider(t *testing.T) {
 
 	p := NewProvider()
 
-	configureResp := p.Configure(providers.ConfigureRequest{
+	configureResp := p.ConfigureProvider(providers.ConfigureProviderRequest{
 		Config: cty.EmptyObjectVal,
 	})
 	if got, want := len(configureResp.Diagnostics), 1; got != want {
@@ -58,7 +58,7 @@ func TestProvider(t *testing.T) {
 		t.Fatalf("wrong diagnostic message\ngot:  %s\nwant: %s", got, want)
 	}
 
-	validateResp := p.ValidateResourceTypeConfig(providers.ValidateResourceTypeConfigRequest{
+	validateResp := p.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
 		TypeName: "test_assertions",
 		Config:   assertionConfig,
 	})
