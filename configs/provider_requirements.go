@@ -218,25 +218,27 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 		}
 
-		// finally add the required provider as long as there were no errors
-		if !diags.HasErrors() {
-			// if a source was not given, create an implied type
-			if rp.Type.IsZero() {
-				pType, err := addrs.ParseProviderPart(rp.Name)
-				if err != nil {
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid provider name",
-						Detail:   err.Error(),
-						Subject:  attr.Expr.Range().Ptr(),
-					})
-				} else {
-					rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
-				}
-			}
-
-			ret.RequiredProviders[rp.Name] = rp
+		if diags.HasErrors() {
+			continue
 		}
+
+		// We can add the required provider when there are no errors.
+		// If a source was not given, create an implied type.
+		if rp.Type.IsZero() {
+			pType, err := addrs.ParseProviderPart(rp.Name)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider name",
+					Detail:   err.Error(),
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+			} else {
+				rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+			}
+		}
+
+		ret.RequiredProviders[rp.Name] = rp
 	}
 
 	return ret, diags

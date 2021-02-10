@@ -1,0 +1,1 @@
+required-alias/main.tf:1,1-13: No configuration for provider foo.bar; Configuration required for module.mod.provider["registry.terraform.io/hashicorp/foo"].bar
