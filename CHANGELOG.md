@@ -1,5 +1,9 @@
 ## 0.14.7 (Unreleased)
 
+ENHANCEMENTS:
+
+* cli: Emit an "already installed" event when a provider is found already installed [GH-27722]
+
 BUG FIXES:
 
 * cli: Fix `show -json` not outputting the full module tree when some child modules have no resources [GH-27352]
