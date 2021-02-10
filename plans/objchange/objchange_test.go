@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 )
 
-func TestProposedNewObject(t *testing.T) {
+func TestProposedNew(t *testing.T) {
 	tests := map[string]struct {
 		Schema *configschema.Block
 		Prior  cty.Value
@@ -1198,6 +1198,167 @@ func TestProposedNewObject(t *testing.T) {
 				}),
 			}),
 		},
+		// This example has a mixture of optional, computed and required in a deeply-nested NestedType attribute
+		"deeply NestedType": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									NestedType: &configschema.Object{
+										Nesting:    configschema.NestingSingle,
+										Attributes: testAttributes,
+									},
+									Required: true,
+								},
+								"baz": {
+									NestedType: &configschema.Object{
+										Nesting:    configschema.NestingSingle,
+										Attributes: testAttributes,
+									},
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			// prior
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.NullVal(cty.DynamicPseudoType),
+					"baz": cty.ObjectVal(map[string]cty.Value{
+						"optional":          cty.NullVal(cty.String),
+						"computed":          cty.StringVal("hello"),
+						"optional_computed": cty.StringVal("prior"),
+						"required":          cty.StringVal("present"),
+					}),
+				}),
+			}),
+			// config
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.UnknownVal(cty.Object(map[string]cty.Type{ // explicit unknown from the config
+						"optional":          cty.String,
+						"computed":          cty.String,
+						"optional_computed": cty.String,
+						"required":          cty.String,
+					})),
+					"baz": cty.ObjectVal(map[string]cty.Value{
+						"optional":          cty.NullVal(cty.String),
+						"computed":          cty.NullVal(cty.String),
+						"optional_computed": cty.StringVal("hello"),
+						"required":          cty.StringVal("present"),
+					}),
+				}),
+			}),
+			// want
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.UnknownVal(cty.Object(map[string]cty.Type{ // explicit unknown preserved from the config
+						"optional":          cty.String,
+						"computed":          cty.String,
+						"optional_computed": cty.String,
+						"required":          cty.String,
+					})),
+					"baz": cty.ObjectVal(map[string]cty.Value{
+						"optional":          cty.NullVal(cty.String),  // config is null
+						"computed":          cty.StringVal("hello"),   // computed values come from prior
+						"optional_computed": cty.StringVal("hello"),   // config takes precedent over prior in opt+computed
+						"required":          cty.StringVal("present"), // value from config
+					}),
+				}),
+			}),
+		},
+		"deeply nested set": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									NestedType: &configschema.Object{
+										Nesting:    configschema.NestingSet,
+										Attributes: testAttributes,
+									},
+									Required: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			// prior values
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"optional":          cty.StringVal("prior"),
+								"computed":          cty.StringVal("prior"),
+								"optional_computed": cty.StringVal("prior"),
+								"required":          cty.StringVal("prior"),
+							}),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.StringVal("other_prior"),
+							"computed":          cty.StringVal("other_prior"),
+							"optional_computed": cty.StringVal("other_prior"),
+							"required":          cty.StringVal("other_prior"),
+						})}),
+					}),
+				}),
+			}),
+			// config differs from prior
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.StringVal("configured"),
+							"computed":          cty.NullVal(cty.String), // computed attrs are null in config
+							"optional_computed": cty.StringVal("configured"),
+							"required":          cty.StringVal("configured"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.NullVal(cty.String), // explicit null in config
+							"computed":          cty.NullVal(cty.String), // computed attrs are null in config
+							"optional_computed": cty.StringVal("other_configured"),
+							"required":          cty.StringVal("other_configured"),
+						})}),
+					}),
+				}),
+			}),
+			// want:
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.StringVal("configured"),
+							"computed":          cty.NullVal(cty.String),
+							"optional_computed": cty.StringVal("configured"),
+							"required":          cty.StringVal("configured"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.NullVal(cty.String), // explicit null in config is preserved
+							"computed":          cty.NullVal(cty.String),
+							"optional_computed": cty.StringVal("other_configured"),
+							"required":          cty.StringVal("other_configured"),
+						})}),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
@@ -1208,4 +1369,24 @@ func TestProposedNewObject(t *testing.T) {
 			}
 		})
 	}
+}
+
+var testAttributes = map[string]*configschema.Attribute{
+	"optional": {
+		Type:     cty.String,
+		Optional: true,
+	},
+	"computed": {
+		Type:     cty.String,
+		Computed: true,
+	},
+	"optional_computed": {
+		Type:     cty.String,
+		Computed: true,
+		Optional: true,
+	},
+	"required": {
+		Type:     cty.String,
+		Required: true,
+	},
 }
