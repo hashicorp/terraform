@@ -621,10 +621,6 @@ func (m *Meta) process(args []string) []string {
 		},
 	}
 
-	if m.View != nil {
-		m.View.EnableColor(m.Color)
-	}
-
 	return args
 }
 

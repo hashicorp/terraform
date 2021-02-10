@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -41,11 +42,10 @@ func NewView(streams *terminal.Streams) *View {
 	}
 }
 
-// EnableColor controls the colorize implementation used by this view (and any
-// other views which depend on it). This is called by the code which processes
-// the global -no-color CLI flag, which happens after the view is initialized.
-func (v *View) EnableColor(color bool) {
-	v.colorize.Disable = !color
+// Configure applies the global view configuration flags.
+func (v *View) Configure(view *arguments.View) {
+	v.colorize.Disable = view.NoColor
+	v.compactWarnings = view.CompactWarnings
 }
 
 // SetConfigSources overrides the default no-op callback with a new function

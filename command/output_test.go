@@ -149,6 +149,7 @@ func TestOutput_emptyOutputs(t *testing.T) {
 	}
 
 	args := []string{
+		"-no-color",
 		"-state", statePath,
 	}
 	code := c.Run(args)

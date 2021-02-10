@@ -17,7 +17,9 @@ type OutputCommand struct {
 }
 
 func (c *OutputCommand) Run(rawArgs []string) int {
-	rawArgs = c.Meta.process(rawArgs)
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
 	// Parse and validate flags
 	args, diags := arguments.ParseOutput(rawArgs)
