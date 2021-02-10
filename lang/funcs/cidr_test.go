@@ -353,9 +353,9 @@ func TestCidrNet(t *testing.T) {
 			false,
 		},
 		{
-			cty.StringVal("10.10.10.6"),
+			cty.StringVal("192.168.1.6"),
 			cty.StringVal("255.255.254.0"),
-			cty.StringVal("10.10.10.0/23"),
+			cty.StringVal("192.168.0.0/23"),
 			false,
 		},
 		{
@@ -363,6 +363,36 @@ func TestCidrNet(t *testing.T) {
 			cty.StringVal("255.255.255.128"),
 			cty.StringVal("192.168.0.128/25"),
 			false,
+		},
+		{
+			cty.StringVal("192.168.1.6"),
+			cty.StringVal("255.255.255.255"),
+			cty.StringVal("192.168.1.6/32"),
+			false,
+		},
+		{
+			cty.StringVal("192.168.1.6"),
+			cty.StringVal("0.0.0.0"),
+			cty.StringVal("0.0.0.0/0"),
+			false,
+		},
+		{
+			cty.StringVal("192.168.1.6"),
+			cty.StringVal("255.255.355.0"),
+			cty.NumberIntVal(0),
+			true,
+		},
+		{
+			cty.StringVal("192.168.1.6"),
+			cty.StringVal("not-a-netmask"),
+			cty.NumberIntVal(0),
+			true,
+		},
+		{
+			cty.StringVal("not-an-ip"),
+			cty.StringVal("255.255.255.0"),
+			cty.NumberIntVal(0),
+			true,
 		},
 	}
 
@@ -406,6 +436,31 @@ func TestCidrBitmask(t *testing.T) {
 			cty.StringVal("255.255.255.128"),
 			cty.NumberIntVal(25),
 			false,
+		},
+		{
+			cty.StringVal("255.255.255.255"),
+			cty.NumberIntVal(32),
+			false,
+		},
+		{
+			cty.StringVal("0.0.0.0"),
+			cty.NumberIntVal(0),
+			false,
+		},
+		{
+			cty.StringVal("255.255.355.0"),
+			cty.NumberIntVal(0),
+			true,
+		},
+		{
+			cty.StringVal("not-a-netmask"),
+			cty.NumberIntVal(0),
+			true,
+		},
+		{
+			cty.StringVal("fe80::/48"),
+			cty.NumberIntVal(0),
+			true,
 		},
 	}
 

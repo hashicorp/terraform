@@ -203,7 +203,11 @@ var CidrNetFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		netmaskslice := strings.Split(args[1].AsString(), ".")
+		netmask := args[1].AsString()
+		if net.ParseIP(netmask) == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("invalid Netmask expression: %s", netmask)
+		}
+		netmaskslice := strings.Split(netmask, ".")
 		var netmaskBytes []byte
 
 		for _, s := range netmaskslice {
@@ -234,7 +238,11 @@ var CidrBitmaskFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.Number),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		netmaskslice := strings.Split(args[0].AsString(), ".")
+		netmask := args[0].AsString()
+		if net.ParseIP(netmask) == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("invalid Netmask expression: %s", err)
+		}
+		netmaskslice := strings.Split(netmask, ".")
 		var netmaskBytes []byte
 
 		for _, s := range netmaskslice {
