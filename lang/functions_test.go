@@ -211,14 +211,14 @@ func TestFunctions(t *testing.T) {
 
 		"cidrnet": {
 			{
-				`cidrsubnet("192.168.1.6", "255.255.254.0")`,
+				`cidrnet("192.168.1.6", "255.255.254.0")`,
 				cty.StringVal("192.168.0.0/23"),
 			},
 		},
 
 		"cidrbitmask": {
 			{
-				`cidrsubnet("255.255.255.0")`,
+				`cidrbitmask("255.255.255.0")`,
 				cty.NumberIntVal(24),
 			},
 		},
