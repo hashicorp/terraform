@@ -1,5 +1,9 @@
 ## 0.14.7 (Unreleased)
 
+BUG FIXES:
+
+* cli: Fix `show -json` not outputting the full module tree when some child modules have no resources [GH-27352]
+
 ## 0.14.6 (February 04, 2021)
 
 ENHANCEMENTS:
