@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/apparentlymart/go-versions/versions"
 	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
@@ -645,6 +646,11 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Event:    "QueryPackagesSuccess",
 							Provider: beepProvider,
 							Args:     "2.0.0",
+						},
+						{
+							Event:    "ProviderAlreadyInstalled",
+							Provider: beepProvider,
+							Args:     versions.Version{Major: 2, Minor: 0, Patch: 0},
 						},
 					},
 				}
