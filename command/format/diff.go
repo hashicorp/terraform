@@ -901,23 +901,35 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			diffLines := ctySequenceDiff(oldLines, newLines)
-			for _, diffLine := range diffLines {
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-				p.writeActionSymbol(diffLine.Action)
-
-				switch diffLine.Action {
-				case plans.NoOp, plans.Delete:
-					p.buf.WriteString(diffLine.Before.AsString())
-				case plans.Create:
-					p.buf.WriteString(diffLine.After.AsString())
-				default:
-					// Should never happen since the above covers all
-					// actions that ctySequenceDiff can return for strings
-					p.buf.WriteString(diffLine.After.AsString())
-
+			// Optimization for strings which are exactly equal: just print
+			// directly without calculating the sequence diff. This makes a
+			// significant difference when this code path is reached via a
+			// writeValue call with a large multi-line string.
+			if oldS == newS {
+				for _, line := range newLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+4))
+					p.buf.WriteString(line.AsString())
+					p.buf.WriteString("\n")
 				}
-				p.buf.WriteString("\n")
+			} else {
+				diffLines := ctySequenceDiff(oldLines, newLines)
+				for _, diffLine := range diffLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+2))
+					p.writeActionSymbol(diffLine.Action)
+
+					switch diffLine.Action {
+					case plans.NoOp, plans.Delete:
+						p.buf.WriteString(diffLine.Before.AsString())
+					case plans.Create:
+						p.buf.WriteString(diffLine.After.AsString())
+					default:
+						// Should never happen since the above covers all
+						// actions that ctySequenceDiff can return for strings
+						p.buf.WriteString(diffLine.After.AsString())
+
+					}
+					p.buf.WriteString("\n")
+				}
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent)) // +4 here because there's no symbol
