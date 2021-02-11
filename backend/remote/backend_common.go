@@ -276,7 +276,9 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			}
 		}
 
-		if b.CLI != nil {
+		// checking if i == 0 so as to avoid printing this starting horizontal-rule
+		// every retry, and that it only prints it on the first (i=0) attempt.
+		if b.CLI != nil && i == 0 {
 			b.CLI.Output("\n------------------------------------------------------------------------\n")
 		}
 
