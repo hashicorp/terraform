@@ -185,15 +185,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my-test": {
-						Name:        "my-test",
-						Source:      "some/invalid/provider/source/test",
-						Requirement: testVC("~>2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider source string",
 		},
@@ -213,15 +206,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my_test": {
-						Name:        "my_test",
-						Type:        addrs.Provider{},
-						Requirement: testVC("~>2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider local name",
 		},
@@ -241,15 +227,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"MYTEST": {
-						Name:        "MYTEST",
-						Type:        addrs.Provider{},
-						Requirement: testVC("~>2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid provider local name",
 		},
@@ -270,15 +249,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my-test": {
-						Name:      "my-test",
-						Source:    "mycloud/test",
-						Type:      addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
-						DeclRange: mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid version constraint",
 		},
@@ -296,15 +268,10 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"test": {
-						Name:      "test",
-						DeclRange: mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
-			Error: "Invalid required_providers syntax",
+			Error: "Invalid required_providers object",
 		},
 		"invalid source attribute type": {
 			Block: &hcl.Block{
@@ -322,13 +289,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my-test": {
-						Name:      "my-test",
-						DeclRange: mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid source",
 		},
@@ -350,16 +312,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			Want: &RequiredProviders{
-				RequiredProviders: map[string]*RequiredProvider{
-					"my-test": {
-						Name:        "my-test",
-						Source:      "mycloud/test",
-						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
-						Requirement: testVC("2.0.0"),
-						DeclRange:   mockRange,
-					},
-				},
-				DeclRange: blockRange,
+				RequiredProviders: map[string]*RequiredProvider{},
+				DeclRange:         blockRange,
 			},
 			Error: "Invalid required_providers object",
 		},
@@ -370,7 +324,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			got, diags := decodeRequiredProvidersBlock(test.Block)
 			if diags.HasErrors() {
 				if test.Error == "" {
-					t.Fatalf("unexpected error")
+					t.Fatalf("unexpected error: %v", diags)
 				}
 				if gotErr := diags[0].Summary; gotErr != test.Error {
 					t.Errorf("wrong error, got %q, want %q", gotErr, test.Error)

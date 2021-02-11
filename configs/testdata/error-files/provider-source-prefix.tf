@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    usererror = { # ERROR: Invalid provider type
-      source = "foo/terraform-provider-foo"
+    usererror = {
+      source = "foo/terraform-provider-foo" # ERROR: Invalid provider type
     }
-    badname = { # ERROR: Invalid provider type
-      source = "foo/terraform-foo"
+    badname = {
+      source = "foo/terraform-foo" # ERROR: Invalid provider type
     }
   }
 }

@@ -22,6 +22,9 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
+
+	diags = append(diags, validateProviderConfigs(nil, cfg, false)...)
+
 	return cfg, diags
 }
 

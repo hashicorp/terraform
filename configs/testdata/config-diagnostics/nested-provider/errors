@@ -1,0 +1,3 @@
+Module module.child.module.child2 contains provider configuration; Providers cannot be configured within modules using count, for_each or depends_on
+
+
