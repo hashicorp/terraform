@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * cli: Fix `show -json` not outputting the full module tree when some child modules have no resources [GH-27352]
+* cli: Fix excessively slow rendering of very large multi-line string outputs [GH-27746]
 
 ## 0.14.6 (February 04, 2021)
 
