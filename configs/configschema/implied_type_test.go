@@ -178,3 +178,65 @@ func TestObjectImpliedType(t *testing.T) {
 		})
 	}
 }
+
+func TestObjectContainsSensitive(t *testing.T) {
+	tests := map[string]struct {
+		Schema *Object
+		Want   bool
+	}{
+		"object contains sensitive": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"sensitive": {Sensitive: true},
+				},
+			},
+			true,
+		},
+		"no sensitive attrs": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"insensitive": {},
+				},
+			},
+			false,
+		},
+		"nested object contains sensitive": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"nested": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"sensitive": {Sensitive: true},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		"nested obj, no sensitive attrs": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"nested": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"public": {},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := test.Schema.ContainsSensitive()
+			if got != test.Want {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
+}

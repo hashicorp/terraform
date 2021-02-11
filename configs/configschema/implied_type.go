@@ -71,6 +71,9 @@ func (o *Object) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
+		if attrS.NestedType != nil {
+			return attrS.NestedType.ContainsSensitive()
+		}
 	}
 	return false
 }
