@@ -317,19 +317,36 @@ new line
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":       cty.UnknownVal(cty.String),
 				"password": cty.StringVal("top-secret"),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":     cty.StringVal("not-secret"),
+					"password": cty.StringVal("top-secret"),
+				}),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"id":       {Type: cty.String, Computed: true},
 					"password": {Type: cty.String, Optional: true, Sensitive: true},
+					// TODO: This is a temporary situation; once the NestedType
+					// specific printer is implemented this will need to be
+					// updated so that only the sensitive nested attribute is
+					// hidden.
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"user":     {Type: cty.String, Optional: true},
+								"password": {Type: cty.String, Optional: true, Sensitive: true},
+							},
+						},
+					},
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
-      + id       = (known after apply)
-      + password = (sensitive value)
+      + conn_info = (sensitive value)
+      + id        = (known after apply)
+      + password  = (sensitive value)
     }
 `,
 		},

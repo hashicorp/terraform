@@ -328,6 +328,18 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		return true
 	}
 
+	// TODO: There will need to be an object-specific diff printer, but for now
+	// we will let writeAttrDiff handle attributes with NestedTypes like regular
+	// (object) attributes.
+	//
+	// To avoid printing any sensitive nested fields inside attributes (until
+	// the above is implemented) we will treat the entire attribute as
+	// sensitive.
+	var sensitive bool
+	if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+		sensitive = true
+	}
+
 	p.buf.WriteString("\n")
 
 	p.writeSensitivityWarning(old, new, indent, action, false)
@@ -341,7 +353,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
 	p.buf.WriteString(" = ")
 
-	if attrS.Sensitive {
+	if attrS.Sensitive || sensitive {
 		p.buf.WriteString("(sensitive value)")
 	} else {
 		switch {
@@ -358,6 +370,10 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		}
 	}
 
+	return false
+}
+
+func (p *blockBodyDiffPrinter) writeNestedAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
 	return false
 }
 
