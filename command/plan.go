@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -82,6 +83,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
 	opReq.ShowDiagnostics = c.showDiagnostics

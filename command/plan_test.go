@@ -32,10 +32,12 @@ func TestPlan(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -59,10 +61,12 @@ func TestPlan_lockedState(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -85,10 +89,12 @@ func TestPlan_plan(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -126,10 +132,12 @@ func TestPlan_destroy(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -158,10 +166,12 @@ func TestPlan_noState(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -193,10 +203,12 @@ func TestPlan_outPath(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -246,10 +258,12 @@ func TestPlan_outPathNoChange(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -324,10 +338,12 @@ func TestPlan_outBackend(t *testing.T) {
 		}
 	}
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -376,10 +392,12 @@ func TestPlan_refreshFalse(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -407,10 +425,12 @@ func TestPlan_state(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -450,10 +470,12 @@ func TestPlan_stateDefault(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -505,10 +527,12 @@ func TestPlan_validate(t *testing.T) {
 		}
 	}
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -532,10 +556,12 @@ func TestPlan_vars(t *testing.T) {
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -577,10 +603,12 @@ func TestPlan_varsUnset(t *testing.T) {
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -640,10 +668,12 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 		},
 	}
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -667,10 +697,12 @@ func TestPlan_varFile(t *testing.T) {
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -707,10 +739,12 @@ func TestPlan_varFileDefault(t *testing.T) {
 
 	p := planVarsFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -745,10 +779,12 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 
 	p := planVarsFixtureProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -773,10 +809,12 @@ func TestPlan_detailedExitcode(t *testing.T) {
 
 	p := planFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -794,10 +832,12 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -819,10 +859,12 @@ func TestPlan_shutdown(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 			ShutdownCh:       shutdownCh,
 		},
 	}
@@ -884,10 +926,12 @@ func TestPlan_init_required(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			// Running plan without setting testingOverrides is similar to plan without init
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -927,10 +971,12 @@ func TestPlan_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -961,9 +1007,11 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 			defer testChdir(t, td)()
 
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			c := &PlanCommand{
 				Meta: Meta{
-					Ui: ui,
+					Ui:   ui,
+					View: view,
 				},
 			}
 

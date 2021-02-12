@@ -1,4 +1,4 @@
-package command
+package views
 
 import (
 	"bufio"
@@ -9,8 +9,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -24,17 +22,24 @@ import (
 const defaultPeriodicUiTimer = 10 * time.Second
 const maxIdLen = 80
 
+func NewUiHook(view *View) *UiHook {
+	return &UiHook{
+		view:            view,
+		periodicUiTimer: defaultPeriodicUiTimer,
+		resources:       make(map[string]uiResourceState),
+	}
+}
+
 type UiHook struct {
 	terraform.NilHook
 
-	Colorize        *colorstring.Colorize
-	Ui              cli.Ui
-	PeriodicUiTimer time.Duration
+	view     *View
+	viewLock sync.Mutex
 
-	l         sync.Mutex
-	once      sync.Once
-	resources map[string]uiResourceState
-	ui        cli.Ui
+	periodicUiTimer time.Duration
+
+	resources     map[string]uiResourceState
+	resourcesLock sync.Mutex
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
@@ -63,8 +68,6 @@ const (
 )
 
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
-	h.once.Do(h.init)
-
 	dispAddr := addr.String()
 	if gen != states.CurrentGen {
 		dispAddr = fmt.Sprintf("%s (%s)", dispAddr, gen)
@@ -89,7 +92,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	default:
 		// We don't expect any other actions in here, so anything else is a
 		// bug in the caller but we'll ignore it in order to be robust.
-		h.ui.Output(fmt.Sprintf("(Unknown action %s for %s)", action, dispAddr))
+		h.println(fmt.Sprintf("(Unknown action %s for %s)", action, dispAddr))
 		return terraform.HookActionContinue, nil
 	}
 
@@ -103,7 +106,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		idValue = ""
 	}
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.println(h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s%s[reset]",
 		dispAddr,
 		operation,
@@ -121,9 +124,9 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		done:     make(chan struct{}),
 	}
 
-	h.l.Lock()
+	h.resourcesLock.Lock()
 	h.resources[key] = uiState
-	h.l.Unlock()
+	h.resourcesLock.Unlock()
 
 	// Start goroutine that shows progress
 	go h.stillApplying(uiState)
@@ -138,7 +141,7 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 		case <-state.DoneCh:
 			return
 
-		case <-time.After(h.PeriodicUiTimer):
+		case <-time.After(h.periodicUiTimer):
 			// Timer up, show status
 		}
 
@@ -161,7 +164,7 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
 		}
 
-		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		h.println(h.view.colorize.Color(fmt.Sprintf(
 			"[reset][bold]%s: %s [%s%s elapsed][reset]",
 			state.DispAddr,
 			msg,
@@ -172,17 +175,16 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 }
 
 func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
-
 	id := addr.String()
 
-	h.l.Lock()
+	h.resourcesLock.Lock()
 	state := h.resources[id]
 	if state.DoneCh != nil {
 		close(state.DoneCh)
 	}
 
 	delete(h.resources, id)
-	h.l.Unlock()
+	h.resourcesLock.Unlock()
 
 	var stateIdSuffix string
 	if k, v := format.ObjectValueID(newState); k != "" && v != "" {
@@ -208,21 +210,17 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		return terraform.HookActionContinue, nil
 	}
 
-	colorized := h.Colorize.Color(fmt.Sprintf(
+	colorized := h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: %s after %s%s[reset]",
 		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix))
 
-	h.ui.Output(colorized)
+	h.println(colorized)
 
-	return terraform.HookActionContinue, nil
-}
-
-func (h *UiHook) PreDiff(addr addrs.AbsResourceInstance, gen states.Generation, priorState, proposedNewState cty.Value) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.println(h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Provisioning with '%s'...[reset]",
 		addr, typeName,
 	)))
@@ -231,7 +229,7 @@ func (h *UiHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeNa
 
 func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
 	var buf bytes.Buffer
-	buf.WriteString(h.Colorize.Color("[reset]"))
+	buf.WriteString(h.view.colorize.Color("[reset]"))
 
 	prefix := fmt.Sprintf("%s (%s): ", addr, typeName)
 	s := bufio.NewScanner(strings.NewReader(msg))
@@ -243,27 +241,23 @@ func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string
 		}
 	}
 
-	h.ui.Output(strings.TrimSpace(buf.String()))
+	h.println(strings.TrimSpace(buf.String()))
 }
 
 func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
-	h.once.Do(h.init)
-
 	var stateIdSuffix string
 	if k, v := format.ObjectValueID(priorState); k != "" && v != "" {
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
 	}
 
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.println(h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Refreshing state...%s",
 		addr, stateIdSuffix)))
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
-	h.once.Do(h.init)
-
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.println(h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Importing from ID %q...",
 		addr, importID,
 	)))
@@ -271,12 +265,10 @@ func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string)
 }
 
 func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (terraform.HookAction, error) {
-	h.once.Do(h.init)
-
-	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+	h.println(h.view.colorize.Color(fmt.Sprintf(
 		"[reset][bold][green]%s: Import prepared!", addr)))
 	for _, s := range imported {
-		h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		h.println(h.view.colorize.Color(fmt.Sprintf(
 			"[reset][green]  Prepared %s for import",
 			s.TypeName,
 		)))
@@ -285,19 +277,11 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) init() {
-	if h.Colorize == nil {
-		panic("colorize not given")
-	}
-	if h.PeriodicUiTimer == 0 {
-		h.PeriodicUiTimer = defaultPeriodicUiTimer
-	}
-
-	h.resources = make(map[string]uiResourceState)
-
-	// Wrap the ui so that it is safe for concurrency regardless of the
-	// underlying reader/writer that is in place.
-	h.ui = &cli.ConcurrentUi{Ui: h.Ui}
+// Wrap calls to the view so that concurrent calls do not interleave println.
+func (h *UiHook) println(s string) {
+	h.viewLock.Lock()
+	defer h.viewLock.Unlock()
+	h.view.streams.Println(s)
 }
 
 // scanLines is basically copied from the Go standard library except

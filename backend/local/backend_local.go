@@ -77,6 +77,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	opts.Destroy = op.Destroy
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
+	opts.Hooks = op.Hooks
 
 	opts.SkipRefresh = op.Type != backend.OperationTypeRefresh && !op.PlanRefresh
 	if opts.SkipRefresh {
