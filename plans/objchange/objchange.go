@@ -337,13 +337,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				newV = cty.ListVal(newVals)
 			}
 		} else {
-			// Despite the name, a NestingList might also be a tuple, if
-			// its nested schema contains dynamically-typed attributes.
-			if config.Type().IsTupleType() {
-				newV = cty.EmptyTupleVal
-			} else {
-				newV = cty.ListValEmpty(schema.ImpliedType())
-			}
+			newV = cty.NullVal(schema.ImpliedType())
 		}
 
 	case configschema.NestingMap:
@@ -376,7 +370,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				// in case of dynamically-typed attributes.
 				newV = cty.ObjectVal(newVals)
 			} else {
-				newV = cty.EmptyObjectVal
+				newV = cty.NullVal(schema.ImpliedType())
 			}
 		} else {
 			configVLen := 0
@@ -401,7 +395,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				}
 				newV = cty.MapVal(newVals)
 			} else {
-				newV = cty.MapValEmpty(schema.ImpliedType())
+				newV = cty.NullVal(schema.ImpliedType())
 			}
 		}
 
@@ -444,7 +438,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 			}
 			newV = cty.SetVal(newVals)
 		} else {
-			newV = cty.SetValEmpty(schema.ImpliedType())
+			newV = cty.NullVal(schema.ImpliedType())
 		}
 	}
 

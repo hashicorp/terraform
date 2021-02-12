@@ -1359,6 +1359,108 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+		"expected null NestedTypes": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"single": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+					"list": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+					"set": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+					"map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+					"nested_map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"inner": {
+									NestedType: &configschema.Object{
+										Nesting:    configschema.NestingSingle,
+										Attributes: testAttributes,
+									},
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")}),
+				"list":   cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")})}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"map_entry": cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")}),
+				}),
+				"set": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")})}),
+				"nested_map": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"inner": cty.ObjectVal(map[string]cty.Value{
+							"optional":          cty.StringVal("foo"),
+							"computed":          cty.StringVal("foo"),
+							"optional_computed": cty.StringVal("foo"),
+							"required":          cty.StringVal("foo"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{"bar": cty.NullVal(cty.String)}),
+				"list":   cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"map":    cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"set":    cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"nested_map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"inner": cty.Object(map[string]cty.Type{
+						"optional":          cty.String,
+						"computed":          cty.String,
+						"optional_computed": cty.String,
+						"required":          cty.String,
+					}),
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"single": cty.ObjectVal(map[string]cty.Value{"bar": cty.NullVal(cty.String)}),
+				"list":   cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"map":    cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"set":    cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{"bar": cty.String}))),
+				"nested_map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"inner": cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+						"optional":          cty.String,
+						"computed":          cty.String,
+						"optional_computed": cty.String,
+						"required":          cty.String,
+					}, []string{"optional", "optional_computed"}),
+				}))),
+			}),
+		},
 	}
 
 	for name, test := range tests {
