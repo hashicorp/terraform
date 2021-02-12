@@ -36,9 +36,10 @@ module "example" {
 
 ## Default Behavior: Inherit Default Providers
 
-The `providers` argument is optional. If you omit it, a child module inherits
-all of the _default_ provider configurations from its parent module. (Default
-provider configurations are ones that don't use the `alias` argument.)
+If the child module does not declare any configuration aliases, the `providers`
+argument is optional. If you omit it, a child module inherits all of the
+_default_ provider configurations from its parent module. (Default provider
+configurations are ones that don't use the `alias` argument.)
 
 If you specify a `providers` argument, it cancels this default behavior, and the
 child module will _only_ have access to the provider configurations you specify.
