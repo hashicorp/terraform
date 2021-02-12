@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/command/cliconfig"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -81,6 +82,7 @@ func initCommands(
 	meta := command.Meta{
 		OriginalWorkingDir: originalWorkingDir,
 		Streams:            streams,
+		View:               views.NewView(streams),
 
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
