@@ -282,7 +282,7 @@ argument in the calling module block.
 ```
 
 To make a module compatible with the new features, you must remove all of the
-`provider` blocks from its definition
+`provider` blocks from its definition.
 
 If the new version of the module declares `configuration_aliases`, or if the
 calling module needs the child module to use different provider configurations
