@@ -73,6 +73,8 @@ settings come from provider _configurations_, and a particular overall Terraform
 configuration can potentially have
 [several different configurations for the same provider](/docs/language/providers/configuration.html#alias-multiple-provider-configurations).
 
+## Provider Aliases Within Modules
+
 To declare multiple configuration names for a provider within a module, add the
 `configuration_aliases` argument:
 
