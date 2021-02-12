@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 	"time"
 
@@ -208,6 +209,9 @@ type Operation struct {
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
 
+	// ShowDiagnostics prints diagnostic messages to the UI.
+	ShowDiagnostics func(vals ...interface{})
+
 	// If LockState is true, the Operation must Lock any
 	// statemgr.Lockers for its duration, and Unlock when complete.
 	LockState bool
@@ -238,6 +242,39 @@ func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
 	config, hclDiags := o.ConfigLoader.LoadConfig(o.ConfigDir)
 	diags = diags.Append(hclDiags)
 	return config, diags
+}
+
+// ReportResult is a helper for the common chore of setting the status of
+// a running operation and showing any diagnostics produced during that
+// operation.
+//
+// If the given diagnostics contains errors then the operation's result
+// will be set to backend.OperationFailure. It will be set to
+// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
+// to show the given diagnostics before returning.
+//
+// Callers should feel free to do each of these operations separately in
+// more complex cases where e.g. diagnostics are interleaved with other
+// output, but terminating immediately after reporting error diagnostics is
+// common and can be expressed concisely via this method.
+func (o *Operation) ReportResult(op *RunningOperation, diags tfdiags.Diagnostics) {
+	if diags.HasErrors() {
+		op.Result = OperationFailure
+	} else {
+		op.Result = OperationSuccess
+	}
+	if o.ShowDiagnostics != nil {
+		o.ShowDiagnostics(diags)
+	} else {
+		// Shouldn't generally happen, but if it does then we'll at least
+		// make some noise in the logs to help us spot it.
+		if len(diags) != 0 {
+			log.Printf(
+				"[ERROR] Backend needs to report diagnostics but ShowDiagnostics is not set:\n%s",
+				diags.ErrWithWarnings(),
+			)
+		}
+	}
 }
 
 // RunningOperation is the result of starting an operation.

@@ -309,7 +309,6 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
 		Streams:             m.Streams,
-		ShowDiagnostics:     m.showDiagnostics,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,

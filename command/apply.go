@@ -173,6 +173,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.Destroy = c.Destroy
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeApply
 
 	opReq.ConfigLoader, err = c.initConfigLoader()

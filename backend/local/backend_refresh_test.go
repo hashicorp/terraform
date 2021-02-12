@@ -220,10 +220,11 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
 	return &backend.Operation{
-		Type:         backend.OperationTypeRefresh,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		LockState:    true,
+		Type:            backend.OperationTypeRefresh,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		LockState:       true,
+		ShowDiagnostics: testLogDiagnostics(t),
 	}, configCleanup
 }
 
