@@ -132,10 +132,6 @@ func TestObjectImpliedType(t *testing.T) {
 			nil,
 			cty.EmptyObject,
 		},
-		"empty": {
-			&Object{},
-			cty.EmptyObject,
-		},
 		"attributes": {
 			&Object{
 				Attributes: map[string]*Attribute{
@@ -166,6 +162,86 @@ func TestObjectImpliedType(t *testing.T) {
 				},
 				[]string{"optional", "optional_computed"},
 			),
+		},
+		"nested attributes": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"nested_type": {
+						NestedType: &Object{
+							Attributes: map[string]*Attribute{
+								"optional": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"required": {
+									Type:     cty.Number,
+									Required: true,
+								},
+								"computed": {
+									Type:     cty.List(cty.Bool),
+									Computed: true,
+								},
+								"optional_computed": {
+									Type:     cty.Map(cty.Bool),
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+				"nested_type": cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"optional":          cty.String,
+					"required":          cty.Number,
+					"computed":          cty.List(cty.Bool),
+					"optional_computed": cty.Map(cty.Bool),
+				}, []string{"optional", "optional_computed"}),
+			}, []string{"nested_type"}),
+		},
+		"NestingList": {
+			&Object{
+				Nesting: NestingList,
+				Attributes: map[string]*Attribute{
+					"foo": {Type: cty.String},
+				},
+			},
+			cty.List(cty.Object(map[string]cty.Type{"foo": cty.String})),
+		},
+		"NestingMap": {
+			&Object{
+				Nesting: NestingMap,
+				Attributes: map[string]*Attribute{
+					"foo": {Type: cty.String},
+				},
+			},
+			cty.Map(cty.Object(map[string]cty.Type{"foo": cty.String})),
+		},
+		"NestingSet": {
+			&Object{
+				Nesting: NestingSet,
+				Attributes: map[string]*Attribute{
+					"foo": {Type: cty.String},
+				},
+			},
+			cty.Set(cty.Object(map[string]cty.Type{"foo": cty.String})),
+		},
+		"deeply nested NestingList": {
+			&Object{
+				Nesting: NestingList,
+				Attributes: map[string]*Attribute{
+					"foo": {
+						NestedType: &Object{
+							Nesting: NestingList,
+							Attributes: map[string]*Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+					},
+				},
+			},
+			cty.List(cty.Object(map[string]cty.Type{"foo": cty.List(cty.Object(map[string]cty.Type{"bar": cty.String}))})),
 		},
 	}
 

@@ -55,13 +55,29 @@ func (o *Object) ImpliedType() cty.Type {
 
 	attrTys := make(map[string]cty.Type, len(o.Attributes))
 	for name, attrS := range o.Attributes {
-		attrTys[name] = attrS.Type
+		if attrS.NestedType != nil {
+			attrTys[name] = attrS.NestedType.ImpliedType()
+		} else {
+			attrTys[name] = attrS.Type
+		}
+	}
+	optAttrs := listOptionalAttrsFromObject(o)
+	if len(optAttrs) > 0 {
+		return cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
 	}
 
-	var optAttrs []string
-	optAttrs = listOptionalAttrsFromObject(o, optAttrs)
-
-	return cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
+	switch o.Nesting {
+	case NestingSingle:
+		return cty.Object(attrTys)
+	case NestingList:
+		return cty.List(cty.Object(attrTys))
+	case NestingMap:
+		return cty.Map(cty.Object(attrTys))
+	case NestingSet:
+		return cty.Set(cty.Object(attrTys))
+	default: // Should never happen
+		panic("invalid Nesting")
+	}
 }
 
 // ContainsSensitive returns true if any of the attributes of the receiving

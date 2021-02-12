@@ -189,33 +189,7 @@ func TestAttributeEmptyValue(t *testing.T) {
 		{
 			&Attribute{
 				NestedType: &Object{
-					// no Nesting set should behave the same as NestingSingle
-					Attributes: map[string]*Attribute{
-						"str": {Type: cty.String, Required: true},
-					},
-				},
-			},
-			cty.NullVal(cty.Object(map[string]cty.Type{
-				"str": cty.String,
-			})),
-		},
-		{
-			&Attribute{
-				NestedType: &Object{
 					Nesting: NestingSingle,
-					Attributes: map[string]*Attribute{
-						"str": {Type: cty.String, Required: true},
-					},
-				},
-			},
-			cty.NullVal(cty.Object(map[string]cty.Type{
-				"str": cty.String,
-			})),
-		},
-		{
-			&Attribute{
-				NestedType: &Object{
-					Nesting: NestingGroup, // functionally equivalent to NestingSingle in a NestedType
 					Attributes: map[string]*Attribute{
 						"str": {Type: cty.String, Required: true},
 					},

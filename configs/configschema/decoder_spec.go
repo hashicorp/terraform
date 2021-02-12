@@ -197,21 +197,9 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")
 		}
 
-		var optAttrs []string
-		optAttrs = listOptionalAttrsFromObject(a.NestedType, optAttrs)
 		ty := a.NestedType.ImpliedType()
-
-		switch a.NestedType.Nesting {
-		case NestingList:
-			ret.Type = cty.List(ty)
-		case NestingSet:
-			ret.Type = cty.Set(ty)
-		case NestingMap:
-			ret.Type = cty.Map(ty)
-		default: // NestingSingle, NestingGroup, or no NestingMode
-			ret.Type = ty
-		}
-		ret.Required = a.NestedType.MinItems > 0
+		ret.Type = ty
+		ret.Required = a.Required || a.NestedType.MinItems > 0
 		return ret
 	}
 
@@ -220,12 +208,16 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 	return ret
 }
 
-func listOptionalAttrsFromObject(o *Object, optAttrs []string) []string {
+// listOptionalAttrsFromObject is a helper function which does *not* recurse
+// into NestedType Attributes, because the optional types for each of those will
+// belong to their own cty.Object definitions. It is used in other functions
+// which themselves handle that recursion.
+func listOptionalAttrsFromObject(o *Object) []string {
+	var ret []string
 	for name, attr := range o.Attributes {
 		if attr.Optional == true {
-			optAttrs = append(optAttrs, name)
+			ret = append(ret, name)
 		}
 	}
-
-	return optAttrs
+	return ret
 }
