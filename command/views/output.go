@@ -61,7 +61,7 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 			return diags
 		}
 		result := repl.FormatValue(output.Value, 0)
-		v.output(result)
+		v.streams.Println(result)
 		return nil
 	}
 
@@ -90,7 +90,7 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 		}
 	}
 
-	v.output(strings.TrimSpace(outputBuf.String()))
+	v.streams.Println(strings.TrimSpace(outputBuf.String()))
 
 	return nil
 }
@@ -200,7 +200,7 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 			return diags
 		}
 
-		v.output(string(jsonOutput))
+		v.streams.Println(string(jsonOutput))
 
 		return nil
 	}
@@ -242,7 +242,7 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 		return diags
 	}
 
-	v.output(string(jsonOutputs))
+	v.streams.Println(string(jsonOutputs))
 
 	return nil
 }

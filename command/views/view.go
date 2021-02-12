@@ -1,8 +1,6 @@
 package views
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -82,7 +80,7 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 		if useCompact {
 			msg := format.DiagnosticWarningsCompact(diags, v.colorize)
 			msg = "\n" + msg + "\nTo see the full warning notes, run Terraform without -compact-warnings.\n"
-			v.output(msg)
+			v.streams.Print(msg)
 			return
 		}
 	}
@@ -96,9 +94,9 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 		}
 
 		if diag.Severity() == tfdiags.Error {
-			fmt.Fprint(v.streams.Stderr.File, msg)
+			v.streams.Eprint(msg)
 		} else {
-			fmt.Fprint(v.streams.Stdout.File, msg)
+			v.streams.Print(msg)
 		}
 	}
 }
@@ -107,16 +105,10 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 // of their CLI arguments successfully. It refers users to the full help output
 // rather than rendering it directly, which can be overwhelming and confusing.
 func (v *View) HelpPrompt(command string) {
-	fmt.Fprintf(v.streams.Stderr.File, helpPrompt, command)
+	v.streams.Eprintf(helpPrompt, command)
 }
 
 const helpPrompt = `
 For more help on using this command, run:
   terraform %s -help
 `
-
-// output is a shorthand for the common view operation of printing a string to
-// the stdout stream, followed by a newline.
-func (v *View) output(s string) {
-	fmt.Fprintln(v.streams.Stdout.File, s)
-}
