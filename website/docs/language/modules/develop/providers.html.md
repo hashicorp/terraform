@@ -214,7 +214,7 @@ module "tunnel" {
 ```
 
 The subdirectory `./tunnel` must then declare the configuration aliases for the
-provider to pass configurations with these names in its `providers` argument:
+provider so the calling module can pass configurations with these names in its `providers` argument:
 
 ```hcl
 terraform {
