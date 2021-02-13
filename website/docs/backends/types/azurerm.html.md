@@ -165,7 +165,7 @@ The following configuration options are supported:
 
 * `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
 
-* `key_vault_key_identifier` - (Optional) The identifier of the [Azure Key Vault key](https://www.terraform.io/docs/providers/azurerm/d/key_vault_key.html). If this value is provided the key will be used to perform client-side encryption (RSA 1.5) of the blob used by the Terraform's State file. The user or service principal should have the following access policies on Key Vault for `Keys`: `Get`, `List`, `Encrypt` and `Decrypt`. This can also be sourced from the `ARM_KEY_VAULT_KEY_IDENTIFIER` environment variable.
+* `key_vault_key_identifier` - (Optional) The identifier of the [Azure Key Vault key](https://www.terraform.io/docs/providers/azurerm/d/key_vault_key.html). If this value is provided, AES-256 is used to perform client-side encryption of the blob used by the Terraform's State file. The user or service principal should have the following access policies on Key Vault for `Keys`: `Get`, `List`, `Wrap` and `Unwrap`. This can also be sourced from the `ARM_KEY_VAULT_KEY_IDENTIFIER` environment variable.
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 

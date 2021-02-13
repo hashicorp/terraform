@@ -225,8 +225,8 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 					keyvault.KeyPermissionsGet,
 					keyvault.KeyPermissionsCreate,
 					keyvault.KeyPermissionsList,
-					keyvault.KeyPermissionsEncrypt,
-					keyvault.KeyPermissionsDecrypt,
+					keyvault.KeyPermissionsWrapKey,
+					keyvault.KeyPermissionsUnwrapKey,
 				},
 			},
 		}
@@ -275,10 +275,10 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 				KeyAttributes: &keyvaultKey.KeyAttributes{
 					Enabled: to.BoolPtr(true),
 				},
-				KeySize: to.Int32Ptr(2048),
+				KeySize: to.Int32Ptr(4096),
 				KeyOps: &[]keyvaultKey.JSONWebKeyOperation{
-					keyvaultKey.Encrypt,
-					keyvaultKey.Decrypt,
+					keyvaultKey.WrapKey,
+					keyvaultKey.UnwrapKey,
 				},
 				Kty: keyvaultKey.RSA,
 			})
