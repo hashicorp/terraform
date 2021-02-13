@@ -104,7 +104,7 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s%s[reset]",
+		"[reset][bold][green]%s: %s%s[reset]",
 		dispAddr,
 		operation,
 		stateIdSuffix,
@@ -209,7 +209,7 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 	}
 
 	colorized := h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s after %s%s[reset]",
+		"[reset][bold][green]%s: %s after %s%s[reset]",
 		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix))
 
 	h.ui.Output(colorized)
