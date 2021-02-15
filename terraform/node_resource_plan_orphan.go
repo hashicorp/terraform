@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // NodePlannableResourceInstanceOrphan represents a resource that is "applyable":
@@ -26,6 +27,7 @@ var (
 	_ GraphNodeAttachResourceConfig = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeAttachResourceState  = (*NodePlannableResourceInstanceOrphan)(nil)
 	_ GraphNodeExecutable           = (*NodePlannableResourceInstanceOrphan)(nil)
+	_ GraphNodeProviderConsumer     = (*NodePlannableResourceInstanceOrphan)(nil)
 )
 
 func (n *NodePlannableResourceInstanceOrphan) Name() string {
@@ -33,7 +35,7 @@ func (n *NodePlannableResourceInstanceOrphan) Name() string {
 }
 
 // GraphNodeExecutable
-func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	addr := n.ResourceInstanceAddr()
 
 	// Eval info is different depending on what kind of resource this is
@@ -47,30 +49,41 @@ func (n *NodePlannableResourceInstanceOrphan) Execute(ctx EvalContext, op walkOp
 	}
 }
 
-func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) error {
+func (n *NodePlannableResourceInstanceOrphan) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		// indicate that this node does not require a configured provider
+		return nil, true
+	}
+	return n.NodeAbstractResourceInstance.ProvidedBy()
+}
+
+func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContext) tfdiags.Diagnostics {
 	// A data source that is no longer in the config is removed from the state
 	log.Printf("[TRACE] NodePlannableResourceInstanceOrphan: removing state object for %s", n.Addr)
-	state := ctx.RefreshState()
-	state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+
+	// we need to update both the refresh state to refresh the current data
+	// source, and the working state for plan-time evaluations.
+	refreshState := ctx.RefreshState()
+	refreshState.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+
+	workingState := ctx.State()
+	workingState.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
 	return nil
 }
 
-func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) error {
+func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. These are written to by-address below.
 	var change *plans.ResourceInstanceChange
 	var state *states.ResourceInstanceObject
+	var err error
 
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
-	}
-
-	state, err = n.ReadResourceInstanceState(ctx, addr)
-	if err != nil {
-		return err
+	state, err = n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	if !n.skipRefresh {
@@ -80,69 +93,34 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refresh := &EvalRefresh{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			Provider:       &provider,
-			ProviderMetas:  n.ProviderMetas,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-			Output:         &state,
-		}
-		_, err = refresh.Eval(ctx)
-		if err != nil {
-			return err
+		state, refreshDiags := n.refresh(ctx, state)
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
+			return diags
 		}
 
-		writeRefreshState := &EvalWriteState{
-			Addr:           addr.Resource,
-			ProviderAddr:   n.ResolvedProvider,
-			ProviderSchema: &providerSchema,
-			State:          &state,
-			targetState:    refreshState,
-		}
-		_, err = writeRefreshState.Eval(ctx)
-		if err != nil {
-			return err
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, refreshState))
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
-	diffDestroy := &EvalDiffDestroy{
-		Addr:         addr.Resource,
-		State:        &state,
-		ProviderAddr: n.ResolvedProvider,
-		Output:       &change,
-		OutputState:  &state, // Will point to a nil state after this complete, signalling destroyed
-	}
-	_, err = diffDestroy.Eval(ctx)
-	if err != nil {
-		return err
+	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
+	diags = diags.Append(destroyPlanDiags)
+	if diags.HasErrors() {
+		return diags
 	}
 
-	err = n.checkPreventDestroy(change)
-	if err != nil {
-		return err
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	writeDiff := &EvalWriteDiff{
-		Addr:           addr.Resource,
-		ProviderSchema: &providerSchema,
-		Change:         &change,
-	}
-	_, err = writeDiff.Eval(ctx)
-	if err != nil {
-		return err
+	diags = diags.Append(n.writeChange(ctx, change, ""))
+	if diags.HasErrors() {
+		return diags
 	}
 
-	writeState := &EvalWriteState{
-		Addr:           addr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	_, err = writeState.Eval(ctx)
-	if err != nil {
-		return err
-	}
-	return nil
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, n.Dependencies, workingState))
+	return diags
 }

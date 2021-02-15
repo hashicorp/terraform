@@ -9,9 +9,10 @@ import (
 	"runtime"
 
 	"github.com/armon/circbuf"
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/provisioners"
 	"github.com/mitchellh/go-linereader"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -21,59 +22,78 @@ const (
 	maxBufSize = 8 * 1024
 )
 
-func Provisioner() terraform.ResourceProvisioner {
-	return &schema.Provisioner{
-		Schema: map[string]*schema.Schema{
-			"command": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"interpreter": &schema.Schema{
-				Type:     schema.TypeList,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Optional: true,
-			},
-			"working_dir": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-			"environment": &schema.Schema{
-				Type:     schema.TypeMap,
-				Optional: true,
-			},
-		},
-
-		ApplyFunc: applyFn,
+func New() provisioners.Interface {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &provisioner{
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
-func applyFn(ctx context.Context) error {
-	data := ctx.Value(schema.ProvConfigDataKey).(*schema.ResourceData)
-	o := ctx.Value(schema.ProvOutputKey).(terraform.UIOutput)
+type provisioner struct {
+	// We store a context here tied to the lifetime of the provisioner.
+	// This allows the Stop method to cancel any in-flight requests.
+	ctx    context.Context
+	cancel context.CancelFunc
+}
 
-	command := data.Get("command").(string)
-	if command == "" {
-		return fmt.Errorf("local-exec provisioner command must be a non-empty string")
+func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"command": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"interpreter": {
+				Type:     cty.List(cty.String),
+				Optional: true,
+			},
+			"working_dir": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"environment": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
+		},
 	}
 
-	// Execute the command with env
-	environment := data.Get("environment").(map[string]interface{})
+	resp.Provisioner = schema
+	return resp
+}
 
+func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
+	if _, err := p.GetSchema().Provisioner.CoerceValue(req.Config); err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+	}
+	return resp
+}
+
+func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+	command := req.Config.GetAttr("command").AsString()
+	if command == "" {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("local-exec provisioner command must be a non-empty string"))
+		return resp
+	}
+
+	envVal := req.Config.GetAttr("environment")
 	var env []string
-	for k := range environment {
-		entry := fmt.Sprintf("%s=%s", k, environment[k].(string))
-		env = append(env, entry)
+
+	if !envVal.IsNull() {
+		for k, v := range envVal.AsValueMap() {
+			entry := fmt.Sprintf("%s=%s", k, v.AsString())
+			env = append(env, entry)
+		}
 	}
 
 	// Execute the command using a shell
-	interpreter := data.Get("interpreter").([]interface{})
+	intrVal := req.Config.GetAttr("interpreter")
 
 	var cmdargs []string
-	if len(interpreter) > 0 {
-		for _, i := range interpreter {
-			if arg, ok := i.(string); ok {
-				cmdargs = append(cmdargs, arg)
-			}
+	if !intrVal.IsNull() && intrVal.LengthInt() > 0 {
+		for _, v := range intrVal.AsValueSlice() {
+			cmdargs = append(cmdargs, v.AsString())
 		}
 	} else {
 		if runtime.GOOS == "windows" {
@@ -82,25 +102,30 @@ func applyFn(ctx context.Context) error {
 			cmdargs = []string{"/bin/sh", "-c"}
 		}
 	}
+
 	cmdargs = append(cmdargs, command)
 
-	workingdir := data.Get("working_dir").(string)
+	workingdir := ""
+	if wdVal := req.Config.GetAttr("working_dir"); !wdVal.IsNull() {
+		workingdir = wdVal.AsString()
+	}
 
-	// Setup the reader that will read the output from the command.
+	// Set up the reader that will read the output from the command.
 	// We use an os.Pipe so that the *os.File can be passed directly to the
 	// process, and not rely on goroutines copying the data which may block.
 	// See golang.org/issue/18874
 	pr, pw, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("failed to initialize pipe for output: %s", err)
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("failed to initialize pipe for output: %s", err))
+		return resp
 	}
 
 	var cmdEnv []string
 	cmdEnv = os.Environ()
 	cmdEnv = append(cmdEnv, env...)
 
-	// Setup the command
-	cmd := exec.CommandContext(ctx, cmdargs[0], cmdargs[1:]...)
+	// Set up the command
+	cmd := exec.CommandContext(p.ctx, cmdargs[0], cmdargs[1:]...)
 	cmd.Stderr = pw
 	cmd.Stdout = pw
 	// Dir specifies the working directory of the command.
@@ -118,10 +143,10 @@ func applyFn(ctx context.Context) error {
 
 	// copy the teed output to the UI output
 	copyDoneCh := make(chan struct{})
-	go copyOutput(o, tee, copyDoneCh)
+	go copyUIOutput(req.UIOutput, tee, copyDoneCh)
 
 	// Output what we're about to run
-	o.Output(fmt.Sprintf("Executing: %q", cmdargs))
+	req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
 
 	// Start the command
 	err = cmd.Start()
@@ -138,18 +163,28 @@ func applyFn(ctx context.Context) error {
 	// copyOutput goroutine will just hang out until exit.
 	select {
 	case <-copyDoneCh:
-	case <-ctx.Done():
+	case <-p.ctx.Done():
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error running command '%s': %v. Output: %s",
-			command, err, output.Bytes())
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error running command '%s': %v. Output: %s",
+			command, err, output.Bytes()))
+		return resp
 	}
 
+	return resp
+}
+
+func (p *provisioner) Stop() error {
+	p.cancel()
 	return nil
 }
 
-func copyOutput(o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+func (p *provisioner) Close() error {
+	return nil
+}
+
+func copyUIOutput(o provisioners.UIOutput, r io.Reader, doneCh chan<- struct{}) {
 	defer close(doneCh)
 	lr := linereader.New(r)
 	for line := range lr.Ch {

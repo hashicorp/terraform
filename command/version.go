@@ -9,21 +9,22 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
 	Meta
 
-	Revision          string
 	Version           string
 	VersionPrerelease string
 	CheckFunc         VersionCheckFunc
+	Platform          getproviders.Platform
 }
 
 type VersionOutput struct {
 	Version            string            `json:"terraform_version"`
-	Revision           string            `json:"terraform_revision"`
+	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
 }
@@ -77,10 +78,6 @@ func (c *VersionCommand) Run(args []string) int {
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
-
-		if c.Revision != "" {
-			fmt.Fprintf(&versionString, " (%s)", c.Revision)
-		}
 	}
 
 	// We'll also attempt to print out the selected plugin versions. We do
@@ -136,7 +133,7 @@ func (c *VersionCommand) Run(args []string) int {
 
 		output := VersionOutput{
 			Version:            versionOutput,
-			Revision:           c.Revision,
+			Platform:           c.Platform.String(),
 			ProviderSelections: selectionsOutput,
 			Outdated:           outdated,
 		}
@@ -150,6 +147,8 @@ func (c *VersionCommand) Run(args []string) int {
 		return 0
 	} else {
 		c.Ui.Output(versionString.String())
+		c.Ui.Output(fmt.Sprintf("on %s", c.Platform))
+
 		if len(providerVersions) != 0 {
 			sort.Strings(providerVersions)
 			for _, str := range providerVersions {

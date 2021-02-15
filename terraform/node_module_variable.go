@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/instances"
 	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -141,7 +142,7 @@ func (n *nodeModuleVariable) ModulePath() addrs.Module {
 }
 
 // GraphNodeExecutable
-func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
+func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// If we have no value, do nothing
 	if n.Expr == nil {
 		return nil
@@ -154,14 +155,16 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) error {
 
 	switch op {
 	case walkValidate:
-		vals, err = n.EvalModuleCallArgument(ctx, true)
-		if err != nil {
-			return err
+		vals, err = n.evalModuleCallArgument(ctx, true)
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return diags
 		}
 	default:
-		vals, err = n.EvalModuleCallArgument(ctx, false)
-		if err != nil {
-			return err
+		vals, err = n.evalModuleCallArgument(ctx, false)
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return diags
 		}
 	}
 
@@ -184,7 +187,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 	}
 }
 
-// EvalModuleCallArgument produces the value for a particular variable as will
+// evalModuleCallArgument produces the value for a particular variable as will
 // be used by a child module instance.
 //
 // The result is written into a map, with its key set to the local name of the
@@ -196,7 +199,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) EvalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
+func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
 	wantType := n.Config.Type
 	name := n.Addr.Variable.Name
 	expr := n.Expr

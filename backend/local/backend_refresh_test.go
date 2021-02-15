@@ -24,7 +24,7 @@ func TestLocal_refresh(t *testing.T) {
 	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
@@ -76,7 +76,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	testStateFile(t, b.StatePath, testRefreshState())
 
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
@@ -119,7 +119,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
-	p.ReadResourceResponse = providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
@@ -127,6 +127,52 @@ func TestLocal_refreshValidate(t *testing.T) {
 	b.OpValidation = true
 
 	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
+	defer configCleanup()
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+
+	checkState(t, b.StateOutPath, `
+test_instance.foo:
+  ID = yes
+  provider = provider["registry.terraform.io/hashicorp/test"]
+	`)
+}
+
+func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	schema := &terraform.ProviderSchema{
+		Provider: &configschema.Block{
+			Attributes: map[string]*configschema.Attribute{
+				"value": {Type: cty.String, Optional: true},
+			},
+		},
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"ami": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	}
+
+	p := TestLocalProvider(t, b, "test", schema)
+	testStateFile(t, b.StatePath, testRefreshState())
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
+
+	// Enable validation
+	b.OpValidation = true
+
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh-provider-config")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)

@@ -30,8 +30,8 @@ func (c *UnlockCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) == 0 {
-		c.Ui.Error("unlock requires a lock id argument")
+	if len(args) != 1 {
+		c.Ui.Error("Expected a single argument: LOCK_ID")
 		return cli.RunResultHelp
 	}
 
@@ -116,7 +116,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 func (c *UnlockCommand) Help() string {
 	helpText := `
-Usage: terraform force-unlock LOCK_ID [DIR]
+Usage: terraform force-unlock LOCK_ID
 
   Manually unlock the state for the defined configuration.
 

@@ -6,12 +6,6 @@ VERSION?="0.3.44"
 # "make protobuf".
 generate:
 	go generate ./...
-	# go fmt doesn't support -mod=vendor but it still wants to populate the
-	# module cache with everything in go.mod even though formatting requires
-	# no dependencies, and so we're disabling modules mode for this right
-	# now until the "go fmt" behavior is rationalized to either support the
-	# -mod= argument or _not_ try to install things.
-	GO111MODULE=off go fmt command/internal_plugin_list.go > /dev/null
 
 # We separate the protobuf generation because most development tasks on
 # Terraform do not involve changing protobuf files and protoc is not a
@@ -47,29 +41,6 @@ endif
 		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
 		--workdir /terraform-website \
 		hashicorp/middleman-hashicorp:${VERSION}
-
-website-test:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
-	@echo "==> Testing core website in Docker..."
-	-@docker stop "tf-website-core-temp"
-	@docker run \
-		--detach \
-		--rm \
-		--name "tf-website-core-temp" \
-		--publish "4567:4567" \
-		--volume "$(shell pwd)/website:/website" \
-		--volume "$(shell pwd):/ext/terraform" \
-		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
-		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
-		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
-		--workdir /terraform-website \
-		hashicorp/middleman-hashicorp:${VERSION}
-	$(WEBSITE_PATH)/content/scripts/check-links.sh "http://127.0.0.1:4567" "/" "/docs/providers/*"
-	@docker stop "tf-website-core-temp"
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide

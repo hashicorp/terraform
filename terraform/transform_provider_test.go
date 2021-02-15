@@ -434,69 +434,6 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	}
 }
 
-// pass a specific provider into a module using it implicitly
-func TestProviderConfigTransformer_implicitModule(t *testing.T) {
-	mod := testModule(t, "transform-provider-implicit-module")
-	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
-
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := TransformProviders([]string{"aws"}, concrete, mod)
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`module.mod.aws_instance.bar
-  provider["registry.terraform.io/hashicorp/aws"].foo
-provider["registry.terraform.io/hashicorp/aws"].foo`)
-	if actual != expected {
-		t.Fatalf("wrong result\n\nexpected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-// error out when a non-existent provider is named in a module providers map
-func TestProviderConfigTransformer_invalidProvider(t *testing.T) {
-	mod := testModule(t, "transform-provider-invalid")
-	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
-
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	tf := TransformProviders([]string{"aws"}, concrete, mod)
-	err := tf.Transform(&g)
-	if err == nil {
-		t.Fatal("expected missing provider error")
-	}
-	if !strings.Contains(err.Error(), `provider["registry.terraform.io/hashicorp/aws"].foo`) {
-		t.Fatalf("error should reference missing provider, got: %s", err)
-	}
-}
-
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider["registry.terraform.io/hashicorp/aws"]
@@ -543,31 +480,6 @@ provider["registry.terraform.io/hashicorp/foo"]
 provider["registry.terraform.io/hashicorp/foo"] (close)
   foo_instance.web
   provider["registry.terraform.io/hashicorp/foo"]
-`
-
-const testTransformDisableProviderBasicStr = `
-module.child
-  provider["registry.terraform.io/hashicorp/aws"] (disabled)
-  var.foo
-provider["registry.terraform.io/hashicorp/aws"] (close)
-  module.child
-  provider["registry.terraform.io/hashicorp/aws"] (disabled)
-provider["registry.terraform.io/hashicorp/aws"] (disabled)
-var.foo
-`
-
-const testTransformDisableProviderKeepStr = `
-aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
-module.child
-  provider["registry.terraform.io/hashicorp/aws"]
-  var.foo
-provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"] (close)
-  aws_instance.foo
-  module.child
-  provider["registry.terraform.io/hashicorp/aws"]
-var.foo
 `
 
 const testTransformModuleProviderConfigStr = `

@@ -17,9 +17,9 @@ func TestNodeRootVariableExecute(t *testing.T) {
 		},
 	}
 
-	err := n.Execute(ctx, walkApply)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err.Error())
+	diags := n.Execute(ctx, walkApply)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
 	}
 
 }

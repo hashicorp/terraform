@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Environment Variables - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-environment-variables"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Commands: Environment Variables](../commands/environment-variables.html).
+[Commands: Environment Variables](/docs/cli/config/environment-variables.html).
 
 ## TF_LOG
 
@@ -48,7 +48,7 @@ export TF_INPUT=0
 
 ## TF_MODULE_DEPTH
 
-When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/commands/plan.html) and [graph](/docs/commands/graph.html) to display more compressed information.
+When given a value, causes terraform commands to behave as if the `-module-depth=VALUE` flag was specified. By setting this to 0, for example, you enable commands such as [plan](/docs/cli/commands/plan.html) and [graph](/docs/cli/commands/graph.html) to display more compressed information.
 
 ```shell
 export TF_MODULE_DEPTH=0

@@ -39,15 +39,13 @@ func (b *Local) opApply(
 		return
 	}
 
-	// Setup our count hook that keeps track of resource changes
-	countHook := new(CountHook)
 	stateHook := new(StateHook)
 	if b.ContextOpts == nil {
 		b.ContextOpts = new(terraform.ContextOpts)
 	}
 	old := b.ContextOpts.Hooks
 	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, countHook, stateHook)
+	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, stateHook)
 
 	// Get our context
 	tfCtx, _, opState, contextDiags := b.context(op)
@@ -81,7 +79,7 @@ func (b *Local) opApply(
 
 		trivialPlan := plan.Changes.Empty()
 		hasUI := op.UIOut != nil && op.UIIn != nil
-		mustConfirm := hasUI && ((op.Destroy && (!op.DestroyForce && !op.AutoApprove)) || (!op.Destroy && !op.AutoApprove && !trivialPlan))
+		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		if mustConfirm {
 			var desc, query string
 			if op.Destroy {
@@ -137,7 +135,7 @@ func (b *Local) opApply(
 		}
 	}
 
-	// Setup our hook for continuous state updates
+	// Set up our hook for continuous state updates
 	stateHook.StateMgr = opState
 
 	// Start the apply in a goroutine so that we can be interrupted.
@@ -183,35 +181,6 @@ func (b *Local) opApply(
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
 	b.ShowDiagnostics(diags)
-
-	// If we have a UI, output the results
-	if b.CLI != nil {
-		if op.Destroy {
-			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-				"[reset][bold][green]\n"+
-					"Destroy complete! Resources: %d destroyed.",
-				countHook.Removed)))
-		} else {
-			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-				"[reset][bold][green]\n"+
-					"Apply complete! Resources: %d added, %d changed, %d destroyed.",
-				countHook.Added,
-				countHook.Changed,
-				countHook.Removed)))
-		}
-
-		// only show the state file help message if the state is local.
-		if (countHook.Added > 0 || countHook.Changed > 0) && b.StateOutPath != "" {
-			b.CLI.Output(b.Colorize().Color(fmt.Sprintf(
-				"[reset]\n"+
-					"The state of your infrastructure has been saved to the path\n"+
-					"below. This state is required to modify and destroy your\n"+
-					"infrastructure, so keep it safe. To inspect the complete state\n"+
-					"use the `terraform show` command.\n\n"+
-					"State path: %s",
-				b.StateOutPath)))
-		}
-	}
 }
 
 // backupStateForError is called in a scenario where we're unable to persist the

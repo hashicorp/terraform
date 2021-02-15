@@ -1,5 +1,7 @@
 package terraform
 
+import "github.com/hashicorp/terraform/tfdiags"
+
 // NodeEvalableProvider represents a provider during an "eval" walk.
 // This special provider node type just initializes a provider and
 // fetches its schema, without configuring it or otherwise interacting
@@ -8,8 +10,10 @@ type NodeEvalableProvider struct {
 	*NodeAbstractProvider
 }
 
+var _ GraphNodeExecutable = (*NodeEvalableProvider)(nil)
+
 // GraphNodeExecutable
-func (n *NodeEvalableProvider) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodeEvalableProvider) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	_, err := ctx.InitProvider(n.Addr)
-	return err
+	return diags.Append(err)
 }

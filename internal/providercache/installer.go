@@ -65,6 +65,12 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	}
 }
 
+// ProviderSource returns the getproviders.Source that the installer would
+// use for installing any new providers.
+func (i *Installer) ProviderSource() getproviders.Source {
+	return i.source
+}
+
 // SetGlobalCacheDir activates a second tier of caching for the receiving
 // installer, with the given directory used as a read-through cache for
 // installation operations that need to retrieve new packages.
@@ -304,6 +310,18 @@ NeedProvider:
 			preferredHashes = lock.PreferredHashes()
 		}
 
+		// If our target directory already has the provider version that fulfills the lock file, carry on
+		if installed := i.targetDir.ProviderVersion(provider, version); installed != nil {
+			if len(preferredHashes) > 0 {
+				if matches, _ := installed.MatchesAnyHash(preferredHashes); matches {
+					if cb := evts.ProviderAlreadyInstalled; cb != nil {
+						cb(provider, version)
+					}
+					continue
+				}
+			}
+		}
+
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
 			// we'll just link it in.
@@ -385,7 +403,7 @@ NeedProvider:
 				// implementation, so we don't worry about potentially
 				// creating a duplicate here.
 				newHashes = append(newHashes, newHash)
-				lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+				locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 				if cb := evts.LinkFromCacheSuccess; cb != nil {
 					cb(provider, version, new.PackageDir)
@@ -511,7 +529,7 @@ NeedProvider:
 			// and so the hashes would cover only the current platform.
 			newHashes = append(newHashes, meta.AcceptableHashes()...)
 		}
-		lock = locks.SetProvider(provider, version, reqs[provider], newHashes)
+		locks.SetProvider(provider, version, reqs[provider], newHashes)
 
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)
@@ -576,5 +594,5 @@ func (err InstallerError) Error() string {
 		providerErr := err.ProviderErrors[addr]
 		fmt.Fprintf(&b, "- %s: %s\n", addr, providerErr)
 	}
-	return b.String()
+	return strings.TrimSpace(b.String())
 }

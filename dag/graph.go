@@ -337,7 +337,7 @@ func VertexName(raw Vertex) string {
 	case NamedVertex:
 		return v.Name()
 	case fmt.Stringer:
-		return fmt.Sprintf("%s", v)
+		return v.String()
 	default:
 		return fmt.Sprintf("%v", v)
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
+	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
@@ -28,6 +29,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -100,7 +102,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		log.Printf("[TRACE] Meta.Backend: instantiated backend of type %T", b)
 	}
 
-	// Setup the CLI opts we pass into backends that support it.
+	// Set up the CLI opts we pass into backends that support it.
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
 		diags = diags.Append(err)
@@ -159,7 +161,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		// with inside backendFromConfig, because we still need that codepath
 		// to be able to recognize the lack of a config as distinct from
 		// explicitly setting local until we do some more refactoring here.
-		m.backendState = &terraform.BackendState{
+		m.backendState = &legacy.BackendState{
 			Type:      "local",
 			ConfigRaw: json.RawMessage("{}"),
 		}
@@ -306,6 +308,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
+		Streams:             m.Streams,
 		ShowDiagnostics:     m.showDiagnostics,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
@@ -460,7 +463,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	s := sMgr.State()
 	if s == nil {
 		log.Printf("[TRACE] Meta.Backend: backend has not previously been initialized in this working directory")
-		s = terraform.NewState()
+		s = legacy.NewState()
 	} else if s.Backend != nil {
 		log.Printf("[TRACE] Meta.Backend: working directory was previously initialized for %q backend", s.Backend.Type)
 	} else {
@@ -817,9 +820,9 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Store the metadata in our saved state location
 	s := sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -901,9 +904,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	// Update the backend state
 	s = sMgr.State()
 	if s == nil {
-		s = terraform.NewState()
+		s = legacy.NewState()
 	}
-	s.Backend = &terraform.BackendState{
+	s.Backend = &legacy.BackendState{
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
@@ -995,7 +998,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clis
 // this function will conservatively assume that migration is required,
 // expecting that the migration code will subsequently deal with the same
 // errors.
-func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *terraform.BackendState) bool {
+func (m *Meta) backendConfigNeedsMigration(c *configs.Backend, s *legacy.BackendState) bool {
 	if s == nil || s.Empty() {
 		log.Print("[TRACE] backendConfigNeedsMigration: no cached config, so migration is required")
 		return true
@@ -1091,6 +1094,38 @@ func (m *Meta) backendInitRequired(reason string) {
 		"[reset]"+strings.TrimSpace(errBackendInit)+"\n", reason)))
 }
 
+// Helper method to ignore remote backend version conflicts. Only call this
+// for commands which cannot accidentally upgrade remote state files.
+func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
+	if rb, ok := b.(*remoteBackend.Remote); ok {
+		rb.IgnoreVersionConflict()
+	}
+}
+
+// Helper method to check the local Terraform version against the configured
+// version in the remote workspace, returning diagnostics if they conflict.
+func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	if rb, ok := b.(*remoteBackend.Remote); ok {
+		// Allow user override based on command-line flag
+		if m.ignoreRemoteVersion {
+			rb.IgnoreVersionConflict()
+		}
+		// If the override is set, this check will return a warning instead of
+		// an error
+		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
+		diags = diags.Append(versionDiags)
+		// If there are no errors resulting from this check, we do not need to
+		// check again
+		if !diags.HasErrors() {
+			rb.IgnoreVersionConflict()
+		}
+	}
+
+	return diags
+}
+
 //-------------------------------------------------------------------
 // Output constants and initialization code
 //-------------------------------------------------------------------
@@ -1171,7 +1206,7 @@ Terraform configuration you're using is using a custom configuration for
 the Terraform backend.
 
 Changes to backend configurations require reinitialization. This allows
-Terraform to setup the new configuration, copy existing state, etc. This is
+Terraform to set up the new configuration, copy existing state, etc. This is
 only done during "terraform init". Please run that command now then try again.
 
 If the change reason above is incorrect, please verify your configuration
@@ -1210,13 +1245,4 @@ Successfully unset the backend %q. Terraform will now operate locally.
 const successBackendSet = `
 Successfully configured the backend %q! Terraform will automatically
 use this backend unless the backend configuration changes.
-`
-
-const errBackendLegacy = `
-This working directory is configured to use the legacy remote state features
-from Terraform 0.8 or earlier. Remote state changed significantly in Terraform
-0.9 and the automatic upgrade mechanism has now been removed.
-
-To upgrade, please first use Terraform v0.11 to complete the upgrade steps:
-    https://www.terraform.io/docs/backends/legacy-0-8.html
 `

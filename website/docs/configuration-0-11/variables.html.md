@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Input Variables - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-variables"
 description: |-
@@ -11,7 +11,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Input Variables](../configuration/variables.html).
+[Configuration Language: Input Variables](/docs/language/values/variables.html).
 
 Input variables serve as parameters for a Terraform module.
 
@@ -211,7 +211,7 @@ $ TF_VAR_image=foo terraform apply
 ```
 
 Maps and lists can be specified using environment variables as well using
-[HCL](./syntax.html#HCL) syntax in the value.
+[HCL](./syntax.html) syntax in the value.
 
 For a list variable like so:
 

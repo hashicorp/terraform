@@ -147,22 +147,81 @@ func warnForDeprecatedInterpolationsInExpr(expr hcl.Expression) hcl.Diagnostics 
 		return nil
 	}
 
-	return hclsyntax.VisitAll(node, func(n hclsyntax.Node) hcl.Diagnostics {
-		e, ok := n.(*hclsyntax.TemplateWrapExpr)
-		if !ok {
-			// We're only interested in TemplateWrapExpr, because that's how
-			// the HCL native syntax parser represents the case of a template
-			// that consists entirely of a single interpolation expression, which
-			// is therefore subject to the special case of passing through the
-			// inner value without conversion to string.
-			return nil
-		}
+	walker := warnForDeprecatedInterpolationsWalker{
+		// create some capacity so that we can deal with simple expressions
+		// without any further allocation during our walk.
+		contextStack: make([]warnForDeprecatedInterpolationsContext, 0, 16),
+	}
+	return hclsyntax.Walk(node, &walker)
+}
 
-		return hcl.Diagnostics{&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Interpolation-only expressions are deprecated",
-			Detail:   "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
-			Subject:  e.Range().Ptr(),
-		}}
-	})
+// warnForDeprecatedInterpolationsWalker is an implementation of
+// hclsyntax.Walker that we use to generate deprecation warnings for template
+// expressions that consist entirely of a single interpolation directive.
+// That's always redundant in Terraform v0.12 and later, but tends to show up
+// when people work from examples written for Terraform v0.11 or earlier.
+type warnForDeprecatedInterpolationsWalker struct {
+	contextStack []warnForDeprecatedInterpolationsContext
+}
+
+var _ hclsyntax.Walker = (*warnForDeprecatedInterpolationsWalker)(nil)
+
+type warnForDeprecatedInterpolationsContext int
+
+const (
+	warnForDeprecatedInterpolationsNormal warnForDeprecatedInterpolationsContext = 0
+	warnForDeprecatedInterpolationsObjKey warnForDeprecatedInterpolationsContext = 1
+)
+
+func (w *warnForDeprecatedInterpolationsWalker) Enter(node hclsyntax.Node) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	context := warnForDeprecatedInterpolationsNormal
+	switch node := node.(type) {
+	case *hclsyntax.ObjectConsKeyExpr:
+		context = warnForDeprecatedInterpolationsObjKey
+	case *hclsyntax.TemplateWrapExpr:
+		// hclsyntax.TemplateWrapExpr is a special node type used by HCL only
+		// for the situation where a template is just a single interpolation,
+		// so we don't need to do anything further to distinguish that
+		// situation. ("normal" templates are *hclsyntax.TemplateExpr.)
+
+		const summary = "Interpolation-only expressions are deprecated"
+		switch w.currentContext() {
+		case warnForDeprecatedInterpolationsObjKey:
+			// This case requires a different resolution in order to retain
+			// the same meaning, so we have a different detail message for
+			// it.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  summary,
+				Detail:   "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated.\n\nTo silence this warning, replace the \"${ opening sequence and the }\" closing sequence with opening and closing parentheses respectively. Parentheses are needed here to mark this as an expression to be evaluated, rather than as a literal string key.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
+				Subject:  node.Range().Ptr(),
+			})
+		default:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  summary,
+				Detail:   "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
+				Subject:  node.Range().Ptr(),
+			})
+		}
+	}
+
+	// Note the context of the current node for when we potentially visit
+	// child nodes.
+	w.contextStack = append(w.contextStack, context)
+	return diags
+}
+
+func (w *warnForDeprecatedInterpolationsWalker) Exit(node hclsyntax.Node) hcl.Diagnostics {
+	w.contextStack = w.contextStack[:len(w.contextStack)-1]
+	return nil
+}
+
+func (w *warnForDeprecatedInterpolationsWalker) currentContext() warnForDeprecatedInterpolationsContext {
+	if len(w.contextStack) == 0 {
+		return warnForDeprecatedInterpolationsNormal
+	}
+	return w.contextStack[len(w.contextStack)-1]
 }

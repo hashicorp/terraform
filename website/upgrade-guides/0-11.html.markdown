@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.11"
 sidebar_current: "upgrade-guides-0-11"
 description: |-
@@ -260,7 +260,7 @@ resource "aws_vpc" "example" {
 ```
 
 After the above refactoring, run `terraform apply` to re-synchoronize
-Terraform's record (in [the Terraform state](/docs/state/index.html)) of the
+Terraform's record (in [the Terraform state](/docs/language/state/index.html)) of the
 location of each resource's provider configuration. This should make no changes
 to actual infrastructure, since no resource configurations were changed.
 

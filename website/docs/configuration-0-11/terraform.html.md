@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Terraform Settings - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-terraform"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Terraform Settings](../configuration/terraform.html).
+[Configuration Language: Terraform Settings](/docs/language/settings/index.html).
 
 The `terraform` configuration section is used to configure Terraform itself,
 such as requiring a minimum Terraform version to execute a configuration.
@@ -41,7 +41,7 @@ that must be met to perform operations on this configuration. If the
 running Terraform version doesn't meet these constraints, an error
 is shown. See the section below dedicated to this option.
 
-See [backends](/docs/backends/index.html) for more detail on the `backend`
+See [backends](/docs/language/settings/backends/configuration.html) for more detail on the `backend`
 configuration.
 
 **No value within the `terraform` block can use interpolations.** The

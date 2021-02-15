@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.10"
 sidebar_current: "upgrade-guides-0-10"
 description: |-
@@ -28,7 +28,7 @@ in the navigation) if you are upgrading directly from an earlier version.
 As of v0.10, provider plugins are no longer included in the main Terraform
 distribution. Instead, they are distributed separately and installed
 automatically by
-[the `terraform init` command](/docs/commands/init.html).
+[the `terraform init` command](/docs/cli/commands/init.html).
 
 In the long run, this new approach should be beneficial to anyone who wishes
 to upgrade a specific provider to get new functionality without also
@@ -37,7 +37,7 @@ In the short term, it just means a smaller distribution package and thus
 avoiding the need to download tens of providers that may never be used.
 
 Provider plugins are now also versioned separately from Terraform itself.
-[Version constraints](/docs/configuration/providers.html#provider-versions)
+[Version constraints](/docs/language/providers/configuration.html#provider-versions)
 can be specified in configuration to ensure that new major releases
 (which may have breaking changes) are not automatically installed.
 
@@ -48,7 +48,7 @@ step after a Terraform configuration is cloned from version control, and
 will also install any necessary modules and configure any remote backend.
 
 **Action:** For "production" configurations, consider adding
-[provider version constraints](/docs/configuration/providers.html#provider-versions),
+[provider version constraints](/docs/language/providers/configuration.html#provider-versions),
 as suggested by the `terraform init` output, to prevent new major versions
 of plugins from being automatically installed in future.
 
@@ -60,9 +60,18 @@ eventually support a similar approach for third-party plugins, but we wish
 to ensure the robustness of the installation and versioning mechanisms before
 generalizing this feature.
 
-In the mean time,
-[the prior mechanisms for installing third-party providers](/docs/plugins/basics.html#installing-a-plugin)
-are still supported. Maintainers of third-party providers may optionally
+-> **Note:** As of Terraform 0.13, Terraform can automatically install
+third-party providers released on the Terraform Registry.
+
+In the mean time, third-party providers can be installed by placing them in the
+user plugins directory:
+
+Operating system  | User plugins directory
+------------------|-----------------------
+Windows           | `%APPDATA%\terraform.d\plugins`
+All other systems | `~/.terraform.d/plugins`
+
+Maintainers of third-party providers may optionally
 make use of the new versioning mechanism by naming provider binaries
 using the scheme `terraform-provider-NAME_v0.0.1`, where "0.0.1" is an
 example version. Terraform expects providers to follow the
@@ -95,9 +104,9 @@ For example, if `module.example` contains a module itself, called
 `module.example` _and_ `module.example.module.examplechild`.
 
 This also applies to other Terraform features that use
-[resource addressing](/docs/internals/resource-addressing.html) syntax.
+[resource addressing](/docs/cli/state/resource-addressing.html) syntax.
 This includes some of the subcommands of
-[`terraform state`](/docs/commands/state/index.html).
+[`terraform state`](/docs/cli/commands/state/index.html).
 
 **Action:** If running Terraform with `-target` in automation, review usage
 to ensure that selecting additional resources in child modules will not have

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/backend"
@@ -23,6 +23,7 @@ func (c *GraphCommand) Run(args []string) int {
 	var graphTypeStr string
 	var moduleDepth int
 	var verbose bool
+	var planPath string
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.defaultFlagSet("graph")
@@ -30,6 +31,7 @@ func (c *GraphCommand) Run(args []string) int {
 	cmdFlags.StringVar(&graphTypeStr, "type", "", "type")
 	cmdFlags.IntVar(&moduleDepth, "module-depth", -1, "module-depth")
 	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
+	cmdFlags.StringVar(&planPath, "plan", "", "plan")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -48,16 +50,14 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	var plan *plans.Plan
-	planFile, err := c.PlanFile(configPath)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	if planFile != nil {
-		// Reset for backend loading
-		configPath = ""
+	// Try to load plan if path is specified
+	var planFile *planfile.Reader
+	if planPath != "" {
+		planFile, err = c.PlanFile(planPath)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
 	}
 
 	var diags tfdiags.Diagnostics
@@ -87,6 +87,9 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
@@ -109,7 +112,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 	// Determine the graph type
 	graphType := terraform.GraphTypePlan
-	if plan != nil {
+	if planFile != nil {
 		graphType = terraform.GraphTypeApply
 	}
 
@@ -160,10 +163,10 @@ func (c *GraphCommand) Run(args []string) int {
 
 func (c *GraphCommand) Help() string {
 	helpText := `
-Usage: terraform graph [options] [DIR]
+Usage: terraform graph [options]
 
   Outputs the visual execution graph of Terraform resources according to
-  configuration files in DIR (or the current directory if omitted).
+  either the current configuration or an execution plan.
 
   The graph is outputted in DOT format. The typical program that can
   read this format is GraphViz, but many web services are also available
@@ -176,6 +179,9 @@ Usage: terraform graph [options] [DIR]
   argument.
 
 Options:
+
+  -plan=tfplan     Render graph using the specified plan file instead of the
+                   configuration in the current directory.
 
   -draw-cycles     Highlight any cycles in the graph with colored edges.
                    This helps when diagnosing cycle errors.

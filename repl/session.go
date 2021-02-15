@@ -1,7 +1,6 @@
 package repl
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -11,10 +10,6 @@ import (
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/tfdiags"
 )
-
-// ErrSessionExit is a special error result that should be checked for
-// from Handle to signal a graceful exit.
-var ErrSessionExit = errors.New("session exit")
 
 // Session represents the state for a single REPL session.
 type Session struct {

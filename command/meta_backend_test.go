@@ -1541,7 +1541,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	defer testChdir(t, td)()
 
 	original := testState()
-	mark := markStateForMatching(original, "hello")
+	markStateForMatching(original, "hello")
 
 	backendConfigBlock := cty.ObjectVal(map[string]cty.Value{
 		"path":          cty.NullVal(cty.String),
@@ -1607,7 +1607,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 
 	// Write some state
 	state = states.NewState()
-	mark = markStateForMatching(state, "changing")
+	mark := markStateForMatching(state, "changing")
 
 	s.WriteState(state)
 	if err := s.PersistState(); err != nil {

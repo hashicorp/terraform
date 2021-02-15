@@ -1,537 +1,568 @@
 <% wrap_layout :inner do %>
   <% content_for :sidebar do %>
-    <h4><a href="/docs/cli-index.html">Terraform CLI</a></h4>
+    <h4><a href="/docs/cli/index.html">Terraform CLI</a></h4>
 
     <ul class="nav docs-sidenav">
-      <li<%= sidebar_current("docs-conf") %>>
-        <a href="/docs/configuration/index.html">Configuration Language</a>
+
+      <li>
+        <a href="/docs/cli/index.html">Overview</a>
+      </li>
+
+      <li>
+        <a href="/docs/cli/commands/index.html">Basic CLI Features</a>
+      </li>
+
+      <li>
+        <a href="#">Initializing Working Directories</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-config") %>>
-            <a href="/docs/configuration/index.html">0.12 and Newer</a>
-            <ul class="nav">
+          <li>
+            <a href="/docs/cli/init/index.html">Overview</a>
+          </li>
 
+          <li>
+            <a href="/docs/cli/commands/init.html"><code>init</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/get.html"><code>get</code></a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Provisioning Infrastructure</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/run/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/plan.html"><code>plan</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/apply.html"><code>apply</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/destroy.html"><code>destroy</code></a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Authenticating</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/auth/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/login.html"><code>login</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/logout.html"><code>logout</code></a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Writing and Modifying Code</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/code/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/console.html"><code>console</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/fmt.html"><code>fmt</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/validate.html"><code>validate</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/0.13upgrade.html"><code>0.13upgrade</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/0.12upgrade.html"><code>0.12upgrade</code></a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Inspecting Infrastructure</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/inspect/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/graph.html"><code>graph</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/output.html"><code>output</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/show.html"><code>show</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/list.html"><code>state list</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/show.html"><code>state show</code></a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Importing Infrastructure</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/import/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/import.html"><code>import</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/import/usage.html">Usage Tips</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/import/importability.html">Resource Importability</a>
+          </li>
+
+
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Manipulating State</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/state/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/state/resource-addressing.html">Resource Addressing</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/index.html"><code>state</code></a>
+          </li>
+
+          <li>
+            <a href="#">Inspecting State</a>
+            <ul class="nav nav-auto-expand">
               <li>
-                <a href="/docs/configuration/index.html">Language Overview</a>
+                <a href="/docs/cli/state/inspect.html">Overview</a>
               </li>
 
               <li>
-                <a href="/docs/configuration/resources.html">Configuration Blocks</a>
-                <ul class="nav nav-auto-expand">
-
-                  <li<%= sidebar_current("docs-config-resources") %>>
-                    <a href="/docs/configuration/resources.html">Resources</a>
-                  </li>
-
-                  <li>
-                    <a href="/docs/configuration/provider-requirements.html">Provider Requirements</a>
-                  </li>
-
-                  <li>
-                    <a href="/docs/configuration/providers.html">Provider Configuration</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-variables") %>>
-                    <a href="/docs/configuration/variables.html">Input Variables</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-outputs") %>>
-                    <a href="/docs/configuration/outputs.html">Output Values</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-locals") %>>
-                    <a href="/docs/configuration/locals.html">Local Values</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-modules") %>>
-                    <a href="/docs/configuration/modules.html">Modules</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-data-sources") %>>
-                    <a href="/docs/configuration/data-sources.html">Data Sources</a>
-                  </li>
-
-                  <li>
-                    <a href="/docs/configuration/backend.html">Backend Configuration</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-terraform") %>>
-                    <a href="/docs/configuration/terraform.html">Terraform Settings</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-provisioners") %>>
-                    <a href="/docs/provisioners/index.html">Provisioners</a>
-                    <ul class="nav">
-                      <li<%= sidebar_current("docs-provisioners-connection") %>>
-                        <a href="/docs/provisioners/connection.html">Provisioner Connections</a>
-                      </li>
-
-                      <li<%= sidebar_current("docs-provisioners-null-resource") %>>
-                        <a href="/docs/provisioners/null_resource.html">Provisioners Without a Resource</a>
-                      </li>
-
-                      <li>
-                        <a href="#">Generic Provisioners</a>
-                        <ul class="nav nav-auto-expand">
-                          <li<%= sidebar_current("docs-provisioners-file") %>>
-                            <a href="/docs/provisioners/file.html">file Provisioner</a>
-                          </li>
-
-                          <li<%= sidebar_current("docs-provisioners-local") %>>
-                            <a href="/docs/provisioners/local-exec.html">local-exec Provisioner</a>
-                          </li>
-
-                          <li<%= sidebar_current("docs-provisioners-remote") %>>
-                            <a href="/docs/provisioners/remote-exec.html">remote-exec Provisioner</a>
-                          </li>
-                        </ul>
-                      </li>
-
-                      <li>
-                        <a href="#">Vendor Provisioners</a>
-                        <ul class="nav nav-auto-expand">
-                          <li<%= sidebar_current("docs-provisioners-chef") %>>
-                            <a href="/docs/provisioners/chef.html">chef Provisioner</a>
-                          </li>
-
-                          <li<%= sidebar_current("docs-provisioners-habitat") %>>
-                            <a href="/docs/provisioners/habitat.html">habitat Provisioner</a>
-                          </li>
-
-                          <li<%= sidebar_current("docs-provisioners-puppet") %>>
-                            <a href="/docs/provisioners/puppet.html">puppet Provisioner</a>
-                          </li>
-
-                          <li<%= sidebar_current("docs-provisioners-salt-masterless") %>>
-                            <a href="/docs/provisioners/salt-masterless.html">salt-masterless Provisioner</a>
-                          </li>
-                        </ul>
-                      </li>
-
-                    </ul>
-                  </li>
-
-                </ul>
+                <a href="/docs/cli/commands/state/list.html"><code>state list</code></a>
               </li>
 
               <li>
-                <a href="/docs/configuration/syntax.html">Syntax</a>
-                <ul class="nav nav-auto-expand">
-
-                  <li<%= sidebar_current("docs-config-syntax") %>>
-                    <a href="/docs/configuration/syntax.html">Configuration Syntax</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-expressions") %>>
-                    <a href="/docs/configuration/expressions.html">Expressions</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-functions") %>>
-                    <a href="/docs/configuration/functions.html">Functions</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-override") %>>
-                    <a href="/docs/configuration/override.html">Override Files</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-style") %>>
-                    <a href="/docs/configuration/style.html">Style Conventions</a>
-                  </li>
-
-                  <li>
-                    <a href="/docs/configuration/version-constraints.html">Version Constraints</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-types") %>>
-                    <a href="/docs/configuration/types.html">Type Constraints</a>
-                  </li>
-
-                  <li<%= sidebar_current("docs-config-syntax-json") %>>
-                    <a href="/docs/configuration/syntax-json.html">JSON Configuration Syntax</a>
-                  </li>
-
-                </ul>
+                <a href="/docs/cli/commands/state/show.html"><code>state show</code></a>
               </li>
 
-
+              <li>
+                <a href="/docs/cli/commands/refresh.html"><code>refresh</code></a>
+              </li>
             </ul>
           </li>
 
-          <li<%= sidebar_current("docs-conf-old") %>>
-            <a href="/docs/configuration-0-11/index.html">0.11 and Older</a>
-            <ul class="nav">
-              <li<%= sidebar_current("docs-conf-old-load") %>>
-                <a href="/docs/configuration-0-11/load.html">Load Order and Semantics</a>
+          <li>
+            <a href="#">Forcing Re-creation (Tainting)</a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/cli/state/taint.html">Overview</a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-syntax") %>>
-                <a href="/docs/configuration-0-11/syntax.html">Configuration Syntax</a>
+              <li>
+                <a href="/docs/cli/commands/taint.html"><code>taint</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-interpolation") %>>
-                <a href="/docs/configuration-0-11/interpolation.html">Interpolation Syntax</a>
+              <li>
+                <a href="/docs/cli/commands/untaint.html"><code>untaint</code></a>
+              </li>
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Moving Resources</a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/cli/state/move.html">Overview</a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-override") %>>
-                <a href="/docs/configuration-0-11/override.html">Overrides</a>
+              <li>
+                <a href="/docs/cli/commands/state/mv.html"><code>state mv</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-resources") %>>
-                <a href="/docs/configuration-0-11/resources.html">Resources</a>
+              <li>
+                <a href="/docs/cli/commands/state/rm.html"><code>state rm</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-data-sources") %>>
-                <a href="/docs/configuration-0-11/data-sources.html">Data Sources</a>
+              <li>
+                <a href="/docs/cli/commands/state/replace-provider.html"><code>state replace-provider</code></a>
+              </li>
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Disaster Recovery</a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/cli/state/recover.html">Overview</a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-providers") %>>
-                <a href="/docs/configuration-0-11/providers.html">Providers</a>
+              <li>
+                <a href="/docs/cli/commands/state/pull.html"><code>state pull</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-variables") %>>
-                <a href="/docs/configuration-0-11/variables.html">Variables</a>
+              <li>
+                <a href="/docs/cli/commands/state/push.html"><code>state push</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-outputs") %>>
-                <a href="/docs/configuration-0-11/outputs.html">Outputs</a>
+              <li>
+                <a href="/docs/cli/commands/force-unlock.html"><code>force-unlock</code></a>
+              </li>
+            </ul>
+          </li>
+
+        </ul>
+      </li> <!-- state -->
+
+      <li>
+        <a href="#">Managing Workspaces</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/cli/workspaces/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="#"><code>workspace</code></a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/cli/commands/workspace/index.html">Overview</a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-locals") %>>
-                <a href="/docs/configuration-0-11/locals.html">Local Values</a>
+              <li>
+                <a href="/docs/cli/commands/workspace/list.html"><code>workspace list</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-modules") %>>
-                <a href="/docs/configuration-0-11/modules.html">Modules</a>
+              <li>
+                <a href="/docs/cli/commands/workspace/select.html"><code>workspace select</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-terraform") %>>
-                <a href="/docs/configuration-0-11/terraform.html">Terraform</a>
+              <li>
+                <a href="/docs/cli/commands/workspace/new.html"><code>workspace new</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-provisioners") %>>
-                <a href="/docs/provisioners/index.html?v=011">Provisioners</a>
+              <li>
+                <a href="/docs/cli/commands/workspace/delete.html"><code>workspace delete</code></a>
               </li>
 
-              <li<%= sidebar_current("docs-conf-old-push") %>>
-                <a href="/docs/configuration-0-11/terraform-enterprise.html">Terraform Push (deprecated)</a>
-              </li>
-
-              <li<%= sidebar_current("docs-conf-old-environment-variables") %>>
-                <a href="/docs/configuration-0-11/environment-variables.html">Environment Variables</a>
+              <li>
+                <a href="/docs/cli/commands/workspace/show.html"><code>workspace show</code></a>
               </li>
             </ul>
           </li>
         </ul>
       </li>
 
-
-      <li<%= sidebar_current("docs-commands") %>>
-        <a href="/docs/commands/index.html">Commands (CLI)</a>
+      <li>
+        <a href="#">Managing Plugins</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-commands-cli-config") %>>
-            <a href="/docs/commands/cli-config.html">CLI Config File</a>
+          <li>
+            <a href="/docs/cli/plugins/index.html">Overview</a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-environment-variables") %>>
-            <a href="/docs/commands/environment-variables.html">Environment Variables</a>
+          <li>
+            <a href="/docs/cli/plugins/signing.html">Plugin Signing</a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-apply") %>>
-            <a href="/docs/commands/apply.html">apply</a>
+          <li>
+            <a href="/docs/cli/commands/providers.html"><code>providers</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-console") %>>
-            <a href="/docs/commands/console.html">console</a>
+          <li>
+            <a href="/docs/cli/commands/version.html"><code>version</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-destroy") %>>
-            <a href="/docs/commands/destroy.html">destroy</a>
+          <li>
+            <a href="/docs/cli/commands/providers/lock.html"><code>providers lock</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-envcmd") %>>
-            <a href="/docs/commands/env.html">env</a>
+          <li>
+            <a href="/docs/cli/commands/providers/mirror.html"><code>providers mirror</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-commands-fmt") %>>
-            <a href="/docs/commands/fmt.html">fmt</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-force-unlock") %>>
-            <a href="/docs/commands/force-unlock.html">force-unlock</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-get") %>>
-            <a href="/docs/commands/get.html">get</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-graph") %>>
-            <a href="/docs/commands/graph.html">graph</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-import") %>>
-            <a href="/docs/commands/import.html">import</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-init") %>>
-            <a href="/docs/commands/init.html">init</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-login") %>>
-            <a href="/docs/commands/login.html">login</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-logout") %>>
-            <a href="/docs/commands/logout.html">logout</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-output") %>>
-            <a href="/docs/commands/output.html">output</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-plan") %>>
-            <a href="/docs/commands/plan.html">plan</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-providers") %>>
-            <a href="/docs/commands/providers.html">providers</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-push") %>>
-            <a href="/docs/commands/push.html">push</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-refresh") %>>
-            <a href="/docs/commands/refresh.html">refresh</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-show") %>>
-            <a href="/docs/commands/show.html">show</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-state") %>>
-            <a href="/docs/commands/state/index.html">state</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-taint") %>>
-            <a href="/docs/commands/taint.html">taint</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-validate") %>>
-            <a href="/docs/commands/validate.html">validate</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-untaint") %>>
-            <a href="/docs/commands/untaint.html">untaint</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-workspace") %>>
-            <a href="/docs/commands/workspace/index.html">workspace</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-013upgrade") %>>
-            <a href="/docs/commands/0.13upgrade.html">0.13upgrade</a>
-          </li>
-
-          <li<%= sidebar_current("docs-commands-012upgrade") %>>
-            <a href="/docs/commands/0.12upgrade.html">0.12upgrade</a>
+          <li>
+            <a href="/docs/cli/commands/providers/schema.html"><code>providers schema</code></a>
           </li>
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-import") %>>
-        <a href="/docs/import/index.html">Import</a>
+      <li>
+        <a href="#">CLI Configuration</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-import-usage") %>>
-            <a href="/docs/import/usage.html">Usage</a>
+          <li>
+            <a href="/docs/cli/config/index.html">Overview</a>
           </li>
 
-          <li<%= sidebar_current("docs-import-importability") %>>
-            <a href="/docs/import/importability.html">Resource Importability</a>
+          <li>
+            <a href="/docs/cli/config/config-file.html">CLI Config File</a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/config/environment-variables.html">Environment Variables</a>
           </li>
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-state") %>>
-        <a href="/docs/state/index.html">State</a>
+      <li>
+        <a href="#">Automating Terraform</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-state-purpose") %>>
-            <a href="/docs/state/purpose.html">Purpose</a>
+          <li>
+            <a href="https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS">
+              Running Terraform in Automation
+              <img src="/assets/images/outbound-link.svg" width="20" height="20" aria-hidden="true" style="vertical-align: text-bottom;">
+            </a>
           </li>
 
-          <li<%= sidebar_current("docs-state-import") %>>
-            <a href="/docs/state/import.html">Import Existing Resources</a>
-          </li>
-
-          <li<%= sidebar_current("docs-state-locking") %>>
-            <a href="/docs/state/locking.html">Locking</a>
-          </li>
-
-          <li<%= sidebar_current("docs-state-workspaces") %>>
-            <a href="/docs/state/workspaces.html">Workspaces</a>
-          </li>
-
-          <li<%= sidebar_current("docs-state-remote") %>>
-            <a href="/docs/state/remote.html">Remote State</a>
-          </li>
-
-          <li<%= sidebar_current("docs-state-sensitive-data") %>>
-            <a href="/docs/state/sensitive-data.html">Sensitive Data</a>
+          <li>
+            <a href="https://learn.hashicorp.com/tutorials/terraform/github-actions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS">
+              GitHub Actions
+              <img src="/assets/images/outbound-link.svg" width="20" height="20" aria-hidden="true" style="vertical-align: text-bottom;">
+            </a>
           </li>
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-providers") %>>
-        <a href="/docs/providers/index.html">Providers</a>
+      <li>
+        <a href="#">Alphabetical List of Commands</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-providers-major") %>>
-             <a href="/docs/providers/type/major-index.html">Major Cloud</a>
+
+          <li>
+            <a href="/docs/cli/commands/apply.html"><code>apply</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-cloud") %>>
-             <a href="/docs/providers/type/cloud-index.html"> Cloud</a>
+          <li>
+            <a href="/docs/cli/commands/console.html"><code>console</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-infra") %>>
-             <a href="/docs/providers/type/infra-index.html">Infrastructure Software</a>
+          <li>
+            <a href="/docs/cli/commands/destroy.html"><code>destroy</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-network") %>>
-             <a href="/docs/providers/type/network-index.html">Network</a>
+          <li>
+            <a href="/docs/cli/commands/env.html"><code>env</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-vcs") %>>
-             <a href="/docs/providers/type/vcs-index.html">VCS</a>
+          <li>
+            <a href="/docs/cli/commands/fmt.html"><code>fmt</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-monitor") %>>
-             <a href="/docs/providers/type/monitor-index.html">Monitor & System Management</a>
+          <li>
+            <a href="/docs/cli/commands/force-unlock.html"><code>force-unlock</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-database") %>>
-             <a href="/docs/providers/type/database-index.html">Database</a>
+          <li>
+            <a href="/docs/cli/commands/get.html"><code>get</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-misc") %>>
-             <a href="/docs/providers/type/misc-index.html">Misc.</a>
+          <li>
+            <a href="/docs/cli/commands/graph.html"><code>graph</code></a>
           </li>
 
-          <li<%= sidebar_current("docs-providers-community") %>>
-             <a href="/docs/providers/type/community-index.html">Community</a>
+          <li>
+            <a href="/docs/cli/commands/import.html"><code>import</code></a>
           </li>
 
+          <li>
+            <a href="/docs/cli/commands/init.html"><code>init</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/login.html"><code>login</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/logout.html"><code>logout</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/output.html"><code>output</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/plan.html"><code>plan</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/providers.html"><code>providers</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/providers/lock.html"><code>providers lock</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/providers/mirror.html"><code>providers mirror</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/providers/schema.html"><code>providers schema</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/push.html"><code>push</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/refresh.html"><code>refresh</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/show.html"><code>show</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/list.html"><code>state list</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/mv.html"><code>state mv</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/pull.html"><code>state pull</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/push.html"><code>state push</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/replace-provider.html"><code>state replace-provider</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/rm.html"><code>state rm</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/state/show.html"><code>state show</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/taint.html"><code>taint</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/untaint.html"><code>untaint</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/validate.html"><code>validate</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/version.html"><code>version</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/workspace/list.html"><code>workspace list</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/workspace/select.html"><code>workspace select</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/workspace/new.html"><code>workspace new</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/workspace/delete.html"><code>workspace delete</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/workspace/show.html"><code>workspace show</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/0.12upgrade.html"><code>0.12upgrade</code></a>
+          </li>
+
+          <li>
+            <a href="/docs/cli/commands/0.13upgrade.html"><code>0.13upgrade</code></a>
+          </li>
         </ul>
       </li>
 
-      <li<%= sidebar_current("docs-modules") %>>
-        <a href="/docs/modules/index.html">Modules</a>
+      <li>
+        <a href="#">Internals</a>
         <ul class="nav">
-          <li<%= sidebar_current("docs-modules-publish") %>>
-            <a href="/docs/modules/publish.html">Publishing Modules</a>
+          <li>
+            <a href="/docs/internals/index.html">Overview</a>
           </li>
 
-          <li<%= sidebar_current("docs-modules-sources") %>>
-            <a href="/docs/modules/sources.html">Source Types</a>
-          </li>
-
-          <li<%= sidebar_current("docs-modules-composition") %>>
-            <a href="/docs/modules/composition.html">Module Composition</a>
-          </li>
-        </ul>
-      </li>
-
-      <li<%= sidebar_current("docs-backends") %>>
-        <a href="/docs/backends/index.html">Backends</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-backends-config") %>>
-            <a href="/docs/backends/config.html">Configuration</a>
-          </li>
-
-          <li<%= sidebar_current("docs-backends-init") %>>
-            <a href="/docs/backends/init.html">Init</a>
-          </li>
-
-          <li<%= sidebar_current("docs-backends-state") %>>
-            <a href="/docs/backends/state.html">State Storage & Locking</a>
-          </li>
-
-          <li<%= sidebar_current("docs-backends-operations") %>>
-            <a href="/docs/backends/operations.html">Remote Operations</a>
-          </li>
-
-          <li<%= sidebar_current("docs-backends-types") %>>
-            <a href="/docs/backends/types/index.html">Backend Types</a>
-          </li>
-        </ul>
-      </li>
-
-      <li<%= sidebar_current("docs-plugins") %>>
-        <a href="/docs/plugins/index.html">Plugins</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-plugins-basics") %>>
-            <a href="/docs/plugins/basics.html">Basics</a>
-          </li>
-
-          <li<%= sidebar_current("docs-plugins-signing") %>>
-            <a href="/docs/plugins/signing.html">Signing</a>
-          </li>
-
-          <li<%= sidebar_current("docs-plugins-provider") %>>
-            <a href="/docs/plugins/provider.html">Provider</a>
-          </li>
-
-          <li<%= sidebar_current("docs-internals-plugins") %>>
-            <a href="/docs/internals/internal-plugins.html">Internals</a>
-          </li>
-        </ul>
-      </li>
-
-      <li<%= sidebar_current("docs-internals") %>>
-        <a href="/docs/internals/index.html">Internals</a>
-        <ul class="nav">
-          <li<%= sidebar_current("docs-internals-credentials-helpers") %>>
+          <li>
             <a href="/docs/internals/credentials-helpers.html">Credentials Helpers</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-debug") %>>
+          <li>
             <a href="/docs/internals/debugging.html">Debugging Terraform</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-module-registry-protocol") %>>
+          <li>
             <a href="/docs/internals/module-registry-protocol.html">Module Registry Protocol</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-provider-network-mirror-protocol") %>>
+          <li>
             <a href="/docs/internals/provider-network-mirror-protocol.html">Provider Network Mirror Protocol</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-provider-registry-protocol") %>>
+          <li>
             <a href="/docs/internals/provider-registry-protocol.html">Provider Registry Protocol</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-graph") %>>
+          <li>
             <a href="/docs/internals/graph.html">Resource Graph</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-lifecycle") %>>
+          <li>
             <a href="/docs/internals/lifecycle.html">Resource Lifecycle</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-login-protocol") %>>
+          <li>
             <a href="/docs/internals/login-protocol.html">Login Protocol</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-resource-addressing") %>>
-            <a href="/docs/internals/resource-addressing.html">Resource Addressing</a>
-          </li>
-
-          <li<%= sidebar_current("docs-internals-json") %>>
+          <li>
             <a href="/docs/internals/json-format.html">JSON Output Format</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-remote-service-discovery") %>>
+          <li>
             <a href="/docs/internals/remote-service-discovery.html">Remote Service Discovery</a>
           </li>
 
-          <li<%= sidebar_current("docs-internals-provider-meta") %>>
+          <li>
             <a href="/docs/internals/provider-meta.html">Provider Metadata</a>
           </li>
         </ul>

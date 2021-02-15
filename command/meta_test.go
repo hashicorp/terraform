@@ -236,7 +236,7 @@ func TestMeta_Workspace_override(t *testing.T) {
 		},
 		"invalid name": {
 			"",
-			invalidWorkspaceNameEnvVar,
+			errInvalidWorkspaceNameEnvVar,
 		},
 	}
 

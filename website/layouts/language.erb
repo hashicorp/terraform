@@ -1,0 +1,1072 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <h4><a href="/docs/language/index.html">Terraform Language</a></h4>
+
+    <ul class="nav docs-sidenav">
+
+      <li>
+        <a href="/docs/language/index.html">Overview</a>
+      </li>
+
+      <li>
+        <a href="#">Files and Directories</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/files/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/files/override.html">Override Files</a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Syntax</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/syntax/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/syntax/configuration.html">Configuration Syntax</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/syntax/json.html">JSON Configuration Syntax</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/syntax/style.html">Style Conventions</a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Resources</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/resources/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/resources/syntax.html">Resource Blocks</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/resources/behavior.html">Resource Behavior</a>
+          </li>
+
+          <li>
+            <a href="#">Meta-Arguments</a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/language/meta-arguments/depends_on.html"><code>depends_on</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/count.html"><code>count</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/for_each.html"><code>for_each</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/resource-provider.html"><code>provider</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/lifecycle.html"><code>lifecycle</code></a>
+              </li>
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Provisioners</a>
+            <ul class="nav">
+              <li>
+                <a href="/docs/language/resources/provisioners/index.html">Overview</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/resources/provisioners/syntax.html">Declaring Provisioners</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/resources/provisioners/connection.html">Provisioner Connections</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/resources/provisioners/null_resource.html">Provisioners Without a Resource</a>
+              </li>
+
+              <li>
+                <a href="#">Generic Provisioners</a>
+                <ul class="nav nav-auto-expand">
+                  <li>
+                    <a href="/docs/language/resources/provisioners/file.html">file</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/language/resources/provisioners/local-exec.html">local-exec</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/language/resources/provisioners/remote-exec.html">remote-exec</a>
+                  </li>
+                </ul>
+              </li>
+
+              <li>
+                <a href="#">Vendor Provisioners</a>
+                <ul class="nav nav-auto-expand">
+                  <li>
+                    <a href="/docs/language/resources/provisioners/chef.html">chef</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/language/resources/provisioners/habitat.html">habitat</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/language/resources/provisioners/puppet.html">puppet</a>
+                  </li>
+
+                  <li>
+                    <a href="/docs/language/resources/provisioners/salt-masterless.html">salt-masterless</a>
+                  </li>
+                </ul>
+              </li>
+
+            </ul>
+          </li>
+
+        </ul>
+      </li> <!-- resources -->
+
+      <li>
+        <a href="/docs/language/data-sources/index.html">Data Sources</a>
+      </li>
+
+      <li>
+        <a href="#">Providers</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/providers/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/providers/requirements.html">Provider Requirements</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/providers/configuration.html">Provider Configuration</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/dependency-lock.html">Dependency Lock File</a>
+          </li>
+
+          <li>
+            <a href="/docs/providers/index.html">Provider Documentation</a>
+            <!-- To be deleted when remaining 8 providers are gone, doesn't need new URL -->
+          </li>
+        </ul>
+      </li><!-- providers -->
+
+      <li>
+        <a href="#">Variables and Outputs</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/values/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/values/variables.html">Input Variables</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/values/outputs.html">Output Values</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/values/locals.html">Local Values</a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Modules</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/modules/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/modules/syntax.html">Module Blocks</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/modules/sources.html">Module Sources</a>
+          </li>
+
+          <li>
+            <a href="#">Meta-Arguments</a>
+            <ul class="nav nav-auto-expand">
+              <li>
+                <a href="/docs/language/meta-arguments/module-providers.html"><code>providers</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/depends_on.html"><code>depends_on</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/count.html"><code>count</code></a>
+              </li>
+
+              <li>
+                <a href="/docs/language/meta-arguments/for_each.html"><code>for_each</code></a>
+              </li>
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Module Development</a>
+            <ul class="nav">
+              <li>
+                <a href="/docs/language/modules/develop/index.html">Overview</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/modules/develop/structure.html">Standard Module Structure</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/modules/develop/providers.html">Providers Within Modules</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/modules/develop/composition.html">Best Practices: Module Composition</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/modules/develop/publish.html">Publishing Modules</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </li><!-- modules -->
+
+      <li>
+        <a href="#">Expressions</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/expressions/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/types.html">Types and Values</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/strings.html">Strings and Templates</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/references.html">References to Values</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/operators.html">Operators</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/function-calls.html">Function Calls</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/conditionals.html">Conditional Expressions</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/for.html">For Expressions</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/splat.html">Splat Expressions</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/dynamic-blocks.html">Dynamic Blocks</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/type-constraints.html">Type Constraints</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/expressions/version-constraints.html">Version Constraints</a>
+          </li>
+        </ul>
+      </li>
+
+
+      <li>
+        <a href="#">Functions</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/functions/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="#">Numeric Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/abs.html">abs</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/ceil.html">ceil</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/floor.html">floor</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/log.html">log</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/max.html">max</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/min.html">min</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/parseint.html">parseint</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/pow.html">pow</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/signum.html">signum</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">String Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/chomp.html">chomp</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/format.html">format</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/formatlist.html">formatlist</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/indent.html">indent</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/join.html">join</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/lower.html">lower</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/regex.html">regex</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/regexall.html">regexall</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/replace.html">replace</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/split.html">split</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/strrev.html">strrev</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/substr.html">substr</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/title.html">title</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/trim.html">trim</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/trimprefix.html">trimprefix</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/trimsuffix.html">trimsuffix</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/trimspace.html">trimspace</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/upper.html">upper</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Collection Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/alltrue.html">alltrue</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/anytrue.html">anytrue</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/chunklist.html">chunklist</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/coalesce.html">coalesce</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/coalescelist.html">coalescelist</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/compact.html">compact</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/concat.html">concat</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/contains.html">contains</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/distinct.html">distinct</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/element.html">element</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/flatten.html">flatten</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/index_function.html">index</a>
+                <!-- odd filename out, due to web conventions -->
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/keys.html">keys</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/length.html">length</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/list.html">list</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/lookup.html">lookup</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/map.html">map</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/matchkeys.html">matchkeys</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/merge.html">merge</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/range.html">range</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/reverse.html">reverse</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/setintersection.html">setintersection</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/setproduct.html">setproduct</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/setsubtract.html">setsubtract</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/setunion.html">setunion</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/slice.html">slice</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/sort.html">sort</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/sum.html">sum</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/transpose.html">transpose</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/values.html">values</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/zipmap.html">zipmap</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Encoding Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/base64decode.html">base64decode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/base64encode.html">base64encode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/base64gzip.html">base64gzip</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/csvdecode.html">csvdecode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/jsondecode.html">jsondecode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/jsonencode.html">jsonencode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/textdecodebase64.html">textdecodebase64</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/textencodebase64.html">textencodebase64</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/urlencode.html">urlencode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/yamldecode.html">yamldecode</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/yamlencode.html">yamlencode</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Filesystem Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/abspath.html">abspath</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/dirname.html">dirname</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/pathexpand.html">pathexpand</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/basename.html">basename</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/file.html">file</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/fileexists.html">fileexists</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/fileset.html">fileset</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filebase64.html">filebase64</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/templatefile.html">templatefile</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Date and Time Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/formatdate.html">formatdate</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/timeadd.html">timeadd</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/timestamp.html">timestamp</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Hash and Crypto Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/base64sha256.html">base64sha256</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/base64sha512.html">base64sha512</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/bcrypt.html">bcrypt</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filebase64sha256.html">filebase64sha256</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filebase64sha512.html">filebase64sha512</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filemd5.html">filemd5</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filesha1.html">filesha1</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filesha256.html">filesha256</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/filesha512.html">filesha512</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/md5.html">md5</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/rsadecrypt.html">rsadecrypt</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/sha1.html">sha1</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/sha256.html">sha256</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/sha512.html">sha512</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/uuid.html">uuid</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/uuidv5.html">uuidv5</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">IP Network Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/cidrhost.html">cidrhost</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/cidrnetmask.html">cidrnetmask</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/cidrsubnet.html">cidrsubnet</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/cidrsubnets.html">cidrsubnets</a>
+              </li>
+
+            </ul>
+          </li>
+
+          <li>
+            <a href="#">Type Conversion Functions</a>
+            <ul class="nav">
+
+              <li>
+                <a href="/docs/language/functions/can.html">can</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/defaults.html">defaults</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/tobool.html">tobool</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/tolist.html">tolist</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/tomap.html">tomap</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/tonumber.html">tonumber</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/toset.html">toset</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/tostring.html">tostring</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/functions/try.html">try</a>
+              </li>
+
+            </ul>
+          </li>
+
+        </ul>
+
+      </li><!-- function reference -->
+
+      <li>
+        <a href="#">Terraform Settings</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/settings/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="#">Backends</a>
+            <ul class="nav">
+              <li>
+                <a href="/docs/language/settings/backends/index.html">Overview</a>
+              </li>
+
+              <li>
+                <a href="/docs/language/settings/backends/configuration.html">Backend Configuration</a>
+              </li>
+
+              <li>
+                <a href="#">Enhanced Backends</a>
+                <ul class="nav nav-auto-expand">
+                  <li>
+                    <a href="/docs/language/settings/backends/local.html">local</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/remote.html">remote</a>
+                  </li>
+                </ul>
+              </li>
+
+
+              <li>
+                <a href="#">Standard Backends</a>
+                <ul class="nav nav-auto-expand">
+                  <li>
+                    <a href="/docs/language/settings/backends/artifactory.html">artifactory</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/azurerm.html">azurerm</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/consul.html">consul</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/cos.html">cos</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/etcd.html">etcd</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/etcdv3.html">etcdv3</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/gcs.html">gcs</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/http.html">http</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/kubernetes.html">kubernetes</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/manta.html">manta</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/oss.html">oss</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/pg.html">pg</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/s3.html">s3</a>
+                  </li>
+                  <li>
+                    <a href="/docs/language/settings/backends/swift.html">swift</a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </li><!-- backends -->
+        </ul>
+      </li><!-- settings -->
+
+      <li>
+        <a href="#">State</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/language/state/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/purpose.html">Purpose</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/remote-state-data.html">The <code>terraform_remote_state</code> Data Source</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/backends.html">Backends: State Storage & Locking</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/import.html">Import Existing Resources</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/locking.html">Locking</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/workspaces.html">Workspaces</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/remote.html">Remote State</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/state/sensitive-data.html">Sensitive Data</a>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <a href="#">Upgrade Guides</a>
+        <ul class="nav">
+          <li>
+            <a href="/upgrade-guides/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-14.html">Upgrading to v0.14</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-13.html">Upgrading to v0.13</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-12.html">Upgrading to v0.12</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-11.html">Upgrading to v0.11</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-10.html">Upgrading to v0.10</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-9.html">Upgrading to v0.9</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-8.html">Upgrading to v0.8</a>
+          </li>
+
+          <li>
+            <a href="/upgrade-guides/0-7.html">Upgrading to v0.7</a>
+          </li>
+        </ul>
+      </li>
+
+
+      <li>
+        <a href="#">Historical docs: 0.11 and Older</a>
+        <ul class="nav">
+          <li>
+            <a href="/docs/configuration-0-11/index.html">Overview</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/load.html">Load Order and Semantics</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/syntax.html">Configuration Syntax</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/interpolation.html">Interpolation Syntax</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/override.html">Overrides</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/resources.html">Resources</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/data-sources.html">Data Sources</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/providers.html">Providers</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/variables.html">Variables</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/outputs.html">Outputs</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/locals.html">Local Values</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/modules.html">Modules</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/terraform.html">Terraform</a>
+          </li>
+
+          <li>
+            <a href="/docs/language/resources/provisioners/index.html">Provisioners</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/terraform-enterprise.html">Terraform Push (deprecated)</a>
+          </li>
+
+          <li>
+            <a href="/docs/configuration-0-11/environment-variables.html">Environment Variables</a>
+          </li>
+        </ul>
+      </li>
+
+    </ul>
+
+    <%= partial("layouts/otherdocs", :locals => { :skip => "Terraform Language" }) %>
+  <% end %>
+
+  <%= yield %>
+<% end %>

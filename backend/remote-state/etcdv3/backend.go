@@ -6,7 +6,7 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 )
 
 const (

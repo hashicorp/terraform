@@ -49,6 +49,7 @@ func TestVersion(t *testing.T) {
 		},
 		Version:           "4.5.6",
 		VersionPrerelease: "foo",
+		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 	if err := c.replaceLockedDependencies(locks); err != nil {
 		t.Fatal(err)
@@ -58,7 +59,7 @@ func TestVersion(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6-foo\n+ provider registry.terraform.io/hashicorp/test1 v7.8.9-beta.2\n+ provider registry.terraform.io/hashicorp/test2 v1.2.3"
+	expected := "Terraform v4.5.6-foo\non aros_riscv64\n+ provider registry.terraform.io/hashicorp/test1 v7.8.9-beta.2\n+ provider registry.terraform.io/hashicorp/test2 v1.2.3"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot:\n%s\nwant:\n%s", actual, expected)
 	}
@@ -76,6 +77,7 @@ func TestVersion_flags(t *testing.T) {
 		Meta:              m,
 		Version:           "4.5.6",
 		VersionPrerelease: "foo",
+		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 
 	if code := c.Run([]string{"-v", "-version"}); code != 0 {
@@ -83,7 +85,7 @@ func TestVersion_flags(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6-foo"
+	expected := "Terraform v4.5.6-foo\non aros_riscv64"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
@@ -99,6 +101,7 @@ func TestVersion_outdated(t *testing.T) {
 		Meta:      m,
 		Version:   "4.5.6",
 		CheckFunc: mockVersionCheckFunc(true, "4.5.7"),
+		Platform:  getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 
 	if code := c.Run([]string{}); code != 0 {
@@ -106,7 +109,7 @@ func TestVersion_outdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.terraform.io/downloads.html"
+	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.terraform.io/downloads.html"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
@@ -127,8 +130,9 @@ func TestVersion_json(t *testing.T) {
 
 	// `terraform version -json` without prerelease
 	c := &VersionCommand{
-		Meta:    meta,
-		Version: "4.5.6",
+		Meta:     meta,
+		Version:  "4.5.6",
+		Platform: getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 	if code := c.Run([]string{"-json"}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -138,7 +142,7 @@ func TestVersion_json(t *testing.T) {
 	expected := strings.TrimSpace(`
 {
   "terraform_version": "4.5.6",
-  "terraform_revision": "",
+  "platform": "aros_riscv64",
   "provider_selections": {},
   "terraform_outdated": false
 }
@@ -172,6 +176,7 @@ func TestVersion_json(t *testing.T) {
 		Meta:              meta,
 		Version:           "4.5.6",
 		VersionPrerelease: "foo",
+		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 	if err := c.replaceLockedDependencies(locks); err != nil {
 		t.Fatal(err)
@@ -184,7 +189,7 @@ func TestVersion_json(t *testing.T) {
 	expected = strings.TrimSpace(`
 {
   "terraform_version": "4.5.6-foo",
-  "terraform_revision": "",
+  "platform": "aros_riscv64",
   "provider_selections": {
     "registry.terraform.io/hashicorp/test1": "7.8.9-beta.2",
     "registry.terraform.io/hashicorp/test2": "1.2.3"
@@ -208,6 +213,7 @@ func TestVersion_jsonoutdated(t *testing.T) {
 		Meta:      m,
 		Version:   "4.5.6",
 		CheckFunc: mockVersionCheckFunc(true, "4.5.7"),
+		Platform:  getproviders.Platform{OS: "aros", Arch: "riscv64"},
 	}
 
 	if code := c.Run([]string{"-json"}); code != 0 {
@@ -215,7 +221,7 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"terraform_revision\": \"\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
+	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}

@@ -68,12 +68,12 @@ func TestReferenceTransformer_path(t *testing.T) {
 	})
 	g.Add(&graphNodeRefParentTest{
 		NameValue: "child.A",
-		PathValue: []string{"root", "child"},
+		PathValue: addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "child"}},
 		Names:     []string{"A"},
 	})
 	g.Add(&graphNodeRefChildTest{
 		NameValue: "child.B",
-		PathValue: []string{"root", "child"},
+		PathValue: addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "child"}},
 		Refs:      []string{"A"},
 	})
 
@@ -214,7 +214,7 @@ func TestReferenceMapReferences(t *testing.T) {
 
 type graphNodeRefParentTest struct {
 	NameValue string
-	PathValue []string
+	PathValue addrs.ModuleInstance
 	Names     []string
 }
 
@@ -233,16 +233,16 @@ func (n *graphNodeRefParentTest) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 func (n *graphNodeRefParentTest) Path() addrs.ModuleInstance {
-	return normalizeModulePath(n.PathValue)
+	return n.PathValue
 }
 
 func (n *graphNodeRefParentTest) ModulePath() addrs.Module {
-	return normalizeModulePath(n.PathValue).Module()
+	return n.PathValue.Module()
 }
 
 type graphNodeRefChildTest struct {
 	NameValue string
-	PathValue []string
+	PathValue addrs.ModuleInstance
 	Refs      []string
 }
 
@@ -263,11 +263,11 @@ func (n *graphNodeRefChildTest) References() []*addrs.Reference {
 }
 
 func (n *graphNodeRefChildTest) Path() addrs.ModuleInstance {
-	return normalizeModulePath(n.PathValue)
+	return n.PathValue
 }
 
 func (n *graphNodeRefChildTest) ModulePath() addrs.Module {
-	return normalizeModulePath(n.PathValue).Module()
+	return n.PathValue.Module()
 }
 
 type graphNodeFakeResourceInstance struct {
@@ -304,25 +304,6 @@ func (n *graphNodeFakeResourceInstance) String() string {
 }
 
 const testTransformRefBasicStr = `
-A
-B
-  A
-`
-
-const testTransformRefBackupStr = `
-A
-B
-  A
-`
-
-const testTransformRefBackupPrimaryStr = `
-A
-B
-  C
-C
-`
-
-const testTransformRefModulePathStr = `
 A
 B
   A

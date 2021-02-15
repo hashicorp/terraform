@@ -167,7 +167,7 @@ func getType(expr hcl.Expression, constraint bool) (cty.Type, hcl.Diagnostics) {
 			// modifier optional(...) to indicate an optional attribute. If
 			// so, we'll unwrap that first and make a note about it being
 			// optional for when we construct the type below.
-			if call, diags := hcl.ExprCall(atyExpr); !diags.HasErrors() {
+			if call, callDiags := hcl.ExprCall(atyExpr); !callDiags.HasErrors() {
 				if call.Name == "optional" {
 					if len(call.Arguments) < 1 {
 						diags = append(diags, &hcl.Diagnostic{

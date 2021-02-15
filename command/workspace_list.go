@@ -51,6 +51,9 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This command will not write state
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	states, err := b.Workspaces()
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -88,7 +91,7 @@ func (c *WorkspaceListCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceListCommand) Help() string {
 	helpText := `
-Usage: terraform workspace list [DIR]
+Usage: terraform workspace list
 
   List Terraform workspaces.
 

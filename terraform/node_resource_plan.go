@@ -73,13 +73,11 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	var g Graph
 
 	expander := ctx.InstanceExpander()
-	var resources []addrs.AbsResource
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
 	// Add the current expanded resource to the graph
 	for _, module := range moduleInstances {
 		resAddr := n.Addr.Resource.Absolute(module)
-		resources = append(resources, resAddr)
 		g.Add(&NodePlannableResource{
 			NodeAbstractResource:     n.NodeAbstractResource,
 			Addr:                     resAddr,
@@ -172,21 +170,15 @@ func (n *NodePlannableResource) Name() string {
 	return n.Addr.String()
 }
 
-// GraphNodeModuleInstance
-func (n *NodePlannableResource) ModuleInstance() addrs.ModuleInstance {
-	return n.Addr.Module
-}
-
 // GraphNodeExecutable
-func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) error {
+func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
 	if n.Config == nil {
 		// Nothing to do, then.
 		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
 		return nil
 	}
 
-	err := n.writeResourceState(ctx, n.Addr)
-	return err
+	return n.writeResourceState(ctx, n.Addr)
 }
 
 // GraphNodeDestroyerCBD

@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Override Files - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-override"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Override Files](../configuration/override.html).
+[Configuration Language: Override Files](/docs/language/files/override.html).
 
 Terraform loads all configuration files within a directory and
 appends them together. Terraform also has a concept of _overrides_,

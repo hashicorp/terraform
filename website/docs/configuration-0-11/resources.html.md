@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Resources - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-resources"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Resources](../configuration/resources.html).
+[Configuration Language: Resources](/docs/language/resources/index.html).
 
 The most important thing you'll configure with Terraform are
 resources. Resources are a component of your infrastructure.
@@ -98,7 +98,7 @@ There are **meta-parameters** available to all resources:
 Individual Resources may provide a `timeouts` block to enable users to configure the
 amount of time a specific operation is allowed to take before being considered
 an error. For example, the
-[aws_db_instance](/docs/providers/aws/r/db_instance.html#timeouts)
+[aws_db_instance](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance#timeouts)
 resource provides configurable timeouts for the
 `create`, `update`, and `delete` operations. Any Resource that provides Timeouts
 will document the default values for that operation, and users can overwrite
@@ -176,7 +176,7 @@ could automatically do this a better way.
 Within a resource, you can optionally have a **connection block**.
 Connection blocks describe to Terraform how to connect to the
 resource for
-[provisioning](/docs/provisioners/index.html). This block doesn't
+[provisioning](/docs/language/resources/provisioners/syntax.html). This block doesn't
 need to be present if you're using only local provisioners, or
 if you're not provisioning at all.
 
@@ -184,13 +184,13 @@ Resources provide some data on their own, such as an IP address,
 but other data must be specified by the user.
 
 The full list of settings that can be specified are listed on
-the [provisioner connection page](/docs/provisioners/connection.html).
+the [provisioner connection page](/docs/language/resources/provisioners/connection.html).
 
 ### Provisioners
 
 Within a resource, you can specify zero or more **provisioner
 blocks**. Provisioner blocks configure
-[provisioners](/docs/provisioners/index.html).
+[provisioners](/docs/language/resources/provisioners/syntax.html).
 
 Within the provisioner block is provisioner-specific configuration,
 much like resource-specific configuration.
@@ -211,7 +211,7 @@ You can use the `${count.index}`
 [variable](./variables.html) to accomplish this.
 
 For example, here's how you could create three [AWS
-Instances](/docs/providers/aws/r/instance.html) each with their own
+Instances](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance) each with their own
 static IP address:
 
 ```hcl
@@ -232,7 +232,7 @@ resource "aws_instance" "app" {
 
 To reference a particular instance of a resource you can use `resource.foo.*.id[#]` where `#` is the index number of the instance.
 
-For example, to create a list of all [AWS subnet](/docs/providers/aws/r/subnet.html) ids vs referencing a specific subnet in the list you can use this syntax:
+For example, to create a list of all [AWS subnet](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/subnet) ids vs referencing a specific subnet in the list you can use this syntax:
 
 ```hcl
 resource "aws_vpc" "foo" {

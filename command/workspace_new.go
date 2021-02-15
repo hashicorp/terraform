@@ -37,7 +37,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) == 0 {
+	if len(args) != 1 {
 		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
@@ -80,6 +80,9 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// This command will not write state
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	workspaces, err := b.Workspaces()
 	if err != nil {
@@ -173,7 +176,7 @@ func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceNewCommand) Help() string {
 	helpText := `
-Usage: terraform workspace new [OPTIONS] NAME [DIR]
+Usage: terraform workspace new [OPTIONS] NAME
 
   Create a new Terraform workspace.
 

@@ -2,11 +2,8 @@ package command
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
-
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // Set to true when we're testing
@@ -50,45 +47,25 @@ is configured to use a non-local backend. This backend doesn't support this
 operation.
 `
 
-// ModulePath returns the path to the root module from the CLI args.
+// ModulePath returns the path to the root module and validates CLI arguments.
 //
-// This centralizes the logic for any commands that expect a module path
-// on their CLI args. This will verify that only one argument is given
-// and that it is a path to configuration.
+// This centralizes the logic for any commands that previously accepted
+// a module path via CLI arguments. This will error if any extraneous arguments
+// are given and suggest using the -chdir flag instead.
 //
 // If your command accepts more than one arg, then change the slice bounds
 // to pass validation.
 func ModulePath(args []string) (string, error) {
 	// TODO: test
 
-	if len(args) > 1 {
-		return "", fmt.Errorf("Too many command line arguments. Configuration path expected.")
+	if len(args) > 0 {
+		return "", fmt.Errorf("Too many command line arguments. Did you mean to use -chdir?")
 	}
 
-	if len(args) == 0 {
-		path, err := os.Getwd()
-		if err != nil {
-			return "", fmt.Errorf("Error getting pwd: %s", err)
-		}
-
-		return path, nil
+	path, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("Error getting pwd: %s", err)
 	}
 
-	return args[0], nil
-}
-
-func (m *Meta) validateContext(ctx *terraform.Context) bool {
-	log.Println("[INFO] Validating the context...")
-	diags := ctx.Validate()
-	log.Printf("[INFO] Validation result: %d diagnostics", len(diags))
-
-	if len(diags) > 0 {
-		m.Ui.Output(
-			"There are warnings and/or errors related to your configuration. Please\n" +
-				"fix these before continuing.\n")
-
-		m.showDiagnostics(diags)
-	}
-
-	return !diags.HasErrors()
+	return path, nil
 }

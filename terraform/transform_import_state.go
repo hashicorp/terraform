@@ -22,13 +22,13 @@ func (t *ImportStateTransformer) Transform(g *Graph) error {
 
 		// This is only likely to happen in misconfigured tests
 		if t.Config == nil {
-			return fmt.Errorf("Cannot import into an empty configuration.")
+			return fmt.Errorf("cannot import into an empty configuration")
 		}
 
 		// Get the module config
 		modCfg := t.Config.Descendent(target.Addr.Module.Module())
 		if modCfg == nil {
-			return fmt.Errorf("Module %s not found.", target.Addr.Module.Module())
+			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
 		}
 
 		providerAddr := addrs.AbsProviderConfig{
@@ -116,25 +116,25 @@ func (n *graphNodeImportState) ModulePath() addrs.Module {
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error {
+func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// Reset our states
 	n.states = nil
 
-	provider, _, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	diags = diags.Append(err)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// import state
 	absAddr := n.Addr.Resource.Absolute(ctx.Path())
-	var diags tfdiags.Diagnostics
 
 	// Call pre-import hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreImportState(absAddr, n.ID)
-	})
-	if err != nil {
-		return err
+	}))
+	if diags.HasErrors() {
+		return diags
 	}
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
@@ -143,7 +143,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error 
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return diags.Err()
+		return diags
 	}
 
 	imported := resp.ImportedResources
@@ -153,10 +153,10 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) error 
 	n.states = imported
 
 	// Call post-import hook
-	err = ctx.Hook(func(h Hook) (HookAction, error) {
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostImportState(absAddr, imported)
-	})
-	return err
+	}))
+	return diags
 }
 
 // GraphNodeDynamicExpandable impl.
@@ -259,53 +259,28 @@ func (n *graphNodeImportStateSub) Path() addrs.ModuleInstance {
 }
 
 // GraphNodeExecutable impl.
-func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) error {
+func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	// If the Ephemeral type isn't set, then it is an error
 	if n.State.TypeName == "" {
-		return fmt.Errorf("import of %s didn't set type", n.TargetAddr.String())
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.TargetAddr.String()))
+		return diags
 	}
 
 	state := n.State.AsInstanceObject()
-	provider, providerSchema, err := GetProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
+
+	// Refresh
+	riNode := &NodeAbstractResourceInstance{
+		Addr: n.TargetAddr,
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: n.ResolvedProvider,
+		},
+	}
+	state, refreshDiags := riNode.refresh(ctx, state)
+	diags = diags.Append(refreshDiags)
+	if diags.HasErrors() {
+		return diags
 	}
 
-	// EvalRefresh
-	evalRefresh := &EvalRefresh{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		Provider:       &provider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-		Output:         &state,
-	}
-	_, err = evalRefresh.Eval(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Verify the existance of the imported resource
-	if state.Value.IsNull() {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot import non-existent remote object",
-			fmt.Sprintf(
-				"While attempting to import an existing object to %s, the provider detected that no object exists with the given id. Only pre-existing objects can be imported; check that the id is correct and that it is associated with the provider's configured region or endpoint, or use \"terraform apply\" to create a new remote object for this resource.",
-				n.TargetAddr.Resource.String(),
-			),
-		))
-		return diags.Err()
-	}
-
-	//EvalWriteState
-	evalWriteState := &EvalWriteState{
-		Addr:           n.TargetAddr.Resource,
-		ProviderAddr:   n.ResolvedProvider,
-		ProviderSchema: &providerSchema,
-		State:          &state,
-	}
-	_, err = evalWriteState.Eval(ctx)
-	return err
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, nil, workingState))
+	return diags
 }

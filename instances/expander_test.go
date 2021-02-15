@@ -433,17 +433,6 @@ func TestExpander(t *testing.T) {
 	})
 }
 
-func mustResourceAddr(str string) addrs.Resource {
-	addr, diags := addrs.ParseAbsResourceStr(str)
-	if diags.HasErrors() {
-		panic(fmt.Sprintf("invalid resource address: %s", diags.Err()))
-	}
-	if !addr.Module.IsRoot() {
-		panic("invalid resource address: includes module path")
-	}
-	return addr.Resource
-}
-
 func mustAbsResourceInstanceAddr(str string) addrs.AbsResourceInstance {
 	addr, diags := addrs.ParseAbsResourceInstanceStr(str)
 	if diags.HasErrors() {

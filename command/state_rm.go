@@ -19,7 +19,7 @@ type StateRmCommand struct {
 func (c *StateRmCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	var dryRun bool
-	cmdFlags := c.Meta.defaultFlagSet("state rm")
+	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("state rm")
 	cmdFlags.BoolVar(&dryRun, "dry-run", false, "dry run")
 	cmdFlags.StringVar(&c.backupPath, "backup", "-", "backup")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
@@ -59,7 +59,7 @@ func (c *StateRmCommand) Run(args []string) int {
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(fmt.Sprintf(errStateNotFound))
+		c.Ui.Error(errStateNotFound)
 		return 1
 	}
 
@@ -146,18 +146,22 @@ Usage: terraform state rm [options] ADDRESS...
 
 Options:
 
-  -dry-run            If set, prints out what would've been removed but
-                      doesn't actually remove anything.
+  -dry-run                If set, prints out what would've been removed but
+                          doesn't actually remove anything.
 
-  -backup=PATH        Path where Terraform should write the backup
-                      state.
+  -backup=PATH            Path where Terraform should write the backup
+                          state.
 
-  -lock=true          Lock the state file when locking is supported.
+  -lock=true              Lock the state file when locking is supported.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock-timeout=0s        Duration to retry a state lock.
 
-  -state=PATH         Path to the state file to update. Defaults to the current
-                      workspace state.
+  -state=PATH             Path to the state file to update. Defaults to the
+                          current workspace state.
+
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)

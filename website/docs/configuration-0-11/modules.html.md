@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Modules - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-modules"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Modules](../configuration/modules.html).
+[Configuration Language: Modules](/docs/language/modules/index.html).
 
 A _module_ is a container for multiple resources that are used together.
 
@@ -27,7 +27,7 @@ and re-used.
 This page describes how to call one module from another. Other pages in this
 section of the documentation describe the different elements that make up
 modules, and there is further information about how modules can be used,
-created, and published in [the dedicated _Modules_ section](/docs/modules/index.html).
+created, and published in [the dedicated _Modules_ section](/docs/language/modules/develop/index.html).
 
 ## Calling a Child Module
 
@@ -62,7 +62,7 @@ Terraform CLI. Its value is either the path to a local directory of the
 module's configuration files, or a remote module source that Terraform should
 download and use. This value must be a literal string with no template
 sequences; interpolations are not allowed. For more information on
-possible values for this argument, see [Module Sources](/docs/modules/sources.html).
+possible values for this argument, see [Module Sources](/docs/language/modules/sources.html).
 
 The same source address can be specified in multiple `module` blocks to create
 multiple copies of the resources defined within, possibly with different
@@ -161,7 +161,7 @@ future features.
 
 Since modules are a complex feature in their own right, further detail
 about how modules can be used, created, and published is included in
-[the dedicated section on modules](/docs/modules/index.html).
+[the dedicated section on modules](/docs/language/modules/develop/index.html).
 
 ## Providers within Modules
 
@@ -233,7 +233,7 @@ resource "aws_s3_bucket" "example" {
 This approach is recommended in the common case where only a single
 configuration is needed for each provider across the entire configuration.
 
-In more complex situations there may be [multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+In more complex situations there may be [multiple provider instances](./providers.html#multiple-provider-instances),
 or a child module may need to use different provider settings than
 its parent. For such situations, it's necessary to pass providers explicitly
 as we will see in the next section.
@@ -272,7 +272,7 @@ module "example" {
 
 The `providers` argument within a `module` block is similar to
 the `provider` argument within a resource as described for
-[multiple provider instances](/docs/configuration/providers.html#multiple-provider-instances),
+[multiple provider instances](./providers.html#multiple-provider-instances),
 but is a map rather than a single string because a module may contain resources
 from many different providers.
 
@@ -386,7 +386,7 @@ giving each instance a unique name -- here `module "assets_bucket"` and
 Resources from child modules are prefixed with `module.<module-instance-name>`
 when displayed in plan output and elsewhere in the UI. For example, the
 `./publish_bucket` module contains `aws_s3_bucket.example`, and so the two
-instances of this module produce S3 bucket resources with [_resource addresses_](/docs/internals/resource-addressing.html)
+instances of this module produce S3 bucket resources with [_resource addresses_](/docs/cli/state/resource-addressing.html)
 `module.assets_bucket.aws_s3_bucket.example` and `module.media_bucket.aws_s3_bucket.example`
 respectively. These full addresses are used within the UI and on the command
 line, but are not valid within interpolation expressions due to the
@@ -405,7 +405,7 @@ several regions or datacenters.
 
 ## Tainting resources within a module
 
-The [taint command](/docs/commands/taint.html) can be used to _taint_ specific
+The [taint command](/docs/cli/commands/taint.html) can be used to _taint_ specific
 resources within a module:
 
 ```shell

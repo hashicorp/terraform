@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/e2e"
 )
 
@@ -333,7 +335,7 @@ func TestInitProviderNotFound(t *testing.T) {
 	defer tf.Close()
 
 	t.Run("registry provider not found", func(t *testing.T) {
-		_, stderr, err := tf.Run("init")
+		_, stderr, err := tf.Run("init", "-no-color")
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}
@@ -351,13 +353,33 @@ func TestInitProviderNotFound(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, stderr, err := tf.Run("init", "-plugin-dir="+pluginDir)
+		_, stderr, err := tf.Run("init", "-no-color", "-plugin-dir="+pluginDir)
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}
 
 		if !strings.Contains(stderr, "provider registry.terraform.io/hashicorp/nonexist was not\nfound in any of the search locations\n\n  - "+pluginDir) {
 			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
+	})
+
+	t.Run("special characters enabled", func(t *testing.T) {
+		_, stderr, err := tf.Run("init")
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		expectedErr := `╷
+│ Error: Failed to query available provider packages
+│` + ` ` + `
+│ Could not retrieve the list of available versions for provider
+│ hashicorp/nonexist: provider registry registry.terraform.io does not have a
+│ provider named registry.terraform.io/hashicorp/nonexist
+╵
+
+`
+		if stripAnsi(stderr) != expectedErr {
+			t.Errorf("wrong output:\n%s", cmp.Diff(stripAnsi(stderr), expectedErr))
 		}
 	})
 }
@@ -373,13 +395,13 @@ func TestInitProviderWarnings(t *testing.T) {
 	tf := e2e.NewBinary(terraformBin, fixturePath)
 	defer tf.Close()
 
-	_, stderr, err := tf.Run("init")
+	stdout, _, err := tf.Run("init")
 	if err == nil {
 		t.Fatal("expected error, got success")
 	}
 
-	if !strings.Contains(stderr, "This provider is archived and no longer needed. The terraform_remote_state\ndata source is built into the latest Terraform release.") {
-		t.Errorf("expected warning message is missing from output:\n%s", stderr)
+	if !strings.Contains(stdout, "This provider is archived and no longer needed.") {
+		t.Errorf("expected warning message is missing from output:\n%s", stdout)
 	}
 
 }

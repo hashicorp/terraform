@@ -35,8 +35,8 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) == 0 {
-		c.Ui.Error("expected NAME.\n")
+	if len(args) != 1 {
+		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
 
@@ -64,6 +64,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// This command will not write state
+	c.ignoreRemoteBackendVersionConflict(b)
 
 	workspaces, err := b.Workspaces()
 	if err != nil {
@@ -179,7 +182,7 @@ func (c *WorkspaceDeleteCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
-Usage: terraform workspace delete [OPTIONS] NAME [DIR]
+Usage: terraform workspace delete [OPTIONS] NAME
 
   Delete a Terraform workspace
 

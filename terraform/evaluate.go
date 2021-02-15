@@ -145,7 +145,7 @@ func (d *evaluationStateData) GetCountAttr(addr addrs.CountAttr, rng tfdiags.Sou
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Reference to "count" in non-counted context`,
-				Detail:   fmt.Sprintf(`The "count" object can only be used in "module", "resource", and "data" blocks, and only when the "count" argument is set.`),
+				Detail:   `The "count" object can only be used in "module", "resource", and "data" blocks, and only when the "count" argument is set.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.UnknownVal(cty.Number), diags
@@ -177,7 +177,7 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `each.value cannot be used in this context`,
-				Detail:   fmt.Sprintf(`A reference to "each.value" has been used in a context in which it unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`),
+				Detail:   `A reference to "each.value" has been used in a context in which it unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.UnknownVal(cty.DynamicPseudoType), diags
@@ -196,7 +196,7 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to "each" in context without for_each`,
-			Detail:   fmt.Sprintf(`The "each" object can be used only in "module" or "resource" blocks, and only when the "for_each" argument is set.`),
+			Detail:   `The "each" object can be used only in "module" or "resource" blocks, and only when the "for_each" argument is set.`,
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.UnknownVal(cty.DynamicPseudoType), diags
@@ -260,6 +260,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
 	if d.Operation == walkValidate {
+		// Ensure variable sensitivity is captured in the validate walk
+		if config.Sensitive {
+			return cty.UnknownVal(wantType).Mark("sensitive"), diags
+		}
 		return cty.UnknownVal(wantType), diags
 	}
 
@@ -293,7 +297,8 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = cty.UnknownVal(wantType)
 	}
 
-	if config.Sensitive {
+	// Mark if sensitive, and avoid double-marking if this has already been marked
+	if config.Sensitive && !val.HasMark("sensitive") {
 		val = val.Mark("sensitive")
 	}
 
@@ -428,7 +433,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 			instance[cfg.Name] = outputState
 
-			if cfg.Sensitive {
+			if cfg.Sensitive && !outputState.HasMark("sensitive") {
 				instance[cfg.Name] = outputState.Mark("sensitive")
 			}
 		}
@@ -457,7 +462,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 			instance[cfg.Name] = change.After
 
-			if change.Sensitive {
+			if change.Sensitive && !change.After.HasMark("sensitive") {
 				instance[cfg.Name] = change.After.Mark("sensitive")
 			}
 		}

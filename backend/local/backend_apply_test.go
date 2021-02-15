@@ -27,7 +27,7 @@ func TestLocal_applyBasic(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("yes"),
 		"ami": cty.StringVal("bar"),
 	})}
@@ -70,7 +70,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
@@ -101,7 +101,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{}
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
@@ -193,7 +193,7 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("yes"),
 		"ami": cty.StringVal("bar"),
 	})}
@@ -239,6 +239,30 @@ test_instance.foo:
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
+}
+
+func TestLocal_applyRefreshFalse(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", planFixtureSchema())
+	testStateFile(t, b.StatePath, testPlanState())
+
+	op, configCleanup := testOperationApply(t, "./testdata/plan")
+	defer configCleanup()
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("ReadResource should not be called")
+	}
 }
 
 type backendWithFailingState struct {

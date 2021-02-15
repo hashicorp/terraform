@@ -13,7 +13,7 @@ The Verified badge helps users easily identify and discover integrations develop
 
 ![Verified Provider Card](/assets/images/docs/verified-card.png)
 
--> **Building your own provider?** If you're building your own provider and aren't interested in having HashiCorp officially verify and regularly monitor your provider, please refer to the [Writing Custom Providers guide](https://www.terraform.io/docs/extend/writing-custom-providers.html) and the [Extending Terraform](https://www.terraform.io/docs/extend/index.html) section.
+-> **Building your own provider?** If you're building your own provider and aren't interested in having HashiCorp officially verify and regularly monitor your provider, please refer to the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITEhttps://www.terraform.io/docs/extend/writing-custom-providers.htmlutm_medium=WEB_IOhttps://www.terraform.io/docs/extend/writing-custom-providers.htmlutm_offer=ARTICLE_PAGEhttps://www.terraform.io/docs/extend/writing-custom-providers.htmlutm_content=DOCS) collection on HashiCorp Learn and the [Extending Terraform](https://www.terraform.io/docs/extend/index.html) section of the documentation.
 
 
 ## What is a Terraform Provider?
@@ -66,7 +66,7 @@ The provider development process is divided into five steps below. By following 
 ![Provider Development Process](/assets/images/docs/program-steps.png)
 
 1. **Apply**: Initial contact between vendor and HashiCorp
-2. **Prepare**: Follow documentation while developing the provider 
+2. **Prepare**: Follow documentation while developing the provider
 3. **Verify**: Share public GPG key with HashiCorp
 4. **Publish**: Release the provider on the Registry
 5. **Support**: Ongoing maintenance and support of the provider by the vendor.
@@ -112,7 +112,7 @@ We’ve found the provider development process to be fairly straightforward and 
 
 ### 3. Verify
 
-At this stage, it is expected that the provider is fully developed, all tests and documentation are in place, and your provider is ready for publishing. In this step, HashiCorp will verify the source and authenticity of the namespace being used to publish the provider by signing your GPG key with a trust signature. 
+At this stage, it is expected that the provider is fully developed, all tests and documentation are in place, and your provider is ready for publishing. In this step, HashiCorp will verify the source and authenticity of the namespace being used to publish the provider by signing your GPG key with a trust signature.
 
 -> **Important:** This step requires that you have signed and accepted our Technology Partner Agreement. If you have not received this, please see step #1 above.
 
@@ -128,7 +128,7 @@ $ gpg --armor --export "{Key ID or email address}"
 
 Once the verification step is complete please follow the steps on [Publishing a Provider](https://www.terraform.io/docs/registry/providers/publishing.html).  This step does not require additional involvement from HashiCorp as publishing is a fully self-service process in the [Terraform Registry](https://registry.terraform.io).
 
-Once completed, your provider should be visible in the Terraform Registry and usable in Terraform. Please confirm that everything looks good, and that documentation is rendering properly. 
+Once completed, your provider should be visible in the Terraform Registry and usable in Terraform. Please confirm that everything looks good, and that documentation is rendering properly.
 
 ### 5. Maintain & Support
 

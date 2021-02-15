@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "intro"
 page_title: "The Core Terraform Workflow - Guides"
 sidebar_current: "guides-core-workflow"
 description: |-
@@ -235,7 +235,7 @@ for a better experience at each step.
 Terraform Cloud provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
 speculative plans for config authors. Terraform configuration interacts with
-Terraform Cloud via the ["remote" backend](/docs/backends/types/remote.html).
+Terraform Cloud via the ["remote" backend](/docs/language/settings/backends/remote.html).
 
 ```
 terraform {

@@ -52,6 +52,16 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"b": cty.UnknownVal(cty.Bool),
 			},
 		},
+		"map containing sensitive values, but strings are literal": {
+			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+				"a": cty.BoolVal(true).Mark("sensitive"),
+				"b": cty.BoolVal(false),
+			})),
+			map[string]cty.Value{
+				"a": cty.BoolVal(true).Mark("sensitive"),
+				"b": cty.BoolVal(false),
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -110,6 +120,14 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
 		},
+		"marked map": {
+			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+				"a": cty.BoolVal(true),
+				"b": cty.BoolVal(false),
+			}).Mark("sensitive")),
+			"Invalid for_each argument",
+			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+		},
 		"set containing booleans": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.BoolVal(true)})),
 			"Invalid for_each set argument",
@@ -129,6 +147,11 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
 			"Invalid for_each argument",
 			"depends on resource attributes that cannot be determined until apply",
+		},
+		"set containing marked values": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark("sensitive"), cty.StringVal("boop")})),
+			"Invalid for_each argument",
+			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
 		},
 	}
 
@@ -150,6 +173,16 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			if got, want := diags[0].Description().Detail, test.DetailSubstring; !strings.Contains(got, want) {
 				t.Errorf("wrong diagnostic detail %#v; want %#v", got, want)
 			}
+			if fromExpr := diags[0].FromExpr(); fromExpr != nil {
+				if fromExpr.Expression == nil {
+					t.Errorf("diagnostic does not refer to an expression")
+				}
+				if fromExpr.EvalContext == nil {
+					t.Errorf("diagnostic does not refer to an EvalContext")
+				}
+			} else {
+				t.Errorf("diagnostic does not support FromExpr\ngot: %s", spew.Sdump(diags[0]))
+			}
 		})
 	}
 }
@@ -164,7 +197,7 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
+			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, true)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))

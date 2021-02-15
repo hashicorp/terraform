@@ -53,6 +53,10 @@ func TestVersionConstraintsString(t *testing.T) {
 			MustParseVersionConstraints(">= 1.2.3, 1.2.3, ~> 1.2, 1.2.3"),
 			"~> 1.2, >= 1.2.3, 1.2.3",
 		},
+		"equivalent duplicates removed": {
+			MustParseVersionConstraints(">= 2.68, >= 2.68.0"),
+			">= 2.68.0",
+		},
 		"consistent ordering, exhaustive": {
 			// This weird jumble is just to exercise the different sort
 			// ordering codepaths. Hopefully nothing quite this horrific

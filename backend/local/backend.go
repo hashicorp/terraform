@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -37,6 +38,10 @@ type Local struct {
 	// output will be done. If CLIColor is nil then no coloring will be done.
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
+
+	// If CLI is set then Streams might also be set, to describe the physical
+	// input/output handles that CLI is connected to.
+	Streams *terminal.Streams
 
 	// ShowDiagnostics prints diagnostic messages to the UI.
 	ShowDiagnostics func(vals ...interface{})

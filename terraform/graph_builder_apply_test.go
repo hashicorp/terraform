@@ -423,70 +423,6 @@ func TestApplyGraphBuilder_moduleDestroy(t *testing.T) {
 	)
 }
 
-func TestApplyGraphBuilder_provisioner(t *testing.T) {
-	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
-			{
-				Addr: mustResourceInstanceAddr("test_object.foo"),
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Create,
-				},
-			},
-		},
-	}
-
-	b := &ApplyGraphBuilder{
-		Config:     testModule(t, "graph-builder-apply-provisioner"),
-		Changes:    changes,
-		Components: simpleMockComponentFactory(),
-		Schemas:    simpleTestSchemas(),
-	}
-
-	g, err := b.Build(addrs.RootModuleInstance)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	testGraphContains(t, g, "provisioner.test")
-	testGraphHappensBefore(
-		t, g,
-		"provisioner.test",
-		"test_object.foo",
-	)
-}
-
-func TestApplyGraphBuilder_provisionerDestroy(t *testing.T) {
-	changes := &plans.Changes{
-		Resources: []*plans.ResourceInstanceChangeSrc{
-			{
-				Addr: mustResourceInstanceAddr("test_object.foo"),
-				ChangeSrc: plans.ChangeSrc{
-					Action: plans.Delete,
-				},
-			},
-		},
-	}
-
-	b := &ApplyGraphBuilder{
-		Config:     testModule(t, "graph-builder-apply-provisioner"),
-		Changes:    changes,
-		Components: simpleMockComponentFactory(),
-		Schemas:    simpleTestSchemas(),
-	}
-
-	g, err := b.Build(addrs.RootModuleInstance)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	testGraphContains(t, g, "provisioner.test")
-	testGraphHappensBefore(
-		t, g,
-		"provisioner.test",
-		"test_object.foo (destroy)",
-	)
-}
-
 func TestApplyGraphBuilder_targetModule(t *testing.T) {
 	changes := &plans.Changes{
 		Resources: []*plans.ResourceInstanceChangeSrc{
@@ -784,7 +720,6 @@ module.child.test_object.create
 module.child.test_object.create (expand)
   module.child (expand)
   provider["registry.terraform.io/hashicorp/test"]
-  provisioner.test
 module.child.test_object.other
   module.child.test_object.create
   module.child.test_object.other (expand)
@@ -795,13 +730,9 @@ provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   module.child.test_object.other
   test_object.other
-provisioner.test
-provisioner.test (close)
-  module.child.test_object.create
 root
   meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
-  provisioner.test (close)
 test_object.create
   test_object.create (expand)
 test_object.create (expand)

@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.12"
 sidebar_current: "upgrade-guides-0-12"
 description: |-
@@ -16,7 +16,7 @@ to cover the most common upgrade concerns and issues.
 For most users, upgrading configuration should be completely automatic. Some
 simple configurations will require no changes at all, and most other
 configurations can be prepared by running
-[the automatic upgrade tool](/docs/commands/0.12upgrade.html). Please read on
+[the automatic upgrade tool](/docs/cli/commands/0.12upgrade.html). Please read on
 for more information and recommendations on the upgrade process.
 
 -> If you are a developer maintaining a provider plugin, please see
@@ -448,7 +448,7 @@ in retrospect it was an obvious consequence of how the compatibility mechanism
 was implemented. If you have expressions in your modules that produce a list
 of strings by using list brackets with a mixture of string and list-of-string
 sub-expressions, you will need to rewrite this to explicitly use
-[the `flatten` function](/docs/configuration/functions/flatten.html)
+[the `flatten` function](/docs/language/functions/flatten.html)
 to make the special treatment more obvious to the reader:
 
 ```hcl
@@ -519,7 +519,7 @@ even though it was then generally inconvenient to work with those values
 elsewhere in the module due to limitations of the index syntax, `element`
 function, and `lookup` function.
 
-Terraform now allows various [type constraints](/docs/configuration/types.html)
+Terraform now allows various [type constraints](/docs/language/expressions/type-constraints.html)
 to be specified, as part of the language's new type system and generalized
 functions and operators. However, because lists and maps of non-string values
 were not officially supported in 0.11, existing configurations do not have
@@ -557,7 +557,7 @@ child/child.tf:1,1-19: element 0: string required.
 ```
 
 To fix this, change the `type` argument from `list(string)` or `map(string)`
-to a more appropriate [type constraint](/docs/configuration/types.html).
+to a more appropriate [type constraint](/docs/language/expressions/type-constraints.html).
 
 If you're not sure what type constraint to use yet, another option is to
 use the type constraint `any`, which will effectively disable validation and

@@ -68,6 +68,9 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	// This is a read-only command
+	c.ignoreRemoteBackendVersionConflict(b)
+
 	// the show command expects the config dir to always be the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -163,7 +166,7 @@ func (c *ShowCommand) Run(args []string) int {
 		// package rather than in the backends themselves, but for now we're
 		// accepting this oddity because "terraform show" is a less commonly
 		// used way to render a plan than "terraform plan" is.
-		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize())
+		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize(), c.OutputColumns())
 		return 0
 	}
 

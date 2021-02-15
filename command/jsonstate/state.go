@@ -9,7 +9,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
@@ -100,7 +99,10 @@ type resource struct {
 // resource, whose structure depends on the resource type schema.
 type attributeValues map[string]interface{}
 
-func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+func marshalAttributeValues(value cty.Value) attributeValues {
+	// unmark our value to show all values
+	value, _ = value.UnmarkDeep()
+
 	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
@@ -196,14 +198,30 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 		return ret, err
 	}
 
-	// build a map of module -> [child module addresses]
-	moduleMap := make(map[string][]addrs.ModuleInstance)
+	// build a map of module -> set[child module addresses]
+	moduleChildSet := make(map[string]map[string]struct{})
 	for _, mod := range s.Modules {
 		if mod.Addr.IsRoot() {
 			continue
 		} else {
-			parent := mod.Addr.Parent().String()
-			moduleMap[parent] = append(moduleMap[parent], mod.Addr)
+			for childAddr := mod.Addr; !childAddr.IsRoot(); childAddr = childAddr.Parent() {
+				if _, ok := moduleChildSet[childAddr.Parent().String()]; !ok {
+					moduleChildSet[childAddr.Parent().String()] = map[string]struct{}{}
+				}
+				moduleChildSet[childAddr.Parent().String()][childAddr.String()] = struct{}{}
+			}
+		}
+	}
+
+	// transform the previous map into map of module -> [child module addresses]
+	moduleMap := make(map[string][]addrs.ModuleInstance)
+	for parent, children := range moduleChildSet {
+		for child := range children {
+			childModuleInstance, diags := addrs.ParseModuleInstanceStr(child)
+			if diags.HasErrors() {
+				return ret, diags.Err()
+			}
+			moduleMap[parent] = append(moduleMap[parent], childModuleInstance)
 		}
 	}
 
@@ -222,14 +240,19 @@ func marshalModules(
 ) ([]module, error) {
 	var ret []module
 	for _, child := range modules {
-		stateMod := s.Module(child)
 		// cm for child module, naming things is hard.
-		cm := module{Address: stateMod.Addr.String()}
-		rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
-		if err != nil {
-			return nil, err
+		cm := module{Address: child.String()}
+
+		// the module may be resourceless and contain only submodules, it will then be nil here
+		stateMod := s.Module(child)
+		if stateMod != nil {
+			rs, err := marshalResources(stateMod.Resources, stateMod.Addr, schemas)
+			if err != nil {
+				return nil, err
+			}
+			cm.Resources = rs
 		}
-		cm.Resources = rs
+
 		if moduleMap[child.String()] != nil {
 			moreChildModules, err := marshalModules(s, schemas, moduleMap[child.String()], moduleMap)
 			if err != nil {
@@ -295,7 +318,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				current.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -327,7 +350,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 					return nil, err
 				}
 
-				deposed.AttributeValues = marshalAttributeValues(riObj.Value, schema)
+				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))

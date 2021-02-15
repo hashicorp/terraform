@@ -107,7 +107,7 @@ func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
 		case HookActionHalt:
 			// Return an early exit error to trigger an early exit
 			log.Printf("[WARN] Early exit triggered by hook: %T", h)
-			return EvalEarlyExitError{}
+			return nil
 		}
 	}
 
@@ -228,48 +228,41 @@ func (ctx *BuiltinEvalContext) SetProviderInput(pc addrs.AbsProviderConfig, c ma
 	ctx.ProviderLock.Unlock()
 }
 
-func (ctx *BuiltinEvalContext) InitProvisioner(n string) error {
-	// If we already initialized, it is an error
-	if p := ctx.Provisioner(n); p != nil {
-		return fmt.Errorf("Provisioner '%s' already initialized", n)
-	}
-
-	// Warning: make sure to acquire these locks AFTER the call to Provisioner
-	// above, since it also acquires locks.
+func (ctx *BuiltinEvalContext) Provisioner(n string) (provisioners.Interface, error) {
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	p, err := ctx.Components.ResourceProvisioner(n)
-	if err != nil {
-		return err
+	p, ok := ctx.ProvisionerCache[n]
+	if !ok {
+		var err error
+		p, err = ctx.Components.ResourceProvisioner(n)
+		if err != nil {
+			return nil, err
+		}
+
+		ctx.ProvisionerCache[n] = p
 	}
 
-	ctx.ProvisionerCache[n] = p
-
-	return nil
-}
-
-func (ctx *BuiltinEvalContext) Provisioner(n string) provisioners.Interface {
-	ctx.ProvisionerLock.Lock()
-	defer ctx.ProvisionerLock.Unlock()
-
-	return ctx.ProvisionerCache[n]
+	return p, nil
 }
 
 func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) *configschema.Block {
 	return ctx.Schemas.ProvisionerConfig(n)
 }
 
-func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
+func (ctx *BuiltinEvalContext) CloseProvisioners() error {
+	var diags tfdiags.Diagnostics
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	prov := ctx.ProvisionerCache[n]
-	if prov != nil {
-		return prov.Close()
+	for name, prov := range ctx.ProvisionerCache {
+		err := prov.Close()
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("provisioner.Close %s: %s", name, err))
+		}
 	}
 
-	return nil
+	return diags.Err()
 }
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
@@ -297,7 +290,19 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	return ctx.Evaluator.Scope(data, self)
+	scope := ctx.Evaluator.Scope(data, self)
+
+	// ctx.PathValue is the path of the module that contains whatever
+	// expression the caller will be trying to evaluate, so this will
+	// activate only the experiments from that particular module, to
+	// be consistent with how experiment checking in the "configs"
+	// package itself works. The nil check here is for robustness in
+	// incompletely-mocked testing situations; mc should never be nil in
+	// real situations.
+	if mc := ctx.Evaluator.Config.DescendentForInstance(ctx.PathValue); mc != nil {
+		scope.SetActiveExperiments(mc.Module.ActiveExperiments)
+	}
+	return scope
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
@@ -320,7 +325,6 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 
 	args := ctx.VariableValues[key]
 	if args == nil {
-		args = make(map[string]cty.Value)
 		ctx.VariableValues[key] = vals
 		return
 	}

@@ -14,7 +14,7 @@ When Terraform plans to make changes, it prints a human-readable summary to the 
 
 Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/commands/show.html) for more details.
+Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/cli/commands/show.html) for more details.
 
 -> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
@@ -56,7 +56,7 @@ The extra wrapping object here will allow for any extension we may need to add i
 
 A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes Terraform plans to make to achieve that.
 
-For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#value-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
+For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#values-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
 
 ```javascript
 {
@@ -244,7 +244,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/docs/configuration/functions/jsonencode.html) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/docs/language/functions/jsonencode.html) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Only the "current" object for each resource instance is described. "Deposed" objects are not reflected in this structure at all; in plan representations, you can refer to the change representations for further details.
 

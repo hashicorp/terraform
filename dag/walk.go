@@ -106,11 +106,6 @@ type walkerVertex struct {
 	depsCancelCh chan struct{}
 }
 
-// errWalkUpstream is used in the errMap of a walk to note that an upstream
-// dependency failed so this vertex wasn't run. This is not shown in the final
-// user-returned error.
-var errWalkUpstream = errors.New("upstream dependency failed")
-
 // Wait waits for the completion of the walk and returns diagnostics describing
 // any problems that arose. Update should be called to populate the walk with
 // vertices and edges prior to calling this.
@@ -303,7 +298,7 @@ func (w *Walker) Update(g *AcyclicGraph) {
 	}
 
 	// Start all the new vertices. We do this at the end so that all
-	// the edge waiters and changes are setup above.
+	// the edge waiters and changes are set up above.
 	for _, raw := range newVerts {
 		v := raw.(Vertex)
 		go w.walkVertex(v, w.vertexMap[v])

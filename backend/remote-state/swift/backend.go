@@ -12,7 +12,7 @@ import (
 	"github.com/gophercloud/utils/terraform/auth"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/version"
 )
 

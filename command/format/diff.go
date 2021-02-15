@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/helper/experiment"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/objchange"
 	"github.com/hashicorp/terraform/states"
@@ -99,7 +98,6 @@ func ResourceChange(
 		color:           color,
 		action:          change.Action,
 		requiredReplace: change.RequiredReplace,
-		concise:         experiment.Enabled(experiment.X_concise_diff),
 	}
 
 	// Most commonly-used resources have nested blocks that result in us
@@ -154,10 +152,9 @@ func OutputChanges(
 ) string {
 	var buf bytes.Buffer
 	p := blockBodyDiffPrinter{
-		buf:     &buf,
-		color:   color,
-		action:  plans.Update, // not actually used in this case, because we're not printing a containing block
-		concise: experiment.Enabled(experiment.X_concise_diff),
+		buf:    &buf,
+		color:  color,
+		action: plans.Update, // not actually used in this case, because we're not printing a containing block
 	}
 
 	// We're going to reuse the codepath we used for printing resource block
@@ -200,7 +197,8 @@ type blockBodyDiffPrinter struct {
 	color           *colorstring.Colorize
 	action          plans.Action
 	requiredReplace cty.PathSet
-	concise         bool
+	// verbose is set to true when using the "diff" printer to format state
+	verbose bool
 }
 
 type blockBodyDiffResult struct {
@@ -326,7 +324,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	path = append(path, cty.GetAttrStep{Name: name})
 	action, showJustNew := getPlanActionAndShow(old, new)
 
-	if action == plans.NoOp && p.concise && !identifyingAttribute(name, attrS) {
+	if action == plans.NoOp && !p.verbose && !identifyingAttribute(name, attrS) {
 		return true
 	}
 
@@ -620,11 +618,10 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteRune('\n')
 	p.buf.WriteString(strings.Repeat(" ", indent+2))
 	p.buf.WriteString("}")
-	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) bool {
-	if action == plans.NoOp && p.concise {
+	if action == plans.NoOp && !p.verbose {
 		return true
 	}
 
@@ -878,7 +875,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			if strings.Index(oldS, "\n") < 0 && strings.Index(newS, "\n") < 0 {
+			if !strings.Contains(oldS, "\n") && !strings.Contains(newS, "\n") {
 				break
 			}
 
@@ -904,23 +901,35 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			diffLines := ctySequenceDiff(oldLines, newLines)
-			for _, diffLine := range diffLines {
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-				p.writeActionSymbol(diffLine.Action)
-
-				switch diffLine.Action {
-				case plans.NoOp, plans.Delete:
-					p.buf.WriteString(diffLine.Before.AsString())
-				case plans.Create:
-					p.buf.WriteString(diffLine.After.AsString())
-				default:
-					// Should never happen since the above covers all
-					// actions that ctySequenceDiff can return for strings
-					p.buf.WriteString(diffLine.After.AsString())
-
+			// Optimization for strings which are exactly equal: just print
+			// directly without calculating the sequence diff. This makes a
+			// significant difference when this code path is reached via a
+			// writeValue call with a large multi-line string.
+			if oldS == newS {
+				for _, line := range newLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+4))
+					p.buf.WriteString(line.AsString())
+					p.buf.WriteString("\n")
 				}
-				p.buf.WriteString("\n")
+			} else {
+				diffLines := ctySequenceDiff(oldLines, newLines)
+				for _, diffLine := range diffLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+2))
+					p.writeActionSymbol(diffLine.Action)
+
+					switch diffLine.Action {
+					case plans.NoOp, plans.Delete:
+						p.buf.WriteString(diffLine.Before.AsString())
+					case plans.Create:
+						p.buf.WriteString(diffLine.After.AsString())
+					default:
+						// Should never happen since the above covers all
+						// actions that ctySequenceDiff can return for strings
+						p.buf.WriteString(diffLine.After.AsString())
+
+					}
+					p.buf.WriteString("\n")
+				}
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent)) // +4 here because there's no symbol
@@ -984,7 +993,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.NoOp
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}
@@ -1024,8 +1033,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			var changeShown bool
 
 			for i := 0; i < len(elemDiffs); i++ {
-				// In concise mode, push any no-op diff elements onto the stack
-				if p.concise {
+				if !p.verbose {
 					for i < len(elemDiffs) && elemDiffs[i].Action == plans.NoOp {
 						suppressedElements = append(suppressedElements, elemDiffs[i])
 						i++
@@ -1053,7 +1061,6 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					if hidden > 0 && i < len(elemDiffs) {
 						hidden--
 						nextContextDiff = suppressedElements[hidden]
-						suppressedElements = suppressedElements[:hidden]
 					}
 
 					// If there are still hidden elements, show an elision
@@ -1161,7 +1168,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					}
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}
@@ -1262,7 +1269,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Update
 				}
 
-				if action == plans.NoOp && p.concise {
+				if action == plans.NoOp && !p.verbose {
 					suppressedElements++
 					continue
 				}

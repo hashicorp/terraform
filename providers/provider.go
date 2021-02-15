@@ -14,8 +14,10 @@ type Interface interface {
 	// GetSchema returns the complete schema for the provider.
 	GetSchema() GetSchemaResponse
 
-	// PrepareProviderConfig allows the provider to validate the configuration
-	// values, and set or override any values with defaults.
+	// PrepareProviderConfig allows the provider to validate the configuration.
+	// The PrepareProviderConfigResponse.PreparedConfig field is unused. The
+	// final configuration is not stored in the state, and any modifications
+	// that need to be made must be made during the Configure method call.
 	PrepareProviderConfig(PrepareProviderConfigRequest) PrepareProviderConfigResponse
 
 	// ValidateResourceTypeConfig allows the provider to validate the resource
@@ -99,7 +101,7 @@ type PrepareProviderConfigRequest struct {
 }
 
 type PrepareProviderConfigResponse struct {
-	// PreparedConfig is the configuration as prepared by the provider.
+	// PreparedConfig is unused.
 	PreparedConfig cty.Value
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics

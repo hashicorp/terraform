@@ -202,6 +202,75 @@ func TestStateList_noState(t *testing.T) {
 	}
 }
 
+func TestStateList_modules(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("state-list-nested-modules"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StateListCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	t.Run("list resources in module and submodules", func(t *testing.T) {
+		args := []string{"module.nest"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+
+		// resources in the module and any submodules should be included in the outputs
+		expected := "module.nest.test_instance.nest\nmodule.nest.module.subnest.test_instance.subnest\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("submodule has resources only", func(t *testing.T) {
+		// now get the state for a module that has no resources, only another nested module
+		ui.OutputWriter.Reset()
+		args := []string{"module.nonexist"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.nonexist.module.child.test_instance.child\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("expanded module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		ui.OutputWriter.Reset()
+		args := []string{"module.count"}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d", code)
+		}
+		expected := "module.count[0].test_instance.count\nmodule.count[1].test_instance.count\n"
+		actual := ui.OutputWriter.String()
+		if actual != expected {
+			t.Fatalf("Expected:\n%q\n\nTo equal: %q", actual, expected)
+		}
+	})
+
+	t.Run("completely nonexistent module", func(t *testing.T) {
+		// finally get the state for a module with an index
+		ui.OutputWriter.Reset()
+		args := []string{"module.notevenalittlebit"}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("bad: %d", code)
+		}
+	})
+
+}
+
 const testStateListOutput = `
 test_instance.foo
 `

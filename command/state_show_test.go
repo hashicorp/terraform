@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -34,13 +33,15 @@ func TestStateShow(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"foo": {Type: cty.String, Optional: true},
-					"bar": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"bar": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -107,13 +108,15 @@ func TestStateShow_multi(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"foo": {Type: cty.String, Optional: true},
-					"bar": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"bar": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},
@@ -213,13 +216,15 @@ func TestStateShow_configured_provider(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetSchemaResponse = &providers.GetSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"foo": {Type: cty.String, Optional: true},
-					"bar": {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"foo": {Type: cty.String, Optional: true},
+						"bar": {Type: cty.String, Optional: true},
+					},
 				},
 			},
 		},

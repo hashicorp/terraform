@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Since we can't unlock a local state file, just test that calling unlock
@@ -24,7 +25,7 @@ func TestUnlock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("err: %s", err)
 		}
-		err = terraform.WriteState(terraform.NewState(), f)
+		err = legacy.WriteState(legacy.NewState(), f)
 		f.Close()
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -55,7 +56,7 @@ func TestUnlock(t *testing.T) {
 		"-force",
 	}
 
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 }

@@ -172,10 +172,21 @@ func (l *logPanicWrapper) Debug(msg string, args ...interface{}) {
 	// output if this is the start of the traceback. An occasional false
 	// positive shouldn't be a big deal, since this is only retrieved after an
 	// error of some sort.
-	l.inPanic = l.inPanic || strings.HasPrefix(msg, "panic: ") || strings.HasPrefix(msg, "fatal error: ")
+
+	panicPrefix := strings.HasPrefix(msg, "panic: ") || strings.HasPrefix(msg, "fatal error: ")
+
+	l.inPanic = l.inPanic || panicPrefix
 
 	if l.inPanic && l.panicRecorder != nil {
 		l.panicRecorder(msg)
+	}
+
+	// If we have logging turned on, we need to prevent panicwrap from seeing
+	// this as a core panic. This can be done by obfuscating the panic error
+	// line.
+	if panicPrefix {
+		colon := strings.Index(msg, ":")
+		msg = strings.ToUpper(msg[:colon]) + msg[colon:]
 	}
 
 	l.Logger.Debug(msg, args...)

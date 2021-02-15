@@ -24,6 +24,13 @@ var (
 	errRunOverridden    = errors.New("overridden using the UI or API")
 )
 
+var (
+	backoffMin = 1000.0
+	backoffMax = 3000.0
+
+	runPollInterval = 3 * time.Second
+)
+
 // backoff will perform exponential backoff based on the iteration and
 // limited by the provided min and max (in milliseconds) durations.
 func backoff(min, max float64, iter int) time.Duration {
@@ -43,7 +50,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 			return r, stopCtx.Err()
 		case <-cancelCtx.Done():
 			return r, cancelCtx.Err()
-		case <-time.After(backoff(1000, 3000, i)):
+		case <-time.After(backoff(backoffMin, backoffMax, i)):
 			// Timer up, show status
 		}
 
@@ -243,15 +250,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 		return nil
 	}
 
-	if b.CLI != nil {
-		b.CLI.Output("\n------------------------------------------------------------------------\n")
-	}
-
 	msgPrefix := "Cost estimation"
-	if b.CLI != nil {
-		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
-	}
-
 	started := time.Now()
 	updated := started
 	for i := 0; ; i++ {
@@ -260,7 +259,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			return stopCtx.Err()
 		case <-cancelCtx.Done():
 			return cancelCtx.Err()
-		case <-time.After(1 * time.Second):
+		case <-time.After(backoff(backoffMin, backoffMax, i)):
 		}
 
 		// Retrieve the cost estimate to get its current status.
@@ -275,6 +274,12 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			if r.Status == tfe.RunCanceled || r.Status == tfe.RunErrored {
 				return nil
 			}
+		}
+
+		// checking if i == 0 so as to avoid printing this starting horizontal-rule
+		// every retry, and that it only prints it on the first (i=0) attempt.
+		if b.CLI != nil && i == 0 {
+			b.CLI.Output("\n------------------------------------------------------------------------\n")
 		}
 
 		switch ce.Status {
@@ -292,6 +297,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
 
 			if b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
 
@@ -313,16 +319,17 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 					elapsed = fmt.Sprintf(
 						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
 				}
+				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
 		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateErrored:
-			b.CLI.Output(msgPrefix + " errored:\n")
-			b.CLI.Output(ce.ErrorMessage)
+			b.CLI.Output(msgPrefix + " errored.\n")
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
 		case tfe.CostEstimateCanceled:
@@ -455,7 +462,7 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 				return
 			case <-stopCtx.Done():
 				return
-			case <-time.After(3 * time.Second):
+			case <-time.After(runPollInterval):
 				// Retrieve the run again to get its current status.
 				r, err := b.client.Runs.Read(stopCtx, r.ID)
 				if err != nil {
@@ -489,10 +496,10 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 					}
 
 					if err == errRunDiscarded {
+						err = errApplyDiscarded
 						if op.Destroy {
 							err = errDestroyDiscarded
 						}
-						err = errApplyDiscarded
 					}
 
 					result <- err

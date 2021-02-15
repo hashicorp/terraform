@@ -17,7 +17,9 @@ import (
 	"github.com/hashicorp/terraform/command/cliconfig"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
@@ -33,7 +35,24 @@ const (
 
 	// The parent process will create a file to collect crash logs
 	envTmpLogPath = "TF_TEMP_LOG_PATH"
+
+	// Environment variable name used for smuggling true stderr terminal
+	// settings into a panicwrap child process. This is an implementation
+	// detail, subject to change in future, and should not ever be directly
+	// set by an end-user.
+	envTerminalPanicwrapWorkaround = "TF_PANICWRAP_STDERR"
 )
+
+// ui wraps the primary output cli.Ui, and redirects Warn calls to Output
+// calls. This ensures that warnings are sent to stdout, and are properly
+// serialized within the stdout stream.
+type ui struct {
+	cli.Ui
+}
+
+func (u *ui) Warn(msg string) {
+	u.Ui.Output(msg)
+}
 
 func main() {
 	os.Exit(realMain())
@@ -52,7 +71,7 @@ func realMain() int {
 		// there is a panic. Otherwise, we delete it.
 		logTempFile, err := ioutil.TempFile("", "terraform-log")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
+			fmt.Fprintf(os.Stderr, "Couldn't set up logging tempfile: %s", err)
 			return 1
 		}
 		// Now that we have the file, close it and leave it for the wrapped
@@ -62,6 +81,22 @@ func realMain() int {
 
 		// store the path in the environment for the wrapped executable
 		os.Setenv(envTmpLogPath, logTempFile.Name())
+
+		// We also need to do our terminal initialization before we fork,
+		// because the child process doesn't necessarily have access to
+		// the true stderr in order to initialize it.
+		streams, err := terminal.Init()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to initialize terminal: %s", err)
+			return 1
+		}
+
+		// We need the child process to behave _as if_ connected to the real
+		// stderr, even though panicwrap is about to add a pipe in the way,
+		// so we'll smuggle the true stderr information in an environment
+		// varible.
+		streamState := streams.StateForAfterPanicWrap()
+		os.Setenv(envTerminalPanicwrapWorkaround, fmt.Sprintf("%t:%d", streamState.StderrIsTerminal, streamState.StderrWidth))
 
 		// Create the configuration for panicwrap and wrap our executable
 		wrapConfig.Handler = logging.PanicHandler(logTempFile.Name())
@@ -81,11 +116,11 @@ func realMain() int {
 }
 
 func init() {
-	Ui = &cli.BasicUi{
+	Ui = &ui{&cli.BasicUi{
 		Writer:      os.Stdout,
 		ErrorWriter: os.Stderr,
 		Reader:      os.Stdin,
-	}
+	}}
 }
 
 func wrappedMain() int {
@@ -105,10 +140,43 @@ func wrappedMain() int {
 	}
 
 	log.Printf(
-		"[INFO] Terraform version: %s %s %s",
-		Version, VersionPrerelease, GitCommit)
+		"[INFO] Terraform version: %s %s",
+		Version, VersionPrerelease)
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
+
+	// This is the recieving end of our workaround to retain the metadata
+	// about the real stderr even though we're talking to it via the panicwrap
+	// pipe. See the call to StateForAfterPanicWrap above for the producer
+	// part of this.
+	var streamState *terminal.PrePanicwrapState
+	if raw := os.Getenv(envTerminalPanicwrapWorkaround); raw != "" {
+		streamState = &terminal.PrePanicwrapState{}
+		if _, err := fmt.Sscanf(raw, "%t:%d", &streamState.StderrIsTerminal, &streamState.StderrWidth); err != nil {
+			log.Printf("[WARN] %s is set but is incorrectly-formatted: %s", envTerminalPanicwrapWorkaround, err)
+			streamState = nil // leave it unset for a normal init, then
+		}
+	}
+	streams, err := terminal.ReinitInsidePanicwrap(streamState)
+	if err != nil {
+		Ui.Error(fmt.Sprintf("Failed to configure the terminal: %s", err))
+		return 1
+	}
+	if streams.Stdout.IsTerminal() {
+		log.Printf("[TRACE] Stdout is a terminal of width %d", streams.Stdout.Columns())
+	} else {
+		log.Printf("[TRACE] Stdout is not a terminal")
+	}
+	if streams.Stderr.IsTerminal() {
+		log.Printf("[TRACE] Stderr is a terminal of width %d", streams.Stderr.Columns())
+	} else {
+		log.Printf("[TRACE] Stderr is not a terminal")
+	}
+	if streams.Stdin.IsTerminal() {
+		log.Printf("[TRACE] Stdin is a terminal")
+	} else {
+		log.Printf("[TRACE] Stdin is not a terminal")
+	}
 
 	// NOTE: We're intentionally calling LoadConfig _before_ handling a possible
 	// -chdir=... option on the command line, so that a possible relative
@@ -223,7 +291,7 @@ func wrappedMain() int {
 		// in case they need to refer back to it for any special reason, though
 		// they should primarily be working with the override working directory
 		// that we've now switched to above.
-		initCommands(originalWd, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
+		initCommands(originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
 	}
 
 	// Run checkpoint
@@ -280,6 +348,32 @@ func wrappedMain() int {
 		Autocomplete:          true,
 		AutocompleteInstall:   "install-autocomplete",
 		AutocompleteUninstall: "uninstall-autocomplete",
+	}
+
+	// Before we continue we'll check whether the requested command is
+	// actually known. If not, we might be able to suggest an alternative
+	// if it seems like the user made a typo.
+	// (This bypasses the built-in help handling in cli.CLI for the situation
+	// where a command isn't found, because it's likely more helpful to
+	// mention what specifically went wrong, rather than just printing out
+	// a big block of usage information.)
+	if cmd := cliRunner.Subcommand(); cmd != "" {
+		// Due to the design of cli.CLI, this special error message only works
+		// for typos of top-level commands. For a subcommand typo, like
+		// "terraform state posh", cmd would be "state" here and thus would
+		// be considered to exist, and it would print out its own usage message.
+		if _, exists := Commands[cmd]; !exists {
+			suggestions := make([]string, 0, len(Commands))
+			for name := range Commands {
+				suggestions = append(suggestions, name)
+			}
+			suggestion := didyoumean.NameSuggestion(cmd, suggestions)
+			if suggestion != "" {
+				suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+			}
+			fmt.Fprintf(os.Stderr, "Terraform has no command named %q.%s\n\nTo see all of Terraform's top-level commands, run:\n  terraform -help\n\n", cmd, suggestion)
+			return 1
+		}
 	}
 
 	exitCode, err := cliRunner.Run()

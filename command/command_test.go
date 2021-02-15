@@ -19,8 +19,10 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/registry"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -31,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -41,6 +42,7 @@ import (
 
 	backendInit "github.com/hashicorp/terraform/backend/init"
 	backendLocal "github.com/hashicorp/terraform/backend/local"
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
@@ -117,23 +119,6 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
 		},
 	}
-}
-
-func metaOverridesForProviderAndProvisioner(p providers.Interface, pr provisioners.Interface) *testingOverrides {
-	return &testingOverrides{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
-		},
-		Provisioners: map[string]provisioners.Factory{
-			"shell": provisioners.FactoryFixed(pr),
-		},
-	}
-}
-
-func testModule(t *testing.T, name string) *configs.Config {
-	t.Helper()
-	c, _ := testModuleWithSnapshot(t, name)
-	return c
 }
 
 func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *configload.Snapshot) {
@@ -404,7 +389,7 @@ func testStateFileWorkspaceDefault(t *testing.T, workspace string, s *states.Sta
 
 // testStateFileRemote writes the state out to the remote statefile
 // in the cwd. Use `testCwd` to change into a temp cwd.
-func testStateFileRemote(t *testing.T, s *terraform.State) string {
+func testStateFileRemote(t *testing.T, s *legacy.State) string {
 	t.Helper()
 
 	path := filepath.Join(DefaultDataDir, DefaultStateFilename)
@@ -418,7 +403,7 @@ func testStateFileRemote(t *testing.T, s *terraform.State) string {
 	}
 	defer f.Close()
 
-	if err := terraform.WriteState(s, f); err != nil {
+	if err := legacy.WriteState(s, f); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -446,9 +431,9 @@ func testStateRead(t *testing.T, path string) *states.State {
 // testDataStateRead reads a "data state", which is a file format resembling
 // our state format v3 that is used only to track current backend settings.
 //
-// This old format still uses *terraform.State, but should be replaced with
+// This old format still uses *legacy.State, but should be replaced with
 // a more specialized type in a later release.
-func testDataStateRead(t *testing.T, path string) *terraform.State {
+func testDataStateRead(t *testing.T, path string) *legacy.State {
 	t.Helper()
 
 	f, err := os.Open(path)
@@ -457,7 +442,7 @@ func testDataStateRead(t *testing.T, path string) *terraform.State {
 	}
 	defer f.Close()
 
-	s, err := terraform.ReadState(f)
+	s, err := legacy.ReadState(f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -513,26 +498,6 @@ func testTempDir(t *testing.T) string {
 	}
 
 	return d
-}
-
-// testRename renames the path to new and returns a function to defer to
-// revert the rename.
-func testRename(t *testing.T, base, path, new string) func() {
-	t.Helper()
-
-	if base != "" {
-		path = filepath.Join(base, path)
-		new = filepath.Join(base, new)
-	}
-
-	if err := os.Rename(path, new); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return func() {
-		// Just re-rename and ignore the return value
-		testRename(t, "", new, path)
-	}
 }
 
 // testChdir changes the directory and returns a function to defer to
@@ -667,7 +632,7 @@ func testInteractiveInput(t *testing.T, answers []string) func() {
 	// Disable test mode so input is called
 	test = false
 
-	// Setup reader/writers
+	// Set up reader/writers
 	testInputResponse = answers
 	defaultInputReader = bytes.NewBufferString("")
 	defaultInputWriter = new(bytes.Buffer)
@@ -688,7 +653,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 	// Disable test mode so input is called
 	test = false
 
-	// Setup reader/writers
+	// Set up reader/writers
 	defaultInputReader = bytes.NewBufferString("")
 	defaultInputWriter = new(bytes.Buffer)
 
@@ -719,7 +684,7 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // be returned about the backend configuration having changed and that
 // "terraform init" must be run, since the test backend config cache created
 // by this function contains the hash for an empty configuration.
-func testBackendState(t *testing.T, s *states.State, c int) (*terraform.State, *httptest.Server) {
+func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -759,8 +724,8 @@ func testBackendState(t *testing.T, s *states.State, c int) (*terraform.State, *
 	configSchema := b.ConfigSchema()
 	hash := backendConfig.Hash(configSchema)
 
-	state := terraform.NewState()
-	state.Backend = &terraform.BackendState{
+	state := legacy.NewState()
+	state.Backend = &legacy.BackendState{
 		Type:      "http",
 		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
 		Hash:      uint64(hash),
@@ -772,10 +737,10 @@ func testBackendState(t *testing.T, s *states.State, c int) (*terraform.State, *
 // testRemoteState is used to make a test HTTP server to return a given
 // state file that can be used for testing legacy remote state.
 //
-// The return values are a *terraform.State instance that should be written
+// The return values are a *legacy.State instance that should be written
 // as the "data state" (really: backend state) and the server that the
 // returned data state refers to.
-func testRemoteState(t *testing.T, s *states.State, c int) (*terraform.State, *httptest.Server) {
+func testRemoteState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
 	t.Helper()
 
 	var b64md5 string
@@ -795,10 +760,10 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*terraform.State, *h
 		resp.Write(buf.Bytes())
 	}
 
-	retState := terraform.NewState()
+	retState := legacy.NewState()
 
 	srv := httptest.NewServer(http.HandlerFunc(cb))
-	b := &terraform.BackendState{
+	b := &legacy.BackendState{
 		Type: "http",
 	}
 	b.SetConfig(cty.ObjectVal(map[string]cty.Value{
@@ -944,8 +909,6 @@ func testCopyDir(t *testing.T, src, dst string) {
 			}
 		}
 	}
-
-	return
 }
 
 // normalizeJSON removes all insignificant whitespace from the given JSON buffer
@@ -1066,4 +1029,9 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`provider not found`))
 	}
+}
+
+func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
+	streams, done := terminal.StreamsForTesting(t)
+	return views.NewView(streams), done
 }

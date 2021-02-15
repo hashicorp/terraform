@@ -65,7 +65,7 @@ func ProtoToDiagnostics(ds []*proto.Diagnostic) tfdiags.Diagnostics {
 		var newDiag tfdiags.Diagnostic
 
 		// if there's an attribute path, we need to create a AttributeValue diagnostic
-		if d.Attribute != nil {
+		if d.Attribute != nil && len(d.Attribute.Steps) > 0 {
 			path := AttributePathToPath(d.Attribute)
 			newDiag = tfdiags.AttributeValue(severity, d.Summary, d.Detail, path)
 		} else {

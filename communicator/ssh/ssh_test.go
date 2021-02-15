@@ -16,7 +16,7 @@ import (
 
 // verify that we can locate public key data
 func TestFindKeyData(t *testing.T) {
-	// setup a test directory
+	// set up a test directory
 	td, err := ioutil.TempDir("", "ssh")
 	if err != nil {
 		t.Fatal(err)
@@ -81,10 +81,10 @@ func generateSSHKey(t *testing.T, idFile string) ssh.PublicKey {
 	}
 
 	privFile, err := os.OpenFile(idFile, os.O_RDWR|os.O_CREATE, 0600)
-	defer privFile.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer privFile.Close()
 	privPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}
 	if err := pem.Encode(privFile, privPEM); err != nil {
 		t.Fatal(err)

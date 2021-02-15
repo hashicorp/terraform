@@ -167,11 +167,9 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	for _, constraint := range file.CoreVersionConstraints {
-		// If there are any conflicting requirements then we'll catch them
-		// when we actually check these constraints.
-		m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
-	}
+	// If there are any conflicting requirements then we'll catch them
+	// when we actually check these constraints.
+	m.CoreVersionConstraints = append(m.CoreVersionConstraints, file.CoreVersionConstraints...)
 
 	m.ActiveExperiments = experiments.SetUnion(m.ActiveExperiments, file.ActiveExperiments)
 
@@ -341,9 +339,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		// would union together across multiple files anyway, but we'll
 		// allow it and have each override file clobber any existing list.
 		m.CoreVersionConstraints = nil
-		for _, constraint := range file.CoreVersionConstraints {
-			m.CoreVersionConstraints = append(m.CoreVersionConstraints, constraint)
-		}
+		m.CoreVersionConstraints = append(m.CoreVersionConstraints, file.CoreVersionConstraints...)
 	}
 
 	if len(file.Backends) != 0 {

@@ -56,15 +56,13 @@ func (s Set) Intersection(other Set) Set {
 // other doesn't.
 func (s Set) Difference(other Set) Set {
 	result := make(Set)
-	if s != nil {
-		for k, v := range s {
-			var ok bool
-			if other != nil {
-				_, ok = other[k]
-			}
-			if !ok {
-				result.Add(v)
-			}
+	for k, v := range s {
+		var ok bool
+		if other != nil {
+			_, ok = other[k]
+		}
+		if !ok {
+			result.Add(v)
 		}
 	}
 

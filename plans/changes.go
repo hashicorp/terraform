@@ -39,7 +39,7 @@ func (c *Changes) Empty() bool {
 	}
 
 	for _, out := range c.Outputs {
-		if out.Action != NoOp {
+		if out.Addr.Module.IsRoot() && out.Action != NoOp {
 			return false
 		}
 	}

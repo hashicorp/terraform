@@ -110,7 +110,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 
 	expected := testStateRead(t, "replace.tfstate")
 
-	// Setup the replacement to come from stdin
+	// Set up the replacement to come from stdin
 	var buf bytes.Buffer
 	if err := writeStateForTesting(expected, &buf); err != nil {
 		t.Fatalf("err: %s", err)

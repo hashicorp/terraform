@@ -35,6 +35,7 @@ func (c *ImportCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.extendedFlagSet("import")
+	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
@@ -198,6 +199,14 @@ func (c *ImportCommand) Run(args []string) int {
 		}
 	}
 
+	// Check remote Terraform version is compatible
+	remoteVersionDiags := c.remoteBackendVersionCheck(b, opReq.Workspace)
+	diags = diags.Append(remoteVersionDiags)
+	c.showDiagnostics(diags)
+	if diags.HasErrors() {
+		return 1
+	}
+
 	// Get the context
 	ctx, state, ctxDiags := local.Context(opReq)
 	diags = diags.Append(ctxDiags)
@@ -321,6 +330,9 @@ Options:
                           a file. If "terraform.tfvars" or any ".auto.tfvars"
                           files are present, they will be automatically loaded.
 
+  -ignore-remote-version  Continue even if remote and local Terraform versions
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)
@@ -331,7 +343,7 @@ func (c *ImportCommand) Synopsis() string {
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://www.terraform.io/docs/internals/resource-addressing.html`
+https://www.terraform.io/docs/cli/state/resource-addressing.html`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 

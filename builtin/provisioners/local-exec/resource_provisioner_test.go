@@ -7,31 +7,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/provisioners"
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
-
-func TestResourceProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = Provisioner()
-}
-
-func TestProvisioner(t *testing.T) {
-	if err := Provisioner().(*schema.Provisioner).InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-}
 
 func TestResourceProvider_Apply(t *testing.T) {
 	defer os.Remove("test_out")
-	c := testConfig(t, map[string]interface{}{
-		"command": "echo foo > test_out",
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
+	c, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"command": cty.StringVal("echo foo > test_out"),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := p.ProvisionResource(provisioners.ProvisionResourceRequest{
+		Config:   c,
+		UIOutput: output,
 	})
 
-	output := new(terraform.MockUIOutput)
-	p := Provisioner()
-
-	if err := p.Apply(output, nil, c); err != nil {
-		t.Fatalf("err: %v", err)
+	if resp.Diagnostics.HasErrors() {
+		t.Fatalf("err: %v", resp.Diagnostics.Err())
 	}
 
 	// Check the file
@@ -48,14 +47,18 @@ func TestResourceProvider_Apply(t *testing.T) {
 }
 
 func TestResourceProvider_stop(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	c, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		// bash/zsh/ksh will exec a single command in the same process. This
 		// makes certain there's a subprocess in the shell.
-		"command": "sleep 30; sleep 30",
-	})
-
-	output := new(terraform.MockUIOutput)
-	p := Provisioner()
+		"command": cty.StringVal("sleep 30; sleep 30"),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	doneCh := make(chan struct{})
 	startTime := time.Now()
@@ -65,7 +68,10 @@ func TestResourceProvider_stop(t *testing.T) {
 		// Because p.Apply is called in a goroutine, trying to t.Fatal() on its
 		// result would be ignored or would cause a panic if the parent goroutine
 		// has already completed.
-		_ = p.Apply(output, nil, c)
+		_ = p.ProvisionResource(provisioners.ProvisionResourceRequest{
+			Config:   c,
+			UIOutput: output,
+		})
 	}()
 
 	mustExceed := (50 * time.Millisecond)
@@ -90,51 +96,32 @@ func TestResourceProvider_stop(t *testing.T) {
 	}
 }
 
-func TestResourceProvider_Validate_good(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"command": "echo foo",
-	})
-
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) > 0 {
-		t.Fatalf("Errors: %v", errs)
-	}
-}
-
-func TestResourceProvider_Validate_missing(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{})
-
-	warn, errs := Provisioner().Validate(c)
-	if len(warn) > 0 {
-		t.Fatalf("Warnings: %v", warn)
-	}
-	if len(errs) == 0 {
-		t.Fatalf("Should have errors")
-	}
-}
-
-func testConfig(t *testing.T, c map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(c)
-}
-
 func TestResourceProvider_ApplyCustomInterpreter(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"interpreter": []interface{}{"echo", "is"},
-		"command":     "not really an interpreter",
-	})
+	output := cli.NewMockUi()
+	p := New()
 
-	output := new(terraform.MockUIOutput)
-	p := Provisioner()
+	schema := p.GetSchema().Provisioner
 
-	if err := p.Apply(output, nil, c); err != nil {
-		t.Fatalf("err: %v", err)
+	c, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"interpreter": cty.ListVal([]cty.Value{cty.StringVal("echo"), cty.StringVal("is")}),
+		"command":     cty.StringVal("not really an interpreter"),
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	got := strings.TrimSpace(output.OutputMessage)
-	want := "is not really an interpreter"
+	resp := p.ProvisionResource(provisioners.ProvisionResourceRequest{
+		Config:   c,
+		UIOutput: output,
+	})
+
+	if resp.Diagnostics.HasErrors() {
+		t.Fatal(resp.Diagnostics.Err())
+	}
+
+	got := strings.TrimSpace(output.OutputWriter.String())
+	want := `Executing: ["echo" "is" "not really an interpreter"]
+is not really an interpreter`
 	if got != want {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
@@ -145,16 +132,25 @@ func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
 	os.Mkdir(testdir, 0755)
 	defer os.Remove(testdir)
 
-	c := testConfig(t, map[string]interface{}{
-		"working_dir": testdir,
-		"command":     "echo `pwd`",
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	c, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"working_dir": cty.StringVal(testdir),
+		"command":     cty.StringVal("echo `pwd`"),
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := p.ProvisionResource(provisioners.ProvisionResourceRequest{
+		Config:   c,
+		UIOutput: output,
 	})
 
-	output := new(terraform.MockUIOutput)
-	p := Provisioner()
-
-	if err := p.Apply(output, nil, c); err != nil {
-		t.Fatalf("err: %v", err)
+	if resp.Diagnostics.HasErrors() {
+		t.Fatal(resp.Diagnostics.Err())
 	}
 
 	dir, err := os.Getwd()
@@ -162,33 +158,49 @@ func TestResourceProvider_ApplyCustomWorkingDirectory(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	got := strings.TrimSpace(output.OutputMessage)
-	want := dir + "/" + testdir
+	got := strings.TrimSpace(output.OutputWriter.String())
+	want := "Executing: [\"/bin/sh\" \"-c\" \"echo `pwd`\"]\n" + dir + "/" + testdir
 	if got != want {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
 func TestResourceProvider_ApplyCustomEnv(t *testing.T) {
-	c := testConfig(t, map[string]interface{}{
-		"command": "echo $FOO $BAR $BAZ",
-		"environment": map[string]interface{}{
-			"FOO": "BAR",
-			"BAR": 1,
-			"BAZ": "true",
-		},
-	})
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
 
-	output := new(terraform.MockUIOutput)
-	p := Provisioner()
-
-	if err := p.Apply(output, nil, c); err != nil {
-		t.Fatalf("err: %v", err)
+	c, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"command": cty.StringVal("echo $FOO $BAR $BAZ"),
+		"environment": cty.MapVal(map[string]cty.Value{
+			"FOO": cty.StringVal("BAR"),
+			"BAR": cty.StringVal("1"),
+			"BAZ": cty.StringVal("true"),
+		}),
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	got := strings.TrimSpace(output.OutputMessage)
-	want := "BAR 1 true"
+	resp := p.ProvisionResource(provisioners.ProvisionResourceRequest{
+		Config:   c,
+		UIOutput: output,
+	})
+	if resp.Diagnostics.HasErrors() {
+		t.Fatal(resp.Diagnostics.Err())
+	}
+
+	got := strings.TrimSpace(output.OutputWriter.String())
+	want := `Executing: ["/bin/sh" "-c" "echo $FOO $BAR $BAZ"]
+BAR 1 true`
 	if got != want {
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
+}
+
+// Validate that Stop can Close can be called even when not provisioning.
+func TestResourceProvisioner_StopClose(t *testing.T) {
+	p := New()
+	p.Stop()
+	p.Close()
 }

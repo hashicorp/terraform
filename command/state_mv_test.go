@@ -7,11 +7,18 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
 )
+
+var disabledColorize = &colorstring.Colorize{
+	Colors:  colorstring.DefaultColors,
+	Disable: true,
+}
 
 func TestStateMv(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {
@@ -148,6 +155,7 @@ func TestStateMv(t *testing.T) {
 }
 
 func TestStateMv_resourceToInstance(t *testing.T) {
+	// A single resource (no count defined)
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -234,6 +242,141 @@ test_instance.baz:
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOutputOriginal)
+}
+
+func TestStateMv_resourceToInstanceErr(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceProvider(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "bar",
+			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"test_instance.bar[0]",
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+	}
+
+	expectedErr := `
+Error: Invalid target address
+
+Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
+resource (not a resource instance) so the target must also be a whole
+resource.
+
+`
+	errOutput := ui.ErrorWriter.String()
+	if errOutput != expectedErr {
+		t.Errorf("wrong output\n%s", cmp.Diff(errOutput, expectedErr))
+	}
+}
+
+func TestStateMv_resourceToInstanceErrInAutomation(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceProvider(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "bar",
+			}.Absolute(addrs.RootModuleInstance),
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides:    metaOverridesForProvider(p),
+				Ui:                  ui,
+				RunningInAutomation: true,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"test_instance.bar[0]",
+	}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+	}
+
+	expectedErr := `
+Error: Invalid target address
+
+Cannot move test_instance.foo to test_instance.bar[0]: the source is a whole
+resource (not a resource instance) so the target must also be a whole
+resource.
+
+`
+	errOutput := ui.ErrorWriter.String()
+	if errOutput != expectedErr {
+		t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", errOutput, expectedErr)
+		t.Errorf("%s", cmp.Diff(errOutput, expectedErr))
+	}
 }
 
 func TestStateMv_instanceToResource(t *testing.T) {
@@ -435,8 +578,16 @@ func TestStateMv_differentResourceTypes(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "resource types don't match") {
-		t.Fatalf("expected initialization error, got:\n%s", ui.ErrorWriter.String())
+	gotErr := ui.ErrorWriter.String()
+	wantErr := `
+Error: Invalid state move request
+
+Cannot move test_instance.foo to test_network.bar: resource types don't
+match.
+
+`
+	if gotErr != wantErr {
+		t.Fatalf("expected initialization error\ngot:\n%s\n\nwant:%s", gotErr, wantErr)
 	}
 }
 
@@ -1241,6 +1392,13 @@ func TestStateMv_onlyResourceInModule(t *testing.T) {
 		t.Fatalf("bad: %#v", backups)
 	}
 	testStateOutput(t, backups[0], testStateMvOnlyResourceInModule_original)
+}
+
+func TestStateMvHelp(t *testing.T) {
+	c := &StateMvCommand{}
+	if strings.ContainsRune(c.Help(), '\t') {
+		t.Fatal("help text contains tab character, which will result in poor formatting")
+	}
 }
 
 const testStateMvOutputOriginal = `
