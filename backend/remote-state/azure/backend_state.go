@@ -95,51 +95,30 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 	stateMgr := &remote.State{Client: client}
 
-	//if this isn't the default state name, we need to create the object so
-	//it's listed by States.
-	if name != backend.DefaultStateName {
-		// take a lock on this state while we write it
-		lockInfo := statemgr.NewLockInfo()
-		lockInfo.Operation = "init"
-		lockId, err := client.Lock(lockInfo)
-		if err != nil {
-			return nil, fmt.Errorf("failed to lock azure state: %s", err)
-		}
-
-		// Local helper function so we can call it multiple places
-		lockUnlock := func(parent error) error {
-			if err := stateMgr.Unlock(lockId); err != nil {
-				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
-			}
-			return parent
-		}
-
-		// Grab the value
-		if err := stateMgr.RefreshState(); err != nil {
-			err = lockUnlock(err)
-			return nil, err
-		}
-
-		// If we have no state, we have to create an empty state
-		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
-				err = lockUnlock(err)
-				return nil, err
-			}
-			if err := stateMgr.PersistState(); err != nil {
-				err = lockUnlock(err)
-				return nil, err
-			}
-		}
-
-		// Unlock, the state should now be initialized
-		if err := lockUnlock(nil); err != nil {
-			return nil, err
-		}
+	if err := createNewStateIfNotExists(stateMgr); err != nil {
+		return nil, err
 
 	}
-
 	return stateMgr, nil
+}
+
+func createNewStateIfNotExists(stateMgr *remote.State) error {
+	// In Azure implementation lock info is stored as a lease on a state blob itself
+	// this means that we don't need to deal with locks when the state blob does not exist yet
+	if err := stateMgr.RefreshState(); err != nil {
+		return err
+	}
+
+	// If we have no state, we have to create an empty state
+	if v := stateMgr.State(); v == nil {
+		if err := stateMgr.WriteState(states.NewState()); err != nil {
+			return err
+		}
+		if err := stateMgr.PersistState(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (b *Backend) client() *RemoteClient {

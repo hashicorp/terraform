@@ -147,24 +147,15 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 	ctx := context.TODO()
 
-	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
+	// obtain properties to see if the blob lease is already in use.
 	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
-		// error if we had issues getting the blob
+		// if this is a lock related error
 		if properties.Response.StatusCode != 404 {
 			return "", getLockInfoErr(err)
 		}
-		// if we don't find the blob, we need to build it
-
-		contentType := "application/json"
-		putGOptions := blobs.PutBlockBlobInput{
-			ContentType: &contentType,
-		}
-
-		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
-		if err != nil {
-			return "", getLockInfoErr(err)
-		}
+		// if blob is not found. this should never happen since we create a new blob in Backend.StateMgr()
+		return "", err
 	}
 
 	// if the blob is already locked then error
