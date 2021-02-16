@@ -255,9 +255,11 @@ func TestShow_json_output(t *testing.T) {
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 

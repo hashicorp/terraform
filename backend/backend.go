@@ -183,6 +183,10 @@ type Operation struct {
 	// configuration from ConfigDir.
 	ConfigLoader *configload.Loader
 
+	// Hooks can be used to perform actions triggered by various events during
+	// the operation's lifecycle.
+	Hooks []terraform.Hook
+
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
 	PlanFile *planfile.Reader

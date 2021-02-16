@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -75,6 +76,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeRefresh
 

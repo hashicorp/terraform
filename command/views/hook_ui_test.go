@@ -1,4 +1,4 @@
-package command
+package views
 
 import (
 	"fmt"
@@ -6,28 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
-	ui := cli.NewMockUi()
-	h := &UiHook{
-		Colorize: &colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: true,
-			Reset:   true,
-		},
-		Ui:              ui,
-		PeriodicUiTimer: 1 * time.Second,
-	}
-	h.init()
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+	h.periodicUiTimer = 1 * time.Second
 	h.resources = map[string]uiResourceState{
 		"data.aws_availability_zones.available": uiResourceState{
 			Op:    uiResourceDestroy,
@@ -75,29 +67,23 @@ data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:
 data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC, 2s elapsed]
 data.aws_availability_zones.available: Still destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC, 3s elapsed]
 `
-	output := ui.OutputWriter.String()
+	result := done(t)
+	output := result.Stdout()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
 	}
 
 	expectedErrOutput := ""
-	errOutput := ui.ErrorWriter.String()
+	errOutput := result.Stderr()
 	if errOutput != expectedErrOutput {
 		t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
 	}
 }
 
 func TestUiHookPreApply_destroy(t *testing.T) {
-	ui := cli.NewMockUi()
-	h := &UiHook{
-		Colorize: &colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: true,
-			Reset:   true,
-		},
-		Ui: ui,
-	}
-	h.init()
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
 	h.resources = map[string]uiResourceState{
 		"data.aws_availability_zones.available": uiResourceState{
 			Op:    uiResourceDestroy,
@@ -138,30 +124,24 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	close(uiState.DoneCh)
 	<-uiState.done
 
+	result := done(t)
 	expectedOutput := "data.aws_availability_zones.available: Destroying... [id=2017-03-05 10:56:59.298784526 +0000 UTC]\n"
-	output := ui.OutputWriter.String()
+	output := result.Stdout()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)
 	}
 
 	expectedErrOutput := ""
-	errOutput := ui.ErrorWriter.String()
+	errOutput := result.Stderr()
 	if errOutput != expectedErrOutput {
 		t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
 	}
 }
 
 func TestUiHookPostApply_emptyState(t *testing.T) {
-	ui := cli.NewMockUi()
-	h := &UiHook{
-		Colorize: &colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: true,
-			Reset:   true,
-		},
-		Ui: ui,
-	}
-	h.init()
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
 	h.resources = map[string]uiResourceState{
 		"data.google_compute_zones.available": uiResourceState{
 			Op:    uiResourceDestroy,
@@ -187,15 +167,16 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	if action != terraform.HookActionContinue {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
+	result := done(t)
 
 	expectedRegexp := "^data.google_compute_zones.available: Destruction complete after -?[a-z0-9µ.]+\n$"
-	output := ui.OutputWriter.String()
+	output := result.Stdout()
 	if matched, _ := regexp.MatchString(expectedRegexp, output); !matched {
 		t.Fatalf("Output didn't match regexp.\nExpected: %q\nGiven: %q", expectedRegexp, output)
 	}
 
 	expectedErrOutput := ""
-	errOutput := ui.ErrorWriter.String()
+	errOutput := result.Stderr()
 	if errOutput != expectedErrOutput {
 		t.Fatalf("Error output didn't match.\nExpected: %q\nGiven: %q", expectedErrOutput, errOutput)
 	}

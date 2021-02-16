@@ -40,12 +40,7 @@ func (b *Local) opApply(
 	}
 
 	stateHook := new(StateHook)
-	if b.ContextOpts == nil {
-		b.ContextOpts = new(terraform.ContextOpts)
-	}
-	old := b.ContextOpts.Hooks
-	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, stateHook)
+	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
 	tfCtx, _, opState, contextDiags := b.context(op)

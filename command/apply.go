@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -110,7 +111,6 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// Set up our count hook that keeps track of resource changes
 	countHook := new(CountHook)
-	c.ExtraHooks = append(c.ExtraHooks, countHook)
 
 	// Load the backend
 	var be backend.Enhanced
@@ -171,6 +171,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = configPath
 	opReq.Destroy = c.Destroy
+	opReq.Hooks = []terraform.Hook{countHook, c.uiHook()}
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
 	opReq.ShowDiagnostics = c.showDiagnostics

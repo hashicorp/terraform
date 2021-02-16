@@ -791,7 +791,7 @@ func TestRefresh_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -808,7 +808,7 @@ func TestRefresh_targeted(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if want := "test_instance.foo: Refreshing"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, got)
 	}
