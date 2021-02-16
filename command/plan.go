@@ -84,6 +84,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.Destroy = destroy
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypePlan
 
 	opReq.ConfigLoader, err = c.initConfigLoader()

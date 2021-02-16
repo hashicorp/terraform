@@ -43,9 +43,6 @@ type Local struct {
 	// input/output handles that CLI is connected to.
 	Streams *terminal.Streams
 
-	// ShowDiagnostics prints diagnostic messages to the UI.
-	ShowDiagnostics func(vals ...interface{})
-
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
 	// needed, use the StatePaths method.
@@ -396,39 +393,6 @@ func (b *Local) opWait(
 	case <-doneCh:
 	}
 	return
-}
-
-// ReportResult is a helper for the common chore of setting the status of
-// a running operation and showing any diagnostics produced during that
-// operation.
-//
-// If the given diagnostics contains errors then the operation's result
-// will be set to backend.OperationFailure. It will be set to
-// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
-// to show the given diagnostics before returning.
-//
-// Callers should feel free to do each of these operations separately in
-// more complex cases where e.g. diagnostics are interleaved with other
-// output, but terminating immediately after reporting error diagnostics is
-// common and can be expressed concisely via this method.
-func (b *Local) ReportResult(op *backend.RunningOperation, diags tfdiags.Diagnostics) {
-	if diags.HasErrors() {
-		op.Result = backend.OperationFailure
-	} else {
-		op.Result = backend.OperationSuccess
-	}
-	if b.ShowDiagnostics != nil {
-		b.ShowDiagnostics(diags)
-	} else {
-		// Shouldn't generally happen, but if it does then we'll at least
-		// make some noise in the logs to help us spot it.
-		if len(diags) != 0 {
-			log.Printf(
-				"[ERROR] Local backend needs to report diagnostics but ShowDiagnostics is not set:\n%s",
-				diags.ErrWithWarnings(),
-			)
-		}
-	}
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing

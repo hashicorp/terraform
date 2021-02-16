@@ -36,7 +36,7 @@ func (b *Local) opRefresh(
 					"Cannot read state file",
 					fmt.Sprintf("Failed to read %s: %s", b.StatePath, err),
 				))
-				b.ReportResult(runningOp, diags)
+				op.ReportResult(runningOp, diags)
 				return
 			}
 		}
@@ -49,7 +49,7 @@ func (b *Local) opRefresh(
 	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (b *Local) opRefresh(
 	defer func() {
 		err := op.StateLocker.Unlock(nil)
 		if err != nil {
-			b.ShowDiagnostics(err)
+			op.ShowDiagnostics(err)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -94,14 +94,14 @@ func (b *Local) opRefresh(
 	runningOp.State = newState
 	diags = diags.Append(refreshDiags)
 	if refreshDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	err := statemgr.WriteAndPersist(opState, newState)
 	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Failed to write state: {{err}}", err))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 }
