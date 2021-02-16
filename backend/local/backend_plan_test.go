@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
@@ -740,6 +741,7 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
 		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewNoopLocker(),
 	}, configCleanup
 }
 

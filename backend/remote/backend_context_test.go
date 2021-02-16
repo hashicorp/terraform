@@ -6,8 +6,12 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -183,11 +187,14 @@ func TestRemoteContextWithVars(t *testing.T) {
 				t.Fatal(err)
 			}
 
+			streams, _ := terminal.StreamsForTesting(t)
+			view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
+
 			op := &backend.Operation{
 				ConfigDir:    configDir,
 				ConfigLoader: configLoader,
+				StateLocker:  clistate.NewLocker(0, view),
 				Workspace:    backend.DefaultStateName,
-				LockState:    true,
 			}
 
 			v := test.Opts

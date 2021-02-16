@@ -22,10 +22,12 @@ import (
 
 func TestShow(t *testing.T) {
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -46,10 +48,12 @@ func TestShow_noArgs(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -93,10 +97,12 @@ func TestShow_aliasedProvider(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -121,10 +127,12 @@ func TestShow_noArgsNoState(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -139,10 +147,12 @@ func TestShow_plan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -164,10 +174,12 @@ func TestShow_planWithChanges(t *testing.T) {
 	planPathWithChanges := showFixturePlanFile(t, plans.DeleteThenCreate)
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -190,10 +202,12 @@ func TestShow_plan_json(t *testing.T) {
 	planPath := showFixturePlanFile(t, plans.Create)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -212,10 +226,12 @@ func TestShow_state(t *testing.T) {
 	defer os.RemoveAll(filepath.Dir(statePath))
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -354,9 +370,11 @@ func TestShow_json_output_state(t *testing.T) {
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 

@@ -34,7 +34,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 
 	args := []string{"test"}
 	ui := new(cli.MockUi)
-	newCmd.Meta = Meta{Ui: ui}
+	view, _ := testView(t)
+	newCmd.Meta = Meta{Ui: ui, View: view}
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -47,7 +48,7 @@ func TestWorkspace_createAndChange(t *testing.T) {
 	selCmd := &WorkspaceSelectCommand{}
 	args = []string{backend.DefaultStateName}
 	ui = new(cli.MockUi)
-	selCmd.Meta = Meta{Ui: ui}
+	selCmd.Meta = Meta{Ui: ui, View: view}
 	if code := selCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
@@ -83,8 +84,9 @@ func TestWorkspace_createAndList(t *testing.T) {
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		newCmd := &WorkspaceNewCommand{
-			Meta: Meta{Ui: ui},
+			Meta: Meta{Ui: ui, View: view},
 		}
 		if code := newCmd.Run([]string{env}); code != 0 {
 			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -93,7 +95,8 @@ func TestWorkspace_createAndList(t *testing.T) {
 
 	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
-	listCmd.Meta = Meta{Ui: ui}
+	view, _ := testView(t)
+	listCmd.Meta = Meta{Ui: ui, View: view}
 
 	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -128,7 +131,8 @@ func TestWorkspace_createAndShow(t *testing.T) {
 	// make sure current workspace show outputs "default"
 	showCmd := &WorkspaceShowCommand{}
 	ui := new(cli.MockUi)
-	showCmd.Meta = Meta{Ui: ui}
+	view, _ := testView(t)
+	showCmd.Meta = Meta{Ui: ui, View: view}
 
 	if code := showCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -147,21 +151,21 @@ func TestWorkspace_createAndShow(t *testing.T) {
 
 	// create test_a workspace
 	ui = new(cli.MockUi)
-	newCmd.Meta = Meta{Ui: ui}
+	newCmd.Meta = Meta{Ui: ui, View: view}
 	if code := newCmd.Run(env); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
 	selCmd := &WorkspaceSelectCommand{}
 	ui = new(cli.MockUi)
-	selCmd.Meta = Meta{Ui: ui}
+	selCmd.Meta = Meta{Ui: ui, View: view}
 	if code := selCmd.Run(env); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 	}
 
 	showCmd = &WorkspaceShowCommand{}
 	ui = new(cli.MockUi)
-	showCmd.Meta = Meta{Ui: ui}
+	showCmd.Meta = Meta{Ui: ui, View: view}
 
 	if code := showCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -188,8 +192,9 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	// create multiple workspaces
 	for _, env := range envs {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		newCmd := &WorkspaceNewCommand{
-			Meta: Meta{Ui: ui},
+			Meta: Meta{Ui: ui, View: view},
 		}
 		if code := newCmd.Run([]string{env}); code == 0 {
 			t.Fatalf("expected failure: \n%s", ui.OutputWriter)
@@ -199,7 +204,8 @@ func TestWorkspace_createInvalid(t *testing.T) {
 	// list workspaces to make sure none were created
 	listCmd := &WorkspaceListCommand{}
 	ui := new(cli.MockUi)
-	listCmd.Meta = Meta{Ui: ui}
+	view, _ := testView(t)
+	listCmd.Meta = Meta{Ui: ui, View: view}
 
 	if code := listCmd.Run(nil); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -222,8 +228,9 @@ func TestWorkspace_createWithState(t *testing.T) {
 
 	// init the backend
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	initCmd := &InitCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -257,7 +264,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 	args := []string{"-state", "test.tfstate", workspace}
 	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 	if code := newCmd.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -303,8 +310,9 @@ func TestWorkspace_delete(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 
 	current, _ := delCmd.Workspace()
@@ -352,8 +360,9 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 
 	// delete the workspace
@@ -406,8 +415,9 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 	args := []string{"test"}
 	if code := delCmd.Run(args); code == 0 {

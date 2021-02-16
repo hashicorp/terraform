@@ -18,7 +18,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
 	remoteBackend "github.com/hashicorp/terraform/backend/remote"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -341,15 +343,20 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 		panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
 	}
 
+	stateLocker := clistate.NewNoopLocker()
+	if m.stateLock {
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
+	}
+
 	return &backend.Operation{
-		PlanOutBackend:   planOutBackend,
-		Parallelism:      m.parallelism,
-		Targets:          m.targets,
-		UIIn:             m.UIInput(),
-		UIOut:            m.Ui,
-		Workspace:        workspace,
-		LockState:        m.stateLock,
-		StateLockTimeout: m.stateLockTimeout,
+		PlanOutBackend: planOutBackend,
+		Parallelism:    m.parallelism,
+		Targets:        m.targets,
+		UIIn:           m.UIInput(),
+		UIOut:          m.Ui,
+		Workspace:      workspace,
+		StateLocker:    stateLocker,
 	}
 }
 
@@ -802,12 +809,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
-		defer stateLocker.Unlock(nil)
+		defer stateLocker.Unlock()
 	}
 
 	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
@@ -886,12 +894,13 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if m.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
-		defer stateLocker.Unlock(nil)
+		defer stateLocker.Unlock()
 	}
 
 	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())

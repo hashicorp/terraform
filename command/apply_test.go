@@ -940,6 +940,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 
 	p := applyFixtureProvider()
 	planPath := applyFixturePlanFile(t)
+	view, _ := testView(t)
 
 	view, _ := testView(t)
 	apply := &ApplyCommand{
