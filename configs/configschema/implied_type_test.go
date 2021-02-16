@@ -207,10 +207,10 @@ func TestObjectImpliedType(t *testing.T) {
 			&Object{
 				Nesting: NestingList,
 				Attributes: map[string]*Attribute{
-					"foo": {Type: cty.String},
+					"foo": {Type: cty.String, Optional: true},
 				},
 			},
-			cty.List(cty.Object(map[string]cty.Type{"foo": cty.String})),
+			cty.List(cty.ObjectWithOptionalAttrs(map[string]cty.Type{"foo": cty.String}, []string{"foo"})),
 		},
 		"NestingMap": {
 			&Object{
