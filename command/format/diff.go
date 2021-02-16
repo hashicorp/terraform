@@ -328,9 +328,10 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		return true
 	}
 
-	// TODO: There will need to be an object-specific diff printer, but for now
-	// we will let writeAttrDiff handle attributes with NestedTypes like regular
-	// (object) attributes.
+	// TODO: There will need to be an object-specific diff printer that handles
+	// things like individual attribute sensitivity and pathing into
+	// requiredReplace, but for now we will let writeAttrDiff handle attributes
+	// with NestedTypes like regular (object) attributes.
 	//
 	// To avoid printing any sensitive nested fields inside attributes (until
 	// the above is implemented) we will treat the entire attribute as
@@ -374,7 +375,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 }
 
 func (p *blockBodyDiffPrinter) writeNestedAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
-	return false
+	panic("not implemented")
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {

@@ -2226,6 +2226,12 @@ func TestResourceChange_nestedList(t *testing.T) {
 						"volume_type": cty.StringVal("gp2"),
 					}),
 				}),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
@@ -2235,33 +2241,21 @@ func TestResourceChange_nestedList(t *testing.T) {
 						"volume_type": cty.StringVal("gp2"),
 					}),
 				}),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:          testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+        id    = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
 
         # (1 unchanged block hidden)
     }
@@ -2276,10 +2270,18 @@ func TestResourceChange_nestedList(t *testing.T) {
 				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 					"volume_type": cty.String,
 				})),
+				"disks": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"mount_point": cty.NullVal(cty.String),
+					"size":        cty.NullVal(cty.String),
+				})}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.NullVal(cty.String),
@@ -2288,30 +2290,17 @@ func TestResourceChange_nestedList(t *testing.T) {
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:          testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [] -> [
+          + {
+              + mount_point = null
+              + size        = null
+            },
+        ]
+        id    = "i-02ae66f368e8518a9"
 
       + root_block_device {}
     }
@@ -2326,10 +2315,20 @@ func TestResourceChange_nestedList(t *testing.T) {
 				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 					"volume_type": cty.String,
 				})),
+				"disks": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
@@ -2338,30 +2337,17 @@ func TestResourceChange_nestedList(t *testing.T) {
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:          testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [] -> [
+          + {
+              + mount_point = "/var/diska"
+              + size        = null
+            },
+        ]
+        id    = "i-02ae66f368e8518a9"
 
       + root_block_device {
           + volume_type = "gp2"
@@ -2375,6 +2361,12 @@ func TestResourceChange_nestedList(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
@@ -2385,6 +2377,12 @@ func TestResourceChange_nestedList(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
@@ -2398,6 +2396,15 @@ func TestResourceChange_nestedList(t *testing.T) {
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
+					"disks": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"mount_point": {Type: cty.String, Optional: true},
+								"size":        {Type: cty.String, Optional: true},
+							},
+							Nesting: configschema.NestingList,
+						},
+					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"root_block_device": {
@@ -2421,8 +2428,14 @@ func TestResourceChange_nestedList(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          ~ {
+              ~ size        = null -> "50GB"
+                # (1 unchanged element hidden)
+            },
+        ]
+        id    = "i-02ae66f368e8518a9"
 
       ~ root_block_device {
           + new_field   = "new_value"
@@ -2431,12 +2444,18 @@ func TestResourceChange_nestedList(t *testing.T) {
     }
 `,
 		},
-		"force-new update (inside block)": {
+		"force-new update (inside blocks)": {
 			Action: plans.DeleteThenCreate,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
@@ -2446,42 +2465,47 @@ func TestResourceChange_nestedList(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("different"),
 					}),
 				}),
 			}),
-			RequiredReplace: cty.NewPathSet(cty.Path{
-				cty.GetAttrStep{Name: "root_block_device"},
-				cty.IndexStep{Key: cty.NumberIntVal(0)},
-				cty.GetAttrStep{Name: "volume_type"},
-			}),
+			RequiredReplace: cty.NewPathSet(
+				cty.Path{
+					cty.GetAttrStep{Name: "root_block_device"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+					cty.GetAttrStep{Name: "volume_type"},
+				},
+				// FIXME: This is not currently used; when the diff printer is
+				// updated to fully handle NestedTypes this test should fail,
+				// and the expected output should look like this:
+				//
+				// ~ mount_point = "/var/diska" -> "/var/diskb" # forces replacement
+				cty.Path{
+					cty.GetAttrStep{Name: "disks"},
+					cty.IndexStep{Key: cty.NumberIntVal(0)},
+					cty.GetAttrStep{Name: "mount_point"},
+				},
+			),
 			Tainted: false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:  testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          ~ {
+              ~ mount_point = "/var/diska" -> "/var/diskb"
+                # (1 unchanged element hidden)
+            },
+        ]
+        id    = "i-02ae66f368e8518a9"
 
       ~ root_block_device {
           ~ volume_type = "gp2" -> "different" # forces replacement
@@ -2495,6 +2519,12 @@ func TestResourceChange_nestedList(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
@@ -2504,40 +2534,34 @@ func TestResourceChange_nestedList(t *testing.T) {
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("different"),
 					}),
 				}),
 			}),
-			RequiredReplace: cty.NewPathSet(cty.Path{
-				cty.GetAttrStep{Name: "root_block_device"},
-			}),
+			RequiredReplace: cty.NewPathSet(
+				cty.Path{cty.GetAttrStep{Name: "root_block_device"}},
+				cty.Path{cty.GetAttrStep{Name: "disks"}},
+			),
 			Tainted: false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:  testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [ # forces replacement
+          ~ {
+              ~ mount_point = "/var/diska" -> "/var/diskb"
+                # (1 unchanged element hidden)
+            } # forces replacement,
+        ]
+        id    = "i-02ae66f368e8518a9"
 
       ~ root_block_device { # forces replacement
           ~ volume_type = "gp2" -> "different"
@@ -2551,55 +2575,44 @@ func TestResourceChange_nestedList(t *testing.T) {
 			Before: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"volume_type": cty.StringVal("gp2"),
-						"new_field":   cty.StringVal("new_value"),
 					}),
 				}),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":  cty.StringVal("i-02ae66f368e8518a9"),
 				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
 				"root_block_device": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 					"volume_type": cty.String,
-					"new_field":   cty.String,
 				})),
 			}),
 			RequiredReplace: cty.NewPathSet(),
 			Tainted:         false,
-			Schema: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"id":  {Type: cty.String, Optional: true, Computed: true},
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"root_block_device": {
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"volume_type": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-								"new_field": {
-									Type:     cty.String,
-									Optional: true,
-									Computed: true,
-								},
-							},
-						},
-						Nesting: configschema.NestingList,
-					},
-				},
-			},
+			Schema:          testSchemaNestingList,
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
-      ~ ami = "ami-BEFORE" -> "ami-AFTER"
-        id  = "i-02ae66f368e8518a9"
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          - {
+              - mount_point = "/var/diska"
+              - size        = "50GB"
+            },
+        ] -> []
+        id    = "i-02ae66f368e8518a9"
 
       - root_block_device {
-          - new_field   = "new_value" -> null
           - volume_type = "gp2" -> null
         }
     }
@@ -4327,4 +4340,35 @@ func outputChange(name string, before, after cty.Value, sensitive bool) *plans.O
 	}
 
 	return changeSrc
+}
+
+// A basic test schema using NestingList for one attribute and one block
+var testSchemaNestingList = &configschema.Block{
+	Attributes: map[string]*configschema.Attribute{
+		"id":  {Type: cty.String, Optional: true, Computed: true},
+		"ami": {Type: cty.String, Optional: true},
+		"disks": {
+			NestedType: &configschema.Object{
+				Attributes: map[string]*configschema.Attribute{
+					"mount_point": {Type: cty.String, Optional: true},
+					"size":        {Type: cty.String, Optional: true},
+				},
+				Nesting: configschema.NestingList,
+			},
+		},
+	},
+	BlockTypes: map[string]*configschema.NestedBlock{
+		"root_block_device": {
+			Block: configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"volume_type": {
+						Type:     cty.String,
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			Nesting: configschema.NestingList,
+		},
+	},
 }
