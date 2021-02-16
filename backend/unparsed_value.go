@@ -2,7 +2,6 @@ package backend
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/configs"
@@ -78,7 +77,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
 						"Value for undeclared variable",
-						fmt.Sprintf(strings.TrimSpace(undeclaredVariableWarning), name, val.SourceRange.Filename),
+						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. If you meant to use this value, add a \"variable\" block to the configuration.\n\nIf you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead to silence this warning, or use the -compact-warnings option to show warnings in a compact way.", name, val.SourceRange.Filename),
 					))
 				}
 				seenUndeclaredInFile++
@@ -155,14 +154,3 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 
 	return ret, diags
 }
-
-const undeclaredVariableWarning = `
-The root module does not declare a variable named %q but a value was found in
-file %q. If you meant to use this value, add a "variable" block
-to the configuration.
-
-If you wish to provide certain "global" settings to all configurations in
-your organization, use TF_VAR_... environment variables to set these instead
-to silence this warning, or use the -compact-warnings option to show warnings
-in a compact way.
-`
