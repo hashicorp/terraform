@@ -74,7 +74,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 				// users have forgotten a variable {} declaration or have a typo in their var name.
 				// Some users will actively ignore this warning because they use a .tfvars file
 				// across multiple configurations.
-				if seenUndeclaredInFile < 3 {
+				if seenUndeclaredInFile < 2 {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
 						"Value for undeclared variable",
@@ -109,7 +109,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 		ret[name] = val
 	}
 
-	if seenUndeclaredInFile >= 3 {
+	if seenUndeclaredInFile > 2 {
 		extras := seenUndeclaredInFile - 2
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
