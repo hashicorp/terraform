@@ -134,6 +134,7 @@ func TestObjectImpliedType(t *testing.T) {
 		},
 		"attributes": {
 			&Object{
+				Nesting: NestingSingle,
 				Attributes: map[string]*Attribute{
 					"optional": {
 						Type:     cty.String,
@@ -165,9 +166,11 @@ func TestObjectImpliedType(t *testing.T) {
 		},
 		"nested attributes": {
 			&Object{
+				Nesting: NestingSingle,
 				Attributes: map[string]*Attribute{
 					"nested_type": {
 						NestedType: &Object{
+							Nesting: NestingSingle,
 							Attributes: map[string]*Attribute{
 								"optional": {
 									Type:     cty.String,
@@ -281,6 +284,7 @@ func TestObjectContainsSensitive(t *testing.T) {
 				Attributes: map[string]*Attribute{
 					"nested": {
 						NestedType: &Object{
+							Nesting: NestingSingle,
 							Attributes: map[string]*Attribute{
 								"sensitive": {Sensitive: true},
 							},
@@ -295,6 +299,7 @@ func TestObjectContainsSensitive(t *testing.T) {
 				Attributes: map[string]*Attribute{
 					"nested": {
 						NestedType: &Object{
+							Nesting: NestingSingle,
 							Attributes: map[string]*Attribute{
 								"public": {},
 							},

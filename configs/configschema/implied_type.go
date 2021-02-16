@@ -62,19 +62,22 @@ func (o *Object) ImpliedType() cty.Type {
 		}
 	}
 	optAttrs := listOptionalAttrsFromObject(o)
-	if len(optAttrs) > 0 {
-		return cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
-	}
 
+	var ret cty.Type
+	if len(optAttrs) > 0 {
+		ret = cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
+	} else {
+		ret = cty.Object(attrTys)
+	}
 	switch o.Nesting {
 	case NestingSingle:
-		return cty.Object(attrTys)
+		return ret
 	case NestingList:
-		return cty.List(cty.Object(attrTys))
+		return cty.List(ret)
 	case NestingMap:
-		return cty.Map(cty.Object(attrTys))
+		return cty.Map(ret)
 	case NestingSet:
-		return cty.Set(cty.Object(attrTys))
+		return cty.Set(ret)
 	default: // Should never happen
 		panic("invalid Nesting")
 	}
