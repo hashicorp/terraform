@@ -72,7 +72,16 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	ctx := context.TODO()
 
-	if c.snapshot {
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
+	if err != nil {
+		if blob.StatusCode != 404 {
+			return err
+		}
+	}
+
+	// only attempt to snapshot blobs that exist
+	// since we also use this function to create a new state
+	if c.snapshot && blob.StatusCode != 404 {
 		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
@@ -81,13 +90,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 
 		log.Print("[DEBUG] Created blob snapshot")
-	}
-
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
-	if err != nil {
-		if blob.StatusCode != 404 {
-			return err
-		}
 	}
 
 	contentType := "application/json"
