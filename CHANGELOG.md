@@ -46,6 +46,7 @@ BUG FIXES:
 * command/untaint: show resource name in -allow-missing warning ([#27502](https://github.com/hashicorp/terraform/issues/27502))
 * core: validate will now ignore providers without configuration ([#24896](https://github.com/hashicorp/terraform/issues/24896))
 * core: refresh data sources during destroy ([#27408](https://github.com/hashicorp/terraform/issues/27408))
+* core: fix missing deposed object ID in apply logs [GH-27796]
 
 ## Previous Releases
 
