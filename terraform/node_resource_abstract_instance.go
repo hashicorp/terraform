@@ -221,7 +221,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		plannedNewState := change.After
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Addr, nil, change.Action, priorState, plannedNewState)
+			return h.PreApply(n.Addr, change.DeposedKey.Generation(), change.Action, priorState, plannedNewState)
 		}))
 		if diags.HasErrors() {
 			return diags
