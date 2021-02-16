@@ -166,10 +166,9 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 		return diags
 	}
 	// If we get out here then we should have a valid string to print.
-	// We're writing it directly to the output here so that a shell caller
-	// will get exactly the value and no extra whitespace.
-	str := strV.AsString()
-	fmt.Fprint(v.streams.Stdout.File, str)
+	// We're writing it using Print here so that a shell caller will get
+	// exactly the value and no extra whitespace (including trailing newline).
+	v.streams.Print(strV.AsString())
 	return nil
 }
 
