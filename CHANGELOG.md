@@ -8,6 +8,7 @@ BUG FIXES:
 
 * cli: Fix `show -json` not outputting the full module tree when some child modules have no resources [GH-27352]
 * cli: Fix excessively slow rendering of very large multi-line string outputs [GH-27746]
+* cli: Fix missing provider requirements in JSON plan when specified using `required_providers` instead of provider config [GH-27697]
 
 ## 0.14.6 (February 04, 2021)
 
