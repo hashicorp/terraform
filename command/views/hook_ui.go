@@ -106,12 +106,12 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		idValue = ""
 	}
 
-	h.println(h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s%s[reset]",
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: %s%s[reset]"),
 		dispAddr,
 		operation,
 		stateIdSuffix,
-	)))
+	))
 
 	key := addr.String()
 	uiState := uiResourceState{
@@ -164,13 +164,13 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
 		}
 
-		h.println(h.view.colorize.Color(fmt.Sprintf(
-			"[reset][bold]%s: %s [%s%s elapsed][reset]",
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: %s [%s%s elapsed][reset]"),
 			state.DispAddr,
 			msg,
 			idSuffix,
 			time.Now().Round(time.Second).Sub(state.Start),
-		)))
+		))
 	}
 }
 
@@ -210,9 +210,9 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		return terraform.HookActionContinue, nil
 	}
 
-	colorized := h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s after %s%s[reset]",
-		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix))
+	colorized := fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: %s after %s%s"),
+		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix)
 
 	h.println(colorized)
 
@@ -220,18 +220,20 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 }
 
 func (h *UiHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
-	h.println(h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Provisioning with '%s'...[reset]",
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Provisioning with '%s'...[reset]"),
 		addr, typeName,
-	)))
+	))
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
 	var buf bytes.Buffer
-	buf.WriteString(h.view.colorize.Color("[reset]"))
 
-	prefix := fmt.Sprintf("%s (%s): ", addr, typeName)
+	prefix := fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s (%s):[reset] "),
+		addr, typeName,
+	)
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
 	for s.Scan() {
@@ -250,28 +252,30 @@ func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generatio
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
 	}
 
-	h.println(h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing state...%s",
-		addr, stateIdSuffix)))
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Refreshing state...%s"),
+		addr, stateIdSuffix))
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
-	h.println(h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Importing from ID %q...",
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Importing from ID %q..."),
 		addr, importID,
-	)))
+	))
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (terraform.HookAction, error) {
-	h.println(h.view.colorize.Color(fmt.Sprintf(
-		"[reset][bold][green]%s: Import prepared!", addr)))
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold][green]%s: Import prepared!"),
+		addr,
+	))
 	for _, s := range imported {
-		h.println(h.view.colorize.Color(fmt.Sprintf(
-			"[reset][green]  Prepared %s for import",
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][green]  Prepared %s for import"),
 			s.TypeName,
-		)))
+		))
 	}
 
 	return terraform.HookActionContinue, nil
@@ -295,7 +299,7 @@ func scanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		return i + 1, dropCR(data[0:i]), nil
 	}
 	if i := bytes.IndexByte(data, '\r'); i >= 0 {
-		// We have a full newline-terminated line.
+		// We have a full carriage-return-terminated line.
 		return i + 1, dropCR(data[0:i]), nil
 	}
 	// If we're at EOF, we have a final, non-terminated line. Return it.
