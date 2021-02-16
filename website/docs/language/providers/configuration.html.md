@@ -103,6 +103,24 @@ provider "aws" {
 }
 ```
 
+To declare a configuration alias within a module in order to receive an
+alternate provider configuration from the parent module, add the
+`configuration_aliases` argument to that provider's `required_providers`
+entry. The following example declares both the `mycloud` and
+`mycloud.alternate` provider configuration names within the containing module:
+
+```hcl
+terraform {
+  required_providers {
+    mycloud = {
+      source  = "mycorp/mycloud"
+      version = "~> 1.0"
+      configuration_aliases = [ mycloud.alternate ]
+    }
+  }
+}
+```
+
 ### Default Provider Configurations
 
 A `provider` block without an `alias` argument is the _default_ configuration
