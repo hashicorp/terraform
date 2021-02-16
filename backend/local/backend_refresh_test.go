@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
@@ -223,8 +224,8 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 		Type:            backend.OperationTypeRefresh,
 		ConfigDir:       configDir,
 		ConfigLoader:    configLoader,
-		LockState:       true,
 		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewNoopLocker(),
 	}, configCleanup
 }
 

@@ -1,23 +1,24 @@
 package clistate
 
 import (
-	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 )
 
 func TestUnlock(t *testing.T) {
-	ui := new(cli.MockUi)
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
 
-	l := NewLocker(context.Background(), 0, ui, &colorstring.Colorize{Disable: true})
+	l := NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
 	l.Lock(statemgr.NewUnlockErrorFull(nil, nil), "test-lock")
 
-	err := l.Unlock(nil)
-	if err != nil {
-		t.Log(err.Error())
+	diags := l.Unlock()
+	if diags.HasErrors() {
+		t.Log(diags.Err().Error())
 	} else {
 		t.Error("expected error")
 	}

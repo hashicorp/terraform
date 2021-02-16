@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -23,11 +22,7 @@ import (
 func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if op.LockState {
-		op.StateLocker = clistate.NewLocker(context.Background(), op.StateLockTimeout, b.CLI, b.cliColorize())
-	} else {
-		op.StateLocker = clistate.NewNoopLocker()
-	}
+	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
 	// Get the remote workspace name.
 	remoteWorkspaceName := b.getRemoteWorkspaceName(op.Workspace)
@@ -41,8 +36,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	log.Printf("[TRACE] backend/remote: requesting state lock for workspace %q", remoteWorkspaceName)
-	if err := op.StateLocker.Lock(stateMgr, op.Type.String()); err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
+	if diags := op.StateLocker.Lock(stateMgr, op.Type.String()); diags.HasErrors() {
 		return nil, nil, diags
 	}
 
@@ -50,10 +44,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		// If we're returning with errors, and thus not producing a valid
 		// context, we'll want to avoid leaving the remote workspace locked.
 		if diags.HasErrors() {
-			err := op.StateLocker.Unlock(nil)
-			if err != nil {
-				diags = diags.Append(errwrap.Wrapf("Error unlocking state: {{err}}", err))
-			}
+			diags = diags.Append(op.StateLocker.Unlock())
 		}
 	}()
 

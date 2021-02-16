@@ -1,13 +1,14 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"
@@ -93,12 +94,16 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "state-push"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if diags := stateLocker.Lock(stateMgr, "state-push"); diags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer func() {
+			if diags := stateLocker.Unlock(); diags.HasErrors() {
+				c.showDiagnostics(diags)
+			}
+		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {

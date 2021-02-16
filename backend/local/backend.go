@@ -12,7 +12,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -326,11 +325,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	cancelCtx, cancel := context.WithCancel(context.Background())
 	runningOp.Cancel = cancel
 
-	if op.LockState {
-		op.StateLocker = clistate.NewLocker(stopCtx, op.StateLockTimeout, b.CLI, b.Colorize())
-	} else {
-		op.StateLocker = clistate.NewNoopLocker()
-	}
+	op.StateLocker = op.StateLocker.WithContext(stopCtx)
 
 	// Do it
 	go func() {

@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
@@ -212,16 +211,12 @@ type Operation struct {
 	// ShowDiagnostics prints diagnostic messages to the UI.
 	ShowDiagnostics func(vals ...interface{})
 
-	// If LockState is true, the Operation must Lock any
-	// statemgr.Lockers for its duration, and Unlock when complete.
-	LockState bool
-
 	// StateLocker is used to lock the state while providing UI feedback to the
-	// user. This will be supplied by the Backend itself.
+	// user. This will be replaced by the Backend to update the context.
+	//
+	// If state locking is not necessary, this should be set to a no-op
+	// implementation of clistate.Locker.
 	StateLocker clistate.Locker
-
-	// The duration to retry obtaining a State lock.
-	StateLockTimeout time.Duration
 
 	// Workspace is the name of the workspace that this operation should run
 	// in, which controls which named state is used.

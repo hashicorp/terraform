@@ -35,10 +35,12 @@ func TestInit_empty(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -56,10 +58,12 @@ func TestInit_multipleArgs(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -80,10 +84,12 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -130,10 +136,12 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -157,10 +165,12 @@ func TestInit_get(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -184,10 +194,12 @@ func TestInit_getUpgradeModules(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -214,10 +226,12 @@ func TestInit_backend(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -242,10 +256,12 @@ func TestInit_backendUnset(t *testing.T) {
 		log.Printf("[TRACE] TestInit_backendUnset: beginning first init")
 
 		ui := cli.NewMockUi()
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 
@@ -272,10 +288,12 @@ func TestInit_backendUnset(t *testing.T) {
 		}
 
 		ui := cli.NewMockUi()
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 
@@ -303,10 +321,12 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 	t.Run("good-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 		args := []string{"-backend-config", "input.config"}
@@ -324,10 +344,12 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// the backend config file must not be a full terraform block
 	t.Run("full-backend-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 		args := []string{"-backend-config", "backend.config"}
@@ -342,10 +364,12 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// the backend config file must match the schema for the backend
 	t.Run("invalid-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 		args := []string{"-backend-config", "invalid.config"}
@@ -360,10 +384,12 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// missing file is an error
 	t.Run("missing-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 		args := []string{"-backend-config", "missing.config"}
@@ -378,10 +404,12 @@ func TestInit_backendConfigFile(t *testing.T) {
 	// blank filename clears the backend config
 	t.Run("blank-config-file", func(t *testing.T) {
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		c := &InitCommand{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
 				Ui:               ui,
+				View:             view,
 			},
 		}
 		args := []string{"-backend-config="}
@@ -429,10 +457,12 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -468,10 +498,12 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	})()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -495,10 +527,12 @@ func TestInit_backendConfigKV(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -522,10 +556,12 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -539,6 +575,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -583,10 +620,12 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -600,6 +639,7 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -629,10 +669,12 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -667,10 +709,12 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -710,10 +754,12 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -741,6 +787,7 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -766,10 +813,12 @@ func TestInit_inputFalse(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -805,6 +854,7 @@ func TestInit_inputFalse(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -823,6 +873,7 @@ func TestInit_inputFalse(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -842,6 +893,7 @@ func TestInit_getProvider(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
 		"exact": {"1.2.3"},
@@ -854,6 +906,7 @@ func TestInit_getProvider(t *testing.T) {
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -919,7 +972,9 @@ func TestInit_getProvider(t *testing.T) {
 		}
 
 		ui := new(cli.MockUi)
+		view, _ := testView(t)
 		m.Ui = ui
+		m.View = view
 		c := &InitCommand{
 			Meta: m,
 		}
@@ -944,6 +999,7 @@ func TestInit_getProviderSource(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		// looking for an exact version
 		"acme/alpha": {"1.2.3"},
@@ -955,6 +1011,7 @@ func TestInit_getProviderSource(t *testing.T) {
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -993,6 +1050,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
 		"acme/alpha": {"1.2.3"},
 	})
@@ -1000,6 +1058,7 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1033,6 +1092,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 
 	overrides := metaOverridesForProvider(testProvider())
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 
 	// create a provider source which allows installing an invalid package
 	addr := addrs.MustParseProviderSourceString("invalid/package")
@@ -1053,6 +1113,7 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 	m := Meta{
 		testingOverrides: overrides,
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1109,8 +1170,10 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		Ui:             ui,
+		View:           view,
 		ProviderSource: multiSource,
 	}
 
@@ -1166,9 +1229,11 @@ func TestInit_providerSource(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1277,9 +1342,11 @@ func TestInit_cancel(t *testing.T) {
 	close(shutdownCh)
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 		ShutdownCh:       shutdownCh,
 	}
@@ -1320,9 +1387,11 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1444,9 +1513,11 @@ func TestInit_getProviderMissing(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1472,10 +1543,12 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -1505,9 +1578,11 @@ func TestInit_providerLockFile(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1555,10 +1630,12 @@ func TestInit_pluginDirReset(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &InitCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 			ProviderSource:   providerSource,
 		},
 	}
@@ -1591,6 +1668,7 @@ func TestInit_pluginDirReset(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 			ProviderSource:   providerSource, // still empty
 		},
 	}
@@ -1623,9 +1701,11 @@ func TestInit_pluginDirProviders(t *testing.T) {
 	defer close()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1723,9 +1803,11 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1795,9 +1877,11 @@ func TestInit_pluginDirWithBuiltIn(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -1832,9 +1916,11 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	defer close()
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 

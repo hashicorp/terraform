@@ -13,7 +13,11 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -24,7 +28,16 @@ import (
 func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
+	return testOperationPlanWithTimeout(t, configDir, 0)
+}
+
+func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func()) {
+	t.Helper()
+
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
 
 	return &backend.Operation{
 		ConfigDir:       configDir,
@@ -32,6 +45,7 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 		Parallelism:     defaultParallelism,
 		PlanRefresh:     true,
 		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewLocker(timeout, view),
 		Type:            backend.OperationTypePlan,
 	}, configCleanup
 }
@@ -625,7 +639,7 @@ func TestRemote_planLockTimeout(t *testing.T) {
 		t.Fatalf("error creating pending run: %v", err)
 	}
 
-	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	op, configCleanup := testOperationPlanWithTimeout(t, "./testdata/plan", 50)
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{
@@ -633,7 +647,6 @@ func TestRemote_planLockTimeout(t *testing.T) {
 		"approve": "yes",
 	})
 
-	op.StateLockTimeout = 50 * time.Millisecond
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName

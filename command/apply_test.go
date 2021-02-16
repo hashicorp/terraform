@@ -940,11 +940,13 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 
 	p := applyFixtureProvider()
 	planPath := applyFixturePlanFile(t)
+	view, _ := testView(t)
 
 	apply := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               new(cli.MockUi),
+			View:             view,
 		},
 	}
 	args := []string{

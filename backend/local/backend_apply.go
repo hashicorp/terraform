@@ -57,9 +57,9 @@ func (b *Local) opApply(
 	// the state was locked during succesfull context creation; unlock the state
 	// when the operation completes
 	defer func() {
-		err := op.StateLocker.Unlock(nil)
-		if err != nil {
-			op.ShowDiagnostics(err)
+		diags := op.StateLocker.Unlock()
+		if diags.HasErrors() {
+			op.ShowDiagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
