@@ -579,6 +579,545 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// Attributes with NestedTypes
+		"NestedType attr, no computed, all match": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, plan matches, no prior": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType, no computed, invalid change in plan": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("c value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new c value"),
+					}),
+				}),
+			}),
+			[]string{
+				`.a[0].b: planned value cty.StringVal("new c value") does not match config value cty.StringVal("c value")`,
+			},
+		},
+		"NestedType attr, no computed, invalid change in plan sensitive": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:      cty.String,
+									Optional:  true,
+									Sensitive: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"a": cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new b value"),
+					}),
+				}),
+			}),
+			[]string{
+				`.a[0].b: sensitive planned value does not match config value`,
+			},
+		},
+		"NestedType attr, no computed, diff suppression in plan": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("new b value"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"b": cty.StringVal("b value"), // plan uses value from prior object
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, all null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.DynamicPseudoType),
+			}),
+			nil,
+		},
+		"NestedType attr, no computed, all zero value": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"b": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"b": cty.String,
+				}))),
+			}),
+			nil,
+		},
+		"NestedType NestingSet attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			nil,
+		},
+		"NestedType deep nested optional set attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bleep": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"bloop": {
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"blome": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.Set(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.List(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType deep nested set": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bleep": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"bloop": {
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"blome": {
+												Type:     cty.String,
+												Optional: true,
+											},
+										},
+									},
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			// Note: bloop is null in the config
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.NullVal(cty.Set(
+							cty.Object(map[string]cty.Type{
+								"blome": cty.String,
+							}),
+						)),
+					}),
+				}),
+			}),
+			// provider sends back the prior value, not matching the config
+			cty.ObjectVal(map[string]cty.Value{
+				"bleep": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bloop": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"blome": cty.StringVal("ok"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			nil, // we cannot validate individual set elements, and trust the provider's response
+		},
+		"NestedType nested computed list attribute": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			nil,
+		},
+		"NestedType nested list attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+
+			// provider returned the old value
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			[]string{".bloop: planned for existence but config wants absense"},
+		},
+		"NestedType nested set attribute to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"blop": cty.String,
+				}))),
+			}),
+			// provider returned the old value
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"blop": cty.StringVal("ok"),
+					}),
+				}),
+			}),
+			[]string{".bloop: planned for existence but config wants absense"},
+		},
 	}
 
 	for name, test := range tests {

@@ -40,3 +40,56 @@ func (b *Block) ContainsSensitive() bool {
 	}
 	return false
 }
+
+// ImpliedType returns the cty.Type that would result from decoding a NestedType
+// Attribute using the receiving block schema.
+//
+// ImpliedType always returns a result, even if the given schema is
+// inconsistent. Code that creates configschema.Object objects should be tested
+// using the InternalValidate method to detect any inconsistencies that would
+// cause this method to fall back on defaults and assumptions.
+func (o *Object) ImpliedType() cty.Type {
+	if o == nil {
+		return cty.EmptyObject
+	}
+
+	attrTys := make(map[string]cty.Type, len(o.Attributes))
+	for name, attrS := range o.Attributes {
+		if attrS.NestedType != nil {
+			attrTys[name] = attrS.NestedType.ImpliedType()
+		} else {
+			attrTys[name] = attrS.Type
+		}
+	}
+	optAttrs := listOptionalAttrsFromObject(o)
+	if len(optAttrs) > 0 {
+		return cty.ObjectWithOptionalAttrs(attrTys, optAttrs)
+	}
+
+	switch o.Nesting {
+	case NestingSingle:
+		return cty.Object(attrTys)
+	case NestingList:
+		return cty.List(cty.Object(attrTys))
+	case NestingMap:
+		return cty.Map(cty.Object(attrTys))
+	case NestingSet:
+		return cty.Set(cty.Object(attrTys))
+	default: // Should never happen
+		panic("invalid Nesting")
+	}
+}
+
+// ContainsSensitive returns true if any of the attributes of the receiving
+// Object are marked as sensitive.
+func (o *Object) ContainsSensitive() bool {
+	for _, attrS := range o.Attributes {
+		if attrS.Sensitive {
+			return true
+		}
+		if attrS.NestedType != nil {
+			return attrS.NestedType.ContainsSensitive()
+		}
+	}
+	return false
+}
