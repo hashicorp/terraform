@@ -81,7 +81,7 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 		t.Errorf("wrong detail for diagnostic 2\ngot:  %s\nmust contain: %s", got, want)
 	}
 	if got, want := diags[3].Description().Summary, missingRequired; got != want {
-		t.Errorf("wrong summary for diagnostic 4\ngot:  %s\nwant: %s", got, want)
+		t.Errorf("wrong summary for diagnostic 3\ngot:  %s\nwant: %s", got, want)
 	}
 
 	wantVals := terraform.InputValues{
