@@ -3,6 +3,7 @@
 ENHANCEMENTS:
 
 * cli: Emit an "already installed" event when a provider is found already installed [GH-27722]
+* provisioner/remote-exec: Can now run in a mode that expects the remote system to be running Windows and excuting commands using the Windows command interpreter, rather than a Unix-style shell. Specify the `target_platform` as `"windows"` in the `connection` block. [GH-26865]
 
 BUG FIXES:
 
