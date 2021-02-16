@@ -332,6 +332,7 @@ new line
 					// hidden.
 					"conn_info": {
 						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
 							Attributes: map[string]*configschema.Attribute{
 								"user":     {Type: cty.String, Optional: true},
 								"password": {Type: cty.String, Optional: true, Sensitive: true},
