@@ -263,6 +263,28 @@ func TestAssertObjectCompatible(t *testing.T) {
 		{
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
+					"obj": {
+						Type: cty.Object(map[string]cty.Type{
+							"stuff": cty.DynamicPseudoType,
+						}),
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"stuff": cty.DynamicVal,
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"obj": cty.ObjectVal(map[string]cty.Value{
+					"stuff": cty.NumberIntVal(3),
+				}),
+			}),
+			[]string{},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
 						Computed: true,
