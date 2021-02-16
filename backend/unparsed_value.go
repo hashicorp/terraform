@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/configs"
@@ -69,21 +70,15 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 		if !declared {
 			switch val.SourceType {
 			case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
-				// These source types have source ranges, so we can produce
-				// a nice error message with good context.
-				//
-				// This one is a warning for now because there is an existing
-				// pattern of providing a file containing the superset of
-				// variables across all configurations in an organization. This
-				// is deprecated in v0.12.0 because it's more important to give
-				// feedback to users who make typos. Those using this approach
-				// should migrate to using environment variables instead before
-				// this becomes an error in a future major release.
+				// We allow undeclared names for variable values from files and warn in case
+				// users have forgotten a variable {} declaration or have a typo in their var name.
+				// Some users will actively ignore this warning because they use a .tfvars file
+				// across multiple configurations.
 				if seenUndeclaredInFile < 3 {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
 						"Value for undeclared variable",
-						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. To use this value, add a \"variable\" block to the configuration.\n\nUsing a variables file to set an undeclared variable is deprecated and will become an error in a future release. If you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead.", name, val.SourceRange.Filename),
+						fmt.Sprintf(strings.TrimSpace(undeclaredVariableWarning), name, val.SourceRange.Filename),
 					))
 				}
 				seenUndeclaredInFile++
@@ -160,3 +155,14 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 
 	return ret, diags
 }
+
+const undeclaredVariableWarning = `
+The root module does not declare a variable named %q but a value was found in
+file %q. If you meant to use this value, add a "variable" block
+to the configuration.
+
+If you wish to provide certain "global" settings to all configurations in
+your organization, use TF_VAR_... environment variables to set these instead
+to silence this warning, or use the -compact-warnings option to show warnings
+in a compact way.
+`
