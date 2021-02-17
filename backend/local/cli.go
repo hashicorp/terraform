@@ -12,7 +12,6 @@ func (b *Local) CLIInit(opts *backend.CLIOpts) error {
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
 	b.Streams = opts.Streams
-	b.ShowDiagnostics = opts.ShowDiagnostics
 	b.ContextOpts = opts.ContextOpts
 	b.OpInput = opts.Input
 	b.OpValidation = opts.Validation

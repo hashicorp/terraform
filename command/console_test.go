@@ -27,10 +27,12 @@ func TestConsole_basic(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -76,10 +78,12 @@ func TestConsole_tfvars(t *testing.T) {
 		},
 	}
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -127,10 +131,12 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 		},
 	}
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -159,10 +165,12 @@ func TestConsole_variables(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -200,11 +208,13 @@ func TestConsole_modules(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 
 	c := &ConsoleCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 

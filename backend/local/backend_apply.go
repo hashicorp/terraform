@@ -35,31 +35,26 @@ func (b *Local) opApply(
 				"would mark everything for destruction, which is normally not what is desired. "+
 				"If you would like to destroy everything, run 'terraform destroy' instead.",
 		))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	stateHook := new(StateHook)
-	if b.ContextOpts == nil {
-		b.ContextOpts = new(terraform.ContextOpts)
-	}
-	old := b.ContextOpts.Hooks
-	defer func() { b.ContextOpts.Hooks = old }()
-	b.ContextOpts.Hooks = append(b.ContextOpts.Hooks, stateHook)
+	op.Hooks = append(op.Hooks, stateHook)
 
 	// Get our context
 	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 	// the state was locked during succesfull context creation; unlock the state
 	// when the operation completes
 	defer func() {
-		err := op.StateLocker.Unlock(nil)
-		if err != nil {
-			b.ShowDiagnostics(err)
+		diags := op.StateLocker.Unlock()
+		if diags.HasErrors() {
+			op.ShowDiagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -73,7 +68,7 @@ func (b *Local) opApply(
 		plan, planDiags := tfCtx.Plan()
 		diags = diags.Append(planDiags)
 		if planDiags.HasErrors() {
-			b.ReportResult(runningOp, diags)
+			op.ReportResult(runningOp, diags)
 			return
 		}
 
@@ -109,7 +104,7 @@ func (b *Local) opApply(
 			// We'll show any accumulated warnings before we display the prompt,
 			// so the user can consider them when deciding how to answer.
 			if len(diags) > 0 {
-				b.ShowDiagnostics(diags)
+				op.ShowDiagnostics(diags)
 				diags = nil // reset so we won't show the same diagnostics again later
 			}
 
@@ -120,7 +115,7 @@ func (b *Local) opApply(
 			})
 			if err != nil {
 				diags = diags.Append(errwrap.Wrapf("Error asking for approval: {{err}}", err))
-				b.ReportResult(runningOp, diags)
+				op.ReportResult(runningOp, diags)
 				return
 			}
 			if v != "yes" {
@@ -167,20 +162,20 @@ func (b *Local) opApply(
 		stateFile.State = applyState
 
 		diags = diags.Append(b.backupStateForError(stateFile, err))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	diags = diags.Append(applyDiags)
 	if applyDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
-	b.ShowDiagnostics(diags)
+	op.ShowDiagnostics(diags)
 }
 
 // backupStateForError is called in a scenario where we're unable to persist the

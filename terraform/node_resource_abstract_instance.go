@@ -221,7 +221,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		plannedNewState := change.After
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Addr, nil, change.Action, priorState, plannedNewState)
+			return h.PreApply(n.Addr, change.DeposedKey.Generation(), change.Action, priorState, plannedNewState)
 		}))
 		if diags.HasErrors() {
 			return diags
@@ -649,7 +649,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, diags
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, configValIgnored)
+	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, configValIgnored)
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -861,7 +861,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
+		proposedNewVal = objchange.ProposedNew(schema, nullPriorVal, unmarkedConfigVal)
 
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Resource.Type,
@@ -1423,7 +1423,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		// While we don't propose planned changes for data sources, we can
 		// generate a proposed value for comparison to ensure the data source
 		// is returning a result following the rules of the provider contract.
-		proposedVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, unmarkedConfigVal)
+		proposedVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
 		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
 			// Resources have the LegacyTypeSystem field to signal when they are
 			// using an SDK which may not produce precise values. While data

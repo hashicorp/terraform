@@ -19,8 +19,10 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/registry"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -1027,4 +1029,9 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 		resp.WriteHeader(404)
 		resp.Write([]byte(`provider not found`))
 	}
+}
+
+func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
+	streams, done := terminal.StreamsForTesting(t)
+	return views.NewView(streams), done
 }

@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var mapLabelNames = []string{"key"}
@@ -183,9 +184,40 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 }
 
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
-	return &hcldec.AttrSpec{
-		Name:     name,
-		Type:     a.Type,
-		Required: a.Required,
+	ret := &hcldec.AttrSpec{Name: name}
+	if a == nil {
+		return ret
 	}
+
+	if a.NestedType != nil {
+		// FIXME: a panic() is a bad UX. Fix this, probably by extending
+		// InternalValidate() to check Attribute schemas as well and calling it
+		// when we get the schema from the provider in Context().
+		if a.Type != cty.NilType {
+			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")
+		}
+
+		ty := a.NestedType.ImpliedType()
+		ret.Type = ty
+		ret.Required = a.Required || a.NestedType.MinItems > 0
+		return ret
+	}
+
+	ret.Type = a.Type
+	ret.Required = a.Required
+	return ret
+}
+
+// listOptionalAttrsFromObject is a helper function which does *not* recurse
+// into NestedType Attributes, because the optional types for each of those will
+// belong to their own cty.Object definitions. It is used in other functions
+// which themselves handle that recursion.
+func listOptionalAttrsFromObject(o *Object) []string {
+	var ret []string
+	for name, attr := range o.Attributes {
+		if attr.Optional == true {
+			ret = append(ret, name)
+		}
+	}
+	return ret
 }

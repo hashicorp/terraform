@@ -41,7 +41,7 @@ func (b *Local) opPlan(
 			"The plan command was given a saved plan file as its input. This command generates "+
 				"a new plan, and so it requires a configuration directory as its argument.",
 		))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -55,7 +55,7 @@ func (b *Local) opPlan(
 				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
 				"create a Terraform configuration file (.tf file) and try again.",
 		))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -67,15 +67,15 @@ func (b *Local) opPlan(
 	tfCtx, configSnap, opState, ctxDiags := b.context(op)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 	// the state was locked during succesfull context creation; unlock the state
 	// when the operation completes
 	defer func() {
-		err := op.StateLocker.Unlock(nil)
-		if err != nil {
-			b.ShowDiagnostics(err)
+		diags := op.StateLocker.Unlock()
+		if diags.HasErrors() {
+			op.ShowDiagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -103,7 +103,7 @@ func (b *Local) opPlan(
 
 	diags = diags.Append(planDiags)
 	if planDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (b *Local) opPlan(
 			diags = diags.Append(fmt.Errorf(
 				"PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"),
 			)
-			b.ReportResult(runningOp, diags)
+			op.ReportResult(runningOp, diags)
 			return
 		}
 		plan.Backend = *op.PlanOutBackend
@@ -136,7 +136,7 @@ func (b *Local) opPlan(
 				"Failed to write plan file",
 				fmt.Sprintf("The plan file could not be written: %s.", err),
 			))
-			b.ReportResult(runningOp, diags)
+			op.ReportResult(runningOp, diags)
 			return
 		}
 	}
@@ -149,7 +149,7 @@ func (b *Local) opPlan(
 			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
 			b.CLI.Output("\n" + strings.TrimSpace(format.WordWrap(planNoChangesDetail, outputColumns)))
 			// Even if there are no changes, there still could be some warnings
-			b.ShowDiagnostics(diags)
+			op.ShowDiagnostics(diags)
 			return
 		}
 
@@ -158,7 +158,7 @@ func (b *Local) opPlan(
 		// If we've accumulated any warnings along the way then we'll show them
 		// here just before we show the summary and next steps. If we encountered
 		// errors then we would've returned early at some other point above.
-		b.ShowDiagnostics(diags)
+		op.ShowDiagnostics(diags)
 
 		// Give the user some next-steps, unless we're running in an automation
 		// tool which is presumed to provide its own UI for further actions.

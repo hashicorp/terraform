@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/plans"
@@ -114,6 +115,8 @@ func TestLocal_planNoConfig(t *testing.T) {
 	b.CLI = cli.NewMockUi()
 
 	op, configCleanup := testOperationPlan(t, "./testdata/empty")
+	record, playback := testRecordDiagnostics(t)
+	op.ShowDiagnostics = record
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -126,8 +129,9 @@ func TestLocal_planNoConfig(t *testing.T) {
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("plan operation succeeded; want failure")
 	}
-	output := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(output, "configuration") {
+
+	output := playback().Err().Error()
+	if !strings.Contains(output, "No configuration files") {
 		t.Fatalf("bad: %s", err)
 	}
 
@@ -733,9 +737,11 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
 	return &backend.Operation{
-		Type:         backend.OperationTypePlan,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
+		Type:            backend.OperationTypePlan,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewNoopLocker(),
 	}, configCleanup
 }
 

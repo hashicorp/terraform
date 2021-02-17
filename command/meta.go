@@ -21,7 +21,9 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -62,12 +64,11 @@ type Meta struct {
 	// do some default behavior instead if so, rather than panicking.
 	Streams *terminal.Streams
 
+	View *views.View
+
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
 	Ui               cli.Ui   // Ui for output
-
-	// ExtraHooks are extra hooks to add to the context.
-	ExtraHooks []terraform.Hook
 
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
@@ -431,8 +432,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	}
 
 	var opts terraform.ContextOpts
-	opts.Hooks = []terraform.Hook{m.uiHook()}
-	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
@@ -499,6 +498,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 }
 
 // defaultFlagSet creates a default flag set for commands.
+// See also command/arguments/default.go
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.SetOutput(ioutil.Discard)
@@ -581,9 +581,9 @@ func (m *Meta) parseTargetFlags() tfdiags.Diagnostics {
 	return diags
 }
 
-// process will process the meta-parameters out of the arguments. This
+// process will process any -no-color entries out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
-// slice.
+// slice, and update the Meta and Ui.
 func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
@@ -617,15 +617,21 @@ func (m *Meta) process(args []string) []string {
 		},
 	}
 
+	// Reconfigure the view. This is necessary for commands which use both
+	// views.View and cli.Ui during the migration phase.
+	if m.View != nil {
+		m.View.Configure(&arguments.View{
+			CompactWarnings: m.compactWarnings,
+			NoColor:         !m.Color,
+		})
+	}
+
 	return args
 }
 
 // uiHook returns the UiHook to use with the context.
-func (m *Meta) uiHook() *UiHook {
-	return &UiHook{
-		Colorize: m.Colorize(),
-		Ui:       m.Ui,
-	}
+func (m *Meta) uiHook() *views.UiHook {
+	return views.NewUiHook(m.View)
 }
 
 // confirm asks a yes/no confirmation.

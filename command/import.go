@@ -189,6 +189,7 @@ func (c *ImportCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	{
 		var moreDiags tfdiags.Diagnostics
 		opReq.Variables, moreDiags = c.collectVariableValues()
@@ -217,9 +218,9 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Successfully creating the context can result in a lock, so ensure we release it
 	defer func() {
-		err := opReq.StateLocker.Unlock(nil)
-		if err != nil {
-			c.Ui.Error(err.Error())
+		diags := opReq.StateLocker.Unlock()
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
 		}
 	}()
 

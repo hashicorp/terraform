@@ -13,6 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
@@ -289,9 +290,11 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
 	return &backend.Operation{
-		Type:         backend.OperationTypeApply,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
+		Type:            backend.OperationTypeApply,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewNoopLocker(),
 	}, configCleanup
 }
 

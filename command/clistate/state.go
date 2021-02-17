@@ -7,33 +7,25 @@ package clistate
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/errwrap"
-	multierror "github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/helper/slowmessage"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const (
 	LockThreshold    = 400 * time.Millisecond
-	LockMessage      = "Acquiring state lock. This may take a few moments..."
-	LockErrorMessage = `Error acquiring the state lock: {{err}}
+	LockErrorMessage = `Error message: %s
 
 Terraform acquires a state lock to protect the state from being written
 by multiple users at the same time. Please resolve the issue above and try
 again. For most commands, you can disable locking with the "-lock=false"
 flag, but this is not recommended.`
 
-	UnlockMessage      = "Releasing state lock. This may take a few moments..."
-	UnlockErrorMessage = `
-[reset][bold][red]Error releasing the state lock![reset][red]
-
-Error message: %s
+	UnlockErrorMessage = `Error message: %s
 
 Terraform acquires a lock when accessing your state to prevent others
 running Terraform to potentially modify the state at the same time. An
@@ -46,8 +38,7 @@ In this scenario, please call the "force-unlock" command to unlock the
 state manually. This is a very dangerous operation since if it is done
 erroneously it could result in two people modifying state at the same time.
 Only call this command if you're certain that the unlock above failed and
-that no one else is holding a lock.
-`
+that no one else is holding a lock.`
 )
 
 // Locker allows for more convenient usage of the lower-level statemgr.Locker
@@ -60,12 +51,17 @@ that no one else is holding a lock.
 // Unlock, which is at a minimum the LockID string returned by the
 // statemgr.Locker.
 type Locker interface {
+	// Returns a shallow copy of the locker with its context changed to ctx.
+	WithContext(ctx context.Context) Locker
+
 	// Lock the provided state manager, storing the reason string in the LockInfo.
-	Lock(s statemgr.Locker, reason string) error
+	Lock(s statemgr.Locker, reason string) tfdiags.Diagnostics
+
 	// Unlock the previously locked state.
-	// An optional error can be passed in, and will be combined with any error
-	// from the Unlock operation.
-	Unlock(error) error
+	Unlock() tfdiags.Diagnostics
+
+	// Timeout returns the configured timeout duration
+	Timeout() time.Duration
 }
 
 type locker struct {
@@ -73,34 +69,43 @@ type locker struct {
 	ctx     context.Context
 	timeout time.Duration
 	state   statemgr.Locker
-	ui      cli.Ui
-	color   *colorstring.Colorize
+	view    views.StateLocker
 	lockID  string
 }
+
+var _ Locker = (*locker)(nil)
 
 // Create a new Locker.
 // This Locker uses state.LockWithContext to retry the lock until the provided
 // timeout is reached, or the context is canceled. Lock progress will be be
 // reported to the user through the provided UI.
-func NewLocker(
-	ctx context.Context,
-	timeout time.Duration,
-	ui cli.Ui,
-	color *colorstring.Colorize) Locker {
-
-	l := &locker{
-		ctx:     ctx,
+func NewLocker(timeout time.Duration, view views.StateLocker) Locker {
+	return &locker{
+		ctx:     context.Background(),
 		timeout: timeout,
-		ui:      ui,
-		color:   color,
+		view:    view,
 	}
-	return l
+}
+
+// WithContext returns a new Locker with the specified context, copying the
+// timeout and view parameters from the original Locker.
+func (l *locker) WithContext(ctx context.Context) Locker {
+	if ctx == nil {
+		panic("nil context")
+	}
+	return &locker{
+		ctx:     ctx,
+		timeout: l.timeout,
+		view:    l.view,
+	}
 }
 
 // Locker locks the given state and outputs to the user if locking is taking
 // longer than the threshold. The lock is retried until the context is
 // cancelled.
-func (l *locker) Lock(s statemgr.Locker, reason string) error {
+func (l *locker) Lock(s statemgr.Locker, reason string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -116,44 +121,47 @@ func (l *locker) Lock(s statemgr.Locker, reason string) error {
 		id, err := statemgr.LockWithContext(ctx, s, lockInfo)
 		l.lockID = id
 		return err
-	}, func() {
-		if l.ui != nil {
-			l.ui.Output(l.color.Color(LockMessage))
-		}
-	})
+	}, l.view.Locking)
 
 	if err != nil {
-		return errwrap.Wrapf(strings.TrimSpace(LockErrorMessage), err)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error acquiring the state lock",
+			fmt.Sprintf(LockErrorMessage, err),
+		))
 	}
 
-	return nil
+	return diags
 }
 
-func (l *locker) Unlock(parentErr error) error {
+func (l *locker) Unlock() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	if l.lockID == "" {
-		return parentErr
+		return diags
 	}
 
 	err := slowmessage.Do(LockThreshold, func() error {
 		return l.state.Unlock(l.lockID)
-	}, func() {
-		if l.ui != nil {
-			l.ui.Output(l.color.Color(UnlockMessage))
-		}
-	})
+	}, l.view.Unlocking)
 
 	if err != nil {
-		l.ui.Output(l.color.Color(fmt.Sprintf(
-			"\n"+strings.TrimSpace(UnlockErrorMessage)+"\n", err)))
-
-		parentErr = multierror.Append(parentErr, err)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error releasing the state lock",
+			fmt.Sprintf(UnlockErrorMessage, err),
+		))
 	}
 
-	return parentErr
+	return diags
 
+}
+
+func (l *locker) Timeout() time.Duration {
+	return l.timeout
 }
 
 type noopLocker struct{}
@@ -163,10 +171,20 @@ func NewNoopLocker() Locker {
 	return noopLocker{}
 }
 
-func (l noopLocker) Lock(statemgr.Locker, string) error {
+var _ Locker = noopLocker{}
+
+func (l noopLocker) WithContext(ctx context.Context) Locker {
+	return l
+}
+
+func (l noopLocker) Lock(statemgr.Locker, string) tfdiags.Diagnostics {
 	return nil
 }
 
-func (l noopLocker) Unlock(err error) error {
-	return err
+func (l noopLocker) Unlock() tfdiags.Diagnostics {
+	return nil
+}
+
+func (l noopLocker) Timeout() time.Duration {
+	return 0
 }

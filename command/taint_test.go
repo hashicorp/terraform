@@ -33,9 +33,11 @@ func TestTaint(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -76,9 +78,11 @@ func TestTaint_lockedState(t *testing.T) {
 	}
 	defer unlock()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -122,9 +126,11 @@ func TestTaint_backup(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -165,9 +171,11 @@ func TestTaint_backupDisable(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -188,9 +196,11 @@ func TestTaint_backupDisable(t *testing.T) {
 
 func TestTaint_badState(t *testing.T) {
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -229,9 +239,11 @@ func TestTaint_defaultState(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -271,7 +283,8 @@ func TestTaint_defaultWorkspaceState(t *testing.T) {
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
 	ui := new(cli.MockUi)
-	meta := Meta{Ui: ui}
+	view, _ := testView(t)
+	meta := Meta{Ui: ui, View: view}
 	meta.SetWorkspace(testWorkspace)
 	c := &TaintCommand{
 		Meta: meta,
@@ -308,9 +321,11 @@ func TestTaint_missing(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -344,9 +359,11 @@ func TestTaint_missingAllow(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -399,9 +416,11 @@ func TestTaint_stateOut(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -453,9 +472,11 @@ func TestTaint_module(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -498,10 +519,12 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	path := testStateFile(t, state)
 
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &TaintCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 

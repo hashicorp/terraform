@@ -64,10 +64,10 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl/v2 v2.8.2
+	github.com/hashicorp/hcl/v2 v2.8.3-0.20210208211639-2520246c49a7
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
+	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/jmespath/go-jmespath v0.4.0

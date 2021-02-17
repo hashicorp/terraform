@@ -38,10 +38,12 @@ func TestRefresh(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -91,10 +93,12 @@ func TestRefresh_empty(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -133,10 +137,12 @@ func TestRefresh_lockedState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -177,10 +183,12 @@ func TestRefresh_cwd(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -255,10 +263,12 @@ func TestRefresh_defaultState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -323,10 +333,12 @@ func TestRefresh_outPath(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -382,10 +394,12 @@ func TestRefresh_var(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	p.GetSchemaResponse = refreshVarFixtureSchema()
@@ -418,10 +432,12 @@ func TestRefresh_varFile(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	p.GetSchemaResponse = refreshVarFixtureSchema()
@@ -459,10 +475,12 @@ func TestRefresh_varFileDefault(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	p.GetSchemaResponse = refreshVarFixtureSchema()
@@ -505,10 +523,12 @@ func TestRefresh_varsUnset(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
@@ -568,10 +588,12 @@ func TestRefresh_backup(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -637,10 +659,12 @@ func TestRefresh_disableBackup(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -702,10 +726,12 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	p.GetSchemaResponse = &providers.GetSchemaResponse{
@@ -730,7 +756,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 
 	// Test that outputs were displayed
 	outputValue := "foo.example.com"
-	actual := ui.OutputWriter.String()
+	actual := done(t).Stdout()
 	if !strings.Contains(actual, outputValue) {
 		t.Fatalf("Expected:\n%s\n\nTo include: %q", actual, outputValue)
 	}
@@ -765,10 +791,12 @@ func TestRefresh_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -780,7 +808,7 @@ func TestRefresh_targeted(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if want := "test_instance.foo: Refreshing"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, got)
 	}
@@ -803,9 +831,11 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 			defer testChdir(t, td)()
 
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			c := &RefreshCommand{
 				Meta: Meta{
-					Ui: ui,
+					Ui:   ui,
+					View: view,
 				},
 			}
 

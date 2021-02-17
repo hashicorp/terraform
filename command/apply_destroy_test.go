@@ -58,11 +58,13 @@ func TestApply_destroy(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -157,11 +159,13 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -206,11 +210,13 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	defaultInputWriter = new(bytes.Buffer)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -271,11 +277,13 @@ func TestApply_destroyLockedState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -306,11 +314,13 @@ func TestApply_destroyPlan(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -337,11 +347,13 @@ func TestApply_destroyPath(t *testing.T) {
 	p := applyFixtureProvider()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -430,11 +442,13 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -579,11 +593,13 @@ func TestApply_destroyTargeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 

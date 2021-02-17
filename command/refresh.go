@@ -5,6 +5,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -73,6 +76,8 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeRefresh
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -100,8 +105,13 @@ func (c *RefreshCommand) Run(args []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	if outputs := outputsAsString(op.State, true); outputs != "" {
-		c.Ui.Output(c.Colorize().Color(outputs))
+	if op.State != nil {
+		outputValues := op.State.RootModule().OutputValues
+		if len(outputValues) > 0 {
+			c.Ui.Output(c.Colorize().Color("[reset][bold][green]\nOutputs:\n\n"))
+			view := views.NewOutput(arguments.ViewHuman, c.View)
+			view.Output("", outputValues)
+		}
 	}
 
 	return op.Result.ExitStatus()

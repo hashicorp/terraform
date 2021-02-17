@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -189,5 +190,62 @@ output "out" {
 
 	if change.After.Equals(expected).False() {
 		t.Fatalf("expected %#v, got %#v\n", expected, change.After)
+	}
+}
+
+func TestContext2Plan_basicConfigurationAliases(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "test" {
+  alias = "z"
+  test_string = "config"
+}
+
+module "mod" {
+  source = "./mod"
+  providers = {
+    test.x = test.z
+  }
+}
+`,
+
+		"mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+      configuration_aliases = [ test.x ]
+	}
+  }
+}
+
+resource "test_object" "a" {
+  provider = test.x
+}
+
+`,
+	})
+
+	p := simpleMockProvider()
+
+	// The resource within the module should be using the provider configured
+	// from the root module. We should never see an empty configuration.
+	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+		if req.Config.GetAttr("test_string").IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing test_string value"))
+		}
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }

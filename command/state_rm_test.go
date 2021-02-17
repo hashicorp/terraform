@@ -49,11 +49,13 @@ func TestStateRm(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -117,11 +119,13 @@ func TestStateRmNotChildModule(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -203,11 +207,13 @@ func TestStateRmNoArgs(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -262,11 +268,13 @@ func TestStateRmNonExist(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -318,11 +326,13 @@ func TestStateRm_backupExplicit(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -349,11 +359,13 @@ func TestStateRm_noState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -372,11 +384,13 @@ func TestStateRm_needsInit(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}
@@ -446,11 +460,13 @@ func TestStateRm_backendState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StateRmCommand{
 		StateMeta{
 			Meta: Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 			},
 		},
 	}

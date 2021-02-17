@@ -4,7 +4,11 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestLocalContext(t *testing.T) {
@@ -15,11 +19,15 @@ func TestLocalContext(t *testing.T) {
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
 
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
+
 	op := &backend.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		Workspace:    backend.DefaultStateName,
-		LockState:    true,
+		StateLocker:  stateLocker,
 	}
 
 	_, _, diags := b.Context(op)
@@ -39,11 +47,15 @@ func TestLocalContext_error(t *testing.T) {
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
 
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	stateLocker := clistate.NewLocker(0, views.NewStateLocker(arguments.ViewHuman, view))
+
 	op := &backend.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
 		Workspace:    backend.DefaultStateName,
-		LockState:    true,
+		StateLocker:  stateLocker,
 	}
 
 	_, _, diags := b.Context(op)
@@ -53,5 +65,4 @@ func TestLocalContext_error(t *testing.T) {
 
 	// Context() unlocks the state on failure
 	assertBackendStateUnlocked(t, b)
-
 }

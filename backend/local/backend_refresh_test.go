@@ -3,10 +3,12 @@ package local
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/providers"
@@ -214,16 +216,53 @@ func TestLocal_refresh_context_error(t *testing.T) {
 	assertBackendStateUnlocked(t, b)
 }
 
+func TestLocal_refreshEmptyState(t *testing.T) {
+	b, cleanup := TestLocal(t)
+	defer cleanup()
+
+	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
+	testStateFile(t, b.StatePath, states.NewState())
+
+	p.ReadResourceFn = nil
+	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+		"id": cty.StringVal("yes"),
+	})}
+
+	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
+	defer configCleanup()
+
+	record, playback := testRecordDiagnostics(t)
+	op.ShowDiagnostics = record
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("bad: %s", err)
+	}
+	<-run.Done()
+
+	diags := playback()
+	if diags.HasErrors() {
+		t.Fatalf("expected only warning diags, got errors: %s", diags.Err())
+	}
+	if got, want := diags.ErrWithWarnings().Error(), "Empty or non-existent state"; !strings.Contains(got, want) {
+		t.Errorf("wrong diags\n got: %s\nwant: %s", got, want)
+	}
+
+	// the backend should be unlocked after a run
+	assertBackendStateUnlocked(t, b)
+}
+
 func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
 	return &backend.Operation{
-		Type:         backend.OperationTypeRefresh,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		LockState:    true,
+		Type:            backend.OperationTypeRefresh,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewNoopLocker(),
 	}, configCleanup
 }
 

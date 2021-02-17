@@ -24,10 +24,12 @@ func TestImport(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -77,10 +79,12 @@ func TestImport_providerConfig(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -170,9 +174,11 @@ func TestImport_remoteState(t *testing.T) {
 
 	// init our backend
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -192,6 +198,7 @@ func TestImport_remoteState(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -280,9 +287,11 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	// init our backend
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -305,6 +314,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -339,10 +349,12 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -417,10 +429,12 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -480,10 +494,12 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -557,10 +573,12 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -635,10 +653,12 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -690,10 +710,12 @@ func TestImport_emptyConfig(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -720,10 +742,12 @@ func TestImport_missingResourceConfig(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -750,10 +774,12 @@ func TestImport_missingModuleConfig(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -801,9 +827,11 @@ func TestImportModuleVarFile(t *testing.T) {
 
 	// init to install the module
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -820,6 +848,7 @@ func TestImportModuleVarFile(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	args := []string{
@@ -873,9 +902,11 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 
 	// init to install the module
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
 		Ui:               ui,
+		View:             view,
 		ProviderSource:   providerSource,
 	}
 
@@ -892,6 +923,7 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 	args := []string{
@@ -912,10 +944,12 @@ func TestImport_dataResource(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -942,10 +976,12 @@ func TestImport_invalidResourceAddr(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -972,10 +1008,12 @@ func TestImport_targetIsModule(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ImportCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 

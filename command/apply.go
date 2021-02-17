@@ -1,15 +1,14 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/plans/planfile"
-	"github.com/hashicorp/terraform/repl"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -112,7 +111,6 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// Set up our count hook that keeps track of resource changes
 	countHook := new(CountHook)
-	c.ExtraHooks = append(c.ExtraHooks, countHook)
 
 	// Load the backend
 	var be backend.Enhanced
@@ -173,8 +171,10 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = configPath
 	opReq.Destroy = c.Destroy
+	opReq.Hooks = []terraform.Hook{countHook, c.uiHook()}
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeApply
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
@@ -230,9 +230,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			c.Meta.stateOutPath)))
 	}
 
-	if !c.Destroy {
-		if outputs := outputsAsString(op.State, true); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
+	if !c.Destroy && op.State != nil {
+		outputValues := op.State.RootModule().OutputValues
+		if len(outputValues) > 0 {
+			c.Ui.Output(c.Colorize().Color("[reset][bold][green]\nOutputs:\n\n"))
+			view := views.NewOutput(arguments.ViewHuman, c.View)
+			view.Output("", outputValues)
 		}
 	}
 
@@ -364,45 +367,6 @@ Options:
 
 `
 	return strings.TrimSpace(helpText)
-}
-
-func outputsAsString(state *states.State, includeHeader bool) string {
-	if state == nil {
-		return ""
-	}
-
-	ms := state.RootModule()
-	outputs := ms.OutputValues
-	outputBuf := new(bytes.Buffer)
-	if len(outputs) > 0 {
-		if includeHeader {
-			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
-		}
-
-		// Output the outputs in alphabetical order
-		keyLen := 0
-		ks := make([]string, 0, len(outputs))
-		for key := range outputs {
-			ks = append(ks, key)
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			v := outputs[k]
-			if v.Sensitive {
-				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
-				continue
-			}
-
-			result := repl.FormatValue(v.Value, 0)
-			outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, result))
-		}
-	}
-
-	return strings.TrimSpace(outputBuf.String())
 }
 
 const outputInterrupt = `Interrupt received.

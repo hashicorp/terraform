@@ -426,3 +426,456 @@ func TestBlockDecoderSpec(t *testing.T) {
 		})
 	}
 }
+
+func TestAttributeDecoderSpec(t *testing.T) {
+	tests := map[string]struct {
+		Schema    *Attribute
+		TestBody  hcl.Body
+		Want      cty.Value
+		DiagCount int
+	}{
+		"empty": {
+			&Attribute{},
+			hcl.EmptyBody(),
+			cty.NilVal,
+			0,
+		},
+		"nil": {
+			nil,
+			hcl.EmptyBody(),
+			cty.NilVal,
+			0,
+		},
+		"optional string (null)": {
+			&Attribute{
+				Type:     cty.String,
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{}),
+			cty.NullVal(cty.String),
+			0,
+		},
+		"optional string": {
+			&Attribute{
+				Type:     cty.String,
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.StringVal("bar")),
+					},
+				},
+			}),
+			cty.StringVal("bar"),
+			0,
+		},
+		"NestedType with required string": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSingle,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						})),
+					},
+				},
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			}),
+			0,
+		},
+		"NestedType with optional attributes": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSingle,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"bar": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
+							"foo": cty.StringVal("bar"),
+						})),
+					},
+				},
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+				"bar": cty.NullVal(cty.String),
+			}),
+			0,
+		},
+		"NestedType with missing required string": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSingle,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.EmptyObjectVal),
+					},
+				},
+			}),
+			cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+			})),
+			1,
+		},
+		// NestedModes
+		"NestedType NestingModeList valid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("baz"),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("baz")}),
+			}),
+			0,
+		},
+		"NestedType NestingModeList invalid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							// "foo" should be a string, not a list
+							"foo": cty.ListVal([]cty.Value{cty.StringVal("bar"), cty.StringVal("baz")}),
+						})})),
+					},
+				},
+			}),
+			cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{"foo": cty.String}))),
+			1,
+		},
+		"NestedType NestingModeSet valid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSet,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("baz"),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("baz")}),
+			}),
+			0,
+		},
+		"NestedType NestingModeSet invalid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSet,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							// "foo" should be a string, not a list
+							"foo": cty.ListVal([]cty.Value{cty.StringVal("bar"), cty.StringVal("baz")}),
+						})})),
+					},
+				},
+			}),
+			cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{"foo": cty.String}))),
+			1,
+		},
+		"NestedType NestingModeMap valid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingMap,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("bar"),
+							}),
+							"two": cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.StringVal("baz"),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"one": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("bar")}),
+				"two": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("baz")}),
+			}),
+			0,
+		},
+		"NestedType NestingModeMap invalid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingMap,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
+							"one": cty.ObjectVal(map[string]cty.Value{
+								// "foo" should be a string, not a list
+								"foo": cty.ListVal([]cty.Value{cty.StringVal("bar"), cty.StringVal("baz")}),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{"foo": cty.String}))),
+			1,
+		},
+		"deeply NestedType NestingModeList valid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							NestedType: &Object{
+								Nesting: NestingList,
+								Attributes: map[string]*Attribute{
+									"bar": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.ListVal([]cty.Value{
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")}),
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("boz")}),
+								}),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.ListVal([]cty.Value{
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("biz")}),
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("buz")}),
+								}),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("baz")}),
+					cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("boz")}),
+				})}),
+				cty.ObjectVal(map[string]cty.Value{"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("biz")}),
+					cty.ObjectVal(map[string]cty.Value{"bar": cty.StringVal("buz")}),
+				})}),
+			}),
+			0,
+		},
+		"deeply NestedType NestingList invalid": {
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"foo": {
+							NestedType: &Object{
+								Nesting: NestingList,
+								Attributes: map[string]*Attribute{
+									"bar": {
+										Type:     cty.Number,
+										Required: true,
+									},
+								},
+							},
+							Required: true,
+						},
+					},
+				},
+				Optional: true,
+			},
+			hcltest.MockBody(&hcl.BodyContent{
+				Attributes: hcl.Attributes{
+					"attr": {
+						Name: "attr",
+						Expr: hcltest.MockExprLiteral(cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"foo": cty.ListVal([]cty.Value{
+									// bar should be a Number
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.True}),
+									cty.ObjectVal(map[string]cty.Value{"bar": cty.False}),
+								}),
+							}),
+						})),
+					},
+				},
+			}),
+			cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+				"foo": cty.List(cty.Object(map[string]cty.Type{"bar": cty.Number})),
+			}))),
+			1,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := test.Schema.decoderSpec("attr")
+			got, diags := hcldec.Decode(test.TestBody, spec, nil)
+			if len(diags) != test.DiagCount {
+				t.Errorf("wrong number of diagnostics %d; want %d", len(diags), test.DiagCount)
+				for _, diag := range diags {
+					t.Logf("- %s", diag.Error())
+				}
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Logf("[INFO] implied schema is %s", spew.Sdump(hcldec.ImpliedSchema(spec)))
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", dump.Value(got), dump.Value(test.Want))
+			}
+		})
+	}
+
+}
+
+// TestAttributeDecodeSpec_panic is a temporary test which verifies that
+// decoderSpec panics when an invalid Attribute schema is encountered. It will
+// be removed when InternalValidate() is extended to validate Attribute specs
+// (and is used). See the #FIXME in decoderSpec.
+func TestAttributeDecoderSpec_panic(t *testing.T) {
+	attrS := &Attribute{
+		Type: cty.Object(map[string]cty.Type{
+			"nested_attribute": cty.String,
+		}),
+		NestedType: &Object{},
+		Optional:   true,
+	}
+
+	defer func() { recover() }()
+	attrS.decoderSpec("attr")
+	t.Errorf("expected panic")
+}

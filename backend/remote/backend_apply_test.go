@@ -14,10 +14,15 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
@@ -25,15 +30,37 @@ import (
 func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func()) {
 	t.Helper()
 
+	return testOperationApplyWithTimeout(t, configDir, 0)
+}
+
+func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.Duration) (*backend.Operation, func()) {
+	t.Helper()
+
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 
+	streams, _ := terminal.StreamsForTesting(t)
+	view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
+
 	return &backend.Operation{
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		Parallelism:  defaultParallelism,
-		PlanRefresh:  true,
-		Type:         backend.OperationTypeApply,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		Parallelism:     defaultParallelism,
+		PlanRefresh:     true,
+		ShowDiagnostics: testLogDiagnostics(t),
+		StateLocker:     clistate.NewLocker(timeout, view),
+		Type:            backend.OperationTypeApply,
 	}, configCleanup
+}
+
+func testOperationApplyWithDiagnostics(t *testing.T, configDir string) (*backend.Operation, func(), func() tfdiags.Diagnostics) {
+	t.Helper()
+
+	op, cleanup := testOperationApply(t, configDir)
+
+	record, playback := testRecordDiagnostics(t)
+	op.ShowDiagnostics = record
+
+	return op, cleanup, playback
 }
 
 func TestRemote_applyBasic(t *testing.T) {
@@ -131,7 +158,7 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 	}
 	w.Permissions.CanQueueApply = false
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	op.UIOut = b.CLI
@@ -147,7 +174,7 @@ func TestRemote_applyWithoutPermissions(t *testing.T) {
 		t.Fatal("expected apply operation to fail")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "Insufficient rights to apply changes") {
 		t.Fatalf("expected a permissions error, got: %v", errOutput)
 	}
@@ -170,7 +197,7 @@ func TestRemote_applyWithVCS(t *testing.T) {
 		t.Fatalf("error creating named workspace: %v", err)
 	}
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	op.Workspace = "prod"
@@ -188,7 +215,7 @@ func TestRemote_applyWithVCS(t *testing.T) {
 		t.Fatalf("expected plan to be empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "not allowed for workspaces with a VCS") {
 		t.Fatalf("expected a VCS error, got: %v", errOutput)
 	}
@@ -198,7 +225,7 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	op.Parallelism = 3
@@ -214,7 +241,7 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 		t.Fatal("expected apply operation to fail")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "parallelism values are currently not supported") {
 		t.Fatalf("expected a parallelism error, got: %v", errOutput)
 	}
@@ -224,7 +251,7 @@ func TestRemote_applyWithPlan(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	op.PlanFile = &planfile.Reader{}
@@ -243,7 +270,7 @@ func TestRemote_applyWithPlan(t *testing.T) {
 		t.Fatalf("expected plan to be empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "saved plan is currently not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", errOutput)
 	}
@@ -253,7 +280,7 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	op.PlanRefresh = false
@@ -269,7 +296,7 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 		t.Fatal("expected apply operation to fail")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "refresh is currently not supported") {
 		t.Fatalf("expected a refresh error, got: %v", errOutput)
 	}
@@ -317,7 +344,7 @@ func TestRemote_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationPlan(t, "./testdata/plan")
+	op, configCleanup, playback := testOperationPlanWithDiagnostics(t, "./testdata/plan")
 	defer configCleanup()
 
 	// Set the tfe client's RemoteAPIVersion to an empty string, to mimic
@@ -342,7 +369,7 @@ func TestRemote_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 		t.Fatalf("expected plan to be empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "Resource targeting is not supported") {
 		t.Fatalf("expected a targeting error, got: %v", errOutput)
 	}
@@ -352,7 +379,7 @@ func TestRemote_applyWithVariables(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply-variables")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply-variables")
 	defer configCleanup()
 
 	op.Variables = testVariables(terraform.ValueFromNamedFile, "foo", "bar")
@@ -368,7 +395,7 @@ func TestRemote_applyWithVariables(t *testing.T) {
 		t.Fatal("expected apply operation to fail")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "variables are currently not supported") {
 		t.Fatalf("expected a variables error, got: %v", errOutput)
 	}
@@ -378,7 +405,7 @@ func TestRemote_applyNoConfig(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/empty")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/empty")
 	defer configCleanup()
 
 	op.Workspace = backend.DefaultStateName
@@ -396,7 +423,7 @@ func TestRemote_applyNoConfig(t *testing.T) {
 		t.Fatalf("expected plan to be empty")
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "configuration files found") {
 		t.Fatalf("expected configuration files error, got: %v", errOutput)
 	}
@@ -443,7 +470,7 @@ func TestRemote_applyNoApprove(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{
@@ -471,7 +498,7 @@ func TestRemote_applyNoApprove(t *testing.T) {
 		t.Fatalf("expected no unused answers, got: %v", input.answers)
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "Apply discarded") {
 		t.Fatalf("expected an apply discarded error, got: %v", errOutput)
 	}
@@ -865,7 +892,7 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 		t.Fatalf("error creating pending run: %v", err)
 	}
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup := testOperationApplyWithTimeout(t, "./testdata/apply", 50*time.Millisecond)
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{
@@ -873,7 +900,6 @@ func TestRemote_applyLockTimeout(t *testing.T) {
 		"approve": "yes",
 	})
 
-	op.StateLockTimeout = 50 * time.Millisecond
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -1042,7 +1068,7 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply-policy-hard-failed")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply-policy-hard-failed")
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{
@@ -1070,7 +1096,7 @@ func TestRemote_applyPolicyHardFail(t *testing.T) {
 		t.Fatalf("expected an unused answers, got: %v", input.answers)
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+	errOutput := playback().Err().Error()
 	if !strings.Contains(errOutput, "hard failed") {
 		t.Fatalf("expected a policy check error, got: %v", errOutput)
 	}
@@ -1143,7 +1169,7 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply-policy-soft-failed")
+	op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply-policy-soft-failed")
 	defer configCleanup()
 
 	input := testInput(t, map[string]string{})
@@ -1171,9 +1197,9 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 		t.Fatalf("expected no answers, got: %v", input.answers)
 	}
 
-	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if errOutput != "" {
-		t.Fatalf("expected no error in output: %s", errOutput)
+	errOutput := playback().Err()
+	if errOutput != nil {
+		t.Fatalf("expected no error in output: %s", errOutput.Error())
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
@@ -1359,7 +1385,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			}
 
 			// RUN: prepare the apply operation and run it
-			op, configCleanup := testOperationApply(t, "./testdata/apply")
+			op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 			defer configCleanup()
 
 			input := testInput(t, map[string]string{
@@ -1384,7 +1410,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 				if run.Result != backend.OperationFailure {
 					t.Fatalf("expected run to fail, but result was %#v", run.Result)
 				}
-				errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
+				errOutput := playback().Err().Error()
 				if !strings.Contains(errOutput, tc.wantErr) {
 					t.Fatalf("missing error %q\noutput: %s", tc.wantErr, errOutput)
 				}
