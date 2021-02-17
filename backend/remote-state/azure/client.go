@@ -73,7 +73,16 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	ctx := context.TODO()
 
-	if c.snapshot {
+	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
+	if err != nil {
+		if blob.StatusCode != 404 {
+			return err
+		}
+	}
+
+	// only attempt to snapshot blobs that exist
+	// since we also use this function to create a new state
+	if c.snapshot && blob.StatusCode != 404 {
 		snapshotInput := blobs.SnapshotInput{LeaseID: options.LeaseID}
 
 		log.Printf("[DEBUG] Snapshotting existing Blob %q (Container %q / Account %q)", c.keyName, c.containerName, c.accountName)
@@ -82,13 +91,6 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 
 		log.Print("[DEBUG] Created blob snapshot")
-	}
-
-	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
-	if err != nil {
-		if blob.StatusCode != 404 {
-			return err
-		}
 	}
 
 	contentType := "application/json"
@@ -148,24 +150,15 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	}
 	ctx := context.TODO()
 
-	// obtain properties to see if the blob lease is already in use. If the blob doesn't exist, create it
+	// obtain properties to see if the blob lease is already in use.
 	properties, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, blobs.GetPropertiesInput{})
 	if err != nil {
-		// error if we had issues getting the blob
+		// if this is a lock related error
 		if properties.Response.StatusCode != 404 {
 			return "", getLockInfoErr(err)
 		}
-		// if we don't find the blob, we need to build it
-
-		contentType := "application/json"
-		putGOptions := blobs.PutBlockBlobInput{
-			ContentType: &contentType,
-		}
-
-		_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putGOptions)
-		if err != nil {
-			return "", getLockInfoErr(err)
-		}
+		// if blob is not found. this should never happen since we create a new blob in Backend.StateMgr()
+		return "", err
 	}
 
 	// if the blob is already locked then error
