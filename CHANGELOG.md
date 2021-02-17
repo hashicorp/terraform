@@ -1,15 +1,15 @@
-## 0.14.7 (Unreleased)
+## 0.14.7 (February 17, 2021)
 
 ENHANCEMENTS:
 
-* cli: Emit an "already installed" event when a provider is found already installed [GH-27722]
-* provisioner/remote-exec: Can now run in a mode that expects the remote system to be running Windows and excuting commands using the Windows command interpreter, rather than a Unix-style shell. Specify the `target_platform` as `"windows"` in the `connection` block. [GH-26865]
+* cli: Emit an "already installed" event when a provider is found already installed ([#27722](https://github.com/hashicorp/terraform/issues/27722))
+* provisioner/remote-exec: Can now run in a mode that expects the remote system to be running Windows and excuting commands using the Windows command interpreter, rather than a Unix-style shell. Specify the `target_platform` as `"windows"` in the `connection` block. ([#26865](https://github.com/hashicorp/terraform/issues/26865))
 
 BUG FIXES:
 
-* cli: Fix `show -json` not outputting the full module tree when some child modules have no resources [GH-27352]
-* cli: Fix excessively slow rendering of very large multi-line string outputs [GH-27746]
-* cli: Fix missing provider requirements in JSON plan when specified using `required_providers` instead of provider config [GH-27697]
+* cli: Fix `show -json` not outputting the full module tree when some child modules have no resources ([#27352](https://github.com/hashicorp/terraform/issues/27352))
+* cli: Fix excessively slow rendering of very large multi-line string outputs ([#27746](https://github.com/hashicorp/terraform/issues/27746))
+* cli: Fix missing provider requirements in JSON plan when specified using `required_providers` instead of provider config ([#27697](https://github.com/hashicorp/terraform/issues/27697))
 
 ## 0.14.6 (February 04, 2021)
 
