@@ -99,7 +99,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 	}
 
 	p := testProvider("test")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(schema)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 
 	p.UpgradeResourceStateResponse = &providers.UpgradeResourceStateResponse{
 		UpgradedState: cty.ObjectVal(map[string]cty.Value{

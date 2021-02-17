@@ -44,7 +44,7 @@ func TestApply_destroy(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -416,7 +416,7 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -567,7 +567,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

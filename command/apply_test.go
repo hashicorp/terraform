@@ -302,7 +302,7 @@ func TestApply_parallelism(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
 		provider := &terraform.MockProvider{}
-		provider.GetSchemaResponse = &providers.GetSchemaResponse{
+		provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				name + "_instance": {Block: &configschema.Block{}},
 			},
@@ -492,7 +492,7 @@ func TestApply_error(t *testing.T) {
 		resp.PlannedState = cty.ObjectVal(s)
 		return
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1075,7 +1075,7 @@ func TestApply_shutdown(t *testing.T) {
 		return
 	}
 
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1291,7 +1291,7 @@ func TestApply_vars(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1354,7 +1354,7 @@ func TestApply_varFile(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1417,7 +1417,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1479,7 +1479,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	}
 
 	actual := ""
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1777,7 +1777,7 @@ func TestApply_targeted(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1862,8 +1862,8 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func applyFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1884,7 +1884,7 @@ func applyFixtureSchema() *providers.GetSchemaResponse {
 // Terraform Core.
 func applyFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaResponse = applyFixtureSchema()
+	p.GetProviderSchemaResponse = applyFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,

@@ -22,8 +22,8 @@ func NewProvider() providers.Interface {
 }
 
 // GetSchema returns the complete schema for the provider.
-func (p *Provider) GetSchema() providers.GetSchemaResponse {
-	return providers.GetSchemaResponse{
+func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
+	return providers.GetProviderSchemaResponse{
 		DataSources: map[string]providers.Schema{
 			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
 		},
@@ -31,10 +31,10 @@ func (p *Provider) GetSchema() providers.GetSchemaResponse {
 }
 
 // ValidateProviderConfig is used to validate the configuration values.
-func (p *Provider) PrepareProviderConfig(req providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	// At this moment there is nothing to configure for the terraform provider,
 	// so we will happily return without taking any action
-	var res providers.PrepareProviderConfigResponse
+	var res providers.ValidateProviderConfigResponse
 	res.PreparedConfig = req.Config
 	return res
 }
@@ -59,10 +59,10 @@ func (p *Provider) ValidateDataSourceConfig(req providers.ValidateDataSourceConf
 }
 
 // Configure configures and initializes the provider.
-func (p *Provider) Configure(providers.ConfigureRequest) providers.ConfigureResponse {
+func (p *Provider) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	// At this moment there is nothing to configure for the terraform provider,
 	// so we will happily return without taking any action
-	var res providers.ConfigureResponse
+	var res providers.ConfigureProviderResponse
 	return res
 }
 
@@ -126,11 +126,11 @@ func (p *Provider) ImportResourceState(providers.ImportResourceStateRequest) pro
 	panic("unimplemented - terraform_remote_state has no resources")
 }
 
-// ValidateResourceTypeConfig is used to to validate the resource configuration values.
-func (p *Provider) ValidateResourceTypeConfig(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+// ValidateResourceConfig is used to to validate the resource configuration values.
+func (p *Provider) ValidateResourceConfig(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	// At this moment there is nothing to configure for the terraform provider,
 	// so we will happily return without taking any action
-	var res providers.ValidateResourceTypeConfigResponse
+	var res providers.ValidateResourceConfigResponse
 	return res
 }
 

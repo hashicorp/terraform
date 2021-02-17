@@ -54,7 +54,7 @@ var (
 
 func init() {
 	configureDiscoveryRetry()
-	configureRequestTimeout()
+	ConfigureProviderRequestTimeout()
 }
 
 // Client provides methods to query Terraform Registries.
@@ -309,9 +309,9 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 	return resp, fmt.Errorf("the request failed, please try again later%s", errMsg)
 }
 
-// configureRequestTimeout configures the registry client request timeout from
+// ConfigureProviderRequestTimeout configures the registry client request timeout from
 // environment variables
-func configureRequestTimeout() {
+func ConfigureProviderRequestTimeout() {
 	requestTimeout = defaultRequestTimeout
 
 	if v := os.Getenv(registryClientTimeoutEnvName); v != "" {

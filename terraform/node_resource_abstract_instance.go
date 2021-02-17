@@ -627,8 +627,8 @@ func (n *NodeAbstractResourceInstance) plan(
 	// TODO: It would be more correct to validate the config after
 	// ignore_changes has been applied, but the current implementation cannot
 	// exclude computed-only attributes when given the `all` option.
-	validateResp := provider.ValidateResourceTypeConfig(
-		providers.ValidateResourceTypeConfigRequest{
+	validateResp := provider.ValidateResourceConfig(
+		providers.ValidateResourceConfigRequest{
 			TypeName: n.Addr.Resource.Resource.Type,
 			Config:   unmarkedConfigVal,
 		},

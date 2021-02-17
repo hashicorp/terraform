@@ -56,7 +56,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		return nil
 	}
 
-	resp := provider.GetSchema()
+	resp := provider.GetProviderSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return diags
@@ -80,11 +80,11 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	// stripped out before sending this to the provider
 	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 
-	req := providers.PrepareProviderConfigRequest{
+	req := providers.ValidateProviderConfigRequest{
 		Config: unmarkedConfigVal,
 	}
 
-	validateResp := provider.PrepareProviderConfig(req)
+	validateResp := provider.ValidateProviderConfig(req)
 	diags = diags.Append(validateResp.Diagnostics)
 
 	return diags
@@ -98,7 +98,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
 
-	resp := provider.GetSchema()
+	resp := provider.GetProviderSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return diags
@@ -127,13 +127,13 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	// Allow the provider to validate and insert any defaults into the full
 	// configuration.
-	req := providers.PrepareProviderConfigRequest{
+	req := providers.ValidateProviderConfigRequest{
 		Config: unmarkedConfigVal,
 	}
 
-	// PrepareProviderConfig is only used for validation. We are intentionally
+	// ValidateProviderConfig is only used for validation. We are intentionally
 	// ignoring the PreparedConfig field to maintain existing behavior.
-	prepareResp := provider.PrepareProviderConfig(req)
+	prepareResp := provider.ValidateProviderConfig(req)
 	if prepareResp.Diagnostics.HasErrors() {
 		if config == nil {
 			// If there isn't an explicit "provider" block in the configuration,
@@ -155,7 +155,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	// indicate to provider developers that the value is not used.
 	preparedCfg := prepareResp.PreparedConfig
 	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
-		log.Printf("[WARN] PrepareProviderConfig from %q changed the config value, but that value is unused", n.Addr)
+		log.Printf("[WARN] ValidateProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
 	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)

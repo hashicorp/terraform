@@ -81,7 +81,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	p.ReadResourceResponse = &providers.ReadResourceResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		val := req.Config.GetAttr("value")
 		if val.IsNull() || val.AsString() != "bar" {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("incorrect value %#v", val))
@@ -183,8 +183,8 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	}
 	<-run.Done()
 
-	if !p.PrepareProviderConfigCalled {
-		t.Fatal("Prepare provider config should be called")
+	if !p.ValidateProviderConfigCalled {
+		t.Fatal("Validate provider config should be called")
 	}
 
 	checkState(t, b.StateOutPath, `
