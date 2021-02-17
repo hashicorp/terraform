@@ -435,13 +435,11 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			}
 		}
 
-		if err != errRunOverridden { //|| op.AutoApprove {
-			fmt.Println("OMAR 1")
+		if err != errRunOverridden || op.AutoApprove {
 			if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
 				return generalError("Failed to override policy check", err)
 			}
 		}
-		fmt.Println("OMAR 2")
 
 		if b.CLI != nil {
 			b.CLI.Output("------------------------------------------------------------------------")
