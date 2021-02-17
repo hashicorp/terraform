@@ -1102,6 +1102,7 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 		"approve":  "yes",
 	})
 
+	op.AutoApprove = false
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -1138,16 +1139,14 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 	}
 }
 
-func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
+func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
 	op, configCleanup := testOperationApply(t, "./testdata/apply-policy-soft-failed")
 	defer configCleanup()
 
-	input := testInput(t, map[string]string{
-		"override": "override",
-	})
+	input := testInput(t, map[string]string{})
 
 	op.AutoApprove = true
 	op.UIIn = input
@@ -1160,20 +1159,21 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 	}
 
 	<-run.Done()
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to succeed")
 	}
 
-	if len(input.answers) != 1 {
-		t.Fatalf("expected an unused answers, got: %v", input.answers)
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to not be empty, plan opertion completed without error")
+	}
+
+	if len(input.answers) != 0 {
+		t.Fatalf("expected no answers, got: %v", input.answers)
 	}
 
 	errOutput := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(errOutput, "soft failed") {
-		t.Fatalf("expected a policy check error, got: %v", errOutput)
+	if errOutput != "" {
+		t.Fatalf("expected no error in output: %s", errOutput)
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
@@ -1186,8 +1186,8 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 	if !strings.Contains(output, "Sentinel Result: false") {
 		t.Fatalf("expected policy check result in output: %s", output)
 	}
-	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-		t.Fatalf("unexpected apply summery in output: %s", output)
+	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply to complete in output: %s", output)
 	}
 }
 

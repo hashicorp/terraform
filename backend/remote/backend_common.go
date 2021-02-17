@@ -415,29 +415,33 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
-				op.AutoApprove || !pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
+				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
 				return fmt.Errorf(msgPrefix + " soft failed.")
 			}
 		default:
 			return fmt.Errorf("Unknown or unexpected policy state: %s", pc.Status)
 		}
 
-		opts := &terraform.InputOpts{
-			Id:          "override",
-			Query:       "\nDo you want to override the soft failed policy check?",
-			Description: "Only 'override' will be accepted to override.",
+		if !op.AutoApprove {
+			opts := &terraform.InputOpts{
+				Id:          "override",
+				Query:       "\nDo you want to override the soft failed policy check?",
+				Description: "Only 'override' will be accepted to override.",
+			}
+
+			err = b.confirm(stopCtx, op, opts, r, "override")
+			if err != nil && err != errRunOverridden {
+				return err
+			}
 		}
 
-		err = b.confirm(stopCtx, op, opts, r, "override")
-		if err != nil && err != errRunOverridden {
-			return err
-		}
-
-		if err != errRunOverridden {
+		if err != errRunOverridden { //|| op.AutoApprove {
+			fmt.Println("OMAR 1")
 			if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
 				return generalError("Failed to override policy check", err)
 			}
 		}
+		fmt.Println("OMAR 2")
 
 		if b.CLI != nil {
 			b.CLI.Output("------------------------------------------------------------------------")
