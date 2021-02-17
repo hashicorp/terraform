@@ -36,6 +36,7 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
+* backend/azure: azure state refreshes outside of grabbing the lock ([#26561](https://github.com/hashicorp/terraform/issues/26561))
 * cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. ([#26509](https://github.com/hashicorp/terraform/issues/26509))
 * cli: TF_LOG levels other than `trace` will now work correctly ([#26632](https://github.com/hashicorp/terraform/issues/26632))
 * cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` ([#26685](https://github.com/hashicorp/terraform/issues/26685))
