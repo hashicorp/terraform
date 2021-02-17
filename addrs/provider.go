@@ -272,7 +272,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 	ret.Hostname = DefaultRegistryHost
 
 	if len(parts) == 1 {
-		return NewDefaultProvider(parts[0]), diags
+		return ImpliedProviderForUnqualifiedType(parts[0]), diags
 	}
 
 	if len(parts) >= 2 {
