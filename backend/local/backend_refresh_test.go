@@ -8,9 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
@@ -30,8 +33,9 @@ func TestLocal_refresh(t *testing.T) {
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
+	defer done(t)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -94,8 +98,9 @@ func TestLocal_refreshInput(t *testing.T) {
 	b.OpInput = true
 	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
 
-	op, configCleanup := testOperationRefresh(t, "./testdata/refresh-var-unset")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh-var-unset")
 	defer configCleanup()
+	defer done(t)
 	op.UIIn = b.ContextOpts.UIInput
 
 	run, err := b.Operation(context.Background(), op)
@@ -128,8 +133,9 @@ func TestLocal_refreshValidate(t *testing.T) {
 	// Enable validation
 	b.OpValidation = true
 
-	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
+	defer done(t)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -174,8 +180,9 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	// Enable validation
 	b.OpValidation = true
 
-	op, configCleanup := testOperationRefresh(t, "./testdata/refresh-provider-config")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh-provider-config")
 	defer configCleanup()
+	defer done(t)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -200,8 +207,9 @@ func TestLocal_refresh_context_error(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 	testStateFile(t, b.StatePath, testRefreshState())
-	op, configCleanup := testOperationRefresh(t, "./testdata/apply")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/apply")
 	defer configCleanup()
+	defer done(t)
 
 	// we coerce a failure in Context() by omitting the provider schema
 
@@ -228,8 +236,9 @@ func TestLocal_refreshEmptyState(t *testing.T) {
 		"id": cty.StringVal("yes"),
 	})}
 
-	op, configCleanup := testOperationRefresh(t, "./testdata/refresh")
+	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
+	defer done(t)
 
 	record, playback := testRecordDiagnostics(t)
 	op.ShowDiagnostics = record
@@ -252,10 +261,13 @@ func TestLocal_refreshEmptyState(t *testing.T) {
 	assertBackendStateUnlocked(t, b)
 }
 
-func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func()) {
+func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
 	return &backend.Operation{
 		Type:            backend.OperationTypeRefresh,
@@ -263,7 +275,8 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 		ConfigLoader:    configLoader,
 		ShowDiagnostics: testLogDiagnostics(t),
 		StateLocker:     clistate.NewNoopLocker(),
-	}, configCleanup
+		View:            view,
+	}, configCleanup, done
 }
 
 // testRefreshState is just a common state that we use for testing refresh.

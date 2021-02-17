@@ -112,3 +112,30 @@ const helpPrompt = `
 For more help on using this command, run:
   terraform %s -help
 `
+
+// outputColumns returns the number of text character cells any non-error
+// output should be wrapped to.
+//
+// This is the number of columns to use if you are calling v.streams.Print or
+// related functions.
+func (v *View) outputColumns() int {
+	return v.streams.Stdout.Columns()
+}
+
+// errorColumns returns the number of text character cells any error
+// output should be wrapped to.
+//
+// This is the number of columns to use if you are calling v.streams.Eprint
+// or related functions.
+func (v *View) errorColumns() int {
+	return v.streams.Stderr.Columns()
+}
+
+// outputHorizRule will call v.streams.Println with enough horizontal line
+// characters to fill an entire row of output.
+//
+// If UI color is enabled, the rule will get a dark grey coloring to try to
+// visually de-emphasize it.
+func (v *View) outputHorizRule() {
+	v.streams.Println(format.HorizontalRule(v.colorize, v.outputColumns()))
+}

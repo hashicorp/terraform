@@ -155,8 +155,6 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 	b := backendLocal.NewWithBackend(remote)
 
-	b.CLI = remote.CLI
-
 	// Add a test provider to the local backend.
 	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{

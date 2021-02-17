@@ -1,14 +1,13 @@
 package local
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -96,9 +95,7 @@ func (b *Local) opApply(
 			}
 
 			if !trivialPlan {
-				// Display the plan of what we are going to apply/destroy.
-				b.renderPlan(plan, runningOp.State, tfCtx.Schemas())
-				b.CLI.Output("")
+				op.View.Plan(plan, runningOp.State, tfCtx.Schemas())
 			}
 
 			// We'll show any accumulated warnings before we display the prompt,
@@ -119,11 +116,7 @@ func (b *Local) opApply(
 				return
 			}
 			if v != "yes" {
-				if op.Destroy {
-					b.CLI.Info("Destroy cancelled.")
-				} else {
-					b.CLI.Info("Apply cancelled.")
-				}
+				op.View.Cancelled(op.Destroy)
 				runningOp.Result = backend.OperationFailure
 				return
 			}
@@ -145,7 +138,7 @@ func (b *Local) opApply(
 		applyState = tfCtx.State()
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
 		return
 	}
 
@@ -161,7 +154,7 @@ func (b *Local) opApply(
 		}
 		stateFile.State = applyState
 
-		diags = diags.Append(b.backupStateForError(stateFile, err))
+		diags = diags.Append(b.backupStateForError(stateFile, err, op.View))
 		op.ReportResult(runningOp, diags)
 		return
 	}
@@ -183,78 +176,77 @@ func (b *Local) opApply(
 // to local disk to help the user recover. This is a "last ditch effort" sort
 // of thing, so we really don't want to end up in this codepath; we should do
 // everything we possibly can to get the state saved _somewhere_.
-func (b *Local) backupStateForError(stateFile *statefile.File, err error) error {
-	b.CLI.Error(fmt.Sprintf("Failed to save state: %s\n", err))
+func (b *Local) backupStateForError(stateFile *statefile.File, err error, view views.Operation) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to save state",
+		fmt.Sprintf("Error saving state: %s", err),
+	))
 
 	local := statemgr.NewFilesystem("errored.tfstate")
 	writeErr := local.WriteStateForMigration(stateFile, true)
 	if writeErr != nil {
-		b.CLI.Error(fmt.Sprintf(
-			"Also failed to create local state file for recovery: %s\n\n", writeErr,
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to create local state file",
+			fmt.Sprintf("Error creating local state file for recovery: %s", writeErr),
 		))
+
 		// To avoid leaving the user with no state at all, our last resort
 		// is to print the JSON state out onto the terminal. This is an awful
 		// UX, so we should definitely avoid doing this if at all possible,
 		// but at least the user has _some_ path to recover if we end up
 		// here for some reason.
-		stateBuf := new(bytes.Buffer)
-		jsonErr := statefile.Write(stateFile, stateBuf)
-		if jsonErr != nil {
-			b.CLI.Error(fmt.Sprintf(
-				"Also failed to JSON-serialize the state to print it: %s\n\n", jsonErr,
+		if dumpErr := view.EmergencyDumpState(stateFile); dumpErr != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to serialize state",
+				fmt.Sprintf(stateWriteFatalErrorFmt, dumpErr),
 			))
-			return errors.New(stateWriteFatalError)
 		}
 
-		b.CLI.Output(stateBuf.String())
-
-		return errors.New(stateWriteConsoleFallbackError)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to persist state to backend",
+			stateWriteConsoleFallbackError,
+		))
+		return diags
 	}
 
-	return errors.New(stateWriteBackedUpError)
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Failed to persist state to backend",
+		stateWriteBackedUpError,
+	))
+
+	return diags
 }
 
-const stateWriteBackedUpError = `Failed to persist state to backend.
+const stateWriteBackedUpError = `The error shown above has prevented Terraform from writing the updated state to the configured backend. To allow for recovery, the state has been written to the file "errored.tfstate" in the current working directory.
 
-The error shown above has prevented Terraform from writing the updated state
-to the configured backend. To allow for recovery, the state has been written
-to the file "errored.tfstate" in the current working directory.
-
-Running "terraform apply" again at this point will create a forked state,
-making it harder to recover.
+Running "terraform apply" again at this point will create a forked state, making it harder to recover.
 
 To retry writing this state, use the following command:
     terraform state push errored.tfstate
 `
 
-const stateWriteConsoleFallbackError = `Failed to persist state to backend.
-
-The errors shown above prevented Terraform from writing the updated state to
+const stateWriteConsoleFallbackError = `The errors shown above prevented Terraform from writing the updated state to
 the configured backend and from creating a local backup file. As a fallback,
 the raw state data is printed above as a JSON object.
 
-To retry writing this state, copy the state data (from the first { to the
-last } inclusive) and save it into a local file called errored.tfstate, then
-run the following command:
+To retry writing this state, copy the state data (from the first { to the last } inclusive) and save it into a local file called errored.tfstate, then run the following command:
     terraform state push errored.tfstate
 `
 
-const stateWriteFatalError = `Failed to save state after apply.
+const stateWriteFatalErrorFmt = `Failed to save state after apply.
 
-A catastrophic error has prevented Terraform from persisting the state file
-or creating a backup. Unfortunately this means that the record of any resources
-created during this apply has been lost, and such resources may exist outside
-of Terraform's management.
+Error serializing state: %s
 
-For resources that support import, it is possible to recover by manually
-importing each resource using its id from the target system.
+A catastrophic error has prevented Terraform from persisting the state file or creating a backup. Unfortunately this means that the record of any resources created during this apply has been lost, and such resources may exist outside of Terraform's management.
+
+For resources that support import, it is possible to recover by manually importing each resource using its id from the target system.
 
 This is a serious bug in Terraform and should be reported.
-`
-
-const earlyStateWriteErrorFmt = `Error saving current state: %s
-
-Terraform encountered an error attempting to save the state before cancelling
-the current operation. Once the operation is complete another attempt will be
-made to save the final state.
 `

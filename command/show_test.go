@@ -147,7 +147,7 @@ func TestShow_plan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
@@ -164,7 +164,7 @@ func TestShow_plan(t *testing.T) {
 	}
 
 	want := `Terraform will perform the following actions`
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if !strings.Contains(got, want) {
 		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}
@@ -174,7 +174,7 @@ func TestShow_planWithChanges(t *testing.T) {
 	planPathWithChanges := showFixturePlanFile(t, plans.DeleteThenCreate)
 
 	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
@@ -192,7 +192,7 @@ func TestShow_planWithChanges(t *testing.T) {
 	}
 
 	want := `test_instance.foo must be replaced`
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if !strings.Contains(got, want) {
 		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}

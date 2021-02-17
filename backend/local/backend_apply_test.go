@@ -9,13 +9,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -33,7 +35,7 @@ func TestLocal_applyBasic(t *testing.T) {
 		"ami": cty.StringVal("bar"),
 	})}
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -64,6 +66,9 @@ test_instance.foo:
   ami = bar
 `)
 
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
@@ -73,7 +78,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
-	op, configCleanup := testOperationApply(t, "./testdata/empty")
+	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -95,6 +100,10 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
+
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
@@ -104,7 +113,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
-	op, configCleanup := testOperationApply(t, "./testdata/empty")
+	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 	op.Destroy = true
 
@@ -122,6 +131,10 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	}
 
 	checkState(t, b.StateOutPath, `<no state>`)
+
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
 }
 
 func TestLocal_applyError(t *testing.T) {
@@ -166,7 +179,7 @@ func TestLocal_applyError(t *testing.T) {
 		}
 	}
 
-	op, configCleanup := testOperationApply(t, "./testdata/apply-error")
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-error")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -187,6 +200,10 @@ test_instance.foo:
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
+
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
@@ -209,11 +226,13 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 	defer os.Chdir(wd)
 
-	op, configCleanup := testOperationApply(t, wd+"/testdata/apply")
+	op, configCleanup, done := testOperationApply(t, wd+"/testdata/apply")
 	defer configCleanup()
 
+	record, playback := testRecordDiagnostics(t)
+	op.ShowDiagnostics = record
+
 	b.Backend = &backendWithFailingState{}
-	b.CLI = new(cli.MockUi)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -224,9 +243,9 @@ func TestLocal_applyBackendFail(t *testing.T) {
 		t.Fatalf("apply succeeded; want error")
 	}
 
-	msgStr := b.CLI.(*cli.MockUi).ErrorWriter.String()
-	if !strings.Contains(msgStr, "Failed to save state: fake failure") {
-		t.Fatalf("missing \"fake failure\" message in output:\n%s", msgStr)
+	diagErr := playback().Err().Error()
+	if !strings.Contains(diagErr, "Error saving state: fake failure") {
+		t.Fatalf("missing \"fake failure\" message in diags:\n%s", diagErr)
 	}
 
 	// The fallback behavior should've created a file errored.tfstate in the
@@ -240,6 +259,10 @@ test_instance.foo:
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
+
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
+	}
 }
 
 func TestLocal_applyRefreshFalse(t *testing.T) {
@@ -249,7 +272,7 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	op, configCleanup := testOperationApply(t, "./testdata/plan")
+	op, configCleanup, done := testOperationApply(t, "./testdata/plan")
 	defer configCleanup()
 
 	run, err := b.Operation(context.Background(), op)
@@ -263,6 +286,10 @@ func TestLocal_applyRefreshFalse(t *testing.T) {
 
 	if p.ReadResourceCalled {
 		t.Fatal("ReadResource should not be called")
+	}
+
+	if errOutput := done(t).Stderr(); errOutput != "" {
+		t.Fatalf("unexpected error output:\n%s", errOutput)
 	}
 }
 
@@ -284,10 +311,13 @@ func (s failingState) WriteState(state *states.State) error {
 	return errors.New("fake failure")
 }
 
-func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func()) {
+func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
 	t.Helper()
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
 	return &backend.Operation{
 		Type:            backend.OperationTypeApply,
@@ -295,7 +325,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 		ConfigLoader:    configLoader,
 		ShowDiagnostics: testLogDiagnostics(t),
 		StateLocker:     clistate.NewNoopLocker(),
-	}, configCleanup
+		View:            view,
+	}, configCleanup, done
 }
 
 // applyFixtureSchema returns a schema suitable for processing the

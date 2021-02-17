@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -199,6 +201,7 @@ func (c *ImportCommand) Run(args []string) int {
 			return 1
 		}
 	}
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	// Check remote Terraform version is compatible
 	remoteVersionDiags := c.remoteBackendVersionCheck(b, opReq.Workspace)

@@ -176,6 +176,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.PlanRefresh = refresh
 	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeApply
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
