@@ -17,12 +17,10 @@ import (
 
 type WorkspaceNewCommand struct {
 	Meta
-	LegacyName bool
 }
 
 func (c *WorkspaceNewCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	var stateLock bool
 	var stateLockTimeout time.Duration

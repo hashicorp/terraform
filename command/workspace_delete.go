@@ -15,12 +15,10 @@ import (
 
 type WorkspaceDeleteCommand struct {
 	Meta
-	LegacyName bool
 }
 
 func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	var force bool
 	var stateLock bool

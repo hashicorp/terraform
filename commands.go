@@ -130,37 +130,32 @@ func initCommands(
 		},
 
 		"env": func() (cli.Command, error) {
-			return &command.WorkspaceCommand{
-				Meta:       meta,
-				LegacyName: true,
+			return &command.EnvErrorCommand{
+				Meta: meta,
 			}, nil
 		},
 
 		"env list": func() (cli.Command, error) {
-			return &command.WorkspaceListCommand{
-				Meta:       meta,
-				LegacyName: true,
+			return &command.EnvErrorCommand{
+				Meta: meta,
 			}, nil
 		},
 
 		"env select": func() (cli.Command, error) {
-			return &command.WorkspaceSelectCommand{
-				Meta:       meta,
-				LegacyName: true,
+			return &command.EnvErrorCommand{
+				Meta: meta,
 			}, nil
 		},
 
 		"env new": func() (cli.Command, error) {
-			return &command.WorkspaceNewCommand{
-				Meta:       meta,
-				LegacyName: true,
+			return &command.EnvErrorCommand{
+				Meta: meta,
 			}, nil
 		},
 
 		"env delete": func() (cli.Command, error) {
-			return &command.WorkspaceDeleteCommand{
-				Meta:       meta,
-				LegacyName: true,
+			return &command.EnvErrorCommand{
+				Meta: meta,
 			}, nil
 		},
 

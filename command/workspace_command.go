@@ -11,12 +11,10 @@ import (
 // which allow multiple distinct states and variables from a single config.
 type WorkspaceCommand struct {
 	Meta
-	LegacyName bool
 }
 
 func (c *WorkspaceCommand) Run(args []string) int {
 	c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -46,12 +44,8 @@ func validWorkspaceName(name string) bool {
 	return name == url.PathEscape(name)
 }
 
-func envCommandShowWarning(ui cli.Ui, show bool) {
-	if !show {
-		return
-	}
-
-	ui.Warn(`Warning: the "terraform env" family of commands is deprecated.
+func envCommandError(ui cli.Ui) {
+	ui.Error(`Error: the "terraform env" family of commands has been removed.
 
 "Workspace" is now the preferred term for what earlier Terraform versions
 called "environment", to reduce ambiguity caused by the latter term colliding

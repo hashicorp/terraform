@@ -11,12 +11,10 @@ import (
 
 type WorkspaceListCommand struct {
 	Meta
-	LegacyName bool
 }
 
 func (c *WorkspaceListCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
