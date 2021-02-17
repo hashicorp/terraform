@@ -46,33 +46,6 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 	}
 }
 
-// mockProviderWithProviderSchema is a test helper to create a mock provider
-// from an existing ProviderSchema.
-func mockProviderWithProviderSchema(providerSchema ProviderSchema) *MockProvider {
-	p := &MockProvider{
-		GetSchemaResponse: &providers.GetSchemaResponse{
-			Provider: providers.Schema{
-				Block: providerSchema.Provider,
-			},
-			ResourceTypes: map[string]providers.Schema{},
-			DataSources:   map[string]providers.Schema{},
-		},
-	}
-
-	for name, schema := range providerSchema.ResourceTypes {
-		p.GetSchemaResponse.ResourceTypes[name] = providers.Schema{
-			Block:   schema,
-			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
-		}
-	}
-
-	for name, schema := range providerSchema.DataSources {
-		p.GetSchemaResponse.DataSources[name] = providers.Schema{Block: schema}
-	}
-
-	return p
-}
-
 // getSchemaResponseFromProviderSchema is a test helper to convert a
 // ProviderSchema to a GetSchemaResponse for use when building a mock provider.
 func getSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetSchemaResponse {
