@@ -75,7 +75,7 @@ func TestConfigureRegistryClientTimeout(t *testing.T) {
 		}(os.Getenv(registryClientTimeoutEnvName))
 		os.Setenv(registryClientTimeoutEnvName, "20")
 
-		ConfigureProviderRequestTimeout()
+		configureRequestTimeout()
 		expected := 20 * time.Second
 		if requestTimeout != expected {
 			t.Fatalf("expected timeout %q, got %q",

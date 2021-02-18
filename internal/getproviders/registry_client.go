@@ -52,7 +52,7 @@ var (
 
 func init() {
 	configureDiscoveryRetry()
-	ConfigureProviderRequestTimeout()
+	configureRequestTimeout()
 }
 
 var SupportedPluginProtocols = MustParseVersionConstraints("~> 5")
@@ -492,9 +492,9 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 	return resp, fmt.Errorf("the request failed, please try again later%s", errMsg)
 }
 
-// ConfigureProviderRequestTimeout configures the registry client request timeout from
+// configureRequestTimeout configures the registry client request timeout from
 // environment variables
-func ConfigureProviderRequestTimeout() {
+func configureRequestTimeout() {
 	requestTimeout = defaultRequestTimeout
 
 	if v := os.Getenv(registryClientTimeoutEnvName); v != "" {
