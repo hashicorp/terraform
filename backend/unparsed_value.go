@@ -77,7 +77,7 @@ func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Warning,
 						"Value for undeclared variable",
-						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. If you meant to use this value, add a \"variable\" block to the configuration.\n\nIf you wish to provide certain \"global\" settings to all configurations in your organization, use TF_VAR_... environment variables to set these instead to silence this warning, or use the -compact-warnings option to show warnings in a compact way.", name, val.SourceRange.Filename),
+						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. If you meant to use this value, add a \"variable\" block to the configuration.\n\nTo silence these warnings, use TF_VAR_... environment variables to provide certain \"global\" settings to all configurations in your organization. To reduce the verbosity of these warnings, use the -compact-warnings option.", name, val.SourceRange.Filename),
 					))
 				}
 				seenUndeclaredInFile++
