@@ -6,36 +6,39 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/dag"
 )
+
+func testProviderTransformerGraph(t *testing.T, cfg *configs.Config) *Graph {
+	t.Helper()
+
+	g := &Graph{Path: addrs.RootModuleInstance}
+	ct := &ConfigTransformer{Config: cfg}
+	if err := ct.Transform(g); err != nil {
+		t.Fatal(err)
+	}
+	arct := &AttachResourceConfigTransformer{Config: cfg}
+	if err := arct.Transform(g); err != nil {
+		t.Fatal(err)
+	}
+
+	return g
+}
 
 func TestProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	transform := &ProviderTransformer{}
-	if err := transform.Transform(&g); err != nil {
+	if err := transform.Transform(g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -49,23 +52,9 @@ func TestProviderTransformer(t *testing.T) {
 func TestProviderTransformer_ImportModuleChild(t *testing.T) {
 	mod := testModule(t, "import-module")
 
-	g := Graph{Path: addrs.RootModuleInstance}
+	g := testProviderTransformerGraph(t, mod)
 
 	{
-		{
-			tf := &ConfigTransformer{Config: mod}
-			if err := tf.Transform(&g); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		}
-
-		{
-			transform := &AttachResourceConfigTransformer{Config: mod}
-			if err := transform.Transform(&g); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		}
-
 		tf := &ImportStateTransformer{
 			Config: mod,
 			Targets: []*ImportTarget{
@@ -83,7 +72,7 @@ func TestProviderTransformer_ImportModuleChild(t *testing.T) {
 			},
 		}
 
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		t.Logf("graph after ImportStateTransformer:\n%s", g.String())
@@ -91,7 +80,7 @@ func TestProviderTransformer_ImportModuleChild(t *testing.T) {
 
 	{
 		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		t.Logf("graph after MissingProviderTransformer:\n%s", g.String())
@@ -99,7 +88,7 @@ func TestProviderTransformer_ImportModuleChild(t *testing.T) {
 
 	{
 		tf := &ProviderTransformer{}
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 		t.Logf("graph after ProviderTransformer:\n%s", g.String())
@@ -117,30 +106,16 @@ func TestProviderTransformer_fqns(t *testing.T) {
 	for _, mod := range []string{"fqns", "fqns-module"} {
 		mod := testModule(t, fmt.Sprintf("transform-provider-%s", mod))
 
-		g := Graph{Path: addrs.RootModuleInstance}
-		{
-			tf := &ConfigTransformer{Config: mod}
-			if err := tf.Transform(&g); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		}
-
-		{
-			transform := &AttachResourceConfigTransformer{Config: mod}
-			if err := transform.Transform(&g); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		}
-
+		g := testProviderTransformerGraph(t, mod)
 		{
 			transform := &MissingProviderTransformer{Providers: []string{"aws"}, Config: mod}
-			if err := transform.Transform(&g); err != nil {
+			if err := transform.Transform(g); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
 
 		transform := &ProviderTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 
@@ -154,39 +129,25 @@ func TestProviderTransformer_fqns(t *testing.T) {
 
 func TestCloseProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
-
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
+	g := testProviderTransformerGraph(t, mod)
 
 	{
 		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &ProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &CloseProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -201,9 +162,8 @@ func TestCloseProviderTransformer(t *testing.T) {
 func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
-	g := Graph{Path: addrs.RootModuleInstance}
+	g := testProviderTransformerGraph(t, mod)
 	transforms := []GraphTransformer{
-		&ConfigTransformer{Config: mod},
 		&MissingProviderTransformer{Providers: []string{"aws"}},
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
@@ -217,7 +177,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	}
 
 	for _, tr := range transforms {
-		if err := tr.Transform(&g); err != nil {
+		if err := tr.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -232,38 +192,24 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 func TestMissingProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-missing")
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		transform := &MissingProviderTransformer{Providers: []string{"aws", "foo", "bar"}}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &ProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &CloseProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -280,30 +226,16 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		transform := TransformProviders([]string{"aws", "foo", "bar"}, concrete, mod)
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 	{
 		transform := &TransitiveReductionTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -318,45 +250,31 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 func TestPruneProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-prune")
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &AttachResourceConfigTransformer{Config: mod}
-		if err := transform.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		transform := &MissingProviderTransformer{Providers: []string{"foo"}}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &ProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &CloseProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
 
 	{
 		transform := &PruneProviderTransformer{}
-		if err := transform.Transform(&g); err != nil {
+		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -373,23 +291,10 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 	mod := testModule(t, "transform-provider-inherit")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		tf := TransformProviders([]string{"aws"}, concrete, mod)
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -406,23 +311,10 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	mod := testModule(t, "transform-provider-grandchild-inherit")
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: addrs.RootModuleInstance}
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		tf := TransformProviders([]string{"aws"}, concrete, mod)
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -453,24 +345,10 @@ resource "test_object" "a" {
 	})
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
@@ -545,24 +423,10 @@ resource "test_object" "a" {
 	})
 	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
 
-	g := Graph{Path: addrs.RootModuleInstance}
-
-	{
-		tf := &ConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		tf := &AttachResourceConfigTransformer{Config: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
+	g := testProviderTransformerGraph(t, mod)
 	{
 		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
-		if err := tf.Transform(&g); err != nil {
+		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
 	}
