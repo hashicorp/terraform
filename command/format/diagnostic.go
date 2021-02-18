@@ -38,7 +38,7 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 
 	// these leftRule* variables are markers for the beginning of the lines
 	// containing the diagnostic that are intended to help sighted users
-	// better understand the information heirarchy when diagnostics appear
+	// better understand the information hierarchy when diagnostics appear
 	// alongside other information or alongside other diagnostics.
 	//
 	// Without this, it seems (based on folks sharing incomplete messages when
