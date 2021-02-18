@@ -227,7 +227,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				break
 			}
 
-			// see if this in  an inherited provider
+			// see if this is a proxy provider pointing to another concrete config
 			if p, ok := target.(*graphNodeProxyProvider); ok {
 				g.Remove(p)
 				target = p.Target()
@@ -708,10 +708,13 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 
 		concreteProvider := t.providers[fullName]
 
-		// replace the concrete node with the provider passed in
-		if concreteProvider != nil && t.proxiable[fullName] {
-			g.Replace(concreteProvider, proxy)
-			t.providers[fullName] = proxy
+		// replace the concrete node with the provider passed in only if it is
+		// proxyable
+		if concreteProvider != nil {
+			if t.proxiable[fullName] {
+				g.Replace(concreteProvider, proxy)
+				t.providers[fullName] = proxy
+			}
 			continue
 		}
 
