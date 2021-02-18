@@ -88,7 +88,7 @@ which Terraform will generate automatically after running `terraform init`
 in the same directory as your configuration's root module. This file includes
 the specific version numbers selected for each provider, and also includes
 the package checksums for the selected version to help ensure that the
-provider packages you were depended on are not changed in-place upstream,
+provider packages you depend on are not changed in-place upstream,
 whether accidentally or maliciously.
 
 This new behavior is designed so that for most users it will not require
