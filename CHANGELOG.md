@@ -1,5 +1,9 @@
 ## 0.14.8 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix error when using sensitive values in provisioner configuration [GH-27819]
+
 ## 0.14.7 (February 17, 2021)
 
 ENHANCEMENTS:
