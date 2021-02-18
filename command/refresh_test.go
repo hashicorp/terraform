@@ -47,7 +47,7 @@ func TestRefresh(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -146,7 +146,7 @@ func TestRefresh_lockedState(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -192,7 +192,7 @@ func TestRefresh_cwd(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -272,7 +272,7 @@ func TestRefresh_defaultState(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -342,7 +342,7 @@ func TestRefresh_outPath(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -402,7 +402,7 @@ func TestRefresh_var(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	args := []string{
 		"-var", "foo=bar",
@@ -412,10 +412,10 @@ func TestRefresh_var(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -440,7 +440,7 @@ func TestRefresh_varFile(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -455,10 +455,10 @@ func TestRefresh_varFile(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -483,7 +483,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -497,10 +497,10 @@ func TestRefresh_varFileDefault(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -531,7 +531,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -597,7 +597,7 @@ func TestRefresh_backup(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -668,7 +668,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -734,7 +734,7 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -773,7 +773,7 @@ func TestRefresh_targeted(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -859,8 +859,8 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
-func refreshFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func refreshFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -877,8 +877,8 @@ func refreshFixtureSchema() *providers.GetSchemaResponse {
 // refreshVarFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh-var . This schema should be
 // assigned to a mock provider named "test".
-func refreshVarFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func refreshVarFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{

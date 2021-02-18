@@ -44,7 +44,7 @@ func TestImport(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -99,7 +99,7 @@ func TestImport_providerConfig(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -119,22 +119,22 @@ func TestImport_providerConfig(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 		configured = true
 
 		cfg := req.Config
 		if !cfg.Type().HasAttribute("foo") {
-			return providers.ConfigureResponse{
+			return providers.ConfigureProviderResponse{
 				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("configuration has no foo argument")),
 			}
 		}
 		if got, want := cfg.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
-			return providers.ConfigureResponse{
+			return providers.ConfigureProviderResponse{
 				Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("foo argument is %#v, but want %#v", got, want)),
 			}
 		}
 
-		return providers.ConfigureResponse{}
+		return providers.ConfigureProviderResponse{}
 	}
 
 	args := []string{
@@ -213,7 +213,7 @@ func TestImport_remoteState(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -233,13 +233,13 @@ func TestImport_remoteState(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
 			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-		return providers.ConfigureResponse{
+		return providers.ConfigureProviderResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -369,7 +369,7 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -389,13 +389,13 @@ func TestImport_providerConfigWithVar(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
 			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-		return providers.ConfigureResponse{
+		return providers.ConfigureProviderResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -449,7 +449,7 @@ func TestImport_providerConfigWithDataSource(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -514,7 +514,7 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -534,13 +534,13 @@ func TestImport_providerConfigWithVarDefault(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
 			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-		return providers.ConfigureResponse{
+		return providers.ConfigureProviderResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -593,7 +593,7 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -613,13 +613,13 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	}
 
 	configured := false
-	p.ConfigureFn = func(req providers.ConfigureRequest) providers.ConfigureResponse {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 		var diags tfdiags.Diagnostics
 		configured = true
 		if got, want := req.Config.GetAttr("foo"), cty.StringVal("bar"); !want.RawEquals(got) {
 			diags = diags.Append(fmt.Errorf("wrong \"foo\" value %#v; want %#v", got, want))
 		}
-		return providers.ConfigureResponse{
+		return providers.ConfigureProviderResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -673,7 +673,7 @@ func TestImport_allowMissingResourceConfig(t *testing.T) {
 			},
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -808,7 +808,7 @@ func TestImportModuleVarFile(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -883,7 +883,7 @@ func TestImportModuleInputVariableEvaluation(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

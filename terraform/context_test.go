@@ -401,7 +401,7 @@ func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanRes
 
 func testProvider(prefix string) *MockProvider {
 	p := new(MockProvider)
-	p.GetSchemaResponse = testProviderSchema(prefix)
+	p.GetProviderSchemaResponse = testProviderSchema(prefix)
 
 	return p
 }
@@ -461,8 +461,8 @@ func testCheckDeadlock(t *testing.T, f func()) {
 	}
 }
 
-func testProviderSchema(name string) *providers.GetSchemaResponse {
-	return getSchemaResponseFromProviderSchema(&ProviderSchema{
+func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
+	return getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"region": {

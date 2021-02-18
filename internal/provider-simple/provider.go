@@ -12,7 +12,7 @@ import (
 )
 
 type simple struct {
-	schema providers.GetSchemaResponse
+	schema providers.GetProviderSchemaResponse
 }
 
 func Provider() providers.Interface {
@@ -32,7 +32,7 @@ func Provider() providers.Interface {
 	}
 
 	return simple{
-		schema: providers.GetSchemaResponse{
+		schema: providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: nil,
 			},
@@ -46,15 +46,15 @@ func Provider() providers.Interface {
 	}
 }
 
-func (s simple) GetSchema() providers.GetSchemaResponse {
+func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
 }
 
-func (s simple) PrepareProviderConfig(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+func (s simple) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	return resp
 }
 
-func (s simple) ValidateResourceTypeConfig(req providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+func (s simple) ValidateResourceConfig(req providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
 	return resp
 }
 
@@ -70,7 +70,7 @@ func (p simple) UpgradeResourceState(req providers.UpgradeResourceStateRequest) 
 	return resp
 }
 
-func (s simple) Configure(providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+func (s simple) ConfigureProvider(providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	return resp
 }
 

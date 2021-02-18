@@ -184,7 +184,7 @@ func testSession(t *testing.T, test testSessionTest) {
 	t.Helper()
 
 	p := &terraform.MockProvider{}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

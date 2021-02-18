@@ -22,18 +22,18 @@ type MockProvider struct {
 	Meta interface{}
 
 	GetSchemaCalled bool
-	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
+	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetProviderSchemaResponse for compatibility with old tests
 
-	PrepareProviderConfigCalled   bool
-	PrepareProviderConfigResponse providers.PrepareProviderConfigResponse
-	PrepareProviderConfigRequest  providers.PrepareProviderConfigRequest
-	PrepareProviderConfigFn       func(providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse
+	ValidateProviderConfigCalled   bool
+	ValidateProviderConfigResponse providers.ValidateProviderConfigResponse
+	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
+	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
 
-	ValidateResourceTypeConfigCalled   bool
-	ValidateResourceTypeConfigTypeName string
-	ValidateResourceTypeConfigResponse providers.ValidateResourceTypeConfigResponse
-	ValidateResourceTypeConfigRequest  providers.ValidateResourceTypeConfigRequest
-	ValidateResourceTypeConfigFn       func(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse
+	ValidateResourceConfigCalled   bool
+	ValidateResourceConfigTypeName string
+	ValidateResourceConfigResponse providers.ValidateResourceConfigResponse
+	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
+	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
 	ValidateDataSourceConfigCalled   bool
 	ValidateDataSourceConfigTypeName string
@@ -47,10 +47,10 @@ type MockProvider struct {
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
 
-	ConfigureCalled   bool
-	ConfigureResponse providers.ConfigureResponse
-	ConfigureRequest  providers.ConfigureRequest
-	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
+	ConfigureProviderCalled   bool
+	ConfigureProviderResponse providers.ConfigureProviderResponse
+	ConfigureProviderRequest  providers.ConfigureProviderRequest
+	ConfigureProviderFn       func(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse
 
 	StopCalled   bool
 	StopFn       func() error
@@ -88,19 +88,19 @@ type MockProvider struct {
 	CloseError  error
 }
 
-func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
+func (p *MockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	p.Lock()
 	defer p.Unlock()
 	p.GetSchemaCalled = true
 	return p.getSchema()
 }
 
-func (p *MockProvider) getSchema() providers.GetSchemaResponse {
+func (p *MockProvider) getSchema() providers.GetProviderSchemaResponse {
 	// This version of getSchema doesn't do any locking, so it's suitable to
 	// call from other methods of this mock as long as they are already
 	// holding the lock.
 
-	ret := providers.GetSchemaResponse{
+	ret := providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
@@ -124,31 +124,30 @@ func (p *MockProvider) getSchema() providers.GetSchemaResponse {
 	return ret
 }
 
-func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.PrepareProviderConfigCalled = true
-	p.PrepareProviderConfigRequest = r
-	if p.PrepareProviderConfigFn != nil {
-		return p.PrepareProviderConfigFn(r)
+	p.ValidateProviderConfigCalled = true
+	p.ValidateProviderConfigRequest = r
+	if p.ValidateProviderConfigFn != nil {
+		return p.ValidateProviderConfigFn(r)
 	}
-	p.PrepareProviderConfigResponse.PreparedConfig = r.Config
-	return p.PrepareProviderConfigResponse
+	return p.ValidateProviderConfigResponse
 }
 
-func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateResourceTypeConfigCalled = true
-	p.ValidateResourceTypeConfigRequest = r
+	p.ValidateResourceConfigCalled = true
+	p.ValidateResourceConfigRequest = r
 
-	if p.ValidateResourceTypeConfigFn != nil {
-		return p.ValidateResourceTypeConfigFn(r)
+	if p.ValidateResourceConfigFn != nil {
+		return p.ValidateResourceConfigFn(r)
 	}
 
-	return p.ValidateResourceTypeConfigResponse
+	return p.ValidateResourceConfigResponse
 }
 
 func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
@@ -204,18 +203,18 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	return resp
 }
 
-func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.ConfigureResponse {
+func (p *MockProvider) ConfigureProvider(r providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ConfigureCalled = true
-	p.ConfigureRequest = r
+	p.ConfigureProviderCalled = true
+	p.ConfigureProviderRequest = r
 
-	if p.ConfigureFn != nil {
-		return p.ConfigureFn(r)
+	if p.ConfigureProviderFn != nil {
+		return p.ConfigureProviderFn(r)
 	}
 
-	return p.ConfigureResponse
+	return p.ConfigureProviderResponse
 }
 
 func (p *MockProvider) Stop() error {

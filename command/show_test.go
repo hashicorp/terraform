@@ -428,8 +428,8 @@ func TestShow_json_output_state(t *testing.T) {
 // showFixtureSchema returns a schema suitable for processing the configuration
 // in testdata/show. This schema should be assigned to a mock provider
 // named "test".
-func showFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func showFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -457,7 +457,7 @@ func showFixtureSchema() *providers.GetSchemaResponse {
 // Terraform Core.
 func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaResponse = showFixtureSchema()
+	p.GetProviderSchemaResponse = showFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		idVal := req.ProposedNewState.GetAttr("id")
 		amiVal := req.ProposedNewState.GetAttr("ami")

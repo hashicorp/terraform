@@ -60,7 +60,7 @@ type GRPCProvider struct {
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the state for requests.
 	mu      sync.Mutex
-	schemas providers.GetSchemaResponse
+	schemas providers.GetProviderSchemaResponse
 }
 
 func New(client proto6.ProviderClient, ctx context.Context) GRPCProvider {
@@ -73,7 +73,7 @@ func New(client proto6.ProviderClient, ctx context.Context) GRPCProvider {
 // getSchema is used internally to get the saved provider schema.  The schema
 // should have already been fetched from the provider, but we have to
 // synchronize access to avoid being called concurrently with GetSchema.
-func (p *GRPCProvider) getSchema() providers.GetSchemaResponse {
+func (p *GRPCProvider) getSchema() providers.GetProviderSchemaResponse {
 	p.mu.Lock()
 	// unlock inline in case GetSchema needs to be called
 	if p.schemas.Provider.Block != nil {
@@ -122,7 +122,7 @@ func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
 	return schema.ProviderMeta
 }
 
-func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
+func (p *GRPCProvider) GetSchema() (resp providers.GetProviderSchemaResponse) {
 	logger.Trace("GRPCProvider.v6: GetSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -173,7 +173,7 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	return resp
 }
 
-func (p *GRPCProvider) ValidateProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	logger.Trace("GRPCProvider.v6: ValidateProviderConfig")
 
 	schema := p.getSchema()
@@ -199,8 +199,8 @@ func (p *GRPCProvider) ValidateProviderConfig(r providers.PrepareProviderConfigR
 	return resp
 }
 
-func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
-	logger.Trace("GRPCProvider.v6: ValidateResourceTypeConfig")
+func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateResourceConfig")
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -286,7 +286,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	return resp
 }
 
-func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+func (p *GRPCProvider) Configure(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	logger.Trace("GRPCProvider.v6: Configure")
 
 	schema := p.getSchema()

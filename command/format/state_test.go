@@ -86,13 +86,13 @@ func testProvider() *terraform.MockProvider {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
 
-	p.GetSchemaResponse = testProviderSchema()
+	p.GetProviderSchemaResponse = testProviderSchema()
 
 	return p
 }
 
-func testProviderSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func testProviderSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
