@@ -326,7 +326,7 @@ new line
 				Attributes: map[string]*configschema.Attribute{
 					"id":       {Type: cty.String, Computed: true},
 					"password": {Type: cty.String, Optional: true, Sensitive: true},
-					// TODO: This is a temporary situation; once the NestedType
+					// FIXME: This is a temporary situation; once the NestedType
 					// specific printer is implemented this will need to be
 					// updated so that only the sensitive nested attribute is
 					// hidden.

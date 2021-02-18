@@ -374,6 +374,17 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	return false
 }
 
+// TODO: writeNestedAttrDiff will be responsible for properly formatting
+// Attributes with NestedTypes in the diff. This function will be called from
+// writeAttrDiff when it recieves attribute with a NestedType. Right now, we are
+// letting the existing formatter "just" print these attributes like regular,
+// object-type attributes. Unlike the regular attribute printer, this function
+// will need to descend into the NestedType to ensure that we are properly
+// handling items such as:
+//   - nested sensitive fields
+//   - which nested field specifically requires replacement
+//
+// Examples of both can be seen in diff_test.go with FIXME comments.
 func (p *blockBodyDiffPrinter) writeNestedAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
 	panic("not implemented")
 }
