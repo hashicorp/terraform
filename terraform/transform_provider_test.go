@@ -434,6 +434,103 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	}
 }
 
+// Verify that configurations which are not recommended yet supported still work
+func TestProviderConfigTransformer_nestedModuleProviders(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+	}
+  }
+}
+
+provider "test" {
+  alias = "z"
+  test_string = "config"
+}
+
+module "moda" {
+  source = "./moda"
+  providers = {
+    test.x = test.z
+  }
+}
+`,
+
+		"moda/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "registry.terraform.io/hashicorp/test"
+      configuration_aliases = [ test.x ]
+	}
+  }
+}
+
+provider "test" {
+  test_string = "config"
+}
+
+// this should connect to this module's provider
+resource "test_object" "a" {
+}
+
+resource "test_object" "x" {
+  provider = test.x
+}
+
+module "modb" {
+  source = "./modb"
+}
+`,
+
+		"moda/modb/main.tf": `
+# this should end up with the provider from the parent module
+resource "test_object" "a" {
+}
+`,
+	})
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	{
+		tf := &ConfigTransformer{Config: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Config: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	expected := `module.moda.module.modb.test_object.a
+  module.moda.provider["registry.terraform.io/hashicorp/test"]
+module.moda.provider["registry.terraform.io/hashicorp/test"]
+module.moda.test_object.a
+  module.moda.provider["registry.terraform.io/hashicorp/test"]
+module.moda.test_object.x
+  provider["registry.terraform.io/hashicorp/test"].z
+provider["registry.terraform.io/hashicorp/test"].z`
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider["registry.terraform.io/hashicorp/aws"]
