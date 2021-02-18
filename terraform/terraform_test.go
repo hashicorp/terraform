@@ -170,8 +170,10 @@ func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	}
 }
 
-func testProvisionerFuncFixed(rp provisioners.Interface) provisioners.Factory {
+func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
 	return func() (provisioners.Interface, error) {
+		// make sure this provisioner has has not been closed
+		rp.CloseCalled = false
 		return rp, nil
 	}
 }
@@ -248,10 +250,10 @@ func (h *HookRecordApplyOrder) PreApply(addr addrs.AbsResourceInstance, gen stat
 
 const testTerraformInputProviderOnlyStr = `
 aws_instance.foo:
-  ID = foo
+  ID = 
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = us-west-2
-  type = aws_instance
+  type = 
 `
 
 const testTerraformApplyStr = `

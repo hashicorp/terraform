@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sync"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -16,13 +15,17 @@ import (
 )
 
 func New() provisioners.Interface {
-	return &provisioner{}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &provisioner{
+		ctx:    ctx,
+		cancel: cancel,
+	}
 }
 
 type provisioner struct {
-	// this stored from the running context, so that Stop() can
-	// cancel the transfer
-	mu     sync.Mutex
+	// We store a context here tied to the lifetime of the provisioner.
+	// This allows the Stop method to cancel any in-flight requests.
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -71,11 +74,6 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 }
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
-	p.mu.Lock()
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel = cancel
-	p.mu.Unlock()
-
 	comm, err := communicator.New(req.Connection)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -94,7 +92,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 
 	// Begin the file copy
 	dst := req.Config.GetAttr("destination").AsString()
-	if err := copyFiles(ctx, comm, src, dst); err != nil {
+	if err := copyFiles(p.ctx, comm, src, dst); err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
@@ -178,8 +176,6 @@ func copyFiles(ctx context.Context, comm communicator.Communicator, src, dst str
 }
 
 func (p *provisioner) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.cancel()
 	return nil
 }

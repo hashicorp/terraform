@@ -1,12 +1,13 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 )
@@ -44,12 +45,16 @@ func (c *StateRmCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "state-rm"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if diags := stateLocker.Lock(stateMgr, "state-rm"); diags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer func() {
+			if diags := stateLocker.Unlock(); diags.HasErrors() {
+				c.showDiagnostics(diags)
+			}
+		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
@@ -160,8 +165,8 @@ Options:
                           current workspace state.
 
   -ignore-remote-version  Continue even if remote and local Terraform versions
-                          differ. This may result in an unusable workspace, and
-                          should be used with extreme caution.
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)

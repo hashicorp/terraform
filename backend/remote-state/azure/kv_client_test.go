@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
-	"github.com/hashicorp/terraform/helper/acctest"
+	"github.com/hashicorp/terraform/internal/legacy/helper/acctest"
 )
 
 func TestParseKeyVaultKeyInfoValid(t *testing.T) {

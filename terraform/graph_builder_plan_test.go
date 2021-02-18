@@ -16,23 +16,16 @@ func TestPlanGraphBuilder_impl(t *testing.T) {
 
 func TestPlanGraphBuilder(t *testing.T) {
 	awsProvider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: simpleTestSchema(),
-			ResourceTypes: map[string]*configschema.Block{
-				"aws_security_group": simpleTestSchema(),
-				"aws_instance":       simpleTestSchema(),
-				"aws_load_balancer":  simpleTestSchema(),
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"aws_security_group": {Block: simpleTestSchema()},
+				"aws_instance":       {Block: simpleTestSchema()},
+				"aws_load_balancer":  {Block: simpleTestSchema()},
 			},
 		},
 	}
-	openstackProvider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: simpleTestSchema(),
-			ResourceTypes: map[string]*configschema.Block{
-				"openstack_floating_ip": simpleTestSchema(),
-			},
-		},
-	}
+	openstackProvider := mockProviderWithResourceTypeSchema("openstack_floating_ip", simpleTestSchema())
 	components := &basicComponentFactory{
 		providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"):       providers.FactoryFixed(awsProvider),
@@ -45,8 +38,8 @@ func TestPlanGraphBuilder(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("aws"):       awsProvider.GetSchemaReturn,
-				addrs.NewDefaultProvider("openstack"): openstackProvider.GetSchemaReturn,
+				addrs.NewDefaultProvider("aws"):       awsProvider.ProviderSchema(),
+				addrs.NewDefaultProvider("openstack"): openstackProvider.ProviderSchema(),
 			},
 		},
 	}
@@ -68,28 +61,22 @@ func TestPlanGraphBuilder(t *testing.T) {
 }
 
 func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_thing": {
+	provider := mockProviderWithResourceTypeSchema("test_thing", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":   {Type: cty.String, Computed: true},
+			"list": {Type: cty.List(cty.String), Computed: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"nested": {
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":   {Type: cty.String, Computed: true},
-						"list": {Type: cty.List(cty.String), Computed: true},
-					},
-					BlockTypes: map[string]*configschema.NestedBlock{
-						"nested": {
-							Nesting: configschema.NestingList,
-							Block: configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"foo": {Type: cty.String, Optional: true},
-								},
-							},
-						},
+						"foo": {Type: cty.String, Optional: true},
 					},
 				},
 			},
 		},
-	}
+	})
 	components := &basicComponentFactory{
 		providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
@@ -101,7 +88,7 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
+				addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
 			},
 		},
 	}
@@ -144,23 +131,17 @@ test_thing.c (expand)
 }
 
 func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_thing": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {Type: cty.String, Computed: true},
-						"nested": {
-							Type: cty.List(cty.Object(map[string]cty.Type{
-								"foo": cty.String,
-							})),
-							Optional: true,
-						},
-					},
-				},
+	provider := mockProviderWithResourceTypeSchema("test_thing", &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {Type: cty.String, Computed: true},
+			"nested": {
+				Type: cty.List(cty.Object(map[string]cty.Type{
+					"foo": cty.String,
+				})),
+				Optional: true,
 			},
 		},
-	}
+	})
 	components := &basicComponentFactory{
 		providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(provider),
@@ -172,7 +153,7 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("test"): provider.GetSchemaReturn,
+				addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
 			},
 		},
 	}
@@ -233,14 +214,7 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 }
 
 func TestPlanGraphBuilder_forEach(t *testing.T) {
-	awsProvider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: simpleTestSchema(),
-			ResourceTypes: map[string]*configschema.Block{
-				"aws_instance": simpleTestSchema(),
-			},
-		},
-	}
+	awsProvider := mockProviderWithResourceTypeSchema("aws_instance", simpleTestSchema())
 
 	components := &basicComponentFactory{
 		providers: map[addrs.Provider]providers.Factory{
@@ -253,7 +227,7 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 		Components: components,
 		Schemas: &Schemas{
 			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("aws"): awsProvider.GetSchemaReturn,
+				addrs.NewDefaultProvider("aws"): awsProvider.ProviderSchema(),
 			},
 		},
 	}

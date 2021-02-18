@@ -26,6 +26,9 @@ func (b *Block) EmptyValue() cty.Value {
 // the value that would be returned if there were no definition of the attribute
 // at all, ignoring any required constraint.
 func (a *Attribute) EmptyValue() cty.Value {
+	if a.NestedType != nil {
+		return cty.NullVal(a.NestedType.ImpliedType())
+	}
 	return cty.NullVal(a.Type)
 }
 

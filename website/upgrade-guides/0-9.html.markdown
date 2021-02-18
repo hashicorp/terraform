@@ -49,7 +49,7 @@ terraform {
 
 **Action:** Nothing immediately, everything will continue working
 except scripts using `terraform remote config`.
-As soon as possible, [upgrade to backends](/docs/configuration/blocks/backends/index.html).
+As soon as possible, [upgrade to backends](/docs/language/settings/backends/index.html).
 
 ## State Locking
 

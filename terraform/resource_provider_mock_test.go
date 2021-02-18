@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -9,8 +10,8 @@ import (
 // provider with the given schema for its own configuration.
 func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
 	return &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: schema,
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: schema},
 		},
 	}
 }
@@ -19,28 +20,81 @@ func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
 // provider with a schema containing a single resource type.
 func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockProvider {
 	return &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"string": {
-						Type:     cty.String,
-						Optional: true,
-					},
-					"list": {
-						Type:     cty.List(cty.String),
-						Optional: true,
-					},
-					"root": {
-						Type:     cty.Map(cty.String),
-						Optional: true,
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"string": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"list": {
+							Type:     cty.List(cty.String),
+							Optional: true,
+						},
+						"root": {
+							Type:     cty.Map(cty.String),
+							Optional: true,
+						},
 					},
 				},
 			},
-			ResourceTypes: map[string]*configschema.Block{
-				name: schema,
+			ResourceTypes: map[string]providers.Schema{
+				name: providers.Schema{Block: schema},
 			},
 		},
 	}
+}
+
+// mockProviderWithProviderSchema is a test helper to create a mock provider
+// from an existing ProviderSchema.
+func mockProviderWithProviderSchema(providerSchema ProviderSchema) *MockProvider {
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: providerSchema.Provider,
+			},
+			ResourceTypes: map[string]providers.Schema{},
+			DataSources:   map[string]providers.Schema{},
+		},
+	}
+
+	for name, schema := range providerSchema.ResourceTypes {
+		p.GetProviderSchemaResponse.ResourceTypes[name] = providers.Schema{
+			Block:   schema,
+			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
+		}
+	}
+
+	for name, schema := range providerSchema.DataSources {
+		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: schema}
+	}
+
+	return p
+}
+
+// getProviderSchemaResponseFromProviderSchema is a test helper to convert a
+// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
+func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
+	resp := &providers.GetProviderSchemaResponse{
+		Provider:      providers.Schema{Block: providerSchema.Provider},
+		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},
+		ResourceTypes: map[string]providers.Schema{},
+		DataSources:   map[string]providers.Schema{},
+	}
+
+	for name, schema := range providerSchema.ResourceTypes {
+		resp.ResourceTypes[name] = providers.Schema{
+			Block:   schema,
+			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
+		}
+	}
+
+	for name, schema := range providerSchema.DataSources {
+		resp.DataSources[name] = providers.Schema{Block: schema}
+	}
+
+	return resp
 }
 
 // simpleMockProvider returns a MockProvider that is pre-configured
@@ -62,13 +116,13 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 // objects so that callers can mutate without affecting mock objects.
 func simpleMockProvider() *MockProvider {
 	return &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: simpleTestSchema(),
-			ResourceTypes: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: simpleTestSchema()},
 			},
-			DataSources: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+			DataSources: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: simpleTestSchema()},
 			},
 		},
 	}

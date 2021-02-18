@@ -328,6 +328,19 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		return true
 	}
 
+	// TODO: There will need to be an object-specific diff printer that handles
+	// things like individual attribute sensitivity and pathing into
+	// requiredReplace, but for now we will let writeAttrDiff handle attributes
+	// with NestedTypes like regular (object) attributes.
+	//
+	// To avoid printing any sensitive nested fields inside attributes (until
+	// the above is implemented) we will treat the entire attribute as
+	// sensitive.
+	var sensitive bool
+	if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+		sensitive = true
+	}
+
 	p.buf.WriteString("\n")
 
 	p.writeSensitivityWarning(old, new, indent, action, false)
@@ -341,7 +354,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
 	p.buf.WriteString(" = ")
 
-	if attrS.Sensitive {
+	if attrS.Sensitive || sensitive {
 		p.buf.WriteString("(sensitive value)")
 	} else {
 		switch {
@@ -359,6 +372,21 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	return false
+}
+
+// TODO: writeNestedAttrDiff will be responsible for properly formatting
+// Attributes with NestedTypes in the diff. This function will be called from
+// writeAttrDiff when it recieves attribute with a NestedType. Right now, we are
+// letting the existing formatter "just" print these attributes like regular,
+// object-type attributes. Unlike the regular attribute printer, this function
+// will need to descend into the NestedType to ensure that we are properly
+// handling items such as:
+//   - nested sensitive fields
+//   - which nested field specifically requires replacement
+//
+// Examples of both can be seen in diff_test.go with FIXME comments.
+func (p *blockBodyDiffPrinter) writeNestedAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
+	panic("not implemented")
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
@@ -901,23 +929,35 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				}
 			}
 
-			diffLines := ctySequenceDiff(oldLines, newLines)
-			for _, diffLine := range diffLines {
-				p.buf.WriteString(strings.Repeat(" ", indent+2))
-				p.writeActionSymbol(diffLine.Action)
-
-				switch diffLine.Action {
-				case plans.NoOp, plans.Delete:
-					p.buf.WriteString(diffLine.Before.AsString())
-				case plans.Create:
-					p.buf.WriteString(diffLine.After.AsString())
-				default:
-					// Should never happen since the above covers all
-					// actions that ctySequenceDiff can return for strings
-					p.buf.WriteString(diffLine.After.AsString())
-
+			// Optimization for strings which are exactly equal: just print
+			// directly without calculating the sequence diff. This makes a
+			// significant difference when this code path is reached via a
+			// writeValue call with a large multi-line string.
+			if oldS == newS {
+				for _, line := range newLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+4))
+					p.buf.WriteString(line.AsString())
+					p.buf.WriteString("\n")
 				}
-				p.buf.WriteString("\n")
+			} else {
+				diffLines := ctySequenceDiff(oldLines, newLines)
+				for _, diffLine := range diffLines {
+					p.buf.WriteString(strings.Repeat(" ", indent+2))
+					p.writeActionSymbol(diffLine.Action)
+
+					switch diffLine.Action {
+					case plans.NoOp, plans.Delete:
+						p.buf.WriteString(diffLine.Before.AsString())
+					case plans.Create:
+						p.buf.WriteString(diffLine.After.AsString())
+					default:
+						// Should never happen since the above covers all
+						// actions that ctySequenceDiff can return for strings
+						p.buf.WriteString(diffLine.After.AsString())
+
+					}
+					p.buf.WriteString("\n")
+				}
 			}
 
 			p.buf.WriteString(strings.Repeat(" ", indent)) // +4 here because there's no symbol

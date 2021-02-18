@@ -16,6 +16,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+var disabledColorize = &colorstring.Colorize{
+	Colors:  colorstring.DefaultColors,
+	Disable: true,
+}
+
 // Diagnostic formats a single diagnostic message.
 //
 // The width argument specifies at what column the diagnostic messages will
@@ -31,11 +36,31 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 
 	var buf bytes.Buffer
 
+	// these leftRule* variables are markers for the beginning of the lines
+	// containing the diagnostic that are intended to help sighted users
+	// better understand the information heirarchy when diagnostics appear
+	// alongside other information or alongside other diagnostics.
+	//
+	// Without this, it seems (based on folks sharing incomplete messages when
+	// asking questions, or including extra content that's not part of the
+	// diagnostic) that some readers have trouble easily identifying which
+	// text belongs to the diagnostic and which does not.
+	var leftRuleLine, leftRuleStart, leftRuleEnd string
+	var leftRuleWidth int // in visual character cells
+
 	switch diag.Severity() {
 	case tfdiags.Error:
-		buf.WriteString(color.Color("\n[bold][red]Error: [reset]"))
+		buf.WriteString(color.Color("[bold][red]Error: [reset]"))
+		leftRuleLine = color.Color("[red]│[reset] ")
+		leftRuleStart = color.Color("[red]╷[reset]")
+		leftRuleEnd = color.Color("[red]╵[reset]")
+		leftRuleWidth = 2
 	case tfdiags.Warning:
-		buf.WriteString(color.Color("\n[bold][yellow]Warning: [reset]"))
+		buf.WriteString(color.Color("[bold][yellow]Warning: [reset]"))
+		leftRuleLine = color.Color("[yellow]│[reset] ")
+		leftRuleStart = color.Color("[yellow]╷[reset]")
+		leftRuleEnd = color.Color("[yellow]╵[reset]")
+		leftRuleWidth = 2
 	default:
 		// Clear out any coloring that might be applied by Terraform's UI helper,
 		// so our result is not context-sensitive.
@@ -51,143 +76,90 @@ func Diagnostic(diag tfdiags.Diagnostic, sources map[string][]byte, color *color
 	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), desc.Summary)
 
 	if sourceRefs.Subject != nil {
-		// We'll borrow HCL's range implementation here, because it has some
-		// handy features to help us produce a nice source code snippet.
-		highlightRange := sourceRefs.Subject.ToHCL()
-		snippetRange := highlightRange
-		if sourceRefs.Context != nil {
-			snippetRange = sourceRefs.Context.ToHCL()
-		}
-
-		// Make sure the snippet includes the highlight. This should be true
-		// for any reasonable diagnostic, but we'll make sure.
-		snippetRange = hcl.RangeOver(snippetRange, highlightRange)
-		if snippetRange.Empty() {
-			snippetRange.End.Byte++
-			snippetRange.End.Column++
-		}
-		if highlightRange.Empty() {
-			highlightRange.End.Byte++
-			highlightRange.End.Column++
-		}
-
-		var src []byte
-		if sources != nil {
-			src = sources[snippetRange.Filename]
-		}
-		if src == nil {
-			// This should generally not happen, as long as sources are always
-			// loaded through the main loader. We may load things in other
-			// ways in weird cases, so we'll tolerate it at the expense of
-			// a not-so-helpful error message.
-			fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
-		} else {
-			file, offset := parseRange(src, highlightRange)
-
-			headerRange := highlightRange
-
-			contextStr := hcled.ContextString(file, offset-1)
-			if contextStr != "" {
-				contextStr = ", in " + contextStr
-			}
-
-			fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
-
-			// Config snippet rendering
-			sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
-			for sc.Scan() {
-				lineRange := sc.Range()
-				if !lineRange.Overlaps(snippetRange) {
-					continue
-				}
-				if !lineRange.Overlap(highlightRange).Empty() {
-					beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
-					before := beforeRange.SliceBytes(src)
-					highlighted := highlightedRange.SliceBytes(src)
-					after := afterRange.SliceBytes(src)
-					fmt.Fprintf(
-						&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
-						lineRange.Start.Line,
-						before, highlighted, after,
-					)
-				} else {
-					fmt.Fprintf(
-						&buf, "%4d: %s\n",
-						lineRange.Start.Line,
-						lineRange.SliceBytes(src),
-					)
-				}
-			}
-
-		}
-
-		if fromExpr := diag.FromExpr(); fromExpr != nil {
-			// We may also be able to generate information about the dynamic
-			// values of relevant variables at the point of evaluation, then.
-			// This is particularly useful for expressions that get evaluated
-			// multiple times with different values, such as blocks using
-			// "count" and "for_each", or within "for" expressions.
-			expr := fromExpr.Expression
-			ctx := fromExpr.EvalContext
-			vars := expr.Variables()
-			stmts := make([]string, 0, len(vars))
-			seen := make(map[string]struct{}, len(vars))
-		Traversals:
-			for _, traversal := range vars {
-				for len(traversal) > 1 {
-					val, diags := traversal.TraverseAbs(ctx)
-					if diags.HasErrors() {
-						// Skip anything that generates errors, since we probably
-						// already have the same error in our diagnostics set
-						// already.
-						traversal = traversal[:len(traversal)-1]
-						continue
-					}
-
-					traversalStr := traversalStr(traversal)
-					if _, exists := seen[traversalStr]; exists {
-						continue Traversals // don't show duplicates when the same variable is referenced multiple times
-					}
-					switch {
-					case val.IsMarked():
-						// We won't say anything at all about sensitive values,
-						// because we might give away something that was
-						// sensitive about them.
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
-					case !val.IsKnown():
-						if ty := val.Type(); ty != cty.DynamicPseudoType {
-							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
-						} else {
-							stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
-						}
-					case val.IsNull():
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
-					default:
-						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is %s"), traversalStr, compactValueStr(val)))
-					}
-					seen[traversalStr] = struct{}{}
-				}
-			}
-
-			sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
-
-			if len(stmts) > 0 {
-				fmt.Fprint(&buf, color.Color("    [dark_gray]|----------------[reset]\n"))
-			}
-			for _, stmt := range stmts {
-				fmt.Fprintf(&buf, color.Color("    [dark_gray]|[reset] %s\n"), stmt)
-			}
-		}
-
-		buf.WriteByte('\n')
+		buf = appendSourceSnippets(buf, diag, sources, color)
 	}
 
 	if desc.Detail != "" {
-		if width != 0 {
+		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
+		if paraWidth > 0 {
 			lines := strings.Split(desc.Detail, "\n")
 			for _, line := range lines {
 				if !strings.HasPrefix(line, " ") {
-					line = wordwrap.WrapString(line, uint(width))
+					line = wordwrap.WrapString(line, uint(paraWidth))
+				}
+				fmt.Fprintf(&buf, "%s\n", line)
+			}
+		} else {
+			fmt.Fprintf(&buf, "%s\n", desc.Detail)
+		}
+	}
+
+	// Before we return, we'll finally add the left rule prefixes to each
+	// line so that the overall message is visually delimited from what's
+	// around it. We'll do that by scanning over what we already generated
+	// and adding the prefix for each line.
+	var ruleBuf strings.Builder
+	sc := bufio.NewScanner(&buf)
+	ruleBuf.WriteString(leftRuleStart)
+	ruleBuf.WriteByte('\n')
+	for sc.Scan() {
+		line := sc.Text()
+		prefix := leftRuleLine
+		if line == "" {
+			// Don't print the space after the line if there would be nothing
+			// after it anyway.
+			prefix = strings.TrimSpace(prefix)
+		}
+		ruleBuf.WriteString(prefix)
+		ruleBuf.WriteString(line)
+		ruleBuf.WriteByte('\n')
+	}
+	ruleBuf.WriteString(leftRuleEnd)
+	ruleBuf.WriteByte('\n')
+
+	return ruleBuf.String()
+}
+
+// DiagnosticPlain is an alternative to Diagnostic which minimises the use of
+// virtual terminal formatting sequences.
+//
+// It is intended for use in automation and other contexts in which diagnostic
+// messages are parsed from the Terraform output.
+func DiagnosticPlain(diag tfdiags.Diagnostic, sources map[string][]byte, width int) string {
+	if diag == nil {
+		// No good reason to pass a nil diagnostic in here...
+		return ""
+	}
+
+	var buf bytes.Buffer
+
+	switch diag.Severity() {
+	case tfdiags.Error:
+		buf.WriteString("\nError: ")
+	case tfdiags.Warning:
+		buf.WriteString("\nWarning: ")
+	default:
+		buf.WriteString("\n")
+	}
+
+	desc := diag.Description()
+	sourceRefs := diag.Source()
+
+	// We don't wrap the summary, since we expect it to be terse, and since
+	// this is where we put the text of a native Go error it may not always
+	// be pure text that lends itself well to word-wrapping.
+	fmt.Fprintf(&buf, "%s\n\n", desc.Summary)
+
+	if sourceRefs.Subject != nil {
+		buf = appendSourceSnippets(buf, diag, sources, disabledColorize)
+	}
+
+	if desc.Detail != "" {
+		if width > 1 {
+			lines := strings.Split(desc.Detail, "\n")
+			for _, line := range lines {
+				if !strings.HasPrefix(line, " ") {
+					line = wordwrap.WrapString(line, uint(width-1))
 				}
 				fmt.Fprintf(&buf, "%s\n", line)
 			}
@@ -363,4 +335,140 @@ func compactValueStr(val cty.Value) string {
 	default:
 		return ty.FriendlyName()
 	}
+}
+
+func appendSourceSnippets(buf bytes.Buffer, diag tfdiags.Diagnostic, sources map[string][]byte, color *colorstring.Colorize) bytes.Buffer {
+	sourceRefs := diag.Source()
+
+	// We'll borrow HCL's range implementation here, because it has some
+	// handy features to help us produce a nice source code snippet.
+	highlightRange := sourceRefs.Subject.ToHCL()
+	snippetRange := highlightRange
+	if sourceRefs.Context != nil {
+		snippetRange = sourceRefs.Context.ToHCL()
+	}
+
+	// Make sure the snippet includes the highlight. This should be true
+	// for any reasonable diagnostic, but we'll make sure.
+	snippetRange = hcl.RangeOver(snippetRange, highlightRange)
+	if snippetRange.Empty() {
+		snippetRange.End.Byte++
+		snippetRange.End.Column++
+	}
+	if highlightRange.Empty() {
+		highlightRange.End.Byte++
+		highlightRange.End.Column++
+	}
+
+	var src []byte
+	if sources != nil {
+		src = sources[snippetRange.Filename]
+	}
+	if src == nil {
+		// This should generally not happen, as long as sources are always
+		// loaded through the main loader. We may load things in other
+		// ways in weird cases, so we'll tolerate it at the expense of
+		// a not-so-helpful error message.
+		fmt.Fprintf(&buf, "  on %s line %d:\n  (source code not available)\n", highlightRange.Filename, highlightRange.Start.Line)
+	} else {
+		file, offset := parseRange(src, highlightRange)
+
+		headerRange := highlightRange
+
+		contextStr := hcled.ContextString(file, offset-1)
+		if contextStr != "" {
+			contextStr = ", in " + contextStr
+		}
+
+		fmt.Fprintf(&buf, "  on %s line %d%s:\n", headerRange.Filename, headerRange.Start.Line, contextStr)
+
+		// Config snippet rendering
+		sc := hcl.NewRangeScanner(src, highlightRange.Filename, bufio.ScanLines)
+		for sc.Scan() {
+			lineRange := sc.Range()
+			if !lineRange.Overlaps(snippetRange) {
+				continue
+			}
+			if !lineRange.Overlap(highlightRange).Empty() {
+				beforeRange, highlightedRange, afterRange := lineRange.PartitionAround(highlightRange)
+				before := beforeRange.SliceBytes(src)
+				highlighted := highlightedRange.SliceBytes(src)
+				after := afterRange.SliceBytes(src)
+				fmt.Fprintf(
+					&buf, color.Color("%4d: %s[underline]%s[reset]%s\n"),
+					lineRange.Start.Line,
+					before, highlighted, after,
+				)
+			} else {
+				fmt.Fprintf(
+					&buf, "%4d: %s\n",
+					lineRange.Start.Line,
+					lineRange.SliceBytes(src),
+				)
+			}
+		}
+
+	}
+
+	if fromExpr := diag.FromExpr(); fromExpr != nil {
+		// We may also be able to generate information about the dynamic
+		// values of relevant variables at the point of evaluation, then.
+		// This is particularly useful for expressions that get evaluated
+		// multiple times with different values, such as blocks using
+		// "count" and "for_each", or within "for" expressions.
+		expr := fromExpr.Expression
+		ctx := fromExpr.EvalContext
+		vars := expr.Variables()
+		stmts := make([]string, 0, len(vars))
+		seen := make(map[string]struct{}, len(vars))
+	Traversals:
+		for _, traversal := range vars {
+			for len(traversal) > 1 {
+				val, diags := traversal.TraverseAbs(ctx)
+				if diags.HasErrors() {
+					// Skip anything that generates errors, since we probably
+					// already have the same error in our diagnostics set
+					// already.
+					traversal = traversal[:len(traversal)-1]
+					continue
+				}
+
+				traversalStr := traversalStr(traversal)
+				if _, exists := seen[traversalStr]; exists {
+					continue Traversals // don't show duplicates when the same variable is referenced multiple times
+				}
+				switch {
+				case val.IsMarked():
+					// We won't say anything at all about sensitive values,
+					// because we might give away something that was
+					// sensitive about them.
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] has a sensitive value"), traversalStr))
+				case !val.IsKnown():
+					if ty := val.Type(); ty != cty.DynamicPseudoType {
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is a %s, known only after apply"), traversalStr, ty.FriendlyName()))
+					} else {
+						stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] will be known only after apply"), traversalStr))
+					}
+				case val.IsNull():
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is null"), traversalStr))
+				default:
+					stmts = append(stmts, fmt.Sprintf(color.Color("[bold]%s[reset] is %s"), traversalStr, compactValueStr(val)))
+				}
+				seen[traversalStr] = struct{}{}
+			}
+		}
+
+		sort.Strings(stmts) // FIXME: Should maybe use a traversal-aware sort that can sort numeric indexes properly?
+
+		if len(stmts) > 0 {
+			fmt.Fprint(&buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
+		}
+		for _, stmt := range stmts {
+			fmt.Fprintf(&buf, color.Color("    [dark_gray]│[reset] %s\n"), stmt)
+		}
+	}
+
+	buf.WriteByte('\n')
+
+	return buf
 }

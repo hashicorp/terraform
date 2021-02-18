@@ -1,13 +1,14 @@
 package terraform
 
 import (
-	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
 	"github.com/hashicorp/terraform/providers"
 )
@@ -22,63 +23,63 @@ type MockProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	GetSchemaCalled bool
-	GetSchemaReturn *ProviderSchema // This is using ProviderSchema directly rather than providers.GetSchemaResponse for compatibility with old tests
+	GetProviderSchemaCalled   bool
+	GetProviderSchemaResponse *providers.GetProviderSchemaResponse
 
-	PrepareProviderConfigCalled   bool
-	PrepareProviderConfigResponse providers.PrepareProviderConfigResponse
-	PrepareProviderConfigRequest  providers.PrepareProviderConfigRequest
-	PrepareProviderConfigFn       func(providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse
+	ValidateProviderConfigCalled   bool
+	ValidateProviderConfigResponse *providers.ValidateProviderConfigResponse
+	ValidateProviderConfigRequest  providers.ValidateProviderConfigRequest
+	ValidateProviderConfigFn       func(providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse
 
-	ValidateResourceTypeConfigCalled   bool
-	ValidateResourceTypeConfigTypeName string
-	ValidateResourceTypeConfigResponse providers.ValidateResourceTypeConfigResponse
-	ValidateResourceTypeConfigRequest  providers.ValidateResourceTypeConfigRequest
-	ValidateResourceTypeConfigFn       func(providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse
+	ValidateResourceConfigCalled   bool
+	ValidateResourceConfigTypeName string
+	ValidateResourceConfigResponse *providers.ValidateResourceConfigResponse
+	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
+	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
 	ValidateDataSourceConfigCalled   bool
 	ValidateDataSourceConfigTypeName string
-	ValidateDataSourceConfigResponse providers.ValidateDataSourceConfigResponse
+	ValidateDataSourceConfigResponse *providers.ValidateDataSourceConfigResponse
 	ValidateDataSourceConfigRequest  providers.ValidateDataSourceConfigRequest
 	ValidateDataSourceConfigFn       func(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
-	UpgradeResourceStateResponse providers.UpgradeResourceStateResponse
+	UpgradeResourceStateResponse *providers.UpgradeResourceStateResponse
 	UpgradeResourceStateRequest  providers.UpgradeResourceStateRequest
 	UpgradeResourceStateFn       func(providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse
 
-	ConfigureCalled   bool
-	ConfigureResponse providers.ConfigureResponse
-	ConfigureRequest  providers.ConfigureRequest
-	ConfigureFn       func(providers.ConfigureRequest) providers.ConfigureResponse
+	ConfigureProviderCalled   bool
+	ConfigureProviderResponse *providers.ConfigureProviderResponse
+	ConfigureProviderRequest  providers.ConfigureProviderRequest
+	ConfigureProviderFn       func(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse
 
 	StopCalled   bool
 	StopFn       func() error
 	StopResponse error
 
 	ReadResourceCalled   bool
-	ReadResourceResponse providers.ReadResourceResponse
+	ReadResourceResponse *providers.ReadResourceResponse
 	ReadResourceRequest  providers.ReadResourceRequest
 	ReadResourceFn       func(providers.ReadResourceRequest) providers.ReadResourceResponse
 
 	PlanResourceChangeCalled   bool
-	PlanResourceChangeResponse providers.PlanResourceChangeResponse
+	PlanResourceChangeResponse *providers.PlanResourceChangeResponse
 	PlanResourceChangeRequest  providers.PlanResourceChangeRequest
 	PlanResourceChangeFn       func(providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse
 
 	ApplyResourceChangeCalled   bool
-	ApplyResourceChangeResponse providers.ApplyResourceChangeResponse
+	ApplyResourceChangeResponse *providers.ApplyResourceChangeResponse
 	ApplyResourceChangeRequest  providers.ApplyResourceChangeRequest
 	ApplyResourceChangeFn       func(providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse
 
 	ImportResourceStateCalled   bool
-	ImportResourceStateResponse providers.ImportResourceStateResponse
+	ImportResourceStateResponse *providers.ImportResourceStateResponse
 	ImportResourceStateRequest  providers.ImportResourceStateRequest
 	ImportResourceStateFn       func(providers.ImportResourceStateRequest) providers.ImportResourceStateResponse
 
 	ReadDataSourceCalled   bool
-	ReadDataSourceResponse providers.ReadDataSourceResponse
+	ReadDataSourceResponse *providers.ReadDataSourceResponse
 	ReadDataSourceRequest  providers.ReadDataSourceRequest
 	ReadDataSourceFn       func(providers.ReadDataSourceRequest) providers.ReadDataSourceResponse
 
@@ -86,94 +87,101 @@ type MockProvider struct {
 	CloseError  error
 }
 
-func (p *MockProvider) GetSchema() providers.GetSchemaResponse {
+func (p *MockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	p.Lock()
 	defer p.Unlock()
-	p.GetSchemaCalled = true
-	return p.getSchema()
+	p.GetProviderSchemaCalled = true
+	return p.getProviderSchema()
 }
 
-func (p *MockProvider) getSchema() providers.GetSchemaResponse {
-	// This version of getSchema doesn't do any locking, so it's suitable to
+func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
+	// This version of getProviderSchema doesn't do any locking, so it's suitable to
 	// call from other methods of this mock as long as they are already
 	// holding the lock.
+	if p.GetProviderSchemaResponse != nil {
+		return *p.GetProviderSchemaResponse
+	}
 
-	ret := providers.GetSchemaResponse{
+	return providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
 	}
-	if p.GetSchemaReturn != nil {
-		ret.Provider.Block = p.GetSchemaReturn.Provider
-		ret.ProviderMeta.Block = p.GetSchemaReturn.ProviderMeta
-		for n, s := range p.GetSchemaReturn.DataSources {
-			ret.DataSources[n] = providers.Schema{
-				Block: s,
-			}
-		}
-		for n, s := range p.GetSchemaReturn.ResourceTypes {
-			ret.ResourceTypes[n] = providers.Schema{
-				Version: int64(p.GetSchemaReturn.ResourceTypeSchemaVersions[n]),
-				Block:   s,
-			}
-		}
-	}
-
-	return ret
 }
 
-func (p *MockProvider) getResourceSchema(name string) providers.Schema {
-	schema := p.getSchema()
-	resSchema, ok := schema.ResourceTypes[name]
-	if !ok {
-		panic("unknown resource type " + name)
+// ProviderSchema is a helper to convert from the internal GetProviderSchemaResponse to
+// a ProviderSchema.
+func (p *MockProvider) ProviderSchema() *ProviderSchema {
+	resp := p.getProviderSchema()
+
+	schema := &ProviderSchema{
+		Provider:                   resp.Provider.Block,
+		ProviderMeta:               resp.ProviderMeta.Block,
+		ResourceTypes:              map[string]*configschema.Block{},
+		DataSources:                map[string]*configschema.Block{},
+		ResourceTypeSchemaVersions: map[string]uint64{},
 	}
-	return resSchema
+
+	for resType, s := range resp.ResourceTypes {
+		schema.ResourceTypes[resType] = s.Block
+		schema.ResourceTypeSchemaVersions[resType] = uint64(s.Version)
+	}
+
+	for dataSource, s := range resp.DataSources {
+		schema.DataSources[dataSource] = s.Block
+	}
+
+	return schema
 }
 
-func (p *MockProvider) getDatasourceSchema(name string) providers.Schema {
-	schema := p.getSchema()
-	dataSchema, ok := schema.DataSources[name]
-	if !ok {
-		panic("unknown data source " + name)
-	}
-	return dataSchema
-}
-
-func (p *MockProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) providers.PrepareProviderConfigResponse {
+func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
-	p.PrepareProviderConfigCalled = true
-	p.PrepareProviderConfigRequest = r
-	if p.PrepareProviderConfigFn != nil {
-		return p.PrepareProviderConfigFn(r)
+	p.ValidateProviderConfigCalled = true
+	p.ValidateProviderConfigRequest = r
+	if p.ValidateProviderConfigFn != nil {
+		return p.ValidateProviderConfigFn(r)
 	}
-	p.PrepareProviderConfigResponse.PreparedConfig = r.Config
-	return p.PrepareProviderConfigResponse
+
+	if p.ValidateProviderConfigResponse != nil {
+		return *p.ValidateProviderConfigResponse
+	}
+
+	resp.PreparedConfig = r.Config
+	return resp
 }
 
-func (p *MockProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
+func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateResourceTypeConfigCalled = true
-	p.ValidateResourceTypeConfigRequest = r
+	p.ValidateResourceConfigCalled = true
+	p.ValidateResourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol,
 	// and return any relevant errors
-	resourceSchema := p.getResourceSchema(r.TypeName)
+	resourceSchema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
 	_, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
 		return resp
 	}
 
-	if p.ValidateResourceTypeConfigFn != nil {
-		return p.ValidateResourceTypeConfigFn(r)
+	if p.ValidateResourceConfigFn != nil {
+		return p.ValidateResourceConfigFn(r)
 	}
 
-	return p.ValidateResourceTypeConfigResponse
+	if p.ValidateResourceConfigResponse != nil {
+		return *p.ValidateResourceConfigResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
@@ -184,7 +192,11 @@ func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 	p.ValidateDataSourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol
-	dataSchema := p.getDatasourceSchema(r.TypeName)
+	dataSchema, ok := p.getProviderSchema().DataSources[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
 	_, err := msgpack.Marshal(r.Config, dataSchema.Block.ImpliedType())
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)
@@ -195,15 +207,23 @@ func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 		return p.ValidateDataSourceConfigFn(r)
 	}
 
-	return p.ValidateDataSourceConfigResponse
+	if p.ValidateDataSourceConfigResponse != nil {
+		return *p.ValidateDataSourceConfigResponse
+	}
+
+	return resp
 }
 
-func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {
+func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
 	p.Lock()
 	defer p.Unlock()
 
-	schemas := p.getSchema()
-	schema := schemas.ResourceTypes[r.TypeName]
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
 	schemaType := schema.Block.ImpliedType()
 
 	p.UpgradeResourceStateCalled = true
@@ -213,42 +233,47 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return p.UpgradeResourceStateFn(r)
 	}
 
-	resp := p.UpgradeResourceStateResponse
-
-	if resp.UpgradedState == cty.NilVal {
-		switch {
-		case r.RawStateFlatmap != nil:
-			v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(err)
-				return resp
-			}
-			resp.UpgradedState = v
-		case len(r.RawStateJSON) > 0:
-			v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
-
-			if err != nil {
-				resp.Diagnostics = resp.Diagnostics.Append(err)
-				return resp
-			}
-			resp.UpgradedState = v
-		}
+	if p.UpgradeResourceStateResponse != nil {
+		return *p.UpgradeResourceStateResponse
 	}
+
+	switch {
+	case r.RawStateFlatmap != nil:
+		v, err := hcl2shim.HCL2ValueFromFlatmap(r.RawStateFlatmap, schemaType)
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.UpgradedState = v
+	case len(r.RawStateJSON) > 0:
+		v, err := ctyjson.Unmarshal(r.RawStateJSON, schemaType)
+
+		if err != nil {
+			resp.Diagnostics = resp.Diagnostics.Append(err)
+			return resp
+		}
+		resp.UpgradedState = v
+	}
+
 	return resp
 }
 
-func (p *MockProvider) Configure(r providers.ConfigureRequest) providers.ConfigureResponse {
+func (p *MockProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ConfigureCalled = true
-	p.ConfigureRequest = r
+	p.ConfigureProviderCalled = true
+	p.ConfigureProviderRequest = r
 
-	if p.ConfigureFn != nil {
-		return p.ConfigureFn(r)
+	if p.ConfigureProviderFn != nil {
+		return p.ConfigureProviderFn(r)
 	}
 
-	return p.ConfigureResponse
+	if p.ConfigureProviderResponse != nil {
+		return *p.ConfigureProviderResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) Stop() error {
@@ -265,7 +290,7 @@ func (p *MockProvider) Stop() error {
 	return p.StopResponse
 }
 
-func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.ReadResourceResponse {
+func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -276,24 +301,32 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) providers.R
 		return p.ReadResourceFn(r)
 	}
 
-	resp := p.ReadResourceResponse
-	if resp.NewState != cty.NilVal {
-		// make sure the NewState fits the schema
-		// This isn't always the case for the existing tests
-		newState, err := p.GetSchemaReturn.ResourceTypes[r.TypeName].CoerceValue(resp.NewState)
+	if p.ReadResourceResponse != nil {
+		resp = *p.ReadResourceResponse
+
+		// Make sure the NewState conforms to the schema.
+		// This isn't always the case for the existing tests.
+		schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+		if !ok {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+			return resp
+		}
+
+		newState, err := schema.Block.CoerceValue(resp.NewState)
 		if err != nil {
-			panic(err)
+			resp.Diagnostics = resp.Diagnostics.Append(err)
 		}
 		resp.NewState = newState
 		return resp
 	}
 
-	// just return the same state we received
+	// otherwise just return the same state we received
 	resp.NewState = r.PriorState
+	resp.Private = r.Private
 	return resp
 }
 
-func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -304,10 +337,64 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return p.PlanResourceChangeFn(r)
 	}
 
-	return p.PlanResourceChangeResponse
+	if p.PlanResourceChangeResponse != nil {
+		return *p.PlanResourceChangeResponse
+	}
+
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
+	// The default plan behavior is to accept the proposed value, and mark all
+	// nil computed attributes as unknown.
+	val, err := cty.Transform(r.ProposedNewState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		// We're only concerned with known null values, which can be computed
+		// by the provider.
+		if !v.IsKnown() {
+			return v, nil
+		}
+
+		attrSchema := schema.Block.AttributeByPath(path)
+		if attrSchema == nil {
+			// this is an intermediate path which does not represent an attribute
+			return v, nil
+		}
+
+		// get the current configuration value, to detect when a
+		// computed+optional attributes has become unset
+		configVal, err := path.Apply(r.Config)
+		if err != nil {
+			return v, err
+		}
+
+		switch {
+		case attrSchema.Computed && !attrSchema.Optional && v.IsNull():
+			// this is the easy path, this value is not yet set, and _must_ be computed
+			return cty.UnknownVal(v.Type()), nil
+
+		case attrSchema.Computed && attrSchema.Optional && !v.IsNull() && configVal.IsNull():
+			// If an optional+computed value has gone from set to unset, it
+			// becomes computed. (this was not possible to do with legacy
+			// providers)
+			return cty.UnknownVal(v.Type()), nil
+		}
+
+		return v, nil
+	})
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	resp.PlannedPrivate = r.PriorPrivate
+	resp.PlannedState = val
+
+	return resp
 }
 
-func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 	p.Lock()
 	p.ApplyResourceChangeCalled = true
 	p.ApplyResourceChangeRequest = r
@@ -317,7 +404,56 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return p.ApplyResourceChangeFn(r)
 	}
 
-	return p.ApplyResourceChangeResponse
+	if p.ApplyResourceChangeResponse != nil {
+		return *p.ApplyResourceChangeResponse
+	}
+
+	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
+		return resp
+	}
+
+	// if the value is nil, we return that directly to correspond to a delete
+	if r.PlannedState.IsNull() {
+		resp.NewState = cty.NullVal(schema.Block.ImpliedType())
+		return resp
+	}
+
+	val, err := schema.Block.CoerceValue(r.PlannedState)
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
+
+	// the default behavior will be to create the minimal valid apply value by
+	// setting unknowns (which correspond to computed attributes) to a zero
+	// value.
+	val, _ = cty.Transform(val, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() {
+			ty := v.Type()
+			switch {
+			case ty == cty.String:
+				return cty.StringVal(""), nil
+			case ty == cty.Number:
+				return cty.NumberIntVal(0), nil
+			case ty == cty.Bool:
+				return cty.False, nil
+			case ty.IsMapType():
+				return cty.MapValEmpty(ty.ElementType()), nil
+			case ty.IsListType():
+				return cty.ListValEmpty(ty.ElementType()), nil
+			default:
+				return cty.NullVal(ty), nil
+			}
+		}
+		return v, nil
+	})
+
+	resp.NewState = val
+	resp.Private = r.PlannedPrivate
+
+	return resp
 }
 
 func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
@@ -330,28 +466,31 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 		return p.ImportResourceStateFn(r)
 	}
 
-	// fixup the cty value to match the schema
-	for i, res := range p.ImportResourceStateResponse.ImportedResources {
-		schema := p.GetSchemaReturn.ResourceTypes[res.TypeName]
-		if schema == nil {
-			resp.Diagnostics = resp.Diagnostics.Append(errors.New("no schema found for " + res.TypeName))
-			return resp
-		}
+	if p.ImportResourceStateResponse != nil {
+		resp = *p.ImportResourceStateResponse
+		// fixup the cty value to match the schema
+		for i, res := range resp.ImportedResources {
+			schema, ok := p.getProviderSchema().ResourceTypes[res.TypeName]
+			if !ok {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", res.TypeName))
+				return resp
+			}
 
-		var err error
-		res.State, err = schema.CoerceValue(res.State)
-		if err != nil {
-			resp.Diagnostics = resp.Diagnostics.Append(err)
-			return resp
-		}
+			var err error
+			res.State, err = schema.Block.CoerceValue(res.State)
+			if err != nil {
+				resp.Diagnostics = resp.Diagnostics.Append(err)
+				return resp
+			}
 
-		p.ImportResourceStateResponse.ImportedResources[i] = res
+			resp.ImportedResources[i] = res
+		}
 	}
 
-	return p.ImportResourceStateResponse
+	return resp
 }
 
-func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -362,7 +501,11 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) provide
 		return p.ReadDataSourceFn(r)
 	}
 
-	return p.ReadDataSourceResponse
+	if p.ReadDataSourceResponse != nil {
+		resp = *p.ReadDataSourceResponse
+	}
+
+	return resp
 }
 
 func (p *MockProvider) Close() error {

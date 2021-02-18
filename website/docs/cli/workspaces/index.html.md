@@ -6,7 +6,7 @@ page_title: "Managing Workspaces - Terraform CLI"
 # Managing Workspaces
 
 In Terraform CLI, _workspaces_ are separate instances of
-[state data](/docs/state/index.html) that can be used from the same working
+[state data](/docs/language/state/index.html) that can be used from the same working
 directory. You can use workspaces to manage multiple non-overlapping groups of
 resources with the same configuration.
 
@@ -17,11 +17,11 @@ resources with the same configuration.
 - Most Terraform commands (including [provisioning](/docs/cli/run/index.html)
   and [state manipulation](/docs/cli/state/index.html) commands) only interact
   with the currently selected workspace.
-- Use [the `terraform workspace select` command](/docs/commands/workspace/select.html)
+- Use [the `terraform workspace select` command](/docs/cli/commands/workspace/select.html)
   to change the currently selected workspace.
-- Use the [`terraform workspace list`](/docs/commands/workspace/list.html),
-  [`terraform workspace new`](/docs/commands/workspace/new.html), and
-  [`terraform workspace delete`](/docs/commands/workspace/delete.html) commands
+- Use the [`terraform workspace list`](/docs/cli/commands/workspace/list.html),
+  [`terraform workspace new`](/docs/cli/commands/workspace/new.html), and
+  [`terraform workspace delete`](/docs/cli/commands/workspace/delete.html) commands
   to manage the available workspaces in the current working directory.
 
 -> **Note:** Terraform Cloud and Terraform CLI both have features called
@@ -34,11 +34,11 @@ Since most of the resources you can manage with Terraform don't include a unique
 name as part of their configuration, it's common to use the same Terraform
 configuration to provision multiple groups of similar resources.
 
-Terraform relies on [state](/docs/state/index.html) to associate resources with
+Terraform relies on [state](/docs/language/state/index.html) to associate resources with
 real-world objects, so if you run the same configuration multiple times with
 completely separate state data, Terraform can manage many non-overlapping groups
 of resources. In some cases you'll want to change
-[variable values](/docs/configuration/variables.html) for these different
+[variable values](/docs/language/values/variables.html) for these different
 resource collections (like when specifying differences between staging and
 production deployments), and in other cases you might just want many instances
 of a particular infrastructure pattern.
@@ -46,7 +46,7 @@ of a particular infrastructure pattern.
 The simplest way to maintain multiple instances of a configuration with
 completely separate state data is to use multiple
 [working directories](/docs/cli/init/index.html) (with different
-[backend](/docs/configuration/backend.html) configurations per directory, if you
+[backend](/docs/language/settings/backends/configuration.html) configurations per directory, if you
 aren't using the default `local` backend).
 
 However, this isn't always the most _convenient_ way to handle separate states.
@@ -70,7 +70,7 @@ data, run history, and settings.
 These two kinds of workspaces are different, but related. When using Terraform
 CLI as a frontend for Terraform Cloud, you associate the current working
 directory with one or more remote workspaces by configuring
-[the `remote` backend](/docs/backends/types/remote.html). If you associate the
+[the `remote` backend](/docs/language/settings/backends/remote.html). If you associate the
 directory with multiple workspaces (using a name prefix), you can use the
 `terraform workspace` commands to select which remote workspace to use.
 

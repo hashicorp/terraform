@@ -5,8 +5,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -32,6 +35,13 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
+	}
+
+	diags := c.parseTargetFlags()
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -46,23 +56,6 @@ func (c *PlanCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
 		return 1
 	}
-
-	// Check if the path is a plan, which is not permitted
-	planFileReader, err := c.PlanFile(configPath)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	if planFileReader != nil {
-		c.showDiagnostics(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid configuration directory",
-			fmt.Sprintf("Cannot pass a saved plan file to the 'terraform plan' command. To apply a saved plan, use: terraform apply %s", configPath),
-		))
-		return 1
-	}
-
-	var diags tfdiags.Diagnostics
 
 	var backendConfig *configs.Backend
 	var configDiags tfdiags.Diagnostics
@@ -92,9 +85,12 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
 	opReq.Destroy = destroy
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	opReq.PlanOutPath = outPath
 	opReq.PlanRefresh = refresh
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypePlan
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
@@ -191,7 +187,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options] [DIR]
+Usage: terraform plan [options]
 
   Generates a speculative execution plan, showing what actions Terraform
   would take to apply the current configuration. This command will not

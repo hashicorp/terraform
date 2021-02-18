@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -34,9 +33,8 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule string
-	var flagBackend, flagGet, flagUpgrade, getPlugins bool
+	var flagBackend, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
-	var flagVerifyPlugins bool
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
@@ -45,14 +43,10 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
-	cmdFlags.BoolVar(&getPlugins, "get-plugins", true, "no-op flag, use provider_installation blocks to customize provider installation")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
-	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -64,41 +58,17 @@ func (c *InitCommand) Run(args []string) int {
 		c.pluginPath = flagPluginPath
 	}
 
-	// If users are setting the no-op get-plugins command, give them a warning,
-	// this should allow us to remove the flag in the future.
-	if !getPlugins {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"No-op -get-plugins flag used",
-			`As of Terraform 0.13+, the -get-plugins=false command is a no-op flag. If you would like to customize provider installation, use a provider_installation block or other available Terraform settings.`,
-		))
-	}
-
-	// Validate the arg count
+	// Validate the arg count and get the working directory
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The init command expects at most one argument.\n")
-		cmdFlags.Usage()
+	path, err := ModulePath(args)
+	if err != nil {
+		c.Ui.Error(err.Error())
 		return 1
 	}
 
 	if err := c.storePluginPath(c.pluginPath); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error saving -plugin-path values: %s", err))
 		return 1
-	}
-
-	// Get our pwd. We don't always need it but always getting it is easier
-	// than the logic to determine if it is or isn't needed.
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	// If an argument is provided then it overrides our working directory.
-	path := pwd
-	if len(args) == 1 {
-		path = args[0]
 	}
 
 	// This will track whether we outputted anything so that we know whether
@@ -138,7 +108,7 @@ func (c *InitCommand) Run(args []string) int {
 		c.Ui.Output("")
 	}
 
-	// If our directory is empty, then we're done. We can't get or setup
+	// If our directory is empty, then we're done. We can't get or set up
 	// the backend with an empty directory.
 	empty, err := configs.IsEmptyDir(path)
 	if err != nil {
@@ -422,6 +392,12 @@ the backend configuration is present and valid.
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
 func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
+	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// any overridden providers, so we'll warn about it to avoid later
+	// confusion when Terraform ends up using a different provider than the
+	// lock file called for.
+	diags = diags.Append(c.providerDevOverrideInitWarnings())
+
 	// First we'll collect all the provider dependencies we can see in the
 	// configuration and the state.
 	reqs, hclDiags := config.ProviderRequirements()
@@ -729,7 +705,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			if thirdPartySigned {
 				c.Ui.Info(fmt.Sprintf("\nPartner and community providers are signed by their developers.\n" +
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
-					"https://www.terraform.io/docs/plugins/signing.html"))
+					"https://www.terraform.io/docs/cli/plugins/signing.html"))
 			}
 		},
 		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
@@ -746,12 +722,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		},
 	}
 	ctx = evts.OnContext(ctx)
-
-	// Dev overrides cause the result of "terraform init" to be irrelevant for
-	// any overridden providers, so we'll warn about it to avoid later
-	// confusion when Terraform ends up using a different provider than the
-	// lock file called for.
-	diags = diags.Append(c.providerDevOverrideWarnings())
 
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
@@ -930,19 +900,16 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-from-module":    completePredictModuleSource,
 		"-get":            completePredictBoolean,
 		"-input":          completePredictBoolean,
-		"-lock":           completePredictBoolean,
-		"-lock-timeout":   complete.PredictAnything,
 		"-no-color":       complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
 		"-upgrade":        completePredictBoolean,
-		"-verify-plugins": completePredictBoolean,
 	}
 }
 
 func (c *InitCommand) Help() string {
 	helpText := `
-Usage: terraform init [options] [DIR]
+Usage: terraform init [options]
 
   Initialize a new or existing Terraform working directory by creating
   initial files, loading any remote state, downloading modules, etc.
@@ -956,9 +923,6 @@ Usage: terraform init [options] [DIR]
   may give errors, this command will never delete your configuration or
   state. Even so, if you have important information, please back it up prior
   to running this command, just in case.
-
-  If no arguments are given, the configuration in this working directory
-  is initialized.
 
 Options:
 
@@ -980,22 +944,13 @@ Options:
 
   -get=true            Download any modules for this configuration.
 
-  -get-plugins=true    Download any missing plugins for this configuration.
-                       This command is a no-op in Terraform 0.13+: use
-                       -plugin-dir settings or provider_installation blocks
-                       instead.
-
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
-
-  -lock=true           Lock the state file when locking is supported.
-
-  -lock-timeout=0s     Duration to retry a state lock.
 
   -no-color            If specified, output won't contain any color.
 
   -plugin-dir          Directory containing plugin binaries. This overrides all
-                       default search paths for plugins, and prevents the 
+                       default search paths for plugins, and prevents the
                        automatic installation of plugins. This flag can be used
                        multiple times.
 
@@ -1005,9 +960,6 @@ Options:
   -upgrade=false       If installing modules (-get) or plugins, ignore
                        previously-downloaded objects and install the
                        latest version allowed within configured constraints.
-
-  -verify-plugins=true Verify the authenticity and integrity of automatically
-                       downloaded plugins.
 `
 	return strings.TrimSpace(helpText)
 }

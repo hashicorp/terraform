@@ -49,7 +49,7 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
-	// Setup basic auth
+	// Set up basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
 	}

@@ -142,7 +142,6 @@ func TestVersion_json(t *testing.T) {
 	expected := strings.TrimSpace(`
 {
   "terraform_version": "4.5.6",
-  "terraform_revision": "",
   "platform": "aros_riscv64",
   "provider_selections": {},
   "terraform_outdated": false
@@ -190,7 +189,6 @@ func TestVersion_json(t *testing.T) {
 	expected = strings.TrimSpace(`
 {
   "terraform_version": "4.5.6-foo",
-  "terraform_revision": "",
   "platform": "aros_riscv64",
   "provider_selections": {
     "registry.terraform.io/hashicorp/test1": "7.8.9-beta.2",
@@ -223,7 +221,7 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"terraform_revision\": \"\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
+	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}

@@ -97,7 +97,7 @@ func New(v cty.Value) (*Communicator, error) {
 		return nil, err
 	}
 
-	// Setup the random number generator once. The seed value is the
+	// Set up the random number generator once. The seed value is the
 	// time multiplied by the PID. This can overflow the int64 but that
 	// is okay. We multiply by the PID in case we have multiple processes
 	// grabbing this at the same time. This is possible with Terraform and
@@ -342,7 +342,7 @@ func (c *Communicator) Start(cmd *remote.Cmd) error {
 		return err
 	}
 
-	// Setup our session
+	// Set up our session
 	session.Stdin = cmd.Stdin
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr

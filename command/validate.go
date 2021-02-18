@@ -81,7 +81,7 @@ func (c *ValidateCommand) Run(args []string) int {
 	// not be valid for a stable release, so we'll warn about that in case
 	// the user is trying to use "terraform validate" as a sort of pre-flight
 	// check before submitting a change.
-	diags = diags.Append(c.providerDevOverrideWarnings())
+	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	return c.showResults(diags, jsonOutput)
 }

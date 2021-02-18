@@ -10,8 +10,8 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Expressions](/docs/configuration/expressions/index.html) and
-[Configuration Language: Functions](../configuration/functions.html).
+[Configuration Language: Expressions](/docs/language/expressions/index.html) and
+[Configuration Language: Functions](/docs/language/functions/index.html).
 
 Embedded within strings in Terraform, whether you're using the
 Terraform syntax or JSON syntax, you can interpolate other values. These
@@ -77,7 +77,7 @@ syntax to get a list of all the attributes: `${data.aws_subnet.example.*.cidr_bl
 
 The syntax is `module.<NAME>.<OUTPUT>`. For example `${module.foo.bar}` will
 interpolate the `bar` output from the `foo`
-[module](/docs/modules/index.html).
+[module](/docs/language/modules/develop/index.html).
 
 #### Count information
 
@@ -98,7 +98,7 @@ path of the root module.  In general, you probably want the
 
 The syntax is `terraform.<FIELD>`. This variable type contains metadata about
 the currently executing Terraform run. FIELD can currently only be `env` to
-reference the currently active [state environment](/docs/state/environments.html).
+reference the currently active workspace.
 
 ## Conditionals
 
@@ -560,7 +560,7 @@ Operator precedences is the standard mathematical order of operations:
 "${2 * (4 + 3) * 3}" # computes to 42
 ```
 
-You can use the [terraform console](/docs/commands/console.html) command to
+You can use the [terraform console](/docs/cli/commands/console.html) command to
 try the math operations.
 
 -> **Note:** Since Terraform allows hyphens in resource and variable names,

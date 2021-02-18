@@ -152,13 +152,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) ModifyCreateBeforeDestroy(v b
 // GraphNodeExecutable impl.
 func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	var change *plans.ResourceInstanceChange
-	var applyError error
 
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		return diags
+	if err != nil {
+		return diags.Append(err)
 	}
 
 	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
@@ -174,28 +172,19 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyError, applyDiags := n.apply(ctx, state, change, nil, false, applyError)
+	state, applyDiags := n.apply(ctx, state, change, nil, false)
 	diags = diags.Append(applyDiags)
-	if diags.HasErrors() {
-		return diags
-	}
+	// don't return immediately on errors, we need to handle the state
 
 	// Always write the resource back to the state deposed. If it
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state))
-	if diags.HasErrors() {
-		return diags
+	err = n.writeResourceInstanceState(ctx, state)
+	if err != nil {
+		return diags.Append(err)
 	}
 
-	diags = diags.Append(n.postApplyHook(ctx, state, &applyError))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	if applyError != nil {
-		return diags.Append(applyError)
-	}
+	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 
 	return diags.Append(updateStateHook(ctx))
 }

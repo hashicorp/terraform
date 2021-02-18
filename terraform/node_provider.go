@@ -48,7 +48,15 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 
 	configBody := buildProviderConfig(ctx, n.Addr, n.ProviderConfig())
 
-	resp := provider.GetSchema()
+	// if a provider config is empty (only an alias), return early and don't continue
+	// validation. validate doesn't need to fully configure the provider itself, so
+	// skipping a provider with an implied configuration won't prevent other validation from completing.
+	_, noConfigDiags := configBody.Content(&hcl.BodySchema{})
+	if !noConfigDiags.HasErrors() {
+		return nil
+	}
+
+	resp := provider.GetProviderSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return diags
@@ -64,19 +72,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 
 	configVal, _, evalDiags := ctx.EvaluateBlock(configBody, configSchema, nil, EvalDataForNoInstanceKey)
 	if evalDiags.HasErrors() {
-		if n.Config == nil {
-			// If there isn't an explicit "provider" block in the configuration,
-			// this error message won't be very clear. Add some detail to the
-			// error message in this case.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider configuration",
-				fmt.Sprintf(providerConfigErr, evalDiags.Err(), n.Addr.Provider),
-			))
-			return diags
-		} else {
-			return diags.Append(evalDiags)
-		}
+		return diags.Append(evalDiags)
 	}
 	diags = diags.Append(evalDiags)
 
@@ -84,11 +80,11 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	// stripped out before sending this to the provider
 	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 
-	req := providers.PrepareProviderConfigRequest{
+	req := providers.ValidateProviderConfigRequest{
 		Config: unmarkedConfigVal,
 	}
 
-	validateResp := provider.PrepareProviderConfig(req)
+	validateResp := provider.ValidateProviderConfig(req)
 	diags = diags.Append(validateResp.Diagnostics)
 
 	return diags
@@ -102,7 +98,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	configBody := buildProviderConfig(ctx, n.Addr, config)
 
-	resp := provider.GetSchema()
+	resp := provider.GetProviderSchema()
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return diags
@@ -131,13 +127,13 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	// Allow the provider to validate and insert any defaults into the full
 	// configuration.
-	req := providers.PrepareProviderConfigRequest{
+	req := providers.ValidateProviderConfigRequest{
 		Config: unmarkedConfigVal,
 	}
 
-	// PrepareProviderConfig is only used for validation. We are intentionally
+	// ValidateProviderConfig is only used for validation. We are intentionally
 	// ignoring the PreparedConfig field to maintain existing behavior.
-	prepareResp := provider.PrepareProviderConfig(req)
+	prepareResp := provider.ValidateProviderConfig(req)
 	if prepareResp.Diagnostics.HasErrors() {
 		if config == nil {
 			// If there isn't an explicit "provider" block in the configuration,
@@ -159,7 +155,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	// indicate to provider developers that the value is not used.
 	preparedCfg := prepareResp.PreparedConfig
 	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
-		log.Printf("[WARN] PrepareProviderConfig from %q changed the config value, but that value is unused", n.Addr)
+		log.Printf("[WARN] ValidateProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
 	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)

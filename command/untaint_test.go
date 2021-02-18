@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
@@ -31,9 +32,11 @@ func TestUntaint(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -79,9 +82,11 @@ func TestUntaint_lockedState(t *testing.T) {
 	defer unlock()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -125,9 +130,11 @@ func TestUntaint_backup(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -179,9 +186,11 @@ func TestUntaint_backupDisable(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -206,9 +215,11 @@ test_instance.foo:
 
 func TestUntaint_badState(t *testing.T) {
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -247,9 +258,11 @@ func TestUntaint_defaultState(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -294,7 +307,8 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	path := testStateFileWorkspaceDefault(t, testWorkspace, state)
 
 	ui := new(cli.MockUi)
-	meta := Meta{Ui: ui}
+	view, _ := testView(t)
+	meta := Meta{Ui: ui, View: view}
 	meta.SetWorkspace(testWorkspace)
 	c := &UntaintCommand{
 		Meta: meta,
@@ -335,9 +349,11 @@ func TestUntaint_missing(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -371,9 +387,11 @@ func TestUntaint_missingAllow(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -384,6 +402,19 @@ func TestUntaint_missingAllow(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Check for the warning
+	actual := strings.TrimSpace(ui.ErrorWriter.String())
+	expected := strings.TrimSpace(`
+Warning: No such resource instance
+
+Resource instance test_instance.bar was not found, but this is not an error
+because -allow-missing was set.
+
+`)
+	if diff := cmp.Diff(expected, actual); diff != "" {
+		t.Fatalf("wrong output\n%s", diff)
 	}
 }
 
@@ -413,9 +444,11 @@ func TestUntaint_stateOut(t *testing.T) {
 	testStateFileDefault(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -475,9 +508,11 @@ func TestUntaint_module(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UntaintCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 

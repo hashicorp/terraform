@@ -1,13 +1,14 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -21,14 +22,12 @@ type TaintCommand struct {
 
 func (c *TaintCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	var module string
 	var allowMissing bool
 	cmdFlags := c.Meta.ignoreRemoteVersionFlagSet("taint")
-	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
+	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "allow missing")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -44,11 +43,6 @@ func (c *TaintCommand) Run(args []string) int {
 	if len(args) != 1 {
 		c.Ui.Error("The taint command expects exactly one argument.")
 		cmdFlags.Usage()
-		return 1
-	}
-
-	if module != "" {
-		c.Ui.Error("The -module option is no longer used. Instead, include the module path in the main resource address, like \"module.foo.module.bar.null_resource.baz\".")
 		return 1
 	}
 
@@ -123,12 +117,16 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), c.stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "taint"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if diags := stateLocker.Lock(stateMgr, "taint"); diags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer func() {
+			if diags := stateLocker.Unlock(); diags.HasErrors() {
+				c.showDiagnostics(diags)
+			}
+		}()
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
@@ -252,8 +250,8 @@ Options:
                           "-state" path will be used.
 
   -ignore-remote-version  Continue even if remote and local Terraform versions
-                          differ. This may result in an unusable workspace, and
-                          should be used with extreme caution.
+                          are incompatible. This may result in an unusable
+                          workspace, and should be used with extreme caution.
 
 `
 	return strings.TrimSpace(helpText)
@@ -267,7 +265,7 @@ func (c *TaintCommand) allowMissingExit(name addrs.AbsResourceInstance) int {
 	c.showDiagnostics(tfdiags.Sourceless(
 		tfdiags.Warning,
 		"No such resource instance",
-		"Resource instance %s was not found, but this is not an error because -allow-missing was set.",
+		fmt.Sprintf("Resource instance %s was not found, but this is not an error because -allow-missing was set.", name),
 	))
 	return 0
 }

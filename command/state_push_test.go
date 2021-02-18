@@ -23,10 +23,12 @@ func TestStatePush_empty(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -50,10 +52,12 @@ func TestStatePush_lockedState(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -83,10 +87,12 @@ func TestStatePush_replaceMatch(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -110,7 +116,7 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 
 	expected := testStateRead(t, "replace.tfstate")
 
-	// Setup the replacement to come from stdin
+	// Set up the replacement to come from stdin
 	var buf bytes.Buffer
 	if err := writeStateForTesting(expected, &buf); err != nil {
 		t.Fatalf("err: %s", err)
@@ -119,10 +125,12 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -148,10 +156,12 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 
 	p := testProvider()
 	ui := cli.NewMockUi()
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -177,10 +187,12 @@ func TestStatePush_serialNewer(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -206,10 +218,12 @@ func TestStatePush_serialOlder(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &StatePushCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -236,8 +250,9 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 
 	// init the backend
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	initCmd := &InitCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 	if code := initCmd.Run([]string{}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -246,7 +261,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	// create a new workspace
 	ui = new(cli.MockUi)
 	newCmd := &WorkspaceNewCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 	if code := newCmd.Run([]string{"test"}); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
@@ -268,7 +283,7 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	// push our local state to that new workspace
 	ui = new(cli.MockUi)
 	c := &StatePushCommand{
-		Meta: Meta{Ui: ui},
+		Meta: Meta{Ui: ui, View: view},
 	}
 
 	args := []string{"-force", statePath}

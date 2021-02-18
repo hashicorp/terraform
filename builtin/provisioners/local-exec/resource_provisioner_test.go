@@ -197,3 +197,10 @@ BAR 1 true`
 		t.Errorf("wrong output\ngot:  %s\nwant: %s", got, want)
 	}
 }
+
+// Validate that Stop can Close can be called even when not provisioning.
+func TestResourceProvisioner_StopClose(t *testing.T) {
+	p := New()
+	p.Stop()
+	p.Close()
+}

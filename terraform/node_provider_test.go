@@ -183,11 +183,11 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !provider.PrepareProviderConfigCalled {
+	if !provider.ValidateProviderConfigCalled {
 		t.Fatal("should be called")
 	}
 
-	gotObj := provider.PrepareProviderConfigRequest.Config
+	gotObj := provider.ValidateProviderConfigRequest.Config
 	if !gotObj.Type().HasAttribute("test_string") {
 		t.Fatal("configuration object does not have \"test_string\" attribute")
 	}
@@ -196,19 +196,49 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	}
 }
 
-func TestNodeApplyableProvider_Validate(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Required: true,
-					},
-				},
+func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
+	config := &configs.Provider{
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+	}
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Required: true,
 			},
 		},
+	})
+	providerAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.NewDefaultProvider("foo"),
 	}
+
+	n := &NodeApplyableProvider{&NodeAbstractProvider{
+		Addr:   providerAddr,
+		Config: config,
+	}}
+
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
+	if err := n.Execute(ctx, walkValidate); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if ctx.ConfigureProviderCalled {
+		t.Fatal("should not be called")
+	}
+}
+
+func TestNodeApplyableProvider_Validate(t *testing.T) {
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	})
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 
@@ -233,10 +263,18 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("missing required config", func(t *testing.T) {
+	t.Run("invalid", func(t *testing.T) {
+		config := &configs.Provider{
+			Name: "test",
+			Config: configs.SynthBody("", map[string]cty.Value{
+				"region": cty.MapValEmpty(cty.String),
+			}),
+		}
+
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Config: config,
 			},
 		}
 
@@ -245,28 +283,37 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 			t.Error("missing expected error with invalid config")
 		}
 	})
+
+	t.Run("empty config", func(t *testing.T) {
+		node := NodeApplyableProvider{
+			NodeAbstractProvider: &NodeAbstractProvider{
+				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			},
+		}
+
+		diags := node.ValidateProvider(ctx, provider)
+		if diags.HasErrors() {
+			t.Errorf("unexpected error with empty config: %s", diags.Err())
+		}
+	})
 }
 
 //This test specifically tests responses from the
-//providers.PrepareProviderConfigFn. See
+//providers.ValidateProviderConfigFn. See
 //TestNodeApplyableProvider_ConfigProvider_config_fn_err for
-//providers.ConfigureRequest responses.
+//providers.ConfigureProviderRequest responses.
 func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Optional: true,
 			},
 		},
-	}
+	})
 	// For this test, we're returning an error for an optional argument. This
 	// can happen for example if an argument is only conditionally required.
-	provider.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	provider.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		region := req.Config.GetAttr("region")
 		if region.IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
@@ -336,20 +383,16 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 
 }
 
-//This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureRequest
+//This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureProviderRequest
 func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
-	provider := &MockProvider{
-		GetSchemaReturn: &ProviderSchema{
-			Provider: &configschema.Block{
-				Attributes: map[string]*configschema.Attribute{
-					"region": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
+	provider := mockProviderWithConfigSchema(&configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"region": {
+				Type:     cty.String,
+				Optional: true,
 			},
 		},
-	}
+	})
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 	// For this test, provider.PrepareConfigFn will succeed every time but the

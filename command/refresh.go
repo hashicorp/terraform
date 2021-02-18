@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -26,6 +28,13 @@ func (c *RefreshCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		return 1
+	}
+
+	diags := c.parseTargetFlags()
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
 		return 1
 	}
 
@@ -34,8 +43,6 @@ func (c *RefreshCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	var diags tfdiags.Diagnostics
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
@@ -69,7 +76,10 @@ func (c *RefreshCommand) Run(args []string) int {
 	// Build the operation
 	opReq := c.Operation(b)
 	opReq.ConfigDir = configPath
+	opReq.Hooks = []terraform.Hook{c.uiHook()}
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeRefresh
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
@@ -96,8 +106,13 @@ func (c *RefreshCommand) Run(args []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
-		c.Ui.Output(c.Colorize().Color(outputs))
+	if op.State != nil {
+		outputValues := op.State.RootModule().OutputValues
+		if len(outputValues) > 0 {
+			c.Ui.Output(c.Colorize().Color("[reset][bold][green]\nOutputs:\n\n"))
+			view := views.NewOutput(arguments.ViewHuman, c.View)
+			view.Output("", outputValues)
+		}
 	}
 
 	return op.Result.ExitStatus()
@@ -105,7 +120,7 @@ func (c *RefreshCommand) Run(args []string) int {
 
 func (c *RefreshCommand) Help() string {
 	helpText := `
-Usage: terraform refresh [options] [dir]
+Usage: terraform refresh [options]
 
   Update the state file of your infrastructure with metadata that matches
   the physical resources they are tracking.

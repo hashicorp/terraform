@@ -250,15 +250,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 		return nil
 	}
 
-	if b.CLI != nil {
-		b.CLI.Output("\n------------------------------------------------------------------------\n")
-	}
-
 	msgPrefix := "Cost estimation"
-	if b.CLI != nil {
-		b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
-	}
-
 	started := time.Now()
 	updated := started
 	for i := 0; ; i++ {
@@ -284,6 +276,12 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			}
 		}
 
+		// checking if i == 0 so as to avoid printing this starting horizontal-rule
+		// every retry, and that it only prints it on the first (i=0) attempt.
+		if b.CLI != nil && i == 0 {
+			b.CLI.Output("\n------------------------------------------------------------------------\n")
+		}
+
 		switch ce.Status {
 		case tfe.CostEstimateFinished:
 			delta, err := strconv.ParseFloat(ce.DeltaMonthlyCost, 64)
@@ -299,6 +297,7 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
 
 			if b.CLI != nil {
+				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
 
@@ -320,10 +319,12 @@ func (b *Remote) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Op
 					elapsed = fmt.Sprintf(
 						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
 				}
+				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
 		case tfe.CostEstimateSkippedDueToTargeting:
+			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
 			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil

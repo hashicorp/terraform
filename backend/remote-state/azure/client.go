@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-uuid"
@@ -40,7 +41,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	ctx := context.TODO()
 	blob, err := c.giovanniBlobClient.Get(ctx, c.accountName, c.containerName, c.keyName, options)
 	if err != nil {
-		if blob.Response.StatusCode == 404 {
+		if blob.Response.IsHTTPStatus(http.StatusNotFound) {
 			return nil, nil
 		}
 		return nil, err
@@ -49,7 +50,7 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 	blobContents := blob.Contents
 	// Decrypt operation if Key Vault key is provided
 	if c.encClient != nil {
-		blobContents, err = c.encClient.Decrypt(context.TODO(), blobContents)
+		blobContents, err = c.encClient.Decrypt(ctx, blobContents)
 		if err != nil {
 			return nil, fmt.Errorf("Error during decryption: %v", err)
 		}
@@ -103,7 +104,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	blobContents := data
 	// Encrypt operation if Key Vault key is provided
 	if c.encClient != nil {
-		blobContents, err = c.encClient.Encrypt(context.TODO(), blobContents)
+		blobContents, err = c.encClient.Encrypt(ctx, blobContents)
 		if err != nil {
 			return fmt.Errorf("Error during encryption: %v", err)
 		}

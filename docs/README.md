@@ -4,7 +4,7 @@ This directory contains some documentation about the Terraform Core codebase,
 aimed at readers who are interested in making code contributions.
 
 If you're looking for information on _using_ Terraform, please instead refer
-to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli-index.html).
+to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/index.html).
 
 ## Terraform Core Architecture Documents
 

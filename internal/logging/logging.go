@@ -45,7 +45,7 @@ func init() {
 	logger = newHCLogger("")
 	logWriter = logger.StandardWriter(&hclog.StandardLoggerOptions{InferLevels: true})
 
-	// setup the default std library logger to use our output
+	// set up the default std library logger to use our output
 	log.SetFlags(0)
 	log.SetPrefix("")
 	log.SetOutput(logWriter)

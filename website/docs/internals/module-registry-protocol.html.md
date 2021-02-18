@@ -213,10 +213,10 @@ A successful response has no body, and includes the location from which the
 module version's source can be downloaded in the `X-Terraform-Get` header.
 The value of this header accepts the same values as the `source` argument
 in a `module` block in Terraform configuration, as described in
-[Module Sources](https://www.terraform.io/docs/modules/sources.html),
+[Module Sources](https://www.terraform.io/docs/language/modules/sources.html),
 except that it may not recursively refer to another module registry address.
 
 The value of `X-Terraform-Get` may instead be a relative URL, indicated by
 beginning with `/`, `./` or `../`, in which case it is resolved relative to
 the full URL of the download endpoint to produce
-[an HTTP URL module source](/docs/modules/sources.html#http-urls).
+[an HTTP URL module source](/docs/language/modules/sources.html#http-urls).

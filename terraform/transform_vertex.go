@@ -31,7 +31,7 @@ func (t *VertexTransformer) Transform(g *Graph) error {
 			if ok := g.Replace(v, newV); !ok {
 				// This should never happen, big problem
 				return fmt.Errorf(
-					"Failed to replace %s with %s!\n\nSource: %#v\n\nTarget: %#v",
+					"failed to replace %s with %s!\n\nSource: %#v\n\nTarget: %#v",
 					dag.VertexName(v), dag.VertexName(newV), v, newV)
 			}
 

@@ -155,7 +155,7 @@ func TestNodeValidatableResource_ValidateProvisioner__conntectionInvalid(t *test
 
 func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
@@ -165,7 +165,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -188,7 +188,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
 	err := node.validateResource(ctx)
@@ -196,53 +196,73 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 		t.Fatalf("err: %s", err)
 	}
 
-	if !mp.ValidateResourceTypeConfigCalled {
-		t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+	if !mp.ValidateResourceConfigCalled {
+		t.Fatal("Expected ValidateResourceConfig to be called, but it was not!")
 	}
 }
 
 func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testing.T) {
+	// Setup
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
 		if got, want := req.Config.GetAttr("test_string"), cty.StringVal("bar"); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
-	rc := &configs.Resource{
-		Mode:  addrs.ManagedResourceMode,
-		Type:  "test_object",
-		Name:  "foo",
-		Count: hcltest.MockExprLiteral(cty.NumberIntVal(2)),
-		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("bar"),
-		}),
-	}
-	node := NodeValidatableResource{
-		NodeAbstractResource: &NodeAbstractResource{
-			Addr:             mustConfigResourceAddr("test_foo.bar"),
-			Config:           rc,
-			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
-		},
-	}
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
-	diags := node.validateResource(ctx)
-	if diags.HasErrors() {
-		t.Fatalf("err: %s", diags.Err())
+	tests := []struct {
+		name  string
+		count hcl.Expression
+	}{
+		{
+			"simple count",
+			hcltest.MockExprLiteral(cty.NumberIntVal(2)),
+		},
+		{
+			"marked count value",
+			hcltest.MockExprLiteral(cty.NumberIntVal(3).Mark("marked")),
+		},
 	}
 
-	if !mp.ValidateResourceTypeConfigCalled {
-		t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rc := &configs.Resource{
+				Mode:  addrs.ManagedResourceMode,
+				Type:  "test_object",
+				Name:  "foo",
+				Count: test.count,
+				Config: configs.SynthBody("", map[string]cty.Value{
+					"test_string": cty.StringVal("bar"),
+				}),
+			}
+			node := NodeValidatableResource{
+				NodeAbstractResource: &NodeAbstractResource{
+					Addr:             mustConfigResourceAddr("test_foo.bar"),
+					Config:           rc,
+					ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				},
+			}
+
+			diags := node.validateResource(ctx)
+			if diags.HasErrors() {
+				t.Fatalf("err: %s", diags.Err())
+			}
+
+			if !mp.ValidateResourceConfigCalled {
+				t.Fatal("Expected ValidateResourceConfig to be called, but it was not!")
+			}
+		})
 	}
 }
 
@@ -282,7 +302,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
 	diags := node.validateResource(ctx)
@@ -297,8 +317,8 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 
 func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		return providers.ValidateResourceTypeConfigResponse{}
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -318,7 +338,7 @@ func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
 	diags := node.validateResource(ctx)
@@ -329,11 +349,11 @@ func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 
 func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.SimpleWarning("warn"))
 		diags = diags.Append(errors.New("err"))
-		return providers.ValidateResourceTypeConfigResponse{
+		return providers.ValidateResourceConfigResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -355,7 +375,7 @@ func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
 	diags := node.validateResource(ctx)
@@ -377,8 +397,8 @@ func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough
 
 func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		return providers.ValidateResourceTypeConfigResponse{}
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	// We'll check a _valid_ config first, to make sure we're not failing
@@ -417,7 +437,8 @@ func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T)
 
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
-	ctx.ProviderSchemaSchema = mp.GetSchemaReturn
+
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
 	ctx.ProviderProvider = p
 
 	diags := node.validateResource(ctx)

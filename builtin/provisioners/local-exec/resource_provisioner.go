@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sync"
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -24,13 +23,17 @@ const (
 )
 
 func New() provisioners.Interface {
-	return &provisioner{}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &provisioner{
+		ctx:    ctx,
+		cancel: cancel,
+	}
 }
 
 type provisioner struct {
-	// this stored from the running context, so that Stop() can cancel the
-	// command
-	mu     sync.Mutex
+	// We store a context here tied to the lifetime of the provisioner.
+	// This allows the Stop method to cancel any in-flight requests.
+	ctx    context.Context
 	cancel context.CancelFunc
 }
 
@@ -68,11 +71,6 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 }
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
-	p.mu.Lock()
-	ctx, cancel := context.WithCancel(context.Background())
-	p.cancel = cancel
-	p.mu.Unlock()
-
 	command := req.Config.GetAttr("command").AsString()
 	if command == "" {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("local-exec provisioner command must be a non-empty string"))
@@ -112,7 +110,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 		workingdir = wdVal.AsString()
 	}
 
-	// Setup the reader that will read the output from the command.
+	// Set up the reader that will read the output from the command.
 	// We use an os.Pipe so that the *os.File can be passed directly to the
 	// process, and not rely on goroutines copying the data which may block.
 	// See golang.org/issue/18874
@@ -126,8 +124,8 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	cmdEnv = os.Environ()
 	cmdEnv = append(cmdEnv, env...)
 
-	// Setup the command
-	cmd := exec.CommandContext(ctx, cmdargs[0], cmdargs[1:]...)
+	// Set up the command
+	cmd := exec.CommandContext(p.ctx, cmdargs[0], cmdargs[1:]...)
 	cmd.Stderr = pw
 	cmd.Stdout = pw
 	// Dir specifies the working directory of the command.
@@ -165,7 +163,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	// copyOutput goroutine will just hang out until exit.
 	select {
 	case <-copyDoneCh:
-	case <-ctx.Done():
+	case <-p.ctx.Done():
 	}
 
 	if err != nil {
@@ -178,8 +176,6 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 }
 
 func (p *provisioner) Stop() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.cancel()
 	return nil
 }

@@ -19,7 +19,7 @@ import (
 // Communicator is an interface that must be implemented by all communicators
 // used for any of the provisioners
 type Communicator interface {
-	// Connect is used to setup the connection
+	// Connect is used to set up the connection
 	Connect(provisioners.UIOutput) error
 
 	// Disconnect is used to terminate the connection

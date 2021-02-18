@@ -15,15 +15,19 @@ import (
 	"time"
 
 	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/command/webbrowser"
 	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
@@ -51,12 +55,20 @@ type Meta struct {
 	// for some reason.
 	OriginalWorkingDir string
 
+	// Streams tracks the raw Stdout, Stderr, and Stdin handles along with
+	// some basic metadata about them, such as whether each is connected to
+	// a terminal, how wide the possible terminal is, etc.
+	//
+	// For historical reasons this might not be set in unit test code, and
+	// so functions working with this field must check if it's nil and
+	// do some default behavior instead if so, rather than panicking.
+	Streams *terminal.Streams
+
+	View *views.View
+
 	Color            bool     // True if output should be colored
 	GlobalPluginDirs []string // Additional paths to search for plugins
 	Ui               cli.Ui   // Ui for output
-
-	// ExtraHooks are extra hooks to add to the context.
-	ExtraHooks []terraform.Hook
 
 	// Services provides access to remote endpoint information for
 	// "terraform-native' services running at a specific user-facing hostname.
@@ -155,7 +167,8 @@ type Meta struct {
 	input        bool
 
 	// Targets for this context (private)
-	targets []addrs.Targetable
+	targets     []addrs.Targetable
+	targetFlags []string
 
 	// Internal fields
 	color bool
@@ -288,15 +301,42 @@ func (m *Meta) UIInput() terraform.UIInput {
 	}
 }
 
+// OutputColumns returns the number of columns that normal (non-error) UI
+// output should be wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Output or Info methods of m.Ui.
+func (m *Meta) OutputColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stdout.Columns()
+}
+
+// ErrorColumns returns the number of columns that error UI output should be
+// wrapped to fill.
+//
+// This is the column count to use if you'll be printing your message via
+// the Error or Warn methods of m.Ui.
+func (m *Meta) ErrorColumns() int {
+	if m.Streams == nil {
+		// A default for unit tests that don't populate Meta fully.
+		return 78
+	}
+	return m.Streams.Stderr.Columns()
+}
+
 // StdinPiped returns true if the input is piped.
 func (m *Meta) StdinPiped() bool {
-	fi, err := wrappedstreams.Stdin().Stat()
-	if err != nil {
-		// If there is an error, let's just say its not piped
+	if m.Streams == nil {
+		// If we don't have m.Streams populated then we're presumably in a unit
+		// test that doesn't properly populate Meta, so we'll just say the
+		// output _isn't_ piped because that's the common case and so most likely
+		// to be useful to a unit test.
 		return false
 	}
-
-	return fi.Mode()&os.ModeNamedPipe != 0
+	return !m.Streams.Stdin.IsTerminal()
 }
 
 // InterruptibleContext returns a context.Context that will be cancelled
@@ -392,8 +432,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	}
 
 	var opts terraform.ContextOpts
-	opts.Hooks = []terraform.Hook{m.uiHook()}
-	opts.Hooks = append(opts.Hooks, m.ExtraHooks...)
 
 	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
@@ -460,6 +498,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 }
 
 // defaultFlagSet creates a default flag set for commands.
+// See also command/arguments/default.go
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.SetOutput(ioutil.Discard)
@@ -476,7 +515,7 @@ func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 func (m *Meta) ignoreRemoteVersionFlagSet(n string) *flag.FlagSet {
 	f := m.defaultFlagSet(n)
 
-	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions differ")
+	f.BoolVar(&m.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
 
 	return f
 }
@@ -487,7 +526,7 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	f := m.defaultFlagSet(n)
 
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagTargetSlice)(&m.targets), "target", "resource to target")
+	f.Var((*FlagStringSlice)(&m.targetFlags), "target", "resource to target")
 	f.BoolVar(&m.compactWarnings, "compact-warnings", false, "use compact warnings")
 
 	if m.variableArgs.items == nil {
@@ -505,9 +544,46 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// process will process the meta-parameters out of the arguments. This
+// parseTargetFlags must be called for any commands supporting -target
+// arguments. This method attempts to parse each -target flag into an
+// addrs.Target, storing in the Meta.targets slice.
+//
+// If any flags cannot be parsed, we rewrap the first error diagnostic with a
+// custom title to clarify the source of the error. The normal approach of
+// directly returning the diags from HCL or the addrs package results in
+// confusing incorrect "source" results when presented.
+func (m *Meta) parseTargetFlags() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	m.targets = nil
+	for _, tf := range m.targetFlags {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tf), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tf),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		target, targetDiags := addrs.ParseTarget(traversal)
+		if targetDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tf),
+				targetDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		m.targets = append(m.targets, target.Subject)
+	}
+	return diags
+}
+
+// process will process any -no-color entries out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
-// slice.
+// slice, and update the Meta and Ui.
 func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
@@ -541,15 +617,21 @@ func (m *Meta) process(args []string) []string {
 		},
 	}
 
+	// Reconfigure the view. This is necessary for commands which use both
+	// views.View and cli.Ui during the migration phase.
+	if m.View != nil {
+		m.View.Configure(&arguments.View{
+			CompactWarnings: m.compactWarnings,
+			NoColor:         !m.Color,
+		})
+	}
+
 	return args
 }
 
 // uiHook returns the UiHook to use with the context.
-func (m *Meta) uiHook() *UiHook {
-	return &UiHook{
-		Colorize: m.Colorize(),
-		Ui:       m.Ui,
-	}
+func (m *Meta) uiHook() *views.UiHook {
+	return views.NewUiHook(m.View)
 }
 
 // confirm asks a yes/no confirmation.
@@ -593,6 +675,8 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 		return
 	}
 
+	outputWidth := m.ErrorColumns()
+
 	diags = diags.ConsolidateWarnings(1)
 
 	// Since warning messages are generally competing
@@ -618,11 +702,13 @@ func (m *Meta) showDiagnostics(vals ...interface{}) {
 	}
 
 	for _, diag := range diags {
-		// TODO: Actually measure the terminal width and pass it here.
-		// For now, we don't have easy access to the writer that
-		// ui.Error (etc) are writing to and thus can't interrogate
-		// to see if it's a terminal and what size it is.
-		msg := format.Diagnostic(diag, m.configSources(), m.Colorize(), 78)
+		var msg string
+		if m.Color {
+			msg = format.Diagnostic(diag, m.configSources(), m.Colorize(), outputWidth)
+		} else {
+			msg = format.DiagnosticPlain(diag, m.configSources(), outputWidth)
+		}
+
 		switch diag.Severity() {
 		case tfdiags.Error:
 			m.Ui.Error(msg)

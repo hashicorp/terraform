@@ -9,7 +9,7 @@ description: |-
 # Server-side Login Protocol
 
 ~> **Note:** You don't need to read these docs to _use_
-[`terraform login`](/docs/commands/login.html).  The information below is for
+[`terraform login`](/docs/cli/commands/login.html).  The information below is for
 anyone intending to implement the server side of `terraform login` in order to
 offer Terraform-native services in a third-party system.
 

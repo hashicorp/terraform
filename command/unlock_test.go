@@ -34,10 +34,12 @@ func TestUnlock(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &UnlockCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -56,7 +58,7 @@ func TestUnlock(t *testing.T) {
 		"-force",
 	}
 
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != cli.RunResultHelp {
 		t.Fatalf("bad: %d\n%s\n%s", code, ui.OutputWriter.String(), ui.ErrorWriter.String())
 	}
 }
@@ -72,9 +74,11 @@ func TestUnlock_inmemBackend(t *testing.T) {
 
 	// init backend
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	ci := &InitCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 	if code := ci.Run(nil); code != 0 {
@@ -84,7 +88,8 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	ui = new(cli.MockUi)
 	c := &UnlockCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 
@@ -101,7 +106,8 @@ func TestUnlock_inmemBackend(t *testing.T) {
 	ui = new(cli.MockUi)
 	c = &UnlockCommand{
 		Meta: Meta{
-			Ui: ui,
+			Ui:   ui,
+			View: view,
 		},
 	}
 

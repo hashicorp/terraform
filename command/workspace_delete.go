@@ -1,12 +1,13 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
@@ -35,8 +36,8 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) == 0 {
-		c.Ui.Error("expected NAME.\n")
+	if len(args) != 1 {
+		c.Ui.Error("Expected a single argument: NAME.\n")
 		return cli.RunResultHelp
 	}
 
@@ -107,9 +108,9 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	var stateLocker clistate.Locker
 	if stateLock {
-		stateLocker = clistate.NewLocker(context.Background(), stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "workspace_delete"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+		stateLocker = clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if diags := stateLocker.Lock(stateMgr, "state-replace-provider"); diags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
 	} else {
@@ -118,7 +119,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	if err := stateMgr.RefreshState(); err != nil {
 		// We need to release the lock before exit
-		stateLocker.Unlock(nil)
+		stateLocker.Unlock()
 		c.Ui.Error(err.Error())
 		return 1
 	}
@@ -127,7 +128,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	if hasResources && !force {
 		// We need to release the lock before exit
-		stateLocker.Unlock(nil)
+		stateLocker.Unlock()
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), workspace))
 		return 1
 	}
@@ -141,7 +142,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// state deletion, i.e. in a CI environment. Adding Delete() as a
 	// required method of States would allow the removal of the resource to
 	// be delegated from the Backend to the State itself.
-	stateLocker.Unlock(nil)
+	stateLocker.Unlock()
 
 	err = b.DeleteWorkspace(workspace)
 	if err != nil {
@@ -182,7 +183,7 @@ func (c *WorkspaceDeleteCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
-Usage: terraform workspace delete [OPTIONS] NAME [DIR]
+Usage: terraform workspace delete [OPTIONS] NAME
 
   Delete a Terraform workspace
 

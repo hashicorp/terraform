@@ -18,7 +18,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/backend"
 	remoteBackend "github.com/hashicorp/terraform/backend/remote"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -102,7 +104,7 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		log.Printf("[TRACE] Meta.Backend: instantiated backend of type %T", b)
 	}
 
-	// Setup the CLI opts we pass into backends that support it.
+	// Set up the CLI opts we pass into backends that support it.
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
 		diags = diags.Append(err)
@@ -308,7 +310,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
-		ShowDiagnostics:     m.showDiagnostics,
+		Streams:             m.Streams,
 		StatePath:           m.statePath,
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,
@@ -341,15 +343,20 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 		panic(fmt.Sprintf("failed to encode backend configuration for plan: %s", err))
 	}
 
+	stateLocker := clistate.NewNoopLocker()
+	if m.stateLock {
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
+	}
+
 	return &backend.Operation{
-		PlanOutBackend:   planOutBackend,
-		Parallelism:      m.parallelism,
-		Targets:          m.targets,
-		UIIn:             m.UIInput(),
-		UIOut:            m.Ui,
-		Workspace:        workspace,
-		LockState:        m.stateLock,
-		StateLockTimeout: m.stateLockTimeout,
+		PlanOutBackend: planOutBackend,
+		Parallelism:    m.parallelism,
+		Targets:        m.targets,
+		UIIn:           m.UIInput(),
+		UIOut:          m.Ui,
+		Workspace:      workspace,
+		StateLocker:    stateLocker,
 	}
 }
 
@@ -802,12 +809,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
-		defer stateLocker.Unlock(nil)
+		defer stateLocker.Unlock()
 	}
 
 	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
@@ -886,12 +894,13 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if m.stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), m.stateLockTimeout, m.Ui, m.Colorize())
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
 			return nil, diags
 		}
-		defer stateLocker.Unlock(nil)
+		defer stateLocker.Unlock()
 	}
 
 	configJSON, err := ctyjson.Marshal(configVal, b.ConfigSchema().ImpliedType())
@@ -1115,6 +1124,11 @@ func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tf
 		// an error
 		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
 		diags = diags.Append(versionDiags)
+		// If there are no errors resulting from this check, we do not need to
+		// check again
+		if !diags.HasErrors() {
+			rb.IgnoreVersionConflict()
+		}
 	}
 
 	return diags
@@ -1200,7 +1214,7 @@ Terraform configuration you're using is using a custom configuration for
 the Terraform backend.
 
 Changes to backend configurations require reinitialization. This allows
-Terraform to setup the new configuration, copy existing state, etc. This is
+Terraform to set up the new configuration, copy existing state, etc. This is
 only done during "terraform init". Please run that command now then try again.
 
 If the change reason above is incorrect, please verify your configuration

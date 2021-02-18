@@ -1,15 +1,14 @@
 package command
 
 import (
-	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/repl"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -24,7 +23,7 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var destroyForce, refresh, autoApprove bool
+	var refresh, autoApprove bool
 	args = c.Meta.process(args)
 	cmdName := "apply"
 	if c.Destroy {
@@ -33,9 +32,6 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.extendedFlagSet(cmdName)
 	cmdFlags.BoolVar(&autoApprove, "auto-approve", false, "skip interactive approval of plan before applying")
-	if c.Destroy {
-		cmdFlags.BoolVar(&destroyForce, "force", false, "deprecated: same as auto-approve")
-	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
@@ -45,12 +41,23 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	diags := c.parseTargetFlags()
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	args = cmdFlags.Args()
+	var planPath string
+	if len(args) > 0 {
+		planPath = args[0]
+		args = args[1:]
+	}
+
 	configPath, err := ModulePath(args)
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -63,15 +70,29 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check if the path is a plan
-	planFile, err := c.PlanFile(configPath)
-	if err != nil {
-		c.Ui.Error(err.Error())
-		return 1
-	}
-	if c.Destroy && planFile != nil {
-		c.Ui.Error("Destroy can't be called with a plan file.")
-		return 1
+	// Try to load plan if path is specified
+	var planFile *planfile.Reader
+	if planPath != "" {
+		planFile, err = c.PlanFile(planPath)
+		if err != nil {
+			c.Ui.Error(err.Error())
+			return 1
+		}
+
+		// If the path doesn't look like a plan, both planFile and err will be
+		// nil. In that case, the user is probably trying to use the positional
+		// argument to specify a configuration path. Point them at -chdir.
+		if planFile == nil {
+			c.Ui.Error(fmt.Sprintf("Failed to load %q as a plan file. Did you mean to use -chdir?", planPath))
+			return 1
+		}
+
+		// If we successfully loaded a plan but this is a destroy operation,
+		// explain that this is not supported.
+		if c.Destroy {
+			c.Ui.Error("Destroy can't be called with a plan file.")
+			return 1
+		}
 	}
 	if planFile != nil {
 		// Reset the config path for backend loading
@@ -87,6 +108,9 @@ func (c *ApplyCommand) Run(args []string) int {
 			return 1
 		}
 	}
+
+	// Set up our count hook that keeps track of resource changes
+	countHook := new(CountHook)
 
 	// Load the backend
 	var be backend.Enhanced
@@ -134,7 +158,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Applying changes with dev overrides in effect could make it impossible
 	// to switch back to a release version if the schema isn't compatible,
 	// so we'll warn about it.
-	diags = diags.Append(c.providerDevOverrideWarnings())
+	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
@@ -147,10 +171,12 @@ func (c *ApplyCommand) Run(args []string) int {
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = configPath
 	opReq.Destroy = c.Destroy
-	opReq.DestroyForce = destroyForce
+	opReq.Hooks = []terraform.Hook{countHook, c.uiHook()}
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = refresh
+	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeApply
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
@@ -173,13 +199,44 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.showDiagnostics(err)
 		return 1
 	}
+
 	if op.Result != backend.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
 
-	if !c.Destroy {
-		if outputs := outputsAsString(op.State, addrs.RootModuleInstance, true); outputs != "" {
-			c.Ui.Output(c.Colorize().Color(outputs))
+	// Show the count results from the operation
+	if c.Destroy {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Destroy complete! Resources: %d destroyed.",
+			countHook.Removed)))
+	} else {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]\n"+
+				"Apply complete! Resources: %d added, %d changed, %d destroyed.",
+			countHook.Added,
+			countHook.Changed,
+			countHook.Removed)))
+	}
+
+	// only show the state file help message if the state is local.
+	if (countHook.Added > 0 || countHook.Changed > 0) && c.Meta.stateOutPath != "" {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset]\n"+
+				"The state of your infrastructure has been saved to the path\n"+
+				"below. This state is required to modify and destroy your\n"+
+				"infrastructure, so keep it safe. To inspect the complete state\n"+
+				"use the `terraform show` command.\n\n"+
+				"State path: %s",
+			c.Meta.stateOutPath)))
+	}
+
+	if !c.Destroy && op.State != nil {
+		outputValues := op.State.RootModule().OutputValues
+		if len(outputValues) > 0 {
+			c.Ui.Output(c.Colorize().Color("[reset][bold][green]\nOutputs:\n\n"))
+			view := views.NewOutput(arguments.ViewHuman, c.View)
+			view.Output("", outputValues)
 		}
 	}
 
@@ -266,7 +323,7 @@ Options:
 
 func (c *ApplyCommand) helpDestroy() string {
 	helpText := `
-Usage: terraform destroy [options] [DIR]
+Usage: terraform destroy [options]
 
   Destroy Terraform-managed infrastructure.
 
@@ -277,8 +334,6 @@ Options:
                          ".backup" extension. Set to "-" to disable backup.
 
   -auto-approve          Skip interactive approval before destroying.
-
-  -force                 Deprecated: same as auto-approve.
 
   -lock=true             Lock the state file when locking is supported.
 
@@ -313,49 +368,6 @@ Options:
 
 `
 	return strings.TrimSpace(helpText)
-}
-
-func outputsAsString(state *states.State, modPath addrs.ModuleInstance, includeHeader bool) string {
-	if state == nil {
-		return ""
-	}
-
-	ms := state.Module(modPath)
-	if ms == nil {
-		return ""
-	}
-
-	outputs := ms.OutputValues
-	outputBuf := new(bytes.Buffer)
-	if len(outputs) > 0 {
-		if includeHeader {
-			outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
-		}
-
-		// Output the outputs in alphabetical order
-		keyLen := 0
-		ks := make([]string, 0, len(outputs))
-		for key := range outputs {
-			ks = append(ks, key)
-			if len(key) > keyLen {
-				keyLen = len(key)
-			}
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			v := outputs[k]
-			if v.Sensitive {
-				outputBuf.WriteString(fmt.Sprintf("%s = <sensitive>\n", k))
-				continue
-			}
-
-			result := repl.FormatValue(v.Value, 0)
-			outputBuf.WriteString(fmt.Sprintf("%s = %s\n", k, result))
-		}
-	}
-
-	return strings.TrimSpace(outputBuf.String())
 }
 
 const outputInterrupt = `Interrupt received.

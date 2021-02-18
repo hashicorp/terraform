@@ -13,26 +13,28 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/providers"
 )
 
 func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	ui := new(cli.MockUi)
 	p := testProvider()
-	p.GetSchemaReturn = &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-				},
-				BlockTypes: map[string]*configschema.NestedBlock{
-					"network_interface": {
-						Nesting: configschema.NestingList,
-						Block: configschema.Block{
-							Attributes: map[string]*configschema.Attribute{
-								"device_index": {Type: cty.String, Optional: true},
-								"description":  {Type: cty.String, Optional: true},
-								"name":         {Type: cty.String, Optional: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+					},
+					BlockTypes: map[string]*configschema.NestedBlock{
+						"network_interface": {
+							Nesting: configschema.NestingList,
+							Block: configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"device_index": {Type: cty.String, Optional: true},
+									"description":  {Type: cty.String, Optional: true},
+									"name":         {Type: cty.String, Optional: true},
+								},
 							},
 						},
 					},

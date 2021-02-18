@@ -39,7 +39,7 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
-// terraform provioders types and the grpc proto types, directly converting
+// terraform providers types and the grpc proto types, directly converting
 // between the two.
 type GRPCProvider struct {
 	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
@@ -60,13 +60,13 @@ type GRPCProvider struct {
 	// schema stores the schema for this provider. This is used to properly
 	// serialize the state for requests.
 	mu      sync.Mutex
-	schemas providers.GetSchemaResponse
+	schemas providers.GetProviderSchemaResponse
 }
 
 // getSchema is used internally to get the saved provider schema.  The schema
 // should have already been fetched from the provider, but we have to
 // synchronize access to avoid being called concurrently with GetSchema.
-func (p *GRPCProvider) getSchema() providers.GetSchemaResponse {
+func (p *GRPCProvider) getSchema() providers.GetProviderSchemaResponse {
 	p.mu.Lock()
 	// unlock inline in case GetSchema needs to be called
 	if p.schemas.Provider.Block != nil {
@@ -78,7 +78,7 @@ func (p *GRPCProvider) getSchema() providers.GetSchemaResponse {
 	// the schema should have been fetched already, but give it another shot
 	// just in case things are being called out of order. This may happen for
 	// tests.
-	schemas := p.GetSchema()
+	schemas := p.GetProviderSchema()
 	if schemas.Diagnostics.HasErrors() {
 		panic(schemas.Diagnostics.Err())
 	}
@@ -115,8 +115,8 @@ func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
 	return schema.ProviderMeta
 }
 
-func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
-	logger.Trace("GRPCProvider: GetSchema")
+func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResponse) {
+	logger.Trace("GRPCProvider: GetProviderSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -166,8 +166,8 @@ func (p *GRPCProvider) GetSchema() (resp providers.GetSchemaResponse) {
 	return resp
 }
 
-func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
-	logger.Trace("GRPCProvider: PrepareProviderConfig")
+func (p *GRPCProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+	logger.Trace("GRPCProvider: ValidateProviderConfig")
 
 	schema := p.getSchema()
 	ty := schema.Provider.Block.ImpliedType()
@@ -199,8 +199,8 @@ func (p *GRPCProvider) PrepareProviderConfig(r providers.PrepareProviderConfigRe
 	return resp
 }
 
-func (p *GRPCProvider) ValidateResourceTypeConfig(r providers.ValidateResourceTypeConfigRequest) (resp providers.ValidateResourceTypeConfigResponse) {
-	logger.Trace("GRPCProvider: ValidateResourceTypeConfig")
+func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfigRequest) (resp providers.ValidateResourceConfigResponse) {
+	logger.Trace("GRPCProvider: ValidateResourceConfig")
 	resourceSchema := p.getResourceSchema(r.TypeName)
 
 	mp, err := msgpack.Marshal(r.Config, resourceSchema.Block.ImpliedType())
@@ -286,8 +286,8 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	return resp
 }
 
-func (p *GRPCProvider) Configure(r providers.ConfigureRequest) (resp providers.ConfigureResponse) {
-	logger.Trace("GRPCProvider: Configure")
+func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+	logger.Trace("GRPCProvider: ConfigureProvider")
 
 	schema := p.getSchema()
 

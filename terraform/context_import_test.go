@@ -22,7 +22,7 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -63,7 +63,7 @@ func TestContextImport_countIndex(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -125,7 +125,7 @@ func TestContextImport_collision(t *testing.T) {
 		}),
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -164,7 +164,7 @@ func TestContextImport_missingType(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				State: cty.ObjectVal(map[string]cty.Value{
@@ -205,7 +205,7 @@ func TestContextImport_missingType(t *testing.T) {
 func TestContextImport_moduleProvider(t *testing.T) {
 	p := testProvider("aws")
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -216,7 +216,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	}
 
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		foo := req.Config.GetAttr("foo").AsString()
 		if foo != "bar" {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
@@ -247,7 +247,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("didn't configure provider")
 	}
 
@@ -269,7 +269,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -280,7 +280,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	}
 
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		foo := req.Config.GetAttr("foo").AsString()
 		if foo != "bar" {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
@@ -303,7 +303,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("didn't configure provider")
 	}
 }
@@ -341,7 +341,7 @@ func TestContextImport_providerConfig(t *testing.T) {
 				},
 			})
 
-			p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+			p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 				ImportedResources: []providers.ImportedResource{
 					{
 						TypeName: "aws_instance",
@@ -366,11 +366,11 @@ func TestContextImport_providerConfig(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if !p.ConfigureCalled {
+			if !p.ConfigureProviderCalled {
 				t.Fatal("didn't configure provider")
 			}
 
-			if foo := p.ConfigureRequest.Config.GetAttr("foo").AsString(); foo != test.value {
+			if foo := p.ConfigureProviderRequest.Config.GetAttr("foo").AsString(); foo != test.value {
 				t.Fatalf("bad value %#v; want %#v", foo, test.value)
 			}
 
@@ -396,7 +396,7 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -435,7 +435,7 @@ func TestContextImport_refresh(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -448,7 +448,7 @@ func TestContextImport_refresh(t *testing.T) {
 
 	p.ReadResourceFn = nil
 
-	p.ReadResourceResponse = providers.ReadResourceResponse{
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
 			"id":  cty.StringVal("foo"),
 			"foo": cty.StringVal("bar"),
@@ -486,7 +486,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -534,7 +534,7 @@ func TestContextImport_module(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -576,7 +576,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -618,7 +618,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -654,7 +654,7 @@ func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -672,9 +672,9 @@ func TestContextImport_multiState(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -723,7 +723,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -741,9 +741,9 @@ func TestContextImport_multiStateSame(t *testing.T) {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "aws_instance",
@@ -829,7 +829,7 @@ resource "test_resource" "unused" {
 `,
 	})
 
-	p.GetSchemaReturn = &ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -842,9 +842,9 @@ resource "test_resource" "unused" {
 				},
 			},
 		},
-	}
+	})
 
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_resource",
@@ -854,7 +854,7 @@ resource "test_resource" "unused" {
 			},
 		},
 	}
-	p.ImportResourceStateResponse = providers.ImportResourceStateResponse{
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{
 				TypeName: "test_resource",

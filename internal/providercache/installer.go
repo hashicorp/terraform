@@ -310,6 +310,18 @@ NeedProvider:
 			preferredHashes = lock.PreferredHashes()
 		}
 
+		// If our target directory already has the provider version that fulfills the lock file, carry on
+		if installed := i.targetDir.ProviderVersion(provider, version); installed != nil {
+			if len(preferredHashes) > 0 {
+				if matches, _ := installed.MatchesAnyHash(preferredHashes); matches {
+					if cb := evts.ProviderAlreadyInstalled; cb != nil {
+						cb(provider, version)
+					}
+					continue
+				}
+			}
+		}
+
 		if i.globalCacheDir != nil {
 			// Step 3a: If our global cache already has this version available then
 			// we'll just link it in.

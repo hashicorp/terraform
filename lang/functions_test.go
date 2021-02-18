@@ -63,7 +63,7 @@ func TestFunctions(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					return cwd
+					return filepath.ToSlash(cwd)
 				})()),
 			},
 		},

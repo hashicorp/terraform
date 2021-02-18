@@ -12,7 +12,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -65,10 +67,23 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			errMigrateLoadStates), opts.TwoType, err)
 	}
 
-	// Setup defaults
+	// Set up defaults
 	opts.oneEnv = backend.DefaultStateName
 	opts.twoEnv = backend.DefaultStateName
 	opts.force = m.forceInitCopy
+
+	// Disregard remote Terraform version for the state source backend. If it's a
+	// Terraform Cloud remote backend, we don't care about the remote version,
+	// as we are migrating away and will not break a remote workspace.
+	m.ignoreRemoteBackendVersionConflict(opts.One)
+
+	// Check the remote Terraform version for the state destination backend. If
+	// it's a Terraform Cloud remote backend, we want to ensure that we don't
+	// break the workspace by uploading an incompatible state file.
+	diags := m.remoteBackendVersionCheck(opts.Two, opts.twoEnv)
+	if diags.HasErrors() {
+		return diags.Err()
+	}
 
 	// Determine migration behavior based on whether the source/destination
 	// supports multi-state.
@@ -312,17 +327,20 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if m.stateLock {
 		lockCtx := context.Background()
 
-		lockerOne := clistate.NewLocker(lockCtx, m.stateLockTimeout, m.Ui, m.Colorize())
-		if err := lockerOne.Lock(stateOne, "migration source state"); err != nil {
-			return fmt.Errorf("Error locking source state: %s", err)
-		}
-		defer lockerOne.Unlock(nil)
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
-		lockerTwo := clistate.NewLocker(lockCtx, m.stateLockTimeout, m.Ui, m.Colorize())
-		if err := lockerTwo.Lock(stateTwo, "migration destination state"); err != nil {
-			return fmt.Errorf("Error locking destination state: %s", err)
+		lockerOne := locker.WithContext(lockCtx)
+		if diags := lockerOne.Lock(stateOne, "migration source state"); diags.HasErrors() {
+			return diags.Err()
 		}
-		defer lockerTwo.Unlock(nil)
+		defer lockerOne.Unlock()
+
+		lockerTwo := locker.WithContext(lockCtx)
+		if diags := lockerTwo.Lock(stateTwo, "migration destination state"); diags.HasErrors() {
+			return diags.Err()
+		}
+		defer lockerTwo.Unlock()
 
 		// We now own a lock, so double check that we have the version
 		// corresponding to the lock.

@@ -5,7 +5,6 @@ import (
 	"log"
 	"strings"
 
-	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
@@ -222,7 +221,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 		plannedNewState := change.After
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreApply(n.Addr, nil, change.Action, priorState, plannedNewState)
+			return h.PreApply(n.Addr, change.DeposedKey.Generation(), change.Action, priorState, plannedNewState)
 		}))
 		if diags.HasErrors() {
 			return diags
@@ -233,7 +232,7 @@ func (n *NodeAbstractResourceInstance) preApplyHook(ctx EvalContext, change *pla
 }
 
 // postApplyHook calls the post-Apply hook
-func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err *error) tfdiags.Diagnostics {
+func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *states.ResourceInstanceObject, err error) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Only managed resources have user-visible apply actions.
@@ -245,11 +244,9 @@ func (n *NodeAbstractResourceInstance) postApplyHook(ctx EvalContext, state *sta
 			newState = cty.NullVal(cty.DynamicPseudoType)
 		}
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, nil, newState, *err)
+			return h.PostApply(n.Addr, nil, newState, err)
 		}))
 	}
-
-	diags = diags.Append(*err)
 
 	return diags
 }
@@ -630,8 +627,8 @@ func (n *NodeAbstractResourceInstance) plan(
 	// TODO: It would be more correct to validate the config after
 	// ignore_changes has been applied, but the current implementation cannot
 	// exclude computed-only attributes when given the `all` option.
-	validateResp := provider.ValidateResourceTypeConfig(
-		providers.ValidateResourceTypeConfigRequest{
+	validateResp := provider.ValidateResourceConfig(
+		providers.ValidateResourceConfigRequest{
 			TypeName: n.Addr.Resource.Resource.Type,
 			Config:   unmarkedConfigVal,
 		},
@@ -652,7 +649,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, diags
 	}
 
-	proposedNewVal := objchange.ProposedNewObject(schema, unmarkedPriorVal, configValIgnored)
+	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, configValIgnored)
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -864,7 +861,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 
 		// create a new proposed value from the null state and the config
-		proposedNewVal = objchange.ProposedNewObject(schema, nullPriorVal, unmarkedConfigVal)
+		proposedNewVal = objchange.ProposedNew(schema, nullPriorVal, unmarkedConfigVal)
 
 		resp = provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 			TypeName:         n.Addr.Resource.Resource.Type,
@@ -908,7 +905,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// If our prior value was tainted then we actually want this to appear
 	// as a replace change, even though so far we've been treating it as a
 	// create.
-	if action == plans.Create && priorValTainted != cty.NilVal {
+	if action == plans.Create && !priorValTainted.IsNull() {
 		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {
@@ -1194,6 +1191,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		return newVal, diags
 	}
 
+	// Unmark before sending to provider, will re-mark before returning
+	var pvm []cty.PathValueMarks
+	configVal, pvm = configVal.UnmarkDeepWithPaths()
+
 	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
 	validateResp := provider.ValidateDataSourceConfig(
 		providers.ValidateDataSourceConfigRequest{
@@ -1267,6 +1268,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		// that here because we're saving the value only for inspection
 		// purposes; the error we added above will halt the graph walk.
 		newVal = cty.UnknownAsNull(newVal)
+	}
+
+	if len(pvm) > 0 {
+		newVal = newVal.MarkWithPaths(pvm)
 	}
 
 	return newVal, diags
@@ -1393,6 +1398,13 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		return plannedChange, plannedNewState, diags
 	}
 
+	// While this isn't a "diff", continue to call this for data sources.
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, configVal)
+	}))
+	if diags.HasErrors() {
+		return nil, nil, diags
+	}
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
@@ -1403,10 +1415,15 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 
 	// if we have a prior value, we can check for any irregularities in the response
 	if !priorVal.IsNull() {
+		// We drop marks on the values used here as the result is only
+		// temporarily used for validation.
+		unmarkedConfigVal, _ := configVal.UnmarkDeep()
+		unmarkedPriorVal, _ := priorVal.UnmarkDeep()
+
 		// While we don't propose planned changes for data sources, we can
 		// generate a proposed value for comparison to ensure the data source
 		// is returning a result following the rules of the provider contract.
-		proposedVal := objchange.ProposedNewObject(schema, priorVal, configVal)
+		proposedVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
 		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
 			// Resources have the LegacyTypeSystem field to signal when they are
 			// using an SDK which may not produce precise values. While data
@@ -1528,33 +1545,29 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 // evalApplyProvisioners determines if provisioners need to be run, and if so
 // executes the provisioners for a resource and returns an updated error if
 // provisioning fails.
-func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen, applyErr error) (error, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, createNew bool, when configs.ProvisionerWhen) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if state == nil {
 		log.Printf("[TRACE] evalApplyProvisioners: %s has no state, so skipping provisioners", n.Addr)
-		return applyErr, nil
-	}
-	if applyErr != nil {
-		// We're already tainted, so just return out
-		return applyErr, nil
+		return nil
 	}
 	if when == configs.ProvisionerWhenCreate && !createNew {
 		// If we're not creating a new resource, then don't run provisioners
 		log.Printf("[TRACE] evalApplyProvisioners: %s is not freshly-created, so no provisioning is required", n.Addr)
-		return applyErr, nil
+		return nil
 	}
 	if state.Status == states.ObjectTainted {
 		// No point in provisioning an object that is already tainted, since
 		// it's going to get recreated on the next apply anyway.
 		log.Printf("[TRACE] evalApplyProvisioners: %s is tainted, so skipping provisioning", n.Addr)
-		return applyErr, nil
+		return nil
 	}
 
 	provs := filterProvisioners(n.Config, when)
 	if len(provs) == 0 {
 		// We have no provisioners, so don't do anything
-		return applyErr, nil
+		return nil
 	}
 
 	// Call pre hook
@@ -1562,23 +1575,22 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 		return h.PreProvisionInstance(n.Addr, state.Value)
 	}))
 	if diags.HasErrors() {
-		return applyErr, diags
+		return diags
 	}
 
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
 	err := n.applyProvisioners(ctx, state, when, provs)
 	if err != nil {
-		applyErr = multierror.Append(applyErr, err)
+		diags = diags.Append(err)
 		log.Printf("[TRACE] evalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", n.Addr)
-		return applyErr, nil
+		return diags
 	}
 
 	// Call post hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+	return diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PostProvisionInstance(n.Addr, state.Value)
 	}))
-	return applyErr, diags
 }
 
 // filterProvisioners filters the provisioners on the resource to only
@@ -1631,7 +1643,12 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		log.Printf("[TRACE] applyProvisioners: provisioning %s with %q", n.Addr, prov.Type)
 
 		// Get the provisioner
-		provisioner := ctx.Provisioner(prov.Type)
+		provisioner, err := ctx.Provisioner(prov.Type)
+		if err != nil {
+			diags = diags.Append(err)
+			return diags.Err()
+		}
+
 		schema := ctx.ProvisionerSchema(prov.Type)
 
 		config, configDiags := evalScope(ctx, prov.Config, self, schema)
@@ -1799,23 +1816,22 @@ func (n *NodeAbstractResourceInstance) apply(
 	state *states.ResourceInstanceObject,
 	change *plans.ResourceInstanceChange,
 	applyConfig *configs.Resource,
-	createBeforeDestroy bool,
-	applyError error) (*states.ResourceInstanceObject, error, tfdiags.Diagnostics) {
+	createBeforeDestroy bool) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 
 	var diags tfdiags.Diagnostics
 	if state == nil {
 		state = &states.ResourceInstanceObject{}
 	}
-	var newState *states.ResourceInstanceObject
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return newState, applyError, diags.Append(err)
+		return nil, diags.Append(err)
 	}
 	schema, _ := providerSchema.SchemaForResourceType(n.Addr.Resource.Resource.Mode, n.Addr.Resource.Resource.Type)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", n.Addr.Resource.Resource.Type))
-		return newState, applyError, diags
+		return nil, diags
 	}
 
 	log.Printf("[INFO] Starting apply for %s", n.Addr)
@@ -1828,7 +1844,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {
-			return newState, applyError, diags
+			return nil, diags
 		}
 	}
 
@@ -1837,13 +1853,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
 			n.Addr,
 		))
-		return newState, applyError, diags
+		return nil, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return newState, applyError, diags
+		return nil, diags
 	}
 
 	log.Printf("[DEBUG] %s: applying the planned %s change", n.Addr, change.Action)
@@ -1864,14 +1880,14 @@ func (n *NodeAbstractResourceInstance) apply(
 	eq := eqV.IsKnown() && eqV.True()
 	if change.Action == plans.Update && eq && !marksEqual(beforePaths, afterPaths) {
 		// Copy the previous state, changing only the value
-		newState = &states.ResourceInstanceObject{
+		newState := &states.ResourceInstanceObject{
 			CreateBeforeDestroy: state.CreateBeforeDestroy,
 			Dependencies:        state.Dependencies,
 			Private:             state.Private,
 			Status:              state.Status,
 			Value:               change.After,
 		}
-		return newState, applyError, diags
+		return newState, diags
 	}
 
 	resp := provider.ApplyResourceChange(providers.ApplyResourceChangeRequest{
@@ -1914,14 +1930,16 @@ func (n *NodeAbstractResourceInstance) apply(
 			newVal = cty.NullVal(schema.ImpliedType())
 		}
 
-		// Ideally we'd produce an error or warning here if newVal is nil and
-		// there are no errors in diags, because that indicates a buggy
-		// provider not properly reporting its result, but unfortunately many
-		// of our historical test mocks behave in this way and so producing
-		// a diagnostic here fails hundreds of tests. Instead, we must just
-		// silently retain the old value for now. Returning a nil value with
-		// no errors is still always considered a bug in the provider though,
-		// and should be fixed for any "real" providers that do it.
+		if !diags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced an invalid nil value after apply for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider.String(), n.Addr.String(),
+				),
+			))
+		}
 	}
 
 	var conformDiags tfdiags.Diagnostics
@@ -1940,7 +1958,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Bail early in this particular case, because an object that doesn't
 		// conform to the schema can't be saved in the state anyway -- the
 		// serializer will reject it.
-		return newState, applyError, diags
+		return nil, diags
 	}
 
 	// After this point we have a type-conforming result object and so we
@@ -2056,43 +2074,40 @@ func (n *NodeAbstractResourceInstance) apply(
 		}
 	}
 
-	newStatus := states.ObjectReady
+	switch {
+	case diags.HasErrors() && newVal.IsNull():
+		// Sometimes providers return a null value when an operation fails for
+		// some reason, but we'd rather keep the prior state so that the error
+		// can be corrected on a subsequent run. We must only do this for null
+		// new value though, or else we may discard partial updates the
+		// provider was able to complete. Otherwise, we'll continue using the
+		// prior state as the new value, making this effectively a no-op.  If
+		// the item really _has_ been deleted then our next refresh will detect
+		// that and fix it up.
+		return state.DeepCopy(), diags
 
-	// Sometimes providers return a null value when an operation fails for some
-	// reason, but we'd rather keep the prior state so that the error can be
-	// corrected on a subsequent run. We must only do this for null new value
-	// though, or else we may discard partial updates the provider was able to
-	// complete.
-	if diags.HasErrors() && newVal.IsNull() {
-		// Otherwise, we'll continue but using the prior state as the new value,
-		// making this effectively a no-op. If the item really _has_ been
-		// deleted then our next refresh will detect that and fix it up.
-		// If change.Action is Create then change.Before will also be null,
-		// which is fine.
-		newVal = change.Before
-
-		// If we're recovering the previous state, we also want to restore the
-		// the tainted status of the object.
-		if state.Status == states.ObjectTainted {
-			newStatus = states.ObjectTainted
-		}
-	}
-
-	if !newVal.IsNull() { // null value indicates that the object is deleted, so we won't set a new state in that case
-		newState = &states.ResourceInstanceObject{
-			Status:              newStatus,
+	case diags.HasErrors() && !newVal.IsNull():
+		// if we have an error, make sure we restore the object status in the new state
+		newState := &states.ResourceInstanceObject{
+			Status:              state.Status,
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
 		}
-	}
+		return newState, diags
 
-	if diags.HasErrors() {
-		// At this point, if we have an error in diags (and hadn't already returned), we return it as an error and clear the diags.
-		applyError = diags.Err()
-		log.Printf("[DEBUG] %s: apply errored", n.Addr)
-		return newState, applyError, nil
-	}
+	case !newVal.IsNull():
+		// Non error case with a new state
+		newState := &states.ResourceInstanceObject{
+			Status:              states.ObjectReady,
+			Value:               newVal,
+			Private:             resp.Private,
+			CreateBeforeDestroy: createBeforeDestroy,
+		}
+		return newState, diags
 
-	return newState, applyError, diags
+	default:
+		// Non error case, were the object was deleted
+		return nil, diags
+	}
 }

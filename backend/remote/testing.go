@@ -126,13 +126,6 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
-	b.ShowDiagnostics = func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		for _, diag := range diags.Append(vals...) {
-			b.CLI.Error(diag.Description().Summary)
-		}
-	}
-
 	// Set local to a local test backend.
 	b.local = testLocalBackend(t, b)
 
@@ -162,9 +155,6 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 	b := backendLocal.NewWithBackend(remote)
 
-	b.CLI = remote.CLI
-	b.ShowDiagnostics = remote.ShowDiagnostics
-
 	// Add a test provider to the local backend.
 	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -175,7 +165,7 @@ func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 			},
 		},
 	})
-	p.ApplyResourceChangeResponse = providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("yes"),
 	})}
 
@@ -306,4 +296,44 @@ func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend
 		}
 	}
 	return vars
+}
+
+// testRecordDiagnostics allows tests to record and later inspect diagnostics
+// emitted during an Operation. It returns a record function which can be set
+// as the ShowDiagnostics value of an Operation, and a playback function which
+// returns the recorded diagnostics for inspection.
+func testRecordDiagnostics(t *testing.T) (record func(vals ...interface{}), playback func() tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	record = func(vals ...interface{}) {
+		diags = diags.Append(vals...)
+	}
+	playback = func() tfdiags.Diagnostics {
+		diags.Sort()
+		return diags
+	}
+	return
+}
+
+// testLogDiagnostics returns a function which can be used as the
+// ShowDiagnostics value for an Operation, in order to help debugging during
+// tests. Any calls to this function result in test logs.
+func testLogDiagnostics(t *testing.T) func(vals ...interface{}) {
+	return func(vals ...interface{}) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(vals...)
+		diags.Sort()
+
+		for _, diag := range diags {
+			// NOTE: Since the caller here is not directly the TestLocal
+			// function, t.Helper doesn't apply and so the log source
+			// isn't correctly shown in the test log output. This seems
+			// unavoidable as long as this is happening so indirectly.
+			desc := diag.Description()
+			if desc.Detail != "" {
+				t.Logf("%s: %s", desc.Summary, desc.Detail)
+			} else {
+				t.Log(desc.Summary)
+			}
+		}
+	}
 }
