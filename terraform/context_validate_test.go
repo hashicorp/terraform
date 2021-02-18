@@ -1965,3 +1965,46 @@ resource "test_instance" "a" {
 		}
 	}
 }
+
+func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
+	m := testModule(t, "validate-sensitive-provisioner-config")
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"aws_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	pr := simpleMockProvisioner()
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"test": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	pr.ValidateProvisionerConfigFn = func(r provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
+		if r.Config.ContainsMarked() {
+			t.Errorf("provisioner config contains marked values")
+		}
+		return pr.ValidateProvisionerConfigResponse
+	}
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+	if !pr.ValidateProvisionerConfigCalled {
+		t.Fatal("ValidateProvisionerConfig not called")
+	}
+}

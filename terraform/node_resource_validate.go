@@ -90,8 +90,10 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 		return diags.Append(fmt.Errorf("EvaluateBlock returned nil value"))
 	}
 
+	// Use unmarked value for validate request
+	unmarkedConfigVal, _ := configVal.UnmarkDeep()
 	req := provisioners.ValidateProvisionerConfigRequest{
-		Config: configVal,
+		Config: unmarkedConfigVal,
 	}
 
 	resp := provisioner.ValidateProvisionerConfig(req)
