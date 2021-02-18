@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -37,12 +38,10 @@ func TestApply(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -51,8 +50,10 @@ func TestApply(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -74,12 +75,10 @@ func TestApply_path(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -88,12 +87,13 @@ func TestApply_path(t *testing.T) {
 		"-auto-approve",
 		testFixturePath("apply"),
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "-chdir") {
-		t.Fatal("expected command output to refer to -chdir flag, but got:", output)
+	if !strings.Contains(output.Stderr(), "-chdir") {
+		t.Fatal("expected command output to refer to -chdir flag, but got:", output.Stderr())
 	}
 }
 
@@ -106,16 +106,15 @@ func TestApply_approveNo(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
+	defer testInputMap(t, map[string]string{
+		"approve": "no",
+	})()
 
-	// Answer approval request with "no"
-	defaultInputReader = bytes.NewBufferString("no\n")
-	defaultInputWriter = new(bytes.Buffer)
+	// Do not use the NewMockUi initializer here, as we want to delay
+	// the call to init until after setting up the input mocks
+	ui := new(cli.MockUi)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
@@ -128,10 +127,12 @@ func TestApply_approveNo(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
-	if got, want := done(t).Stdout(), "Apply cancelled"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "Apply cancelled"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
 	}
 
@@ -151,16 +152,15 @@ func TestApply_approveYes(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
+	defer testInputMap(t, map[string]string{
+		"approve": "yes",
+	})()
 
-	// Answer approval request with "yes"
-	defaultInputReader = bytes.NewBufferString("yes\n")
-	defaultInputWriter = new(bytes.Buffer)
-
+	// Do not use the NewMockUi initializer here, as we want to delay
+	// the call to init until after setting up the input mocks
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -172,8 +172,10 @@ func TestApply_approveYes(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -203,12 +205,10 @@ func TestApply_lockedState(t *testing.T) {
 	defer unlock()
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -217,13 +217,14 @@ func TestApply_lockedState(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code == 0 {
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
 		t.Fatal("expected error")
 	}
 
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "lock") {
-		t.Fatal("command output does not look like a lock error:", output)
+	if !strings.Contains(output.Stderr(), "lock") {
+		t.Fatal("command output does not look like a lock error:", output.Stderr())
 	}
 }
 
@@ -249,12 +250,10 @@ func TestApply_lockedStateWait(t *testing.T) {
 	}()
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -266,8 +265,10 @@ func TestApply_lockedStateWait(t *testing.T) {
 		"-lock-timeout", "4s",
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("lock should have succeeded in less than 3s: %s", ui.ErrorWriter)
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("lock should have succeeded in less than 3s: %s", output.Stderr())
 	}
 }
 
@@ -347,12 +348,10 @@ func TestApply_parallelism(t *testing.T) {
 		Providers: providerFactories,
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: testingOverrides,
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -364,8 +363,9 @@ func TestApply_parallelism(t *testing.T) {
 	}
 
 	res := c.Run(args)
+	output := done(t)
 	if res != 0 {
-		t.Fatal(ui.OutputWriter.String())
+		t.Fatal(output.Stdout())
 	}
 }
 
@@ -377,12 +377,10 @@ func TestApply_configInvalid(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -391,8 +389,10 @@ func TestApply_configInvalid(t *testing.T) {
 		"-state", testTempFile(t),
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: \n%s", output.Stdout())
 	}
 }
 
@@ -416,12 +416,10 @@ func TestApply_defaultState(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -435,8 +433,10 @@ func TestApply_defaultState(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -459,12 +459,10 @@ func TestApply_error(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -510,12 +508,10 @@ func TestApply_error(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if ui.ErrorWriter != nil {
-		t.Logf("stdout:\n%s", ui.OutputWriter.String())
-		t.Logf("stderr:\n%s", ui.ErrorWriter.String())
-	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("wrong exit code %d; want 1", code)
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("wrong exit code %d; want 1\n%s", code, output.Stdout())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -553,12 +549,10 @@ func TestApply_input(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -567,8 +561,10 @@ func TestApply_input(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	expected := strings.TrimSpace(`
@@ -600,12 +596,10 @@ func TestApply_inputPartial(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -615,8 +609,10 @@ func TestApply_inputPartial(t *testing.T) {
 		"-auto-approve",
 		"-var", "foo=foovalue",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	expected := strings.TrimSpace(`
@@ -639,12 +635,10 @@ func TestApply_noArgs(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -653,8 +647,10 @@ func TestApply_noArgs(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -680,12 +676,10 @@ func TestApply_plan(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -694,8 +688,10 @@ func TestApply_plan(t *testing.T) {
 		"-state-out", statePath,
 		planPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -714,12 +710,10 @@ func TestApply_plan_backup(t *testing.T) {
 	backupPath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -735,8 +729,10 @@ func TestApply_plan_backup(t *testing.T) {
 		"-backup", backupPath,
 		planPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Should have a backup file
@@ -748,12 +744,10 @@ func TestApply_plan_noBackup(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -763,8 +757,10 @@ func TestApply_plan_noBackup(t *testing.T) {
 		"-backup", "-",
 		planPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Ensure there is no backup
@@ -828,12 +824,10 @@ func TestApply_plan_remoteState(t *testing.T) {
 	})
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -841,8 +835,10 @@ func TestApply_plan_remoteState(t *testing.T) {
 	args := []string{
 		planPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// State file should be not be installed
@@ -877,12 +873,10 @@ func TestApply_planWithVarFile(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -891,8 +885,10 @@ func TestApply_planWithVarFile(t *testing.T) {
 		"-state-out", statePath,
 		planPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -910,12 +906,10 @@ func TestApply_planVars(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -925,8 +919,10 @@ func TestApply_planVars(t *testing.T) {
 		"-var", "foo=bar",
 		planPath,
 	}
-	if code := c.Run(args); code == 0 {
-		t.Fatal("should've failed")
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatal("should've failed: ", output.Stdout())
 	}
 }
 
@@ -940,7 +936,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 
 	p := applyFixtureProvider()
 	planPath := applyFixturePlanFile(t)
-	view, _ := testView(t)
+	view, done := testView(t)
 	apply := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -952,6 +948,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 		planPath,
 	}
 	apply.Run(args)
+	done(t)
 }
 
 func TestApply_refresh(t *testing.T) {
@@ -981,12 +978,10 @@ func TestApply_refresh(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -995,8 +990,10 @@ func TestApply_refresh(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if !p.ReadResourceCalled {
@@ -1035,12 +1032,10 @@ func TestApply_shutdown(t *testing.T) {
 	statePath := testTempFile(t)
 	p := testProvider()
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 			ShutdownCh:       shutdownCh,
 		},
@@ -1091,8 +1086,10 @@ func TestApply_shutdown(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -1149,12 +1146,10 @@ func TestApply_state(t *testing.T) {
 		}),
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1164,8 +1159,10 @@ func TestApply_state(t *testing.T) {
 		"-state", statePath,
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify that the provider was called with the existing state
@@ -1214,12 +1211,10 @@ func TestApply_stateNoExist(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1227,8 +1222,10 @@ func TestApply_stateNoExist(t *testing.T) {
 	args := []string{
 		"idontexist.tfstate",
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: \n%s", output.Stdout())
 	}
 }
 
@@ -1240,12 +1237,10 @@ func TestApply_sensitiveOutput(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1257,16 +1252,18 @@ func TestApply_sensitiveOutput(t *testing.T) {
 		"-auto-approve",
 	}
 
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: \n%s", output.Stdout())
 	}
 
-	output := done(t).Stdout()
-	if !strings.Contains(output, "notsensitive = \"Hello world\"") {
-		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", output)
+	stdout := output.Stdout()
+	if !strings.Contains(stdout, "notsensitive = \"Hello world\"") {
+		t.Fatalf("bad: output should contain 'notsensitive' output\n%s", stdout)
 	}
-	if !strings.Contains(output, "sensitive = <sensitive>") {
-		t.Fatalf("bad: output should contain 'sensitive' output\n%s", output)
+	if !strings.Contains(stdout, "sensitive = <sensitive>") {
+		t.Fatalf("bad: output should contain 'sensitive' output\n%s", stdout)
 	}
 }
 
@@ -1280,12 +1277,10 @@ func TestApply_vars(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1319,8 +1314,10 @@ func TestApply_vars(t *testing.T) {
 		"-var", "foo=bar",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -1343,12 +1340,10 @@ func TestApply_varFile(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1382,8 +1377,10 @@ func TestApply_varFile(t *testing.T) {
 		"-var-file", varFilePath,
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -1406,12 +1403,10 @@ func TestApply_varFileDefault(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1444,8 +1439,10 @@ func TestApply_varFileDefault(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -1468,12 +1465,10 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1506,8 +1501,10 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -1549,12 +1546,10 @@ func TestApply_backup(t *testing.T) {
 		}),
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1565,8 +1560,10 @@ func TestApply_backup(t *testing.T) {
 		"-state", statePath,
 		"-backup", backupPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify a new state exists
@@ -1610,12 +1607,10 @@ func TestApply_disableBackup(t *testing.T) {
 		}),
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1626,8 +1621,10 @@ func TestApply_disableBackup(t *testing.T) {
 		"-state", statePath,
 		"-backup", "-",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify that the provider was called with the existing state
@@ -1683,12 +1680,10 @@ func TestApply_terraformEnv(t *testing.T) {
 	statePath := testTempFile(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1697,8 +1692,10 @@ func TestApply_terraformEnv(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	expected := strings.TrimSpace(`
@@ -1721,11 +1718,12 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	// Create new env
 	{
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
-		newCmd := &WorkspaceNewCommand{}
-		newCmd.Meta = Meta{Ui: ui, View: view}
+		newCmd := &WorkspaceNewCommand{
+			Meta: Meta{
+				Ui: ui,
+			},
+		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
 	}
 
@@ -1733,21 +1731,20 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	{
 		args := []string{"test"}
 		ui := new(cli.MockUi)
-		view, _ := testView(t)
-		selCmd := &WorkspaceSelectCommand{}
-		selCmd.Meta = Meta{Ui: ui, View: view}
+		selCmd := &WorkspaceSelectCommand{
+			Meta: Meta{
+				Ui: ui,
+			},
+		}
 		if code := selCmd.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
 		}
 	}
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1755,8 +1752,10 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 	args := []string{
 		"-auto-approve",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	statePath := filepath.Join("terraform.tfstate.d", "test", "terraform.tfstate")
@@ -1794,12 +1793,10 @@ func TestApply_targeted(t *testing.T) {
 		}
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -1809,11 +1806,13 @@ func TestApply_targeted(t *testing.T) {
 		"-target", "test_instance.foo",
 		"-target", "test_instance.baz",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if got, want := ui.OutputWriter.String(), "3 added, 0 changed, 0 destroyed"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "3 added, 0 changed, 0 destroyed"; !strings.Contains(got, want) {
 		t.Fatalf("bad change summary, want %q, got:\n%s", want, got)
 	}
 }
@@ -1831,11 +1830,9 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
-			ui := new(cli.MockUi)
-			view, _ := testView(t)
+			view, done := testView(t)
 			c := &ApplyCommand{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			}
@@ -1844,11 +1841,13 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 				"-auto-approve",
 				"-target", target,
 			}
-			if code := c.Run(args); code != 1 {
-				t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			code := c.Run(args)
+			output := done(t)
+			if code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 			}
 
-			got := ui.ErrorWriter.String()
+			got := output.Stderr()
 			if !strings.Contains(got, target) {
 				t.Fatalf("bad error output, want %q, got:\n%s", target, got)
 			}
@@ -1856,6 +1855,47 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 				t.Fatalf("bad error output, want %q, got:\n%s", wantDiag, got)
 			}
 		})
+	}
+}
+
+func TestApply_pluginPath(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	pluginPath := []string{"a", "b", "c"}
+
+	if err := c.Meta.storePluginPath(pluginPath); err != nil {
+		t.Fatal(err)
+	}
+	c.Meta.pluginPath = nil
+
+	args := []string{
+		"-state", statePath,
+		"-auto-approve",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !reflect.DeepEqual(pluginPath, c.Meta.pluginPath) {
+		t.Fatalf("expected plugin path %#v, got %#v", pluginPath, c.Meta.pluginPath)
 	}
 }
 
