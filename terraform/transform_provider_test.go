@@ -434,6 +434,57 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 	}
 }
 
+func TestProviderConfigTransformer_inheritOldSkool(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "test" {
+  test_string = "config"
+}
+
+module "moda" {
+  source = "./moda"
+}
+`,
+
+		"moda/main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	{
+		tf := &ConfigTransformer{Config: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+	{
+		tf := &AttachResourceConfigTransformer{Config: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	expected := `module.moda.test_object.a
+  provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"]`
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 // Verify that configurations which are not recommended yet supported still work
 func TestProviderConfigTransformer_nestedModuleProviders(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{

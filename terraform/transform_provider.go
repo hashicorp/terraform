@@ -31,8 +31,6 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 		},
 		// Remove unused providers and proxies
 		&PruneProviderTransformer{},
-		// Connect provider to their parent provider nodes
-		&ParentProviderTransformer{},
 	)
 }
 
@@ -355,42 +353,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	}
 
 	return err
-}
-
-// ParentProviderTransformer connects provider nodes to their parents.
-//
-// This works by finding nodes that are both GraphNodeProviders and
-// GraphNodeModuleInstance. It then connects the providers to their parent
-// path. The parent provider is always at the root level.
-type ParentProviderTransformer struct{}
-
-func (t *ParentProviderTransformer) Transform(g *Graph) error {
-	pm := providerVertexMap(g)
-	for _, v := range g.Vertices() {
-		// Only care about providers
-		pn, ok := v.(GraphNodeProvider)
-		if !ok {
-			continue
-		}
-
-		// Also require non-empty path, since otherwise we're in the root
-		// module and so cannot have a parent.
-		if len(pn.ModulePath()) <= 1 {
-			continue
-		}
-
-		// this provider may be disabled, but we can only get it's name from
-		// the ProviderName string
-		addr := pn.ProviderAddr()
-		parentAddr, ok := addr.Inherited()
-		if ok {
-			parent := pm[parentAddr.String()]
-			if parent != nil {
-				g.Connect(dag.BasicEdge(v, parent))
-			}
-		}
-	}
-	return nil
 }
 
 // PruneProviderTransformer removes any providers that are not actually used by
