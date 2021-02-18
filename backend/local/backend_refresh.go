@@ -82,7 +82,7 @@ func (b *Local) opRefresh(
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
 		return
 	}
 

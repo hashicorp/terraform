@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -207,6 +208,9 @@ type Operation struct {
 	// This flag is honored only if PlanFile isn't set. If PlanFile is set then
 	// the variables set in the plan are used instead, and they must be valid.
 	AllowUnsetVariables bool
+
+	// View implements the logic for all UI interactions.
+	View views.Operation
 
 	// Input/output/control options.
 	UIIn  terraform.UIInput

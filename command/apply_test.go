@@ -116,7 +116,7 @@ func TestApply_approveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -131,7 +131,7 @@ func TestApply_approveNo(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	if got, want := ui.OutputWriter.String(), "Apply cancelled"; !strings.Contains(got, want) {
+	if got, want := done(t).Stdout(), "Apply cancelled"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
 	}
 

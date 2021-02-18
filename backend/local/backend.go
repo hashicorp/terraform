@@ -12,13 +12,11 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -33,15 +31,6 @@ const (
 // locally. This is the "default" backend and implements normal Terraform
 // behavior as it is well known.
 type Local struct {
-	// CLI and Colorize control the CLI output. If CLI is nil then no CLI
-	// output will be done. If CLIColor is nil then no coloring will be done.
-	CLI      cli.Ui
-	CLIColor *colorstring.Colorize
-
-	// If CLI is set then Streams might also be set, to describe the physical
-	// input/output handles that CLI is connected to.
-	Streams *terminal.Streams
-
 	// The State* paths are set from the backend config, and may be left blank
 	// to use the defaults. If the actual paths for the local backend state are
 	// needed, use the StatePaths method.
@@ -92,15 +81,6 @@ type Local struct {
 	//
 	// If this is nil, local performs normal state loading and storage.
 	Backend backend.Backend
-
-	// RunningInAutomation indicates that commands are being run by an
-	// automated system rather than directly at a command prompt.
-	//
-	// This is a hint not to produce messages that expect that a user can
-	// run a follow-up command, perhaps because Terraform is running in
-	// some sort of workflow automation tool that abstracts away the
-	// exact commands that are being run.
-	RunningInAutomation bool
 
 	// opLock locks operations
 	opLock sync.Mutex
@@ -289,6 +269,10 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 // the structure with the following rules. If a rule isn't specified and the
 // name conflicts, assume that the field is overwritten if set.
 func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+	if op.View == nil {
+		panic("Operation called with nil View")
+	}
+
 	// Determine the function to call for our operation
 	var f func(context.Context, context.Context, *backend.Operation, *backend.RunningOperation)
 	switch op.Type {
@@ -348,14 +332,13 @@ func (b *Local) opWait(
 	stopCtx context.Context,
 	cancelCtx context.Context,
 	tfCtx *terraform.Context,
-	opStateMgr statemgr.Persister) (canceled bool) {
+	opStateMgr statemgr.Persister,
+	view views.Operation) (canceled bool) {
 	// Wait for the operation to finish or for us to be interrupted so
 	// we can handle it properly.
 	select {
 	case <-stopCtx.Done():
-		if b.CLI != nil {
-			b.CLI.Output("Stopping operation...")
-		}
+		view.Stopping()
 
 		// try to force a PersistState just in case the process is terminated
 		// before we can complete.
@@ -363,9 +346,13 @@ func (b *Local) opWait(
 			// We can't error out from here, but warn the user if there was an error.
 			// If this isn't transient, we will catch it again below, and
 			// attempt to save the state another way.
-			if b.CLI != nil {
-				b.CLI.Error(fmt.Sprintf(earlyStateWriteErrorFmt, err))
-			}
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error saving current state",
+				fmt.Sprintf(earlyStateWriteErrorFmt, err),
+			))
+			view.Diagnostics(diags)
 		}
 
 		// Stop execution
@@ -388,20 +375,6 @@ func (b *Local) opWait(
 	case <-doneCh:
 	}
 	return
-}
-
-// Colorize returns the Colorize structure that can be used for colorizing
-// output. This is guaranteed to always return a non-nil value and so is useful
-// as a helper to wrap any potentially colored strings.
-func (b *Local) Colorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
-
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
 }
 
 // StatePaths returns the StatePath, StateOutPath, and StateBackupPath as
@@ -508,3 +481,7 @@ func (b *Local) stateWorkspaceDir() string {
 
 	return DefaultWorkspaceDir
 }
+
+const earlyStateWriteErrorFmt = `Error: %s
+
+Terraform encountered an error attempting to save the state before cancelling the current operation. Once the operation is complete another attempt will be made to save the final state.`

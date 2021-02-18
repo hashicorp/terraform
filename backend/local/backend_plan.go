@@ -1,22 +1,13 @@
 package local
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log"
-	"sort"
-	"strings"
 
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
-
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -31,8 +22,6 @@ func (b *Local) opPlan(
 	log.Printf("[INFO] backend/local: starting Plan operation")
 
 	var diags tfdiags.Diagnostics
-
-	outputColumns := b.outputColumns()
 
 	if op.PlanFile != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -92,7 +81,7 @@ func (b *Local) opPlan(
 		plan, planDiags = tfCtx.Plan()
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
 		// If we get in here then the operation was cancelled, which is always
 		// considered to be a failure.
 		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
@@ -141,211 +130,22 @@ func (b *Local) opPlan(
 		}
 	}
 
-	// Perform some output tasks if we have a CLI to output to.
-	if b.CLI != nil {
-		schemas := tfCtx.Schemas()
+	// Perform some output tasks
+	if runningOp.PlanEmpty {
+		op.View.PlanNoChanges()
 
-		if runningOp.PlanEmpty {
-			b.CLI.Output("\n" + b.Colorize().Color(strings.TrimSpace(planNoChanges)))
-			b.CLI.Output("\n" + strings.TrimSpace(format.WordWrap(planNoChangesDetail, outputColumns)))
-			// Even if there are no changes, there still could be some warnings
-			op.ShowDiagnostics(diags)
-			return
-		}
-
-		b.renderPlan(plan, plan.State, schemas)
-
-		// If we've accumulated any warnings along the way then we'll show them
-		// here just before we show the summary and next steps. If we encountered
-		// errors then we would've returned early at some other point above.
+		// Even if there are no changes, there still could be some warnings
 		op.ShowDiagnostics(diags)
-
-		// Give the user some next-steps, unless we're running in an automation
-		// tool which is presumed to provide its own UI for further actions.
-		if !b.RunningInAutomation {
-
-			b.outputHorizRule()
-
-			if path := op.PlanOutPath; path == "" {
-				b.CLI.Output(fmt.Sprintf(
-					"\n" + strings.TrimSpace(format.WordWrap(planHeaderNoOutput, outputColumns)) + "\n",
-				))
-			} else {
-				b.CLI.Output(fmt.Sprintf(
-					"\n"+strings.TrimSpace(format.WordWrap(planHeaderYesOutput, outputColumns))+"\n",
-					path, path,
-				))
-			}
-		}
+		return
 	}
+
+	// Render the plan
+	op.View.Plan(plan, plan.State, tfCtx.Schemas())
+
+	// If we've accumulated any warnings along the way then we'll show them
+	// here just before we show the summary and next steps. If we encountered
+	// errors then we would've returned early at some other point above.
+	op.ShowDiagnostics(diags)
+
+	op.View.PlanNextStep(op.PlanOutPath)
 }
-
-func (b *Local) renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
-	RenderPlan(plan, baseState, schemas, b.CLI, b.Colorize(), b.outputColumns())
-}
-
-// RenderPlan renders the given plan to the given UI.
-//
-// This is exported only so that the "terraform show" command can re-use it.
-// Ideally it would be somewhere outside of this backend code so that both
-// can call into it, but we're leaving it here for now in order to avoid
-// disruptive refactoring.
-//
-// If you find yourself wanting to call this function from a third callsite,
-// please consider whether it's time to do the more disruptive refactoring
-// so that something other than the local backend package is offering this
-// functionality.
-//
-// The difference between baseState and priorState is that baseState is the
-// result of implicitly running refresh (unless that was disabled) while
-// priorState is a snapshot of the state as it was before we took any actions
-// at all. priorState can optionally be nil if the caller has only a saved
-// plan and not the prior state it was built from. In that case, changes to
-// output values will not currently be rendered because their prior values
-// are currently stored only in the prior state. (see the docstring for
-// func planHasSideEffects for why this is and when that might change)
-func RenderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, ui cli.Ui, colorize *colorstring.Colorize, width int) {
-	counts := map[plans.Action]int{}
-	var rChanges []*plans.ResourceInstanceChangeSrc
-	for _, change := range plan.Changes.Resources {
-		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
-			// Avoid rendering data sources on deletion
-			continue
-		}
-
-		rChanges = append(rChanges, change)
-		counts[change.Action]++
-	}
-
-	headerBuf := &bytes.Buffer{}
-	fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(format.WordWrap(planHeaderIntro, width)))
-	if counts[plans.Create] > 0 {
-		fmt.Fprintf(headerBuf, "%s create\n", format.DiffActionSymbol(plans.Create))
-	}
-	if counts[plans.Update] > 0 {
-		fmt.Fprintf(headerBuf, "%s update in-place\n", format.DiffActionSymbol(plans.Update))
-	}
-	if counts[plans.Delete] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy\n", format.DiffActionSymbol(plans.Delete))
-	}
-	if counts[plans.DeleteThenCreate] > 0 {
-		fmt.Fprintf(headerBuf, "%s destroy and then create replacement\n", format.DiffActionSymbol(plans.DeleteThenCreate))
-	}
-	if counts[plans.CreateThenDelete] > 0 {
-		fmt.Fprintf(headerBuf, "%s create replacement and then destroy\n", format.DiffActionSymbol(plans.CreateThenDelete))
-	}
-	if counts[plans.Read] > 0 {
-		fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
-	}
-
-	ui.Output(colorize.Color(headerBuf.String()))
-
-	ui.Output("Terraform will perform the following actions:\n")
-
-	// Note: we're modifying the backing slice of this plan object in-place
-	// here. The ordering of resource changes in a plan is not significant,
-	// but we can only do this safely here because we can assume that nobody
-	// is concurrently modifying our changes while we're trying to print it.
-	sort.Slice(rChanges, func(i, j int) bool {
-		iA := rChanges[i].Addr
-		jA := rChanges[j].Addr
-		if iA.String() == jA.String() {
-			return rChanges[i].DeposedKey < rChanges[j].DeposedKey
-		}
-		return iA.Less(jA)
-	})
-
-	for _, rcs := range rChanges {
-		if rcs.Action == plans.NoOp {
-			continue
-		}
-
-		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
-		if providerSchema == nil {
-			// Should never happen
-			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.ProviderAddr))
-			continue
-		}
-		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
-		if rSchema == nil {
-			// Should never happen
-			ui.Output(fmt.Sprintf("(schema missing for %s)\n", rcs.Addr))
-			continue
-		}
-
-		// check if the change is due to a tainted resource
-		tainted := false
-		if !baseState.Empty() {
-			if is := baseState.ResourceInstance(rcs.Addr); is != nil {
-				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
-					tainted = obj.Status == states.ObjectTainted
-				}
-			}
-		}
-
-		ui.Output(format.ResourceChange(
-			rcs,
-			tainted,
-			rSchema,
-			colorize,
-		))
-	}
-
-	// stats is similar to counts above, but:
-	// - it considers only resource changes
-	// - it simplifies "replace" into both a create and a delete
-	stats := map[plans.Action]int{}
-	for _, change := range rChanges {
-		switch change.Action {
-		case plans.CreateThenDelete, plans.DeleteThenCreate:
-			stats[plans.Create]++
-			stats[plans.Delete]++
-		default:
-			stats[change.Action]++
-		}
-	}
-	ui.Output(colorize.Color(fmt.Sprintf(
-		"[reset][bold]Plan:[reset] "+
-			"%d to add, %d to change, %d to destroy.",
-		stats[plans.Create], stats[plans.Update], stats[plans.Delete],
-	)))
-
-	// If there is at least one planned change to the root module outputs
-	// then we'll render a summary of those too.
-	var changedRootModuleOutputs []*plans.OutputChangeSrc
-	for _, output := range plan.Changes.Outputs {
-		if !output.Addr.Module.IsRoot() {
-			continue
-		}
-		if output.ChangeSrc.Action == plans.NoOp {
-			continue
-		}
-		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
-	}
-	if len(changedRootModuleOutputs) > 0 {
-		ui.Output(colorize.Color("[reset]\n[bold]Changes to Outputs:[reset]" + format.OutputChanges(changedRootModuleOutputs, colorize)))
-	}
-}
-
-const planHeaderIntro = `
-Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
-`
-
-const planHeaderNoOutput = `
-Note: You didn't use the -out option to save this plan, so Terraform can't guarantee to take exactly these actions if you run "terraform apply" now.
-`
-
-const planHeaderYesOutput = `
-Saved the plan to: %s
-
-To perform exactly these actions, run the following command to apply:
-    terraform apply %q
-`
-
-const planNoChanges = `
-[reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
-`
-
-const planNoChangesDetail = `
-That Terraform did not detect any differences between your configuration and the remote system(s). As a result, there are no actions to take.
-`

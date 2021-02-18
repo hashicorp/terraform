@@ -778,6 +778,10 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
 
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
+	op.View = view
+
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
@@ -799,8 +803,8 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	if strings.Contains(output, "Running apply in the remote backend") {
 		t.Fatalf("unexpected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("expected plan summery in output: %s", output)
+	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", output)
 	}
 	if !run.State.HasResources() {
 		t.Fatalf("expected resources in state")
@@ -836,6 +840,10 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	op.UIOut = b.CLI
 	op.Workspace = "no-operations"
 
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
+	op.View = view
+
 	run, err := b.Operation(ctx, op)
 	if err != nil {
 		t.Fatalf("error starting operation: %v", err)
@@ -857,8 +865,8 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	if strings.Contains(output, "Running apply in the remote backend") {
 		t.Fatalf("unexpected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("expected plan summery in output: %s", output)
+	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", output)
 	}
 	if !run.State.HasResources() {
 		t.Fatalf("expected resources in state")
@@ -1387,6 +1395,11 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			// RUN: prepare the apply operation and run it
 			op, configCleanup, playback := testOperationApplyWithDiagnostics(t, "./testdata/apply")
 			defer configCleanup()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
+			op.View = view
+			defer done(t)
 
 			input := testInput(t, map[string]string{
 				"approve": "yes",

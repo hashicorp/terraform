@@ -79,6 +79,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	opReq.Hooks = []terraform.Hook{c.uiHook()}
 	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypeRefresh
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {

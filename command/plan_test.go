@@ -971,7 +971,7 @@ func TestPlan_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -988,7 +988,7 @@ func TestPlan_targeted(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if got, want := ui.OutputWriter.String(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
+	if got, want := done(t).Stdout(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
 		t.Fatalf("bad change summary, want %q, got:\n%s", want, got)
 	}
 }

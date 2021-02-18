@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
-	localBackend "github.com/hashicorp/terraform/backend/local"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/command/jsonstate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -158,15 +159,8 @@ func (c *ShowCommand) Run(args []string) int {
 			return 0
 		}
 
-		// FIXME: We currently call into the local backend for this, since
-		// the "terraform plan" logic lives there and our package call graph
-		// means we can't orient this dependency the other way around. In
-		// future we'll hopefully be able to refactor the backend architecture
-		// a little so that CLI UI rendering always happens in this "command"
-		// package rather than in the backends themselves, but for now we're
-		// accepting this oddity because "terraform show" is a less commonly
-		// used way to render a plan than "terraform plan" is.
-		localBackend.RenderPlan(plan, stateFile.State, schemas, c.Ui, c.Colorize(), c.OutputColumns())
+		view := views.NewShow(arguments.ViewHuman, c.View)
+		view.Plan(plan, stateFile.State, schemas)
 		return 0
 	}
 

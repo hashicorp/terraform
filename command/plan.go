@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/terraform"
@@ -88,6 +90,7 @@ func (c *PlanCommand) Run(args []string) int {
 	opReq.PlanRefresh = refresh
 	opReq.ShowDiagnostics = c.showDiagnostics
 	opReq.Type = backend.OperationTypePlan
+	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
