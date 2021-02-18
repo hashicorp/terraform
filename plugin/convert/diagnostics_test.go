@@ -6,6 +6,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -363,5 +365,47 @@ func TestDiagnostics(t *testing.T) {
 				t.Fatal(cmp.Diff(flat, tc.Want, typeComparer, valueComparer, equateEmpty))
 			}
 		})
+	}
+}
+
+// Test that a diagnostic with a present but empty attribute results in a
+// whole body diagnostic. We verify this by inspecting the resulting Subject
+// from the diagnostic when considered in the context of a config body.
+func TestProtoDiagnostics_emptyAttributePath(t *testing.T) {
+	protoDiags := []*proto.Diagnostic{
+		{
+			Severity: proto.Diagnostic_ERROR,
+			Summary:  "error 1",
+			Detail:   "error 1 detail",
+			Attribute: &proto.AttributePath{
+				Steps: []*proto.AttributePath_Step{
+					// this slice is intentionally left empty
+				},
+			},
+		},
+	}
+	tfDiags := ProtoToDiagnostics(protoDiags)
+
+	testConfig := `provider "test" {
+  foo = "bar"
+}`
+	f, parseDiags := hclsyntax.ParseConfig([]byte(testConfig), "test.tf", hcl.Pos{Line: 1, Column: 1})
+	if parseDiags.HasErrors() {
+		t.Fatal(parseDiags)
+	}
+	diags := tfDiags.InConfigBody(f.Body)
+
+	if len(tfDiags) != 1 {
+		t.Fatalf("expected 1 diag, got %d", len(tfDiags))
+	}
+	got := diags[0].Source().Subject
+	want := &tfdiags.SourceRange{
+		Filename: "test.tf",
+		Start:    tfdiags.SourcePos{Line: 1, Column: 1},
+		End:      tfdiags.SourcePos{Line: 1, Column: 1},
+	}
+
+	if !cmp.Equal(got, want, typeComparer, valueComparer) {
+		t.Fatal(cmp.Diff(got, want, typeComparer, valueComparer))
 	}
 }
