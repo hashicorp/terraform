@@ -20,8 +20,7 @@
                             "provider_name": "registry.terraform.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
-                                "ami": "bar-var",
-                                "id": null
+                                "ami": "bar-var"
                             }
                         }
                     ],
@@ -38,8 +37,7 @@
                             "provider_name": "registry.terraform.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
-                                "ami": "foo-var",
-                                "id": null
+                                "ami": "foo-var"
                             }
                         }
                     ],

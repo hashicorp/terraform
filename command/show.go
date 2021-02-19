@@ -167,7 +167,7 @@ func (c *ShowCommand) Run(args []string) int {
 	if jsonOutput {
 		// At this point, it is possible that there is neither state nor a plan.
 		// That's ok, we'll just return an empty object.
-		jsonState, err := jsonstate.Marshal(stateFile, schemas)
+		jsonState, err := jsonstate.Marshal(stateFile)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
 			return 1

@@ -13,7 +13,6 @@
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
-                        "ami": null,
                         "id": "621124146446964903"
                     }
                 },
@@ -26,7 +25,6 @@
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
-                        "ami": null,
                         "id": "4330206298367988603"
                     }
                 }
