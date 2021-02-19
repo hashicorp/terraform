@@ -1,5 +1,5 @@
 variable "maybe_a_map" {
-    type = "map"
+  type = map(string)
 
-    // No default
+  // No default
 }

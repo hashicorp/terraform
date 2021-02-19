@@ -2,11 +2,11 @@ variable "num" {
 }
 
 variable "source_ids" {
-  type = "list"
+  type = list(string)
 }
 
 variable "source_names" {
-  type = "list"
+  type = list(string)
 }
 
 resource "test_thing" "multi_count_var" {

@@ -1,7 +1,7 @@
 variable "list" {
-  type = "list"
+  type = list(string)
 }
 
 resource "aws_instance" "bar" {
-	count = "${var.list[0]}"
+  count = var.list[0]
 }

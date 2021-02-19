@@ -1,5 +1,5 @@
 variable "map_in" {
-  type = "map"
+  type = map(string)
 
   default = {
     us-west-1 = "ami-12345"
@@ -9,5 +9,5 @@ variable "map_in" {
 
 // We have to reference it so it isn't pruned
 output "output" {
-  value = "${var.map_in}"
+  value = var.map_in
 }
