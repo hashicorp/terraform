@@ -120,7 +120,7 @@ func Marshal(
 
 	// output.PriorState
 	if sf != nil && !sf.State.Empty() {
-		output.PriorState, err = jsonstate.Marshal(sf, schemas)
+		output.PriorState, err = jsonstate.Marshal(sf)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling prior state: %s", err)
 		}
