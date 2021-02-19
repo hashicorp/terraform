@@ -211,9 +211,9 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 							r.Managed.IgnoreAllChanges = true
 							ignoreAllRange = expr.Range()
 							diags = append(diags, &hcl.Diagnostic{
-								Severity: hcl.DiagWarning,
-								Summary:  "Deprecated ignore_changes wildcard",
-								Detail:   "The [\"*\"] form of ignore_changes wildcard is deprecated. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+								Severity: hcl.DiagError,
+								Summary:  "Invalid ignore_changes wildcard",
+								Detail:   "The [\"*\"] form of ignore_changes wildcard is was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
 								Subject:  attr.Expr.Range().Ptr(),
 							})
 							continue
