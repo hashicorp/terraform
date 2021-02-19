@@ -21,6 +21,7 @@ BREAKING CHANGES:
 * `terraform version -json` output no longer includes the (previously-unpopulated) "revision" property [[#27484](https://github.com/hashicorp/terraform/issues/27484)]
 * The `atlas` backend, which was deprecated since Terraform v0.12, is now removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
 * In the `gcs` backend the `path` config argument, which was deprecated since Terraform v0.11, is now removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
+* The deprecated `ignore_changes = ["*"]` wildcard syntax will now error. Use `= all` instead. [GH-27834]
 
 ENHANCEMENTS:
 
