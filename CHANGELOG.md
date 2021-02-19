@@ -34,13 +34,14 @@ ENHANCEMENTS:
 * cli: Typing an invalid top-level command, like `terraform destory` instead of `destroy`, will now print out a specific error message about the command being invalid, rather than just printing out the usual help directory. ([#26967](https://github.com/hashicorp/terraform/issues/26967))
 * cli: Plugin crashes will now be reported with more detail, pointing out the plugin name and the method call along with the stack trace ([#26694](https://github.com/hashicorp/terraform/issues/26694))
 * cli: Values in files for undeclared variables (ex. `tfvars`) are no longer deprecated, but will continue to produce a warning. The number of warnings produced has been reduced from 3 full warnings before a summary to two. To provide "global" values across configurations, use `TF_VAR...` environment variables. To reduce the verbosity of the warnings, use the existing `-compact-warnings` option. [GH-27795]
+* cli: The cli now handles structured logs throughout, allowing for additional log context from providers to be maintained, and offering new options for output filters. ([#26632](https://github.com/hashicorp/terraform/issues/26632))
+* cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` ([#26685](https://github.com/hashicorp/terraform/issues/26685))
 
 BUG FIXES:
 
 * backend/azure: azure state refreshes outside of grabbing the lock ([#26561](https://github.com/hashicorp/terraform/issues/26561))
 * cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. ([#26509](https://github.com/hashicorp/terraform/issues/26509))
 * cli: TF_LOG levels other than `trace` will now work correctly ([#26632](https://github.com/hashicorp/terraform/issues/26632))
-* cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` ([#26685](https://github.com/hashicorp/terraform/issues/26685))
 * command/console: expressions using `path` (`path.root`, `path.module`) now return the same result as they would in a configuration ([#27263](https://github.com/hashicorp/terraform/issues/27263))
 * command/show: fix issue with child_modules not properly displaying in certain circumstances ([#27352](https://github.com/hashicorp/terraform/issues/27352))
 * command/state list: fix bug where nested modules' resources were missing from `state list` output ([#27268](https://github.com/hashicorp/terraform/issues/27268))
