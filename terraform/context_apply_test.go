@@ -8372,8 +8372,8 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 	}
 }
 
-func TestContext2Apply_ignoreChangesWildcard(t *testing.T) {
-	m := testModule(t, "apply-ignore-changes-wildcard")
+func TestContext2Apply_ignoreChangesAll(t *testing.T) {
+	m := testModule(t, "apply-ignore-changes-all")
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
 	p.ApplyResourceChangeFn = testApplyFn
