@@ -30,13 +30,6 @@ type Provider struct {
 func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions. We do this up front here because
-	// then we can also catch instances inside special blocks like "connection",
-	// before PartialContent extracts them.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
 	content, config, moreDiags := block.Body.PartialContent(providerBlockSchema)
 	diags = append(diags, moreDiags...)
 

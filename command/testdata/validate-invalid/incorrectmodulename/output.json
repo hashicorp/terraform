@@ -1,7 +1,7 @@
 {
   "valid": false,
   "error_count": 6,
-  "warning_count": 1,
+  "warning_count": 0,
   "diagnostics": [
     {
       "severity": "error",
@@ -40,9 +40,9 @@
       }
     },
     {
-      "severity": "warning",
-      "summary": "Interpolation-only expressions are deprecated",
-      "detail": "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
+      "severity": "error",
+      "summary": "Variables not allowed",
+      "detail": "Variables may not be used here.",
       "range": {
         "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
         "start": {
@@ -52,26 +52,8 @@
         },
         "end": {
           "line": 5,
-          "column": 31,
-          "byte": 74
-        }
-      }
-    },
-    {
-      "severity": "error",
-      "summary": "Variables not allowed",
-      "detail": "Variables may not be used here.",
-      "range": {
-        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
-        "start": {
-          "line": 5,
           "column": 15,
           "byte": 58
-        },
-        "end": {
-          "line": 5,
-          "column": 18,
-          "byte": 61
         }
       }
     },
@@ -88,8 +70,8 @@
         },
         "end": {
           "line": 5,
-          "column": 31,
-          "byte": 74
+          "column": 26,
+          "byte": 69
         }
       }
     },
