@@ -92,13 +92,6 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Managed:   &ManagedResource{},
 	}
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions. We do this up front here because
-	// then we can also catch instances inside special blocks like "connection",
-	// before PartialContent extracts them.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
 	content, remain, moreDiags := block.Body.PartialContent(resourceBlockSchema)
 	diags = append(diags, moreDiags...)
 	r.Config = remain
@@ -302,11 +295,6 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
 	}
-
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
 
 	content, remain, moreDiags := block.Body.PartialContent(dataBlockSchema)
 	diags = append(diags, moreDiags...)

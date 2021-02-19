@@ -453,11 +453,6 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		schema = schemaForOverrides(schema)
 	}
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
 	content, moreDiags := block.Body.Content(schema)
 	diags = append(diags, moreDiags...)
 
@@ -521,11 +516,6 @@ func decodeLocalsBlock(block *hcl.Block) ([]*Local, hcl.Diagnostics) {
 				Subject:  &attr.NameRange,
 			})
 		}
-
-		// Produce deprecation messages for any pre-0.12-style
-		// single-interpolation-only expressions.
-		moreDiags := warnForDeprecatedInterpolationsInExpr(attr.Expr)
-		diags = append(diags, moreDiags...)
 
 		locals = append(locals, &Local{
 			Name:      name,
