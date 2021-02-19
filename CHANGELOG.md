@@ -36,6 +36,7 @@ ENHANCEMENTS:
 * cli: Values in files for undeclared variables (ex. `tfvars`) are no longer deprecated, but will continue to produce a warning. The number of warnings produced has been reduced from 3 full warnings before a summary to two. To provide "global" values across configurations, use `TF_VAR...` environment variables. To reduce the verbosity of the warnings, use the existing `-compact-warnings` option. [GH-27795]
 * cli: The cli now handles structured logs throughout, allowing for additional log context from providers to be maintained, and offering new options for output filters. ([#26632](https://github.com/hashicorp/terraform/issues/26632))
 * cli: Core and Provider logs can now be enabled separately for debugging, using `TF_LOG_CORE` and `TF_LOG_PROVIDER` ([#26685](https://github.com/hashicorp/terraform/issues/26685))
+* Removed warning surrounding interpolation-only expressions - many of these are caught by `fmt` and we are removing the warning rather than upgrading it to an error [GH-27835]
 
 BUG FIXES:
 
