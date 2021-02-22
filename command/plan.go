@@ -7,8 +7,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -18,110 +16,174 @@ type PlanCommand struct {
 	Meta
 }
 
-func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh, detailed bool
-	var outPath string
+func (c *PlanCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.extendedFlagSet("plan")
-	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
-	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	cmdFlags.StringVar(&outPath, "out", "", "path")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
+	// Parse and validate flags
+	args, diags := arguments.ParsePlan(rawArgs)
 
-	diags := c.parseTargetFlags()
+	// Instantiate the view, even if there are flag errors, so that we render
+	// diagnostics according to the desired view
+	view := views.NewPlan(args.ViewType, c.RunningInAutomation, c.View)
+
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	configPath, err := ModulePath(cmdFlags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
+		view.Diagnostics(diags)
+		view.HelpPrompt("plan")
 		return 1
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	var backendConfig *configs.Backend
-	var configDiags tfdiags.Diagnostics
-	backendConfig, configDiags = c.loadBackendConfig(configPath)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// FIXME: the -input flag value is needed to initialize the backend and the
+	// operation, but there is no clear path to pass this value down, so we
+	// continue to mutate the Meta object state for now.
+	c.Meta.input = args.InputEnabled
+
+	// FIXME: the -parallelism flag is used to control the concurrency of
+	// Terraform operations. At the moment, this value is used both to
+	// initialize the backend via the ContextOpts field inside CLIOpts, and to
+	// set a largely unused field on the Operation request. Again, there is no
+	// clear path to pass this value down, so we continue to mutate the Meta
+	// object state for now.
+	c.Meta.parallelism = args.Operation.Parallelism
+
+	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
+
+	// Prepare the backend with the backend-specific arguments
+	be, beDiags := c.PrepareBackend(args.State)
+	diags = diags.Append(beDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// Build the operation request
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.Destroy, args.OutPath)
+	diags = diags.Append(opDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// Emit any diagnostics we've accumulated before we delegate to the
-	// backend, since the backend will handle its own diagnostics internally.
-	c.showDiagnostics(diags)
+	// Collect variable value and add them to the operation request
+	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Before we delegate to the backend, we'll print any warning diagnostics
+	// we've accumulated here, since the backend will start fresh with its own
+	// diagnostics.
+	view.Diagnostics(diags)
 	diags = nil
 
-	// Build the operation
-	opReq := c.Operation(b)
-	opReq.ConfigDir = configPath
-	opReq.Destroy = destroy
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
-	opReq.PlanOutPath = outPath
-	opReq.PlanRefresh = refresh
-	opReq.ShowDiagnostics = c.showDiagnostics
-	opReq.Type = backend.OperationTypePlan
-	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
-
-	opReq.ConfigLoader, err = c.initConfigLoader()
-	if err != nil {
-		c.showDiagnostics(err)
-		return 1
-	}
-
-	{
-		var moreDiags tfdiags.Diagnostics
-		opReq.Variables, moreDiags = c.collectVariableValues()
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	}
-
 	// Perform the operation
-	op, err := c.RunOperation(b, opReq)
+	op, err := c.RunOperation(be, opReq)
 	if err != nil {
-		c.showDiagnostics(err)
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	if op.Result != backend.OperationSuccess {
 		return op.Result.ExitStatus()
 	}
-	if detailed && !op.PlanEmpty {
+	if args.DetailedExitCode && !op.PlanEmpty {
 		return 2
 	}
 
 	return op.Result.ExitStatus()
+}
+
+func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+	// FIXME: we need to apply the state arguments to the meta object here
+	// because they are later used when initializing the backend. Carving a
+	// path to pass these arguments to the functions that need them is
+	// difficult but would make their use easier to understand.
+	c.Meta.applyStateArguments(args)
+
+	backendConfig, diags := c.loadBackendConfig(".")
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Load the backend
+	be, beDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
+	})
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return be, diags
+}
+
+func (c *PlanCommand) OperationRequest(
+	be backend.Enhanced,
+	view views.Plan,
+	args *arguments.Operation,
+	destroy bool,
+	planOutPath string,
+) (*backend.Operation, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Build the operation
+	opReq := c.Operation(be)
+	opReq.ConfigDir = "."
+	opReq.Destroy = destroy
+	opReq.Hooks = view.Hooks()
+	opReq.PlanRefresh = args.Refresh
+	opReq.PlanOutPath = planOutPath
+	opReq.Targets = args.Targets
+	opReq.Type = backend.OperationTypePlan
+	opReq.View = view.Operation()
+	// FIXME: this shim is needed until the remote backend is migrated to views
+	opReq.ShowDiagnostics = func(vals ...interface{}) {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(vals...)
+		view.Diagnostics(diags)
+	}
+
+	var err error
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
+		return nil, diags
+	}
+
+	return opReq, diags
+}
+
+func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME the arguments package currently trivially gathers variable related
+	// arguments in a heterogenous slice, in order to minimize the number of
+	// code paths gathering variables during the transition to this structure.
+	// Once all commands that gather variables have been converted to this
+	// structure, we could move the variable gathering code to the arguments
+	// package directly, removing this shim layer.
+
+	varArgs := args.All()
+	items := make([]rawFlag, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	c.Meta.variableArgs = rawFlags{items: &items}
+	opReq.Variables, diags = c.collectVariableValues()
+
+	return diags
 }
 
 func (c *PlanCommand) Help() string {

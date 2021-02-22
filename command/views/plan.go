@@ -7,11 +7,55 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
+
+// The Plan view is used for the plan command.
+type Plan interface {
+	Operation() Operation
+	Hooks() []terraform.Hook
+
+	Diagnostics(diags tfdiags.Diagnostics)
+	HelpPrompt(string)
+}
+
+// NewPlan returns an initialized Plan implementation for the given ViewType.
+func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
+	switch vt {
+	case arguments.ViewHuman:
+		return &PlanHuman{
+			View:         *view,
+			inAutomation: runningInAutomation,
+		}
+	default:
+		panic(fmt.Sprintf("unknown view type %v", vt))
+	}
+}
+
+// The PlanHuman implementation renders human-readable text logs, suitable for
+// a scrolling terminal.
+type PlanHuman struct {
+	View
+
+	inAutomation bool
+}
+
+var _ Plan = (*PlanHuman)(nil)
+
+func (v *PlanHuman) Operation() Operation {
+	return NewOperation(arguments.ViewHuman, v.inAutomation, &v.View)
+}
+
+func (v *PlanHuman) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		NewUiHook(&v.View),
+	}
+}
 
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
