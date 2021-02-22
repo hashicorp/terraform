@@ -1,9 +1,9 @@
 variable "amis" {
-    type = "map"
+  type = map(string)
 }
 
 resource "null_resource" "noop" {}
 
 output "amis_out" {
-  value = "${var.amis}"
+  value = var.amis
 }

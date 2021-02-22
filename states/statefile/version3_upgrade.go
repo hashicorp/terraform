@@ -66,7 +66,7 @@ func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {
 		}
 
 		// In a v3 state file, a "resource state" is actually an instance
-		// state, so we need to fill in a missing level of heirarchy here
+		// state, so we need to fill in a missing level of hierarchy here
 		// by lazily creating resource states as we encounter them.
 		// We'll track them in here, keyed on the string representation of
 		// the resource address.

@@ -19,7 +19,7 @@ import (
 func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	ui := new(cli.MockUi)
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

@@ -187,7 +187,7 @@ func TestPlan_noState(t *testing.T) {
 
 	// Verify that the provider was called with the existing state
 	actual := p.PlanResourceChangeRequest.PriorState
-	expected := cty.NullVal(p.GetSchemaResponse.ResourceTypes["test_instance"].Block.ImpliedType())
+	expected := cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block.ImpliedType())
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
 	}
@@ -314,7 +314,7 @@ func TestPlan_outBackend(t *testing.T) {
 
 	outPath := "foo"
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -510,7 +510,7 @@ func TestPlan_validate(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -637,7 +637,7 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 
 	p := planFixtureProvider()
 	// override the planFixtureProvider schema to include a required provider argument
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -895,7 +895,7 @@ func TestPlan_shutdown(t *testing.T) {
 		return
 	}
 
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -953,7 +953,7 @@ func TestPlan_targeted(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -971,7 +971,7 @@ func TestPlan_targeted(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -988,7 +988,7 @@ func TestPlan_targeted(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
-	if got, want := ui.OutputWriter.String(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
+	if got, want := done(t).Stdout(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
 		t.Fatalf("bad change summary, want %q, got:\n%s", want, got)
 	}
 }
@@ -1036,8 +1036,8 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
-func planFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func planFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1068,7 +1068,7 @@ func planFixtureSchema() *providers.GetSchemaResponse {
 // step just passing through the new object proposed by Terraform Core.
 func planFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaResponse = planFixtureSchema()
+	p.GetProviderSchemaResponse = planFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
@@ -1080,8 +1080,8 @@ func planFixtureProvider() *terraform.MockProvider {
 // planVarsFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan-vars . This schema should be
 // assigned to a mock provider named "test".
-func planVarsFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func planVarsFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1101,7 +1101,7 @@ func planVarsFixtureSchema() *providers.GetSchemaResponse {
 // step just passing through the new object proposed by Terraform Core.
 func planVarsFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaResponse = planVarsFixtureSchema()
+	p.GetProviderSchemaResponse = planVarsFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,

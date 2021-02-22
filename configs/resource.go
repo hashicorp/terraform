@@ -92,13 +92,6 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		Managed:   &ManagedResource{},
 	}
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions. We do this up front here because
-	// then we can also catch instances inside special blocks like "connection",
-	// before PartialContent extracts them.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
 	content, remain, moreDiags := block.Body.PartialContent(resourceBlockSchema)
 	diags = append(diags, moreDiags...)
 	r.Config = remain
@@ -211,9 +204,9 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 							r.Managed.IgnoreAllChanges = true
 							ignoreAllRange = expr.Range()
 							diags = append(diags, &hcl.Diagnostic{
-								Severity: hcl.DiagWarning,
-								Summary:  "Deprecated ignore_changes wildcard",
-								Detail:   "The [\"*\"] form of ignore_changes wildcard is deprecated. Use \"ignore_changes = all\" to ignore changes to all attributes.",
+								Severity: hcl.DiagError,
+								Summary:  "Invalid ignore_changes wildcard",
+								Detail:   "The [\"*\"] form of ignore_changes wildcard is was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
 								Subject:  attr.Expr.Range().Ptr(),
 							})
 							continue
@@ -302,11 +295,6 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		DeclRange: block.DefRange,
 		TypeRange: block.LabelRanges[0],
 	}
-
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
 
 	content, remain, moreDiags := block.Body.PartialContent(dataBlockSchema)
 	diags = append(diags, moreDiags...)

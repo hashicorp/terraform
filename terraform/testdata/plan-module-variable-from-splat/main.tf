@@ -5,5 +5,5 @@ module "mod1" {
 
 module "mod2" {
   source = "./mod"
-  param  = ["${module.mod1.out_from_splat[0]}"]
+  param  = [module.mod1.out_from_splat[0]]
 }

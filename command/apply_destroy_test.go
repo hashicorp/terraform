@@ -44,7 +44,7 @@ func TestApply_destroy(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -58,7 +58,8 @@ func TestApply_destroy(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
+	defer done(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
@@ -159,7 +160,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 	p := applyFixtureProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
@@ -175,7 +176,7 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
-	if got, want := ui.OutputWriter.String(), "Destroy cancelled"; !strings.Contains(got, want) {
+	if got, want := done(t).Stdout(), "Destroy cancelled"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
 	}
 
@@ -416,7 +417,7 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -567,7 +568,7 @@ func TestApply_destroyTargeted(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

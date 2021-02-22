@@ -18,7 +18,7 @@ import (
 
 func TestContext2Validate_badCount(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{},
@@ -42,7 +42,7 @@ func TestContext2Validate_badCount(t *testing.T) {
 
 func TestContext2Validate_badResource_reference(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{},
@@ -66,7 +66,7 @@ func TestContext2Validate_badResource_reference(t *testing.T) {
 
 func TestContext2Validate_badVar(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
@@ -94,7 +94,7 @@ func TestContext2Validate_badVar(t *testing.T) {
 func TestContext2Validate_varMapOverrideOld(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -133,7 +133,7 @@ func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 
 func TestContext2Validate_computedVar(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -150,7 +150,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	}
 	pt := testProvider("test")
-	pt.GetSchemaResponse = &providers.GetSchemaResponse{
+	pt.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -172,7 +172,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		val := req.Config.GetAttr("value")
 		if val.IsKnown() {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value isn't computed"))
@@ -185,14 +185,14 @@ func TestContext2Validate_computedVar(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
-	if p.ConfigureCalled {
+	if p.ConfigureProviderCalled {
 		t.Fatal("Configure should not be called for provider")
 	}
 }
 
 func TestContext2Validate_computedInFunction(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -233,7 +233,7 @@ func TestContext2Validate_computedInFunction(t *testing.T) {
 // can be realized during a plan.
 func TestContext2Validate_countComputed(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -269,7 +269,7 @@ func TestContext2Validate_countComputed(t *testing.T) {
 
 func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -294,7 +294,7 @@ func TestContext2Validate_countNegative(t *testing.T) {
 
 func TestContext2Validate_countVariable(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -322,7 +322,7 @@ func TestContext2Validate_countVariable(t *testing.T) {
 func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-variable")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -347,7 +347,7 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -374,7 +374,7 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 
 func TestContext2Validate_moduleGood(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -402,7 +402,7 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 func TestContext2Validate_moduleBadResource(t *testing.T) {
 	m := testModule(t, "validate-module-bad-rc")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -419,7 +419,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 		},
 	})
 
-	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceConfigResponse = &providers.ValidateResourceConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -432,7 +432,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	m := testModule(t, "validate-module-deps-cycle")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -460,7 +460,7 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	m := testModule(t, "validate-module-pc-vars")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -492,7 +492,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		if req.Config.GetAttr("foo").IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
 		}
@@ -508,7 +508,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit-unused")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -534,7 +534,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		if req.Config.GetAttr("foo").IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("foo is null"))
 		}
@@ -549,7 +549,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 
 func TestContext2Validate_orphans(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -576,12 +576,12 @@ func TestContext2Validate_orphans(t *testing.T) {
 		State: state,
 	})
 
-	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
 			diags = diags.Append(errors.New("foo is not set"))
 		}
-		return providers.ValidateResourceTypeConfigResponse{
+		return providers.ValidateResourceConfigResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -595,7 +595,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -619,7 +619,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = &providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -635,7 +635,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 	m := testModule(t, "validate-skipped-pc-empty")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -659,7 +659,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = &providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
@@ -672,7 +672,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 func TestContext2Validate_providerConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -708,7 +708,7 @@ func TestContext2Validate_requiredProviderConfig(t *testing.T) {
 	m := testModule(t, "validate-required-provider-config")
 	p := testProvider("aws")
 
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -741,7 +741,7 @@ func TestContext2Validate_requiredProviderConfig(t *testing.T) {
 func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -765,7 +765,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.PrepareProviderConfigResponse = &providers.PrepareProviderConfigResponse{
+	p.ValidateProviderConfigResponse = &providers.ValidateProviderConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -778,7 +778,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 func TestContext2Validate_badResourceConnection(t *testing.T) {
 	m := testModule(t, "validate-bad-resource-connection")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -812,7 +812,7 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 	m := testModule(t, "validate-bad-prov-connection")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -846,7 +846,7 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -895,7 +895,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 func TestContext2Validate_requiredVar(t *testing.T) {
 	m := testModule(t, "validate-required-var")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -921,7 +921,7 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -939,7 +939,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		},
 	})
 
-	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceConfigResponse = &providers.ValidateResourceConfigResponse{
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
@@ -952,7 +952,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 func TestContext2Validate_resourceConfig_good(t *testing.T) {
 	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -978,7 +978,7 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 
 func TestContext2Validate_tainted(t *testing.T) {
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -1004,12 +1004,12 @@ func TestContext2Validate_tainted(t *testing.T) {
 		State: state,
 	})
 
-	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		var diags tfdiags.Diagnostics
 		if req.Config.GetAttr("foo").IsNull() {
 			diags = diags.Append(errors.New("foo is not set"))
 		}
-		return providers.ValidateResourceTypeConfigResponse{
+		return providers.ValidateResourceConfigResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -1024,7 +1024,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	m := testModule(t, "validate-targeted")
 	p := testProvider("aws")
 	pr := simpleMockProvisioner()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -1068,7 +1068,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 func TestContext2Validate_varRefUnknown(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -1093,9 +1093,9 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 	})
 
 	var value cty.Value
-	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		value = req.Config.GetAttr("foo")
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	c.Validate()
@@ -1115,7 +1115,7 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 
 	m := testModule(t, "input-interpolate-var")
 	p := testProvider("null")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"template_file": {
 				Block: &configschema.Block{
@@ -1148,7 +1148,7 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 
 	m := testModule(t, "validate-computed-module-var-ref")
 	p := testProvider("aws")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"aws_instance": {
 				Block: &configschema.Block{
@@ -1219,12 +1219,12 @@ resource "aws_instance" "foo" {
 	})
 
 	p := testProvider("aws")
-	p.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		// Providers receive unmarked values
 		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
 			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 	p.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
 		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
@@ -1251,8 +1251,8 @@ resource "aws_instance" "foo" {
 		t.Fatal(diags.Err())
 	}
 
-	if !p.ValidateResourceTypeConfigCalled {
-		t.Fatal("expected ValidateResourceTypeConfigFn to be called")
+	if !p.ValidateResourceConfigCalled {
+		t.Fatal("expected ValidateResourceConfigFn to be called")
 	}
 
 	if !p.ValidateDataSourceConfigCalled {
@@ -1927,7 +1927,7 @@ resource "test_instance" "a" {
 	})
 
 	p := testProvider("test")
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -1939,7 +1939,7 @@ resource "test_instance" "a" {
 		},
 	}
 
-	p.ValidateResourceTypeConfigResponse = &providers.ValidateResourceTypeConfigResponse{
+	p.ValidateResourceConfigResponse = &providers.ValidateResourceConfigResponse{
 		Diagnostics: tfdiags.Diagnostics(nil).Append(tfdiags.SimpleWarning("don't frobble")),
 	}
 
@@ -1963,5 +1963,48 @@ resource "test_instance" "a" {
 		if !strings.Contains(des, "frobble") {
 			t.Fatalf(`expected frobble, got %q`, des)
 		}
+	}
+}
+
+func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
+	m := testModule(t, "validate-sensitive-provisioner-config")
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"aws_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"foo": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+
+	pr := simpleMockProvisioner()
+
+	c := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]provisioners.Factory{
+			"test": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	pr.ValidateProvisionerConfigFn = func(r provisioners.ValidateProvisionerConfigRequest) provisioners.ValidateProvisionerConfigResponse {
+		if r.Config.ContainsMarked() {
+			t.Errorf("provisioner config contains marked values")
+		}
+		return pr.ValidateProvisionerConfigResponse
+	}
+
+	diags := c.Validate()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+	if !pr.ValidateProvisionerConfigCalled {
+		t.Fatal("ValidateProvisionerConfig not called")
 	}
 }

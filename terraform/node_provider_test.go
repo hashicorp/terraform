@@ -183,11 +183,11 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !provider.PrepareProviderConfigCalled {
+	if !provider.ValidateProviderConfigCalled {
 		t.Fatal("should be called")
 	}
 
-	gotObj := provider.PrepareProviderConfigRequest.Config
+	gotObj := provider.ValidateProviderConfigRequest.Config
 	if !gotObj.Type().HasAttribute("test_string") {
 		t.Fatal("configuration object does not have \"test_string\" attribute")
 	}
@@ -299,9 +299,9 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 }
 
 //This test specifically tests responses from the
-//providers.PrepareProviderConfigFn. See
+//providers.ValidateProviderConfigFn. See
 //TestNodeApplyableProvider_ConfigProvider_config_fn_err for
-//providers.ConfigureRequest responses.
+//providers.ConfigureProviderRequest responses.
 func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	provider := mockProviderWithConfigSchema(&configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -313,7 +313,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	})
 	// For this test, we're returning an error for an optional argument. This
 	// can happen for example if an argument is only conditionally required.
-	provider.PrepareProviderConfigFn = func(req providers.PrepareProviderConfigRequest) (resp providers.PrepareProviderConfigResponse) {
+	provider.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		region := req.Config.GetAttr("region")
 		if region.IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
@@ -383,7 +383,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 
 }
 
-//This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureRequest
+//This test is similar to TestNodeApplyableProvider_ConfigProvider, but tests responses from the providers.ConfigureProviderRequest
 func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	provider := mockProviderWithConfigSchema(&configschema.Block{
 		Attributes: map[string]*configschema.Attribute{

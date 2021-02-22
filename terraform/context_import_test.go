@@ -216,7 +216,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	}
 
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		foo := req.Config.GetAttr("foo").AsString()
 		if foo != "bar" {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
@@ -247,7 +247,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("didn't configure provider")
 	}
 
@@ -280,7 +280,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		},
 	}
 
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		foo := req.Config.GetAttr("foo").AsString()
 		if foo != "bar" {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("not bar"))
@@ -303,7 +303,7 @@ func TestContextImport_providerModule(t *testing.T) {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("didn't configure provider")
 	}
 }
@@ -366,11 +366,11 @@ func TestContextImport_providerConfig(t *testing.T) {
 				t.Fatalf("unexpected errors: %s", diags.Err())
 			}
 
-			if !p.ConfigureCalled {
+			if !p.ConfigureProviderCalled {
 				t.Fatal("didn't configure provider")
 			}
 
-			if foo := p.ConfigureRequest.Config.GetAttr("foo").AsString(); foo != test.value {
+			if foo := p.ConfigureProviderRequest.Config.GetAttr("foo").AsString(); foo != test.value {
 				t.Fatalf("bad value %#v; want %#v", foo, test.value)
 			}
 
@@ -654,7 +654,7 @@ func TestContextImport_multiState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -723,7 +723,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "import-provider")
 
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
@@ -829,7 +829,7 @@ resource "test_resource" "unused" {
 `,
 	})
 
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {Type: cty.String, Optional: true},
