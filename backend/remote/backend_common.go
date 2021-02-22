@@ -416,7 +416,7 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		case tfe.PolicySoftFailed:
 
 			runOverrideOuputMsg := fmt.Sprintf(
-				"The Run needs to be manually overridden or discarded.\n%s\n",
+				"The run needs to be manually overridden or discarded.\n%s\n",
 				fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID),
 			)
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
