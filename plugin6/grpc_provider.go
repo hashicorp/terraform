@@ -39,7 +39,7 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
-// terraform provioders types and the grpc proto types, directly converting
+// terraform providers types and the grpc proto types, directly converting
 // between the two.
 type GRPCProvider struct {
 	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
@@ -72,10 +72,10 @@ func New(client proto6.ProviderClient, ctx context.Context) GRPCProvider {
 
 // getSchema is used internally to get the saved provider schema.  The schema
 // should have already been fetched from the provider, but we have to
-// synchronize access to avoid being called concurrently with GetSchema.
+// synchronize access to avoid being called concurrently with GetProviderSchema.
 func (p *GRPCProvider) getSchema() providers.GetProviderSchemaResponse {
 	p.mu.Lock()
-	// unlock inline in case GetSchema needs to be called
+	// unlock inline in case GetProviderSchema needs to be called
 	if p.schemas.Provider.Block != nil {
 		p.mu.Unlock()
 		return p.schemas
@@ -85,7 +85,7 @@ func (p *GRPCProvider) getSchema() providers.GetProviderSchemaResponse {
 	// the schema should have been fetched already, but give it another shot
 	// just in case things are being called out of order. This may happen for
 	// tests.
-	schemas := p.GetSchema()
+	schemas := p.GetProviderSchema()
 	if schemas.Diagnostics.HasErrors() {
 		panic(schemas.Diagnostics.Err())
 	}
@@ -122,8 +122,8 @@ func (p *GRPCProvider) getProviderMetaSchema() providers.Schema {
 	return schema.ProviderMeta
 }
 
-func (p *GRPCProvider) GetSchema() (resp providers.GetProviderSchemaResponse) {
-	logger.Trace("GRPCProvider.v6: GetSchema")
+func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResponse) {
+	logger.Trace("GRPCProvider.v6: GetProviderSchema")
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -286,8 +286,8 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	return resp
 }
 
-func (p *GRPCProvider) Configure(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
-	logger.Trace("GRPCProvider.v6: Configure")
+func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+	logger.Trace("GRPCProvider.v6: ConfigureProvider")
 
 	schema := p.getSchema()
 

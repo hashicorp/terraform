@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/e2e"
 )
 
-// TestProviderDevOverrides is a test that terraform can execute a 3rd party
+// TestProvisionerPlugin is a test that terraform can execute a 3rd party
 // provisioner plugin.
 func TestProvisionerPlugin(t *testing.T) {
 	t.Parallel()

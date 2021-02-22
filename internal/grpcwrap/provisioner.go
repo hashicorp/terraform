@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/provisioners"
 )
 
-// New wraps a providers.Interface to implement a grpc ProviderServer.
+// New wraps a provisioners.Interface to implement a grpc ProviderServer.
 // This is useful for creating a test binary out of an internal provider
 // implementation.
 func Provisioner(p provisioners.Interface) tfplugin5.ProvisionerServer {

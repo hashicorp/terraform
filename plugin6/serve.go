@@ -8,24 +8,21 @@ import (
 const (
 	// The constants below are the names of the plugins that can be dispensed
 	// from the plugin server.
-	ProviderPluginName    = "provider"
-	ProvisionerPluginName = "provisioner"
+	ProviderPluginName = "provider"
 
-	// DefaultProtocolVersion is the protocol version assumed for legacy clients that don't specify
-	// a particular version during their handshake. This is the version used when Terraform 0.10
-	// and 0.11 launch plugins that were built with support for both versions 4 and 5, and must
-	// stay unchanged at 4 until we intentionally build plugins that are not compatible with 0.10 and
-	// 0.11.
+	// DefaultProtocolVersion is the protocol version assumed for legacy clients
+	// that don't specify a particular version during their handshake. Since we
+	// explicitly set VersionedPlugins in Serve, this number does not need to
+	// change with the protocol version and can effectively stay 4 forever
+	// (unless we need the "biggest hammer" approach to break all provider
+	// compatibility).
 	DefaultProtocolVersion = 4
 )
 
 // Handshake is the HandshakeConfig used to configure clients and servers.
 var Handshake = plugin.HandshakeConfig{
 	// The ProtocolVersion is the version that must match between TF core
-	// and TF plugins. This should be bumped whenever a change happens in
-	// one or the other that makes it so that they can't safely communicate.
-	// This could be adding a new interface value, it could be how
-	// helper/schema computes diffs, etc.
+	// and TF plugins.
 	ProtocolVersion: DefaultProtocolVersion,
 
 	// The magic cookie values should NEVER be changed.
@@ -37,8 +34,6 @@ type GRPCProviderFunc func() proto.ProviderServer
 
 // ServeOpts are the configurations to serve a plugin.
 type ServeOpts struct {
-	// Wrapped versions of the above plugins will automatically shimmed and
-	// added to the GRPC functions when possible.
 	GRPCProviderFunc GRPCProviderFunc
 }
 
@@ -57,7 +52,7 @@ func pluginSet(opts *ServeOpts) map[int]plugin.PluginSet {
 
 	// add the new protocol versions if they're configured
 	if opts.GRPCProviderFunc != nil {
-		plugins[5] = plugin.PluginSet{}
+		plugins[6] = plugin.PluginSet{}
 		if opts.GRPCProviderFunc != nil {
 			plugins[6]["provider"] = &GRPCProviderPlugin{
 				GRPCProvider: opts.GRPCProviderFunc,
