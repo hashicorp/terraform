@@ -1207,12 +1207,12 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 
 	errOutput := playback().Err()
 	if errOutput != nil {
-		t.Fatalf("expected no error in output: %s", errOutput.Error())
+		t.Fatalf("expected no error in output, got: %s", errOutput.Error())
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
 	if !strings.Contains(output, "Running apply in the remote backend") {
-		t.Fatalf("expected remote backend header in output: %s", output)
+		t.Fatalf("expected remote backend header in output, got: %s", output)
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summery in output: %s", output)
