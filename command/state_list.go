@@ -92,7 +92,7 @@ func (c *StateListCommand) Run(args []string) int {
 
 func (c *StateListCommand) Help() string {
 	helpText := `
-Usage: terraform state list [options] [address...]
+Usage: terraform [global options] state list [options] [address...]
 
   List resources in the Terraform state.
 

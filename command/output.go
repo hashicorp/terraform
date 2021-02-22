@@ -97,7 +97,7 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 
 func (c *OutputCommand) Help() string {
 	helpText := `
-Usage: terraform output [options] [NAME]
+Usage: terraform [global options] output [options] [NAME]
 
   Reads an output variable from a Terraform state file and prints
   the value. With no additional arguments, output will display all

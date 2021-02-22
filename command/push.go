@@ -23,7 +23,7 @@ func (c *PushCommand) Run(args []string) int {
 
 func (c *PushCommand) Help() string {
 	helpText := `
-Usage: terraform push [options] [DIR]
+Usage: terraform [global options] push [options] [DIR]
 
   This command was for the legacy version of Terraform Enterprise (v1), which
   has now reached end-of-life. Therefore this command is no longer supported.

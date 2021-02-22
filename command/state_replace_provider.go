@@ -171,7 +171,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 func (c *StateReplaceProviderCommand) Help() string {
 	helpText := `
-Usage: terraform state replace-provider [options] FROM_PROVIDER_FQN TO_PROVIDER_FQN
+Usage: terraform [global options] state replace-provider [options] FROM_PROVIDER_FQN TO_PROVIDER_FQN
 
   Replace provider for resources in the Terraform state.
 

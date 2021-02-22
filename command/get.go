@@ -44,7 +44,7 @@ func (c *GetCommand) Run(args []string) int {
 
 func (c *GetCommand) Help() string {
 	helpText := `
-Usage: terraform get [options] PATH
+Usage: terraform [global options] get [options] PATH
 
   Downloads and installs modules needed for the configuration given by
   PATH.

@@ -175,7 +175,7 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 
 func (c *ConsoleCommand) Help() string {
 	helpText := `
-Usage: terraform console [options]
+Usage: terraform [global options] console [options]
 
   Starts an interactive console for experimenting with Terraform
   interpolations.

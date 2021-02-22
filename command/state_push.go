@@ -135,7 +135,7 @@ func (c *StatePushCommand) Run(args []string) int {
 
 func (c *StatePushCommand) Help() string {
 	helpText := `
-Usage: terraform state push [options] PATH
+Usage: terraform [global options] state push [options] PATH
 
   Update remote state from a local state file at PATH.
 
