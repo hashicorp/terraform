@@ -1,3 +1,3 @@
 module "middle" {
-    source = "./middle"
+  source = "./middle"
 }

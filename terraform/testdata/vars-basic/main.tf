@@ -1,14 +1,14 @@
 variable "a" {
-    default = "foo"
-    type = "string"
+  default = "foo"
+  type    = string
 }
 
 variable "b" {
-    default = []
-    type = "list"
+  default = []
+  type    = list(string)
 }
 
 variable "c" {
-    default = {}
-    type = "map"
+  default = {}
+  type    = map(string)
 }

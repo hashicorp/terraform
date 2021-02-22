@@ -1,10 +1,10 @@
 variable "input" {
-    type = "string"
-    default = "hello world"
+  type    = string
+  default = "hello world"
 }
 
 module "test" {
-    source = "./inner"
+  source = "./inner"
 
-    map_in = "${var.input}"
-}   
+  map_in = var.input
+}
