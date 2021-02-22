@@ -1,7 +1,6 @@
 package command
 
 import (
-	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -57,14 +56,11 @@ func TestApply_destroy(t *testing.T) {
 		},
 	}
 
-	ui := new(cli.MockUi)
 	view, done := testView(t)
-	defer done(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -74,9 +70,11 @@ func TestApply_destroy(t *testing.T) {
 		"-auto-approve",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Log(ui.OutputWriter.String())
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Log(output.Stdout())
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify a new state exists
@@ -150,15 +148,14 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	})
 	statePath := testStateFile(t, originalState)
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
-
-	// Answer approval request with "no"
-	defaultInputReader = bytes.NewBufferString("no\n")
-	defaultInputWriter = new(bytes.Buffer)
-
 	p := applyFixtureProvider()
+
+	defer testInputMap(t, map[string]string{
+		"approve": "no",
+	})()
+
+	// Do not use the NewMockUi initializer here, as we want to delay
+	// the call to init until after setting up the input mocks
 	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &ApplyCommand{
@@ -173,10 +170,12 @@ func TestApply_destroyApproveNo(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
-	if got, want := done(t).Stdout(), "Destroy cancelled"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "Destroy cancelled"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to include %q, but was:\n%s", want, got)
 	}
 
@@ -198,20 +197,36 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	statePath := testTempFile(t)
+	// Create some existing state
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
 
 	p := applyFixtureProvider()
 
-	// Disable test mode so input would be asked
-	test = false
-	defer func() { test = true }()
+	defer testInputMap(t, map[string]string{
+		"approve": "yes",
+	})()
 
-	// Answer approval request with "yes"
-	defaultInputReader = bytes.NewBufferString("yes\n")
-	defaultInputWriter = new(bytes.Buffer)
-
+	// Do not use the NewMockUi initializer here, as we want to delay
+	// the call to init until after setting up the input mocks
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
@@ -224,8 +239,11 @@ func TestApply_destroyApproveYes(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Log(output.Stdout())
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
@@ -277,13 +295,11 @@ func TestApply_destroyLockedState(t *testing.T) {
 	defer unlock()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -294,13 +310,14 @@ func TestApply_destroyLockedState(t *testing.T) {
 		"-state", statePath,
 	}
 
-	if code := c.Run(args); code == 0 {
-		t.Fatal("expected error")
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
 
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "lock") {
-		t.Fatal("command output does not look like a lock error:", output)
+	if !strings.Contains(output.Stderr(), "lock") {
+		t.Fatal("command output does not look like a lock error:", output.Stderr())
 	}
 }
 
@@ -314,13 +331,11 @@ func TestApply_destroyPlan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -329,12 +344,13 @@ func TestApply_destroyPlan(t *testing.T) {
 	args := []string{
 		planPath,
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "plan file") {
-		t.Fatal("expected command output to refer to plan file, but got:", output)
+	if !strings.Contains(output.Stderr(), "plan file") {
+		t.Fatal("expected command output to refer to plan file, but got:", output.Stderr())
 	}
 }
 
@@ -347,13 +363,11 @@ func TestApply_destroyPath(t *testing.T) {
 
 	p := applyFixtureProvider()
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -362,12 +376,13 @@ func TestApply_destroyPath(t *testing.T) {
 		"-auto-approve",
 		testFixturePath("apply"),
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 	}
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "-chdir") {
-		t.Fatal("expected command output to refer to -chdir flag, but got:", output)
+	if !strings.Contains(output.Stderr(), "-chdir") {
+		t.Fatal("expected command output to refer to -chdir flag, but got:", output.Stderr())
 	}
 }
 
@@ -442,13 +457,11 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 		}
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -459,8 +472,11 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 		"-target", "test_instance.foo",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Log(output.Stdout())
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify a new state exists
@@ -593,13 +609,11 @@ func TestApply_destroyTargeted(t *testing.T) {
 		}
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &ApplyCommand{
 		Destroy: true,
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -610,8 +624,11 @@ func TestApply_destroyTargeted(t *testing.T) {
 		"-target", "test_load_balancer.foo",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Log(output.Stdout())
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify a new state exists

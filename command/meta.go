@@ -376,6 +376,9 @@ func (m *Meta) InterruptibleContext() (context.Context, context.CancelFunc) {
 // operation itself is unsuccessful. Use the "Result" field of the
 // returned operation object to recognize operation-level failure.
 func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*backend.RunningOperation, error) {
+	if opReq.View == nil {
+		panic("RunOperation called with nil View")
+	}
 	if opReq.ConfigDir != "" {
 		opReq.ConfigDir = m.normalizePath(opReq.ConfigDir)
 	}
@@ -392,14 +395,12 @@ func (m *Meta) RunOperation(b backend.Enhanced, opReq *backend.Operation) (*back
 		op.Stop()
 
 		// Notify the user
-		m.Ui.Output(outputInterrupt)
+		opReq.View.Interrupted()
 
 		// Still get the result, since there is still one
 		select {
 		case <-m.ShutdownCh:
-			m.Ui.Error(
-				"Two interrupts received. Exiting immediately. Note that data\n" +
-					"loss may have occurred.")
+			opReq.View.FatalInterrupt()
 
 			// cancel the operation completely
 			op.Cancel()
@@ -781,4 +782,15 @@ func (m *Meta) SetWorkspace(name string) error {
 func isAutoVarFile(path string) bool {
 	return strings.HasSuffix(path, ".auto.tfvars") ||
 		strings.HasSuffix(path, ".auto.tfvars.json")
+}
+
+// FIXME: as an interim refactoring step, we apply the contents of the state
+// arguments directly to the Meta object. Future work would ideally update the
+// code paths which use these arguments to be passed them directly for clarity.
+func (m *Meta) applyStateArguments(args *arguments.State) {
+	m.stateLock = args.Lock
+	m.stateLockTimeout = args.LockTimeout
+	m.statePath = args.StatePath
+	m.stateOutPath = args.StateOutPath
+	m.backupPath = args.BackupPath
 }
