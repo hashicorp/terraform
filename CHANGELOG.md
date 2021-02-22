@@ -22,6 +22,7 @@ BREAKING CHANGES:
 * The `atlas` backend, which was deprecated since Terraform v0.12, is now removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
 * In the `gcs` backend the `path` config argument, which was deprecated since Terraform v0.11, is now removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
 * The deprecated `ignore_changes = ["*"]` wildcard syntax will now error. Use `= all` instead. [GH-27834]
+* Previously deprecated quoted type strings will now error rather than warn - follow the instructions in the error message to update your type signatures to be more explicit. For example, use `map(string)` instead of `"map"`. [GH-27852]
 
 ENHANCEMENTS:
 
