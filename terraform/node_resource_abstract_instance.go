@@ -1196,8 +1196,8 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	configVal, pvm = configVal.UnmarkDeepWithPaths()
 
 	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateDataSourceConfig(
-		providers.ValidateDataSourceConfigRequest{
+	validateResp := provider.ValidateDataResourceConfig(
+		providers.ValidateDataResourceConfigRequest{
 			TypeName: n.Addr.ContainingResource().Resource.Type,
 			Config:   configVal,
 		},

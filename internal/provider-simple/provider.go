@@ -58,7 +58,7 @@ func (s simple) ValidateResourceConfig(req providers.ValidateResourceConfigReque
 	return resp
 }
 
-func (s simple) ValidateDataSourceConfig(req providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
+func (s simple) ValidateDataSourceConfig(req providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
 	return resp
 }
 

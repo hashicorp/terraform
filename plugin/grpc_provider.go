@@ -224,8 +224,8 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return resp
 }
 
-func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
-	logger.Trace("GRPCProvider: ValidateDataSourceConfig")
+func (p *GRPCProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
+	logger.Trace("GRPCProvider: ValidateDataResourceConfig")
 
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 

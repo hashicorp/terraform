@@ -403,12 +403,12 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		// Use unmarked value for validate request
 		unmarkedConfigVal, _ := configVal.UnmarkDeep()
-		req := providers.ValidateDataSourceConfigRequest{
+		req := providers.ValidateDataResourceConfigRequest{
 			TypeName: n.Config.Type,
 			Config:   unmarkedConfigVal,
 		}
 
-		resp := provider.ValidateDataSourceConfig(req)
+		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
 	}
 

@@ -37,9 +37,9 @@ type MockProvider struct {
 
 	ValidateDataSourceConfigCalled   bool
 	ValidateDataSourceConfigTypeName string
-	ValidateDataSourceConfigResponse providers.ValidateDataSourceConfigResponse
-	ValidateDataSourceConfigRequest  providers.ValidateDataSourceConfigRequest
-	ValidateDataSourceConfigFn       func(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse
+	ValidateDataSourceConfigResponse providers.ValidateDataResourceConfigResponse
+	ValidateDataSourceConfigRequest  providers.ValidateDataResourceConfigRequest
+	ValidateDataSourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
@@ -150,7 +150,7 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return p.ValidateResourceConfigResponse
 }
 
-func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 

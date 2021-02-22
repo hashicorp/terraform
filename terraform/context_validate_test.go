@@ -1226,11 +1226,11 @@ resource "aws_instance" "foo" {
 		}
 		return providers.ValidateResourceConfigResponse{}
 	}
-	p.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
+	p.ValidateDataResourceConfigFn = func(req providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
 		if got, want := req.Config.GetAttr("foo"), cty.UnknownVal(cty.String); !got.RawEquals(want) {
 			t.Fatalf("wrong value for foo\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateDataSourceConfigResponse{}
+		return providers.ValidateDataResourceConfigResponse{}
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1255,7 +1255,7 @@ resource "aws_instance" "foo" {
 		t.Fatal("expected ValidateResourceConfigFn to be called")
 	}
 
-	if !p.ValidateDataSourceConfigCalled {
+	if !p.ValidateDataResourceConfigCalled {
 		t.Fatal("expected ValidateDataSourceConfigFn to be called")
 	}
 }
