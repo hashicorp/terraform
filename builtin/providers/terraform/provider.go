@@ -39,7 +39,7 @@ func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRe
 	return res
 }
 
-// ValidateDataSourceConfig is used to validate the data source configuration values.
+// ValidateDataResourceConfig is used to validate the data source configuration values.
 func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// FIXME: move the backend configuration validate call that's currently
 	// inside the read method  into here so that we can catch provider configuration

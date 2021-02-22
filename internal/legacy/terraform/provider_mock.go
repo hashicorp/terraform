@@ -35,11 +35,11 @@ type MockProvider struct {
 	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
 	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
-	ValidateDataSourceConfigCalled   bool
-	ValidateDataSourceConfigTypeName string
-	ValidateDataSourceConfigResponse providers.ValidateDataResourceConfigResponse
-	ValidateDataSourceConfigRequest  providers.ValidateDataResourceConfigRequest
-	ValidateDataSourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
+	ValidateDataResourceConfigCalled   bool
+	ValidateDataResourceConfigTypeName string
+	ValidateDataResourceConfigResponse providers.ValidateDataResourceConfigResponse
+	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
+	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
@@ -150,18 +150,18 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return p.ValidateResourceConfigResponse
 }
 
-func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateDataSourceConfigCalled = true
-	p.ValidateDataSourceConfigRequest = r
+	p.ValidateDataResourceConfigCalled = true
+	p.ValidateDataResourceConfigRequest = r
 
-	if p.ValidateDataSourceConfigFn != nil {
-		return p.ValidateDataSourceConfigFn(r)
+	if p.ValidateDataResourceConfigFn != nil {
+		return p.ValidateDataResourceConfigFn(r)
 	}
 
-	return p.ValidateDataSourceConfigResponse
+	return p.ValidateDataResourceConfigResponse
 }
 
 func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {

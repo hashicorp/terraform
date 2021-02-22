@@ -146,7 +146,7 @@ service Provider {
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
     rpc ValidateProviderConfig(ValidateProviderConfig.Request) returns (ValidateProviderConfig.Response);
     rpc ValidateResourceConfig(ValidateResourceConfig.Request) returns (ValidateResourceConfig.Response);
-    rpc ValidateDataSourceConfig(ValidateDataSourceConfig.Request) returns (ValidateDataSourceConfig.Response);
+    rpc ValidateDataResourceConfig(ValidateDataResourceConfig.Request) returns (ValidateDataResourceConfig.Response);
     rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
 
     //////// One-time initialization, called before other functions below
@@ -222,7 +222,7 @@ message ValidateResourceConfig {
     }
 }
 
-message ValidateDataSourceConfig {
+message ValidateDataResourceConfig {
     message Request {
         string type_name = 1;
         DynamicValue config = 2;
