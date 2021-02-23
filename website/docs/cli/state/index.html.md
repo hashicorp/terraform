@@ -5,6 +5,8 @@ page_title: "Manipulating State - Terraform CLI"
 
 # Manipulating Terraform State
 
+> **Hands-on:** Try the [Manage Resources in Terraform State](https://learn.hashicorp.com/tutorials/terraform/state-cli?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 Terraform uses [state data](/docs/language/state/index.html) to remember which
 real-world object corresponds to each resource in the configuration;
 this allows it to modify an existing object when its resource declaration
