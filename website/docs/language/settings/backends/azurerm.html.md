@@ -11,7 +11,7 @@ description: |-
 
 **Kind: Standard (with state locking)**
 
-Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/azure/storage/common/storage-introduction). This backend also supports state locking and consistency checking via native capabilities of Azure Blob Storage.
+Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction). This backend also supports state locking and consistency checking via native capabilities of Azure Blob Storage.
 
 ## Example Configuration
 
@@ -76,6 +76,19 @@ terraform {
 ```
 
 -> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/docs/language/settings/backends/configuration.html#partial-configuration) for the credentials.
+
+When using an Azure Key Vault key to encrypt the blob used by the Terraform's State file:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name     = "abcd1234"
+    container_name           = "tfstate"
+    key                      = "prod.terraform.tfstate"
+    key_vault_key_identifier = "https://keyvaultname.vault.azure.net/keys/myKey/99d67321dd9841af859129cd5551a871"
+  }
+}
+```
 
 ## Data Source Configuration
 
@@ -151,6 +164,8 @@ The following configuration options are supported:
 * `container_name` - (Required) The Name of [the Storage Container](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/storage_container) within the Storage Account.
 
 * `key` - (Required) The name of the Blob used to retrieve/store Terraform's State file inside the Storage Container.
+
+* `key_vault_key_identifier` - (Optional) The identifier of the [Azure Key Vault key](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/key_vault_key). If this value is provided, AES-256 is used to perform client-side encryption of the blob used by the Terraform's State file. The user or service principal should have the following access policies on Key Vault for `Keys`: `Get`, `List`, `Wrap` and `Unwrap`. This can also be sourced from the `ARM_KEY_VAULT_KEY_IDENTIFIER` environment variable.
 
 * `environment` - (Optional) The Azure Environment which should be used. This can also be sourced from the `ARM_ENVIRONMENT` environment variable. Possible values are `public`, `china`, `german`, `stack` and `usgovernment`. Defaults to `public`.
 

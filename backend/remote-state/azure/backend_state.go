@@ -91,6 +91,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		keyName:            b.path(name),
 		accountName:        b.accountName,
 		snapshot:           b.snapshot,
+		encClient:          b.armClient.encClient,
 	}
 
 	stateMgr := &remote.State{Client: client}

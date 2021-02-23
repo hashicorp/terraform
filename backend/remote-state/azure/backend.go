@@ -135,6 +135,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
+			"key_vault_key_identifier": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The Azure Key Vault Key Identifier.",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_KEY_VAULT_KEY_IDENTIFIER", ""),
+			},
+
 			// Deprecated fields
 			"arm_client_id": {
 				Type:        schema.TypeString,
@@ -201,6 +208,7 @@ type BackendConfig struct {
 	SubscriptionID                string
 	TenantID                      string
 	UseMsi                        bool
+	KeyVaultKeyIdentifier         string
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -237,6 +245,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		SubscriptionID:                subscriptionId,
 		TenantID:                      tenantId,
 		UseMsi:                        data.Get("use_msi").(bool),
+		KeyVaultKeyIdentifier:         data.Get("key_vault_key_identifier").(string),
 	}
 
 	armClient, err := buildArmClient(context.TODO(), config)

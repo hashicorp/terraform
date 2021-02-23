@@ -24,6 +24,7 @@ const (
 
 type RemoteClient struct {
 	giovanniBlobClient blobs.Client
+	encClient          *EncryptionClient
 	accountName        string
 	containerName      string
 	keyName            string
@@ -46,8 +47,17 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, err
 	}
 
+	blobContents := blob.Contents
+	// Decrypt operation if Key Vault key is provided
+	if c.encClient != nil {
+		blobContents, err = c.encClient.Decrypt(ctx, blobContents)
+		if err != nil {
+			return nil, fmt.Errorf("Error during decryption: %v", err)
+		}
+	}
+
 	payload := &remote.Payload{
-		Data: blob.Contents,
+		Data: blobContents,
 	}
 
 	// If there was no data, then return nil
@@ -91,8 +101,17 @@ func (c *RemoteClient) Put(data []byte) error {
 		}
 	}
 
+	blobContents := data
+	// Encrypt operation if Key Vault key is provided
+	if c.encClient != nil {
+		blobContents, err = c.encClient.Encrypt(ctx, blobContents)
+		if err != nil {
+			return fmt.Errorf("Error during encryption: %v", err)
+		}
+	}
+
 	contentType := "application/json"
-	putOptions.Content = &data
+	putOptions.Content = &blobContents
 	putOptions.ContentType = &contentType
 	putOptions.MetaData = blob.MetaData
 	_, err = c.giovanniBlobClient.PutBlockBlob(ctx, c.accountName, c.containerName, c.keyName, putOptions)

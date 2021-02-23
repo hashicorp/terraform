@@ -13,6 +13,11 @@ import (
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/go-autorest/autorest"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
+
+	keyvaultKey "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2019-09-01/keyvault"
+	"github.com/Azure/go-autorest/autorest/to"
+	uuid "github.com/satori/go.uuid"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
@@ -73,6 +78,11 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	// Endpoint is optional (only for Stack)
 	endpoint := os.Getenv("ARM_ENDPOINT")
 
+	keyVaultKeyIdentifier := ""
+	if res.keyVaultName != "" && res.keyVaultKeyName != "" {
+		keyVaultKeyIdentifier = fmt.Sprintf("https://%s.vault.azure.net/keys/%s", res.keyVaultName, res.keyVaultKeyName)
+	}
+
 	armClient, err := buildArmClient(context.TODO(), BackendConfig{
 		SubscriptionID:                subscriptionID,
 		TenantID:                      tenantID,
@@ -82,6 +92,7 @@ func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 		Environment:                   environment,
 		ResourceGroupName:             res.resourceGroup,
 		StorageAccountName:            res.storageAccountName,
+		KeyVaultKeyIdentifier:         keyVaultKeyIdentifier,
 		UseMsi:                        msiEnabled,
 	})
 	if err != nil {
@@ -125,6 +136,8 @@ type resourceNames struct {
 	storageContainerName    string
 	storageKeyName          string
 	storageAccountAccessKey string
+	keyVaultName            string
+	keyVaultKeyName         string
 }
 
 func testResourceNames(rString string, keyName string) resourceNames {
@@ -135,6 +148,14 @@ func testResourceNames(rString string, keyName string) resourceNames {
 		storageContainerName: "acctestcont",
 		storageKeyName:       keyName,
 	}
+}
+
+func testResourceNamesWithKeyVault(rString, storageKeyName, keyVaultName, keyVaultKeyName string) resourceNames {
+	resources := testResourceNames(rString, storageKeyName)
+	resources.keyVaultName = keyVaultName
+	resources.keyVaultKeyName = keyVaultKeyName
+
+	return resources
 }
 
 func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames) error {
@@ -164,7 +185,7 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	log.Printf("fetching access key for storage account")
 	resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName)
 	if err != nil {
-		return fmt.Errorf("failed to list storage account keys %s:", err)
+		return fmt.Errorf("failed to list storage account keys %s", err)
 	}
 
 	keys := *resp.Keys
@@ -183,6 +204,91 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 	_, err = containersClient.Create(ctx, names.storageAccountName, names.storageContainerName, containers.CreateInput{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage container: %s", err)
+	}
+
+	// Azure Key Vault
+	if names.keyVaultName != "" && names.keyVaultKeyName != "" {
+		vaultsClient := keyvault.NewVaultsClient(os.Getenv("ARM_SUBSCRIPTION_ID"))
+		vaultsClient.Authorizer = c.groupsClient.Authorizer
+		vaultsClient.AddToUserAgent(c.groupsClient.UserAgent)
+
+		tenantID, err := uuid.FromString(os.Getenv("ARM_TENANT_ID"))
+		if err != nil {
+			return err
+		}
+
+		apList := []keyvault.AccessPolicyEntry{}
+		ap := keyvault.AccessPolicyEntry{
+			TenantID: &tenantID,
+			Permissions: &keyvault.Permissions{
+				Keys: &[]keyvault.KeyPermissions{
+					keyvault.KeyPermissionsGet,
+					keyvault.KeyPermissionsCreate,
+					keyvault.KeyPermissionsList,
+					keyvault.KeyPermissionsWrapKey,
+					keyvault.KeyPermissionsUnwrapKey,
+				},
+			},
+		}
+
+		ap.ObjectID = to.StringPtr(os.Getenv("ARM_OBJECT_ID"))
+		apList = append(apList, ap)
+
+		log.Printf("creating Key Vault https://%s.vault.azure.net/", names.keyVaultName)
+		future, err := vaultsClient.CreateOrUpdate(
+			ctx,
+			names.resourceGroup,
+			names.keyVaultName,
+			keyvault.VaultCreateOrUpdateParameters{
+				Location: &names.location,
+				Properties: &keyvault.VaultProperties{
+					TenantID: &tenantID,
+					Sku: &keyvault.Sku{
+						Family: to.StringPtr("A"),
+						Name:   keyvault.Standard,
+					},
+					AccessPolicies: &apList,
+				},
+			},
+		)
+
+		err = future.WaitForCompletionRef(ctx, vaultsClient.Client)
+		if err != nil {
+			return fmt.Errorf("failed waiting for the creation of key vault: %s", err)
+		}
+
+		vault, _ := future.Result(vaultsClient)
+
+		if err != nil {
+			log.Printf("failed to create Key Vault https://%s.vault.azure.net/", names.keyVaultName)
+			return err
+		}
+
+		log.Printf("creating key inside Key Vault")
+
+		vaultURL := *vault.Properties.VaultURI
+		key, err := c.encClient.KvClient.CreateKey(
+			ctx,
+			vaultURL,
+			names.keyVaultKeyName,
+			keyvaultKey.KeyCreateParameters{
+				KeyAttributes: &keyvaultKey.KeyAttributes{
+					Enabled: to.BoolPtr(true),
+				},
+				KeySize: to.Int32Ptr(4096),
+				KeyOps: &[]keyvaultKey.JSONWebKeyOperation{
+					keyvaultKey.WrapKey,
+					keyvaultKey.UnwrapKey,
+				},
+				Kty: keyvaultKey.RSA,
+			})
+
+		if err != nil {
+			log.Printf("failed to create Key")
+			return err
+		}
+
+		log.Printf("success at creating key. id: %s", *key.Key.Kid)
 	}
 
 	return nil

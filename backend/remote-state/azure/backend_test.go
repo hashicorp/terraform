@@ -2,6 +2,7 @@ package azure
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -14,8 +15,7 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackendConfig(t *testing.T) {
-	// This test just instantiates the client. Shouldn't make any actual
-	// requests nor incur any costs.
+	testAccAzureBackend(t)
 
 	config := map[string]interface{}{
 		"storage_account_name": "tfaccount",
@@ -307,4 +307,39 @@ func TestBackendServicePrincipalLocked(t *testing.T) {
 
 	backend.TestBackendStateLocksInWS(t, b1, b2, "foo")
 	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "foo")
+}
+
+func TestBackendWithKeyVaultEncryption(t *testing.T) {
+	testAccAzureBackend(t)
+
+	rs := acctest.RandString(4)
+
+	keyVaultName := fmt.Sprintf("keyvaultterraform%s", rs)
+	keyName := "myKey"
+	keyIdentifier := fmt.Sprintf("https://%s.vault.azure.net/keys/%s", keyVaultName, keyName)
+
+	ctx := context.TODO()
+	res := testResourceNamesWithKeyVault(rs, "testState", keyVaultName, keyName)
+	armClient := buildTestClient(t, res)
+
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name":     res.storageAccountName,
+		"container_name":           res.storageContainerName,
+		"key":                      res.storageKeyName,
+		"resource_group_name":      res.resourceGroup,
+		"subscription_id":          os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":                os.Getenv("ARM_TENANT_ID"),
+		"client_id":                os.Getenv("ARM_CLIENT_ID"),
+		"client_secret":            os.Getenv("ARM_CLIENT_SECRET"),
+		"environment":              os.Getenv("ARM_ENVIRONMENT"),
+		"key_vault_key_identifier": keyIdentifier,
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
 }

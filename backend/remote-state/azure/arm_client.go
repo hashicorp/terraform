@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
@@ -31,6 +33,8 @@ type ArmClient struct {
 	resourceGroupName  string
 	storageAccountName string
 	sasToken           string
+
+	encClient *EncryptionClient
 }
 
 func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, error) {
@@ -43,18 +47,6 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		environment:        *env,
 		resourceGroupName:  config.ResourceGroupName,
 		storageAccountName: config.StorageAccountName,
-	}
-
-	// if we have an Access Key - we don't need the other clients
-	if config.AccessKey != "" {
-		client.accessKey = config.AccessKey
-		return &client, nil
-	}
-
-	// likewise with a SAS token
-	if config.SasToken != "" {
-		client.sasToken = config.SasToken
-		return &client, nil
 	}
 
 	builder := authentication.Builder{
@@ -82,6 +74,7 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
 	}
+
 	armConfig, err := builder.Build()
 	if err != nil {
 		return nil, fmt.Errorf("Error building ARM Config: %+v", err)
@@ -90,6 +83,35 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	oauthConfig, err := armConfig.BuildOAuthConfig(env.ActiveDirectoryEndpoint)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.KeyVaultKeyIdentifier != "" {
+		vaultEndpoint := strings.TrimSuffix(env.KeyVaultEndpoint, "/")
+		authKV, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, vaultEndpoint)
+		if err != nil {
+			return nil, err
+		}
+
+		kvClient := keyvault.New()
+		client.configureClient(&kvClient.Client, authKV)
+
+		encClient, err := NewEncryptionClient(config.KeyVaultKeyIdentifier, &kvClient)
+		if err != nil {
+			return nil, err
+		}
+		client.encClient = encClient
+	}
+
+	// if we have an Access Key - we don't need the other clients
+	if config.AccessKey != "" {
+		client.accessKey = config.AccessKey
+		return &client, nil
+	}
+
+	// likewise with a SAS token
+	if config.SasToken != "" {
+		client.sasToken = config.SasToken
+		return &client, nil
 	}
 
 	auth, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, env.TokenAudience)
