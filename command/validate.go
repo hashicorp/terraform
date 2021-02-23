@@ -240,7 +240,7 @@ func (c *ValidateCommand) Synopsis() string {
 
 func (c *ValidateCommand) Help() string {
 	helpText := `
-Usage: terraform validate [options] [dir]
+Usage: terraform [global options] validate [options] [dir]
 
   Validate the configuration files in a directory, referring only to the
   configuration and not accessing any remote services such as remote state,

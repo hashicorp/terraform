@@ -116,7 +116,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 func (c *UnlockCommand) Help() string {
 	helpText := `
-Usage: terraform force-unlock LOCK_ID
+Usage: terraform [global options] force-unlock LOCK_ID
 
   Manually unlock the state for the defined configuration.
 

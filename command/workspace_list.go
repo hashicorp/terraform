@@ -91,7 +91,7 @@ func (c *WorkspaceListCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceListCommand) Help() string {
 	helpText := `
-Usage: terraform workspace list
+Usage: terraform [global options] workspace list
 
   List Terraform workspaces.
 

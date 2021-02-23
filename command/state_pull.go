@@ -68,7 +68,7 @@ func (c *StatePullCommand) Run(args []string) int {
 
 func (c *StatePullCommand) Help() string {
 	helpText := `
-Usage: terraform state pull [options]
+Usage: terraform [global options] state pull [options]
 
   Pull the state from its location, upgrade the local copy, and output it
   to stdout.

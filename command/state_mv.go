@@ -454,7 +454,7 @@ func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource
 
 func (c *StateMvCommand) Help() string {
 	helpText := `
-Usage: terraform state mv [options] SOURCE DESTINATION
+Usage: terraform [global options] state mv [options] SOURCE DESTINATION
 
  This command will move an item matched by the address given to the
  destination address. This command can also move to a destination address

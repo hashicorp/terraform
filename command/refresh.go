@@ -176,7 +176,7 @@ func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *argumen
 
 func (c *RefreshCommand) Help() string {
 	helpText := `
-Usage: terraform refresh [options]
+Usage: terraform [global options] refresh [options]
 
   Update the state file of your infrastructure with metadata that matches
   the physical resources they are tracking.

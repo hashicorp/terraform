@@ -132,7 +132,7 @@ func (c *LogoutCommand) Help() string {
 	}
 
 	helpText := `
-Usage: terraform logout [hostname]
+Usage: terraform [global options] logout [hostname]
 
   Removes locally-stored credentials for specified hostname.
 

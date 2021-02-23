@@ -188,7 +188,7 @@ func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options]
+Usage: terraform [global options] plan [options]
 
   Generates a speculative execution plan, showing what actions Terraform
   would take to apply the current configuration. This command will not

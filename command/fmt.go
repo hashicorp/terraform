@@ -494,7 +494,7 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform fmt [options] [DIR]
+Usage: terraform [global options] fmt [options] [DIR]
 
 	Rewrites all Terraform configuration files to a canonical format. Both
 	configuration files (.tf) and variables files (.tfvars) are updated.

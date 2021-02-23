@@ -313,7 +313,7 @@ func (c *ApplyCommand) Synopsis() string {
 
 func (c *ApplyCommand) helpApply() string {
 	helpText := `
-Usage: terraform apply [options] [PLAN]
+Usage: terraform [global options] apply [options] [PLAN]
 
   Creates or updates infrastructure according to Terraform configuration
   files in the current directory.
@@ -375,7 +375,7 @@ Options:
 
 func (c *ApplyCommand) helpDestroy() string {
 	helpText := `
-Usage: terraform destroy [options]
+Usage: terraform [global options] destroy [options]
 
   Destroy Terraform-managed infrastructure.
 

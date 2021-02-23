@@ -271,7 +271,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 func (c *ImportCommand) Help() string {
 	helpText := `
-Usage: terraform import [options] ADDR ID
+Usage: terraform [global options] import [options] ADDR ID
 
   Import existing infrastructure into your Terraform state.
 

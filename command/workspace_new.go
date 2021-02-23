@@ -181,7 +181,7 @@ func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceNewCommand) Help() string {
 	helpText := `
-Usage: terraform workspace new [OPTIONS] NAME
+Usage: terraform [global options] workspace new [OPTIONS] NAME
 
   Create a new Terraform workspace.
 

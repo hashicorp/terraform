@@ -285,7 +285,7 @@ func TestStateReplaceProvider(t *testing.T) {
 func TestStateReplaceProvider_docs(t *testing.T) {
 	c := &StateReplaceProviderCommand{}
 
-	if got, want := c.Help(), "Usage: terraform state replace-provider"; !strings.Contains(got, want) {
+	if got, want := c.Help(), "Usage: terraform [global options] state replace-provider"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected help text\nwant: %s\nfull output:\n%s", want, got)
 	}
 
