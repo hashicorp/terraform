@@ -47,6 +47,22 @@ func TestParsePlan_basicValid(t *testing.T) {
 				},
 			},
 		},
+		"JSON view disables input": {
+			[]string{"-json"},
+			&Plan{
+				DetailedExitCode: false,
+				InputEnabled:     false,
+				OutPath:          "",
+				ViewType:         ViewJSON,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
 	}
 
 	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
