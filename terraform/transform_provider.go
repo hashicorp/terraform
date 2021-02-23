@@ -31,8 +31,6 @@ func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, c
 		},
 		// Remove unused providers and proxies
 		&PruneProviderTransformer{},
-		// Connect provider to their parent provider nodes
-		&ParentProviderTransformer{},
 	)
 }
 
@@ -227,7 +225,7 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 				break
 			}
 
-			// see if this in  an inherited provider
+			// see if this is a proxy provider pointing to another concrete config
 			if p, ok := target.(*graphNodeProxyProvider); ok {
 				g.Remove(p)
 				target = p.Target()
@@ -355,42 +353,6 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	}
 
 	return err
-}
-
-// ParentProviderTransformer connects provider nodes to their parents.
-//
-// This works by finding nodes that are both GraphNodeProviders and
-// GraphNodeModuleInstance. It then connects the providers to their parent
-// path. The parent provider is always at the root level.
-type ParentProviderTransformer struct{}
-
-func (t *ParentProviderTransformer) Transform(g *Graph) error {
-	pm := providerVertexMap(g)
-	for _, v := range g.Vertices() {
-		// Only care about providers
-		pn, ok := v.(GraphNodeProvider)
-		if !ok {
-			continue
-		}
-
-		// Also require non-empty path, since otherwise we're in the root
-		// module and so cannot have a parent.
-		if len(pn.ModulePath()) <= 1 {
-			continue
-		}
-
-		// this provider may be disabled, but we can only get it's name from
-		// the ProviderName string
-		addr := pn.ProviderAddr()
-		parentAddr, ok := addr.Inherited()
-		if ok {
-			parent := pm[parentAddr.String()]
-			if parent != nil {
-				g.Connect(dag.BasicEdge(v, parent))
-			}
-		}
-	}
-	return nil
 }
 
 // PruneProviderTransformer removes any providers that are not actually used by
@@ -605,43 +567,6 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 		t.proxiable[key] = !diags.HasErrors()
 	}
 
-	if mod.ProviderRequirements != nil {
-		// Add implied provider configs from the required_providers
-		// Since we're still treating empty configs as proxies, we can just add
-		// these as empty configs too. We'll ensure that these are given a
-		// configuration during validation to prevent them from becoming
-		// fully-fledged config instances.
-		for _, p := range mod.ProviderRequirements.RequiredProviders {
-			for _, aliasAddr := range p.Aliases {
-				addr := addrs.AbsProviderConfig{
-					Provider: mod.ProviderForLocalConfig(aliasAddr),
-					Module:   path,
-					Alias:    aliasAddr.Alias,
-				}
-
-				key := addr.String()
-				if _, ok := t.providers[key]; ok {
-					continue
-				}
-
-				abstract := &NodeAbstractProvider{
-					Addr: addr,
-				}
-				var v dag.Vertex
-				if t.Concrete != nil {
-					v = t.Concrete(abstract)
-				} else {
-					v = abstract
-				}
-
-				// Add it to the graph
-				g.Add(v)
-				t.providers[key] = v.(GraphNodeProvider)
-				t.proxiable[key] = true
-			}
-		}
-	}
-
 	// Now replace the provider nodes with proxy nodes if a provider was being
 	// passed in, and create implicit proxies if there was no config. Any extra
 	// proxies will be removed in the prune step.
@@ -708,15 +633,13 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 
 		concreteProvider := t.providers[fullName]
 
-		// replace the concrete node with the provider passed in
-		if concreteProvider != nil && t.proxiable[fullName] {
-			g.Replace(concreteProvider, proxy)
-			t.providers[fullName] = proxy
-			continue
-		}
-
-		// aliased configurations can't be implicitly passed in
-		if fullAddr.Alias != "" {
+		// replace the concrete node with the provider passed in only if it is
+		// proxyable
+		if concreteProvider != nil {
+			if t.proxiable[fullName] {
+				g.Replace(concreteProvider, proxy)
+				t.providers[fullName] = proxy
+			}
 			continue
 		}
 
