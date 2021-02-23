@@ -167,9 +167,8 @@ func TestMarshalResources(t *testing.T) {
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.NoKey: {
 							Current: &states.ResourceInstanceObjectSrc{
-								SchemaVersion: 1,
-								Status:        states.ObjectReady,
-								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 							},
 						},
 					},
@@ -182,13 +181,12 @@ func TestMarshalResources(t *testing.T) {
 			testSchemas(),
 			[]resource{
 				resource{
-					Address:       "test_thing.bar",
-					Mode:          "managed",
-					Type:          "test_thing",
-					Name:          "bar",
-					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "registry.terraform.io/hashicorp/test",
-					SchemaVersion: 1,
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -196,6 +194,35 @@ func TestMarshalResources(t *testing.T) {
 				},
 			},
 			false,
+		},
+		"single resource wrong schema": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								SchemaVersion: 1,
+								Status:        states.ObjectReady,
+								AttrsJSON:     []byte(`{"woozles":["confuzles"]}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			nil,
+			true,
 		},
 		"resource with count": {
 			map[string]*states.Resource{
@@ -210,9 +237,8 @@ func TestMarshalResources(t *testing.T) {
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.IntKey(0): {
 							Current: &states.ResourceInstanceObjectSrc{
-								SchemaVersion: 1,
-								Status:        states.ObjectReady,
-								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 							},
 						},
 					},
@@ -225,13 +251,12 @@ func TestMarshalResources(t *testing.T) {
 			testSchemas(),
 			[]resource{
 				resource{
-					Address:       "test_thing.bar[0]",
-					Mode:          "managed",
-					Type:          "test_thing",
-					Name:          "bar",
-					Index:         addrs.IntKey(0),
-					ProviderName:  "registry.terraform.io/hashicorp/test",
-					SchemaVersion: 1,
+					Address:      "test_thing.bar[0]",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.IntKey(0),
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -253,9 +278,8 @@ func TestMarshalResources(t *testing.T) {
 					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
 						addrs.StringKey("rockhopper"): {
 							Current: &states.ResourceInstanceObjectSrc{
-								SchemaVersion: 1,
-								Status:        states.ObjectReady,
-								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 							},
 						},
 					},
@@ -268,13 +292,12 @@ func TestMarshalResources(t *testing.T) {
 			testSchemas(),
 			[]resource{
 				resource{
-					Address:       "test_thing.bar[\"rockhopper\"]",
-					Mode:          "managed",
-					Type:          "test_thing",
-					Name:          "bar",
-					Index:         addrs.StringKey("rockhopper"),
-					ProviderName:  "registry.terraform.io/hashicorp/test",
-					SchemaVersion: 1,
+					Address:      "test_thing.bar[\"rockhopper\"]",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.StringKey("rockhopper"),
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -297,9 +320,8 @@ func TestMarshalResources(t *testing.T) {
 						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
 								states.DeposedKey(deposedKey): &states.ResourceInstanceObjectSrc{
-									SchemaVersion: 1,
-									Status:        states.ObjectReady,
-									AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+									Status:    states.ObjectReady,
+									AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 								},
 							},
 						},
@@ -342,15 +364,13 @@ func TestMarshalResources(t *testing.T) {
 						addrs.NoKey: {
 							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
 								states.DeposedKey(deposedKey): &states.ResourceInstanceObjectSrc{
-									SchemaVersion: 1,
-									Status:        states.ObjectReady,
-									AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+									Status:    states.ObjectReady,
+									AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 								},
 							},
 							Current: &states.ResourceInstanceObjectSrc{
-								SchemaVersion: 1,
-								Status:        states.ObjectReady,
-								AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
 							},
 						},
 					},
@@ -363,13 +383,12 @@ func TestMarshalResources(t *testing.T) {
 			testSchemas(),
 			[]resource{
 				resource{
-					Address:       "test_thing.bar",
-					Mode:          "managed",
-					Type:          "test_thing",
-					Name:          "bar",
-					Index:         addrs.InstanceKey(nil),
-					ProviderName:  "registry.terraform.io/hashicorp/test",
-					SchemaVersion: 1,
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
