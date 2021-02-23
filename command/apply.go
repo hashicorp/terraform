@@ -89,7 +89,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, planFile, args.Operation)
+	opReq, opDiags := c.OperationRequest(be, view, planFile, args.Operation, args.AutoApprove)
 	diags = diags.Append(opDiags)
 
 	// Collect variable value and add them to the operation request
@@ -226,7 +226,12 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 	return be, diags
 }
 
-func (c *ApplyCommand) OperationRequest(be backend.Enhanced, view views.Apply, planFile *planfile.Reader, args *arguments.Operation,
+func (c *ApplyCommand) OperationRequest(
+	be backend.Enhanced,
+	view views.Apply,
+	planFile *planfile.Reader,
+	args *arguments.Operation,
+	autoApprove bool,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -237,7 +242,7 @@ func (c *ApplyCommand) OperationRequest(be backend.Enhanced, view views.Apply, p
 
 	// Build the operation
 	opReq := c.Operation(be)
-	opReq.AutoApprove = args.AutoApprove
+	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = "."
 	opReq.Destroy = c.Destroy
 	opReq.Hooks = view.Hooks()

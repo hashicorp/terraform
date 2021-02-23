@@ -45,9 +45,6 @@ type State struct {
 // Operation describes arguments which are used to configure how a Terraform
 // operation such as a plan or apply executes.
 type Operation struct {
-	// AutoApprove skips the manual verification step for the apply operation.
-	AutoApprove bool
-
 	// Parallelism is the limit Terraform places on total parallel operations
 	// as it walks the dependency graph.
 	Parallelism int
@@ -141,7 +138,6 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 	}
 
 	if operation != nil {
-		f.BoolVar(&operation.AutoApprove, "auto-approve", false, "auto-approve")
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")

@@ -16,14 +16,16 @@ func TestParseApply_basicValid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Apply{
+				AutoApprove:  false,
 				InputEnabled: true,
 				PlanPath:     "",
 				ViewType:     ViewHuman,
 			},
 		},
-		"disabled input and plan path": {
-			[]string{"-input=false", "saved.tfplan"},
+		"auto-approve, disabled input, and plan path": {
+			[]string{"-auto-approve", "-input=false", "saved.tfplan"},
 			&Apply{
+				AutoApprove:  true,
 				InputEnabled: false,
 				PlanPath:     "saved.tfplan",
 				ViewType:     ViewHuman,
