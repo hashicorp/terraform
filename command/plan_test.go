@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -31,19 +30,19 @@ func TestPlan(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -60,22 +59,21 @@ func TestPlan_lockedState(t *testing.T) {
 	defer unlock()
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code == 0 {
-		t.Fatal("expected error")
+	code := c.Run(args)
+	if code == 0 {
+		t.Fatal("expected error", done(t).Stdout())
 	}
 
-	output := ui.ErrorWriter.String()
+	output := done(t).Stderr()
 	if !strings.Contains(output, "lock") {
 		t.Fatal("command output does not look like a lock error:", output)
 	}
@@ -88,19 +86,19 @@ func TestPlan_plan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{planPath}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("wrong exit status %d; want 1\nstderr: %s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("wrong exit status %d; want 1\nstderr: %s", code, output.Stderr())
 	}
 }
 
@@ -131,12 +129,10 @@ func TestPlan_destroy(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -146,8 +142,10 @@ func TestPlan_destroy(t *testing.T) {
 		"-out", outPath,
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	plan := testReadPlan(t, outPath)
@@ -165,19 +163,19 @@ func TestPlan_noState(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify that refresh was called
@@ -202,12 +200,10 @@ func TestPlan_outPath(t *testing.T) {
 	outPath := filepath.Join(td, "test.plan")
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -219,8 +215,10 @@ func TestPlan_outPath(t *testing.T) {
 	args := []string{
 		"-out", outPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	testReadPlan(t, outPath) // will call t.Fatal itself if the file cannot be read
@@ -257,12 +255,10 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	outPath := filepath.Join(td, "test.plan")
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -271,8 +267,10 @@ func TestPlan_outPathNoChange(t *testing.T) {
 		"-out", outPath,
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	plan := testReadPlan(t, outPath)
@@ -337,12 +335,10 @@ func TestPlan_outBackend(t *testing.T) {
 			PlannedState: req.ProposedNewState,
 		}
 	}
-	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -350,9 +346,11 @@ func TestPlan_outBackend(t *testing.T) {
 	args := []string{
 		"-out", outPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Logf("stdout: %s", ui.OutputWriter.String())
-		t.Fatalf("plan command failed with exit code %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Logf("stdout: %s", output.Stdout())
+		t.Fatalf("plan command failed with exit code %d\n\n%s", code, output.Stderr())
 	}
 
 	plan := testReadPlan(t, outPath)
@@ -391,12 +389,10 @@ func TestPlan_refreshFalse(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -404,8 +400,10 @@ func TestPlan_refreshFalse(t *testing.T) {
 	args := []string{
 		"-refresh=false",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if p.ReadResourceCalled {
@@ -424,12 +422,10 @@ func TestPlan_state(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -437,8 +433,10 @@ func TestPlan_state(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify that the provider was called with the existing state
@@ -469,19 +467,19 @@ func TestPlan_stateDefault(t *testing.T) {
 	os.Rename(statePath, path.Join(td, "terraform.tfstate"))
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Verify that the provider was called with the existing state
@@ -526,22 +524,22 @@ func TestPlan_validate(t *testing.T) {
 			PlannedState: req.ProposedNewState,
 		}
 	}
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	args := []string{}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	args := []string{"-no-color"}
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	actual := ui.ErrorWriter.String()
+	actual := output.Stderr()
 	if want := "Error: Invalid count argument"; !strings.Contains(actual, want) {
 		t.Fatalf("unexpected error output\ngot:\n%s\n\nshould contain: %s", actual, want)
 	}
@@ -555,12 +553,10 @@ func TestPlan_vars(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := planVarsFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -575,8 +571,10 @@ func TestPlan_vars(t *testing.T) {
 	args := []string{
 		"-var", "foo=bar",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -602,19 +600,19 @@ func TestPlan_varsUnset(t *testing.T) {
 	defer close()
 
 	p := planVarsFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -667,19 +665,19 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 			},
 		},
 	}
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -696,12 +694,10 @@ func TestPlan_varFile(t *testing.T) {
 	}
 
 	p := planVarsFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -716,8 +712,10 @@ func TestPlan_varFile(t *testing.T) {
 	args := []string{
 		"-var-file", varFilePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -738,12 +736,10 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 
 	p := planVarsFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -756,8 +752,10 @@ func TestPlan_varFileDefault(t *testing.T) {
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if actual != "bar" {
@@ -778,12 +776,10 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 	}
 
 	p := planVarsFixtureProvider()
-	ui := cli.NewMockUi()
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -791,11 +787,13 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 	args := []string{
 		"-var-file", varFilePath,
 	}
-	if code := c.Run(args); code == 0 {
-		t.Fatalf("succeeded; want failure\n\n%s", ui.OutputWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatalf("succeeded; want failure\n\n%s", output.Stdout())
 	}
 
-	msg := ui.ErrorWriter.String()
+	msg := output.Stderr()
 	if got, want := msg, "Variable declaration in .tfvars file"; !strings.Contains(got, want) {
 		t.Fatalf("missing expected error message\nwant message containing %q\ngot:\n%s", want, got)
 	}
@@ -808,19 +806,19 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"-detailed-exitcode"}
-	if code := c.Run(args); code != 2 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 2 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -831,19 +829,19 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
 	args := []string{"-detailed-exitcode"}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -858,12 +856,10 @@ func TestPlan_shutdown(t *testing.T) {
 	shutdownCh := make(chan struct{})
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 			ShutdownCh:       shutdownCh,
 		},
@@ -908,8 +904,9 @@ func TestPlan_shutdown(t *testing.T) {
 	}
 
 	code := c.Run([]string{})
+	output := done(t)
 	if code != 1 {
-		t.Errorf("wrong exit code %d; want 1\noutput:\n%s", code, ui.OutputWriter.String())
+		t.Errorf("wrong exit code %d; want 1\noutput:\n%s", code, output.Stdout())
 	}
 
 	select {
@@ -925,23 +922,23 @@ func TestPlan_init_required(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			// Running plan without setting testingOverrides is similar to plan without init
-			Ui:   ui,
 			View: view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 1 {
+	code := c.Run(args)
+	output := done(t)
+	if code != 1 {
 		t.Fatalf("expected error, got success")
 	}
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, `Plugin reinitialization required. Please run "terraform init".`) {
-		t.Fatal("wrong error message in output:", output)
+	got := output.Stderr()
+	if !strings.Contains(got, `Plugin reinitialization required. Please run "terraform init".`) {
+		t.Fatal("wrong error message in output:", got)
 	}
 }
 
@@ -970,12 +967,10 @@ func TestPlan_targeted(t *testing.T) {
 		}
 	}
 
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &PlanCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -984,11 +979,13 @@ func TestPlan_targeted(t *testing.T) {
 		"-target", "test_instance.foo",
 		"-target", "test_instance.baz",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if got, want := done(t).Stdout(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
 		t.Fatalf("bad change summary, want %q, got:\n%s", want, got)
 	}
 }
@@ -1006,11 +1003,9 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
-			ui := new(cli.MockUi)
-			view, _ := testView(t)
+			view, done := testView(t)
 			c := &PlanCommand{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			}
@@ -1018,11 +1013,13 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 			args := []string{
 				"-target", target,
 			}
-			if code := c.Run(args); code != 1 {
-				t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			code := c.Run(args)
+			output := done(t)
+			if code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
 			}
 
-			got := ui.ErrorWriter.String()
+			got := output.Stderr()
 			if !strings.Contains(got, target) {
 				t.Fatalf("bad error output, want %q, got:\n%s", target, got)
 			}

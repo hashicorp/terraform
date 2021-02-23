@@ -8,34 +8,36 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 )
 
-func TestParseApply_basicValid(t *testing.T) {
+func TestParsePlan_basicValid(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
-		want *Apply
+		want *Plan
 	}{
 		"defaults": {
 			nil,
-			&Apply{
-				AutoApprove:  false,
-				InputEnabled: true,
-				PlanPath:     "",
-				ViewType:     ViewHuman,
+			&Plan{
+				Destroy:          false,
+				DetailedExitCode: false,
+				InputEnabled:     true,
+				OutPath:          "",
+				ViewType:         ViewHuman,
 			},
 		},
-		"auto-approve, disabled input, and plan path": {
-			[]string{"-auto-approve", "-input=false", "saved.tfplan"},
-			&Apply{
-				AutoApprove:  true,
-				InputEnabled: false,
-				PlanPath:     "saved.tfplan",
-				ViewType:     ViewHuman,
+		"setting all options": {
+			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
+			&Plan{
+				Destroy:          true,
+				DetailedExitCode: true,
+				InputEnabled:     false,
+				OutPath:          "saved.tfplan",
+				ViewType:         ViewHuman,
 			},
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseApply(tc.args)
+			got, diags := ParsePlan(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
@@ -50,8 +52,8 @@ func TestParseApply_basicValid(t *testing.T) {
 	}
 }
 
-func TestParseApply_invalid(t *testing.T) {
-	got, diags := ParseApply([]string{"-frob"})
+func TestParsePlan_invalid(t *testing.T) {
+	got, diags := ParsePlan([]string{"-frob"})
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}
@@ -63,8 +65,8 @@ func TestParseApply_invalid(t *testing.T) {
 	}
 }
 
-func TestParseApply_tooManyArguments(t *testing.T) {
-	got, diags := ParseApply([]string{"saved.tfplan", "please"})
+func TestParsePlan_tooManyArguments(t *testing.T) {
+	got, diags := ParsePlan([]string{"saved.tfplan"})
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}
@@ -76,7 +78,7 @@ func TestParseApply_tooManyArguments(t *testing.T) {
 	}
 }
 
-func TestParseApply_targets(t *testing.T) {
+func TestParsePlan_targets(t *testing.T) {
 	foobarbaz, _ := addrs.ParseTargetStr("foo_bar.baz")
 	boop, _ := addrs.ParseTargetStr("module.boop")
 	testCases := map[string]struct {
@@ -110,7 +112,7 @@ func TestParseApply_targets(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseApply(tc.args)
+			got, diags := ParsePlan(tc.args)
 			if len(diags) > 0 {
 				if tc.wantErr == "" {
 					t.Fatalf("unexpected diags: %v", diags)
@@ -125,7 +127,7 @@ func TestParseApply_targets(t *testing.T) {
 	}
 }
 
-func TestParseApply_vars(t *testing.T) {
+func TestParsePlan_vars(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
 		want []FlagNameValue
@@ -162,7 +164,7 @@ func TestParseApply_vars(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, diags := ParseApply(tc.args)
+			got, diags := ParsePlan(tc.args)
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
