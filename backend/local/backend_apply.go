@@ -121,6 +121,28 @@ func (b *Local) opApply(
 				runningOp.Result = backend.OperationFailure
 				return
 			}
+		} else {
+			for _, change := range plan.Changes.Resources {
+				if change.Action != plans.NoOp {
+					op.View.PlannedChange(change)
+				}
+			}
+		}
+	} else {
+		plan, err := op.PlanFile.ReadPlan()
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid plan file",
+				fmt.Sprintf("Failed to read plan from plan file: %s.", err),
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		}
+		for _, change := range plan.Changes.Resources {
+			if change.Action != plans.NoOp {
+				op.View.PlannedChange(change)
+			}
 		}
 	}
 

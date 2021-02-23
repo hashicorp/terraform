@@ -63,6 +63,22 @@ func TestParseApply_basicValid(t *testing.T) {
 				},
 			},
 		},
+		"JSON view disables input": {
+			[]string{"-json", "-auto-approve"},
+			&Apply{
+				AutoApprove:  true,
+				InputEnabled: false,
+				PlanPath:     "",
+				ViewType:     ViewJSON,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
 	}
 
 	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
@@ -75,6 +91,46 @@ func TestParseApply_basicValid(t *testing.T) {
 			}
 			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
 				t.Errorf("unexpected result\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestParseApply_json(t *testing.T) {
+	testCases := map[string]struct {
+		args        []string
+		wantSuccess bool
+	}{
+		"-json": {
+			[]string{"-json"},
+			false,
+		},
+		"-json -auto-approve": {
+			[]string{"-json", "-auto-approve"},
+			true,
+		},
+		"-json saved.tfplan": {
+			[]string{"-json", "saved.tfplan"},
+			true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseApply(tc.args)
+
+			if tc.wantSuccess {
+				if len(diags) > 0 {
+					t.Errorf("unexpected diags: %v", diags)
+				}
+			} else {
+				if got, want := diags.Err().Error(), "Plan file or auto-approve required"; !strings.Contains(got, want) {
+					t.Errorf("wrong diags\n got: %s\nwant: %s", got, want)
+				}
+			}
+
+			if got.ViewType != ViewJSON {
+				t.Errorf("unexpected view type. got: %#v, want: %#v", got.ViewType, ViewJSON)
 			}
 		})
 	}

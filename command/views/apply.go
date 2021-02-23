@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/views/json"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -25,6 +26,12 @@ type Apply interface {
 // NewApply returns an initialized Apply implementation for the given ViewType.
 func NewApply(vt arguments.ViewType, destroy bool, runningInAutomation bool, view *View) Apply {
 	switch vt {
+	case arguments.ViewJSON:
+		return &ApplyJSON{
+			view:      NewJSONView(view),
+			destroy:   destroy,
+			countHook: &countHook{},
+		}
 	case arguments.ViewHuman:
 		return &ApplyHuman{
 			view:         view,
@@ -101,3 +108,55 @@ func (v *ApplyHuman) HelpPrompt() {
 }
 
 const stateOutPathPostApply = "The state of your infrastructure has been saved to the path below. This state is required to modify and destroy your infrastructure, so keep it safe. To inspect the complete state use the `terraform show` command."
+
+// The ApplyJSON implementation renders streaming JSON logs, suitable for
+// integrating with other software.
+type ApplyJSON struct {
+	view *JSONView
+
+	destroy bool
+
+	countHook *countHook
+}
+
+var _ Apply = (*ApplyJSON)(nil)
+
+func (v *ApplyJSON) ResourceCount(stateOutPath string) {
+	operation := json.OperationApplied
+	if v.destroy {
+		operation = json.OperationDestroyed
+	}
+	v.view.ChangeSummary(&json.ChangeSummary{
+		Add:       v.countHook.Added,
+		Change:    v.countHook.Changed,
+		Remove:    v.countHook.Removed,
+		Operation: operation,
+	})
+}
+
+func (v *ApplyJSON) Outputs(outputValues map[string]*states.OutputValue) {
+	outputs, diags := json.OutputsFromMap(outputValues)
+	if diags.HasErrors() {
+		v.Diagnostics(diags)
+	} else {
+		v.view.Outputs(outputs)
+	}
+}
+
+func (v *ApplyJSON) Operation() Operation {
+	return &OperationJSON{view: v.view}
+}
+
+func (v *ApplyJSON) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		v.countHook,
+		newJSONHook(v.view),
+	}
+}
+
+func (v *ApplyJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *ApplyJSON) HelpPrompt() {
+}

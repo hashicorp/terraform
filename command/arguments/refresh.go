@@ -33,6 +33,9 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 	cmdFlags := extendedFlagSet("refresh", refresh.State, refresh.Operation, refresh.Vars)
 	cmdFlags.BoolVar(&refresh.InputEnabled, "input", true, "input")
 
+	var json bool
+	cmdFlags.BoolVar(&json, "json", false, "json")
+
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -52,7 +55,14 @@ func ParseRefresh(args []string) (*Refresh, tfdiags.Diagnostics) {
 
 	diags = diags.Append(refresh.Operation.Parse())
 
+	// JSON view currently does not support input, so we disable it here
+	if json {
+		refresh.InputEnabled = false
+	}
+
 	switch {
+	case json:
+		refresh.ViewType = ViewJSON
 	default:
 		refresh.ViewType = ViewHuman
 	}

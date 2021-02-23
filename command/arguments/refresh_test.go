@@ -20,11 +20,18 @@ func TestParseRefresh_basicValid(t *testing.T) {
 				ViewType:     ViewHuman,
 			},
 		},
-		"input=flase": {
+		"input=false": {
 			[]string{"-input=false"},
 			&Refresh{
 				InputEnabled: false,
 				ViewType:     ViewHuman,
+			},
+		},
+		"JSON view disables input": {
+			[]string{"-json"},
+			&Refresh{
+				InputEnabled: false,
+				ViewType:     ViewJSON,
 			},
 		},
 	}
