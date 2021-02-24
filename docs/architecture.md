@@ -248,10 +248,6 @@ during the graph walk:
   context for processing within a single module, and is the primary means
   by which the namespaces in each module are kept separate.
 
-* `EnterEvalTree` and `ExitEvalTree` are each called once for each vertex
-  in the graph during _vertex evaluation_, which is described in the following
-  section.
-
 Each vertex in the graph is evaluated, in an order that guarantees that the
 "happens after" edges will be respected. If possible, the graph walk algorithm
 will evaluate multiple vertices concurrently. Vertex evaluation code must
