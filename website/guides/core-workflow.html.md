@@ -76,7 +76,7 @@ it's time to commit your work and review the final plan.
 $ git add main.tf
 $ git commit -m 'Managing infrastructure as code!'
 
-[master (root-commit) f735520] Managing infrastructure as code!
+[main (root-commit) f735520] Managing infrastructure as code!
  1 file changed, 1 insertion(+)
 ```
 
@@ -113,7 +113,7 @@ location for safekeeping.
 
 ```sh
 $ git remote add origin https://github.com/*user*/*repo*.git
-$ git push origin master
+$ git push origin main
 ```
 
 This core workflow is a loop; the next time you want to make changes, you start
