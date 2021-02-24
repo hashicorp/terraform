@@ -248,10 +248,6 @@ during the graph walk:
   context for processing within a single module, and is the primary means
   by which the namespaces in each module are kept separate.
 
-* `EnterEvalTree` and `ExitEvalTree` are each called once for each vertex
-  in the graph during _vertex evaluation_, which is described in the following
-  section.
-
 Each vertex in the graph is evaluated, in an order that guarantees that the
 "happens after" edges will be respected. If possible, the graph walk algorithm
 will evaluate multiple vertices concurrently. Vertex evaluation code must
@@ -264,7 +260,7 @@ to safely implement concurrent reads and writes from the shared state.
 ## Vertex Evaluation
 
 The action taken for each vertex during the graph walk is called
-_evaluation_. Evaluation runs a sequence of arbitrary actions that make sense
+_execution_. Execution runs a sequence of arbitrary actions that make sense
 for a particular vertex type.
 
 For example, evaluation of a vertex representing a resource instance during
@@ -290,13 +286,10 @@ a plan operation would include the following high-level steps:
 * Save the instance diff as part of the plan that is being constructed by
   this operation.
 
-<!-- FIXME: EvalNode was removed in hashicorp/terraform#26413
-     The paragraphs below needs to be updated to reflect the current evaluation logic.
--->
-Each evaluation step for a vertex is an implementation of
-[`terraform.EvalNode`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalNode).
+Each execution step for a vertex is an implementation of
+[`terraform.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#Execute).
 As with graph transforms, the behavior of these implementations varies widely:
-whereas graph transforms can take any action against the graph, an `EvalNode`
+whereas graph transforms can take any action against the graph, an `Execute`
 implementation can take any action against the `EvalContext`.
 
 The implementation of `terraform.EvalContext` used in real processing
@@ -305,45 +298,21 @@ The implementation of `terraform.EvalContext` used in real processing
 It provides coordinated access to plugins, the current state, and the current
 plan via the `EvalContext` interface methods.
 
-In order to be evaluated, a vertex must implement
-[`terraform.GraphNodeEvalable`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeEvalable),
-which has a single method that returns an `EvalNode`. In practice, most
-implementations return an instance of
-[`terraform.EvalSequence`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalSequence),
-which wraps a number of other `EvalNode` objects to be executed in sequence.
+In order to be executed, a vertex must implement
+[`terraform.GraphNodeExecutable`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeExecutable),
+which has a single `Execute` method that handles. There are numerous `Execute`
+implementations with different behaviors, but some prominent examples are:
 
-There are numerous `EvalNode` implementations with different behaviors, but
-some prominent examples are:
+* [NodePlannableResource.Execute](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#NodePlannableResourceInstance.Execute), which handles the `plan` operation.
 
-* [`EvalReadState`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalReadState),
-  which extracts the data for a particular resource instance from the state.
+* [`NodeApplyableResourceInstance.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#NodeApplyableResourceInstance.Execute), which handles the main `apply` operation.
 
-* [`EvalWriteState`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalWriteState),
-  which conversely replaces the data for a particular resource instance in
-  the state with some updated data resulting from changes made by the
-  provider.
+* [`NodeDestroyResourceInstance.Execute`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalWriteState), which handles the main `destroy` operation.
 
-* [`EvalInitProvider`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalInitProvider),
-  which starts up a provider plugin and passes the user-provided configuration
-  to it, caching the provider inside the `EvalContext`.
-
-* [`EvalGetProvider`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalGetProvider),
-  which retrieves an already-initialized provider that is cached in the
-  `EvalContext`.
-
-* [`EvalValidateResource`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalValidateResource),
-  which checks to make sure that resource configuration conforms to the
-  expected schema and gives a provider plugin the opportunity to check that
-  given values are within the expected range, etc.
-
-* [`EvalApply`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalApply),
-  which calls into a provider plugin to make apply some planned changes
-  to a given resource instance.
-
-All of the evaluation steps for a vertex must complete successfully before
-the graph walk will begin evaluation for other vertices that have
-"happens after" edges. Evaluation can fail with one or more errors, in which
-case the graph walk is halted and the errors are returned to the user.
+A vertex must complete successfully before the graph walk will begin evaluation
+for other vertices that have "happens after" edges. Evaluation can fail with one
+or more errors, in which case the graph walk is halted and the errors are
+returned to the user.
 
 ### Expression Evaluation
 
