@@ -128,15 +128,15 @@ is a DSL built on top of
 cannot be interpreted until we build and walk the graph, since they depend
 on the outcome of other parts of the configuration, and so these parts of
 the configuration remain represented as the low-level HCL types
-[hcl.Body](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hcl#Body)
+[`hcl.Body`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Body)
 and
-[hcl.Expression](https://pkg.go.dev/github.com/hashicorp/hcl/v2/hcl#Expression),
+[`hcl.Expression`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Expression),
 allowing Terraform to interpret them at a more appropriate time.
 
 ## State Manager
 
 A _state manager_ is responsible for storing and retrieving snapshots of the
-[Terraform state](https://www.terraform.io/docs/state/index.html)
+[Terraform state](https://www.terraform.io/docs/language/state/index.html)
 for a particular workspace. Each manager is an implementation of
 some combination of interfaces in
 [the `statemgr` package](https://pkg.go.dev/github.com/hashicorp/terraform/states/statemgr),
@@ -152,7 +152,7 @@ The implementation
 [`statemgr.Filesystem`](https://pkg.go.dev/github.com/hashicorp/terraform/states/statemgr#Filesystem) is used
 by default (by the `local` backend) and is responsible for the familiar
 `terraform.tfstate` local file that most Terraform users start with, before
-they switch to [remote state](https://www.terraform.io/docs/state/remote.html).
+they switch to [remote state](https://www.terraform.io/docs/language/state/remote.html).
 Other implementations of `statemgr.Full` are used to implement remote state.
 Each of these saves and retrieves state via a remote network service
 appropriate to the backend that creates it.
@@ -179,7 +179,7 @@ derived from those configuration objects. For example, each `resource` block
 in the configuration has one corresponding
 [`GraphNodeConfigResource`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeConfigResource)
 vertex representing it in the "plan" graph. (Terraform Core uses terminology
-inconsistently, describing graph vertices also as graph nodes in various
+inconsistently, describing graph _vertices_ also as graph _nodes_ in various
 places. These both describe the same concept.)
 
 The [edges](https://en.wikipedia.org/wiki/Glossary_of_graph_theory_terms#edge)
@@ -197,7 +197,7 @@ are implementations of
 [`terraform.GraphTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphTransformer).
 Implementations of this interface just take a graph and mutate it in any
 way needed, and so the set of available transforms is quite varied. Some
-import examples include:
+important examples include:
 
 * [`ConfigTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#ConfigTransformer),
   which creates a graph vertex for each `resource` block in the configuration.
@@ -213,7 +213,7 @@ import examples include:
 * [`ProviderTransformer`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#ProviderTransformer),
   which associates each resource or resource instance with exactly one
   provider configuration (implementing
-  [the inheritance rules](https://www.terraform.io/docs/modules/usage.html#providers-within-modules))
+  [the inheritance rules](https://www.terraform.io/docs/language/modules/develop/providers.html))
   and then creates "happens after" edges to ensure that the providers are
   initialized before taking any actions with the resources that belong to
   them.
@@ -361,15 +361,16 @@ The high-level process for expression evaluation is:
   or
   [`lang.ReferencesInExpr`](https://pkg.go.dev/github.com/hashicorp/terraform/lang#ReferencesInExpr)
 
-2. Retrieve from the state the data for the objects that are referred to and
+1. Retrieve from the state the data for the objects that are referred to and
   create a lookup table of the values from these objects that the
   HCL evaluation code can refer to.
 
-3. Prepare the table of built-in functions so that HCL evaluation can refer to
+1. Prepare the table of built-in functions so that HCL evaluation can refer to
   them.
 
-4. Ask HCL to evaluate each attribute's expression (a `hcl.Expression` object)
-  against the data and function lookup tables.
+1. Ask HCL to evaluate each attribute's expression (a
+  [`hcl.Expression`](https://pkg.go.dev/github.com/hashicorp/hcl/v2/#Expression)
+  object) against the data and function lookup tables.
 
 In practice, steps 2 through 4 are usually run all together using one
 of the methods on [`lang.Scope`](https://pkg.go.dev/github.com/hashicorp/terraform/lang#Scope);
@@ -401,7 +402,8 @@ known when the main graph is constructed, but become known while evaluating
 other vertices in the main graph.
 
 This special behavior applies to vertex objects that implement
-[`terraform.GraphNodeDynamicExpandable`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeDynamicExpandable). Such vertexes have their own nested _graph builder_, _graph walk_,
+[`terraform.GraphNodeDynamicExpandable`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeDynamicExpandable).
+Such vertices have their own nested _graph builder_, _graph walk_,
 and _vertex evaluation_ steps, with the same behaviors as described in these
 sections for the main graph. The difference is in which graph transforms
 are used to construct the graph and in which evaluation steps apply to the
