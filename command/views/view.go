@@ -15,8 +15,6 @@ type View struct {
 	streams  *terminal.Streams
 	colorize *colorstring.Colorize
 
-	// NOTE: compactWarnings is currently always false. When implementing
-	// views for commands which support this flag, we will need to address this.
 	compactWarnings bool
 
 	// This unfortunate wart is required to enable rendering of diagnostics which
