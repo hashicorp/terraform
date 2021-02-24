@@ -261,3 +261,16 @@ func TestResourceProvisioner_StopClose(t *testing.T) {
 	p.Stop()
 	p.Close()
 }
+
+func TestResourceProvisioner_connectionRequired(t *testing.T) {
+	p := New()
+	resp := p.ProvisionResource(provisioners.ProvisionResourceRequest{})
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	got := resp.Diagnostics.Err().Error()
+	if !strings.Contains(got, "missing connection") {
+		t.Fatalf("expected 'missing connection' error: got %q", got)
+	}
+}
