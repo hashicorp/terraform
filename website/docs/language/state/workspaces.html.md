@@ -122,7 +122,7 @@ set of infrastructure changes might create a new temporary workspace in order
 to freely experiment with changes without affecting the default workspace.
 
 Non-default workspaces are often related to feature branches in version control.
-The default workspace might correspond to the "master" or "trunk" branch,
+The default workspace might correspond to the "main" or "trunk" branch,
 which describes the intended state of production infrastructure. When a
 feature branch is created to develop a change, the developer of that feature
 might create a corresponding workspace and deploy into it a temporary "copy"

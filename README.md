@@ -43,4 +43,4 @@ To learn more about compiling Terraform and contributing suggested changes, plea
 To learn more about how we handle bug reports, please read the [bug triage guide](./BUGPROCESS.md).
 
 ## License
-[Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/master/LICENSE)
+[Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/main/LICENSE)
