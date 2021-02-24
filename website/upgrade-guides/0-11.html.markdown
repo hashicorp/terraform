@@ -15,7 +15,7 @@ that process.
 The goal of this guide is to cover the most common upgrade concerns and
 issues that would benefit from more explanation and background. The exhaustive
 list of changes will always be the
-[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md).
 After reviewing this guide, we recommend reviewing the Changelog to check on
 specific notes about the resources and providers you use.
 

@@ -78,7 +78,7 @@ jobs:
 
       - slack/status:
           fail_only: true
-          only_for_branches: master
+          only_for_branches: main
 
   go-test-e2e:
     executor:
@@ -108,7 +108,7 @@ jobs:
 
       - slack/status:
           fail_only: true
-          only_for_branches: master
+          only_for_branches: main
 
   # combine code coverage results from the parallel circleci executors
   coverage-merge:
@@ -193,14 +193,14 @@ jobs:
           working_directory: terraform
           command: |
             # Figure out what the current branch forked from. Compare against
-            # master and the set of "vX.Y" branches, and choose whichever branch
+            # main and the set of "vX.Y" branches, and choose whichever branch
             # we're the *fewest* commits ahead of.
             # The point here isn't to perfectly predict where this will be
             # merged; all we really care about is determining which commits are
             # *unique to this PR,* so we don't accidentally complain about
             # problems you had nothing to do with.
             PARENT_BRANCH=$(
-              for br in $(git branch -rl --format='%(refname:short)' | grep -E '^origin/(master|v\d+\.\d+)$'); do
+              for br in $(git branch -rl --format='%(refname:short)' | grep -E '^origin/(main|v\d+\.\d+)$'); do
                 new_commits=$(git rev-list --first-parent ^${br} HEAD | wc -l);
                 echo "${br} ${new_commits}";
               done \
@@ -290,7 +290,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
                 - /^v\d+\.\d+$/ # v0.11, v0.12, etc.
 
   build-distros:
