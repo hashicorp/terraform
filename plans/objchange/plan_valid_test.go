@@ -1077,7 +1077,7 @@ func TestAssertPlanValid(t *testing.T) {
 					}),
 				}),
 			}),
-			[]string{".bloop: planned for existence but config wants absense"},
+			[]string{`.bloop: planned value cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"blop":cty.StringVal("ok")})}) for a non-computed attribute`},
 		},
 		"NestedType nested set attribute to null": {
 			&configschema.Block{
@@ -1116,7 +1116,7 @@ func TestAssertPlanValid(t *testing.T) {
 					}),
 				}),
 			}),
-			[]string{".bloop: planned for existence but config wants absense"},
+			[]string{`.bloop: planned value cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"blop":cty.StringVal("ok")})}) for a non-computed attribute`},
 		},
 	}
 
