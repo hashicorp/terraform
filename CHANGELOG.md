@@ -1,4 +1,4 @@
-## 0.15.0 (Unreleased)
+## 0.15.0-beta1 (Unreleased)
 
 BREAKING CHANGES:
 
@@ -47,7 +47,6 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* backend/azure: azure state refreshes outside of grabbing the lock ([#26561](https://github.com/hashicorp/terraform/issues/26561))
 * cli: Exit with an error if unable to gather input from the UI. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would interpret these errors as empty strings, which could be confusing. ([#26509](https://github.com/hashicorp/terraform/issues/26509))
 * cli: TF_LOG levels other than `trace` will now work correctly ([#26632](https://github.com/hashicorp/terraform/issues/26632))
 * command/console: expressions using `path` (`path.root`, `path.module`) now return the same result as they would in a configuration ([#27263](https://github.com/hashicorp/terraform/issues/27263))
@@ -59,6 +58,7 @@ BUG FIXES:
 * core: validate will now ignore providers without configuration ([#24896](https://github.com/hashicorp/terraform/issues/24896))
 * core: refresh data sources during destroy ([#27408](https://github.com/hashicorp/terraform/issues/27408))
 * core: fix missing deposed object ID in apply logs [GH-27796]
+* backend/azure: azure state refreshes outside of grabbing the lock ([#26561](https://github.com/hashicorp/terraform/issues/26561))
 
 ## Previous Releases
 
