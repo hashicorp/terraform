@@ -290,6 +290,9 @@ a plan operation would include the following high-level steps:
 * Save the instance diff as part of the plan that is being constructed by
   this operation.
 
+<!-- FIXME: EvalNode was removed in hashicorp/terraform#26413
+     The paragraphs below needs to be updated to reflect the current evaluation logic.
+-->
 Each evaluation step for a vertex is an implementation of
 [`terraform.EvalNode`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#EvalNode).
 As with graph transforms, the behavior of these implementations varies widely:
