@@ -47,7 +47,7 @@ may be able to reproduce it and offer advice.
 Upgrade guide sections:
 
 * [Legacy Configuration Language Features](#legacy-configuration-language-features)
-* [Alternative (Aliased) Provider Configurations](#alternative-provider-configurations)
+* [Alternative (Aliased) Provider Configurations Within Modules](#alternative-provider-configurations-within-modules)
 * [Commands Accepting a Configuration Directory Argument](#commands-accepting-a-configuration-directory-argument)
 * [Microsoft Windows Terminal Support](#microsoft-windows-terminal-support)
 * [Other Minor Command Line Behavior Changes](#other-minor-command-line-behavior-changes)
@@ -164,13 +164,45 @@ upgrading to Terraform v0.15:
   situations above that could block configuration parsing in order to update
   your configurations to the typical Terraform language style conventions.
 
-## Alternative Provider Configurations
+## Alternative Provider Configurations Within Modules
 
 Terraform's provider configuration scheme includes the idea of a "default"
 (unaliased) provider configuration along with zero or more alternative
 (aliased) provider configurations.
 
-TODO: Guide on the changes in this area.
+The `required_providers` block now has a new field for providers to indicate
+aliased configuration names, replacing the need for an empty "proxy
+configuration block" as a placeholder. In order to declare
+[configuration aliases](/docs/language/modules/develop/providers.html#provider-aliases-within-modules), 
+add the desired names to the `configuration_aliases` argument for the provider
+requirements.
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.7.0"
+      configuration_aliases = [ aws.alternate ]
+    }
+  }
+}
+```
+
+Warnings will be emitted now where empty configuration blocks are present but
+no longer required, though they continue to work unchanged in the 0.15 release.
+There are a few cases where existing configurations may return new errors:
+
+* The `providers` map in a module call cannot override a provider configured
+  within the module. This is not a supported configuration, but was previously
+  missed in validation and now returns an error.
+
+* A provider alias within a module that has no configuration _requires_ a
+  provider configuration be supplied in the module `providers` map.
+
+* All entries in the `providers` map in a module call must correspond to a
+  provider name within the module. Passing in a configuration to an undeclared
+  provider is now an error.
 
 ## Commands Accepting a Configuration Directory Argument
 
