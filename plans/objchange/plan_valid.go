@@ -255,10 +255,23 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 		// the configuration value in favor of the prior.
 		return errs
 	}
-	if attrS.Computed && configV.IsNull() {
-		// The provider is allowed to change the value of any computed
-		// attribute that isn't explicitly set in the config.
-		return errs
+
+	// the provider is allowed to insert values when the config is
+	// null, but only if the attribute is computed.
+	if configV.IsNull() {
+		if attrS.Computed {
+			return errs
+		}
+
+		// if the attribute is not computed, then any planned value is incorrect
+		if !plannedV.IsNull() {
+			if attrS.Sensitive {
+				errs = append(errs, path.NewErrorf("sensitive planned value for a non-computed attribute"))
+			} else {
+				errs = append(errs, path.NewErrorf("planned value %#v for a non-computed attribute", plannedV))
+			}
+			return errs
+		}
 	}
 
 	// If this attribute has a NestedType, validate the nested object
@@ -276,11 +289,13 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 		}
 		return errs
 	}
+
 	if attrS.Sensitive {
 		errs = append(errs, path.NewErrorf("sensitive planned value does not match config value nor prior value"))
 	} else {
 		errs = append(errs, path.NewErrorf("planned value %#v does not match config value %#v nor prior value %#v", plannedV, configV, priorV))
 	}
+
 	return errs
 }
 
