@@ -113,7 +113,7 @@ func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.Va
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
+	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})

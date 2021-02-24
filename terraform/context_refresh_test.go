@@ -1484,7 +1484,7 @@ data "aws_data_source" "foo" {
 		t.Fatal(diags.Err())
 	}
 
-	if !p.ValidateDataSourceConfigCalled {
+	if !p.ValidateDataResourceConfigCalled {
 		t.Fatal("ValidateDataSourceConfig not called during plan")
 	}
 }

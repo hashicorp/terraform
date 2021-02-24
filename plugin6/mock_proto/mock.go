@@ -215,24 +215,24 @@ func (mr *MockProviderClientMockRecorder) UpgradeResourceState(arg0, arg1 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpgradeResourceState", reflect.TypeOf((*MockProviderClient)(nil).UpgradeResourceState), varargs...)
 }
 
-// ValidateDataSourceConfig mocks base method
-func (m *MockProviderClient) ValidateDataSourceConfig(arg0 context.Context, arg1 *tfplugin6.ValidateDataSourceConfig_Request, arg2 ...grpc.CallOption) (*tfplugin6.ValidateDataSourceConfig_Response, error) {
+// ValidateDataResourceConfig mocks base method
+func (m *MockProviderClient) ValidateDataResourceConfig(arg0 context.Context, arg1 *tfplugin6.ValidateDataResourceConfig_Request, arg2 ...grpc.CallOption) (*tfplugin6.ValidateDataResourceConfig_Response, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "ValidateDataSourceConfig", varargs...)
-	ret0, _ := ret[0].(*tfplugin6.ValidateDataSourceConfig_Response)
+	ret := m.ctrl.Call(m, "ValidateDataResourceConfig", varargs...)
+	ret0, _ := ret[0].(*tfplugin6.ValidateDataResourceConfig_Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ValidateDataSourceConfig indicates an expected call of ValidateDataSourceConfig
-func (mr *MockProviderClientMockRecorder) ValidateDataSourceConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+// ValidateDataResourceConfig indicates an expected call of ValidateDataResourceConfig
+func (mr *MockProviderClientMockRecorder) ValidateDataResourceConfig(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{arg0, arg1}, arg2...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDataSourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateDataSourceConfig), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDataResourceConfig", reflect.TypeOf((*MockProviderClient)(nil).ValidateDataResourceConfig), varargs...)
 }
 
 // ValidateProviderConfig mocks base method
