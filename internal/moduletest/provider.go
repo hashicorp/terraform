@@ -481,10 +481,10 @@ func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest)
 	return res
 }
 
-// ValidateDataSourceConfig is used to to validate the resource configuration values.
-func (p *Provider) ValidateDataSourceConfig(req providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+// ValidateDataResourceConfig is used to to validate the resource configuration values.
+func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// This provider has no data resouce types at all.
-	var res providers.ValidateDataSourceConfigResponse
+	var res providers.ValidateDataResourceConfigResponse
 	res.Diagnostics = res.Diagnostics.Append(fmt.Errorf("unsupported data source %s", req.TypeName))
 	return res
 }
