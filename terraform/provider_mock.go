@@ -37,11 +37,11 @@ type MockProvider struct {
 	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
 	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
-	ValidateDataResourceConfigCalled   bool
-	ValidateDataResourceConfigTypeName string
-	ValidateDataResourceConfigResponse *providers.ValidateDataResourceConfigResponse
-	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
-	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
+	ValidateDataSourceConfigCalled   bool
+	ValidateDataSourceConfigTypeName string
+	ValidateDataSourceConfigResponse *providers.ValidateDataSourceConfigResponse
+	ValidateDataSourceConfigRequest  providers.ValidateDataSourceConfigRequest
+	ValidateDataSourceConfigFn       func(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
@@ -184,12 +184,12 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return resp
 }
 
-func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
+func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateDataResourceConfigCalled = true
-	p.ValidateDataResourceConfigRequest = r
+	p.ValidateDataSourceConfigCalled = true
+	p.ValidateDataSourceConfigRequest = r
 
 	// Marshall the value to replicate behavior by the GRPC protocol
 	dataSchema, ok := p.getProviderSchema().DataSources[r.TypeName]
@@ -203,12 +203,12 @@ func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResour
 		return resp
 	}
 
-	if p.ValidateDataResourceConfigFn != nil {
-		return p.ValidateDataResourceConfigFn(r)
+	if p.ValidateDataSourceConfigFn != nil {
+		return p.ValidateDataSourceConfigFn(r)
 	}
 
-	if p.ValidateDataResourceConfigResponse != nil {
-		return *p.ValidateDataResourceConfigResponse
+	if p.ValidateDataSourceConfigResponse != nil {
+		return *p.ValidateDataSourceConfigResponse
 	}
 
 	return resp

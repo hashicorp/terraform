@@ -134,19 +134,19 @@ func TestGRPCProvider_ValidateResourceConfig(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_ValidateDataResourceConfig(t *testing.T) {
+func TestGRPCProvider_ValidateDataSourceConfig(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	client.EXPECT().ValidateDataResourceConfig(
+	client.EXPECT().ValidateDataSourceConfig(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.ValidateDataResourceConfig_Response{}, nil)
+	).Return(&proto.ValidateDataSourceConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
+	resp := p.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
 		TypeName: "data",
 		Config:   cfg,
 	})

@@ -35,11 +35,11 @@ type MockProvider struct {
 	ValidateResourceConfigRequest  providers.ValidateResourceConfigRequest
 	ValidateResourceConfigFn       func(providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse
 
-	ValidateDataResourceConfigCalled   bool
-	ValidateDataResourceConfigTypeName string
-	ValidateDataResourceConfigResponse providers.ValidateDataResourceConfigResponse
-	ValidateDataResourceConfigRequest  providers.ValidateDataResourceConfigRequest
-	ValidateDataResourceConfigFn       func(providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse
+	ValidateDataSourceConfigCalled   bool
+	ValidateDataSourceConfigTypeName string
+	ValidateDataSourceConfigResponse providers.ValidateDataSourceConfigResponse
+	ValidateDataSourceConfigRequest  providers.ValidateDataSourceConfigRequest
+	ValidateDataSourceConfigFn       func(providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse
 
 	UpgradeResourceStateCalled   bool
 	UpgradeResourceStateTypeName string
@@ -150,18 +150,18 @@ func (p *MockProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return p.ValidateResourceConfigResponse
 }
 
-func (p *MockProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
+func (p *MockProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
 	p.Lock()
 	defer p.Unlock()
 
-	p.ValidateDataResourceConfigCalled = true
-	p.ValidateDataResourceConfigRequest = r
+	p.ValidateDataSourceConfigCalled = true
+	p.ValidateDataSourceConfigRequest = r
 
-	if p.ValidateDataResourceConfigFn != nil {
-		return p.ValidateDataResourceConfigFn(r)
+	if p.ValidateDataSourceConfigFn != nil {
+		return p.ValidateDataSourceConfigFn(r)
 	}
 
-	return p.ValidateDataResourceConfigResponse
+	return p.ValidateDataSourceConfigResponse
 }
 
 func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequest) providers.UpgradeResourceStateResponse {

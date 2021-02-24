@@ -24,9 +24,9 @@ type Interface interface {
 	// configuration values.
 	ValidateResourceConfig(ValidateResourceConfigRequest) ValidateResourceConfigResponse
 
-	// ValidateDataResourceConfig allows the provider to validate the data source
+	// ValidateDataSource allows the provider to validate the data source
 	// configuration values.
-	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
+	ValidateDataSourceConfig(ValidateDataSourceConfigRequest) ValidateDataSourceConfigResponse
 
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
@@ -121,7 +121,7 @@ type ValidateResourceConfigResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ValidateDataResourceConfigRequest struct {
+type ValidateDataSourceConfigRequest struct {
 	// TypeName is the name of the data source type to validate.
 	TypeName string
 
@@ -130,7 +130,7 @@ type ValidateDataResourceConfigRequest struct {
 	Config cty.Value
 }
 
-type ValidateDataResourceConfigResponse struct {
+type ValidateDataSourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
