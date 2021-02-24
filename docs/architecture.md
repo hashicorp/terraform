@@ -177,7 +177,7 @@ In most cases, the
 graphs each represent a specific object in the configuration, or something
 derived from those configuration objects. For example, each `resource` block
 in the configuration has one corresponding
-[`GraphNodeResource`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeResource)
+[`GraphNodeConfigResource`](https://pkg.go.dev/github.com/hashicorp/terraform/terraform#GraphNodeConfigResource)
 vertex representing it in the "plan" graph. (Terraform Core uses terminology
 inconsistently, describing graph vertices also as graph nodes in various
 places. These both describe the same concept.)
