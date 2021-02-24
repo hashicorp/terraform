@@ -18,6 +18,7 @@ BREAKING CHANGES:
 * The `-verify-plugins=false` option is no longer available on `terraform init`. (Terraform now _always_ verifies plugins.) ([#27461](https://github.com/hashicorp/terraform/issues/27461))
 * The `-get-plugins=false` option is no longer available on `terraform init`. (Terraform now _always_ installs plugins.) ([#27463](https://github.com/hashicorp/terraform/issues/27463))
 * The `-force` option is no longer available on `terraform destroy`. Use `-auto-approve` instead ([#27681](https://github.com/hashicorp/terraform/pull/27681))
+* The `-var` and `-var-file` options are no longer available on `terraform validate`. These had no effect and were deprecated. [GH-27906]
 * `terraform version -json` output no longer includes the (previously-unpopulated) "revision" property [[#27484](https://github.com/hashicorp/terraform/issues/27484)]
 * The `atlas` backend, which was deprecated since Terraform v0.12, is now removed. ([#26651](https://github.com/hashicorp/terraform/issues/26651))
 * In the `gcs` backend the `path` config argument, which was deprecated since Terraform v0.11, is now removed. Use the `prefix` argument instead. ([#26841](https://github.com/hashicorp/terraform/issues/26841))
