@@ -1,4 +1,6 @@
-## 0.15.0-beta1 (Unreleased)
+## 0.15.0-beta2 (unreleased)
+
+## 0.15.0-beta1 (February 24, 2021)
 
 BREAKING CHANGES:
 
