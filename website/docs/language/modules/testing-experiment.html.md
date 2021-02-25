@@ -25,7 +25,7 @@ Some existing efforts have piloted both approaches:
 * [Terratest](https://terratest.gruntwork.io/) and
   [kitchen-terraform](https://github.com/newcontext-oss/kitchen-terraform)
   both pioneered the idea of writing tests for Terraform modules with explicit
-  orchestration written in the Go programming language.
+  orchestration written in the Go and Ruby programming languages, respectively.
 
 * The Terraform provider
   [`apparentlymart/testing`](https://registry.terraform.io/providers/apparentlymart/testing/latest)
