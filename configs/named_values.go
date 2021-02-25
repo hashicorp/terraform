@@ -382,7 +382,7 @@ func decodeVariableValidationBlock(varName string, block *hcl.Block, override bo
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  errSummary,
-					Detail:   "Validation error message must be at least one full English sentence starting with an uppercase letter and ending with a period or question mark.",
+					Detail:   "The validation error message must be at least one full sentence starting with an uppercase letter and ending with a period or question mark.\n\nYour given message will be included as part of a larger Terraform error message, written as English prose. For broadly-shared modules we suggest using a similar writing style so that the overall result will be consistent.",
 					Subject:  attr.Expr.Range().Ptr(),
 				})
 			}
