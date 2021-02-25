@@ -238,10 +238,6 @@ func TestLocal_refreshEmptyState(t *testing.T) {
 
 	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh")
 	defer configCleanup()
-	defer done(t)
-
-	record, playback := testRecordDiagnostics(t)
-	op.ShowDiagnostics = record
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -249,11 +245,12 @@ func TestLocal_refreshEmptyState(t *testing.T) {
 	}
 	<-run.Done()
 
-	diags := playback()
-	if diags.HasErrors() {
-		t.Fatalf("expected only warning diags, got errors: %s", diags.Err())
+	output := done(t)
+
+	if stderr := output.Stderr(); stderr != "" {
+		t.Fatalf("expected only warning diags, got errors: %s", stderr)
 	}
-	if got, want := diags.ErrWithWarnings().Error(), "Empty or non-existent state"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "Warning: Empty or non-existent state"; !strings.Contains(got, want) {
 		t.Errorf("wrong diags\n got: %s\nwant: %s", got, want)
 	}
 
@@ -270,12 +267,11 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
 	return &backend.Operation{
-		Type:            backend.OperationTypeRefresh,
-		ConfigDir:       configDir,
-		ConfigLoader:    configLoader,
-		ShowDiagnostics: testLogDiagnostics(t),
-		StateLocker:     clistate.NewNoopLocker(),
-		View:            view,
+		Type:         backend.OperationTypeRefresh,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+		StateLocker:  clistate.NewNoopLocker(),
+		View:         view,
 	}, configCleanup, done
 }
 

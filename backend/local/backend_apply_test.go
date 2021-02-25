@@ -101,8 +101,8 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if errOutput := done(t).Stderr(); errOutput != "" {
-		t.Fatalf("unexpected error output:\n%s", errOutput)
+	if got, want := done(t).Stderr(), "Error: No configuration files"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }
 
@@ -165,7 +165,7 @@ func TestLocal_applyError(t *testing.T) {
 		ami := r.Config.GetAttr("ami").AsString()
 		if !errored && ami == "error" {
 			errored = true
-			diags = diags.Append(errors.New("error"))
+			diags = diags.Append(errors.New("ami error"))
 			return providers.ApplyResourceChangeResponse{
 				Diagnostics: diags,
 			}
@@ -201,8 +201,8 @@ test_instance.foo:
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if errOutput := done(t).Stderr(); errOutput != "" {
-		t.Fatalf("unexpected error output:\n%s", errOutput)
+	if got, want := done(t).Stderr(), "Error: ami error"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }
 
@@ -229,9 +229,6 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, wd+"/testdata/apply")
 	defer configCleanup()
 
-	record, playback := testRecordDiagnostics(t)
-	op.ShowDiagnostics = record
-
 	b.Backend = &backendWithFailingState{}
 
 	run, err := b.Operation(context.Background(), op)
@@ -239,11 +236,14 @@ func TestLocal_applyBackendFail(t *testing.T) {
 		t.Fatalf("bad: %s", err)
 	}
 	<-run.Done()
+
+	output := done(t)
+
 	if run.Result == backend.OperationSuccess {
 		t.Fatalf("apply succeeded; want error")
 	}
 
-	diagErr := playback().Err().Error()
+	diagErr := output.Stderr()
 	if !strings.Contains(diagErr, "Error saving state: fake failure") {
 		t.Fatalf("missing \"fake failure\" message in diags:\n%s", diagErr)
 	}
@@ -259,10 +259,6 @@ test_instance.foo:
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
-
-	if errOutput := done(t).Stderr(); errOutput != "" {
-		t.Fatalf("unexpected error output:\n%s", errOutput)
-	}
 }
 
 func TestLocal_applyRefreshFalse(t *testing.T) {
@@ -320,12 +316,11 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
 	return &backend.Operation{
-		Type:            backend.OperationTypeApply,
-		ConfigDir:       configDir,
-		ConfigLoader:    configLoader,
-		ShowDiagnostics: testLogDiagnostics(t),
-		StateLocker:     clistate.NewNoopLocker(),
-		View:            view,
+		Type:         backend.OperationTypeApply,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+		StateLocker:  clistate.NewNoopLocker(),
+		View:         view,
 	}, configCleanup, done
 }
 

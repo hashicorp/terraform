@@ -64,7 +64,7 @@ func (b *Local) opPlan(
 	defer func() {
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
-			op.ShowDiagnostics(diags)
+			op.View.Diagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -135,7 +135,7 @@ func (b *Local) opPlan(
 		op.View.PlanNoChanges()
 
 		// Even if there are no changes, there still could be some warnings
-		op.ShowDiagnostics(diags)
+		op.View.Diagnostics(diags)
 		return
 	}
 
@@ -145,7 +145,7 @@ func (b *Local) opPlan(
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
-	op.ShowDiagnostics(diags)
+	op.View.Diagnostics(diags)
 
 	op.View.PlanNextStep(op.PlanOutPath)
 }
