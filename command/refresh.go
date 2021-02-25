@@ -135,12 +135,6 @@ func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refres
 	opReq.Targets = args.Targets
 	opReq.Type = backend.OperationTypeRefresh
 	opReq.View = view.Operation()
-	// FIXME: this shim is needed until the remote backend is migrated to views
-	opReq.ShowDiagnostics = func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(vals...)
-		view.Diagnostics(diags)
-	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
