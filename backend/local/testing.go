@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and
@@ -244,44 +243,4 @@ func assertBackendStateLocked(t *testing.T, b *Local) bool {
 	}
 	t.Error("unexpected success locking state")
 	return true
-}
-
-// testRecordDiagnostics allows tests to record and later inspect diagnostics
-// emitted during an Operation. It returns a record function which can be set
-// as the ShowDiagnostics value of an Operation, and a playback function which
-// returns the recorded diagnostics for inspection.
-func testRecordDiagnostics(t *testing.T) (record func(vals ...interface{}), playback func() tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	record = func(vals ...interface{}) {
-		diags = diags.Append(vals...)
-	}
-	playback = func() tfdiags.Diagnostics {
-		diags.Sort()
-		return diags
-	}
-	return
-}
-
-// testLogDiagnostics returns a function which can be used as the
-// ShowDiagnostics value for an Operation, in order to help debugging during
-// tests. Any calls to this function result in test logs.
-func testLogDiagnostics(t *testing.T) func(vals ...interface{}) {
-	return func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(vals...)
-		diags.Sort()
-
-		for _, diag := range diags {
-			// NOTE: Since the caller here is not directly the TestLocal
-			// function, t.Helper doesn't apply and so the log source
-			// isn't correctly shown in the test log output. This seems
-			// unavoidable as long as this is happening so indirectly.
-			desc := diag.Description()
-			if desc.Detail != "" {
-				t.Logf("%s: %s", desc.Summary, desc.Detail)
-			} else {
-				t.Log(desc.Summary)
-			}
-		}
-	}
 }

@@ -57,7 +57,7 @@ func (b *Local) opRefresh(
 	defer func() {
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
-			op.ShowDiagnostics(diags)
+			op.View.Diagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()

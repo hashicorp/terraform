@@ -252,17 +252,6 @@ func (c *ApplyCommand) OperationRequest(
 	opReq.Type = backend.OperationTypeApply
 	opReq.View = view.Operation()
 
-	// FIXME: To allow errors to be easily rendered, the showDiagnostics method
-	// accepts ...interface{}. The backend no longer needs this, as only
-	// tfdiags.Diagnostics values are used. Once we have migrated plan and refresh
-	// to use views, we can remove ShowDiagnostics and update the backend code to
-	// call view.Diagnostics() instead.
-	opReq.ShowDiagnostics = func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(vals...)
-		view.Diagnostics(diags)
-	}
-
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {

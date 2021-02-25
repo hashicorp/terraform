@@ -147,12 +147,6 @@ func (c *PlanCommand) OperationRequest(
 	opReq.Targets = args.Targets
 	opReq.Type = backend.OperationTypePlan
 	opReq.View = view.Operation()
-	// FIXME: this shim is needed until the remote backend is migrated to views
-	opReq.ShowDiagnostics = func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(vals...)
-		view.Diagnostics(diags)
-	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()

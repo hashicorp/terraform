@@ -90,8 +90,6 @@ func TestLocal_planNoConfig(t *testing.T) {
 	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
-	record, playback := testRecordDiagnostics(t)
-	op.ShowDiagnostics = record
 	defer configCleanup()
 	op.PlanRefresh = true
 
@@ -101,21 +99,18 @@ func TestLocal_planNoConfig(t *testing.T) {
 	}
 	<-run.Done()
 
+	output := done(t)
+
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("plan operation succeeded; want failure")
 	}
 
-	output := playback().Err().Error()
-	if !strings.Contains(output, "No configuration files") {
-		t.Fatalf("bad: %s", err)
+	if stderr := output.Stderr(); !strings.Contains(stderr, "No configuration files") {
+		t.Fatalf("bad: %s", stderr)
 	}
 
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
-
-	if errOutput := done(t).Stderr(); errOutput != "" {
-		t.Fatalf("unexpected error output:\n%s", errOutput)
-	}
 }
 
 // This test validates the state lacking behavior when the inner call to
@@ -141,8 +136,8 @@ func TestLocal_plan_context_error(t *testing.T) {
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if errOutput := done(t).Stderr(); errOutput != "" {
-		t.Fatalf("unexpected error output:\n%s", errOutput)
+	if got, want := done(t).Stderr(), "Error: Could not load plugin"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }
 
@@ -723,12 +718,11 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
 	return &backend.Operation{
-		Type:            backend.OperationTypePlan,
-		ConfigDir:       configDir,
-		ConfigLoader:    configLoader,
-		ShowDiagnostics: testLogDiagnostics(t),
-		StateLocker:     clistate.NewNoopLocker(),
-		View:            view,
+		Type:         backend.OperationTypePlan,
+		ConfigDir:    configDir,
+		ConfigLoader: configLoader,
+		StateLocker:  clistate.NewNoopLocker(),
+		View:         view,
 	}, configCleanup, done
 }
 
