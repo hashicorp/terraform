@@ -21,7 +21,7 @@ type Plan interface {
 	Hooks() []terraform.Hook
 
 	Diagnostics(diags tfdiags.Diagnostics)
-	HelpPrompt(string)
+	HelpPrompt()
 }
 
 // NewPlan returns an initialized Plan implementation for the given ViewType.
@@ -29,7 +29,7 @@ func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
 	switch vt {
 	case arguments.ViewHuman:
 		return &PlanHuman{
-			View:         *view,
+			view:         view,
 			inAutomation: runningInAutomation,
 		}
 	default:
@@ -40,7 +40,7 @@ func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
 // The PlanHuman implementation renders human-readable text logs, suitable for
 // a scrolling terminal.
 type PlanHuman struct {
-	View
+	view *View
 
 	inAutomation bool
 }
@@ -48,13 +48,21 @@ type PlanHuman struct {
 var _ Plan = (*PlanHuman)(nil)
 
 func (v *PlanHuman) Operation() Operation {
-	return NewOperation(arguments.ViewHuman, v.inAutomation, &v.View)
+	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
 func (v *PlanHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
-		NewUiHook(&v.View),
+		NewUiHook(v.view),
 	}
+}
+
+func (v *PlanHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *PlanHuman) HelpPrompt() {
+	v.view.HelpPrompt("plan")
 }
 
 // The plan renderer is used by the Operation view (for plan and apply

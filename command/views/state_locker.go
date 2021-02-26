@@ -17,7 +17,7 @@ type StateLocker interface {
 func NewStateLocker(vt arguments.ViewType, view *View) StateLocker {
 	switch vt {
 	case arguments.ViewHuman:
-		return &StateLockerHuman{View: *view}
+		return &StateLockerHuman{view: view}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
 	}
@@ -26,15 +26,15 @@ func NewStateLocker(vt arguments.ViewType, view *View) StateLocker {
 // StateLockerHuman is an implementation of StateLocker which prints status to
 // a terminal.
 type StateLockerHuman struct {
-	View
+	view *View
 }
 
 var _ StateLocker = (*StateLockerHuman)(nil)
 
 func (v *StateLockerHuman) Locking() {
-	v.streams.Println("Acquiring state lock. This may take a few moments...")
+	v.view.streams.Println("Acquiring state lock. This may take a few moments...")
 }
 
 func (v *StateLockerHuman) Unlocking() {
-	v.streams.Println("Releasing state lock. This may take a few moments...")
+	v.view.streams.Println("Releasing state lock. This may take a few moments...")
 }

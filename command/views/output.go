@@ -28,11 +28,11 @@ type Output interface {
 func NewOutput(vt arguments.ViewType, view *View) Output {
 	switch vt {
 	case arguments.ViewJSON:
-		return &OutputJSON{View: *view}
+		return &OutputJSON{view: view}
 	case arguments.ViewRaw:
-		return &OutputRaw{View: *view}
+		return &OutputRaw{view: view}
 	case arguments.ViewHuman:
-		return &OutputHuman{View: *view}
+		return &OutputHuman{view: view}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
 	}
@@ -41,7 +41,7 @@ func NewOutput(vt arguments.ViewType, view *View) Output {
 // The OutputHuman implementation renders outputs in a format equivalent to HCL
 // source. This uses the same formatting logic as in the console REPL.
 type OutputHuman struct {
-	View
+	view *View
 }
 
 var _ Output = (*OutputHuman)(nil)
@@ -61,7 +61,7 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 			return diags
 		}
 		result := repl.FormatValue(output.Value, 0)
-		v.streams.Println(result)
+		v.view.streams.Println(result)
 		return nil
 	}
 
@@ -90,9 +90,13 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 		}
 	}
 
-	v.streams.Println(strings.TrimSpace(outputBuf.String()))
+	v.view.streams.Println(strings.TrimSpace(outputBuf.String()))
 
 	return nil
+}
+
+func (v *OutputHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
 
 // The OutputRaw implementation renders single string, number, or boolean
@@ -100,7 +104,7 @@ func (v *OutputHuman) Output(name string, outputs map[string]*states.OutputValue
 // intended for use in shell scripting or other environments where the exact
 // type of an output value is not important.
 type OutputRaw struct {
-	View
+	view *View
 
 	// Unit tests may set rawPrint to capture the output from the Output
 	// method, which would normally go to stdout directly.
@@ -168,8 +172,12 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 	// If we get out here then we should have a valid string to print.
 	// We're writing it using Print here so that a shell caller will get
 	// exactly the value and no extra whitespace (including trailing newline).
-	v.streams.Print(strV.AsString())
+	v.view.streams.Print(strV.AsString())
 	return nil
+}
+
+func (v *OutputRaw) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
 
 // The OutputJSON implementation renders outputs as JSON values. When rendering
@@ -177,7 +185,7 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 // the result is a JSON object with keys matching the output names and object
 // values including type and sensitivity metadata.
 type OutputJSON struct {
-	View
+	view *View
 }
 
 var _ Output = (*OutputJSON)(nil)
@@ -199,7 +207,7 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 			return diags
 		}
 
-		v.streams.Println(string(jsonOutput))
+		v.view.streams.Println(string(jsonOutput))
 
 		return nil
 	}
@@ -241,9 +249,13 @@ func (v *OutputJSON) Output(name string, outputs map[string]*states.OutputValue)
 		return diags
 	}
 
-	v.streams.Println(string(jsonOutputs))
+	v.view.streams.Println(string(jsonOutputs))
 
 	return nil
+}
+
+func (v *OutputJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
 
 // For text and raw output modes, an empty map of outputs is considered a

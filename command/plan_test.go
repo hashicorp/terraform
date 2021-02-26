@@ -543,6 +543,9 @@ func TestPlan_validate(t *testing.T) {
 	if want := "Error: Invalid count argument"; !strings.Contains(actual, want) {
 		t.Fatalf("unexpected error output\ngot:\n%s\n\nshould contain: %s", actual, want)
 	}
+	if want := "9:   count = timestamp()"; !strings.Contains(actual, want) {
+		t.Fatalf("unexpected error output\ngot:\n%s\n\nshould contain: %s", actual, want)
+	}
 }
 
 func TestPlan_vars(t *testing.T) {
