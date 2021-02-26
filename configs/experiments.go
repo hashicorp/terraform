@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -24,6 +25,49 @@ func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
 	for _, block := range rootContent.Blocks {
 		content, _, blockDiags := block.Body.PartialContent(configFileExperimentsSniffBlockSchema)
 		diags = append(diags, blockDiags...)
+
+		if attr, exists := content.Attributes["language"]; exists {
+			// We don't yet have a sense of selecting an edition of the
+			// language, but we're reserving this syntax for now so that
+			// if and when we do this later older versions of Terraform
+			// will emit a more helpful error message than just saying
+			// this attribute doesn't exist. Handling this as part of
+			// experiments is a bit odd for now but justified by the
+			// fact that a future fuller implementation of switchable
+			// languages would be likely use a similar implementation
+			// strategy as experiments, and thus would lead to this
+			// function being refactored to deal with both concerns at
+			// once. We'll see, though!
+			kw := hcl.ExprAsKeyword(attr.Expr)
+			currentVersion := version.SemVer.String()
+			const firstEdition = "TF2021"
+			switch {
+			case kw == "": // (the expression wasn't a keyword at all)
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid language edition",
+					Detail: fmt.Sprintf(
+						"The language argument expects a bare language edition keyword. Terraform %s supports only language edition %s, which is the default.",
+						currentVersion, firstEdition,
+					),
+					Subject: attr.Expr.Range().Ptr(),
+				})
+			case kw != firstEdition:
+				rel := "different"
+				if kw > firstEdition { // would be weird for this not to be true, but it's user input so anything goes
+					rel = "newer"
+				}
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported language edition",
+					Detail: fmt.Sprintf(
+						"Terraform v%s only supports language edition %s. This module requires a %s version of Terraform CLI.",
+						currentVersion, firstEdition, rel,
+					),
+					Subject: attr.Expr.Range().Ptr(),
+				})
+			}
+		}
 
 		attr, exists := content.Attributes["experiments"]
 		if !exists {
