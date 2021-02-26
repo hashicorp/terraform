@@ -216,9 +216,6 @@ type Operation struct {
 	UIIn  terraform.UIInput
 	UIOut terraform.UIOutput
 
-	// ShowDiagnostics prints diagnostic messages to the UI.
-	ShowDiagnostics func(vals ...interface{})
-
 	// StateLocker is used to lock the state while providing UI feedback to the
 	// user. This will be replaced by the Backend to update the context.
 	//
@@ -253,7 +250,7 @@ func (o *Operation) Config() (*configs.Config, tfdiags.Diagnostics) {
 //
 // If the given diagnostics contains errors then the operation's result
 // will be set to backend.OperationFailure. It will be set to
-// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
+// backend.OperationSuccess otherwise. It will then use o.View.Diagnostics
 // to show the given diagnostics before returning.
 //
 // Callers should feel free to do each of these operations separately in
@@ -266,14 +263,14 @@ func (o *Operation) ReportResult(op *RunningOperation, diags tfdiags.Diagnostics
 	} else {
 		op.Result = OperationSuccess
 	}
-	if o.ShowDiagnostics != nil {
-		o.ShowDiagnostics(diags)
+	if o.View != nil {
+		o.View.Diagnostics(diags)
 	} else {
 		// Shouldn't generally happen, but if it does then we'll at least
 		// make some noise in the logs to help us spot it.
 		if len(diags) != 0 {
 			log.Printf(
-				"[ERROR] Backend needs to report diagnostics but ShowDiagnostics is not set:\n%s",
+				"[ERROR] Backend needs to report diagnostics but View is not set:\n%s",
 				diags.ErrWithWarnings(),
 			)
 		}

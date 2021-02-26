@@ -163,7 +163,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 func (c *GraphCommand) Help() string {
 	helpText := `
-Usage: terraform graph [options]
+Usage: terraform [global options] graph [options]
 
   Outputs the visual execution graph of Terraform resources according to
   either the current configuration or an execution plan.

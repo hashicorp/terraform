@@ -301,7 +301,7 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 
 func (c *ProvidersLockCommand) Help() string {
 	return `
-Usage: terraform providers lock [options] [providers...]
+Usage: terraform [global options] providers lock [options] [providers...]
 
   Normally the dependency lock file (.terraform.lock.hcl) is updated
   automatically by "terraform init", but the information available to the

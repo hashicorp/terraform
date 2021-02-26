@@ -129,7 +129,7 @@ func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform workspace select NAME
+Usage: terraform [global options] workspace select NAME
 
   Select a different Terraform workspace.
 

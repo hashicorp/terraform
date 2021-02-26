@@ -53,7 +53,7 @@ func (b *Local) opApply(
 	defer func() {
 		diags := op.StateLocker.Unlock()
 		if diags.HasErrors() {
-			op.ShowDiagnostics(diags)
+			op.View.Diagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -101,7 +101,7 @@ func (b *Local) opApply(
 			// We'll show any accumulated warnings before we display the prompt,
 			// so the user can consider them when deciding how to answer.
 			if len(diags) > 0 {
-				op.ShowDiagnostics(diags)
+				op.View.Diagnostics(diags)
 				diags = nil // reset so we won't show the same diagnostics again later
 			}
 
@@ -168,7 +168,7 @@ func (b *Local) opApply(
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
-	op.ShowDiagnostics(diags)
+	op.View.Diagnostics(diags)
 }
 
 // backupStateForError is called in a scenario where we're unable to persist the

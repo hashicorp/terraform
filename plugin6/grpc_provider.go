@@ -224,8 +224,8 @@ func (p *GRPCProvider) ValidateResourceConfig(r providers.ValidateResourceConfig
 	return resp
 }
 
-func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceConfigRequest) (resp providers.ValidateDataSourceConfigResponse) {
-	logger.Trace("GRPCProvider.v6: ValidateDataSourceConfig")
+func (p *GRPCProvider) ValidateDataResourceConfig(r providers.ValidateDataResourceConfigRequest) (resp providers.ValidateDataResourceConfigResponse) {
+	logger.Trace("GRPCProvider.v6: ValidateDataResourceConfig")
 
 	dataSchema := p.getDatasourceSchema(r.TypeName)
 
@@ -235,12 +235,12 @@ func (p *GRPCProvider) ValidateDataSourceConfig(r providers.ValidateDataSourceCo
 		return resp
 	}
 
-	protoReq := &proto6.ValidateDataSourceConfig_Request{
+	protoReq := &proto6.ValidateDataResourceConfig_Request{
 		TypeName: r.TypeName,
 		Config:   &proto6.DynamicValue{Msgpack: mp},
 	}
 
-	protoResp, err := p.client.ValidateDataSourceConfig(p.ctx, protoReq)
+	protoResp, err := p.client.ValidateDataResourceConfig(p.ctx, protoReq)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
 		return resp

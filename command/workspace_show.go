@@ -40,7 +40,7 @@ func (c *WorkspaceShowCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceShowCommand) Help() string {
 	helpText := `
-Usage: terraform workspace show
+Usage: terraform [global options] workspace show
 
   Show the name of the current workspace.
 `

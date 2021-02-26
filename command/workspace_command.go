@@ -27,7 +27,7 @@ func (c *WorkspaceCommand) Run(args []string) int {
 
 func (c *WorkspaceCommand) Help() string {
 	helpText := `
-Usage: terraform workspace
+Usage: terraform [global options] workspace
 
   new, list, show, select and delete Terraform workspaces.
 

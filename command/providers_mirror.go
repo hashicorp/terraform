@@ -329,7 +329,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 
 func (c *ProvidersMirrorCommand) Help() string {
 	return `
-Usage: terraform providers mirror [options] <target-dir>
+Usage: terraform [global options] providers mirror [options] <target-dir>
 
   Populates a local directory with copies of the provider plugins needed for
   the current configuration, so that the directory can be used either directly

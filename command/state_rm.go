@@ -134,7 +134,7 @@ func (c *StateRmCommand) Run(args []string) int {
 
 func (c *StateRmCommand) Help() string {
 	helpText := `
-Usage: terraform state rm [options] ADDRESS...
+Usage: terraform [global options] state rm [options] ADDRESS...
 
   Remove one or more items from the Terraform state, causing Terraform to
   "forget" those items without first destroying them in the remote system.

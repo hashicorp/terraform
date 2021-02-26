@@ -1,4 +1,4 @@
-package command
+package views
 
 import (
 	"sync"
@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// CountHook is a hook that counts the number of resources
+// countHook is a hook that counts the number of resources
 // added, removed, changed during the course of an apply.
-type CountHook struct {
+type countHook struct {
 	Added   int
 	Changed int
 	Removed int
@@ -29,9 +29,9 @@ type CountHook struct {
 	terraform.NilHook
 }
 
-var _ terraform.Hook = (*CountHook)(nil)
+var _ terraform.Hook = (*countHook)(nil)
 
-func (h *CountHook) Reset() {
+func (h *countHook) Reset() {
 	h.Lock()
 	defer h.Unlock()
 
@@ -41,7 +41,7 @@ func (h *CountHook) Reset() {
 	h.Removed = 0
 }
 
-func (h *CountHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -54,7 +54,7 @@ func (h *CountHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generati
 	return terraform.HookActionContinue, nil
 }
 
-func (h *CountHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *countHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
@@ -82,7 +82,7 @@ func (h *CountHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generat
 	return terraform.HookActionContinue, nil
 }
 
-func (h *CountHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

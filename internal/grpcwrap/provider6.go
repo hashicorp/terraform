@@ -103,8 +103,8 @@ func (p *provider6) ValidateResourceConfig(_ context.Context, req *tfplugin6.Val
 	return resp, nil
 }
 
-func (p *provider6) ValidateDataSourceConfig(_ context.Context, req *tfplugin6.ValidateDataSourceConfig_Request) (*tfplugin6.ValidateDataSourceConfig_Response, error) {
-	resp := &tfplugin6.ValidateDataSourceConfig_Response{}
+func (p *provider6) ValidateDataResourceConfig(_ context.Context, req *tfplugin6.ValidateDataResourceConfig_Request) (*tfplugin6.ValidateDataResourceConfig_Response, error) {
+	resp := &tfplugin6.ValidateDataResourceConfig_Response{}
 	ty := p.schema.DataSources[req.TypeName].Block.ImpliedType()
 
 	configVal, err := decodeDynamicValue6(req.Config, ty)
@@ -113,7 +113,7 @@ func (p *provider6) ValidateDataSourceConfig(_ context.Context, req *tfplugin6.V
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
+	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})

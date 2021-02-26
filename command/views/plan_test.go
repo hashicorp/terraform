@@ -4,12 +4,45 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// Ensure that the correct view type and in-automation settings propagate to the
+// Operation view.
+func TestPlanHuman_operation(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	defer done(t)
+	v := NewPlan(arguments.ViewHuman, true, NewView(streams)).Operation()
+	if hv, ok := v.(*OperationHuman); !ok {
+		t.Fatalf("unexpected return type %t", v)
+	} else if hv.inAutomation != true {
+		t.Fatalf("unexpected inAutomation value on Operation view")
+	}
+}
+
+// Verify that Hooks includes a UI hook
+func TestPlanHuman_hooks(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	defer done(t)
+	v := NewPlan(arguments.ViewHuman, true, NewView(streams))
+	hooks := v.Hooks()
+
+	var uiHook *UiHook
+	for _, hook := range hooks {
+		if ch, ok := hook.(*UiHook); ok {
+			uiHook = ch
+		}
+	}
+	if uiHook == nil {
+		t.Fatalf("expected Hooks to include a UiHook: %#v", hooks)
+	}
+}
 
 // Helper functions to build a trivial test plan, to exercise the plan
 // renderer.

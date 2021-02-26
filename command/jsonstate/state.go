@@ -300,7 +300,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				)
 			}
 
-			schema, _ := schemas.ResourceTypeConfig(
+			schema, version := schemas.ResourceTypeConfig(
 				r.ProviderConfig.Provider,
 				resAddr.Mode,
 				resAddr.Type,
@@ -308,6 +308,10 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 			// It is possible that the only instance is deposed
 			if ri.Current != nil {
+				if version != ri.Current.SchemaVersion {
+					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
+				}
+
 				current.SchemaVersion = ri.Current.SchemaVersion
 
 				if schema == nil {

@@ -207,7 +207,7 @@ func (c *TaintCommand) Run(args []string) int {
 
 func (c *TaintCommand) Help() string {
 	helpText := `
-Usage: terraform taint [options] <address>
+Usage: terraform [global options] taint [options] <address>
 
   Terraform uses the term "tainted" to describe a resource instance
   which may not be fully functional, either because its creation

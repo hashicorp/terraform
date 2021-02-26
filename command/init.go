@@ -909,7 +909,7 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 
 func (c *InitCommand) Help() string {
 	helpText := `
-Usage: terraform init [options]
+Usage: terraform [global options] init [options]
 
   Initialize a new or existing Terraform working directory by creating
   initial files, loading any remote state, downloading modules, etc.

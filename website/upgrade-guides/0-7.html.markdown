@@ -10,7 +10,7 @@ description: |-
 
 Terraform v0.7 is a major release, and thus includes some backwards incompatibilities that you'll need to consider when upgrading. This guide is meant to help with that process.
 
-The goal of this guide is to cover the most common upgrade concerns and issues that would benefit from more explanation and background. The exhaustive list of changes will always be the [Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md). After reviewing this guide, review the Changelog to check on specific notes about the resources and providers you use.
+The goal of this guide is to cover the most common upgrade concerns and issues that would benefit from more explanation and background. The exhaustive list of changes will always be the [Terraform Changelog](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md). After reviewing this guide, review the Changelog to check on specific notes about the resources and providers you use.
 
 ## Plugin Binaries
 

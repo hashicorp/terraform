@@ -48,6 +48,8 @@ The following arguments are supported:
   that will be copied to the remote resource and then executed. They are executed
   in the order they are provided. This cannot be provided with `inline` or `script`.
 
+-> **Note:** Since `inline` is implemented by concatenating commands into a script, [`on_failure`](/docs/language/resources/provisioners/syntax.html#failure-behavior) applies only to the final command in the list. In particular, with `on_failure = fail` (the default behaviour) earlier commands will be allowed to fail, and later commands will also execute. If this behaviour is not desired, consider using `"set -o errexit"` as the first command.
+
 ## Script Arguments
 
 You cannot pass any arguments to scripts using the `script` or

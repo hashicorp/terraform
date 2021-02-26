@@ -85,6 +85,11 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 }
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
+	if req.Connection.IsNull() {
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing connection configuration for provisioner"))
+		return resp
+	}
+
 	comm, err := communicator.New(req.Connection)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(err)

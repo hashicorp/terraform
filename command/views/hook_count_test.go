@@ -1,4 +1,4 @@
-package command
+package views
 
 import (
 	"reflect"
@@ -15,11 +15,11 @@ import (
 )
 
 func TestCountHook_impl(t *testing.T) {
-	var _ terraform.Hook = new(CountHook)
+	var _ terraform.Hook = new(countHook)
 }
 
 func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"lorem": &legacy.InstanceDiff{DestroyDeposed: true},
@@ -35,7 +35,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 		h.PostDiff(addr, states.DeposedKey("deadbeef"), plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 0
 	expected.ToRemoveAndAdd = 0
@@ -47,7 +47,7 @@ func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {
 }
 
 func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo":   &legacy.InstanceDiff{Destroy: true},
@@ -66,7 +66,7 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, plans.Delete, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 0
 	expected.ToRemoveAndAdd = 0
@@ -78,7 +78,7 @@ func TestCountHookPostDiff_DestroyOnly(t *testing.T) {
 }
 
 func TestCountHookPostDiff_AddOnly(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo": &legacy.InstanceDiff{
@@ -108,7 +108,7 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, plans.Create, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 3
 	expected.ToChange = 0
 	expected.ToRemoveAndAdd = 0
@@ -120,7 +120,7 @@ func TestCountHookPostDiff_AddOnly(t *testing.T) {
 }
 
 func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo": &legacy.InstanceDiff{
@@ -153,7 +153,7 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, plans.Update, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 3
 	expected.ToRemoveAndAdd = 0
@@ -165,7 +165,7 @@ func TestCountHookPostDiff_ChangeOnly(t *testing.T) {
 }
 
 func TestCountHookPostDiff_Mixed(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]plans.Action{
 		"foo":   plans.Delete,
@@ -184,7 +184,7 @@ func TestCountHookPostDiff_Mixed(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 1
 	expected.ToRemoveAndAdd = 0
@@ -197,7 +197,7 @@ func TestCountHookPostDiff_Mixed(t *testing.T) {
 }
 
 func TestCountHookPostDiff_NoChange(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo":   &legacy.InstanceDiff{},
@@ -216,7 +216,7 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, plans.NoOp, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 0
 	expected.ToRemoveAndAdd = 0
@@ -229,7 +229,7 @@ func TestCountHookPostDiff_NoChange(t *testing.T) {
 }
 
 func TestCountHookPostDiff_DataSource(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]plans.Action{
 		"foo":   plans.Delete,
@@ -248,7 +248,7 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 		h.PostDiff(addr, states.CurrentGen, a, cty.DynamicVal, cty.DynamicVal)
 	}
 
-	expected := new(CountHook)
+	expected := new(countHook)
 	expected.ToAdd = 0
 	expected.ToChange = 0
 	expected.ToRemoveAndAdd = 0
@@ -261,7 +261,7 @@ func TestCountHookPostDiff_DataSource(t *testing.T) {
 }
 
 func TestCountHookApply_ChangeOnly(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo": &legacy.InstanceDiff{
@@ -295,7 +295,7 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 		h.PostApply(addr, states.CurrentGen, cty.DynamicVal, nil)
 	}
 
-	expected := &CountHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{pending: make(map[string]plans.Action)}
 	expected.Added = 0
 	expected.Changed = 3
 	expected.Removed = 0
@@ -306,7 +306,7 @@ func TestCountHookApply_ChangeOnly(t *testing.T) {
 }
 
 func TestCountHookApply_DestroyOnly(t *testing.T) {
-	h := new(CountHook)
+	h := new(countHook)
 
 	resources := map[string]*legacy.InstanceDiff{
 		"foo":   &legacy.InstanceDiff{Destroy: true},
@@ -326,7 +326,7 @@ func TestCountHookApply_DestroyOnly(t *testing.T) {
 		h.PostApply(addr, states.CurrentGen, cty.DynamicVal, nil)
 	}
 
-	expected := &CountHook{pending: make(map[string]plans.Action)}
+	expected := &countHook{pending: make(map[string]plans.Action)}
 	expected.Added = 0
 	expected.Changed = 0
 	expected.Removed = 4

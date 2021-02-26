@@ -183,7 +183,7 @@ func (c *WorkspaceDeleteCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceDeleteCommand) Help() string {
 	helpText := `
-Usage: terraform workspace delete [OPTIONS] NAME
+Usage: terraform [global options] workspace delete [OPTIONS] NAME
 
   Delete a Terraform workspace
 

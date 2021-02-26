@@ -268,7 +268,7 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 
 func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+	mp.ValidateDataResourceConfigFn = func(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
@@ -278,7 +278,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateDataSourceConfigResponse{}
+		return providers.ValidateDataResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -310,7 +310,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	if !mp.ValidateDataSourceConfigCalled {
+	if !mp.ValidateDataResourceConfigCalled {
 		t.Fatal("Expected ValidateDataSourceConfig to be called, but it was not!")
 	}
 }

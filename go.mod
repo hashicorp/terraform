@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform
 require (
 	cloud.google.com/go/storage v1.10.0
 	github.com/Azure/azure-sdk-for-go v47.1.0+incompatible
-    github.com/Azure/go-autorest/autorest v0.11.10
+	github.com/Azure/go-autorest/autorest v0.11.10
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af // indirect
@@ -13,6 +13,7 @@ require (
 	github.com/aliyun/aliyun-tablestore-go-sdk v4.1.2+incompatible
 	github.com/apparentlymart/go-cidr v1.1.0
 	github.com/apparentlymart/go-dump v0.0.0-20190214190832-042adf3cf4a0
+	github.com/apparentlymart/go-shquot v0.0.1
 	github.com/apparentlymart/go-userdirs v0.0.0-20200915174352-b0c018a67c13
 	github.com/apparentlymart/go-versions v1.0.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
@@ -64,7 +65,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl/v2 v2.8.3-0.20210208211639-2520246c49a7
+	github.com/hashicorp/hcl/v2 v2.9.0
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
@@ -113,7 +114,8 @@ require (
 	github.com/xanzy/ssh-agent v0.2.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.7.1
+	github.com/zclconf/go-cty v1.8.0
+	github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
@@ -124,7 +126,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.5
 	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb
 	google.golang.org/api v0.34.0
 	google.golang.org/grpc v1.31.1
@@ -136,8 +138,8 @@ require (
 	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
 )
 
+replace google.golang.org/grpc v1.31.1 => google.golang.org/grpc v1.27.1
+
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
 go 1.14
-
-replace google.golang.org/grpc v1.31.1 => google.golang.org/grpc v1.27.1

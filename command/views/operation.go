@@ -15,6 +15,8 @@ import (
 )
 
 type Operation interface {
+	Interrupted()
+	FatalInterrupt()
 	Stopping()
 	Cancelled(destroy bool)
 
@@ -50,6 +52,24 @@ type OperationHuman struct {
 }
 
 var _ Operation = (*OperationHuman)(nil)
+
+func (v *OperationHuman) Interrupted() {
+	v.streams.Println(format.WordWrap(interrupted, v.outputColumns()))
+}
+
+func (v *OperationHuman) FatalInterrupt() {
+	v.streams.Eprintln(format.WordWrap(fatalInterrupt, v.errorColumns()))
+}
+
+const fatalInterrupt = `
+Two interrupts received. Exiting immediately. Note that data loss may have occurred.
+`
+
+const interrupted = `
+Interrupt received.
+Please wait for Terraform to exit or data loss may occur.
+Gracefully shutting down...
+`
 
 func (v *OperationHuman) Stopping() {
 	v.streams.Println("Stopping operation...")

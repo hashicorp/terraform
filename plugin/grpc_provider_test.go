@@ -139,7 +139,7 @@ func TestGRPCProvider_ValidateDataSourceConfig(t *testing.T) {
 	).Return(&proto.ValidateDataSourceConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
+	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: "data",
 		Config:   cfg,
 	})

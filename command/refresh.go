@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -17,110 +16,161 @@ type RefreshCommand struct {
 	Meta
 }
 
-func (c *RefreshCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.extendedFlagSet("refresh")
-	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
-	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
-	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
-	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
-	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
-	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
-		return 1
-	}
+func (c *RefreshCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
-	diags := c.parseTargetFlags()
+	// Parse and validate flags
+	args, diags := arguments.ParseRefresh(rawArgs)
+
+	// Instantiate the view, even if there are flag errors, so that we render
+	// diagnostics according to the desired view
+	var view views.Refresh
+	view = views.NewRefresh(args.ViewType, c.RunningInAutomation, c.View)
+
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	configPath, err := ModulePath(cmdFlags.Args())
-	if err != nil {
-		c.Ui.Error(err.Error())
+		view.Diagnostics(diags)
+		view.HelpPrompt("refresh")
 		return 1
 	}
 
 	// Check for user-supplied plugin path
+	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	backendConfig, configDiags := c.loadBackendConfig(configPath)
-	diags = diags.Append(configDiags)
-	if configDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// FIXME: the -input flag value is needed to initialize the backend and the
+	// operation, but there is no clear path to pass this value down, so we
+	// continue to mutate the Meta object state for now.
+	c.Meta.input = args.InputEnabled
+
+	// FIXME: the -parallelism flag is used to control the concurrency of
+	// Terraform operations. At the moment, this value is used both to
+	// initialize the backend via the ContextOpts field inside CLIOpts, and to
+	// set a largely unused field on the Operation request. Again, there is no
+	// clear path to pass this value down, so we continue to mutate the Meta
+	// object state for now.
+	c.Meta.parallelism = args.Operation.Parallelism
+
+	// Prepare the backend with the backend-specific arguments
+	be, beDiags := c.PrepareBackend(args.State)
+	diags = diags.Append(beDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// Load the backend
-	b, backendDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
-	})
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// Build the operation request
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation)
+	diags = diags.Append(opDiags)
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
+
+	// Collect variable value and add them to the operation request
+	diags = diags.Append(c.GatherVariables(opReq, args.Vars))
+	if diags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
 	// Before we delegate to the backend, we'll print any warning diagnostics
 	// we've accumulated here, since the backend will start fresh with its own
 	// diagnostics.
-	c.showDiagnostics(diags)
+	view.Diagnostics(diags)
 	diags = nil
 
-	// Build the operation
-	opReq := c.Operation(b)
-	opReq.ConfigDir = configPath
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
-	opReq.ShowDiagnostics = c.showDiagnostics
-	opReq.Type = backend.OperationTypeRefresh
-	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
-
-	opReq.ConfigLoader, err = c.initConfigLoader()
+	// Perform the operation
+	op, err := c.RunOperation(be, opReq)
 	if err != nil {
-		c.showDiagnostics(err)
+		diags = diags.Append(err)
+		view.Diagnostics(diags)
 		return 1
-	}
-
-	{
-		var moreDiags tfdiags.Diagnostics
-		opReq.Variables, moreDiags = c.collectVariableValues()
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	}
-
-	op, err := c.RunOperation(b, opReq)
-	if err != nil {
-		c.showDiagnostics(err)
-		return 1
-	}
-	if op.Result != backend.OperationSuccess {
-		return op.Result.ExitStatus()
 	}
 
 	if op.State != nil {
-		outputValues := op.State.RootModule().OutputValues
-		if len(outputValues) > 0 {
-			c.Ui.Output(c.Colorize().Color("[reset][bold][green]\nOutputs:\n\n"))
-			view := views.NewOutput(arguments.ViewHuman, c.View)
-			view.Output("", outputValues)
-		}
+		view.Outputs(op.State.RootModule().OutputValues)
 	}
 
 	return op.Result.ExitStatus()
 }
 
+func (c *RefreshCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+	// FIXME: we need to apply the state arguments to the meta object here
+	// because they are later used when initializing the backend. Carving a
+	// path to pass these arguments to the functions that need them is
+	// difficult but would make their use easier to understand.
+	c.Meta.applyStateArguments(args)
+
+	backendConfig, diags := c.loadBackendConfig(".")
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// Load the backend
+	be, beDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
+	})
+	diags = diags.Append(beDiags)
+	if beDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return be, diags
+}
+
+func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, args *arguments.Operation,
+) (*backend.Operation, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Build the operation
+	opReq := c.Operation(be)
+	opReq.ConfigDir = "."
+	opReq.Hooks = view.Hooks()
+	opReq.Targets = args.Targets
+	opReq.Type = backend.OperationTypeRefresh
+	opReq.View = view.Operation()
+
+	var err error
+	opReq.ConfigLoader, err = c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Failed to initialize config loader: %s", err))
+		return nil, diags
+	}
+
+	return opReq, diags
+}
+
+func (c *RefreshCommand) GatherVariables(opReq *backend.Operation, args *arguments.Vars) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// FIXME the arguments package currently trivially gathers variable related
+	// arguments in a heterogenous slice, in order to minimize the number of
+	// code paths gathering variables during the transition to this structure.
+	// Once all commands that gather variables have been converted to this
+	// structure, we could move the variable gathering code to the arguments
+	// package directly, removing this shim layer.
+
+	varArgs := args.All()
+	items := make([]rawFlag, len(varArgs))
+	for i := range varArgs {
+		items[i].Name = varArgs[i].Name
+		items[i].Value = varArgs[i].Value
+	}
+	c.Meta.variableArgs = rawFlags{items: &items}
+	opReq.Variables, diags = c.collectVariableValues()
+
+	return diags
+}
+
 func (c *RefreshCommand) Help() string {
 	helpText := `
-Usage: terraform refresh [options]
+Usage: terraform [global options] refresh [options]
 
   Update the state file of your infrastructure with metadata that matches
   the physical resources they are tracking.

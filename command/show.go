@@ -190,7 +190,7 @@ func (c *ShowCommand) Run(args []string) int {
 
 func (c *ShowCommand) Help() string {
 	helpText := `
-Usage: terraform show [options] [path]
+Usage: terraform [global options] show [options] [path]
 
   Reads and outputs a Terraform state or plan file in a human-readable
   form. If no path is specified, the current state will be shown.
