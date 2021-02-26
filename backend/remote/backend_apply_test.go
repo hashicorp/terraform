@@ -1209,8 +1209,8 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to success due to auto-approve")
 	}
 
 	if run.PlanEmpty {
@@ -1222,22 +1222,20 @@ func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	}
 
 	errOutput := viewOutput.Stderr()
-	if !strings.Contains(errOutput, "soft failed") {
-		t.Fatalf("expected a policy check error, got: %v", errOutput)
+	if strings.Contains(errOutput, "soft failed") {
+		t.Fatalf("expected no policy check errors, instead got: %v", errOutput)
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in the remote backend") {
-		t.Fatalf("expected remote backend header in output, got: %s", output)
-	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("expected plan summery in output: %s", output)
-	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("expected policy check result in output: %s", output)
+		t.Fatalf("expected policy check to be false, insead got: %s", output)
 	}
-	if !strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-		t.Fatalf("expected apply to complete in output: %s", output)
+	if !strings.Contains(output, "Apply complete!") {
+		t.Fatalf("expected apply to be complete, instead got: %s", output)
+	}
+
+	if !strings.Contains(output, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected resources, instead got: %s", output)
 	}
 }
 
