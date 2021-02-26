@@ -27,7 +27,7 @@ func NewApply(vt arguments.ViewType, destroy bool, runningInAutomation bool, vie
 	switch vt {
 	case arguments.ViewHuman:
 		return &ApplyHuman{
-			View:         *view,
+			view:         view,
 			destroy:      destroy,
 			inAutomation: runningInAutomation,
 			countHook:    &countHook{},
@@ -40,7 +40,7 @@ func NewApply(vt arguments.ViewType, destroy bool, runningInAutomation bool, vie
 // The ApplyHuman implementation renders human-readable text logs, suitable for
 // a scrolling terminal.
 type ApplyHuman struct {
-	View
+	view *View
 
 	destroy      bool
 	inAutomation bool
@@ -52,40 +52,44 @@ var _ Apply = (*ApplyHuman)(nil)
 
 func (v *ApplyHuman) ResourceCount(stateOutPath string) {
 	if v.destroy {
-		v.streams.Printf(
-			v.colorize.Color("[reset][bold][green]\nDestroy complete! Resources: %d destroyed.\n"),
+		v.view.streams.Printf(
+			v.view.colorize.Color("[reset][bold][green]\nDestroy complete! Resources: %d destroyed.\n"),
 			v.countHook.Removed,
 		)
 	} else {
-		v.streams.Printf(
-			v.colorize.Color("[reset][bold][green]\nApply complete! Resources: %d added, %d changed, %d destroyed.\n"),
+		v.view.streams.Printf(
+			v.view.colorize.Color("[reset][bold][green]\nApply complete! Resources: %d added, %d changed, %d destroyed.\n"),
 			v.countHook.Added,
 			v.countHook.Changed,
 			v.countHook.Removed,
 		)
 	}
 	if (v.countHook.Added > 0 || v.countHook.Changed > 0) && stateOutPath != "" {
-		v.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.View.outputColumns()))
-		v.streams.Printf("State path: %s\n", stateOutPath)
+		v.view.streams.Printf("\n%s\n\n", format.WordWrap(stateOutPathPostApply, v.view.outputColumns()))
+		v.view.streams.Printf("State path: %s\n", stateOutPath)
 	}
 }
 
 func (v *ApplyHuman) Outputs(outputValues map[string]*states.OutputValue) {
 	if len(outputValues) > 0 {
-		v.streams.Print(v.colorize.Color("[reset][bold][green]\nOutputs:\n\n"))
-		NewOutput(arguments.ViewHuman, &v.View).Output("", outputValues)
+		v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\nOutputs:\n\n"))
+		NewOutput(arguments.ViewHuman, v.view).Output("", outputValues)
 	}
 }
 
 func (v *ApplyHuman) Operation() Operation {
-	return NewOperation(arguments.ViewHuman, v.inAutomation, &v.View)
+	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
 func (v *ApplyHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
 		v.countHook,
-		NewUiHook(&v.View),
+		NewUiHook(v.view),
 	}
+}
+
+func (v *ApplyHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
 }
 
 func (v *ApplyHuman) HelpPrompt() {
@@ -93,7 +97,7 @@ func (v *ApplyHuman) HelpPrompt() {
 	if v.destroy {
 		command = "destroy"
 	}
-	v.View.HelpPrompt(command)
+	v.view.HelpPrompt(command)
 }
 
 const stateOutPathPostApply = "The state of your infrastructure has been saved to the path below. This state is required to modify and destroy your infrastructure, so keep it safe. To inspect the complete state use the `terraform show` command."
