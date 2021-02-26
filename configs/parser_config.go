@@ -58,8 +58,8 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			content, contentDiags := block.Body.Content(terraformBlockSchema)
 			diags = append(diags, contentDiags...)
 
-			// We ignore the "terraform_version" and "experiments" attributes
-			// here because sniffCoreVersionRequirements and
+			// We ignore the "terraform_version", "language" and "experiments"
+			// attributes here because sniffCoreVersionRequirements and
 			// sniffActiveExperiments already dealt with those above.
 
 			for _, innerBlock := range content.Blocks {
@@ -244,6 +244,7 @@ var terraformBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "required_version"},
 		{Name: "experiments"},
+		{Name: "language"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
@@ -283,8 +284,7 @@ var configFileVersionSniffBlockSchema = &hcl.BodySchema{
 // to decode a single attribute from inside a "terraform" block.
 var configFileExperimentsSniffBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "experiments",
-		},
+		{Name: "experiments"},
+		{Name: "language"},
 	},
 }
