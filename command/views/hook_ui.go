@@ -19,7 +19,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-const defaultPeriodicUiTimer = 10 * time.Second
+const defaultPeriodicUiTimer = 25 * time.Second
 const maxIdLen = 80
 
 func NewUiHook(view *View) *UiHook {
