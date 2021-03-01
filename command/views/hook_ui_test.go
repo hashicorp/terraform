@@ -56,10 +56,8 @@ func TestUiHookPreApply_create(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	// stop the background writer
-	uiState := h.resources[addr.String()]
-	close(uiState.DoneCh)
-	<-uiState.done
+	// stop the watchdog timer
+	h.viewTimer.Stop()
 
 	expectedOutput := "test_instance.foo: Creating...\n"
 	result := done(t)
@@ -116,15 +114,13 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 
 	time.Sleep(3100 * time.Millisecond)
 
-	// stop the background writer
-	uiState := h.resources[addr.String()]
-	close(uiState.DoneCh)
-	<-uiState.done
+	// stop the watchdog timer
+	h.viewTimer.Stop()
 
 	expectedOutput := `test_instance.foo: Modifying... [id=test]
-test_instance.foo: Still modifying... [id=test, 1s elapsed]
-test_instance.foo: Still modifying... [id=test, 2s elapsed]
-test_instance.foo: Still modifying... [id=test, 3s elapsed]
+test_instance.foo: Still applying...
+test_instance.foo: Still applying...
+test_instance.foo: Still applying...
 `
 	result := done(t)
 	output := result.Stdout()
@@ -178,10 +174,8 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 
-	// stop the background writer
-	uiState := h.resources[addr.String()]
-	close(uiState.DoneCh)
-	<-uiState.done
+	// stop the watchdog timer
+	h.viewTimer.Stop()
 
 	result := done(t)
 	expectedOutput := fmt.Sprintf("test_instance.foo (%s): Destroying... [id=abc123]\n", key)

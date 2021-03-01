@@ -33,8 +33,9 @@ func NewUiHook(view *View) *UiHook {
 type UiHook struct {
 	terraform.NilHook
 
-	view     *View
-	viewLock sync.Mutex
+	view      *View
+	viewLock  sync.Mutex
+	viewTimer *time.Timer
 
 	periodicUiTimer time.Duration
 
@@ -50,10 +51,6 @@ type uiResourceState struct {
 	IDKey, IDValue string
 	Op             uiResourceOp
 	Start          time.Time
-
-	DoneCh chan struct{} // To be used for cancellation
-
-	done chan struct{} // used to coordinate tests
 }
 
 // uiResourceOp is an enum for operations on a resource
@@ -120,58 +117,13 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		IDValue:  idValue,
 		Op:       op,
 		Start:    time.Now().Round(time.Second),
-		DoneCh:   make(chan struct{}),
-		done:     make(chan struct{}),
 	}
 
 	h.resourcesLock.Lock()
 	h.resources[key] = uiState
 	h.resourcesLock.Unlock()
 
-	// Start goroutine that shows progress
-	go h.stillApplying(uiState)
-
 	return terraform.HookActionContinue, nil
-}
-
-func (h *UiHook) stillApplying(state uiResourceState) {
-	defer close(state.done)
-	for {
-		select {
-		case <-state.DoneCh:
-			return
-
-		case <-time.After(h.periodicUiTimer):
-			// Timer up, show status
-		}
-
-		var msg string
-		switch state.Op {
-		case uiResourceModify:
-			msg = "Still modifying..."
-		case uiResourceDestroy:
-			msg = "Still destroying..."
-		case uiResourceCreate:
-			msg = "Still creating..."
-		case uiResourceRead:
-			msg = "Still reading..."
-		case uiResourceUnknown:
-			return
-		}
-
-		idSuffix := ""
-		if state.IDKey != "" {
-			idSuffix = fmt.Sprintf("%s=%s, ", state.IDKey, truncateId(state.IDValue, maxIdLen))
-		}
-
-		h.println(fmt.Sprintf(
-			h.view.colorize.Color("[reset][bold]%s: %s [%s%s elapsed][reset]"),
-			state.DispAddr,
-			msg,
-			idSuffix,
-			time.Now().Round(time.Second).Sub(state.Start),
-		))
-	}
 }
 
 func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
@@ -179,10 +131,6 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 
 	h.resourcesLock.Lock()
 	state := h.resources[id]
-	if state.DoneCh != nil {
-		close(state.DoneCh)
-	}
-
 	delete(h.resources, id)
 	h.resourcesLock.Unlock()
 
@@ -281,10 +229,46 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 	return terraform.HookActionContinue, nil
 }
 
+// Callback fired from a watchdog timer to ensure that we show some sign of
+// life every few seconds, without flooding the UI with repeated messages
+func (h *UiHook) heartbeat() {
+	h.resourcesLock.Lock()
+	defer h.resourcesLock.Unlock()
+
+	applying := len(h.resources)
+	var key string
+	for k := range h.resources {
+		key = k
+		break
+	}
+
+	if applying > 0 {
+		var suffix string
+		if applying > 1 {
+			resource := "resource"
+			if applying > 2 {
+				resource = "resources"
+			}
+			suffix = fmt.Sprintf(", along with %d other %s", applying-1, resource)
+		}
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Still applying%s...[reset]"),
+			key,
+			suffix,
+		))
+	}
+}
+
 // Wrap calls to the view so that concurrent calls do not interleave println.
 func (h *UiHook) println(s string) {
 	h.viewLock.Lock()
 	defer h.viewLock.Unlock()
+	if h.viewTimer == nil {
+		h.viewTimer = time.AfterFunc(h.periodicUiTimer, h.heartbeat)
+	} else {
+		h.viewTimer.Stop()
+		h.viewTimer.Reset(h.periodicUiTimer)
+	}
 	h.view.streams.Println(s)
 }
 
