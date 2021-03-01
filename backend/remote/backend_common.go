@@ -414,33 +414,44 @@ func (b *Remote) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Ope
 		case tfe.PolicyHardFailed:
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
+			runUrl := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
-				op.AutoApprove || !pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
-				return fmt.Errorf(msgPrefix + " soft failed.")
+				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {
+				return fmt.Errorf(msgPrefix + " soft failed.\n" + runUrl)
+			}
+
+			if op.AutoApprove {
+				if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
+					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+				}
+			} else {
+				opts := &terraform.InputOpts{
+					Id:          "override",
+					Query:       "\nDo you want to override the soft failed policy check?",
+					Description: "Only 'override' will be accepted to override.",
+				}
+				err = b.confirm(stopCtx, op, opts, r, "override")
+				if err != nil && err != errRunOverridden {
+					return fmt.Errorf(
+						fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
+					)
+				}
+
+				if err != errRunOverridden {
+					if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
+						return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+					}
+				} else {
+					b.CLI.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+				}
+			}
+
+			if b.CLI != nil {
+				b.CLI.Output("------------------------------------------------------------------------")
 			}
 		default:
 			return fmt.Errorf("Unknown or unexpected policy state: %s", pc.Status)
-		}
-
-		opts := &terraform.InputOpts{
-			Id:          "override",
-			Query:       "\nDo you want to override the soft failed policy check?",
-			Description: "Only 'override' will be accepted to override.",
-		}
-
-		err = b.confirm(stopCtx, op, opts, r, "override")
-		if err != nil && err != errRunOverridden {
-			return err
-		}
-
-		if err != errRunOverridden {
-			if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
-				return generalError("Failed to override policy check", err)
-			}
-		}
-
-		if b.CLI != nil {
-			b.CLI.Output("------------------------------------------------------------------------")
 		}
 	}
 

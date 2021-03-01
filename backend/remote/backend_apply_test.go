@@ -1151,6 +1151,7 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 		"approve":  "yes",
 	})
 
+	op.AutoApprove = false
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = backend.DefaultStateName
@@ -1187,16 +1188,14 @@ func TestRemote_applyPolicySoftFail(t *testing.T) {
 	}
 }
 
-func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
+func TestRemote_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-soft-failed")
 	defer configCleanup()
 
-	input := testInput(t, map[string]string{
-		"override": "override",
-	})
+	input := testInput(t, map[string]string{})
 
 	op.AutoApprove = true
 	op.UIIn = input
@@ -1210,34 +1209,33 @@ func TestRemote_applyPolicySoftFailAutoApprove(t *testing.T) {
 
 	<-run.Done()
 	viewOutput := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to success due to auto-approve")
 	}
 
-	if len(input.answers) != 1 {
-		t.Fatalf("expected an unused answers, got: %v", input.answers)
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to not be empty, plan opertion completed without error")
+	}
+
+	if len(input.answers) != 0 {
+		t.Fatalf("expected no answers, got: %v", input.answers)
 	}
 
 	errOutput := viewOutput.Stderr()
-	if !strings.Contains(errOutput, "soft failed") {
-		t.Fatalf("expected a policy check error, got: %v", errOutput)
+	if strings.Contains(errOutput, "soft failed") {
+		t.Fatalf("expected no policy check errors, instead got: %v", errOutput)
 	}
 
 	output := b.CLI.(*cli.MockUi).OutputWriter.String()
-	if !strings.Contains(output, "Running apply in the remote backend") {
-		t.Fatalf("expected remote backend header in output: %s", output)
-	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
-		t.Fatalf("expected plan summery in output: %s", output)
-	}
 	if !strings.Contains(output, "Sentinel Result: false") {
-		t.Fatalf("expected policy check result in output: %s", output)
+		t.Fatalf("expected policy check to be false, insead got: %s", output)
 	}
-	if strings.Contains(output, "1 added, 0 changed, 0 destroyed") {
-		t.Fatalf("unexpected apply summery in output: %s", output)
+	if !strings.Contains(output, "Apply complete!") {
+		t.Fatalf("expected apply to be complete, instead got: %s", output)
+	}
+
+	if !strings.Contains(output, "Resources: 1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected resources, instead got: %s", output)
 	}
 }
 
