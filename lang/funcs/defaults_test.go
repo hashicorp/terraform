@@ -370,6 +370,25 @@ func TestDefaults(t *testing.T) {
 			Defaults: cty.StringVal("hello"),
 			WantErr:  `only object types and collections of object types can have defaults applied`,
 		},
+		// When applying default values to collection types, null collections in the
+		// input should result in empty collections in the output.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.String)),
+				"b": cty.NullVal(cty.Map(cty.String)),
+				"c": cty.NullVal(cty.Set(cty.String)),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+				"b": cty.StringVal("hi"),
+				"c": cty.StringVal("greetings"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListValEmpty(cty.String),
+				"b": cty.MapValEmpty(cty.String),
+				"c": cty.SetValEmpty(cty.String),
+			}),
+		},
 	}
 
 	for _, test := range tests {
