@@ -389,6 +389,38 @@ func TestDefaults(t *testing.T) {
 				"c": cty.SetValEmpty(cty.String),
 			}),
 		},
+		// When specifying fallbacks, we allow mismatched primitive attribute
+		// types so long as a safe conversion is possible. This means that we
+		// can accept number or boolean values for string attributes.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+				"b": cty.NullVal(cty.String),
+				"c": cty.NullVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NumberIntVal(5),
+				"b": cty.True,
+				"c": cty.StringVal("greetings"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("5"),
+				"b": cty.StringVal("true"),
+				"c": cty.StringVal("greetings"),
+			}),
+		},
+		// Fallbacks with mismatched primitive attribute types which do not
+		// have safe conversions must not pass the suitable fallback check,
+		// even if unsafe conversion would be possible.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Bool),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("5"),
+			}),
+			WantErr: ".a: invalid default value for bool: bool required",
+		},
 	}
 
 	for _, test := range tests {
