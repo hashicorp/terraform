@@ -187,7 +187,7 @@ func defaultsAssertSuitableFallback(wantTy, fallbackTy cty.Type, fallbackPath ct
 		if fallbackTy.Equals(wantTy) {
 			return nil
 		}
-		conversion := convert.GetConversionUnsafe(fallbackTy, wantTy)
+		conversion := convert.GetConversion(fallbackTy, wantTy)
 		if conversion == nil {
 			msg := convert.MismatchMessage(fallbackTy, wantTy)
 			return fallbackPath.NewErrorf("invalid default value for %s: %s", wantTy.FriendlyName(), msg)
