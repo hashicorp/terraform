@@ -127,9 +127,11 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsMapType():
 			newVals := map[string]cty.Value{}
 
-			for it := input.ElementIterator(); it.Next(); {
-				k, v := it.Element()
-				newVals[k.AsString()] = defaultsApply(v, fallback)
+			if !input.IsNull() {
+				for it := input.ElementIterator(); it.Next(); {
+					k, v := it.Element()
+					newVals[k.AsString()] = defaultsApply(v, fallback)
+				}
 			}
 
 			if len(newVals) == 0 {
@@ -139,10 +141,12 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsListType(), wantTy.IsSetType():
 			var newVals []cty.Value
 
-			for it := input.ElementIterator(); it.Next(); {
-				_, v := it.Element()
-				newV := defaultsApply(v, fallback)
-				newVals = append(newVals, newV)
+			if !input.IsNull() {
+				for it := input.ElementIterator(); it.Next(); {
+					_, v := it.Element()
+					newV := defaultsApply(v, fallback)
+					newVals = append(newVals, newV)
+				}
 			}
 
 			if len(newVals) == 0 {
