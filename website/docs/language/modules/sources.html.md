@@ -32,6 +32,8 @@ types, as listed below.
   * [S3 buckets](#s3-bucket)
 
   * [GCS buckets](#gcs-bucket)
+  
+  * [Modules in Package Sub-directories](#modules-in-package-sub-directories)
 
 Each of these is described in the following sections. Module source addresses
 use a _URL-like_ syntax, but with extensions to support unambiguous selection
