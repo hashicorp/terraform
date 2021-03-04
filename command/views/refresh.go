@@ -17,7 +17,7 @@ type Refresh interface {
 	Hooks() []terraform.Hook
 
 	Diagnostics(diags tfdiags.Diagnostics)
-	HelpPrompt(command string)
+	HelpPrompt()
 }
 
 // NewRefresh returns an initialized Refresh implementation for the given ViewType.
@@ -25,7 +25,7 @@ func NewRefresh(vt arguments.ViewType, runningInAutomation bool, view *View) Ref
 	switch vt {
 	case arguments.ViewHuman:
 		return &RefreshHuman{
-			View:         *view,
+			view:         view,
 			inAutomation: runningInAutomation,
 			countHook:    &countHook{},
 		}
@@ -37,7 +37,7 @@ func NewRefresh(vt arguments.ViewType, runningInAutomation bool, view *View) Ref
 // The RefreshHuman implementation renders human-readable text logs, suitable for
 // a scrolling terminal.
 type RefreshHuman struct {
-	View
+	view *View
 
 	inAutomation bool
 
@@ -48,18 +48,26 @@ var _ Refresh = (*RefreshHuman)(nil)
 
 func (v *RefreshHuman) Outputs(outputValues map[string]*states.OutputValue) {
 	if len(outputValues) > 0 {
-		v.streams.Print(v.colorize.Color("[reset][bold][green]\nOutputs:\n\n"))
-		NewOutput(arguments.ViewHuman, &v.View).Output("", outputValues)
+		v.view.streams.Print(v.view.colorize.Color("[reset][bold][green]\nOutputs:\n\n"))
+		NewOutput(arguments.ViewHuman, v.view).Output("", outputValues)
 	}
 }
 
 func (v *RefreshHuman) Operation() Operation {
-	return NewOperation(arguments.ViewHuman, v.inAutomation, &v.View)
+	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
 func (v *RefreshHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
 		v.countHook,
-		NewUiHook(&v.View),
+		NewUiHook(v.view),
 	}
+}
+
+func (v *RefreshHuman) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *RefreshHuman) HelpPrompt() {
+	v.view.HelpPrompt("refresh")
 }

@@ -1,5 +1,9 @@
 ## 0.15.0-beta2 (unreleased)
 
+BUG FIXES:
+
+* Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 [GH-27944]
+
 ## 0.15.0-beta1 (February 24, 2021)
 
 BREAKING CHANGES:

@@ -30,7 +30,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		view.HelpPrompt("plan")
+		view.HelpPrompt()
 		return 1
 	}
 

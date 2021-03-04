@@ -31,7 +31,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
-		view.HelpPrompt("refresh")
+		view.HelpPrompt()
 		return 1
 	}
 
