@@ -1,8 +1,13 @@
 ## 0.15.0-beta2 (unreleased)
 
+ENHANCEMENTS:
+
+* core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
+
 BUG FIXES:
 
 * Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 [GH-27944]
+* functions: Fix panics in `defaults` [GH-27979]
 
 ## 0.15.0-beta1 (February 24, 2021)
 
