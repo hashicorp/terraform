@@ -51,9 +51,8 @@ func (c *Changes) Empty() bool {
 // resource instance of the given address, if any. Returns nil if no change is
 // planned.
 func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstanceChangeSrc {
-	addrStr := addr.String()
 	for _, rc := range c.Resources {
-		if rc.Addr.String() == addrStr && rc.DeposedKey == states.NotDeposed {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
 			return rc
 		}
 	}
@@ -81,9 +80,8 @@ func (c *Changes) InstancesForConfigResource(addr addrs.ConfigResource) []*Resou
 // the resource instance of the given address, if any. Returns nil if no change
 // is planned.
 func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key states.DeposedKey) *ResourceInstanceChangeSrc {
-	addrStr := addr.String()
 	for _, rc := range c.Resources {
-		if rc.Addr.String() == addrStr && rc.DeposedKey == key {
+		if rc.Addr.Equal(addr) && rc.DeposedKey == key {
 			return rc
 		}
 	}
@@ -94,9 +92,8 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 // OutputValue returns the planned change for the output value with the
 //  given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
-	addrStr := addr.String()
 	for _, oc := range c.Outputs {
-		if oc.Addr.String() == addrStr {
+		if oc.Addr.Equal(addr) {
 			return oc
 		}
 	}
