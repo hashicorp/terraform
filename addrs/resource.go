@@ -29,7 +29,7 @@ func (r Resource) String() string {
 }
 
 func (r Resource) Equal(o Resource) bool {
-	return r.String() == o.String()
+	return r.Mode == o.Mode && r.Name == o.Name && r.Type == o.Type
 }
 
 // Instance produces the address for a specific instance of the receiver
@@ -91,7 +91,7 @@ func (r ResourceInstance) String() string {
 }
 
 func (r ResourceInstance) Equal(o ResourceInstance) bool {
-	return r.String() == o.String()
+	return r.Key == o.Key && r.Resource.Equal(o.Resource)
 }
 
 // Absolute returns an AbsResourceInstance from the receiver and the given module
@@ -171,7 +171,7 @@ func (r AbsResource) String() string {
 }
 
 func (r AbsResource) Equal(o AbsResource) bool {
-	return r.String() == o.String()
+	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
 // AbsResourceInstance is an absolute address for a resource instance under a
@@ -236,7 +236,7 @@ func (r AbsResourceInstance) String() string {
 }
 
 func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
-	return r.String() == o.String()
+	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
 // Less returns true if the receiver should sort before the given other value
@@ -320,7 +320,7 @@ func (r ConfigResource) String() string {
 }
 
 func (r ConfigResource) Equal(o ConfigResource) bool {
-	return r.String() == o.String()
+	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
 // ResourceMode defines which lifecycle applies to a given resource. Each
