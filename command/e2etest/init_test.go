@@ -344,6 +344,10 @@ func TestInitProviderNotFound(t *testing.T) {
 		if !strings.Contains(oneLineStderr, "provider registry registry.terraform.io does not have a provider named registry.terraform.io/hashicorp/nonexist") {
 			t.Errorf("expected error message is missing from output:\n%s", stderr)
 		}
+
+		if !strings.Contains(oneLineStderr, "If you meant to install a provider from the registry that is not in the hashicorp namespace, the required_providers block for your module is not optional") {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
 	})
 
 	t.Run("local provider not found", func(t *testing.T) {
@@ -375,6 +379,57 @@ func TestInitProviderNotFound(t *testing.T) {
 │ Could not retrieve the list of available versions for provider
 │ hashicorp/nonexist: provider registry registry.terraform.io does not have a
 │ provider named registry.terraform.io/hashicorp/nonexist
+│ 
+│ If you meant to install a provider from the registry that is not in the
+│ hashicorp namespace, the required_providers block for your module is not
+│ optional. All modules should specify their required_providers so that
+│ external consumers will get the correct providers when using a module.
+╵
+
+`
+		if stripAnsi(stderr) != expectedErr {
+			t.Errorf("wrong output:\n%s", cmp.Diff(stripAnsi(stderr), expectedErr))
+		}
+	})
+}
+
+func TestInitProviderNotFoundNonDefault(t *testing.T) {
+	t.Parallel()
+
+	// This test will reach out to registry.terraform.io as one of the possible
+	// installation locations for teamterraform/nonexist, which should not exist,
+	// so long as no one publishes a provider under teamterraform/nonexist
+	skipIfCannotAccessNetwork(t)
+
+	fixturePath := filepath.Join("testdata", "provider-not-found-non-default")
+	tf := e2e.NewBinary(terraformBin, fixturePath)
+	defer tf.Close()
+
+	t.Run("registry provider not found", func(t *testing.T) {
+		_, stderr, err := tf.Run("init", "-no-color")
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		oneLineStderr := strings.ReplaceAll(stderr, "\n", " ")
+
+		if strings.Contains(oneLineStderr, "If you meant to install a provider from the registry that is not in the hashicorp namespace, the required_providers block for your module is not optional") {
+			t.Errorf("error message contains required_providers suggestion and should not:\n%s", stderr)
+		}
+	})
+
+	t.Run("special characters enabled", func(t *testing.T) {
+		_, stderr, err := tf.Run("init")
+		if err == nil {
+			t.Fatal("expected error, got success")
+		}
+
+		expectedErr := `╷
+│ Error: Failed to query available provider packages
+│` + ` ` + `
+│ Could not retrieve the list of available versions for provider
+│ teamterraform/nonexist: provider registry registry.terraform.io does not
+│ have a provider named registry.terraform.io/teamterraform/nonexist
 ╵
 
 `
