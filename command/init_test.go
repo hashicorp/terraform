@@ -1621,19 +1621,6 @@ provider "registry.terraform.io/hashicorp/test" {
 }
 
 func TestInit_providerLockFileReadonly(t *testing.T) {
-	// Create a temporary working directory that is empty
-	td := tempDir(t)
-	testCopyDir(t, testFixturePath("init-provider-lock-file"), td)
-	defer os.RemoveAll(td)
-	defer testChdir(t, td)()
-
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": {"1.2.3"},
-	})
-	defer close()
-
-	lockFile := ".terraform.lock.hcl"
-
 	// The hash in here is for the fake package that newMockProviderSource produces
 	// (so it'll change if newMockProviderSource starts producing different contents)
 	inputLockFile := strings.TrimSpace(`
@@ -1677,44 +1664,75 @@ provider "registry.terraform.io/hashicorp/test" {
 `)
 
 	cases := []struct {
-		desc  string
-		input string
-		args  []string
-		ok    bool
-		want  string
+		desc      string
+		fixture   string
+		providers map[string][]string
+		input     string
+		args      []string
+		ok        bool
+		want      string
 	}{
 		{
-			desc:  "default",
-			input: inputLockFile,
-			args:  []string{},
-			ok:    true,
-			want:  updatedLockFile,
+			desc:      "default",
+			fixture:   "init-provider-lock-file",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{},
+			ok:        true,
+			want:      updatedLockFile,
 		},
 		{
-			desc:  "readonly",
+			desc:      "readonly",
+			fixture:   "init-provider-lock-file",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{"-lockfile=readonly"},
+			ok:        true,
+			want:      inputLockFile,
+		},
+		{
+			desc:      "conflict",
+			fixture:   "init-provider-lock-file",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{"-lockfile=readonly", "-upgrade"},
+			ok:        false,
+			want:      inputLockFile,
+		},
+		{
+			desc:      "checksum mismatch",
+			fixture:   "init-provider-lock-file",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     badLockFile,
+			args:      []string{"-lockfile=readonly"},
+			ok:        false,
+			want:      badLockFile,
+		},
+		{
+			desc:    "reject to change required provider dependences",
+			fixture: "init-provider-lock-file-readonly-add",
+			providers: map[string][]string{
+				"test": {"1.2.3"},
+				"foo":  {"1.0.0"},
+			},
 			input: inputLockFile,
 			args:  []string{"-lockfile=readonly"},
-			ok:    true,
-			want:  inputLockFile,
-		},
-		{
-			desc:  "conflict",
-			input: inputLockFile,
-			args:  []string{"-lockfile=readonly", "-upgrade"},
 			ok:    false,
 			want:  inputLockFile,
-		},
-		{
-			desc:  "checksum mismatch",
-			input: badLockFile,
-			args:  []string{"-lockfile=readonly"},
-			ok:    false,
-			want:  badLockFile,
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
+			// Create a temporary working directory that is empty
+			td := tempDir(t)
+			testCopyDir(t, testFixturePath(tc.fixture), td)
+			defer os.RemoveAll(td)
+			defer testChdir(t, td)()
+
+			providerSource, close := newMockProviderSource(t, tc.providers)
+			defer close()
+
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1727,6 +1745,7 @@ provider "registry.terraform.io/hashicorp/test" {
 			}
 
 			// write input lockfile
+			lockFile := ".terraform.lock.hcl"
 			if err := ioutil.WriteFile(lockFile, []byte(tc.input), 0644); err != nil {
 				t.Fatalf("failed to write input lockfile: %s", err)
 			}

@@ -203,6 +203,23 @@ func (l *Locks) Equal(other *Locks) bool {
 	return true
 }
 
+// EqualProviderAddress returns true if the given Locks have the same provider
+// address as the receiver. This doesn't check version and hashes.
+func (l *Locks) EqualProviderAddress(other *Locks) bool {
+	if len(l.providers) != len(other.providers) {
+		return false
+	}
+
+	for addr := range l.providers {
+		_, ok := other.providers[addr]
+		if !ok {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Empty returns true if the given Locks object contains no actual locks.
 //
 // UI code might wish to use this to distinguish a lock file being

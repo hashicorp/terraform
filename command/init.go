@@ -758,8 +758,20 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// it's the smallest change relative to what came before it, which was
 	// a hidden JSON file specifically for tracking providers.)
 	if !newLocks.Equal(previousLocks) {
-		// if readonly mode, suppress changes
+		// if readonly mode
 		if flagLockfile == "readonly" {
+			// check if required provider dependences change
+			if !newLocks.EqualProviderAddress(previousLocks) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					`Reject to change required provider dependences in the readonly mode`,
+					`Changes to the required provider dependences were detected, but it's not allowed in the readonly mode. To change requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+				))
+				return true, true, diags
+			}
+
+			// suppress updating the file to record any new information it learned,
+			// such as a hash using a new scheme.
 			log.Println("[DEBUG] init: detected changing dependencies, but suppressed by readonly mode")
 			return true, false, diags
 		}
