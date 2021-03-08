@@ -772,7 +772,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			// suppress updating the file to record any new information it learned,
 			// such as a hash using a new scheme.
-			log.Println("[DEBUG] init: detected changing dependencies, but suppressed by readonly mode")
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				`Provider lock file not updated`,
+				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
+			))
 			return true, false, diags
 		}
 
