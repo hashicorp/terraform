@@ -519,6 +519,13 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 						"\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider. To see which modules are currently depending on %s, run the following command:\n    terraform providers",
 						alternative.ForDisplay(), provider.ForDisplay(),
 					)
+				} else if provider.IsDefault() {
+					// If the provider uses the default namespace let's give a suggestion that the user may want
+					// to use required_providers. (all modules should do this, but the default namespace behavior
+					// was intended to allow a smoother transition)
+					// In the future, it would be helpful if this could suggest providers based on existing known
+					// non-default domain [hashicorp] providers
+					suggestion = "\n\nIf you meant to install a provider from the registry that is not in the hashicorp namespace, the required_providers block for your module is not optional. All modules should specify their required_providers so that external consumers will get the correct providers when using a module."
 				}
 
 				diags = diags.Append(tfdiags.Sourceless(
