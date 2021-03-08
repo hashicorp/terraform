@@ -43,6 +43,14 @@ func (n *NodeDestroyResourceInstance) Name() string {
 	return n.ResourceInstanceAddr().String() + " (destroy)"
 }
 
+func (n *NodeDestroyResourceInstance) ProvidedBy() (addr addrs.ProviderConfig, exact bool) {
+	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		// indicate that this node does not require a configured provider
+		return nil, true
+	}
+	return n.NodeAbstractResourceInstance.ProvidedBy()
+}
+
 // GraphNodeDestroyer
 func (n *NodeDestroyResourceInstance) DestroyAddr() *addrs.AbsResourceInstance {
 	addr := n.ResourceInstanceAddr()
@@ -126,6 +134,20 @@ func (n *NodeDestroyResourceInstance) References() []*addrs.Reference {
 func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
+	// Eval info is different depending on what kind of resource this is
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return n.managedResourceExecute(ctx)
+	case addrs.DataResourceMode:
+		return n.dataResourceExecute(ctx)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+}
+
+func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	addr := n.ResourceInstanceAddr()
+
 	// Get our state
 	is := n.instanceState
 	if is == nil {
@@ -172,7 +194,7 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 	}
 
 	// Run destroy provisioners if not tainted
-	if state != nil && state.Status != states.ObjectTainted {
+	if state.Status != states.ObjectTainted {
 		applyProvisionersDiags := n.evalApplyProvisioners(ctx, state, false, configs.ProvisionerWhenDestroy)
 		diags = diags.Append(applyProvisionersDiags)
 		// keep the diags separate from the main set until we handle the cleanup
@@ -187,25 +209,25 @@ func (n *NodeDestroyResourceInstance) Execute(ctx EvalContext, op walkOperation)
 
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
-	if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
-		// we pass a nil configuration to apply because we are destroying
-		s, d := n.apply(ctx, state, changeApply, nil, false)
-		state, diags = s, diags.Append(d)
-		// we don't return immediately here on error, so that the state can be
-		// finalized
+	// we pass a nil configuration to apply because we are destroying
+	s, d := n.apply(ctx, state, changeApply, nil, false)
+	state, diags = s, diags.Append(d)
+	// we don't return immediately here on error, so that the state can be
+	// finalized
 
-		err := n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
-		if err != nil {
-			return diags.Append(err)
-		}
-	} else {
-		log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
-		state := ctx.State()
-		state.SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+	err = n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
+	if err != nil {
+		return diags.Append(err)
 	}
 
 	// create the err value for postApplyHook
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
 	return diags
+}
+
+func (n *NodeDestroyResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+	log.Printf("[TRACE] NodeDestroyResourceInstance: removing state object for %s", n.Addr)
+	ctx.State().SetResourceInstanceCurrent(n.Addr, nil, n.ResolvedProvider)
+	return diags.Append(updateStateHook(ctx))
 }
