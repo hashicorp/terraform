@@ -137,7 +137,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
-		&attachDataResourceDependenciesTransformer{},
+		&attachDataResourceDependsOnTransformer{},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
