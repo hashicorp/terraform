@@ -47,7 +47,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
-	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set dependency lockfile mode")
+	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -989,7 +989,7 @@ Options:
                        previously-downloaded objects and install the
                        latest version allowed within configured constraints.
 
-  -lockfile=MODE       Set dependency lockfile mode.
+  -lockfile=MODE       Set a dependency lockfile mode.
                        Currently only "readonly" is valid.
 
 `
