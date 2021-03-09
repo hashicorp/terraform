@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * core: Fix error when using sensitive values in provisioner configuration [GH-27819]
+* core: Fix empty diags not getting associated with source [GH-28029]
 * backend/remote: Fix non-functional `-lock-timeout` argument when using the remote backend with local operations [GH-27845]
 
 ## 0.14.7 (February 17, 2021)
