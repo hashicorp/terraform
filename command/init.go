@@ -34,7 +34,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagFromModule string
+	var flagFromModule, flagLockfile string
 	var flagBackend, flagGet, flagUpgrade, getPlugins bool
 	var flagPluginPath FlagStringSlice
 	var flagVerifyPlugins bool
@@ -54,6 +54,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.BoolVar(&flagVerifyPlugins, "verify-plugins", true, "verify plugins")
+	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -291,7 +292,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath)
+	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath, flagLockfile)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -422,7 +423,7 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
@@ -762,6 +763,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 	mode := providercache.InstallNewProvidersOnly
 	if upgrade {
+		if flagLockfile == "readonly" {
+			c.Ui.Error("The -upgrade flag conflicts with -lockfile=readonly.")
+			return true, true, diags
+		}
+
 		mode = providercache.InstallUpgrades
 	}
 	newLocks, err := inst.EnsureProviderVersions(ctx, previousLocks, reqs, mode)
@@ -843,6 +849,28 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// it's the smallest change relative to what came before it, which was
 	// a hidden JSON file specifically for tracking providers.)
 	if !newLocks.Equal(previousLocks) {
+		// if readonly mode
+		if flagLockfile == "readonly" {
+			// check if required provider dependences change
+			if !newLocks.EqualProviderAddress(previousLocks) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					`Provider dependency changes detected`,
+					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+				))
+				return true, true, diags
+			}
+
+			// suppress updating the file to record any new information it learned,
+			// such as a hash using a new scheme.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				`Provider lock file not updated`,
+				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
+			))
+			return true, false, diags
+		}
+
 		if previousLocks.Empty() {
 			// A change from empty to non-empty is special because it suggests
 			// we're running "terraform init" for the first time against a
@@ -1069,6 +1097,10 @@ Options:
 
   -verify-plugins=true Verify the authenticity and integrity of automatically
                        downloaded plugins.
+
+  -lockfile=MODE       Set a dependency lockfile mode.
+                       Currently only "readonly" is valid.
+
 `
 	return strings.TrimSpace(helpText)
 }
