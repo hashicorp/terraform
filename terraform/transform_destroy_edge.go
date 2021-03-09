@@ -221,6 +221,13 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 						}
 					}
 
+				case GraphNodeProvider:
+					// Providers that may have been required by expansion nodes
+					// that we no longer need can also be removed.
+					if g.UpEdges(n).Len() > 0 {
+						return
+					}
+
 				default:
 					return
 				}
