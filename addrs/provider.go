@@ -23,6 +23,9 @@ type Provider struct {
 // not have an explicit hostname.
 const DefaultRegistryHost = svchost.Hostname("registry.terraform.io")
 
+// DefaultNamespace is the default namespace for providers
+const DefaultNamespace = "hashicorp"
+
 // BuiltInProviderHost is the pseudo-hostname used for the "built-in" provider
 // namespace. Built-in provider addresses must also have their namespace set
 // to BuiltInProviderNamespace in order to be considered as built-in.
@@ -214,7 +217,7 @@ func (pt Provider) IsDefault() bool {
 		panic("called IsDefault() on zero-value addrs.Provider")
 	}
 
-	return pt.Hostname == DefaultRegistryHost && pt.Namespace == "hashicorp"
+	return pt.Hostname == DefaultRegistryHost && pt.Namespace == DefaultNamespace
 }
 
 // Equals returns true if the receiver and other provider have the same attributes.
