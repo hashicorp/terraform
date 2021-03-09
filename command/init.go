@@ -764,8 +764,8 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			if !newLocks.EqualProviderAddress(previousLocks) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					`Reject to change required provider dependences in the readonly mode`,
-					`Changes to the required provider dependences were detected, but it's not allowed in the readonly mode. To change requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+					`Provider dependency changes detected`,
+					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
 				))
 				return true, true, diags
 			}
