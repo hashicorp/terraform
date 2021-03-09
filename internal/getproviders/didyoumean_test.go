@@ -21,10 +21,14 @@ func TestMissingProviderSuggestion(t *testing.T) {
 
 		// testRegistrySource handles -/legacy as a valid legacy provider
 		// lookup mapping to legacycorp/legacy.
+		legacyAddr := addrs.NewDefaultProvider("legacy")
 		got := MissingProviderSuggestion(
 			ctx,
 			addrs.NewDefaultProvider("legacy"),
 			source,
+			Requirements{
+				legacyAddr: MustParseVersionConstraints(">= 1.0.0"),
+			},
 		)
 
 		want := addrs.Provider{
@@ -48,19 +52,48 @@ func TestMissingProviderSuggestion(t *testing.T) {
 		// copy in some other namespace for v0.13 or later to use. Our naming
 		// suggestions ignore the v0.12-compatible one and suggest the
 		// other one.
-		got := MissingProviderSuggestion(
-			ctx,
-			addrs.NewDefaultProvider("moved"),
-			source,
-		)
-
+		moved := addrs.NewDefaultProvider("moved")
 		want := addrs.Provider{
 			Hostname:  defaultRegistryHost,
 			Namespace: "acme",
 			Type:      "moved",
 		}
+
+		got := MissingProviderSuggestion(
+			ctx,
+			moved,
+			source,
+			Requirements{
+				moved: MustParseVersionConstraints(">= 1.0.0"),
+			},
+		)
+
 		if got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+
+		// If a provider has moved, but there's provider requirements
+		// for something of the same type, we'll return that one
+		// and skip the legacy lookup process. In practice,
+		// hopefully this is also "acme" but it's "zcme" here to
+		// exercise the codepath
+		want2 := addrs.Provider{
+			Hostname:  defaultRegistryHost,
+			Namespace: "zcme",
+			Type:      "moved",
+		}
+		got2 := MissingProviderSuggestion(
+			ctx,
+			moved,
+			source,
+			Requirements{
+				moved: MustParseVersionConstraints(">= 1.0.0"),
+				want2: MustParseVersionConstraints(">= 1.0.0"),
+			},
+		)
+
+		if got2 != want2 {
+			t.Errorf("wrong result\ngot:  %s\nwant: %s", got2, want2)
 		}
 	})
 	t.Run("invalid response", func(t *testing.T) {
@@ -76,6 +109,9 @@ func TestMissingProviderSuggestion(t *testing.T) {
 			ctx,
 			want,
 			source,
+			Requirements{
+				want: MustParseVersionConstraints(">= 1.0.0"),
+			},
 		)
 		if got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
@@ -98,9 +134,35 @@ func TestMissingProviderSuggestion(t *testing.T) {
 			ctx,
 			want,
 			source,
+			Requirements{
+				want: MustParseVersionConstraints(">= 1.0.0"),
+			},
 		)
 		if got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+
+		// Checking the case where we have a default namespace
+		// but a provider in the requirements that can fulfill it
+		wantDiffNamespace := addrs.Provider{
+			Hostname:  svchost.Hostname("example.com"),
+			Namespace: "nuhuh",
+			Type:      "foo",
+		}
+		gotDiffNamespace := MissingProviderSuggestion(
+			ctx,
+			addrs.Provider{
+				Hostname:  svchost.Hostname("example.com"),
+				Namespace: "hashicorp",
+				Type:      "foo",
+			},
+			source,
+			Requirements{
+				wantDiffNamespace: MustParseVersionConstraints(">= 1.0.0"),
+			},
+		)
+		if gotDiffNamespace != wantDiffNamespace {
+			t.Errorf("wrong result\ngot:  %s\nwant: %s", gotDiffNamespace, wantDiffNamespace)
 		}
 	})
 	t.Run("another namespace", func(t *testing.T) {
@@ -109,8 +171,8 @@ func TestMissingProviderSuggestion(t *testing.T) {
 		defer close()
 
 		// Because this provider address isn't in
-		// registry.terraform.io/hashicorp/..., MissingProviderSuggestion won't
-		// even attempt to make a suggestion for it.
+		// registry.terraform.io/hashicorp/..., MissingProviderSuggestion
+		// will provide the same addr since there's no alternative in Requirements
 		want := addrs.Provider{
 			Hostname:  defaultRegistryHost,
 			Namespace: "whatever",
@@ -120,9 +182,37 @@ func TestMissingProviderSuggestion(t *testing.T) {
 			ctx,
 			want,
 			source,
+			Requirements{
+				want: MustParseVersionConstraints(">= 1.0.0"),
+			},
 		)
 		if got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+
+		// If there is a provider required that has the same type,
+		// but different namespace, we can suggest that
+		foo := addrs.Provider{
+			Hostname:  defaultRegistryHost,
+			Namespace: "hashicorp",
+			Type:      "foo",
+		}
+		realFoo := addrs.Provider{
+			Hostname:  defaultRegistryHost,
+			Namespace: "acme",
+			Type:      "foo",
+		}
+		got2 := MissingProviderSuggestion(
+			ctx,
+			foo,
+			source,
+			Requirements{
+				foo:     MustParseVersionConstraints(">= 1.0.0"),
+				realFoo: MustParseVersionConstraints(">= 1.0.0"),
+			},
+		)
+		if got2 != realFoo {
+			t.Errorf("wrong result\ngot:  %s\nwant: %s", got2, realFoo)
 		}
 	})
 }
