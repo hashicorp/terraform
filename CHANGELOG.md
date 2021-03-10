@@ -2,9 +2,14 @@
 
 BUG FIXES:
 
+* config: Update HCL package to fix panics when indexing using sensitive values [GH-28034]
 * core: Fix error when using sensitive values in provisioner configuration [GH-27819]
 * core: Fix empty diags not getting associated with source [GH-28029]
 * backend/remote: Fix non-functional `-lock-timeout` argument when using the remote backend with local operations [GH-27845]
+
+ENHANCEMENTS:
+
+* config: Terraform now does text processing using the rules and tables defined for Unicode 13. Previous versions were using Unicode 12 rules [GH-28034]
 
 ## 0.14.7 (February 17, 2021)
 
