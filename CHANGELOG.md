@@ -1,15 +1,15 @@
-## 0.14.8 (Unreleased)
+## 0.14.8 (March 10, 2021)
 
 BUG FIXES:
 
-* config: Update HCL package to fix panics when indexing using sensitive values [GH-28034]
-* core: Fix error when using sensitive values in provisioner configuration [GH-27819]
-* core: Fix empty diags not getting associated with source [GH-28029]
-* backend/remote: Fix non-functional `-lock-timeout` argument when using the remote backend with local operations [GH-27845]
+* config: Update HCL package to fix panics when indexing using sensitive values ([#28034](https://github.com/hashicorp/terraform/issues/28034))
+* core: Fix error when using sensitive values in provisioner configuration ([#27819](https://github.com/hashicorp/terraform/issues/27819))
+* core: Fix empty diags not getting associated with source ([#28029](https://github.com/hashicorp/terraform/issues/28029))
+* backend/remote: Fix non-functional `-lock-timeout` argument when using the remote backend with local operations ([#27845](https://github.com/hashicorp/terraform/issues/27845))
 
 ENHANCEMENTS:
 
-* config: Terraform now does text processing using the rules and tables defined for Unicode 13. Previous versions were using Unicode 12 rules [GH-28034]
+* config: Terraform now does text processing using the rules and tables defined for Unicode 13. Previous versions were using Unicode 12 rules ([#28034](https://github.com/hashicorp/terraform/issues/28034))
 
 ## 0.14.7 (February 17, 2021)
 
