@@ -30,13 +30,17 @@ import (
 // careful to give it only as a possibility and not necessarily a suitable
 // replacement for the given provider.
 //
+// In practice today this function only knows how to suggest alternatives for
+// "default" providers, which is to say ones that are in the hashicorp
+// namespace in the Terraform registry. It will always return no result for
+// any other provider. That might change in future if we introduce other ways
+// to discover provider suggestions.
+//
 // If the given context is cancelled then this function might not return a
 // renaming suggestion even if one would've been available for a completed
 // request.
 func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source Source, reqs Requirements) addrs.Provider {
-	// If the missing provider is in a non-default [hashicorp] namespace,
-	// don't do further processing
-	if addr.Namespace != addrs.DefaultNamespace {
+	if !addr.IsDefault() {
 		return addr
 	}
 
@@ -47,13 +51,6 @@ func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source 
 		if req != addr && req.Type == addr.Type {
 			return req
 		}
-	}
-
-	// If no provider from existing requirements is suggested, if
-	// we aren't using the default registry, go ahead and return the addr
-	// as we cannot guarantee the other registry implements this lookup
-	if addr.Hostname != addrs.DefaultRegistryHost {
-		return addr
 	}
 
 	// Our strategy here, for a default provider, is to use the default

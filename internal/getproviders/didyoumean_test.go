@@ -141,29 +141,6 @@ func TestMissingProviderSuggestion(t *testing.T) {
 		if got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
-
-		// Checking the case where we have a default namespace
-		// but a provider in the requirements that can fulfill it
-		wantDiffNamespace := addrs.Provider{
-			Hostname:  svchost.Hostname("example.com"),
-			Namespace: "nuhuh",
-			Type:      "foo",
-		}
-		gotDiffNamespace := MissingProviderSuggestion(
-			ctx,
-			addrs.Provider{
-				Hostname:  svchost.Hostname("example.com"),
-				Namespace: "hashicorp",
-				Type:      "foo",
-			},
-			source,
-			Requirements{
-				wantDiffNamespace: MustParseVersionConstraints(">= 1.0.0"),
-			},
-		)
-		if gotDiffNamespace != wantDiffNamespace {
-			t.Errorf("wrong result\ngot:  %s\nwant: %s", gotDiffNamespace, wantDiffNamespace)
-		}
 	})
 	t.Run("another namespace", func(t *testing.T) {
 		ctx := context.Background()
