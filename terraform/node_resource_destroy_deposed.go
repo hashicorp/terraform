@@ -159,6 +159,11 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 		return diags.Append(err)
 	}
 
+	if state == nil {
+		diags = diags.Append(fmt.Errorf("missing deposed state for %s (%s)", n.Addr, n.DeposedKey))
+		return diags
+	}
+
 	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
 	diags = diags.Append(destroyPlanDiags)
 	if diags.HasErrors() {

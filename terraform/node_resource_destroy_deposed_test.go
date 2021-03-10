@@ -176,3 +176,28 @@ aws_instance.foo: (1 deposed)
   Deposed ID 1 = i-abc123
 	`)
 }
+
+func TestNodeDestroyDeposedResourceInstanceObject_ExecuteMissingState(t *testing.T) {
+	p := simpleMockProvider()
+	ctx := &MockEvalContext{
+		StateState:           states.NewState().SyncWrapper(),
+		ProviderProvider:     simpleMockProvider(),
+		ProviderSchemaSchema: p.ProviderSchema(),
+		ChangesChanges:       plans.NewChanges().SyncWrapper(),
+	}
+
+	node := NodeDestroyDeposedResourceInstanceObject{
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			Addr: mustResourceInstanceAddr("test_object.foo"),
+			NodeAbstractResource: NodeAbstractResource{
+				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			},
+		},
+		DeposedKey: states.NewDeposedKey(),
+	}
+	err := node.Execute(ctx, walkApply)
+
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
