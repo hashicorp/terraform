@@ -28,6 +28,7 @@ Multiple workspaces are currently supported by the following backends:
  * [AzureRM](/docs/language/settings/backends/azurerm.html)
  * [Consul](/docs/language/settings/backends/consul.html)
  * [COS](/docs/language/settings/backends/cos.html)
+ * [etcdv3](/docs/language/settings/backends/etcdv3.html)
  * [GCS](/docs/language/settings/backends/gcs.html)
  * [Kubernetes](/docs/language/settings/backends/kubernetes.html)
  * [Local](/docs/language/settings/backends/local.html)
