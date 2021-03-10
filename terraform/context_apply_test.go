@@ -11938,10 +11938,6 @@ resource "test_resource" "foo" {
 func TestContext2Apply_variableSensitivityProviders(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-	experiments = [provider_sensitive_attrs]
-}
-
 resource "test_resource" "foo" {
 	sensitive_value = "should get marked"
 }

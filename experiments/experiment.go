@@ -22,8 +22,8 @@ func init() {
 	// Each experiment constant defined above must be registered here as either
 	// a current or a concluded experiment.
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
+	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
-	registerCurrentExperiment(SuppressProviderSensitiveAttrs)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
