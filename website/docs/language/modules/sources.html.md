@@ -360,7 +360,7 @@ information.
 
 You can use archives stored in S3 as module sources using the special `s3::`
 prefix, followed by
-[an S3 bucket object URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html#access-bucket-intro).
+[an S3 bucket object URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html).
 
 ```hcl
 module "consul" {
