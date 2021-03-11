@@ -24,24 +24,10 @@ func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
 		return &blockType{}
 	}
 	ret := &blockType{
-		Block:    marshalBlock(&nestedBlock.Block),
-		MinItems: uint64(nestedBlock.MinItems),
-		MaxItems: uint64(nestedBlock.MaxItems),
-	}
-
-	switch nestedBlock.Nesting {
-	case configschema.NestingSingle:
-		ret.NestingMode = "single"
-	case configschema.NestingGroup:
-		ret.NestingMode = "group"
-	case configschema.NestingList:
-		ret.NestingMode = "list"
-	case configschema.NestingSet:
-		ret.NestingMode = "set"
-	case configschema.NestingMap:
-		ret.NestingMode = "map"
-	default:
-		ret.NestingMode = "invalid"
+		Block:       marshalBlock(&nestedBlock.Block),
+		MinItems:    uint64(nestedBlock.MinItems),
+		MaxItems:    uint64(nestedBlock.MaxItems),
+		NestingMode: nestingModeString(nestedBlock.Nesting),
 	}
 	return ret
 }
@@ -74,4 +60,21 @@ func marshalBlock(configBlock *configschema.Block) *block {
 	}
 
 	return &ret
+}
+
+func nestingModeString(mode configschema.NestingMode) string {
+	switch mode {
+	case configschema.NestingSingle:
+		return "single"
+	case configschema.NestingGroup:
+		return "group"
+	case configschema.NestingList:
+		return "list"
+	case configschema.NestingSet:
+		return "set"
+	case configschema.NestingMap:
+		return "map"
+	default:
+		return "invalid"
+	}
 }
