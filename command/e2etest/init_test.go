@@ -344,6 +344,10 @@ func TestInitProviderNotFound(t *testing.T) {
 		if !strings.Contains(oneLineStderr, "provider registry registry.terraform.io does not have a provider named registry.terraform.io/hashicorp/nonexist") {
 			t.Errorf("expected error message is missing from output:\n%s", stderr)
 		}
+
+		if !strings.Contains(oneLineStderr, "All modules should specify their required_providers") {
+			t.Errorf("expected error message is missing from output:\n%s", stderr)
+		}
 	})
 
 	t.Run("local provider not found", func(t *testing.T) {
@@ -375,6 +379,12 @@ func TestInitProviderNotFound(t *testing.T) {
 │ Could not retrieve the list of available versions for provider
 │ hashicorp/nonexist: provider registry registry.terraform.io does not have a
 │ provider named registry.terraform.io/hashicorp/nonexist
+│ 
+│ All modules should specify their required_providers so that external
+│ consumers will get the correct providers when using a module. To see which
+│ modules are currently depending on hashicorp/nonexist, run the following
+│ command:
+│     terraform providers
 ╵
 
 `
