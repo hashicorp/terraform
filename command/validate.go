@@ -8,6 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	viewsjson "github.com/hashicorp/terraform/command/views/json"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -118,77 +119,34 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool) int {
 	switch {
 	case jsonOutput:
-		// FIXME: Eventually we'll probably want to factor this out somewhere
-		// to support machine-readable outputs for other commands too, but for
-		// now it's simplest to do this inline here.
-		type Pos struct {
-			Line   int `json:"line"`
-			Column int `json:"column"`
-			Byte   int `json:"byte"`
-		}
-		type Range struct {
-			Filename string `json:"filename"`
-			Start    Pos    `json:"start"`
-			End      Pos    `json:"end"`
-		}
-		type Diagnostic struct {
-			Severity string `json:"severity,omitempty"`
-			Summary  string `json:"summary,omitempty"`
-			Detail   string `json:"detail,omitempty"`
-			Range    *Range `json:"range,omitempty"`
-		}
 		type Output struct {
 			// We include some summary information that is actually redundant
 			// with the detailed diagnostics, but avoids the need for callers
 			// to re-implement our logic for deciding these.
-			Valid        bool         `json:"valid"`
-			ErrorCount   int          `json:"error_count"`
-			WarningCount int          `json:"warning_count"`
-			Diagnostics  []Diagnostic `json:"diagnostics"`
+			Valid        bool                    `json:"valid"`
+			ErrorCount   int                     `json:"error_count"`
+			WarningCount int                     `json:"warning_count"`
+			Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
 		}
 
 		var output Output
 		output.Valid = true // until proven otherwise
+		configSources := c.configSources()
 		for _, diag := range diags {
-			var jsonDiag Diagnostic
+			output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
+
 			switch diag.Severity() {
 			case tfdiags.Error:
-				jsonDiag.Severity = "error"
 				output.ErrorCount++
 				output.Valid = false
 			case tfdiags.Warning:
-				jsonDiag.Severity = "warning"
 				output.WarningCount++
 			}
-
-			desc := diag.Description()
-			jsonDiag.Summary = desc.Summary
-			jsonDiag.Detail = desc.Detail
-
-			ranges := diag.Source()
-			if ranges.Subject != nil {
-				subj := ranges.Subject
-				jsonDiag.Range = &Range{
-					Filename: subj.Filename,
-					Start: Pos{
-						Line:   subj.Start.Line,
-						Column: subj.Start.Column,
-						Byte:   subj.Start.Byte,
-					},
-					End: Pos{
-						Line:   subj.End.Line,
-						Column: subj.End.Column,
-						Byte:   subj.End.Byte,
-					},
-				}
-			}
-
-			output.Diagnostics = append(output.Diagnostics, jsonDiag)
 		}
 		if output.Diagnostics == nil {
 			// Make sure this always appears as an array in our output, since
 			// this is easier to consume for dynamically-typed languages.
-			output.Diagnostics = []Diagnostic{}
+			output.Diagnostics = []*viewsjson.Diagnostic{}
 		}
 
 		j, err := json.MarshalIndent(&output, "", "  ")

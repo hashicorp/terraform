@@ -19,6 +19,14 @@
           "column": 15,
           "byte": 99
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "provider \"aws\" {",
+        "start_line": 7,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 14,
+        "values": []
       }
     }
   ]

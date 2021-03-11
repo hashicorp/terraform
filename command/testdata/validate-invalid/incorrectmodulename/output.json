@@ -16,9 +16,17 @@
         },
         "end": {
           "line": 1,
-          "column": 23,
-          "byte": 22
+          "column": 24,
+          "byte": 23
         }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 22,
+        "highlight_end_offset": 23,
+        "values": []
       }
     },
     {
@@ -37,6 +45,14 @@
           "column": 22,
           "byte": 21
         }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 7,
+        "highlight_end_offset": 21,
+        "values": []
       }
     },
     {
@@ -55,6 +71,14 @@
           "column": 15,
           "byte": 58
         }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 14,
+        "values": []
       }
     },
     {
@@ -73,6 +97,14 @@
           "column": 26,
           "byte": 69
         }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 25,
+        "values": []
       }
     },
     {
@@ -91,6 +123,14 @@
           "column": 15,
           "byte": 41
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"super\" {",
+        "start_line": 4,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 14,
+        "values": []
       }
     },
     {
@@ -109,6 +149,14 @@
           "column": 22,
           "byte": 21
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 21,
+        "values": []
       }
     }
   ]
