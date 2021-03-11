@@ -213,56 +213,10 @@ const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 // and returns true if any differences were found and written
 func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) blockBodyDiffResult {
 	path = ctyEnsurePathCapacity(path, 1)
-
 	result := blockBodyDiffResult{}
 
-	blankBeforeBlocks := false
-	{
-		attrNames := make([]string, 0, len(schema.Attributes))
-		attrNameLen := 0
-		for name := range schema.Attributes {
-			oldVal := ctyGetAttrMaybeNull(old, name)
-			newVal := ctyGetAttrMaybeNull(new, name)
-			if oldVal.IsNull() && newVal.IsNull() {
-				// Skip attributes where both old and new values are null
-				// (we do this early here so that we'll do our value alignment
-				// based on the longest attribute name that has a change, rather
-				// than the longest attribute name in the full set.)
-				continue
-			}
-
-			attrNames = append(attrNames, name)
-			if len(name) > attrNameLen {
-				attrNameLen = len(name)
-			}
-		}
-		sort.Strings(attrNames)
-		if len(attrNames) > 0 {
-			blankBeforeBlocks = true
-		}
-
-		for _, name := range attrNames {
-			attrS := schema.Attributes[name]
-			oldVal := ctyGetAttrMaybeNull(old, name)
-			newVal := ctyGetAttrMaybeNull(new, name)
-
-			result.bodyWritten = true
-			skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
-			if skipped {
-				result.skippedAttributes++
-			}
-		}
-
-		if result.skippedAttributes > 0 {
-			noun := "attributes"
-			if result.skippedAttributes == 1 {
-				noun = "attribute"
-			}
-			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+2))
-			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedAttributes, noun)))
-		}
-	}
+	// write the attributes diff
+	blankBeforeBlocks := p.writeAttrsDiff(schema.Attributes, old, new, indent, path, &result)
 
 	{
 		blockTypeNames := make([]string, 0, len(schema.BlockTypes))
@@ -297,6 +251,63 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	}
 
 	return result
+}
+
+func (p *blockBodyDiffPrinter) writeAttrsDiff(
+	attrsS map[string]*configschema.Attribute,
+	old, new cty.Value,
+	indent int,
+	path cty.Path,
+	result *blockBodyDiffResult) bool {
+
+	blankBeforeBlocks := false
+
+	attrNames := make([]string, 0, len(attrsS))
+	attrNameLen := 0
+	for name := range attrsS {
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
+		if oldVal.IsNull() && newVal.IsNull() {
+			// Skip attributes where both old and new values are null
+			// (we do this early here so that we'll do our value alignment
+			// based on the longest attribute name that has a change, rather
+			// than the longest attribute name in the full set.)
+			continue
+		}
+
+		attrNames = append(attrNames, name)
+		if len(name) > attrNameLen {
+			attrNameLen = len(name)
+		}
+	}
+	sort.Strings(attrNames)
+	if len(attrNames) > 0 {
+		blankBeforeBlocks = true
+	}
+
+	for _, name := range attrNames {
+		attrS := attrsS[name]
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
+
+		result.bodyWritten = true
+		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+		if skipped {
+			result.skippedAttributes++
+		}
+	}
+
+	if result.skippedAttributes > 0 {
+		noun := "attributes"
+		if result.skippedAttributes == 1 {
+			noun = "attribute"
+		}
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedAttributes, noun)))
+	}
+
+	return blankBeforeBlocks
 }
 
 // getPlanActionAndShow returns the action value
