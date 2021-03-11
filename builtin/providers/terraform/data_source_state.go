@@ -56,6 +56,24 @@ func dataSourceRemoteStateGetSchema() providers.Schema {
 					DescriptionKind: configschema.StringMarkdown,
 					Optional:        true,
 				},
+				"foo": {
+					NestedType: &configschema.Object{
+						Attributes: map[string]*configschema.Attribute{
+							"one": {
+								Type:     cty.String,
+								Optional: true,
+							},
+							"two": {
+								Type:     cty.Number,
+								Optional: true,
+							},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+					Description:     "Testing something",
+					DescriptionKind: configschema.StringMarkdown,
+					Optional:        true,
+				},
 			},
 		},
 	}
