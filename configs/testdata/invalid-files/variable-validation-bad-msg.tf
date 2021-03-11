@@ -1,6 +1,6 @@
 variable "validation" {
   validation {
-    condition     = var.validation != 4
-    error_message = "not four" # ERROR: Invalid validation error message
+    condition = var.validation != 4
+    # ERROR: Missing required argument
   }
 }
