@@ -30,6 +30,25 @@
                                 "optional": true,
                                 "computed": true,
                                 "description_kind": "plain"
+                            },
+                            "volumes": {
+                                "nested_type": {
+                                    "nesting_mode": "list",
+                                    "attributes": {
+                                        "size": {
+                                            "type": "string",
+                                            "required": true,
+                                            "description_kind": "plain"
+                                        },
+                                        "mount_point": {
+                                            "type": "string",
+                                            "required": true,
+                                            "description_kind": "plain"
+                                        }
+                                    }
+                                },
+                                "description_kind": "plain",
+                                "optional": true
                             }
                         },
                         "description_kind": "plain"

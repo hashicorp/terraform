@@ -4,17 +4,26 @@ import (
 	"encoding/json"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type attribute struct {
-	AttributeType   json.RawMessage `json:"type,omitempty"`
-	Description     string          `json:"description,omitempty"`
-	DescriptionKind string          `json:"description_kind,omitempty"`
-	Deprecated      bool            `json:"deprecated,omitempty"`
-	Required        bool            `json:"required,omitempty"`
-	Optional        bool            `json:"optional,omitempty"`
-	Computed        bool            `json:"computed,omitempty"`
-	Sensitive       bool            `json:"sensitive,omitempty"`
+	AttributeType       json.RawMessage `json:"type,omitempty"`
+	AttributeNestedType *nestedType     `json:"nested_type,omitempty"`
+	Description         string          `json:"description,omitempty"`
+	DescriptionKind     string          `json:"description_kind,omitempty"`
+	Deprecated          bool            `json:"deprecated,omitempty"`
+	Required            bool            `json:"required,omitempty"`
+	Optional            bool            `json:"optional,omitempty"`
+	Computed            bool            `json:"computed,omitempty"`
+	Sensitive           bool            `json:"sensitive,omitempty"`
+}
+
+type nestedType struct {
+	Attributes  map[string]*attribute `json:"attributes,omitempty"`
+	NestingMode string                `json:"nesting_mode,omitempty"`
+	MinItems    uint64                `json:"min_items,omitempty"`
+	MaxItems    uint64                `json:"max_items,omitempty"`
 }
 
 func marshalStringKind(sk configschema.StringKind) string {
@@ -27,12 +36,7 @@ func marshalStringKind(sk configschema.StringKind) string {
 }
 
 func marshalAttribute(attr *configschema.Attribute) *attribute {
-	// we're not concerned about errors because at this point the schema has
-	// already been checked and re-checked.
-	attrTy, _ := attr.Type.MarshalJSON()
-
-	return &attribute{
-		AttributeType:   attrTy,
+	ret := &attribute{
 		Description:     attr.Description,
 		DescriptionKind: marshalStringKind(attr.DescriptionKind),
 		Required:        attr.Required,
@@ -41,4 +45,27 @@ func marshalAttribute(attr *configschema.Attribute) *attribute {
 		Sensitive:       attr.Sensitive,
 		Deprecated:      attr.Deprecated,
 	}
+
+	// we're not concerned about errors because at this point the schema has
+	// already been checked and re-checked.
+	if attr.Type != cty.NilType {
+		attrTy, _ := attr.Type.MarshalJSON()
+		ret.AttributeType = attrTy
+	}
+
+	if attr.NestedType != nil {
+		nestedTy := nestedType{
+			MinItems:    uint64(attr.NestedType.MinItems),
+			MaxItems:    uint64(attr.NestedType.MaxItems),
+			NestingMode: nestingModeString(attr.NestedType.Nesting),
+		}
+		attrs := make(map[string]*attribute, len(attr.NestedType.Attributes))
+		for k, attr := range attr.NestedType.Attributes {
+			attrs[k] = marshalAttribute(attr)
+		}
+		nestedTy.Attributes = attrs
+		ret.AttributeNestedType = &nestedTy
+	}
+
+	return ret
 }
