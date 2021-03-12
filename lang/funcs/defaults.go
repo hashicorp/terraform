@@ -94,6 +94,12 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		return v
 
 	case wantTy.IsObjectType():
+		// For structural types, a null input value must be passed through. We
+		// do not apply default values for missing optional structural values,
+		// only their contents.
+		if input.IsNull() {
+			return input
+		}
 		atys := wantTy.AttributeTypes()
 		ret := map[string]cty.Value{}
 		for attr, aty := range atys {
@@ -107,6 +113,13 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		return cty.ObjectVal(ret)
 
 	case wantTy.IsTupleType():
+		// For structural types, a null input value must be passed through. We
+		// do not apply default values for missing optional structural values,
+		// only their contents.
+		if input.IsNull() {
+			return input
+		}
+
 		l := wantTy.Length()
 		ret := make([]cty.Value, l)
 		for i := 0; i < l; i++ {
