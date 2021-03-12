@@ -13,8 +13,20 @@ type ProviderMeta struct {
 }
 
 func decodeProviderMetaBlock(block *hcl.Block) (*ProviderMeta, hcl.Diagnostics) {
+	// provider_meta must be a static map. We can verify this by attempting to
+	// evaluate the values.
+	attrs, diags := block.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	for _, attr := range attrs {
+		_, d := attr.Expr.Value(nil)
+		diags = append(diags, d...)
+	}
+
 	// verify that the local name is already localized or produce an error.
-	diags := checkProviderNameNormalized(block.Labels[0], block.DefRange)
+	diags = append(diags, checkProviderNameNormalized(block.Labels[0], block.DefRange)...)
 
 	return &ProviderMeta{
 		Provider:      block.Labels[0],
