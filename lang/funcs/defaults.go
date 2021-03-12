@@ -97,7 +97,11 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		// For structural types, a null input value must be passed through. We
 		// do not apply default values for missing optional structural values,
 		// only their contents.
-		if input.IsNull() {
+		//
+		// We also pass through the input if the fallback value is null. This
+		// can happen if the given defaults do not include a value for this
+		// attribute.
+		if input.IsNull() || fallback.IsNull() {
 			return input
 		}
 		atys := wantTy.AttributeTypes()
@@ -116,7 +120,11 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		// For structural types, a null input value must be passed through. We
 		// do not apply default values for missing optional structural values,
 		// only their contents.
-		if input.IsNull() {
+		//
+		// We also pass through the input if the fallback value is null. This
+		// can happen if the given defaults do not include a value for this
+		// attribute.
+		if input.IsNull() || fallback.IsNull() {
 			return input
 		}
 

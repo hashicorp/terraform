@@ -398,6 +398,51 @@ func TestDefaults(t *testing.T) {
 				"b": cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
 			}),
 		},
+		// When applying default values to structural types, we permit null
+		// values in the defaults, and just pass through the input value.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"p": cty.StringVal("xyz"),
+						"q": cty.StringVal("xyz"),
+					}),
+				}),
+				"b": cty.SetVal([]cty.Value{
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(0),
+						cty.NumberIntVal(2),
+					}),
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(1),
+						cty.NumberIntVal(3),
+					}),
+				}),
+				"c": cty.NullVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"c": cty.StringVal("tada"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"p": cty.StringVal("xyz"),
+						"q": cty.StringVal("xyz"),
+					}),
+				}),
+				"b": cty.SetVal([]cty.Value{
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(0),
+						cty.NumberIntVal(2),
+					}),
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(1),
+						cty.NumberIntVal(3),
+					}),
+				}),
+				"c": cty.StringVal("tada"),
+			}),
+		},
 		// When applying default values to collection types, null collections in the
 		// input should result in empty collections in the output.
 		{
