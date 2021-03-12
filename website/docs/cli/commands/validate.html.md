@@ -123,7 +123,7 @@ The nested objects in `diagnostics` have the following properties:
     additional rules for processing other text conventions, but will do so within
     the bounds of the rules above to achieve backward-compatibility.
 
-* `range` (object): An optional object describing a portion of the configuration
+* `range` (object): An optional object referencing a portion of the configuration
   source code that the diagnostic message relates to. For errors, this will
   typically indicate the bounds of the specific block header, attribute, or
   expression which was detected as invalid.
@@ -136,6 +136,41 @@ The nested objects in `diagnostics` have the following properties:
     Not all diagnostic messages are connected with specific portions of the
     configuration, so `range` will be omitted or `null` for diagnostic messages
     where it isn't relevant.
+
+* `snippet` (object): An optional object including an excerpt of the
+  configuration source code that the diagnostic message relates to.
+
+    The snippet information includes:
+
+    * `context` (string): An optional summary of the root context of the
+      diagnostic. For example, this might be the resource block containing the
+      expression which triggered the diagnostic. For some diagnostics this
+      information is not available, and then this property will be `null`.
+
+    * `code` (string): A snippet of Terraform configuration including the
+      source of the diagnostic. This can be multiple lines and may include
+      additional configuration source code around the expression which
+      triggered the diagnostic.
+
+    * `start_line` (number): A one-based line count representing the position
+      in the source file at which the `code` excerpt begins. This is not
+      necessarily the same value as `range.start.line`, as it is possible for
+      `code` to include one or more lines of context before the source of the
+      diagnostic.
+
+    * `highlight_start_offset` (number): A zero-based character offset into the
+      `code` string, pointing at the start of the expression which triggered
+      the diagnostic.
+
+    * `highlight_end_offset` (number): A zero-based character offset into the
+      `code` string, pointing at the end of the expression which triggered the
+      diagnostic.
+
+    * `values` (array of objects): Contains zero or more expression values
+      which may be useful in understanding the source of a diagnostic in a
+      complex expression. These expression value objects are described below.
+
+### Source Position
 
 A source position object, as used in the `range` property of a diagnostic
 object, has the following properties:
@@ -153,3 +188,17 @@ exact positions used for particular error messages are intended for human
 interpretation only and subject to change in future versions of Terraform due
 either to improvements to the error reporting or changes in implementation
 details of the language parser/evaluator.
+
+### Expression Value
+
+An expression value object gives additional information about a value which is
+part of the expression which triggered the diagnostic. This is especially
+useful when using `for_each` or similar constructs, in order to identify
+exactly which values are responsible for an error. The object has two properties:
+
+* `traversal` (string): An HCL traversal string, such as `var.instance_count`.
+
+* `statement` (string): A short English-language fragment describing the value
+  of the expression when the diagnostic was triggered. The contents of this
+  string are intended to be human-readable and are subject to change in future
+  versions of Terraform.
