@@ -370,6 +370,34 @@ func TestDefaults(t *testing.T) {
 			Defaults: cty.StringVal("hello"),
 			WantErr:  `only object types and collections of object types can have defaults applied`,
 		},
+		// When applying default values to structural types, null objects or
+		// tuples in the input should be passed through.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Object(map[string]cty.Type{
+					"x": cty.String,
+					"y": cty.String,
+				})),
+				"b": cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"x": cty.StringVal("hello"),
+					"y": cty.StringVal("there"),
+				}),
+				"b": cty.TupleVal([]cty.Value{
+					cty.StringVal("how are"),
+					cty.StringVal("you?"),
+				}),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Object(map[string]cty.Type{
+					"x": cty.String,
+					"y": cty.String,
+				})),
+				"b": cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			}),
+		},
 		// When applying default values to collection types, null collections in the
 		// input should result in empty collections in the output.
 		{
