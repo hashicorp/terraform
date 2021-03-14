@@ -10,7 +10,7 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state in the [etcd](https://coreos.com/etcd/) KV store with a given prefix.
+Stores the state in the [etcd](https://etcd.io/) KV store with a given prefix.
 
 This backend supports [state locking](/docs/language/state/locking.html).
 
