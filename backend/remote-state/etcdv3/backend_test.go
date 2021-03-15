@@ -60,12 +60,12 @@ func TestBackend(t *testing.T) {
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"endpoints": etcdv3Endpoints,
+		"endpoints": stringsToInterfaces(etcdv3Endpoints),
 		"prefix":    prefix,
 	}))
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"endpoints": etcdv3Endpoints,
+		"endpoints": stringsToInterfaces(etcdv3Endpoints),
 		"prefix":    prefix,
 	}))
 
@@ -83,17 +83,25 @@ func TestBackend_lockDisabled(t *testing.T) {
 
 	// Get the backend. We need two to test locking.
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"endpoints": etcdv3Endpoints,
+		"endpoints": stringsToInterfaces(etcdv3Endpoints),
 		"prefix":    prefix,
 		"lock":      false,
 	}))
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"endpoints": etcdv3Endpoints,
+		"endpoints": stringsToInterfaces(etcdv3Endpoints),
 		"prefix":    prefix + "/" + "different", // Diff so locking test would fail if it was locking
 		"lock":      false,
 	}))
 
 	// Test
 	backend.TestBackendStateLocks(t, b1, b2)
+}
+
+func stringsToInterfaces(strSlice []string) []interface{} {
+	var interfaceSlice []interface{}
+	for _, v := range strSlice {
+		interfaceSlice = append(interfaceSlice, v)
+	}
+	return interfaceSlice
 }
