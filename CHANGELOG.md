@@ -1,5 +1,9 @@
 ## 0.15.0-beta2 (unreleased)
 
+UPGRADE NOTES:
+
+The output of `terraform validate -json` has been extended to include a code snippet object for each diagnostic. If present, this object contains an excerpt of the source code which triggered the diagnostic. Existing fields in the JSON output remain the same as before. [See the `validate` documentation for more details on the JSON output format](https://www.terraform.io/docs/cli/commands/validate.html). [GH-28057]
+
 ENHANCEMENTS:
 
 * core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
@@ -9,7 +13,8 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 [GH-27944]
-* functions: Fix panics in `defaults` [GH-27979]
+* functions: Fix panics in `defaults` caused by missing nested optional collection types, and mismatched primitive fallback types [GH-27979]
+* functions: Fix panics in `defaults` caused by missing nested optional structural types, and corresponding missing defaults [GH-28067]
 
 ## 0.15.0-beta1 (February 24, 2021)
 
