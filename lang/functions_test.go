@@ -853,6 +853,41 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"to_seconds": {
+			{
+				`to_seconds("1 minute")`,
+				cty.NumberIntVal(60),
+			},
+		},
+
+		"to_days": {
+			{
+				`to_days("52 weeks")`,
+				cty.NumberIntVal(364),
+			},
+		},
+
+		"to_hours": {
+			{
+				`to_hours("90 minutes")`,
+				cty.NumberFloatVal(1.5),
+			},
+		},
+
+		"to_minutes": {
+			{
+				`to_minutes("2 hours")`,
+				cty.NumberIntVal(120),
+			},
+		},
+
+		"to_weeks": {
+			{
+				`to_weeks("3.5 days")`,
+				cty.NumberFloatVal(0.5),
+			},
+		},
+
 		"tobool": {
 			{
 				`tobool("false")`,

@@ -149,6 +149,10 @@ func (s *Scope) Functions() map[string]function.Function {
 			return s.funcs
 		})
 
+		for _, interval := range funcs.ValidIntervalUnits() {
+			s.funcs[fmt.Sprintf("to_%s", interval)] = funcs.NewTimeConvFunc(interval)
+		}
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
