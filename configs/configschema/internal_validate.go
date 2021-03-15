@@ -103,3 +103,72 @@ func (b *Block) internalValidate(prefix string, err error) error {
 
 	return err
 }
+
+// InternalValidate returns an error if the receiving attribute and its child
+// schema definitions have any consistencies with the documented rules for
+// valid schema.
+func (a *Attribute) InternalValidate(name string) error {
+	if a == nil {
+		return fmt.Errorf("attribute schema is nil")
+	}
+	return a.internalValidate(name, "")
+}
+
+func (a *Attribute) internalValidate(name, prefix string) error {
+	var err error
+
+	if a == nil {
+		err = multierror.Append(err, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
+	}
+	if !validName.MatchString(name) {
+		err = multierror.Append(err, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
+	}
+	if !a.Optional && !a.Required && !a.Computed {
+		err = multierror.Append(err, fmt.Errorf("%s%s: must set Optional, Required or Computed", prefix, name))
+	}
+	if a.Optional && a.Required {
+		err = multierror.Append(err, fmt.Errorf("%s%s: cannot set both Optional and Required", prefix, name))
+	}
+	if a.Computed && a.Required {
+		err = multierror.Append(err, fmt.Errorf("%s%s: cannot set both Computed and Required", prefix, name))
+	}
+
+	if a.Type != cty.NilType {
+		if a.NestedType != nil {
+			err = multierror.Append(fmt.Errorf("%s: Type and NestedType cannot both be set", name))
+		}
+	}
+
+	if a.NestedType != nil {
+		switch a.NestedType.Nesting {
+		case NestingSingle:
+			switch {
+			case a.NestedType.MinItems != a.NestedType.MaxItems:
+				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must match in NestingSingle mode", prefix, name))
+			case a.NestedType.MinItems < 0 || a.NestedType.MinItems > 1:
+				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode", prefix, name))
+			}
+		case NestingList, NestingSet:
+			if a.NestedType.MinItems > a.NestedType.MaxItems && a.NestedType.MaxItems != 0 {
+				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems must be less than or equal to MaxItems in %s mode", prefix, name, a.NestedType.Nesting))
+			}
+			if a.NestedType.Nesting == NestingSet {
+				ety := a.NestedType.ImpliedType()
+				if ety.HasDynamicTypes() {
+					// This is not permitted because the HCL (cty) set implementation
+					// needs to know the exact type of set elements in order to
+					// properly hash them, and so can't support mixed types.
+					err = multierror.Append(err, fmt.Errorf("%s%s: NestingSet blocks may not contain attributes of cty.DynamicPseudoType", prefix, name))
+				}
+			}
+		case NestingMap:
+			if a.NestedType.MinItems != 0 || a.NestedType.MaxItems != 0 {
+				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must both be 0 in NestingMap mode", prefix, name))
+			}
+		default:
+			err = multierror.Append(err, fmt.Errorf("%s%s: invalid nesting mode %s", prefix, name, a.NestedType.Nesting))
+		}
+	}
+
+	return fmt.Errorf("either Type or NestedType must be defined")
+}

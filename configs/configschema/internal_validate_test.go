@@ -10,12 +10,12 @@ import (
 
 func TestBlockInternalValidate(t *testing.T) {
 	tests := map[string]struct {
-		Block    *Block
-		ErrCount int
+		Block *Block
+		Errs  []string
 	}{
 		"empty": {
 			&Block{},
-			0,
+			[]string{},
 		},
 		"valid": {
 			&Block{
@@ -73,7 +73,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"attribute with no flags set": {
 			&Block{
@@ -83,7 +83,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // must set one of the flags
+			[]string{"foo: must set Optional, Required or Computed"},
 		},
 		"attribute required and optional": {
 			&Block{
@@ -95,7 +95,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // both required and optional
+			[]string{"foo: cannot set both Optional and Required"},
 		},
 		"attribute required and computed": {
 			&Block{
@@ -107,7 +107,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // both required and computed
+			[]string{"foo: cannot set both Computed and Required"},
 		},
 		"attribute optional and computed": {
 			&Block{
@@ -119,7 +119,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"attribute with missing type": {
 			&Block{
@@ -129,7 +129,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // Type must be set
+			[]string{"foo: Type must be set to something other than cty.NilType"},
 		},
 		"attribute with invalid name": {
 			&Block{
@@ -140,7 +140,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // name may not contain uppercase letters
+			[]string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
 		"block type with invalid name": {
 			&Block{
@@ -150,7 +150,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // name may not contain uppercase letters
+			[]string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
 		"colliding names": {
 			&Block{
@@ -166,7 +166,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // "foo" is defined as both attribute and block type
+			[]string{"foo: name defined as both attribute and child block type"},
 		},
 		"nested block with badness": {
 			&Block{
@@ -185,7 +185,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // nested_bad is both required and optional
+			[]string{"bad.nested_bad: cannot set both Optional and Required"},
 		},
 		"nested list block with dynamically-typed attribute": {
 			&Block{
@@ -203,7 +203,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"nested set block with dynamically-typed attribute": {
 			&Block{
@@ -221,11 +221,11 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // NestingSet blocks may not contain attributes of cty.DynamicPseudoType
+			[]string{"bad: NestingSet blocks may not contain attributes of cty.DynamicPseudoType"},
 		},
 		"nil": {
 			nil,
-			1, // block is nil
+			[]string{"top-level block schema is nil"},
 		},
 		"nil attr": {
 			&Block{
@@ -233,7 +233,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					"bad": nil,
 				},
 			},
-			1, // attribute schema is nil
+			[]string{"bad: attribute schema is nil"},
 		},
 		"nil block type": {
 			&Block{
@@ -241,17 +241,24 @@ func TestBlockInternalValidate(t *testing.T) {
 					"bad": nil,
 				},
 			},
-			1, // block schema is nil
+			[]string{"bad: block schema is nil"},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			errs := multierrorErrors(test.Block.InternalValidate())
-			if got, want := len(errs), test.ErrCount; got != want {
+			if got, want := len(errs), len(test.Errs); got != want {
 				t.Errorf("wrong number of errors %d; want %d", got, want)
 				for _, err := range errs {
 					t.Logf("- %s", err.Error())
+				}
+			}
+			if len(errs) > 0 {
+				for i := range errs {
+					if errs[i].Error() != test.Errs[i] {
+						t.Errorf("wrong error: got %s, want %s", errs[i].Error(), test.Errs[i])
+					}
 				}
 			}
 		})
