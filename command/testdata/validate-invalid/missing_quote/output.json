@@ -19,6 +19,14 @@
           "column": 18,
           "byte": 114
         }
+      },
+      "snippet": {
+        "context": "resource \"test_instance\" \"foo\"",
+        "code": "      name = test",
+        "start_line": 6,
+        "highlight_start_offset": 13,
+        "highlight_end_offset": 17,
+        "values": []
       }
     }
   ]
