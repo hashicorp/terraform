@@ -57,7 +57,7 @@ Operators are expressions that transform other expressions, like adding two
 numbers (`+`) or comparing two values to get a bool (`==`, `>=`, etc.).
 
 This information has moved to
-[Operators](/docs/language/expressions/references.html).
+[Operators](/docs/language/expressions/operators.html).
 
 <div style="height: 100vh; margin: 0; padding: 0;"></div>
 
