@@ -12,7 +12,7 @@ import (
 var validName = regexp.MustCompile(`^[a-z0-9_]+$`)
 
 // InternalValidate returns an error if the receiving block and its child
-// schema definitions have any consistencies with the documented rules for
+// schema definitions have any inconsistencies with the documented rules for
 // valid schema.
 //
 // This is intended to be used within unit tests to detect when a given
@@ -31,21 +31,7 @@ func (b *Block) internalValidate(prefix string, err error) error {
 			err = multierror.Append(err, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
 			continue
 		}
-		if !validName.MatchString(name) {
-			err = multierror.Append(err, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
-		}
-		if !attrS.Optional && !attrS.Required && !attrS.Computed {
-			err = multierror.Append(err, fmt.Errorf("%s%s: must set Optional, Required or Computed", prefix, name))
-		}
-		if attrS.Optional && attrS.Required {
-			err = multierror.Append(err, fmt.Errorf("%s%s: cannot set both Optional and Required", prefix, name))
-		}
-		if attrS.Computed && attrS.Required {
-			err = multierror.Append(err, fmt.Errorf("%s%s: cannot set both Computed and Required", prefix, name))
-		}
-		if attrS.Type == cty.NilType {
-			err = multierror.Append(err, fmt.Errorf("%s%s: Type must be set to something other than cty.NilType", prefix, name))
-		}
+		err = multierror.Append(err, attrS.internalValidate(name, prefix))
 	}
 
 	for name, blockS := range b.BlockTypes {
@@ -105,7 +91,7 @@ func (b *Block) internalValidate(prefix string, err error) error {
 }
 
 // InternalValidate returns an error if the receiving attribute and its child
-// schema definitions have any consistencies with the documented rules for
+// schema definitions have any inconsistencies with the documented rules for
 // valid schema.
 func (a *Attribute) InternalValidate(name string) error {
 	if a == nil {
@@ -117,9 +103,6 @@ func (a *Attribute) InternalValidate(name string) error {
 func (a *Attribute) internalValidate(name, prefix string) error {
 	var err error
 
-	if a == nil {
-		err = multierror.Append(err, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
-	}
 	if !validName.MatchString(name) {
 		err = multierror.Append(err, fmt.Errorf("%s%s: name may contain only lowercase letters, digits and underscores", prefix, name))
 	}
@@ -131,6 +114,10 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 	}
 	if a.Computed && a.Required {
 		err = multierror.Append(err, fmt.Errorf("%s%s: cannot set both Computed and Required", prefix, name))
+	}
+
+	if a.Type == cty.NilType && a.NestedType == nil {
+		err = multierror.Append(err, fmt.Errorf("%s%s: either Type or NestedType must be defined", prefix, name))
 	}
 
 	if a.Type != cty.NilType {
@@ -168,7 +155,14 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 		default:
 			err = multierror.Append(err, fmt.Errorf("%s%s: invalid nesting mode %s", prefix, name, a.NestedType.Nesting))
 		}
+		for name, attrS := range a.NestedType.Attributes {
+			if attrS == nil {
+				err = multierror.Append(err, fmt.Errorf("%s%s: attribute schema is nil", prefix, name))
+				continue
+			}
+			err = multierror.Append(err, attrS.internalValidate(name, prefix))
+		}
 	}
 
-	return fmt.Errorf("either Type or NestedType must be defined")
+	return err
 }

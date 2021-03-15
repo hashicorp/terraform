@@ -20,54 +20,54 @@ func TestBlockInternalValidate(t *testing.T) {
 		"valid": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 					},
-					"bar": &Attribute{
+					"bar": {
 						Type:     cty.String,
 						Optional: true,
 					},
-					"baz": &Attribute{
+					"baz": {
 						Type:     cty.String,
 						Computed: true,
 					},
-					"baz_maybe": &Attribute{
+					"baz_maybe": {
 						Type:     cty.String,
 						Optional: true,
 						Computed: true,
 					},
 				},
 				BlockTypes: map[string]*NestedBlock{
-					"single": &NestedBlock{
+					"single": {
 						Nesting: NestingSingle,
 						Block:   Block{},
 					},
-					"single_required": &NestedBlock{
+					"single_required": {
 						Nesting:  NestingSingle,
 						Block:    Block{},
 						MinItems: 1,
 						MaxItems: 1,
 					},
-					"list": &NestedBlock{
+					"list": {
 						Nesting: NestingList,
 						Block:   Block{},
 					},
-					"list_required": &NestedBlock{
+					"list_required": {
 						Nesting:  NestingList,
 						Block:    Block{},
 						MinItems: 1,
 					},
-					"set": &NestedBlock{
+					"set": {
 						Nesting: NestingSet,
 						Block:   Block{},
 					},
-					"set_required": &NestedBlock{
+					"set_required": {
 						Nesting:  NestingSet,
 						Block:    Block{},
 						MinItems: 1,
 					},
-					"map": &NestedBlock{
+					"map": {
 						Nesting: NestingMap,
 						Block:   Block{},
 					},
@@ -78,7 +78,7 @@ func TestBlockInternalValidate(t *testing.T) {
 		"attribute with no flags set": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type: cty.String,
 					},
 				},
@@ -88,7 +88,7 @@ func TestBlockInternalValidate(t *testing.T) {
 		"attribute required and optional": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 						Optional: true,
@@ -100,7 +100,7 @@ func TestBlockInternalValidate(t *testing.T) {
 		"attribute required and computed": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 						Computed: true,
@@ -112,7 +112,7 @@ func TestBlockInternalValidate(t *testing.T) {
 		"attribute optional and computed": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Optional: true,
 						Computed: true,
@@ -124,17 +124,17 @@ func TestBlockInternalValidate(t *testing.T) {
 		"attribute with missing type": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Optional: true,
 					},
 				},
 			},
-			[]string{"foo: Type must be set to something other than cty.NilType"},
+			[]string{"foo: either Type or NestedType must be defined"},
 		},
 		"attribute with invalid name": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"fooBar": &Attribute{
+					"fooBar": {
 						Type:     cty.String,
 						Optional: true,
 					},
@@ -142,10 +142,45 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
+		"attribute with invalid NestedType nesting": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						NestedType: &Object{
+							Nesting:  NestingSingle,
+							MinItems: 10,
+							MaxItems: 10,
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"foo: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode"},
+		},
+		"attribute with invalid NestedType attribute": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"foo": {
+									Type:     cty.String,
+									Required: true,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"foo: cannot set both Optional and Required"},
+		},
 		"block type with invalid name": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"fooBar": &NestedBlock{
+					"fooBar": {
 						Nesting: NestingSingle,
 					},
 				},
@@ -155,13 +190,13 @@ func TestBlockInternalValidate(t *testing.T) {
 		"colliding names": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Optional: true,
 					},
 				},
 				BlockTypes: map[string]*NestedBlock{
-					"foo": &NestedBlock{
+					"foo": {
 						Nesting: NestingSingle,
 					},
 				},
@@ -171,11 +206,11 @@ func TestBlockInternalValidate(t *testing.T) {
 		"nested block with badness": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingSingle,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.String,
 									Required: true,
 									Optional: true,
@@ -190,11 +225,11 @@ func TestBlockInternalValidate(t *testing.T) {
 		"nested list block with dynamically-typed attribute": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingList,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.DynamicPseudoType,
 									Optional: true,
 								},
@@ -208,11 +243,11 @@ func TestBlockInternalValidate(t *testing.T) {
 		"nested set block with dynamically-typed attribute": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingSet,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.DynamicPseudoType,
 									Optional: true,
 								},
@@ -253,11 +288,12 @@ func TestBlockInternalValidate(t *testing.T) {
 				for _, err := range errs {
 					t.Logf("- %s", err.Error())
 				}
-			}
-			if len(errs) > 0 {
-				for i := range errs {
-					if errs[i].Error() != test.Errs[i] {
-						t.Errorf("wrong error: got %s, want %s", errs[i].Error(), test.Errs[i])
+			} else {
+				if len(errs) > 0 {
+					for i := range errs {
+						if errs[i].Error() != test.Errs[i] {
+							t.Errorf("wrong error: got %s, want %s", errs[i].Error(), test.Errs[i])
+						}
 					}
 				}
 			}
