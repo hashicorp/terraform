@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -190,8 +189,6 @@ func TestEvaluatorGetResource(t *testing.T) {
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.foo": rc,
 				},
-				// Necessary while provider sensitive attrs are experimental
-				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
 			},
 		},
 		State: stateSync,
@@ -421,8 +418,6 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 						},
 					},
 				},
-				// Necessary while provider sensitive attrs are experimental
-				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
 			},
 		},
 		State:   stateSync,
