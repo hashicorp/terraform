@@ -7,6 +7,7 @@ The output of `terraform validate -json` has been extended to include a code sni
 ENHANCEMENTS:
 
 * core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
+* core: provider-defined sensitive attributes redaction is no longer experimental, but default behavior [GH-28036]
 * init: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures [GH-28014]
 * init: Add `-lockfile=readonly` flag, which suppresses writing changes to the dependency lock file. Depencies must be able to be verified against the read-only lock file, or initialization will fail. This is useful if you are managing the lock file in a separate process and want to avoid adding new hashes for existing dependencies. [GH-27630]
 
