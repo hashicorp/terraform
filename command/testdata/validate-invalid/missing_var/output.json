@@ -19,6 +19,14 @@
           "column": 36,
           "byte": 132
         }
+      },
+      "snippet": {
+        "context": "resource \"test_instance\" \"foo\"",
+        "code": "      description = var.description",
+        "start_line": 6,
+        "highlight_start_offset": 20,
+        "highlight_end_offset": 35,
+        "values": []
       }
     }
   ]

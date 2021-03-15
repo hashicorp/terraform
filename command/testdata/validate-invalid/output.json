@@ -19,6 +19,14 @@
           "column": 8,
           "byte": 7
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "resorce \"test_instance\" \"foo\" { # Intentional typo to test error reporting",
+        "start_line": 1,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 7,
+        "values": []
       }
     }
   ]

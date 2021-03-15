@@ -19,6 +19,14 @@
           "column": 22,
           "byte": 67
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"multi_module\" {",
+        "start_line": 5,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 21,
+        "values": []
       }
     },
     {
@@ -37,6 +45,14 @@
           "column": 22,
           "byte": 67
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"multi_module\" {",
+        "start_line": 5,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 21,
+        "values": []
       }
     }
   ]
