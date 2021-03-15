@@ -888,6 +888,13 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	workspace, err := b.getRemoteWorkspace(context.Background(), workspaceName)
 	if err != nil {
+		// If the workspace doesn't exist, there can be no compatibility
+		// problem, so we can return. This is most likely to happen when
+		// migrating state from a local backend to a new workspace.
+		if err == tfe.ErrResourceNotFound {
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Error looking up workspace",
