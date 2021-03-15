@@ -131,17 +131,18 @@ func TestBlockInternalValidate(t *testing.T) {
 			},
 			[]string{"foo: either Type or NestedType must be defined"},
 		},
-		"attribute with invalid name": {
-			&Block{
-				Attributes: map[string]*Attribute{
-					"fooBar": {
-						Type:     cty.String,
-						Optional: true,
-					},
-				},
-			},
-			[]string{"fooBar: name may contain only lowercase letters, digits and underscores"},
+		/* FIXME: This caused errors when applied to existing providers (oci)
+		and cannot be enforced without coordination.
+
+		"attribute with invalid name": {&Block{Attributes:
+		    map[string]*Attribute{"fooBar": {Type:     cty.String, Optional:
+		    true,
+		            },
+		        },
+		    },
+		    []string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
+		*/
 		"attribute with invalid NestedType nesting": {
 			&Block{
 				Attributes: map[string]*Attribute{

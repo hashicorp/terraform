@@ -142,6 +142,11 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		for t, r := range resp.ResourceTypes {
+			if err := r.Block.InternalValidate(); err != nil {
+				diags = diags.Append(
+					fmt.Errorf("invalid schema for resource type %s provider %q: %s", t, name, err.Error()),
+				)
+			}
 			s.ResourceTypes[t] = r.Block
 			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 			if r.Version < 0 {
@@ -152,6 +157,11 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		for t, d := range resp.DataSources {
+			if err := d.Block.InternalValidate(); err != nil {
+				diags = diags.Append(
+					fmt.Errorf("invalid schema for data source type %s provider %q: %s", t, name, err.Error()),
+				)
+			}
 			s.DataSources[t] = d.Block
 			if d.Version < 0 {
 				// We're not using the version numbers here yet, but we'll check
