@@ -55,9 +55,9 @@ func TestExperimentsConfig(t *testing.T) {
 		}
 		got := diags[0]
 		want := &hcl.Diagnostic{
-			Severity: hcl.DiagError,
+			Severity: hcl.DiagWarning,
 			Summary:  `Experiment has concluded`,
-			Detail:   `Experiment "concluded" is no longer available. Reticulate your splines.`,
+			Detail:   `Experiment "concluded" is no longer available and you may remove this experiment's keyword from your configuration. Reticulate your splines.`,
 			Subject: &hcl.Range{
 				Filename: "testdata/experiments/concluded/concluded_experiment.tf",
 				Start:    hcl.Pos{Line: 2, Column: 18, Byte: 29},

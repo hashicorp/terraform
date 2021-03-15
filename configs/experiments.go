@@ -117,9 +117,9 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 			})
 		case experiments.ConcludedError:
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
+				Severity: hcl.DiagWarning,
 				Summary:  "Experiment has concluded",
-				Detail:   fmt.Sprintf("Experiment %q is no longer available. %s", kw, err.Message),
+				Detail:   fmt.Sprintf("Experiment %q is no longer available and you may remove this experiment's keyword from your configuration. %s", kw, err.Message),
 				Subject:  expr.Range().Ptr(),
 			})
 		case nil:
