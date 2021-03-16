@@ -109,10 +109,10 @@ main evaluation step.
 
 Sensitive values, such as [sensitive input variables](https://www.terraform.io/docs/language/values/variables.html#suppressing-values-in-cli-output),
 [sensitive outputs](https://www.terraform.io/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output),
-or [sensitive resource attributes](https://www.terraform.io/docs/language/expressions/references.html#sensitive-resource-attributes)
-(if the `provider_sensitive_attrs` experiment is enabled), cannot be used as arguments
-to `for_each`. The value used in `for_each` is used to identify the resource instance
-and will always be disclosed in UI output, which is why sensitive values are not allowed.
+or [sensitive resource attributes](https://www.terraform.io/docs/language/expressions/references.html#sensitive-resource-attributes),
+cannot be used as arguments to `for_each`. The value used in `for_each` is used
+to identify the resource instance and will always be disclosed in UI output,
+which is why sensitive values are not allowed.
 Attempts to use sensitive values as `for_each` arguments will result in an error.
 
 If you transform a value containing sensitive data into an argument to be used in `for_each`, be aware that
