@@ -602,6 +602,18 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"nonsensitive": {
+			{
+				// Due to how this test is set up we have no way to get
+				// a sensitive value other than to generate one with
+				// another function, so this is a bit odd but does still
+				// meet the goal of verifying that the "nonsensitive"
+				// function is correctly registered.
+				`nonsensitive(sensitive(1))`,
+				cty.NumberIntVal(1),
+			},
+		},
+
 		"parseint": {
 			{
 				`parseint("100", 10)`,
@@ -686,6 +698,13 @@ func TestFunctions(t *testing.T) {
 			{
 				fmt.Sprintf("rsadecrypt(%#v, %#v)", CipherBase64, PrivateKey),
 				cty.StringVal("message"),
+			},
+		},
+
+		"sensitive": {
+			{
+				`sensitive(1)`,
+				cty.NumberIntVal(1).Mark("sensitive"),
 			},
 		},
 
