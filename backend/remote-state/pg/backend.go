@@ -105,10 +105,14 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if !data.Get("skip_table_creation").(bool) {
+		if _, err := db.Exec("CREATE SEQUENCE IF NOT EXISTS public.global_states_id_seq AS bigint"); err != nil {
+			return err
+		}
+
 		query = `CREATE TABLE IF NOT EXISTS %s.%s (
-			id SERIAL PRIMARY KEY,
-			name TEXT,
-			data TEXT
+			id bigint NOT NULL DEFAULT nextval('public.global_states_id_seq') PRIMARY KEY,
+			name text,
+			data text
 			)`
 		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
 			return err
