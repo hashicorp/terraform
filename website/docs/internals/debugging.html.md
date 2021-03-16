@@ -14,7 +14,7 @@ You can set `TF_LOG` to one of the log levels `TRACE`, `DEBUG`, `INFO`, `WARN` o
 
 Setting `TF_LOG` to `JSON` outputs logs at the `TRACE` level or higher, and uses a parseable JSON encoding as the formatting.
 
-~> **Warning:** The JSON encoding of log files is not considered a stable interface. It may change at any time, without warning. It is meant to support tooling that will be forthcoming, and is the only supported way to interact with JSON formatted logs.
+~> **Warning:** The JSON encoding of log files is not considered a stable interface. It may change at any time, without warning. It is meant to support tooling that will be forthcoming, and that tooling is the only supported way to interact with JSON formatted logs.
 
 Logging can be enabled separately for terraform itself and the provider plugins
 using the `TF_LOG_CORE` or `TF_LOG_PROVIDER` environment variables. These take
