@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* backend/remote: Fix error when migrating existing state to a new workspace on Terraform Cloud/Enterprise. [GH-28105]
+* backend/remote: Fix error when migrating existing state to a new workspace on Terraform Cloud/Enterprise. [GH-28093]
 
 ## 0.14.8 (March 10, 2021)
 
