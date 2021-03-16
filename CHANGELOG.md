@@ -7,6 +7,7 @@ The output of `terraform validate -json` has been extended to include a code sni
 ENHANCEMENTS:
 
 * backend/pg : allow locking of independent states [GH-26924]
+* config: Improved type inference in conditional statements [GH-28116]
 * core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
 * core: provider-defined sensitive attributes redaction is no longer experimental, but default behavior [GH-28036]
 * init: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures [GH-28014]
@@ -15,6 +16,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 [GH-27944]
+* config: Fix multiple upstream crashes with optional attributes and sensitive values [GH-28116]
 * functions: Fix panics in `defaults` caused by missing nested optional collection types, and mismatched primitive fallback types [GH-27979]
 * functions: Fix panics in `defaults` caused by missing nested optional structural types, and corresponding missing defaults [GH-28067]
 
