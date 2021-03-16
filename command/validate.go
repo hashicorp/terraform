@@ -119,7 +119,14 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool) int {
 	switch {
 	case jsonOutput:
+		// FormatVersion represents the version of the json format and will be
+		// incremented for any change to this format that requires changes to a
+		// consuming parser.
+		const FormatVersion = "0.1"
+
 		type Output struct {
+			FormatVersion string `json:"format_version"`
+
 			// We include some summary information that is actually redundant
 			// with the detailed diagnostics, but avoids the need for callers
 			// to re-implement our logic for deciding these.
@@ -129,8 +136,10 @@ func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool
 			Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
 		}
 
-		var output Output
-		output.Valid = true // until proven otherwise
+		output := Output{
+			FormatVersion: FormatVersion,
+			Valid:         true, // until proven otherwise
+		}
 		configSources := c.configSources()
 		for _, diag := range diags {
 			output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))

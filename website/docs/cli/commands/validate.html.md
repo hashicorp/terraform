@@ -57,6 +57,12 @@ to the JSON output setting. For that reason, external software consuming
 Terraform's output should be prepared to find data on stdout that _isn't_ valid
 JSON, which it should then treat as a generic error case.
 
+**Note:** The output includes a `format_version` key, which currently has major
+version zero to indicate that the format is experimental and subject to change.
+A future version will assign a non-zero major version and make stronger
+promises about compatibility. We do not anticipate any significant breaking
+changes to the format before its first major version, however.
+
 In the normal case, Terraform will print a JSON object to the standard output
 stream. The top-level JSON object will have the following properties:
 
