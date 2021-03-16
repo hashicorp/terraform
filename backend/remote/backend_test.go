@@ -629,8 +629,15 @@ func TestRemote_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	defer bCleanup()
 
 	// Attempting to check the version against a workspace which doesn't exist
-	// should fail
+	// should result in no errors
 	diags := b.VerifyWorkspaceTerraformVersion("invalid-workspace")
+	if len(diags) != 0 {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+
+	// Use a special workspace ID to trigger a 500 error, which should result
+	// in a failed check
+	diags = b.VerifyWorkspaceTerraformVersion("network-error")
 	if len(diags) != 1 {
 		t.Fatal("expected diag, but none returned")
 	}
