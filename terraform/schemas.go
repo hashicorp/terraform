@@ -144,7 +144,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		for t, r := range resp.ResourceTypes {
 			if err := r.Block.InternalValidate(); err != nil {
 				diags = diags.Append(
-					fmt.Errorf("invalid schema for resource type %s provider %q: %s", t, name, err.Error()),
+					fmt.Errorf("Internal validation of the provider failed! This is always a bug with the provider itself, and not a user issue. Please report this bug:\n\n%s", fmt.Errorf("resource %s: %s", t, err)),
 				)
 			}
 			s.ResourceTypes[t] = r.Block
@@ -159,7 +159,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		for t, d := range resp.DataSources {
 			if err := d.Block.InternalValidate(); err != nil {
 				diags = diags.Append(
-					fmt.Errorf("invalid schema for data source type %s provider %q: %s", t, name, err.Error()),
+					fmt.Errorf("Internal validation of the provider failed! This is always a bug with the provider itself, and not a user issue. Please report this bug:\n\n%s", err),
 				)
 			}
 			s.DataSources[t] = d.Block
