@@ -8,6 +8,7 @@ ENHANCEMENTS:
 
 * config: Improved type inference in conditional statements [GH-28116]
 * config: provider-defined sensitive attributes redaction is no longer experimental, but default behavior [GH-28036]
+* config: New functions `sensitive` and `nonsensitive` allow module authors to explicitly override Terraform's default infererence of value sensitivity for situations where it's too conservative or not conservative enough. [GH-27341]
 * `terraform init`: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures [GH-28014]
 * `terraform init`: Add `-lockfile=readonly` flag, which suppresses writing changes to the dependency lock file. Depencies must be able to be verified against the read-only lock file, or initialization will fail. This is useful if you are managing the lock file in a separate process and want to avoid adding new hashes for existing dependencies. [GH-27630]
 * core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
