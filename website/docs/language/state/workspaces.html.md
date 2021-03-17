@@ -28,6 +28,7 @@ Multiple workspaces are currently supported by the following backends:
  * [AzureRM](/docs/language/settings/backends/azurerm.html)
  * [Consul](/docs/language/settings/backends/consul.html)
  * [COS](/docs/language/settings/backends/cos.html)
+ * [etcdv3](/docs/language/settings/backends/etcdv3.html)
  * [GCS](/docs/language/settings/backends/gcs.html)
  * [Kubernetes](/docs/language/settings/backends/kubernetes.html)
  * [Local](/docs/language/settings/backends/local.html)
@@ -157,7 +158,7 @@ Where multiple configurations are representing distinct system components
 rather than multiple deployments, data can be passed from one component to
 another using paired resources types and data sources. For example:
 
-* Where a shared [Consul](https://consul.io/) cluster is available, use
+* Where a shared [Consul](https://www.consul.io/) cluster is available, use
   [`consul_key_prefix`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix) to
   publish to the key/value store and [`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys)
   to retrieve those values in other configurations.
