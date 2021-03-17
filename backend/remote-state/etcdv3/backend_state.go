@@ -23,7 +23,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 	result := make([]string, 1, len(res.Kvs)+1)
 	result[0] = backend.DefaultStateName
 	for _, kv := range res.Kvs {
-		result = append(result, strings.TrimPrefix(string(kv.Key), b.prefix))
+		if strings.TrimPrefix(string(kv.Key), b.prefix) != backend.DefaultStateName {
+			result = append(result, strings.TrimPrefix(string(kv.Key), b.prefix))
+		}
 	}
 	sort.Strings(result[1:])
 
