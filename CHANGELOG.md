@@ -1,4 +1,4 @@
-## 0.15.0 (Unreleased)
+## 0.15.0-rc1 (Unreleased)
 
 ## 0.15.0-beta2 (unreleased)
 
