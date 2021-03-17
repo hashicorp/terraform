@@ -2,24 +2,24 @@
 
 UPGRADE NOTES:
 
-The output of `terraform validate -json` has been extended to include a code snippet object for each diagnostic. If present, this object contains an excerpt of the source code which triggered the diagnostic. Existing fields in the JSON output remain the same as before. [See the `validate` documentation for more details on the JSON output format](https://www.terraform.io/docs/cli/commands/validate.html). [GH-28057]
+The output of `terraform validate -json` has been extended to include a code snippet object for each diagnostic. If present, this object contains an excerpt of the source code which triggered the diagnostic. Existing fields in the JSON output remain the same as before. [See the `validate` documentation for more details on the JSON output format](https://www.terraform.io/docs/cli/commands/validate.html). ([#28057](https://github.com/hashicorp/terraform/issues/28057))
 
 ENHANCEMENTS:
 
-* config: Improved type inference in conditional statements [GH-28116]
-* config: provider-defined sensitive attributes redaction is no longer experimental, but default behavior [GH-28036]
-* config: New functions `sensitive` and `nonsensitive` allow module authors to explicitly override Terraform's default infererence of value sensitivity for situations where it's too conservative or not conservative enough. [GH-27341]
-* `terraform init`: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures [GH-28014]
-* `terraform init`: Add `-lockfile=readonly` flag, which suppresses writing changes to the dependency lock file. Depencies must be able to be verified against the read-only lock file, or initialization will fail. This is useful if you are managing the lock file in a separate process and want to avoid adding new hashes for existing dependencies. [GH-27630]
-* core: Reduce string allocations to improve execution time when rendering large plans as JSON [GH-27998]
-* backend/pg: allow locking of independent states [GH-26924]
+* config: Improved type inference in conditional statements ([#28116](https://github.com/hashicorp/terraform/issues/28116))
+* config: provider-defined sensitive attributes redaction is no longer experimental, but default behavior ([#28036](https://github.com/hashicorp/terraform/issues/28036))
+* config: New functions `sensitive` and `nonsensitive` allow module authors to explicitly override Terraform's default infererence of value sensitivity for situations where it's too conservative or not conservative enough. ([#27341](https://github.com/hashicorp/terraform/issues/27341))
+* `terraform init`: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures ([#28014](https://github.com/hashicorp/terraform/issues/28014))
+* `terraform init`: Add `-lockfile=readonly` flag, which suppresses writing changes to the dependency lock file. Depencies must be able to be verified against the read-only lock file, or initialization will fail. This is useful if you are managing the lock file in a separate process and want to avoid adding new hashes for existing dependencies. ([#27630](https://github.com/hashicorp/terraform/issues/27630))
+* core: Reduce string allocations to improve execution time when rendering large plans as JSON ([#27998](https://github.com/hashicorp/terraform/issues/27998))
+* backend/pg: allow locking of independent states ([#26924](https://github.com/hashicorp/terraform/issues/26924))
 
 BUG FIXES:
 
-* cli: Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 [GH-27944]
-* config: Fix multiple upstream crashes with optional attributes and sensitive values [GH-28116]
-* config: Fix panics in `defaults` caused by missing nested optional collection types, and mismatched primitive fallback types [GH-27979]
-* config: Fix panics in `defaults` caused by missing nested optional structural types, and corresponding missing defaults [GH-28067]
+* cli: Fix for missing configuration snippets in diagnostics, a bug introduced in 0.15.0-beta1 ([#27944](https://github.com/hashicorp/terraform/issues/27944))
+* config: Fix multiple upstream crashes with optional attributes and sensitive values ([#28116](https://github.com/hashicorp/terraform/issues/28116))
+* config: Fix panics in `defaults` caused by missing nested optional collection types, and mismatched primitive fallback types ([#27979](https://github.com/hashicorp/terraform/issues/27979))
+* config: Fix panics in `defaults` caused by missing nested optional structural types, and corresponding missing defaults ([#28067](https://github.com/hashicorp/terraform/issues/28067))
 
 ## 0.15.0-beta1 (February 24, 2021)
 
