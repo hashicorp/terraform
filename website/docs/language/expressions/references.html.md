@@ -336,12 +336,13 @@ _derive_ from a sensitive resource attribute will not themselves be considered
 sensitive, and so Terraform will include those derived values in its output
 without redacting them.
 
-Terraform v0.14.0 and later has an
-[experimental feature](/docs/language/settings/index.html#experimental-language-features)
-to treat resource attributes that are marked as sensitive in the same way as
-sensitive input variables and output values, so that Terraform will consider
-any derived values as sensitive too. You can activate that experiment for your
-module using the `provider_sensitive_attrs` experiment keyword:
+Terraform v0.15.0 and later treats resource attributes that are marked as
+sensitive (by the provider) in the same way as sensitive input variables and
+output values, so that Terraform will consider any derived values as sensitive too.
+
+If you are using Terraform v0.14.x, this feature is considered experimental.
+You can activate that experiment for your module using the
+`provider_sensitive_attrs` experiment keyword:
 
 ```hcl
 terraform {
