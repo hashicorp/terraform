@@ -11,12 +11,12 @@ import (
 
 var validName = regexp.MustCompile(`^[a-z0-9_]+$`)
 
-// InternalValidate returns an error if the receiving block and its child
-// schema definitions have any inconsistencies with the documented rules for
-// valid schema.
+// InternalValidate returns an error if the receiving block and its child schema
+// definitions have any inconsistencies with the documented rules for valid
+// schema.
 //
-// This is intended to be used within unit tests to detect when a given
-// schema is invalid.
+// This can be used within unit tests to detect when a given schema is invalid,
+// and is run when terraform loads provider schemas during NewContext.
 func (b *Block) InternalValidate() error {
 	if b == nil {
 		return fmt.Errorf("top-level block schema is nil")
