@@ -152,7 +152,7 @@ your version control system may show you that the file has changed.
 
 There are a few different types of changes that Terraform can potentially make
 to your lock file, which you may need to understand in order to review the
-propsed changes. The following sections will describe these common situations.
+proposed changes. The following sections will describe these common situations.
 
 ### Dependency on a new provider
 
