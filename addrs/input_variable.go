@@ -26,6 +26,7 @@ func (v InputVariable) Absolute(m ModuleInstance) AbsInputVariableInstance {
 // AbsInputVariableInstance is the address of an input variable within a
 // particular module instance.
 type AbsInputVariableInstance struct {
+	debuggable
 	Module   ModuleInstance
 	Variable InputVariable
 }
@@ -39,6 +40,10 @@ func (m ModuleInstance) InputVariable(name string) AbsInputVariableInstance {
 			Name: name,
 		},
 	}
+}
+
+func (v AbsInputVariableInstance) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(v.Module)
 }
 
 func (v AbsInputVariableInstance) String() string {

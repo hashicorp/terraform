@@ -106,6 +106,7 @@ func (r ResourceInstance) Absolute(module ModuleInstance) AbsResourceInstance {
 // AbsResource is an absolute address for a resource under a given module path.
 type AbsResource struct {
 	targetable
+	debuggable
 	Module   ModuleInstance
 	Resource Resource
 }
@@ -163,6 +164,11 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 	}
 }
 
+// DebugAncestorFrames is part of an implementation of Debuggable.
+func (r AbsResource) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(r.Module)
+}
+
 func (r AbsResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -178,6 +184,7 @@ func (r AbsResource) Equal(o AbsResource) bool {
 // given module path.
 type AbsResourceInstance struct {
 	targetable
+	debuggable
 	Module   ModuleInstance
 	Resource ResourceInstance
 }
@@ -226,6 +233,11 @@ func (r AbsResourceInstance) TargetContains(other Targetable) bool {
 		return false
 
 	}
+}
+
+// DebugAncestorFrames is part of an implementation of Debuggable.
+func (r AbsResourceInstance) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(r.ContainingResource())
 }
 
 func (r AbsResourceInstance) String() string {

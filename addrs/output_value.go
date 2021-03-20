@@ -34,6 +34,7 @@ func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {
 // configuration. It is related to but separate from ModuleCallOutput, which
 // represents a module output from the perspective of its parent module.
 type AbsOutputValue struct {
+	debuggable
 	Module      ModuleInstance
 	OutputValue OutputValue
 }
@@ -47,6 +48,10 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 			Name: name,
 		},
 	}
+}
+
+func (v AbsOutputValue) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(v.Module)
 }
 
 func (v AbsOutputValue) String() string {

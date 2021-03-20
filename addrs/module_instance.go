@@ -24,6 +24,7 @@ type ModuleInstance []ModuleInstanceStep
 
 var (
 	_ Targetable = ModuleInstance(nil)
+	_ Debuggable = ModuleInstance(nil)
 )
 
 func ParseModuleInstance(traversal hcl.Traversal) (ModuleInstance, tfdiags.Diagnostics) {
@@ -345,19 +346,17 @@ func (m ModuleInstance) IsAncestor(o ModuleInstance) bool {
 // A single module call can produce potentially many module instances, so the
 // result discards any instance key that might be present on the last step
 // of the instance. To retain this, use CallInstance instead.
-//
-// In practice, this just turns the last element of the receiver into a
-// ModuleCall and then returns a slice of the receiever that excludes that
-// last part. This is just a convenience for situations where a call address
-// is required, such as when dealing with *Reference and Referencable values.
-func (m ModuleInstance) Call() (ModuleInstance, ModuleCall) {
+func (m ModuleInstance) Call() AbsModuleCall {
 	if len(m) == 0 {
-		panic("cannot produce ModuleCall for root module")
+		panic("cannot produce AbsModuleCall for root module")
 	}
 
 	inst, lastStep := m[:len(m)-1], m[len(m)-1]
-	return inst, ModuleCall{
-		Name: lastStep.Name,
+	return AbsModuleCall{
+		Caller: inst,
+		Call: ModuleCall{
+			Name: lastStep.Name,
+		},
 	}
 }
 
@@ -474,8 +473,29 @@ func (m ModuleInstance) Module() Module {
 	return ret
 }
 
+// DebugAncestorFrames is part of the implemention of Debuggable.
+func (m ModuleInstance) DebugAncestorFrames() []Debuggable {
+	if m.IsRoot() {
+		return nil
+	}
+
+	call := m.Call()
+	caller := m.Call().DebugAncestorFrames()
+	// It's safe to append to this "caller" result, because
+	// DebugAncestorFrames for an AbsModuleCall always either
+	// directly or indirectly constructs a fresh slice that isn't
+	// saved anywhere else.
+	caller = append(caller, call)
+
+	return caller
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
+}
+
+func (m ModuleInstance) debuggableSigil() {
+	// ModuleInstance is debuggable
 }
 
 func (s ModuleInstanceStep) String() string {

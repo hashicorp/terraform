@@ -87,6 +87,7 @@ func (pc LocalProviderConfig) StringCompact() string {
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.
 type AbsProviderConfig struct {
+	debuggable
 	Module   Module
 	Provider Provider
 	Alias    string
@@ -402,4 +403,12 @@ func (pc AbsProviderConfig) String() string {
 	}
 
 	return strings.Join(parts, ".")
+}
+
+func (pc AbsProviderConfig) DebugAncestorFrames() []Debuggable {
+	// Provider configurations are typically in the root module. For
+	// historical reasons they can also appear in child modules, but
+	// only in single-instance modules whose instance addresses can
+	// therefore be constructed with UnkeyedInstanceShim.
+	return parentDebugAncestorFrames(pc.Module.UnkeyedInstanceShim())
 }

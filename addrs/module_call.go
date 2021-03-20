@@ -72,6 +72,25 @@ func (m ModuleCallOutput) String() string {
 	return fmt.Sprintf("%s.%s", m.Call.String(), m.Name)
 }
 
+// AbsModuleCall is the absolute address of a particular module call, in the
+// context of the module instance it was called from.
+type AbsModuleCall struct {
+	debuggable
+	Caller ModuleInstance
+	Call   ModuleCall
+}
+
+func (c AbsModuleCall) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(c.Caller)
+}
+
+func (c AbsModuleCall) String() string {
+	if c.Caller.IsRoot() {
+		return c.Call.String()
+	}
+	return fmt.Sprintf("%s.%s", c.Caller.String(), c.Call.String())
+}
+
 // AbsModuleCallOutput is the address of a particular named output produced by
 // an instance of a module call.
 type AbsModuleCallOutput struct {

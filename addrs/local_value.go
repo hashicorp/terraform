@@ -25,6 +25,7 @@ func (v LocalValue) Absolute(m ModuleInstance) AbsLocalValue {
 
 // AbsLocalValue is the absolute address of a local value within a module instance.
 type AbsLocalValue struct {
+	debuggable
 	Module     ModuleInstance
 	LocalValue LocalValue
 }
@@ -38,6 +39,10 @@ func (m ModuleInstance) LocalValue(name string) AbsLocalValue {
 			Name: name,
 		},
 	}
+}
+
+func (v AbsLocalValue) DebugAncestorFrames() []Debuggable {
+	return parentDebugAncestorFrames(v.Module)
 }
 
 func (v AbsLocalValue) String() string {
