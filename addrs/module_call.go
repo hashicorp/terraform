@@ -80,6 +80,17 @@ type AbsModuleCall struct {
 	Call   ModuleCall
 }
 
+// Module returns the address of the static module that the recieving call
+// would create.
+func (c AbsModuleCall) Module() Module {
+	ret := make(Module, len(c.Caller)+1)
+	for i, step := range c.Caller {
+		ret[i] = step.Name
+	}
+	ret[len(ret)-1] = c.Call.Name
+	return ret
+}
+
 func (c AbsModuleCall) DebugAncestorFrames() []Debuggable {
 	return parentDebugAncestorFrames(c.Caller)
 }
