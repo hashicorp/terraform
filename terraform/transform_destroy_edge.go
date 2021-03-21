@@ -59,7 +59,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 
 	// Record the creators, which will need to depend on the destroyers if they
 	// are only being updated.
-	creators := make(map[string]GraphNodeCreator)
+	creators := make(map[string][]GraphNodeCreator)
 
 	// destroyersByResource records each destroyer by the ConfigResource
 	// address.  We use this because dependencies are only referenced as
@@ -83,8 +83,8 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			resAddr := addr.ContainingResource().Config().String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
-			addr := n.CreateAddr()
-			creators[addr.String()] = n
+			addr := n.CreateAddr().ContainingResource().Config().String()
+			creators[addr] = append(creators[addr], n)
 		}
 	}
 
@@ -111,24 +111,38 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
 					}
 				}
+
+				// We can have some create or update nodes which were
+				// dependents of the destroy node. If they have no destroyer
+				// themselves, make the connection directly from the creator.
+				for _, createDep := range creators[resAddr.String()] {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
+						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
+						g.Connect(dag.BasicEdge(createDep, des))
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
+					}
+				}
 			}
 		}
 	}
 
 	// connect creators to any destroyers on which they may depend
-	for _, c := range creators {
-		ri, ok := c.(GraphNodeResourceInstance)
-		if !ok {
-			continue
-		}
+	for _, cs := range creators {
+		for _, c := range cs {
+			ri, ok := c.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
 
-		for _, resAddr := range ri.StateDependencies() {
-			for _, desDep := range destroyersByResource[resAddr.String()] {
-				if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
-					log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-					g.Connect(dag.BasicEdge(c, desDep))
-				} else {
-					log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource[resAddr.String()] {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
+						g.Connect(dag.BasicEdge(c, desDep))
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
+					}
 				}
 			}
 		}
