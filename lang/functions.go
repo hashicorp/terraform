@@ -84,6 +84,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"keys":             stdlib.KeysFunc,
 			"length":           funcs.LengthFunc,
 			"list":             funcs.ListFunc,
+			"listtomap":        funcs.ListToMapFunc,
 			"log":              stdlib.LogFunc,
 			"lookup":           funcs.LookupFunc,
 			"lower":            stdlib.LowerFunc,

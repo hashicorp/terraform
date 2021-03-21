@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strconv"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -521,6 +522,61 @@ var ListFunc = function.New(&function.Spec{
 	},
 })
 
+// ListToMapFunc constructs a function that converts a list into a map indexed
+// by the indices of the list (as strings). You should not rely on the
+// interation order being preserved from the original list.
+var ListToMapFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "values",
+			Type: cty.DynamicPseudoType,
+		},
+	},
+	Type: func(args []cty.Value) (ret cty.Type, err error) {
+		values := args[0]
+		valuesTy := values.Type()
+
+		switch {
+		case valuesTy.IsListType():
+			return cty.Map(values.Type().ElementType()), nil
+		case valuesTy.IsTupleType():
+			valueTypesRaw := valuesTy.TupleElementTypes()
+			atys := make(map[string]cty.Type, len(valueTypesRaw))
+			for i := 0; i < values.LengthInt(); i++ {
+				key := strconv.Itoa(i)
+				atys[key] = valueTypesRaw[i]
+			}
+			return cty.Object(atys), nil
+
+		default:
+			return cty.NilType, errors.New("values argument must be a list or tuple value")
+		}
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		values := args[0]
+		output := make(map[string]cty.Value)
+
+		for i := 0; i < values.LengthInt(); i++ {
+			val := values.Index(cty.NumberIntVal(int64(i)))
+			output[strconv.Itoa(i)] = val
+		}
+
+		switch {
+		case retType.IsMapType():
+			if len(output) == 0 {
+				return cty.MapValEmpty(retType.ElementType()), nil
+			}
+			return cty.MapVal(output), nil
+		case retType.IsObjectType():
+			return cty.ObjectVal(output), nil
+		default:
+			// Should never happen because the type-check function should've
+			// caught any other case.
+			return cty.NilVal, fmt.Errorf("internally selected incorrect result type %s (this is a bug)", retType.FriendlyName())
+		}
+	},
+})
+
 // MapFunc constructs a function that takes an even number of arguments and
 // returns a map whose elements are constructed from consecutive pairs of arguments.
 //
@@ -574,6 +630,13 @@ func Index(list, value cty.Value) (cty.Value, error) {
 //  values in the same order.
 func List(args ...cty.Value) (cty.Value, error) {
 	return ListFunc.Call(args)
+}
+
+// ListToMap converts a list into a map indexed by the indices of the list
+// (as strings). You should not rely on the interation order being preserved
+// from the original list.
+func ListToMap(list []cty.Value) (cty.Value, error) {
+	return ListToMapFunc.Call(list)
 }
 
 // Lookup performs a dynamic lookup into a map.
