@@ -72,10 +72,14 @@ func (c *Config) validate() error {
 				return fmt.Errorf("providers.%s: %s", k, diags.Err().Error())
 			}
 		}
-		for _, c := range cs.Versions {
-			if _, err := getproviders.ParseVersionConstraints(c); err != nil {
-				return fmt.Errorf("providers.%s: %s", k, err)
+		if len(cs.Versions) > 0 {
+			for _, c := range cs.Versions {
+				if _, err := getproviders.ParseVersionConstraints(c); err != nil {
+					return fmt.Errorf("providers.%s: %s", k, err)
+				}
 			}
+		} else {
+			return fmt.Errorf("provider.%s: required \"versions\" argument not found", k)
 		}
 	}
 
