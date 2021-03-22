@@ -131,7 +131,7 @@ const planNoChanges = `
 `
 
 const planNoChangesDetail = `
-That Terraform did not detect any differences between your configuration and the remote system(s). As a result, there are no actions to take.
+This means that Terraform did not detect any differences between your configuration and the remote system(s). As a result, there are no actions to take.
 `
 
 const planHeaderNoOutput = `
