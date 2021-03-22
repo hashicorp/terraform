@@ -134,35 +134,6 @@ func New() backend.Backend {
 				Description: "The Managed Service Identity Endpoint.",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
-
-			// Deprecated fields
-			"arm_client_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Client ID.",
-				Deprecated:  "`arm_client_id` has been replaced by `client_id`",
-			},
-
-			"arm_client_secret": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Client Secret.",
-				Deprecated:  "`arm_client_secret` has been replaced by `client_secret`",
-			},
-
-			"arm_subscription_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Subscription ID.",
-				Deprecated:  "`arm_subscription_id` has been replaced by `subscription_id`",
-			},
-
-			"arm_tenant_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Tenant ID.",
-				Deprecated:  "`arm_tenant_id` has been replaced by `tenant_id`",
-			},
 		},
 	}
 
@@ -215,18 +186,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.keyName = data.Get("key").(string)
 	b.snapshot = data.Get("snapshot").(bool)
 
-	// support for previously deprecated fields
-	clientId := valueFromDeprecatedField(data, "client_id", "arm_client_id")
-	clientSecret := valueFromDeprecatedField(data, "client_secret", "arm_client_secret")
-	subscriptionId := valueFromDeprecatedField(data, "subscription_id", "arm_subscription_id")
-	tenantId := valueFromDeprecatedField(data, "tenant_id", "arm_tenant_id")
-
 	config := BackendConfig{
 		AccessKey:                     data.Get("access_key").(string),
-		ClientID:                      clientId,
+		ClientID:                      data.Get("client_id").(string),
 		ClientCertificatePassword:     data.Get("client_certificate_password").(string),
 		ClientCertificatePath:         data.Get("client_certificate_path").(string),
-		ClientSecret:                  clientSecret,
+		ClientSecret:                  data.Get("client_secret").(string),
 		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
 		MetadataHost:                  data.Get("metadata_host").(string),
 		Environment:                   data.Get("environment").(string),
@@ -234,8 +199,8 @@ func (b *Backend) configure(ctx context.Context) error {
 		ResourceGroupName:             data.Get("resource_group_name").(string),
 		SasToken:                      data.Get("sas_token").(string),
 		StorageAccountName:            data.Get("storage_account_name").(string),
-		SubscriptionID:                subscriptionId,
-		TenantID:                      tenantId,
+		SubscriptionID:                data.Get("subscription_id").(string),
+		TenantID:                      data.Get("tenant_id").(string),
 		UseMsi:                        data.Get("use_msi").(bool),
 	}
 
