@@ -933,7 +933,7 @@ func TestPlan_init_required(t *testing.T) {
 		},
 	}
 
-	args := []string{}
+	args := []string{"-no-color"}
 	code := c.Run(args)
 	output := done(t)
 	if code != 1 {
