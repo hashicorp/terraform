@@ -62,7 +62,7 @@ terraform {
 }
 ```
 
--> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
 ---
 
@@ -153,7 +153,7 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
--> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
 ---
 
@@ -241,7 +241,7 @@ When authenticating using AzureAD Authentication - the following fields are also
 
 * `use_azuread_auth` - (Optional) Should AzureAD Authentication be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
 
--> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
 ---
 
