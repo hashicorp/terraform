@@ -516,6 +516,146 @@ func TestIndex(t *testing.T) {
 	}
 }
 
+func TestListToMap(t *testing.T) {
+	tests := []struct {
+		Values []cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			[]cty.Value{cty.TupleVal([]cty.Value{})},
+			cty.ObjectVal(map[string]cty.Value{}),
+			false,
+		},
+		{
+			[]cty.Value{cty.ListVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			})},
+			cty.MapVal(map[string]cty.Value{
+				"0": cty.StringVal("a"),
+				"1": cty.StringVal("b"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.StringVal("b"),
+			})},
+			cty.ObjectVal(map[string]cty.Value{
+				"0": cty.StringVal("a"),
+				"1": cty.StringVal("b"),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.TupleVal([]cty.Value{
+				cty.StringVal("a"),
+				cty.NumberIntVal(1729),
+			})},
+			cty.ObjectVal(map[string]cty.Value{
+				"0": cty.StringVal("a"),
+				"1": cty.NumberIntVal(1729),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{"a": cty.True}),
+			},
+			cty.NilVal,
+			true,
+		},
+		{
+			[]cty.Value{cty.ListVal([]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("c"),
+					"d": cty.StringVal("d"),
+				}),
+			})},
+			cty.MapVal(map[string]cty.Value{
+				"0": cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.StringVal("b"),
+				}),
+				"1": cty.MapVal(map[string]cty.Value{
+					"c": cty.StringVal("c"),
+					"d": cty.StringVal("d"),
+				}),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.String),
+			})},
+			cty.MapVal(map[string]cty.Value{
+				"0": cty.UnknownVal(cty.String),
+				"1": cty.UnknownVal(cty.String),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.TupleVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.UnknownVal(cty.Bool),
+			})},
+			cty.ObjectVal(map[string]cty.Value{
+				"0": cty.UnknownVal(cty.String),
+				"1": cty.UnknownVal(cty.Bool),
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.ListVal([]cty.Value{
+				cty.DynamicVal,
+				cty.DynamicVal,
+			})},
+			cty.MapVal(map[string]cty.Value{
+				"0": cty.DynamicVal,
+				"1": cty.DynamicVal,
+			}),
+			false,
+		},
+		{
+			[]cty.Value{cty.TupleVal([]cty.Value{
+				cty.DynamicVal,
+				cty.DynamicVal,
+			})},
+			cty.ObjectVal(map[string]cty.Value{
+				"0": cty.DynamicVal,
+				"1": cty.DynamicVal,
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("listtomap(%#v)", test.Values), func(t *testing.T) {
+			got, err := ListToMap(test.Values)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestLookup(t *testing.T) {
 	simpleMap := cty.MapVal(map[string]cty.Value{
 		"foo": cty.StringVal("bar"),

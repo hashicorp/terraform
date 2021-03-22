@@ -529,6 +529,16 @@ func TestFunctions(t *testing.T) {
 			// it is a stub that always returns an error.
 		},
 
+		"listtomap": {
+			{
+				`listtomap(["a", "b"])`,
+				cty.ObjectVal(map[string]cty.Value{
+					"0": cty.StringVal("a"),
+					"1": cty.StringVal("b"),
+				}),
+			},
+		},
+
 		"log": {
 			{
 				`log(1, 10)`,
