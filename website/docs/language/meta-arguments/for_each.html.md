@@ -115,12 +115,12 @@ var policy_arns {
 }
 
 resource aws_iam_role_policy_attachment attach_policies_in_list {
-  # would force the use of -target as it need to eagerly evaluate the
+  # would force the use of -target as it needs to eagerly evaluate the
   # values in the list for form a set from it, so avoid using it
   # for_each = toset(var.policy_arns)
 
   # does not force the use of -target as the map may be created lazily
-  for_each = listtomap(local.policy_arns)
+  for_each = listtomap(var.policy_arns)
 
   policy_arn = each.value
   role       = aws_iam_role.my_role.name
