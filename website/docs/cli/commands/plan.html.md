@@ -91,6 +91,8 @@ The available options are:
 
 ## Resource Targeting
 
+> **Hands-on:** Try the [Target resources](https://learn.hashicorp.com/tutorials/terraform/resource-targeting?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The `-target` option can be used to focus Terraform's attention on only a
 subset of resources.
 [Resource Address](/docs/cli/state/resource-addressing.html) syntax is used
