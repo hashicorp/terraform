@@ -17,6 +17,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
@@ -25,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestInit_empty(t *testing.T) {
@@ -1541,6 +1543,12 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("init-check-required-version"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
+
+	// Temporarily override the current Terraform version to make this test
+	// independent of the prerelease field
+	oldSemVer := tfversion.SemVer
+	defer func() { tfversion.SemVer = oldSemVer }()
+	tfversion.SemVer = version.Must(version.NewVersion("0.15.0"))
 
 	ui := cli.NewMockUi()
 	view, _ := testView(t)

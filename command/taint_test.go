@@ -8,8 +8,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 
+	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/states"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestTaint(t *testing.T) {
@@ -497,6 +499,12 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 	testCopyDir(t, testFixturePath("taint-check-required-version"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
+
+	// Temporarily override the current Terraform version to make this test
+	// independent of the prerelease field
+	oldSemVer := tfversion.SemVer
+	defer func() { tfversion.SemVer = oldSemVer }()
+	tfversion.SemVer = version.Must(version.NewVersion("0.15.0"))
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {

@@ -24,7 +24,7 @@ var Prerelease = "dev"
 var SemVer *version.Version
 
 func init() {
-	SemVer = version.Must(version.NewVersion(Version))
+	SemVer = version.Must(version.NewVersion(String()))
 }
 
 // Header is the header name used to send the current terraform version
