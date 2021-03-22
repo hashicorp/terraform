@@ -142,6 +142,9 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		for t, r := range resp.ResourceTypes {
+			if err := r.Block.InternalValidate(); err != nil {
+				diags = diags.Append(fmt.Errorf(errProviderSchemaInvalid, name, "resource", t, err))
+			}
 			s.ResourceTypes[t] = r.Block
 			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
 			if r.Version < 0 {
@@ -152,6 +155,9 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		for t, d := range resp.DataSources {
+			if err := d.Block.InternalValidate(); err != nil {
+				diags = diags.Append(fmt.Errorf(errProviderSchemaInvalid, name, "data source", t, err))
+			}
 			s.DataSources[t] = d.Block
 			if d.Version < 0 {
 				// We're not using the version numbers here yet, but we'll check
@@ -274,3 +280,11 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ps.SchemaForResourceType(addr.Mode, addr.Type)
 }
+
+const errProviderSchemaInvalid = `
+Internal validation of the provider failed! This is always a bug with the 
+provider itself, and not a user issue. Please report this bug to the 
+maintainers of the %q provider:
+
+%s %s: %s
+`
