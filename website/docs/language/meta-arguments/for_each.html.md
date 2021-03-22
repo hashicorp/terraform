@@ -103,6 +103,30 @@ The keys of the map (or all the values in the case of a set of strings) must
 be _known values_, or you will get an error message that `for_each` has dependencies
 that cannot be determined before apply, and a `-target` may be needed.
 
+If you want to apply a `for_each` over a list of values that may not be known
+until after a apply, and do not need to rely on the uniqueness of the elements
+of the list, you can instead form a map containing the values of the list
+that is indexed by the indices of the list using the `listtomap` function.
+
+```hcl
+# list of arns for aws_iam_policies that are declared in a different module
+var policy_arns {
+    type = list(string)
+}
+
+resource aws_iam_role_policy_attachment attach_policies_in_list {
+  # would force the use of -target as it need to eagerly evaluate the
+  # values in the list for form a set from it, so avoid using it
+  # for_each = toset(var.policy_arns)
+
+  # does not force the use of -target as the map may be created lazily
+  for_each = listtomap(local.policy_arns)
+
+  policy_arn = each.value
+  role       = aws_iam_role.my_role.name
+}
+```
+
 `for_each` keys cannot be the result (or rely on the result of) of impure functions,
 including `uuid`, `bcrypt`, or `timestamp`, as their evaluation is deferred during the
 main evaluation step.
