@@ -26,6 +26,9 @@ type ArmClient struct {
 	containersClient      *containers.Client
 	blobsClient           *blobs.Client
 
+	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage
+	azureAdStorageAuth *autorest.Authorizer
+
 	accessKey          string
 	environment        azure.Environment
 	resourceGroupName  string
@@ -92,9 +95,18 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, env.TokenAudience)
+	sender := sender.BuildSender("backend/remote-state/azure")
+	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.UseAzureADAuthentication {
+		storageAuth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.ResourceIdentifiers.Storage)
+		if err != nil {
+			return nil, err
+		}
+		client.azureAdStorageAuth = &storageAuth
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
@@ -109,6 +121,8 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 }
 
 func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
+	// TODO: can we remove this?
+	// https://github.com/hashicorp/terraform/issues/27156
 	if config.CustomResourceManagerEndpoint != "" {
 		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
 		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
@@ -128,6 +142,12 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 
 		blobsClient := blobs.NewWithEnvironment(c.environment)
 		c.configureClient(&blobsClient.Client, storageAuth)
+		return &blobsClient, nil
+	}
+
+	if c.azureAdStorageAuth != nil {
+		blobsClient := blobs.NewWithEnvironment(c.environment)
+		c.configureClient(&blobsClient.Client, *c.azureAdStorageAuth)
 		return &blobsClient, nil
 	}
 
@@ -169,6 +189,13 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 		c.configureClient(&containersClient.Client, storageAuth)
 		return &containersClient, nil
 	}
+
+	if c.azureAdStorageAuth != nil {
+		containersClient := containers.NewWithEnvironment(c.environment)
+		c.configureClient(&containersClient.Client, *c.azureAdStorageAuth)
+		return &containersClient, nil
+	}
+
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
