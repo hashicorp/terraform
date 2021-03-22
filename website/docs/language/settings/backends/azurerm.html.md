@@ -28,6 +28,8 @@ terraform {
 }
 ```
 
+---
+
 When authenticating using Managed Service Identity (MSI):
 
 ```hcl
@@ -42,6 +44,27 @@ terraform {
   }
 }
 ```
+
+---
+
+When authenticating using Azure AD Authentication:
+
+```hcl
+terraform {
+  backend "azurerm" {
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_azuread_auth     = true
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
+
+---
 
 When authenticating using the Access Key associated with the Storage Account:
 
@@ -58,6 +81,8 @@ terraform {
   }
 }
 ```
+
+---
 
 When authenticating using a SAS Token associated with the Storage Account:
 
@@ -92,6 +117,8 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
+---
+
 When authenticating using Managed Service Identity (MSI):
 
 ```hcl
@@ -102,11 +129,33 @@ data "terraform_remote_state" "foo" {
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
     use_msi              = true
-    subscription_id  = "00000000-0000-0000-0000-000000000000"
-    tenant_id        = "00000000-0000-0000-0000-000000000000"
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
+
+---
+
+When authenticating using AzureAD Authentication:
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    storage_account_name = "terraform123abc"
+    container_name       = "terraform-state"
+    key                  = "prod.terraform.tfstate"
+    use_azuread_auth     = true
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
+
+---
 
 When authenticating using the Access Key associated with the Storage Account:
 
@@ -124,6 +173,8 @@ data "terraform_remote_state" "foo" {
   }
 }
 ```
+
+---
 
 When authenticating using a SAS Token associated with the Storage Account:
 
@@ -183,6 +234,14 @@ When authenticating using a SAS Token associated with the Storage Account - the 
 When authenticating using the Storage Account's Access Key - the following fields are also supported:
 
 * `access_key` - (Optional) The Access Key used to access the Blob Storage Account. This can also be sourced from the `ARM_ACCESS_KEY` environment variable.
+
+---
+
+When authenticating using AzureAD Authentication - the following fields are also supported:
+
+* `use_azuread_auth` - (Optional) Should AzureAD Authentication be used to access the Blob Storage Account. This can also be sourced from the `ARM_USE_AZUREAD` environment variable.
+
+-> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `XXX` and `XXX` roles are assigned.
 
 ---
 
