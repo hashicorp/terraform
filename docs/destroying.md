@@ -114,6 +114,7 @@ digraph replacement {
     }
 
     a -> a_d;
+    a -> b_d [style=dotted];
     b -> a_d [style=dotted];
     b -> b_d;
 }
@@ -158,6 +159,28 @@ While the dependency edge from `B update` to `A destroy` isn't necessary in
 these examples, it is shown here as an implementation detail which will be
 mentioned later on.
 
+A final example based on the replacement graph; starting with the above
+configuration where `B` depends on `A`. The graph is reduced to an update of
+`A` while only destroying `B`. The interesting feature here is the remaining
+dependency of `A update` on `B destroy`. We can derive this ordering of
+operations from the full replacement example above, by replacing `A create`
+with `A update` and removing the unused nodes.
+
+![Replace All](./images/destroy_then_update.png)
+<!--
+digraph destroy_then_update {
+    subgraph update {
+        rank=same;
+        a [label="A update"];
+    }
+    subgraph destroy {
+        rank=same;
+        b_d [label="B destroy"];
+    }
+
+    a -> b_d;
+}
+-->
 ## Create Before Destroy
 
 Currently, the only user-controllable method for changing the ordering of
