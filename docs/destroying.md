@@ -209,6 +209,7 @@ digraph replacement {
     }
 
     a -> a_d [dir=back];
+    a -> b_d;
     b -> a_d [dir=back];
     b -> b_d;
 }
@@ -216,7 +217,8 @@ digraph replacement {
 
 
 Order of operations:
-1. `B` is destroyed AND `A` is created
+1. `B` is destroyed
+2. `A` is created
 1. `B` is created
 1. `A` is destroyed
 
@@ -314,6 +316,7 @@ digraph replacement {
     }
 
     a -> a_d;
+    a -> b_d [style=dotted];
     b -> a_d [style=dotted];
     b -> b_d [dir=back];
 }
@@ -340,6 +343,7 @@ digraph replacement {
     }
 
     a -> a_d [dir=back];
+    a -> b_d [dir=back, style=dotted];
     b -> a_d [dir=back, style=dotted];
     b -> b_d [dir=back];
 }
