@@ -213,56 +213,10 @@ const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 // and returns true if any differences were found and written
 func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) blockBodyDiffResult {
 	path = ctyEnsurePathCapacity(path, 1)
-
 	result := blockBodyDiffResult{}
 
-	blankBeforeBlocks := false
-	{
-		attrNames := make([]string, 0, len(schema.Attributes))
-		attrNameLen := 0
-		for name := range schema.Attributes {
-			oldVal := ctyGetAttrMaybeNull(old, name)
-			newVal := ctyGetAttrMaybeNull(new, name)
-			if oldVal.IsNull() && newVal.IsNull() {
-				// Skip attributes where both old and new values are null
-				// (we do this early here so that we'll do our value alignment
-				// based on the longest attribute name that has a change, rather
-				// than the longest attribute name in the full set.)
-				continue
-			}
-
-			attrNames = append(attrNames, name)
-			if len(name) > attrNameLen {
-				attrNameLen = len(name)
-			}
-		}
-		sort.Strings(attrNames)
-		if len(attrNames) > 0 {
-			blankBeforeBlocks = true
-		}
-
-		for _, name := range attrNames {
-			attrS := schema.Attributes[name]
-			oldVal := ctyGetAttrMaybeNull(old, name)
-			newVal := ctyGetAttrMaybeNull(new, name)
-
-			result.bodyWritten = true
-			skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
-			if skipped {
-				result.skippedAttributes++
-			}
-		}
-
-		if result.skippedAttributes > 0 {
-			noun := "attributes"
-			if result.skippedAttributes == 1 {
-				noun = "attribute"
-			}
-			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+2))
-			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedAttributes, noun)))
-		}
-	}
+	// write the attributes diff
+	blankBeforeBlocks := p.writeAttrsDiff(schema.Attributes, old, new, indent, path, &result)
 
 	{
 		blockTypeNames := make([]string, 0, len(schema.BlockTypes))
@@ -299,6 +253,63 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	return result
 }
 
+func (p *blockBodyDiffPrinter) writeAttrsDiff(
+	attrsS map[string]*configschema.Attribute,
+	old, new cty.Value,
+	indent int,
+	path cty.Path,
+	result *blockBodyDiffResult) bool {
+
+	blankBeforeBlocks := false
+
+	attrNames := make([]string, 0, len(attrsS))
+	attrNameLen := 0
+	for name := range attrsS {
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
+		if oldVal.IsNull() && newVal.IsNull() {
+			// Skip attributes where both old and new values are null
+			// (we do this early here so that we'll do our value alignment
+			// based on the longest attribute name that has a change, rather
+			// than the longest attribute name in the full set.)
+			continue
+		}
+
+		attrNames = append(attrNames, name)
+		if len(name) > attrNameLen {
+			attrNameLen = len(name)
+		}
+	}
+	sort.Strings(attrNames)
+	if len(attrNames) > 0 {
+		blankBeforeBlocks = true
+	}
+
+	for _, name := range attrNames {
+		attrS := attrsS[name]
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
+
+		result.bodyWritten = true
+		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+		if skipped {
+			result.skippedAttributes++
+		}
+	}
+
+	if result.skippedAttributes > 0 {
+		noun := "attributes"
+		if result.skippedAttributes == 1 {
+			noun = "attribute"
+		}
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedAttributes, noun)))
+	}
+
+	return blankBeforeBlocks
+}
+
 // getPlanActionAndShow returns the action value
 // and a boolean for showJustNew. In this function we
 // modify the old and new values to remove any possible marks
@@ -328,17 +339,9 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 		return true
 	}
 
-	// TODO: There will need to be an object-specific diff printer that handles
-	// things like individual attribute sensitivity and pathing into
-	// requiredReplace, but for now we will let writeAttrDiff handle attributes
-	// with NestedTypes like regular (object) attributes.
-	//
-	// To avoid printing any sensitive nested fields inside attributes (until
-	// the above is implemented) we will treat the entire attribute as
-	// sensitive.
-	var sensitive bool
-	if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
-		sensitive = true
+	if attrS.NestedType != nil {
+		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
+		return false
 	}
 
 	p.buf.WriteString("\n")
@@ -354,7 +357,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
 	p.buf.WriteString(" = ")
 
-	if attrS.Sensitive || sensitive {
+	if attrS.Sensitive {
 		p.buf.WriteString("(sensitive value)")
 	} else {
 		switch {
@@ -374,19 +377,214 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	return false
 }
 
-// TODO: writeNestedAttrDiff will be responsible for properly formatting
-// Attributes with NestedTypes in the diff. This function will be called from
-// writeAttrDiff when it recieves attribute with a NestedType. Right now, we are
-// letting the existing formatter "just" print these attributes like regular,
-// object-type attributes. Unlike the regular attribute printer, this function
-// will need to descend into the NestedType to ensure that we are properly
-// handling items such as:
-//   - nested sensitive fields
-//   - which nested field specifically requires replacement
-//
-// Examples of both can be seen in diff_test.go with FIXME comments.
-func (p *blockBodyDiffPrinter) writeNestedAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
-	panic("not implemented")
+// writeNestedAttrDiff is responsible for formatting Attributes with NestedTypes
+// in the diff.
+func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
+	name string, objS *configschema.Object, old, new cty.Value,
+	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool) {
+
+	p.buf.WriteString("\n")
+	p.buf.WriteString(strings.Repeat(" ", indent))
+	p.writeActionSymbol(action)
+
+	p.buf.WriteString(p.color.Color("[bold]"))
+	p.buf.WriteString(name)
+	p.buf.WriteString(p.color.Color("[reset]"))
+	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
+
+	result := &blockBodyDiffResult{}
+	switch objS.Nesting {
+	case configschema.NestingSingle:
+		p.buf.WriteString(" = {")
+		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+		}
+		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result)
+
+		if result.skippedAttributes > 0 {
+			noun := "attributes"
+			if result.skippedAttributes == 1 {
+				noun = "attribute"
+			}
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent+2))
+			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedAttributes, noun)))
+		}
+
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString("}")
+
+	case configschema.NestingList:
+		p.buf.WriteString(" = [")
+		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+		}
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+4))
+		p.writeActionSymbol(action)
+		p.buf.WriteString("{")
+
+		oldItems := ctyCollectionValues(old)
+		newItems := ctyCollectionValues(new)
+		// Here we intentionally preserve the index-based correspondance
+		// between old and new, rather than trying to detect insertions
+		// and removals in the list, because this more accurately reflects
+		// how Terraform Core and providers will understand the change,
+		// particularly when the nested block contains computed attributes
+		// that will themselves maintain correspondance by index.
+
+		// commonLen is number of elements that exist in both lists, which
+		// will be presented as updates (~). Any additional items in one
+		// of the lists will be presented as either creates (+) or deletes (-)
+		// depending on which list they belong to.
+		var commonLen int
+		switch {
+		case len(oldItems) < len(newItems):
+			commonLen = len(oldItems)
+		default:
+			commonLen = len(newItems)
+		}
+		for i := 0; i < commonLen; i++ {
+			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
+			oldItem := oldItems[i]
+			newItem := newItems[i]
+			if oldItem.RawEquals(newItem) {
+				action = plans.NoOp
+			}
+			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+		}
+		for i := commonLen; i < len(oldItems); i++ {
+			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
+			oldItem := oldItems[i]
+			newItem := cty.NullVal(oldItem.Type())
+			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+		}
+		for i := commonLen; i < len(newItems); i++ {
+			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
+			newItem := newItems[i]
+			oldItem := cty.NullVal(newItem.Type())
+			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+		}
+
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+4))
+		p.buf.WriteString("},\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString("]")
+
+	case configschema.NestingSet:
+		oldItems := ctyCollectionValues(old)
+		newItems := ctyCollectionValues(new)
+
+		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
+		allItems = append(allItems, oldItems...)
+		allItems = append(allItems, newItems...)
+		all := cty.SetVal(allItems)
+
+		p.buf.WriteString(" = [")
+
+		for it := all.ElementIterator(); it.Next(); {
+			_, val := it.Element()
+			var action plans.Action
+			var oldValue, newValue cty.Value
+			switch {
+			case !val.IsKnown():
+				action = plans.Update
+				newValue = val
+			case !old.HasElement(val).True():
+				action = plans.Create
+				oldValue = cty.NullVal(val.Type())
+				newValue = val
+			case !new.HasElement(val).True():
+				action = plans.Delete
+				oldValue = val
+				newValue = cty.NullVal(val.Type())
+			default:
+				action = plans.NoOp
+				oldValue = val
+				newValue = val
+			}
+
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.writeActionSymbol(action)
+			p.buf.WriteString("{")
+
+			if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
+
+			path := append(path, cty.IndexStep{Key: val})
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString("},")
+		}
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString("]")
+
+	case configschema.NestingMap:
+		oldItems := old.AsValueMap()
+		newItems := new.AsValueMap()
+
+		allKeys := make(map[string]bool)
+		for k := range oldItems {
+			allKeys[k] = true
+		}
+		for k := range newItems {
+			allKeys[k] = true
+		}
+		allKeysOrder := make([]string, 0, len(allKeys))
+		for k := range allKeys {
+			allKeysOrder = append(allKeysOrder, k)
+		}
+		sort.Strings(allKeysOrder)
+
+		p.buf.WriteString(" = {")
+
+		for _, k := range allKeysOrder {
+			var action plans.Action
+			oldValue := oldItems[k]
+			newValue := newItems[k]
+			switch {
+			case oldValue == cty.NilVal:
+				oldValue = cty.NullVal(newValue.Type())
+				action = plans.Create
+			case newValue == cty.NilVal:
+				newValue = cty.NullVal(oldValue.Type())
+				action = plans.Delete
+			case !newValue.RawEquals(oldValue):
+				action = plans.Update
+			default:
+				action = plans.NoOp
+			}
+
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.writeActionSymbol(action)
+
+			fmt.Fprintf(p.buf, "%q = {", k)
+			if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+			}
+
+			path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
+
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.buf.WriteString("\n")
+			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString("},")
+		}
+
+		p.buf.WriteString("\n")
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString("}")
+	}
+
+	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
