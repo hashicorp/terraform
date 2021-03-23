@@ -1,14 +1,14 @@
 package command
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
-	viewsjson "github.com/hashicorp/terraform/command/views/json"
+	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -18,43 +18,37 @@ type ValidateCommand struct {
 	Meta
 }
 
-func (c *ValidateCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+func (c *ValidateCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
 
-	var jsonOutput bool
-	cmdFlags := c.Meta.defaultFlagSet("validate")
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+	// Parse and validate flags
+	args, diags := arguments.ParseValidate(rawArgs)
+	if diags.HasErrors() {
+		c.View.Diagnostics(diags)
+		c.View.HelpPrompt("validate")
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
+	view := views.NewValidate(args.ViewType, c.View)
 
 	// After this point, we must only produce JSON output if JSON mode is
 	// enabled, so all errors should be accumulated into diags and we'll
 	// print out a suitable result at the end, depending on the format
 	// selection. All returns from this point on must be tail-calls into
-	// c.showResults in order to produce the expected output.
-	args = cmdFlags.Args()
+	// view.Results in order to produce the expected output.
 
-	var dirPath string
-	if len(args) == 1 {
-		dirPath = args[0]
-	} else {
-		dirPath = "."
-	}
-	dir, err := filepath.Abs(dirPath)
+	dir, err := filepath.Abs(args.Path)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("unable to locate module: %s", err))
-		return c.showResults(diags, jsonOutput)
+		return view.Results(diags)
 	}
 
 	// Check for user-supplied plugin path
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
 		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
-		return c.showResults(diags, jsonOutput)
+		return view.Results(diags)
 	}
 
 	validateDiags := c.validate(dir)
@@ -66,7 +60,7 @@ func (c *ValidateCommand) Run(args []string) int {
 	// check before submitting a change.
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
-	return c.showResults(diags, jsonOutput)
+	return view.Results(diags)
 }
 
 func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
@@ -116,80 +110,13 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 	return diags
 }
 
-func (c *ValidateCommand) showResults(diags tfdiags.Diagnostics, jsonOutput bool) int {
-	switch {
-	case jsonOutput:
-		// FormatVersion represents the version of the json format and will be
-		// incremented for any change to this format that requires changes to a
-		// consuming parser.
-		const FormatVersion = "0.1"
-
-		type Output struct {
-			FormatVersion string `json:"format_version"`
-
-			// We include some summary information that is actually redundant
-			// with the detailed diagnostics, but avoids the need for callers
-			// to re-implement our logic for deciding these.
-			Valid        bool                    `json:"valid"`
-			ErrorCount   int                     `json:"error_count"`
-			WarningCount int                     `json:"warning_count"`
-			Diagnostics  []*viewsjson.Diagnostic `json:"diagnostics"`
-		}
-
-		output := Output{
-			FormatVersion: FormatVersion,
-			Valid:         true, // until proven otherwise
-		}
-		configSources := c.configSources()
-		for _, diag := range diags {
-			output.Diagnostics = append(output.Diagnostics, viewsjson.NewDiagnostic(diag, configSources))
-
-			switch diag.Severity() {
-			case tfdiags.Error:
-				output.ErrorCount++
-				output.Valid = false
-			case tfdiags.Warning:
-				output.WarningCount++
-			}
-		}
-		if output.Diagnostics == nil {
-			// Make sure this always appears as an array in our output, since
-			// this is easier to consume for dynamically-typed languages.
-			output.Diagnostics = []*viewsjson.Diagnostic{}
-		}
-
-		j, err := json.MarshalIndent(&output, "", "  ")
-		if err != nil {
-			// Should never happen because we fully-control the input here
-			panic(err)
-		}
-		c.Ui.Output(string(j))
-
-	default:
-		if len(diags) == 0 {
-			c.Ui.Output(c.Colorize().Color("[green][bold]Success![reset] The configuration is valid.\n"))
-		} else {
-			c.showDiagnostics(diags)
-
-			if !diags.HasErrors() {
-				c.Ui.Output(c.Colorize().Color("[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above.\n"))
-			}
-		}
-	}
-
-	if diags.HasErrors() {
-		return 1
-	}
-	return 0
-}
-
 func (c *ValidateCommand) Synopsis() string {
 	return "Check whether the configuration is valid"
 }
 
 func (c *ValidateCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] validate [options] [dir]
+Usage: terraform [global options] validate [options]
 
   Validate the configuration files in a directory, referring only to the
   configuration and not accessing any remote services such as remote state,
@@ -208,8 +135,6 @@ Usage: terraform [global options] validate [options] [dir]
   plugins and modules installed. To initialize a working directory for
   validation without accessing any configured remote backend, use:
       terraform init -backend=false
-
-  If dir is not specified, then the current directory will be used.
 
   To verify configuration in the context of a particular run (a particular
   target workspace, input variable values, etc), use the 'terraform plan'
