@@ -77,8 +77,41 @@ func (b *Local) opPlan(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
+
+		// Before we start we'll deal with any tainting we've been asked to do.
+		// This is only for the in-memory prior state object that we use as
+		// input to the plan, so the result of this won't be seen externally
+		// unless the user applies the plan.
+		for _, addr := range op.TaintInstances {
+			log.Printf("[TRACE] backend/local: plan marking %s as tainted in prior state", addr)
+			exists := tfCtx.MarkResourceInstanceTainted(addr)
+			if !exists {
+				planDiags = planDiags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Resource instance not known",
+					fmt.Sprintf("There is no remote object for %s tracked in the current state, so Terraform cannot plan for it to be tainted.", addr),
+				))
+			}
+		}
+		if planDiags.HasErrors() {
+			return // don't try to plan if we weren't able to honor the taint requests
+		}
+
 		log.Printf("[INFO] backend/local: plan calling Plan")
 		plan, planDiags = tfCtx.Plan()
+
+		if op.RefreshOnly {
+			// If the user only wants to consider the effect of refreshing then
+			// we'll just discard whatever changes the plan might've called
+			// for.
+			// FIXME: This is just a prototype of the -refresh-only behavior
+			// for exploratory purposes. There's probably a better way to
+			// implement this if we want to do it "for real", particularly
+			// since we'll also presumably want to show the detected refresh
+			// changes to the user somehow.
+			log.Printf("[TRACE] backend/local: plan discarding changes to honor -plan-only option")
+			plan.Changes = plans.NewChanges()
+		}
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
@@ -97,7 +130,7 @@ func (b *Local) opPlan(
 	}
 
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = plan.Changes.Empty()
+	runningOp.PlanEmpty = plan.Changes.Empty() && !op.RefreshOnly
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -140,6 +173,9 @@ func (b *Local) opPlan(
 	}
 
 	// Render the plan
+	// TODO: Deal with the case where we used op.RefreshOnly and thus we're
+	// only recording the result of the refresh, not planning any remote
+	// object actions.
 	op.View.Plan(plan, plan.State, tfCtx.Schemas())
 
 	// If we've accumulated any warnings along the way then we'll show them

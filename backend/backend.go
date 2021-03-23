@@ -193,11 +193,19 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	AutoApprove bool
-	Destroy     bool
 	Parallelism int
 	Targets     []addrs.Targetable
 	Variables   map[string]UnparsedVariableValue
+
+	// The following fields are only relevant for an operation that creates a
+	// new plan. Otherwise, they are ignored.
+	Destroy        bool
+	RefreshOnly    bool
+	TaintInstances []addrs.AbsResourceInstance
+
+	// The following field is only relevant for an operation that would
+	// normally prompt for approval.
+	AutoApprove bool
 
 	// Some operations use root module variables only opportunistically or
 	// don't need them at all. If this flag is set, the backend must treat

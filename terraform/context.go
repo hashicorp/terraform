@@ -377,6 +377,28 @@ func (c *Context) State() *states.State {
 	return c.state.DeepCopy()
 }
 
+// MarkResourceInstanceTainted finds the current object for the resource
+// instance of the given address, if any, and marks it as tainted in the
+// state if it's present.
+//
+// Returns true if the object existed and was marked as tainted, or false if
+// this was a no-op because the object doesn't exist.
+func (c *Context) MarkResourceInstanceTainted(addr addrs.AbsResourceInstance) bool {
+	state := c.state.SyncWrapper()
+	rs := state.Resource(addr.ContainingResource())
+	is := state.ResourceInstance(addr)
+	var obj *states.ResourceInstanceObjectSrc
+	if is != nil {
+		obj = is.Current
+	}
+	if obj == nil || rs == nil {
+		return false
+	}
+	obj.Status = states.ObjectTainted
+	state.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
+	return true
+}
+
 // Eval produces a scope in which expressions can be evaluated for
 // the given module path.
 //

@@ -1,6 +1,7 @@
 package arguments
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -13,6 +14,19 @@ type Plan struct {
 
 	// Destroy can be set to generate a plan to destroy all infrastructure.
 	Destroy bool
+
+	// RefreshOnly can be set to plan only the effect of refreshing existing
+	// objects to update the state, without also planning actions to change
+	// objects to match the current configuration.
+	//
+	// This mode is not compatible with Destroy.
+	RefreshOnly bool
+
+	// TaintInstances is an optional set of resource instance addresses to
+	// consider as tainted when creating the plan. This allows planning the
+	// effect of a taint while making that effect visible only after the
+	// plan is applied.
+	TaintInstances []addrs.AbsResourceInstance
 
 	// DetailedExitCode enables different exit codes for error, success with
 	// changes, and success with no changes.
@@ -40,8 +54,12 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 		Vars:      &Vars{},
 	}
 
+	var taintInstancesRaw []string // we'll try to parse these later
+
 	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
 	cmdFlags.BoolVar(&plan.Destroy, "destroy", false, "destroy")
+	cmdFlags.BoolVar(&plan.RefreshOnly, "refresh-only", false, "refresh-only")
+	cmdFlags.Var((*flagStringSlice)(&taintInstancesRaw), "taint", "taint")
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
@@ -62,6 +80,36 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 			"Too many command line arguments",
 			"To specify a working directory for the plan, use the global -chdir flag.",
 		))
+	}
+
+	if plan.RefreshOnly && plan.Destroy {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Impossible plan mode",
+			"A plan can't be both -refresh-only and -destroy at the same time, because -refresh-only disables any changes to remote objects.",
+		))
+	}
+
+	if plan.RefreshOnly && !plan.Operation.Refresh {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Impossible plan mode",
+			"A plan can't be both -refresh=false and -refresh-only at the same time, because it would then have nothing to do at all.",
+		))
+	}
+
+	if len(taintInstancesRaw) > 0 {
+		plan.TaintInstances = make([]addrs.AbsResourceInstance, 0, len(taintInstancesRaw))
+		for _, rawAddr := range taintInstancesRaw {
+			addr, moreDiags := addrs.ParseAbsResourceInstanceStr(rawAddr)
+			diags = diags.Append(moreDiags)
+			if !diags.HasErrors() {
+				plan.TaintInstances = append(plan.TaintInstances, addr)
+			}
+		}
+		if len(plan.TaintInstances) == 0 {
+			plan.TaintInstances = nil // don't return a non-nil empty slice
+		}
 	}
 
 	diags = diags.Append(plan.Operation.Parse())

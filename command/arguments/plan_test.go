@@ -23,7 +23,7 @@ func TestParsePlan_basicValid(t *testing.T) {
 				ViewType:         ViewHuman,
 			},
 		},
-		"setting all options": {
+		"setting various options": {
 			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
 			&Plan{
 				Destroy:          true,
@@ -31,6 +31,23 @@ func TestParsePlan_basicValid(t *testing.T) {
 				InputEnabled:     false,
 				OutPath:          "saved.tfplan",
 				ViewType:         ViewHuman,
+			},
+		},
+		"refresh only": {
+			[]string{"-refresh-only"},
+			&Plan{
+				RefreshOnly:  true,
+				InputEnabled: true,
+				ViewType:     ViewHuman,
+			},
+		},
+		"refresh only with saved plan": {
+			[]string{"-refresh-only", "-out=tfplan"},
+			&Plan{
+				RefreshOnly:  true,
+				OutPath:      "tfplan",
+				InputEnabled: true,
+				ViewType:     ViewHuman,
 			},
 		},
 	}
@@ -45,8 +62,8 @@ func TestParsePlan_basicValid(t *testing.T) {
 			got.State = nil
 			got.Operation = nil
 			got.Vars = nil
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}
@@ -103,7 +120,7 @@ func TestParsePlan_targets(t *testing.T) {
 			want:    nil,
 			wantErr: "Dot must be followed by attribute name",
 		},
-		"invalid target": {
+		"invalid data resource syntax": {
 			args:    []string{"-target=data[0].foo"},
 			want:    nil,
 			wantErr: "A data source name is required",
@@ -122,6 +139,60 @@ func TestParsePlan_targets(t *testing.T) {
 			}
 			if !cmp.Equal(got.Operation.Targets, tc.want) {
 				t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.Targets, tc.want))
+			}
+		})
+	}
+}
+
+func TestParsePlan_taint(t *testing.T) {
+	foobarbaz, _ := addrs.ParseAbsResourceInstanceStr("foo_bar.baz")
+	boop, _ := addrs.ParseAbsResourceInstanceStr(`module.boop.boop.boop["boop"]`)
+	testCases := map[string]struct {
+		args    []string
+		want    []addrs.AbsResourceInstance
+		wantErr string
+	}{
+		"no targets by default": {
+			args: nil,
+			want: nil,
+		},
+		"one address": {
+			args: []string{"-taint=foo_bar.baz"},
+			want: []addrs.AbsResourceInstance{foobarbaz},
+		},
+		"two addresses": {
+			args: []string{"-taint=foo_bar.baz", "-taint", `module.boop.boop.boop["boop"]`},
+			want: []addrs.AbsResourceInstance{foobarbaz, boop},
+		},
+		"invalid syntax": {
+			args:    []string{"-taint=foo."},
+			want:    nil,
+			wantErr: "Dot must be followed by attribute name",
+		},
+		"invalid data resource address": {
+			args:    []string{"-taint=data[0].foo"},
+			want:    nil,
+			wantErr: "A data source name is required",
+		},
+		"invalid managed resource address": {
+			args:    []string{"-taint=blorp"},
+			want:    nil,
+			wantErr: "Resource specification must include a resource type and name",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParsePlan(tc.args)
+			if len(diags) > 0 {
+				if tc.wantErr == "" {
+					t.Errorf("unexpected diags: %v", diags)
+				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
+					t.Errorf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
+				}
+			}
+			if diff := cmp.Diff(tc.want, got.TaintInstances); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}

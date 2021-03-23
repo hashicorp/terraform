@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
@@ -66,7 +67,14 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.Destroy, args.OutPath)
+	opReq, opDiags := c.OperationRequest(
+		be, view,
+		args.Operation,
+		args.Destroy,
+		args.RefreshOnly,
+		args.TaintInstances,
+		args.OutPath,
+	)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -133,6 +141,8 @@ func (c *PlanCommand) OperationRequest(
 	view views.Plan,
 	args *arguments.Operation,
 	destroy bool,
+	refreshOnly bool,
+	taintInstances []addrs.AbsResourceInstance,
 	planOutPath string,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -141,6 +151,8 @@ func (c *PlanCommand) OperationRequest(
 	opReq := c.Operation(be)
 	opReq.ConfigDir = "."
 	opReq.Destroy = destroy
+	opReq.RefreshOnly = refreshOnly
+	opReq.TaintInstances = taintInstances
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath

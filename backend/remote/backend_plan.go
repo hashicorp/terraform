@@ -73,6 +73,22 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
+	if op.RefreshOnly {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Refresh-only plans are currently not supported",
+			`Currently the "remote" backend can only plan full changes.`,
+		))
+	}
+
+	if len(op.TaintInstances) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Plan-time tainting is currently not supported",
+			`Currently the "remote" backend only supports tainting as a separate operation.`,
+		))
+	}
+
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
