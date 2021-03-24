@@ -1,5 +1,9 @@
 ## 0.15.0-rc1 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
+
 ## 0.15.0-beta2 (unreleased)
 
 UPGRADE NOTES:
