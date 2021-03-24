@@ -26,14 +26,13 @@ If the current state is empty or has not yet been created, the console can be
 used to experiment with the expression syntax and
 [built-in functions](/docs/language/functions/index.html).
 
-The supported options are:
-
-* `-state=path` - Path to a local state file. Expressions will be evaluated
-  using values from this state file. If not specified, the state associated
-  with the current [workspace](/docs/language/state/workspaces.html) is used.
-
 You can close the console with the `exit` command or by pressing Control-C
 or Control-D.
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform console` accepts the legacy command line option
+[`-state`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Scripting
 
