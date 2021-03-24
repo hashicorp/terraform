@@ -300,10 +300,6 @@ Usage: terraform [global options] import [options] ADDR ID
 
 Options:
 
-  -backup=path            Path to backup the existing state file before
-                          modifying. Defaults to the "-state-out" path with
-                          ".backup" extension. Set to "-" to disable backup.
-
   -config=path            Path to a directory of Terraform configuration files
                           to use to configure the provider. Defaults to pwd.
                           If no config files are present, they must be provided
@@ -319,13 +315,6 @@ Options:
 
   -no-color               If specified, output won't contain any color.
 
-  -state=PATH             Path to the source state file. Defaults to the configured
-                          backend, or "terraform.tfstate"
-
-  -state-out=PATH         Path to the destination state file to write to. If this
-                          isn't specified, the source state file will be used. This
-                          can be a new or existing path.
-
   -var 'foo=bar'          Set a variable in the Terraform configuration. This
                           flag can be set multiple times. This is only useful
                           with the "-config" flag.
@@ -337,6 +326,9 @@ Options:
   -ignore-remote-version  Continue even if remote and local Terraform versions
                           are incompatible. This may result in an unusable
                           workspace, and should be used with extreme caution.
+
+  -state, state-out, and -backup are legacy options supported for the local
+  backend only. For more information, see the local backend's documentation.
 
 `
 	return strings.TrimSpace(helpText)

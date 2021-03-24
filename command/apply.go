@@ -370,10 +370,6 @@ Usage: terraform [global options] destroy [options]
 
 Options:
 
-  -backup=path           Path to backup the existing state file before
-                         modifying. Defaults to the "-state-out" path with
-                         ".backup" extension. Set to "-" to disable backup.
-
   -auto-approve          Skip interactive approval before destroying.
 
   -lock=true             Lock the state file when locking is supported.
@@ -388,13 +384,6 @@ Options:
   -refresh=true          Update state prior to checking for differences. This
                          has no effect if a plan file is given to apply.
 
-  -state=path            Path to read and save state (unless state-out
-                         is specified). Defaults to "terraform.tfstate".
-
-  -state-out=path        Path to write state to that is different than
-                         "-state". This can be used to preserve the old
-                         state.
-
   -target=resource       Resource to target. Operation will be limited to this
                          resource and its dependencies. This flag can be used
                          multiple times.
@@ -406,7 +395,8 @@ Options:
                          a file. If "terraform.tfvars" or any ".auto.tfvars"
                          files are present, they will be automatically loaded.
 
-
+  -state, state-out, and -backup are legacy options supported for the local
+  backend only. For more information, see the local backend's documentation.
 `
 	return strings.TrimSpace(helpText)
 }
