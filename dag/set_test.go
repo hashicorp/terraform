@@ -120,12 +120,30 @@ func TestSetCopy(t *testing.T) {
 
 }
 
-func BenchmarkSetIntersectionLargeToSmall(b *testing.B) {
-	var small, large Set
-	for i := 0; i < 1000000; i++ {
-		large.Add(i)
+func makeSet(n int) Set {
+	ret := make(Set, n)
+	for i := 0; i < n; i++ {
+		ret.Add(i)
 	}
-	small.Add(1)
+	return ret
+}
+
+func BenchmarkSetIntersection_100_100000(b *testing.B) {
+	small := makeSet(100)
+	large := makeSet(100000)
+
 	b.ResetTimer()
-	large.Intersection(small)
+	for n := 0; n < b.N; n++ {
+		small.Intersection(large)
+	}
+}
+
+func BenchmarkSetIntersection_100000_100(b *testing.B) {
+	small := makeSet(100)
+	large := makeSet(100000)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		large.Intersection(small)
+	}
 }
