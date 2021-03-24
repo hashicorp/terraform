@@ -38,17 +38,18 @@ func (s Set) Include(v interface{}) bool {
 // Intersection computes the set intersection with other.
 func (s Set) Intersection(other Set) Set {
 	result := make(Set)
-	if s == nil {
+	if s == nil || other == nil {
 		return result
 	}
-	if other != nil {
-		for _, v := range s {
-			if other.Include(v) {
-				result.Add(v)
-			}
+	// Iteration over a smaller set has better performance.
+	if other.Len() < s.Len() {
+		s, other = other, s
+	}
+	for _, v := range s {
+		if other.Include(v) {
+			result.Add(v)
 		}
 	}
-
 	return result
 }
 
