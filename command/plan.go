@@ -221,9 +221,8 @@ Options:
 
   -refresh=true       Update state prior to checking for differences.
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default it will
-                      use the state "terraform.tfstate" if it exists.
+  -state=statefile    A legacy option used for the local backend only. See the
+                      local backend's documentation for more information.
 
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used

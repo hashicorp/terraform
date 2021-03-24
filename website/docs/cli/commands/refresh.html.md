@@ -23,9 +23,6 @@ Usage: `terraform refresh [options]`
 
 The `terraform refresh` command accepts the following options:
 
-* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extension. Disabled by setting to "-".
-
 * `-compact-warnings` - If Terraform produces any warnings that are not
   accompanied by errors, show them in a more compact form that includes only
   the summary messages.
@@ -41,13 +38,6 @@ The `terraform refresh` command accepts the following options:
 * `-parallelism=n` - Limit the number of concurrent operation as Terraform
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
-
-* `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/language/state/remote.html) is used.
-
-* `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used. Ignored when
-  [remote state](/docs/language/state/remote.html) is used.
 
 * `-target=resource` - A [Resource
   Address](/docs/cli/state/resource-addressing.html) to target. Operation will
@@ -66,3 +56,8 @@ The `terraform refresh` command accepts the following options:
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times.
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform refresh` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).

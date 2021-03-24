@@ -69,9 +69,6 @@ The available options are:
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/language/state/remote.html) is used.
-
 * `-target=resource` - A [Resource
   Address](/docs/cli/state/resource-addressing.html) to target. This flag can
   be used multiple times. See below for more information.
@@ -88,6 +85,11 @@ The available options are:
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times.
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform plan` accepts the legacy command line option
+[`-state`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Resource Targeting
 
