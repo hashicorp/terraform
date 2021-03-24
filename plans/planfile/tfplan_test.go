@@ -64,11 +64,27 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Action: plans.DeleteThenCreate,
 						Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.StringVal("foo-bar-baz"),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+							}),
 						}), objTy),
 						After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
 							"id": cty.UnknownVal(cty.String),
+							"boop": cty.ListVal([]cty.Value{
+								cty.StringVal("beep"),
+								cty.StringVal("honk"),
+							}),
 						}), objTy),
+						AfterValMarks: []cty.PathValueMarks{
+							{
+								Path:  cty.GetAttrPath("boop").IndexInt(1),
+								Marks: cty.NewValueMarks("sensitive"),
+							},
+						},
 					},
+					RequiredReplace: cty.NewPathSet(
+						cty.GetAttrPath("boop"),
+					),
 				},
 				{
 					Addr: addrs.Resource{
