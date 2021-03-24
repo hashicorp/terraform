@@ -119,3 +119,13 @@ func TestSetCopy(t *testing.T) {
 	}
 
 }
+
+func BenchmarkSetIntersectionLargeToSmall(b *testing.B) {
+	var small, large Set
+	for i := 0; i < b.N; i++ {
+		large.Add(i)
+	}
+	small.Add(1)
+	b.ResetTimer()
+	large.Intersection(small)
+}
