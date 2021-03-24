@@ -979,12 +979,17 @@ func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty
 		if !blockS.Block.ContainsSensitive() {
 			continue
 		}
+
+		blockV := val.GetAttr(name)
+		if blockV.IsNull() || !blockV.IsKnown() {
+			continue
+		}
+
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
 		blockPath := make(cty.Path, len(path), len(path)+1)
 		copy(blockPath, path)
 		blockPath = append(path, cty.GetAttrStep{Name: name})
 
-		blockV := val.GetAttr(name)
 		switch blockS.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
 			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)
