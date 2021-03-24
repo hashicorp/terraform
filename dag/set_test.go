@@ -122,7 +122,7 @@ func TestSetCopy(t *testing.T) {
 
 func BenchmarkSetIntersectionLargeToSmall(b *testing.B) {
 	var small, large Set
-	for i := 0; i < b.N; i++ {
+	for i := 0; i < 1000000; i++ {
 		large.Add(i)
 	}
 	small.Add(1)
