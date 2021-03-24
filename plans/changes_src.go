@@ -37,9 +37,6 @@ type ResourceInstanceChangeSrc struct {
 	// RequiredReplace is a set of paths that caused the change action to be
 	// Replace rather than Update. Always nil if the change action is not
 	// Replace.
-	//
-	// This is retained only for UI-plan-rendering purposes and so it does not
-	// currently survive a round-trip through a saved plan file.
 	RequiredReplace cty.PathSet
 
 	// Private allows a provider to stash any extra data that is opaque to

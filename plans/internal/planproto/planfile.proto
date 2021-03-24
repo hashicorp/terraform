@@ -85,6 +85,16 @@ message Change {
     //   respectively.
     // - For no-op, one value is provided that is left unmodified by this non-change.
     repeated DynamicValue values = 2;
+
+    // An unordered set of paths into the old value which are marked as
+    // sensitive. Values at these paths should be obscured in human-readable
+    // output. This set is always empty for create.
+    repeated Path before_sensitive_paths = 3;
+
+    // An unordered set of paths into the new value which are marked as
+    // sensitive. Values at these paths should be obscured in human-readable
+    // output. This set is always empty for delete.
+    repeated Path after_sensitive_paths = 4;
 }
 
 message ResourceInstanceChange {
