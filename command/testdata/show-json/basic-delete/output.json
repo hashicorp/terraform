@@ -48,7 +48,9 @@
                     "ami": "bar",
                     "id": "placeholder"
                 },
-                "after_unknown": {}
+                "after_unknown": {},
+                "after_sensitive": {},
+                "before_sensitive": {}
             }
         },
         {
@@ -66,7 +68,9 @@
                     "id": "placeholder"
                 },
                 "after": null,
-                "after_unknown": {}
+                "after_unknown": {},
+                "after_sensitive": false,
+                "before_sensitive": {}
             }
         }
     ],

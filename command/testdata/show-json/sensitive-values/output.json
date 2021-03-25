@@ -1,7 +1,17 @@
 {
     "format_version": "0.1",
-    "terraform_version": "0.13.1-dev",
+    "variables": {
+        "test_var": {
+            "value": "boop"
+        }
+    },
     "planned_values": {
+        "outputs": {
+            "test": {
+                "sensitive": true,
+                "value": "boop"
+            }
+        },
         "root_module": {
             "resources": [
                 {
@@ -12,7 +22,7 @@
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
-                        "ami": "foo-bar"
+                        "ami": "boop"
                     }
                 }
             ]
@@ -23,26 +33,60 @@
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
-            "name": "test",
             "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "test",
             "change": {
                 "actions": [
                     "create"
                 ],
                 "before": null,
                 "after": {
-                    "ami": "foo-bar"
+                    "ami": "boop"
                 },
                 "after_unknown": {
                     "id": true
                 },
-                "after_sensitive": {},
+                "after_sensitive": {
+                  "ami": true
+                },
                 "before_sensitive": false
             }
         }
     ],
+    "output_changes": {
+        "test": {
+            "actions": [
+                "create"
+            ],
+            "before": null,
+            "after": "boop",
+            "after_unknown": false
+        }
+    },
+    "prior_state": {
+        "format_version": "0.1",
+        "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": true,
+                    "value": "boop"
+                }
+            },
+            "root_module": {}
+        }
+    },
     "configuration": {
         "root_module": {
+            "outputs": {
+                "test": {
+                    "expression": {
+                        "references": [
+                            "test_instance.test"
+                        ]
+                    },
+                    "sensitive": true
+                }
+            },
             "resources": [
                 {
                     "address": "test_instance.test",
@@ -50,27 +94,19 @@
                     "type": "test_instance",
                     "name": "test",
                     "provider_config_key": "test",
+                    "schema_version": 0,
                     "expressions": {
                         "ami": {
-                            "constant_value": "foo-bar"
-                        }
-                    },
-                    "schema_version": 0
-                }
-            ],
-            "module_calls": {
-                "foo": {
-                    "depends_on": [
-                        "test_instance.test"
-                    ],
-                    "source": "./foo",
-                    "module": {
-                        "variables": {
-                            "test_var": {
-                                "default": "foo-var"
-                            }
+                            "references": [
+                                "var.test_var"
+                            ]
                         }
                     }
+                }
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "boop"
                 }
             }
         }
