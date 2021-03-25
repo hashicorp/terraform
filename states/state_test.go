@@ -1,6 +1,7 @@
 package states
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -191,6 +192,32 @@ func TestState(t *testing.T) {
 	}
 }
 
+func TestStateDeepCopyObject(t *testing.T) {
+	obj := &ResourceInstanceObject{
+		Value: cty.ObjectVal(map[string]cty.Value{
+			"id": cty.StringVal("id"),
+		}),
+		Private: []byte("private"),
+		Status:  ObjectReady,
+		Dependencies: []addrs.ConfigResource{
+			{
+				Module: addrs.RootModule,
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_instance",
+					Name: "bar",
+				},
+			},
+		},
+		CreateBeforeDestroy: true,
+	}
+
+	objCopy := obj.DeepCopy()
+	if !reflect.DeepEqual(obj, objCopy) {
+		t.Fatalf("not equal\n%#v\n%#v", obj, objCopy)
+	}
+}
+
 func TestStateDeepCopy(t *testing.T) {
 	state := NewState()
 
@@ -209,11 +236,12 @@ func TestStateDeepCopy(t *testing.T) {
 			Name: "baz",
 		}.Instance(addrs.IntKey(0)),
 		&ResourceInstanceObjectSrc{
-			Status:        ObjectReady,
-			SchemaVersion: 1,
-			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
-			Private:       []byte("private data"),
-			Dependencies:  []addrs.ConfigResource{},
+			Status:              ObjectReady,
+			SchemaVersion:       1,
+			AttrsJSON:           []byte(`{"woozles":"confuzles"}`),
+			Private:             []byte("private data"),
+			Dependencies:        []addrs.ConfigResource{},
+			CreateBeforeDestroy: true,
 		},
 		addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
