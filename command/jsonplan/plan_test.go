@@ -262,3 +262,200 @@ func TestUnknownAsBool(t *testing.T) {
 		}
 	}
 }
+
+func TestSensitiveAsBool(t *testing.T) {
+	sensitive := "sensitive"
+	tests := []struct {
+		Input cty.Value
+		Want  cty.Value
+	}{
+		{
+			cty.StringVal("hello"),
+			cty.False,
+		},
+		{
+			cty.NullVal(cty.String),
+			cty.False,
+		},
+		{
+			cty.StringVal("hello").Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.NullVal(cty.String).Mark(sensitive),
+			cty.True,
+		},
+
+		{
+			cty.NullVal(cty.DynamicPseudoType).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{"test": cty.String})),
+			cty.False,
+		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{"test": cty.String})).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.DynamicVal,
+			cty.False,
+		},
+		{
+			cty.DynamicVal.Mark(sensitive),
+			cty.True,
+		},
+
+		{
+			cty.ListValEmpty(cty.String),
+			cty.EmptyTupleVal,
+		},
+		{
+			cty.ListValEmpty(cty.String).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("friend").Mark(sensitive),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.False,
+				cty.True,
+			}),
+		},
+		{
+			cty.SetValEmpty(cty.String),
+			cty.EmptyTupleVal,
+		},
+		{
+			cty.SetValEmpty(cty.String).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.SetVal([]cty.Value{cty.StringVal("hello")}),
+			cty.TupleVal([]cty.Value{cty.False}),
+		},
+		{
+			cty.SetVal([]cty.Value{cty.StringVal("hello").Mark(sensitive)}),
+			cty.True,
+		},
+		{
+			cty.EmptyTupleVal.Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("friend").Mark(sensitive),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.False,
+				cty.True,
+			}),
+		},
+		{
+			cty.MapValEmpty(cty.String),
+			cty.EmptyObjectVal,
+		},
+		{
+			cty.MapValEmpty(cty.String).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse"),
+			}),
+			cty.EmptyObjectVal,
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse").Mark(sensitive),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"animal": cty.True,
+			}),
+		},
+		{
+			cty.MapVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse").Mark(sensitive),
+			}).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.EmptyObjectVal,
+			cty.EmptyObjectVal,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse"),
+			}),
+			cty.EmptyObjectVal,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse").Mark(sensitive),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"animal": cty.True,
+			}),
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"greeting": cty.StringVal("hello"),
+				"animal":   cty.StringVal("horse").Mark(sensitive),
+			}).Mark(sensitive),
+			cty.True,
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("known").Mark(sensitive),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.EmptyObjectVal,
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.True,
+				}),
+			}),
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.MapValEmpty(cty.String),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.StringVal("known").Mark(sensitive),
+				}),
+				cty.MapVal(map[string]cty.Value{
+					"a": cty.UnknownVal(cty.String),
+				}),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.EmptyObjectVal,
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.True,
+				}),
+				cty.EmptyObjectVal,
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		got := sensitiveAsBool(test.Input)
+		if !reflect.DeepEqual(got, test.Want) {
+			t.Errorf(
+				"wrong result\ninput: %#v\ngot:   %#v\nwant:  %#v",
+				test.Input, got, test.Want,
+			)
+		}
+	}
+}

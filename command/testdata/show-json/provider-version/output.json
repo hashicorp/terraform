@@ -83,7 +83,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         },
         {
@@ -103,7 +105,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         },
         {
@@ -123,7 +127,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         }
     ],
