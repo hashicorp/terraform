@@ -125,7 +125,7 @@ func New() backend.Backend {
 			"use_msi": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Should Managed Service Identity be used?.",
+				Description: "Should Managed Service Identity be used?",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSI", false),
 			},
 			"msi_endpoint": {
@@ -135,33 +135,12 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
-			// Deprecated fields
-			"arm_client_id": {
-				Type:        schema.TypeString,
+			// Feature Flags
+			"use_azuread_auth": {
+				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "The Client ID.",
-				Deprecated:  "`arm_client_id` has been replaced by `client_id`",
-			},
-
-			"arm_client_secret": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Client Secret.",
-				Deprecated:  "`arm_client_secret` has been replaced by `client_secret`",
-			},
-
-			"arm_subscription_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Subscription ID.",
-				Deprecated:  "`arm_subscription_id` has been replaced by `subscription_id`",
-			},
-
-			"arm_tenant_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The Tenant ID.",
-				Deprecated:  "`arm_tenant_id` has been replaced by `tenant_id`",
+				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
 			},
 		},
 	}
@@ -201,6 +180,7 @@ type BackendConfig struct {
 	SubscriptionID                string
 	TenantID                      string
 	UseMsi                        bool
+	UseAzureADAuthentication      bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -215,18 +195,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.keyName = data.Get("key").(string)
 	b.snapshot = data.Get("snapshot").(bool)
 
-	// support for previously deprecated fields
-	clientId := valueFromDeprecatedField(data, "client_id", "arm_client_id")
-	clientSecret := valueFromDeprecatedField(data, "client_secret", "arm_client_secret")
-	subscriptionId := valueFromDeprecatedField(data, "subscription_id", "arm_subscription_id")
-	tenantId := valueFromDeprecatedField(data, "tenant_id", "arm_tenant_id")
-
 	config := BackendConfig{
 		AccessKey:                     data.Get("access_key").(string),
-		ClientID:                      clientId,
+		ClientID:                      data.Get("client_id").(string),
 		ClientCertificatePassword:     data.Get("client_certificate_password").(string),
 		ClientCertificatePath:         data.Get("client_certificate_path").(string),
-		ClientSecret:                  clientSecret,
+		ClientSecret:                  data.Get("client_secret").(string),
 		CustomResourceManagerEndpoint: data.Get("endpoint").(string),
 		MetadataHost:                  data.Get("metadata_host").(string),
 		Environment:                   data.Get("environment").(string),
@@ -234,9 +208,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		ResourceGroupName:             data.Get("resource_group_name").(string),
 		SasToken:                      data.Get("sas_token").(string),
 		StorageAccountName:            data.Get("storage_account_name").(string),
-		SubscriptionID:                subscriptionId,
-		TenantID:                      tenantId,
+		SubscriptionID:                data.Get("subscription_id").(string),
+		TenantID:                      data.Get("tenant_id").(string),
 		UseMsi:                        data.Get("use_msi").(bool),
+		UseAzureADAuthentication:      data.Get("use_azuread_auth").(bool),
 	}
 
 	armClient, err := buildArmClient(context.TODO(), config)
@@ -244,20 +219,11 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
-	if config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == "" {
-		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified")
+	thingsNeededToLookupAccessKeySpecified := config.AccessKey == "" && config.SasToken == "" && config.ResourceGroupName == ""
+	if thingsNeededToLookupAccessKeySpecified && !config.UseAzureADAuthentication {
+		return fmt.Errorf("Either an Access Key / SAS Token or the Resource Group for the Storage Account must be specified - or Azure AD Authentication must be enabled")
 	}
 
 	b.armClient = armClient
 	return nil
-}
-
-func valueFromDeprecatedField(d *schema.ResourceData, key, deprecatedFieldKey string) string {
-	v := d.Get(key).(string)
-
-	if v == "" {
-		v = d.Get(deprecatedFieldKey).(string)
-	}
-
-	return v
 }
