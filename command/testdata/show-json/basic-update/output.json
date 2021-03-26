@@ -61,7 +61,9 @@
             ],
             "before": "bar",
             "after": "bar",
-            "after_unknown": false
+            "after_unknown": false,
+            "before_sensitive": false,
+            "after_sensitive": false
         }
     },
     "prior_state": {

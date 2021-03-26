@@ -60,7 +60,9 @@
             ],
             "before": null,
             "after": "boop",
-            "after_unknown": false
+            "after_unknown": false,
+            "before_sensitive": true,
+            "after_sensitive": true
         }
     },
     "prior_state": {
