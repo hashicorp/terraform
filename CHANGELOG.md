@@ -11,10 +11,11 @@ UPGRADE NOTES:
 
 The output of `terraform validate -json` has been extended to include a code snippet object for each diagnostic. If present, this object contains an excerpt of the source code which triggered the diagnostic. Existing fields in the JSON output remain the same as before. [See the `validate` documentation for more details on the JSON output format](https://www.terraform.io/docs/cli/commands/validate.html). ([#28057](https://github.com/hashicorp/terraform/issues/28057))
 
+Provider-defined sensitive attributes will be redacted throughout the plan. ([#28036](https://github.com/hashicorp/terraform/issues/28036)) This was previously an experimental feature, and if you are using the `provider_sensitive_attrs` experiment, you may remove that from your `experiments` config. As a result of this enhancement to tracking sensitivity throughout the plan, you may see values redacted as `(sensitive)` that were previously visible, because sensitivity did not follow provider-defined sensitive attributes (unless you had the experiment enabled). If you are transforming a value and wish to force it _not_ to be sensitive, such as if you are transforming a value in such a way that removes the sensitive data, we recommend using the new `nonsensitive` function for this kind of tuning (see "Enhancements"). 
+
 ENHANCEMENTS:
 
 * config: Improved type inference in conditional statements ([#28116](https://github.com/hashicorp/terraform/issues/28116))
-* config: provider-defined sensitive attributes redaction is no longer experimental, but default behavior ([#28036](https://github.com/hashicorp/terraform/issues/28036))
 * config: New functions `sensitive` and `nonsensitive` allow module authors to explicitly override Terraform's default infererence of value sensitivity for situations where it's too conservative or not conservative enough. ([#27341](https://github.com/hashicorp/terraform/issues/27341))
 * `terraform init`: Give suggestions for possible providers on some registry failures, and generally remind of `required_providers` on all registry failures ([#28014](https://github.com/hashicorp/terraform/issues/28014))
 * `terraform init`: Add `-lockfile=readonly` flag, which suppresses writing changes to the dependency lock file. Depencies must be able to be verified against the read-only lock file, or initialization will fail. This is useful if you are managing the lock file in a separate process and want to avoid adding new hashes for existing dependencies. ([#27630](https://github.com/hashicorp/terraform/issues/27630))
