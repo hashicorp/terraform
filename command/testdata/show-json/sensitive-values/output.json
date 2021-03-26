@@ -106,7 +106,8 @@
             ],
             "variables": {
                 "test_var": {
-                    "default": "boop"
+                    "default": "boop",
+                    "sensitive": true
                 }
             }
         }
