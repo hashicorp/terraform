@@ -366,7 +366,41 @@ func (c *FmtCommand) formatValueExpr(tokens hclwrite.Tokens) hclwrite.Tokens {
 	// "${
 	//    foo
 	// }"
-	return c.trimNewlines(inside)
+	trimmed := c.trimNewlines(inside)
+
+	// Finally, we check if the unwrapped expression is on multiple lines. If
+	// so, we ensure that it is surrounded by parenthesis to make sure that it
+	// parses correctly after unwrapping. This may be redundant in some cases,
+	// but is required for at least multi-line ternary expressions.
+	isMultiLine := false
+	hasLeadingParen := false
+	hasTrailingParen := false
+	for i, token := range trimmed {
+		switch {
+		case i == 0 && token.Type == hclsyntax.TokenOParen:
+			hasLeadingParen = true
+		case token.Type == hclsyntax.TokenNewline:
+			isMultiLine = true
+		case i == len(trimmed)-1 && token.Type == hclsyntax.TokenCParen:
+			hasTrailingParen = true
+		}
+	}
+	if isMultiLine && !(hasLeadingParen && hasTrailingParen) {
+		wrapped := make(hclwrite.Tokens, 0, len(trimmed)+2)
+		wrapped = append(wrapped, &hclwrite.Token{
+			Type:  hclsyntax.TokenOParen,
+			Bytes: []byte("("),
+		})
+		wrapped = append(wrapped, trimmed...)
+		wrapped = append(wrapped, &hclwrite.Token{
+			Type:  hclsyntax.TokenCParen,
+			Bytes: []byte(")"),
+		})
+
+		return wrapped
+	}
+
+	return trimmed
 }
 
 func (c *FmtCommand) formatTypeExpr(tokens hclwrite.Tokens) hclwrite.Tokens {
