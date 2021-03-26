@@ -47,6 +47,9 @@ var (
 	// max time to wait for for a KeepAlive response before considering the
 	// connection to be dead.
 	maxKeepAliveDelay = 120 * time.Second
+
+	// default file permission given to the scripts
+	defaultScriptPerm = "0700"
 )
 
 // Communicator represents the SSH communicator
@@ -442,20 +445,20 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	if c.connInfo.TargetPlatform != TargetPlatformWindows {
 		var stdout, stderr bytes.Buffer
 		cmd := &remote.Cmd{
-			Command: fmt.Sprintf("chmod 0777 %s", path),
+			Command: fmt.Sprintf("chmod %s %s", defaultScriptPerm, path),
 			Stdout:  &stdout,
 			Stderr:  &stderr,
 		}
 		if err := c.Start(cmd); err != nil {
 			return fmt.Errorf(
-				"Error chmodding script file to 0777 in remote "+
-					"machine: %s", err)
+				"Error chmodding script file to %s in remote "+
+					"machine: %s", defaultScriptPerm, err)
 		}
 
 		if err := cmd.Wait(); err != nil {
 			return fmt.Errorf(
-				"Error chmodding script file to 0777 in remote "+
-					"machine %v: %s %s", err, stdout.String(), stderr.String())
+				"Error chmodding script file to %s in remote "+
+					"machine %v: %s %s", defaultScriptPerm, err, stdout.String(), stderr.String())
 		}
 	}
 	return nil
