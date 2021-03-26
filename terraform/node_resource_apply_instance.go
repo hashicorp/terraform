@@ -160,8 +160,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	// We don't write dependencies for datasources
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, nil, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -276,7 +275,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
 
-	err = n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
+	if state != nil {
+		// dependencies are always updated to match the configuration during apply
+		state.Dependencies = n.Dependencies
+	}
+	err = n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
 	}
@@ -289,7 +292,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
 
-	err = n.writeResourceInstanceState(ctx, state, n.Dependencies, workingState)
+	err = n.writeResourceInstanceState(ctx, state, workingState)
 	if err != nil {
 		return diags.Append(err)
 	}

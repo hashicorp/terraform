@@ -99,7 +99,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			return diags
 		}
 
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, n.Dependencies, refreshState))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
@@ -121,6 +121,6 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		return diags
 	}
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, n.Dependencies, workingState))
+	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 	return diags
 }
