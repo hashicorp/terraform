@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
+* cli: Fix `fmt` output when unwrapping redundant multi-line string interpolations [GH-28202]
 
 ## 0.15.0-beta2 (unreleased)
 
