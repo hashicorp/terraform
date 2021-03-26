@@ -30,9 +30,6 @@ output values then `terraform apply` will exit immediately, without prompting.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extension. Disabled by setting to "-".
-
 * `-compact-warnings` - If Terraform produces any warnings that are not
   accompanied by errors, show them in a more compact form that includes only
   the summary messages.
@@ -55,16 +52,6 @@ The command-line flags are all optional. The list of available flags are:
   and applying. This has no effect if a plan file is given directly to
   apply.
 
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/language/state/remote.html) is used. This setting
-  does not persist and other commands, such as init, may not be aware of the
-  alternate statefile. To configure an alternate statefile path which is
-  available to all terraform commands, use the [local backend](/docs/language/settings/backends/local.html).
-
-* `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used. Ignored when
-  [remote state](/docs/language/state/remote.html) is used.
-
 * `-target=resource` - A [Resource
   Address](/docs/cli/state/resource-addressing.html) to target. For more
   information, see
@@ -82,6 +69,11 @@ The command-line flags are all optional. The list of available flags are:
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
   the working directory. This flag can be used multiple times.
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform apply` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Passing a Different Configuration Directory
 

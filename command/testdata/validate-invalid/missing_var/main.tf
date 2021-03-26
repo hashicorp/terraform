@@ -3,6 +3,6 @@ resource "test_instance" "foo" {
 
     network_interface {
       device_index = 0
-      description = "${var.description}"
+      description = var.description
     }
 }

@@ -45,9 +45,6 @@ type Remote struct {
 	CLI      cli.Ui
 	CLIColor *colorstring.Colorize
 
-	// ShowDiagnostics prints diagnostic messages to the UI.
-	ShowDiagnostics func(vals ...interface{})
-
 	// ContextOpts are the base context options to set when initializing a
 	// new Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
@@ -755,7 +752,9 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 		r, opErr := f(stopCtx, cancelCtx, op, w)
 		if opErr != nil && opErr != context.Canceled {
-			b.ReportResult(runningOp, opErr)
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(opErr)
+			op.ReportResult(runningOp, diags)
 			return
 		}
 
@@ -768,7 +767,9 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 			// Retrieve the run to get its current status.
 			r, err := b.client.Runs.Read(cancelCtx, r.ID)
 			if err != nil {
-				b.ReportResult(runningOp, generalError("Failed to retrieve run", err))
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(generalError("Failed to retrieve run", err))
+				op.ReportResult(runningOp, diags)
 				return
 			}
 
@@ -777,7 +778,9 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 			if opErr == context.Canceled {
 				if err := b.cancel(cancelCtx, op, r); err != nil {
-					b.ReportResult(runningOp, generalError("Failed to retrieve run", err))
+					var diags tfdiags.Diagnostics
+					diags = diags.Append(generalError("Failed to retrieve run", err))
+					op.ReportResult(runningOp, diags)
 					return
 				}
 			}
@@ -831,43 +834,6 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe
 	return nil
 }
 
-// ReportResult is a helper for the common chore of setting the status of
-// a running operation and showing any diagnostics produced during that
-// operation.
-//
-// If the given diagnostics contains errors then the operation's result
-// will be set to backend.OperationFailure. It will be set to
-// backend.OperationSuccess otherwise. It will then use b.ShowDiagnostics
-// to show the given diagnostics before returning.
-//
-// Callers should feel free to do each of these operations separately in
-// more complex cases where e.g. diagnostics are interleaved with other
-// output, but terminating immediately after reporting error diagnostics is
-// common and can be expressed concisely via this method.
-func (b *Remote) ReportResult(op *backend.RunningOperation, err error) {
-	var diags tfdiags.Diagnostics
-
-	diags = diags.Append(err)
-	if diags.HasErrors() {
-		op.Result = backend.OperationFailure
-	} else {
-		op.Result = backend.OperationSuccess
-	}
-
-	if b.ShowDiagnostics != nil {
-		b.ShowDiagnostics(diags)
-	} else {
-		// Shouldn't generally happen, but if it does then we'll at least
-		// make some noise in the logs to help us spot it.
-		if len(diags) != 0 {
-			log.Printf(
-				"[ERROR] Remote backend needs to report diagnostics but ShowDiagnostics is not set:\n%s",
-				diags.ErrWithWarnings(),
-			)
-		}
-	}
-}
-
 // IgnoreVersionConflict allows commands to disable the fall-back check that
 // the local Terraform version matches the remote workspace's configured
 // Terraform version. This should be called by commands where this check is
@@ -888,6 +854,13 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	workspace, err := b.getRemoteWorkspace(context.Background(), workspaceName)
 	if err != nil {
+		// If the workspace doesn't exist, there can be no compatibility
+		// problem, so we can return. This is most likely to happen when
+		// migrating state from a local backend to a new workspace.
+		if err == tfe.ErrResourceNotFound {
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Error looking up workspace",

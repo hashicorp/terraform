@@ -268,7 +268,16 @@ func (m ModuleInstance) String() string {
 // Equal returns true if the receiver and the given other value
 // contains the exact same parts.
 func (m ModuleInstance) Equal(o ModuleInstance) bool {
-	return m.String() == o.String()
+	if len(m) != len(o) {
+		return false
+	}
+
+	for i := range m {
+		if m[i] != o[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // Less returns true if the receiver should sort before the given other value

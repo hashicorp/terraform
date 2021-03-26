@@ -28,6 +28,7 @@ Multiple workspaces are currently supported by the following backends:
  * [AzureRM](/docs/language/settings/backends/azurerm.html)
  * [Consul](/docs/language/settings/backends/consul.html)
  * [COS](/docs/language/settings/backends/cos.html)
+ * [etcdv3](/docs/language/settings/backends/etcdv3.html)
  * [GCS](/docs/language/settings/backends/gcs.html)
  * [Kubernetes](/docs/language/settings/backends/kubernetes.html)
  * [Local](/docs/language/settings/backends/local.html)
@@ -122,7 +123,7 @@ set of infrastructure changes might create a new temporary workspace in order
 to freely experiment with changes without affecting the default workspace.
 
 Non-default workspaces are often related to feature branches in version control.
-The default workspace might correspond to the "master" or "trunk" branch,
+The default workspace might correspond to the "main" or "trunk" branch,
 which describes the intended state of production infrastructure. When a
 feature branch is created to develop a change, the developer of that feature
 might create a corresponding workspace and deploy into it a temporary "copy"
@@ -157,7 +158,7 @@ Where multiple configurations are representing distinct system components
 rather than multiple deployments, data can be passed from one component to
 another using paired resources types and data sources. For example:
 
-* Where a shared [Consul](https://consul.io/) cluster is available, use
+* Where a shared [Consul](https://www.consul.io/) cluster is available, use
   [`consul_key_prefix`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix) to
   publish to the key/value store and [`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys)
   to retrieve those values in other configurations.

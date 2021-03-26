@@ -33,11 +33,6 @@ type ModuleCall struct {
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
-	// Produce deprecation messages for any pre-0.12-style
-	// single-interpolation-only expressions.
-	moreDiags := warnForDeprecatedInterpolationsInBody(block.Body)
-	diags = append(diags, moreDiags...)
-
 	mc := &ModuleCall{
 		Name:      block.Labels[0],
 		DeclRange: block.DefRange,

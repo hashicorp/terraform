@@ -9,17 +9,17 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/providers"
 )
 
-func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
-	ui := new(cli.MockUi)
+func setupTest(t *testing.T, fixturepath string, args ...string) (*terminal.TestOutput, int) {
+	view, done := testView(t)
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -45,19 +45,20 @@ func setupTest(fixturepath string, args ...string) (*cli.MockUi, int) {
 	c := &ValidateCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
+	args = append(args, "-no-color")
 	args = append(args, testFixturePath(fixturepath))
 
 	code := c.Run(args)
-	return ui, code
+	return done(t), code
 }
 
 func TestValidateCommand(t *testing.T) {
-	if ui, code := setupTest("validate-valid"); code != 0 {
-		t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, ui.ErrorWriter.String())
+	if output, code := setupTest(t, "validate-valid"); code != 0 {
+		t.Fatalf("unexpected non-successful exit code %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -69,135 +70,137 @@ func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	ui := new(cli.MockUi)
+	view, done := testView(t)
 	c := &ValidateCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
-			Ui:               ui,
+			View:             view,
 		},
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad %d\n\n%s", code, output.Stderr())
 	}
 }
 
 func TestValidateFailingCommand(t *testing.T) {
-	if ui, code := setupTest("validate-invalid"); code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+	if output, code := setupTest(t, "validate-invalid"); code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 }
 
 func TestValidateFailingCommandMissingQuote(t *testing.T) {
-	ui, code := setupTest("validate-invalid/missing_quote")
+	output, code := setupTest(t, "validate-invalid/missing_quote")
 
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := "Error: Invalid reference"
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestValidateFailingCommandMissingVariable(t *testing.T) {
-	ui, code := setupTest("validate-invalid/missing_var")
+	output, code := setupTest(t, "validate-invalid/missing_var")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := "Error: Reference to undeclared input variable"
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestSameProviderMutipleTimesShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/multiple_providers")
+	output, code := setupTest(t, "validate-invalid/multiple_providers")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := "Error: Duplicate provider configuration"
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestSameModuleMultipleTimesShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/multiple_modules")
+	output, code := setupTest(t, "validate-invalid/multiple_modules")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := "Error: Duplicate module call"
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestSameResourceMultipleTimesShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/multiple_resources")
+	output, code := setupTest(t, "validate-invalid/multiple_resources")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := `Error: Duplicate resource "aws_instance" configuration`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestOutputWithoutValueShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/outputs")
+	output, code := setupTest(t, "validate-invalid/outputs")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 	wantError := `The argument "value" is required, but no definition was found.`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 	wantError = `An argument named "values" is not expected here. Did you mean "value"?`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestModuleWithIncorrectNameShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/incorrectmodulename")
+	output, code := setupTest(t, "validate-invalid/incorrectmodulename")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 
 	wantError := `Error: Invalid module instance name`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 	wantError = `Error: Variables not allowed`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestWronglyUsedInterpolationShouldFail(t *testing.T) {
-	ui, code := setupTest("validate-invalid/interpolation")
+	output, code := setupTest(t, "validate-invalid/interpolation")
 	if code != 1 {
-		t.Fatalf("Should have failed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
 	}
 
 	wantError := `Error: Variables not allowed`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 	wantError = `A single static variable reference is required`
-	if !strings.Contains(ui.ErrorWriter.String(), wantError) {
-		t.Fatalf("Missing error string %q\n\n'%s'", wantError, ui.ErrorWriter.String())
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 
 func TestMissingDefinedVar(t *testing.T) {
-	ui, code := setupTest("validate-invalid/missing_defined_var")
+	output, code := setupTest(t, "validate-invalid/missing_defined_var")
 	// This is allowed because validate tests only that variables are referenced
 	// correctly, not that they all have defined values.
 	if code != 0 {
-		t.Fatalf("Should have passed: %d\n\n%s", code, ui.ErrorWriter.String())
+		t.Fatalf("Should have passed: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -237,9 +240,9 @@ func TestValidate_json(t *testing.T) {
 				t.Fatalf("failed to unmarshal expected JSON: %s", err)
 			}
 
-			ui, code := setupTest(tc.path, "-json")
+			output, code := setupTest(t, tc.path, "-json")
 
-			gotString := ui.OutputWriter.String()
+			gotString := output.Stdout()
 			err = json.Unmarshal([]byte(gotString), &got)
 			if err != nil {
 				t.Fatalf("failed to unmarshal actual JSON: %s", err)
@@ -256,7 +259,7 @@ func TestValidate_json(t *testing.T) {
 				t.Errorf("wrong exit code: want 1, got %d", code)
 			}
 
-			if errorOutput := ui.ErrorWriter.String(); errorOutput != "" {
+			if errorOutput := output.Stderr(); errorOutput != "" {
 				t.Errorf("unexpected error output:\n%s", errorOutput)
 			}
 		})

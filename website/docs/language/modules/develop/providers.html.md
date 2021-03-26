@@ -22,18 +22,9 @@ within a `module` block. These two options are discussed in more detail in the
 following sections.
 
 A module intended to be called by one or more other modules must not contain
-any `provider` blocks, with the exception of the special
-"proxy provider blocks" discussed under
-_[Passing Providers Explicitly](#passing-providers-explicitly)_
-below.
-
-For backward compatibility with configurations targeting Terraform v0.10 and
-earlier Terraform does not produce an error for a `provider` block in a shared
-module if the `module` block only uses features available in Terraform v0.10,
-but that is a legacy usage pattern that is no longer recommended. A legacy
-module containing its own provider configurations is not compatible with the
-`for_each`, `count`, and `depends_on` arguments that were introduced in
-Terraform v0.13. For more information, see
+any `provider` blocks. A module containing its own provider configurations is
+not compatible with the `for_each`, `count`, and `depends_on` arguments that
+were introduced in Terraform v0.13. For more information, see
 [Legacy Shared Modules with Provider Configurations](#legacy-shared-modules-with-provider-configurations).
 
 Provider configurations are used for all operations on associated resources,
@@ -81,6 +72,27 @@ endpoints the provider will access, such as an AWS region; configuration
 settings come from provider _configurations_, and a particular overall Terraform
 configuration can potentially have
 [several different configurations for the same provider](/docs/language/providers/configuration.html#alias-multiple-provider-configurations).
+
+## Provider Aliases Within Modules
+
+To declare multiple configuration names for a provider within a module, add the
+`configuration_aliases` argument:
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.7.0"
+      configuration_aliases = [ aws.alternate ]
+    }
+  }
+}
+```
+
+The above requirements are identical to the previous, with the addition of the
+alias provider configuration name `aws.alternate`, which can be referenced by
+resources using the `provider` argument.
 
 If you are writing a shared Terraform module, constrain only the minimum
 required provider version using a `>=` constraint. This should specify the
@@ -201,37 +213,24 @@ module "tunnel" {
 }
 ```
 
-The subdirectory `./tunnel` must then contain _proxy configuration blocks_ like
-the following, to declare that it requires its calling module to pass
-configurations with these names in its `providers` argument:
+The subdirectory `./tunnel` must then declare the configuration aliases for the
+provider so the calling module can pass configurations with these names in its `providers` argument:
 
 ```hcl
-provider "aws" {
-  alias = "src"
-}
-
-provider "aws" {
-  alias = "dst"
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 2.7.0"
+      configuration_aliases = [ aws.src, aws.dest ]
+    }
+  }
 }
 ```
 
 Each resource should then have its own `provider` attribute set to either
 `aws.src` or `aws.dst` to choose which of the two provider configurations to
 use.
-
-## Proxy Configuration Blocks
-
-A proxy configuration block is one that contains only the `alias` argument. It
-serves as a placeholder for provider configurations passed between modules, and
-declares that a module expects to be explicitly passed an additional (aliased)
-provider configuration.
-
--> **Note:** Although a completely empty proxy configuration block is also
-valid, it is not necessary: proxy configuration blocks are needed only to
-establish which _aliased_ provider configurations a child module expects.
-Don't use a proxy configuration block if a module only needs a single default
-provider configuration, and don't use proxy configuration blocks only to imply
-[provider requirements](/docs/language/providers/requirements.html).
 
 ## Legacy Shared Modules with Provider Configurations
 
@@ -282,13 +281,10 @@ its provider configurations from the calling module, by using the "providers"
 argument in the calling module block.
 ```
 
-To make a module compatible with the new features, you must either remove all
-of the `provider` blocks from its definition or, if you need multiple
-configurations for the same provider, replace them with
-_proxy configuration blocks_ as described in
-[Passing Providers Explicitly](#passing-providers-explicitly).
+To make a module compatible with the new features, you must remove all of the
+`provider` blocks from its definition.
 
-If the new version of the module uses proxy configuration blocks, or if the
+If the new version of the module declares `configuration_aliases`, or if the
 calling module needs the child module to use different provider configurations
 than its own default provider configurations, the calling module must then
 include an explicit `providers` argument to describe which provider

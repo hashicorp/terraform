@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and
@@ -33,26 +32,6 @@ func TestLocal(t *testing.T) (*Local, func()) {
 	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
 	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
 	local.ContextOpts = &terraform.ContextOpts{}
-
-	local.ShowDiagnostics = func(vals ...interface{}) {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(vals...)
-		for _, diag := range diags {
-			// NOTE: Since the caller here is not directly the TestLocal
-			// function, t.Helper doesn't apply and so the log source
-			// isn't correctly shown in the test log output. This seems
-			// unavoidable as long as this is happening so indirectly.
-			desc := diag.Description()
-			if desc.Detail != "" {
-				t.Logf("%s: %s", desc.Summary, desc.Detail)
-			} else {
-				t.Log(desc.Summary)
-			}
-			if local.CLI != nil {
-				local.CLI.Error(desc.Summary)
-			}
-		}
-	}
 
 	cleanup := func() {
 		if err := os.RemoveAll(tempDir); err != nil {
@@ -72,20 +51,20 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 	if schema == nil {
 		schema = &terraform.ProviderSchema{} // default schema is empty
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{Block: schema.Provider},
 		ProviderMeta:  providers.Schema{Block: schema.ProviderMeta},
 		ResourceTypes: map[string]providers.Schema{},
 		DataSources:   map[string]providers.Schema{},
 	}
 	for name, res := range schema.ResourceTypes {
-		p.GetSchemaResponse.ResourceTypes[name] = providers.Schema{
+		p.GetProviderSchemaResponse.ResourceTypes[name] = providers.Schema{
 			Block:   res,
 			Version: int64(schema.ResourceTypeSchemaVersions[name]),
 		}
 	}
 	for name, dat := range schema.DataSources {
-		p.GetSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
+		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
 	}
 
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {

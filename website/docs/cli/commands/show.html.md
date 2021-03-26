@@ -28,6 +28,12 @@ For Terraform state files (including when no path is provided),
 For Terraform plan files, `terraform show -json` will show a JSON representation
 of the plan, configuration, and current state.
 
+If you've updated providers which contain new schema versions since the state
+was written, the state needs to be upgraded before it can be displayed with
+`show -json`. If you are viewing a plan, it must be created without
+`-refresh=false`. If you are viewing a state file, run `terraform refresh`
+first.
+
 The output format is covered in detail in [JSON Output Format](/docs/internals/json-format.html).
 
 ## Usage

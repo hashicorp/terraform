@@ -41,7 +41,15 @@ func (m Module) String() string {
 }
 
 func (m Module) Equal(other Module) bool {
-	return m.String() == other.String()
+	if len(m) != len(other) {
+		return false
+	}
+	for i := range m {
+		if m[i] != other[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (m Module) targetableSigil() {

@@ -419,7 +419,7 @@ func (addr *ResourceAddress) ModuleInstanceAddr() addrs.ModuleInstance {
 // Contains returns true if and only if the given node is contained within
 // the receiver.
 //
-// Containment is defined in terms of the module and resource heirarchy:
+// Containment is defined in terms of the module and resource hierarchy:
 // a resource is contained within its module and any ancestor modules,
 // an indexed resource instance is contained with the unindexed resource, etc.
 func (addr *ResourceAddress) Contains(other *ResourceAddress) bool {

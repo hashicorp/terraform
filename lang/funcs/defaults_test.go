@@ -370,6 +370,130 @@ func TestDefaults(t *testing.T) {
 			Defaults: cty.StringVal("hello"),
 			WantErr:  `only object types and collections of object types can have defaults applied`,
 		},
+		// When applying default values to structural types, null objects or
+		// tuples in the input should be passed through.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Object(map[string]cty.Type{
+					"x": cty.String,
+					"y": cty.String,
+				})),
+				"b": cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ObjectVal(map[string]cty.Value{
+					"x": cty.StringVal("hello"),
+					"y": cty.StringVal("there"),
+				}),
+				"b": cty.TupleVal([]cty.Value{
+					cty.StringVal("how are"),
+					cty.StringVal("you?"),
+				}),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Object(map[string]cty.Type{
+					"x": cty.String,
+					"y": cty.String,
+				})),
+				"b": cty.NullVal(cty.Tuple([]cty.Type{cty.String, cty.String})),
+			}),
+		},
+		// When applying default values to structural types, we permit null
+		// values in the defaults, and just pass through the input value.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"p": cty.StringVal("xyz"),
+						"q": cty.StringVal("xyz"),
+					}),
+				}),
+				"b": cty.SetVal([]cty.Value{
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(0),
+						cty.NumberIntVal(2),
+					}),
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(1),
+						cty.NumberIntVal(3),
+					}),
+				}),
+				"c": cty.NullVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"c": cty.StringVal("tada"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"p": cty.StringVal("xyz"),
+						"q": cty.StringVal("xyz"),
+					}),
+				}),
+				"b": cty.SetVal([]cty.Value{
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(0),
+						cty.NumberIntVal(2),
+					}),
+					cty.TupleVal([]cty.Value{
+						cty.NumberIntVal(1),
+						cty.NumberIntVal(3),
+					}),
+				}),
+				"c": cty.StringVal("tada"),
+			}),
+		},
+		// When applying default values to collection types, null collections in the
+		// input should result in empty collections in the output.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.List(cty.String)),
+				"b": cty.NullVal(cty.Map(cty.String)),
+				"c": cty.NullVal(cty.Set(cty.String)),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+				"b": cty.StringVal("hi"),
+				"c": cty.StringVal("greetings"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListValEmpty(cty.String),
+				"b": cty.MapValEmpty(cty.String),
+				"c": cty.SetValEmpty(cty.String),
+			}),
+		},
+		// When specifying fallbacks, we allow mismatched primitive attribute
+		// types so long as a safe conversion is possible. This means that we
+		// can accept number or boolean values for string attributes.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+				"b": cty.NullVal(cty.String),
+				"c": cty.NullVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NumberIntVal(5),
+				"b": cty.True,
+				"c": cty.StringVal("greetings"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("5"),
+				"b": cty.StringVal("true"),
+				"c": cty.StringVal("greetings"),
+			}),
+		},
+		// Fallbacks with mismatched primitive attribute types which do not
+		// have safe conversions must not pass the suitable fallback check,
+		// even if unsafe conversion would be possible.
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.Bool),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("5"),
+			}),
+			WantErr: ".a: invalid default value for bool: bool required",
+		},
 	}
 
 	for _, test := range tests {

@@ -50,7 +50,7 @@ type graphNodeDependsOn interface {
 	DependsOn() []*addrs.Reference
 }
 
-// graphNodeAttachResourceDependencies records all resources that are transitively
+// graphNodeAttachDataResourceDependsOn records all resources that are transitively
 // referenced through depends_on in the configuration. This is used by data
 // resources to determine if they can be read during the plan, or if they need
 // to be further delayed until apply.
@@ -60,18 +60,18 @@ type graphNodeDependsOn interface {
 // unrelated module instances, the fact that it only happens when there are any
 // resource updates pending means we can still avoid the problem of the
 // "perpetual diff"
-type graphNodeAttachResourceDependencies interface {
+type graphNodeAttachDataResourceDependsOn interface {
 	GraphNodeConfigResource
 	graphNodeDependsOn
 
-	// AttachResourceDependencies stored the discovered dependencies in the
+	// AttachDataResourceDependsOn stores the discovered dependencies in the
 	// resource node for evaluation later.
 	//
 	// The force parameter indicates that even if there are no dependencies,
 	// force the data source to act as though there are for refresh purposes.
 	// This is needed because yet-to-be-created resources won't be in the
 	// initial refresh graph, but may still be referenced through depends_on.
-	AttachResourceDependencies(deps []addrs.ConfigResource, force bool)
+	AttachDataResourceDependsOn(deps []addrs.ConfigResource, force bool)
 }
 
 // GraphNodeReferenceOutside is an interface that can optionally be implemented.
@@ -157,12 +157,12 @@ func (m depMap) add(v dag.Vertex) {
 	}
 }
 
-// attachDataResourceDependenciesTransformer records all resources transitively referenced
-// through a configuration depends_on.
-type attachDataResourceDependenciesTransformer struct {
+// attachDataResourceDependsOnTransformer records all resources transitively
+// referenced through a configuration depends_on.
+type attachDataResourceDependsOnTransformer struct {
 }
 
-func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
+func (t attachDataResourceDependsOnTransformer) Transform(g *Graph) error {
 	// First we need to make a map of referenceable addresses to their vertices.
 	// This is very similar to what's done in ReferenceTransformer, but we keep
 	// implementation separate as they may need to change independently.
@@ -170,7 +170,7 @@ func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 	refMap := NewReferenceMap(vertices)
 
 	for _, v := range vertices {
-		depender, ok := v.(graphNodeAttachResourceDependencies)
+		depender, ok := v.(graphNodeAttachDataResourceDependsOn)
 		if !ok {
 			continue
 		}
@@ -195,7 +195,7 @@ func (t attachDataResourceDependenciesTransformer) Transform(g *Graph) error {
 		}
 
 		log.Printf("[TRACE] attachDataDependenciesTransformer: %s depends on %s", depender.ResourceAddr(), res)
-		depender.AttachResourceDependencies(res, fromModule)
+		depender.AttachDataResourceDependsOn(res, fromModule)
 	}
 
 	return nil

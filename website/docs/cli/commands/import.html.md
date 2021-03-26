@@ -41,10 +41,6 @@ behavior. For more information on this assumption, see
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to backup the existing state file. Defaults to
-  the `-state-out` path with the ".backup" extension. Set to "-" to disable
-  backups.
-
 * `-config=path` - Path to directory of Terraform configuration files that
   configure the provider for import. This defaults to your working directory.
   If this directory contains no Terraform configuration files, the provider
@@ -66,13 +62,6 @@ The command-line flags are all optional. The list of available flags are:
 use when importing the object. By default, Terraform uses the provider specified
 in the configuration for the target resource, and that is the best behavior in most cases.
 
-* `-state=path` - Path to the source state file to read from. Defaults to the
-  configured backend, or "terraform.tfstate".
-
-* `-state-out=path` - Path to the destination state file to write to. If this
-  isn't specified the source state file will be used. This can be a new or
-  existing path.
-
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
   [literal expressions](/docs/language/expressions/types.html) in the
@@ -92,6 +81,11 @@ in the configuration for the target resource, and that is the best behavior in m
   Terraform Cloud, continue even if remote and local Terraform versions differ.
   This may result in an unusable Terraform Cloud workspace, and should be used
   with extreme caution.
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform import` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Provider Configuration
 

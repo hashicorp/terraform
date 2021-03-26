@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
@@ -36,7 +35,7 @@ func (b *Local) opRefresh(
 					"Cannot read state file",
 					fmt.Sprintf("Failed to read %s: %s", b.StatePath, err),
 				))
-				b.ReportResult(runningOp, diags)
+				op.ReportResult(runningOp, diags)
 				return
 			}
 		}
@@ -49,16 +48,16 @@ func (b *Local) opRefresh(
 	tfCtx, _, opState, contextDiags := b.context(op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	// the state was locked during succesfull context creation; unlock the state
 	// when the operation completes
 	defer func() {
-		err := op.StateLocker.Unlock(nil)
-		if err != nil {
-			b.ShowDiagnostics(err)
+		diags := op.StateLocker.Unlock()
+		if diags.HasErrors() {
+			op.View.Diagnostics(diags)
 			runningOp.Result = backend.OperationFailure
 		}
 	}()
@@ -66,14 +65,11 @@ func (b *Local) opRefresh(
 	// Set our state
 	runningOp.State = opState.State()
 	if !runningOp.State.HasResources() {
-		if b.CLI != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Warning,
-				"Empty or non-existent state",
-				"There are currently no resources tracked in the state, so there is nothing to refresh.",
-			))
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(refreshNoState) + "\n"))
-		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Empty or non-existent state",
+			"There are currently no resources tracked in the state, so there is nothing to refresh.",
+		))
 	}
 
 	// Perform the refresh in a goroutine so we can be interrupted
@@ -86,30 +82,25 @@ func (b *Local) opRefresh(
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
 		return
 	}
 
-	// write the resulting state to the running op
+	// Write the resulting state to the running op
 	runningOp.State = newState
 	diags = diags.Append(refreshDiags)
 	if refreshDiags.HasErrors() {
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
 
 	err := statemgr.WriteAndPersist(opState, newState)
 	if err != nil {
 		diags = diags.Append(errwrap.Wrapf("Failed to write state: {{err}}", err))
-		b.ReportResult(runningOp, diags)
+		op.ReportResult(runningOp, diags)
 		return
 	}
+
+	// Show any remaining warnings before exiting
+	op.ReportResult(runningOp, diags)
 }
-
-const refreshNoState = `
-[reset][bold][yellow]Empty or non-existent state file.[reset][yellow]
-
-Refresh will do nothing. Refresh does not error or return an erroneous
-exit status because many automation scripts use refresh, plan, then apply
-and may not have a state file yet for the first run.
-`

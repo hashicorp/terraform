@@ -260,12 +260,72 @@ module.child[1].test_object.c (destroy)
 	}
 }
 
+func TestDestroyEdgeTransformer_destroyThenUpdate(t *testing.T) {
+	g := Graph{Path: addrs.RootModuleInstance}
+	g.Add(testUpdateNode("test_object.A"))
+	g.Add(testDestroyNode("test_object.B"))
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A","test_string":"old"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+	test_string = "udpated"
+}
+`,
+	})
+	tf := &DestroyEdgeTransformer{
+		Config:  m,
+		Schemas: simpleTestSchemas(),
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := strings.TrimSpace(`
+test_object.A
+  test_object.B (destroy)
+test_object.B (destroy)
+`)
+	actual := strings.TrimSpace(g.String())
+
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
-
 	inst := NewNodeAbstractResourceInstance(instAddr)
-
 	return &NodeDestroyResourceInstance{NodeAbstractResourceInstance: inst}
+}
+
+func testUpdateNode(addrString string) GraphNodeCreator {
+	instAddr := mustResourceInstanceAddr(addrString)
+	inst := NewNodeAbstractResourceInstance(instAddr)
+	return &NodeApplyableResourceInstance{NodeAbstractResourceInstance: inst}
 }
 
 const testTransformDestroyEdgeBasicStr = `

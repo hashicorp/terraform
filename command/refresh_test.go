@@ -37,17 +37,15 @@ func TestRefresh(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -58,8 +56,10 @@ func TestRefresh(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if !p.ReadResourceCalled {
@@ -92,12 +92,10 @@ func TestRefresh_empty(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -110,8 +108,10 @@ func TestRefresh_empty(t *testing.T) {
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if p.ReadResourceCalled {
@@ -136,17 +136,15 @@ func TestRefresh_lockedState(t *testing.T) {
 	defer unlock()
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -158,13 +156,15 @@ func TestRefresh_lockedState(t *testing.T) {
 		"-state", statePath,
 	}
 
-	if code := c.Run(args); code == 0 {
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
 		t.Fatal("expected error")
 	}
 
-	output := ui.ErrorWriter.String()
-	if !strings.Contains(output, "lock") {
-		t.Fatal("command output does not look like a lock error:", output)
+	got := output.Stderr()
+	if !strings.Contains(got, "lock") {
+		t.Fatal("command output does not look like a lock error:", got)
 	}
 }
 
@@ -182,17 +182,15 @@ func TestRefresh_cwd(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -203,8 +201,10 @@ func TestRefresh_cwd(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if !p.ReadResourceCalled {
@@ -262,17 +262,15 @@ func TestRefresh_defaultState(t *testing.T) {
 	defer os.Chdir(cwd)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -283,8 +281,10 @@ func TestRefresh_defaultState(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	if !p.ReadResourceCalled {
@@ -332,17 +332,15 @@ func TestRefresh_outPath(t *testing.T) {
 	os.Remove(outPath)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -354,8 +352,10 @@ func TestRefresh_outPath(t *testing.T) {
 		"-state", statePath,
 		"-state-out", outPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	newState := testStateRead(t, statePath)
@@ -393,29 +393,29 @@ func TestRefresh_var(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	args := []string{
 		"-var", "foo=bar",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -431,16 +431,14 @@ func TestRefresh_varFile(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -451,14 +449,16 @@ func TestRefresh_varFile(t *testing.T) {
 		"-var-file", varFilePath,
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -474,16 +474,14 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = refreshVarFixtureSchema()
+	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
@@ -493,14 +491,16 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if !p.ConfigureCalled {
+	if !p.ConfigureProviderCalled {
 		t.Fatal("configure should be called")
 	}
-	if got, want := p.ConfigureRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
+	if got, want := p.ConfigureProviderRequest.Config.GetAttr("value"), cty.StringVal("bar"); !want.RawEquals(got) {
 		t.Fatalf("wrong provider configuration\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -523,7 +523,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
@@ -531,7 +531,7 @@ func TestRefresh_varsUnset(t *testing.T) {
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -547,8 +547,10 @@ func TestRefresh_varsUnset(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 }
 
@@ -587,17 +589,15 @@ func TestRefresh_backup(t *testing.T) {
 	os.Remove(backupPath)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -610,8 +610,10 @@ func TestRefresh_backup(t *testing.T) {
 		"-state-out", outPath,
 		"-backup", backupPath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	newState := testStateRead(t, statePath)
@@ -658,17 +660,15 @@ func TestRefresh_disableBackup(t *testing.T) {
 	os.Remove(outPath)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
 
-	p.GetSchemaResponse = refreshFixtureSchema()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
 	p.ReadResourceFn = nil
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.ObjectVal(map[string]cty.Value{
@@ -681,8 +681,10 @@ func TestRefresh_disableBackup(t *testing.T) {
 		"-state-out", outPath,
 		"-backup", "-",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	newState := testStateRead(t, statePath)
@@ -725,16 +727,14 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
 	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -750,13 +750,15 @@ func TestRefresh_displaysOutputs(t *testing.T) {
 	args := []string{
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Test that outputs were displayed
 	outputValue := "foo.example.com"
-	actual := done(t).Stdout()
+	actual := output.Stdout()
 	if !strings.Contains(actual, outputValue) {
 		t.Fatalf("Expected:\n%s\n\nTo include: %q", actual, outputValue)
 	}
@@ -773,7 +775,7 @@ func TestRefresh_targeted(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	p.GetSchemaResponse = &providers.GetSchemaResponse{
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -790,12 +792,10 @@ func TestRefresh_targeted(t *testing.T) {
 		}
 	}
 
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
+	view, done := testView(t)
 	c := &RefreshCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
 			View:             view,
 		},
 	}
@@ -804,11 +804,13 @@ func TestRefresh_targeted(t *testing.T) {
 		"-target", "test_instance.foo",
 		"-state", statePath,
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	got := ui.OutputWriter.String()
+	got := output.Stdout()
 	if want := "test_instance.foo: Refreshing"; !strings.Contains(got, want) {
 		t.Fatalf("expected output to contain %q, got:\n%s", want, got)
 	}
@@ -830,11 +832,9 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
-			ui := new(cli.MockUi)
-			view, _ := testView(t)
+			view, done := testView(t)
 			c := &RefreshCommand{
 				Meta: Meta{
-					Ui:   ui,
 					View: view,
 				},
 			}
@@ -842,11 +842,13 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 			args := []string{
 				"-target", target,
 			}
-			if code := c.Run(args); code != 1 {
-				t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+			code := c.Run(args)
+			output := done(t)
+			if code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 			}
 
-			got := ui.ErrorWriter.String()
+			got := output.Stderr()
 			if !strings.Contains(got, target) {
 				t.Fatalf("bad error output, want %q, got:\n%s", target, got)
 			}
@@ -859,8 +861,8 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
-func refreshFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func refreshFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -877,8 +879,8 @@ func refreshFixtureSchema() *providers.GetSchemaResponse {
 // refreshVarFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh-var . This schema should be
 // assigned to a mock provider named "test".
-func refreshVarFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func refreshVarFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{

@@ -9,7 +9,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestProvidersSchema_error(t *testing.T) {
@@ -28,8 +32,6 @@ func TestProvidersSchema_error(t *testing.T) {
 }
 
 func TestProvidersSchema_output(t *testing.T) {
-	// there's only one test at this time. This can be refactored to have
-	// multiple test cases in individual directories as needed.
 	fixtureDir := "testdata/providers-schema"
 	testDirs, err := ioutil.ReadDir(fixtureDir)
 	if err != nil {
@@ -48,11 +50,11 @@ func TestProvidersSchema_output(t *testing.T) {
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": []string{"1.2.3"},
+				"test": {"1.2.3"},
 			})
 			defer close()
 
-			p := showFixtureProvider()
+			p := providersSchemaFixtureProvider()
 			ui := new(cli.MockUi)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
@@ -108,4 +110,46 @@ type providerSchema struct {
 	Provider          interface{}            `json:"provider,omitempty"`
 	ResourceSchemas   map[string]interface{} `json:"resource_schemas,omitempty"`
 	DataSourceSchemas map[string]interface{} `json:"data_source_schemas,omitempty"`
+}
+
+// testProvider returns a mock provider that is configured for basic
+// operation with the configuration in testdata/providers-schema.
+func providersSchemaFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetProviderSchemaResponse = providersSchemaFixtureSchema()
+	return p
+}
+
+// providersSchemaFixtureSchema returns a schema suitable for processing the
+// configuration in testdata/providers-schema.ß
+func providersSchemaFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":  {Type: cty.String, Optional: true, Computed: true},
+						"ami": {Type: cty.String, Optional: true},
+						"volumes": {
+							NestedType: &configschema.Object{
+								Nesting: configschema.NestingList,
+								Attributes: map[string]*configschema.Attribute{
+									"size":        {Type: cty.String, Required: true},
+									"mount_point": {Type: cty.String, Required: true},
+								},
+							},
+							Optional: true,
+						},
+					},
+				},
+			},
+		},
+	}
 }

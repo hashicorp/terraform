@@ -168,3 +168,90 @@ func TestBlockEmptyValue(t *testing.T) {
 		})
 	}
 }
+
+// Attribute EmptyValue() is well covered by the Block tests above; these tests
+// focus on the behavior with NestedType field inside an Attribute
+func TestAttributeEmptyValue(t *testing.T) {
+	tests := []struct {
+		Schema *Attribute
+		Want   cty.Value
+	}{
+		{
+			&Attribute{},
+			cty.NilVal,
+		},
+		{
+			&Attribute{
+				Type: cty.String,
+			},
+			cty.NullVal(cty.String),
+		},
+		{
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSingle,
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"str": cty.String,
+			})),
+		},
+		{
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
+					},
+				},
+			},
+			cty.NullVal(cty.List(
+				cty.Object(map[string]cty.Type{
+					"str": cty.String,
+				}),
+			)),
+		},
+		{
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingMap,
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
+					},
+				},
+			},
+			cty.NullVal(cty.Map(
+				cty.Object(map[string]cty.Type{
+					"str": cty.String,
+				}),
+			)),
+		},
+		{
+			&Attribute{
+				NestedType: &Object{
+					Nesting: NestingSet,
+					Attributes: map[string]*Attribute{
+						"str": {Type: cty.String, Required: true},
+					},
+				},
+			},
+			cty.NullVal(cty.Set(
+				cty.Object(map[string]cty.Type{
+					"str": cty.String,
+				}),
+			)),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%#v", test.Schema), func(t *testing.T) {
+			got := test.Schema.EmptyValue()
+			if !test.Want.RawEquals(got) {
+				t.Errorf("wrong result\nschema: %s\ngot: %s\nwant: %s", spew.Sdump(test.Schema), dump.Value(got), dump.Value(test.Want))
+			}
+		})
+	}
+}

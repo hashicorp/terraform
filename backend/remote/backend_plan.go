@@ -260,15 +260,16 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, generalError("Failed to create run", err)
 	}
 
-	// When the lock timeout is set,
-	if op.StateLockTimeout > 0 {
+	// When the lock timeout is set, if the run is still pending and
+	// cancellable after that period, we attempt to cancel it.
+	if lockTimeout := op.StateLocker.Timeout(); lockTimeout > 0 {
 		go func() {
 			select {
 			case <-stopCtx.Done():
 				return
 			case <-cancelCtx.Done():
 				return
-			case <-time.After(op.StateLockTimeout):
+			case <-time.After(lockTimeout):
 				// Retrieve the run to get its current status.
 				r, err := b.client.Runs.Read(cancelCtx, r.ID)
 				if err != nil {

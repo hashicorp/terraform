@@ -1,7 +1,8 @@
 {
+  "format_version": "0.1",
   "valid": false,
   "error_count": 6,
-  "warning_count": 1,
+  "warning_count": 0,
   "diagnostics": [
     {
       "severity": "error",
@@ -16,9 +17,17 @@
         },
         "end": {
           "line": 1,
-          "column": 23,
-          "byte": 22
+          "column": 24,
+          "byte": 23
         }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 22,
+        "highlight_end_offset": 23,
+        "values": []
       }
     },
     {
@@ -37,24 +46,14 @@
           "column": 22,
           "byte": 21
         }
-      }
-    },
-    {
-      "severity": "warning",
-      "summary": "Interpolation-only expressions are deprecated",
-      "detail": "Terraform 0.11 and earlier required all non-constant expressions to be provided via interpolation syntax, but this pattern is now deprecated. To silence this warning, remove the \"${ sequence from the start and the }\" sequence from the end of this expression, leaving just the inner expression.\n\nTemplate interpolation syntax is still used to construct strings from expressions when the template includes multiple interpolation sequences or a mixture of literal strings and interpolations. This deprecation applies only to templates that consist entirely of a single interpolation sequence.",
-      "range": {
-        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
-        "start": {
-          "line": 5,
-          "column": 12,
-          "byte": 55
-        },
-        "end": {
-          "line": 5,
-          "column": 31,
-          "byte": 74
-        }
+      },
+      "snippet": {
+        "context": "module \"super#module\"",
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 7,
+        "highlight_end_offset": 21,
+        "values": []
       }
     },
     {
@@ -65,14 +64,22 @@
         "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
         "start": {
           "line": 5,
-          "column": 15,
-          "byte": 58
+          "column": 12,
+          "byte": 55
         },
         "end": {
           "line": 5,
-          "column": 18,
-          "byte": 61
+          "column": 15,
+          "byte": 58
         }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 14,
+        "values": []
       }
     },
     {
@@ -88,9 +95,17 @@
         },
         "end": {
           "line": 5,
-          "column": 31,
-          "byte": 74
+          "column": 26,
+          "byte": 69
         }
+      },
+      "snippet": {
+        "context": "module \"super\"",
+        "code": "  source = var.modulename",
+        "start_line": 5,
+        "highlight_start_offset": 11,
+        "highlight_end_offset": 25,
+        "values": []
       }
     },
     {
@@ -109,6 +124,14 @@
           "column": 15,
           "byte": 41
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"super\" {",
+        "start_line": 4,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 14,
+        "values": []
       }
     },
     {
@@ -127,6 +150,14 @@
           "column": 22,
           "byte": 21
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "module \"super#module\" {",
+        "start_line": 1,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 21,
+        "values": []
       }
     }
   ]

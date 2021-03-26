@@ -145,7 +145,7 @@ func (c *StateShowCommand) Run(args []string) int {
 
 func (c *StateShowCommand) Help() string {
 	helpText := `
-Usage: terraform state show [options] ADDRESS
+Usage: terraform [global options] state show [options] ADDRESS
 
   Shows the attributes of a resource in the Terraform state.
 

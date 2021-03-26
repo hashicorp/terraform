@@ -74,7 +74,7 @@ data "test_data_source" "foo" {
 	})
 
 	p := new(MockProvider)
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		DataSources: map[string]*configschema.Block{
 			"test_data_source": {
 				Attributes: map[string]*configschema.Attribute{
@@ -230,7 +230,7 @@ resource "test_object" "a" {
 
 	// The resource within the module should be using the provider configured
 	// from the root module. We should never see an empty configuration.
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		if req.Config.GetAttr("test_string").IsNull() {
 			resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing test_string value"))
 		}

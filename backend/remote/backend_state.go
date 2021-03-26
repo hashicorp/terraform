@@ -117,6 +117,7 @@ func (r *remoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	})
 	if err != nil {
 		if err == tfe.ErrWorkspaceLocked {
+			lockErr.Info = info
 			err = fmt.Errorf("%s (lock ID: \"%s/%s\")", err, r.organization, r.workspace.Name)
 		}
 		lockErr.Err = err

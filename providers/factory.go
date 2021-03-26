@@ -31,7 +31,7 @@ func FactoryFixed(p Interface) Factory {
 // a subsequent call to do anything with the resource type would fail
 // anyway.
 func ProviderHasResource(provider Interface, typeName string) bool {
-	resp := provider.GetSchema()
+	resp := provider.GetProviderSchema()
 	if resp.Diagnostics.HasErrors() {
 		return false
 	}
@@ -53,7 +53,7 @@ func ProviderHasResource(provider Interface, typeName string) bool {
 // a subsequent call to do anything with the data source would fail
 // anyway.
 func ProviderHasDataSource(provider Interface, dataSourceName string) bool {
-	resp := provider.GetSchema()
+	resp := provider.GetProviderSchema()
 	if resp.Diagnostics.HasErrors() {
 		return false
 	}

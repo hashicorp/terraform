@@ -1876,6 +1876,8 @@ func TestBackendFromState(t *testing.T) {
 func testMetaBackend(t *testing.T, args []string) *Meta {
 	var m Meta
 	m.Ui = new(cli.MockUi)
+	view, _ := testView(t)
+	m.View = view
 	m.process(args)
 	f := m.extendedFlagSet("test")
 	if err := f.Parse(args); err != nil {

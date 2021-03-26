@@ -15,8 +15,10 @@ import (
 	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/providercache"
 	tfplugin "github.com/hashicorp/terraform/plugin"
+	tfplugin6 "github.com/hashicorp/terraform/plugin6"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -325,6 +327,9 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 		"terraform": func() (providers.Interface, error) {
 			return terraformProvider.NewProvider(), nil
 		},
+		"test": func() (providers.Interface, error) {
+			return moduletest.NewProvider(), nil
+		},
 	}
 }
 
@@ -360,10 +365,19 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 		}
 
 		// store the client so that the plugin can kill the child process
-		p := raw.(*tfplugin.GRPCProvider)
-		p.PluginClient = client
-
-		return p, nil
+		protoVer := client.NegotiatedVersion()
+		switch protoVer {
+		case 5:
+			p := raw.(*tfplugin.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		case 6:
+			p := raw.(*tfplugin6.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		default:
+			panic("unsupported protocol version")
+		}
 	}
 }
 

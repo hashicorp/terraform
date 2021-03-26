@@ -10,7 +10,7 @@ import (
 // provider with the given schema for its own configuration.
 func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
 	return &MockProvider{
-		GetSchemaResponse: &providers.GetSchemaResponse{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: schema},
 		},
 	}
@@ -20,7 +20,7 @@ func mockProviderWithConfigSchema(schema *configschema.Block) *MockProvider {
 // provider with a schema containing a single resource type.
 func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block) *MockProvider {
 	return &MockProvider{
-		GetSchemaResponse: &providers.GetSchemaResponse{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
@@ -50,7 +50,7 @@ func mockProviderWithResourceTypeSchema(name string, schema *configschema.Block)
 // from an existing ProviderSchema.
 func mockProviderWithProviderSchema(providerSchema ProviderSchema) *MockProvider {
 	p := &MockProvider{
-		GetSchemaResponse: &providers.GetSchemaResponse{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{
 				Block: providerSchema.Provider,
 			},
@@ -60,23 +60,23 @@ func mockProviderWithProviderSchema(providerSchema ProviderSchema) *MockProvider
 	}
 
 	for name, schema := range providerSchema.ResourceTypes {
-		p.GetSchemaResponse.ResourceTypes[name] = providers.Schema{
+		p.GetProviderSchemaResponse.ResourceTypes[name] = providers.Schema{
 			Block:   schema,
 			Version: int64(providerSchema.ResourceTypeSchemaVersions[name]),
 		}
 	}
 
 	for name, schema := range providerSchema.DataSources {
-		p.GetSchemaResponse.DataSources[name] = providers.Schema{Block: schema}
+		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: schema}
 	}
 
 	return p
 }
 
-// getSchemaResponseFromProviderSchema is a test helper to convert a
-// ProviderSchema to a GetSchemaResponse for use when building a mock provider.
-func getSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetSchemaResponse {
-	resp := &providers.GetSchemaResponse{
+// getProviderSchemaResponseFromProviderSchema is a test helper to convert a
+// ProviderSchema to a GetProviderSchemaResponse for use when building a mock provider.
+func getProviderSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *providers.GetProviderSchemaResponse {
+	resp := &providers.GetProviderSchemaResponse{
 		Provider:      providers.Schema{Block: providerSchema.Provider},
 		ProviderMeta:  providers.Schema{Block: providerSchema.ProviderMeta},
 		ResourceTypes: map[string]providers.Schema{},
@@ -116,7 +116,7 @@ func getSchemaResponseFromProviderSchema(providerSchema *ProviderSchema) *provid
 // objects so that callers can mutate without affecting mock objects.
 func simpleMockProvider() *MockProvider {
 	return &MockProvider{
-		GetSchemaResponse: &providers.GetSchemaResponse{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			Provider: providers.Schema{Block: simpleTestSchema()},
 			ResourceTypes: map[string]providers.Schema{
 				"test_object": providers.Schema{Block: simpleTestSchema()},

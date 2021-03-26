@@ -155,7 +155,7 @@ func TestNodeValidatableResource_ValidateProvisioner__conntectionInvalid(t *test
 
 func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
@@ -165,7 +165,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -196,22 +196,22 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 		t.Fatalf("err: %s", err)
 	}
 
-	if !mp.ValidateResourceTypeConfigCalled {
-		t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+	if !mp.ValidateResourceConfigCalled {
+		t.Fatal("Expected ValidateResourceConfig to be called, but it was not!")
 	}
 }
 
 func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testing.T) {
 	// Setup
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
 		if got, want := req.Config.GetAttr("test_string"), cty.StringVal("bar"); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_string\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateResourceTypeConfigResponse{}
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -259,8 +259,8 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 				t.Fatalf("err: %s", diags.Err())
 			}
 
-			if !mp.ValidateResourceTypeConfigCalled {
-				t.Fatal("Expected ValidateResourceTypeConfig to be called, but it was not!")
+			if !mp.ValidateResourceConfigCalled {
+				t.Fatal("Expected ValidateResourceConfig to be called, but it was not!")
 			}
 		})
 	}
@@ -268,7 +268,7 @@ func TestNodeValidatableResource_ValidateResource_managedResourceCount(t *testin
 
 func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateDataSourceConfigFn = func(req providers.ValidateDataSourceConfigRequest) providers.ValidateDataSourceConfigResponse {
+	mp.ValidateDataResourceConfigFn = func(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 		if got, want := req.TypeName, "test_object"; got != want {
 			t.Fatalf("wrong resource type\ngot:  %#v\nwant: %#v", got, want)
 		}
@@ -278,7 +278,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 		if got, want := req.Config.GetAttr("test_number"), cty.NumberIntVal(2); !got.RawEquals(want) {
 			t.Fatalf("wrong value for test_number\ngot:  %#v\nwant: %#v", got, want)
 		}
-		return providers.ValidateDataSourceConfigResponse{}
+		return providers.ValidateDataResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -310,15 +310,15 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	if !mp.ValidateDataSourceConfigCalled {
+	if !mp.ValidateDataResourceConfigCalled {
 		t.Fatal("Expected ValidateDataSourceConfig to be called, but it was not!")
 	}
 }
 
 func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		return providers.ValidateResourceTypeConfigResponse{}
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	p := providers.Interface(mp)
@@ -349,11 +349,11 @@ func TestNodeValidatableResource_ValidateResource_valid(t *testing.T) {
 
 func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.SimpleWarning("warn"))
 		diags = diags.Append(errors.New("err"))
-		return providers.ValidateResourceTypeConfigResponse{
+		return providers.ValidateResourceConfigResponse{
 			Diagnostics: diags,
 		}
 	}
@@ -397,8 +397,8 @@ func TestNodeValidatableResource_ValidateResource_warningsAndErrorsPassedThrough
 
 func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T) {
 	mp := simpleMockProvider()
-	mp.ValidateResourceTypeConfigFn = func(req providers.ValidateResourceTypeConfigRequest) providers.ValidateResourceTypeConfigResponse {
-		return providers.ValidateResourceTypeConfigResponse{}
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
 	}
 
 	// We'll check a _valid_ config first, to make sure we're not failing

@@ -47,58 +47,6 @@ func TestOutput(t *testing.T) {
 	}
 }
 
-func TestOutput_nestedListAndMap(t *testing.T) {
-	originalState := states.BuildState(func(s *states.SyncState) {
-		s.SetOutputValue(
-			addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
-			cty.ListVal([]cty.Value{
-				cty.MapVal(map[string]cty.Value{
-					"key":  cty.StringVal("value"),
-					"key2": cty.StringVal("value2"),
-				}),
-				cty.MapVal(map[string]cty.Value{
-					"key": cty.StringVal("value"),
-				}),
-			}),
-			false,
-		)
-	})
-	statePath := testStateFile(t, originalState)
-
-	view, done := testView(t)
-	c := &OutputCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
-			View:             view,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-	}
-	code := c.Run(args)
-	output := done(t)
-	if code != 0 {
-		t.Fatalf("bad: \n%s", output.Stderr())
-	}
-
-	actual := strings.TrimSpace(output.Stdout())
-	expected := strings.TrimSpace(`
-foo = tolist([
-  tomap({
-    "key" = "value"
-    "key2" = "value2"
-  }),
-  tomap({
-    "key" = "value"
-  }),
-])
-`)
-	if actual != expected {
-		t.Fatalf("wrong output\ngot:  %s\nwant: %s", actual, expected)
-	}
-}
-
 func TestOutput_json(t *testing.T) {
 	originalState := states.BuildState(func(s *states.SyncState) {
 		s.SetOutputValue(
@@ -160,36 +108,6 @@ func TestOutput_emptyOutputs(t *testing.T) {
 	// Warning diagnostics should go to stdout
 	if got, want := output.Stdout(), "Warning: No outputs found"; !strings.Contains(got, want) {
 		t.Fatalf("bad output: expected to contain %q, got:\n%s", want, got)
-	}
-}
-
-func TestOutput_jsonEmptyOutputs(t *testing.T) {
-	originalState := states.NewState()
-	statePath := testStateFile(t, originalState)
-
-	p := testProvider()
-	view, done := testView(t)
-	c := &OutputCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-json",
-	}
-	code := c.Run(args)
-	output := done(t)
-	if code != 0 {
-		t.Fatalf("bad: \n%s", output.Stderr())
-	}
-
-	actual := strings.TrimSpace(output.Stdout())
-	expected := "{}"
-	if actual != expected {
-		t.Fatalf("bad:\n%#v\n%#v", expected, actual)
 	}
 }
 

@@ -104,9 +104,9 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Successfully creating the context can result in a lock, so ensure we release it
 	defer func() {
-		err := opReq.StateLocker.Unlock(nil)
-		if err != nil {
-			c.Ui.Error(err.Error())
+		diags := opReq.StateLocker.Unlock()
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
 		}
 	}()
 
@@ -175,7 +175,7 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 
 func (c *ConsoleCommand) Help() string {
 	helpText := `
-Usage: terraform console [options]
+Usage: terraform [global options] console [options]
 
   Starts an interactive console for experimenting with Terraform
   interpolations.
@@ -189,16 +189,15 @@ Usage: terraform console [options]
 
 Options:
 
-  -state=path            Path to read state. Defaults to "terraform.tfstate"
+  -state=path       Legacy option for the local backend only. See the local
+                    backend's documentation for more information.
 
-  -var 'foo=bar'         Set a variable in the Terraform configuration. This
-                         flag can be set multiple times.
+  -var 'foo=bar'    Set a variable in the Terraform configuration. This
+                    flag can be set multiple times.
 
-  -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" or any ".auto.tfvars"
-                         files are present, they will be automatically loaded.
-
-
+  -var-file=foo     Set variables in the Terraform configuration from
+                    a file. If "terraform.tfvars" or any ".auto.tfvars"
+                    files are present, they will be automatically loaded.
 `
 	return strings.TrimSpace(helpText)
 }

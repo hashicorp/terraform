@@ -56,6 +56,10 @@ func (v AbsOutputValue) String() string {
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.String())
 }
 
+func (v AbsOutputValue) Equal(o AbsOutputValue) bool {
+	return v.OutputValue == o.OutputValue && v.Module.Equal(o.Module)
+}
+
 // ModuleCallOutput converts an AbsModuleOutput into a ModuleCallOutput,
 // returning also the module instance that the ModuleCallOutput is relative
 // to.

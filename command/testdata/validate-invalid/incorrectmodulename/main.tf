@@ -2,5 +2,5 @@ module "super#module" {
 }
 
 module "super" {
-  source = "${var.modulename}"
+  source = var.modulename
 }

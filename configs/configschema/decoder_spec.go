@@ -6,6 +6,7 @@ import (
 	"unsafe"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
 )
 
 var mapLabelNames = []string{"key"}
@@ -91,10 +92,10 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 
 	for name, blockS := range b.BlockTypes {
 		if _, exists := ret[name]; exists {
-			// This indicates an invalid schema, since it's not valid to
-			// define both an attribute and a block type of the same name.
-			// However, we don't raise this here since it's checked by
-			// InternalValidate.
+			// This indicates an invalid schema, since it's not valid to define
+			// both an attribute and a block type of the same name. We assume
+			// that the provider has already used something like
+			// InternalValidate to validate their schema.
 			continue
 		}
 
@@ -103,7 +104,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 		// We can only validate 0 or 1 for MinItems, because a dynamic block
 		// may satisfy any number of min items while only having a single
 		// block in the config. We cannot validate MaxItems because a
-		// configuration may have any number of dynamic blocks
+		// configuration may have any number of dynamic blocks.
 		minItems := 0
 		if blockS.MinItems > 1 {
 			minItems = 1
@@ -144,10 +145,12 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			}
 		case NestingSet:
 			// We forbid dynamically-typed attributes inside NestingSet in
-			// InternalValidate, so we don't do anything special to handle
-			// that here. (There is no set analog to tuple and object types,
-			// because cty's set implementation depends on knowing the static
-			// type in order to properly compute its internal hashes.)
+			// InternalValidate, so we don't do anything special to handle that
+			// here. (There is no set analog to tuple and object types, because
+			// cty's set implementation depends on knowing the static type in
+			// order to properly compute its internal hashes.)  We assume that
+			// the provider has already used something like InternalValidate to
+			// validate their schema.
 			ret[name] = &hcldec.BlockSetSpec{
 				TypeName: name,
 				Nested:   childSpec,
@@ -173,7 +176,8 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			}
 		default:
 			// Invalid nesting type is just ignored. It's checked by
-			// InternalValidate.
+			// InternalValidate.  We assume that the provider has already used
+			// something like InternalValidate to validate their schema.
 			continue
 		}
 	}
@@ -183,9 +187,41 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 }
 
 func (a *Attribute) decoderSpec(name string) hcldec.Spec {
-	return &hcldec.AttrSpec{
-		Name:     name,
-		Type:     a.Type,
-		Required: a.Required,
+	ret := &hcldec.AttrSpec{Name: name}
+	if a == nil {
+		return ret
 	}
+
+	if a.NestedType != nil {
+		// FIXME: a panic() is a bad UX. InternalValidate() can check Attribute
+		// schemas as well so a fix might be to call it when we get the schema
+		// from the provider in Context(). Since this could be a breaking
+		// change, we'd need to communicate well before adding that call.
+		if a.Type != cty.NilType {
+			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")
+		}
+
+		ty := a.NestedType.ImpliedType()
+		ret.Type = ty
+		ret.Required = a.Required || a.NestedType.MinItems > 0
+		return ret
+	}
+
+	ret.Type = a.Type
+	ret.Required = a.Required
+	return ret
+}
+
+// listOptionalAttrsFromObject is a helper function which does *not* recurse
+// into NestedType Attributes, because the optional types for each of those will
+// belong to their own cty.Object definitions. It is used in other functions
+// which themselves handle that recursion.
+func listOptionalAttrsFromObject(o *Object) []string {
+	var ret []string
+	for name, attr := range o.Attributes {
+		if attr.Optional == true {
+			ret = append(ret, name)
+		}
+	}
+	return ret
 }

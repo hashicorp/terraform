@@ -1,4 +1,5 @@
 {
+  "format_version": "0.1",
   "valid": false,
   "error_count": 1,
   "warning_count": 0,
@@ -19,6 +20,14 @@
           "column": 18,
           "byte": 114
         }
+      },
+      "snippet": {
+        "context": "resource \"test_instance\" \"foo\"",
+        "code": "      name = test",
+        "start_line": 6,
+        "highlight_start_offset": 13,
+        "highlight_end_offset": 17,
+        "values": []
       }
     }
   ]

@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
@@ -264,6 +265,88 @@ func TestBackendStateLocks(t *testing.T) {
 	}
 
 	backend.TestBackendStateLocks(t, b, bb)
+}
+
+func TestBackendConcurrentLock(t *testing.T) {
+	testACC(t)
+	connStr := getDatabaseUrl()
+	dbCleaner, err := sql.Open("postgres", connStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getStateMgr := func(schemaName string) (statemgr.Full, *statemgr.LockInfo) {
+		defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+		config := backend.TestWrapConfig(map[string]interface{}{
+			"conn_str":    connStr,
+			"schema_name": schemaName,
+		})
+		b := backend.TestBackendConfig(t, New(), config).(*Backend)
+
+		if b == nil {
+			t.Fatal("Backend could not be configured")
+		}
+		stateMgr, err := b.StateMgr(backend.DefaultStateName)
+		if err != nil {
+			t.Fatalf("Failed to get the state manager: %v", err)
+		}
+
+		info := statemgr.NewLockInfo()
+		info.Operation = "test"
+		info.Who = schemaName
+
+		return stateMgr, info
+	}
+
+	s1, i1 := getStateMgr(fmt.Sprintf("terraform_%s_1", t.Name()))
+	s2, i2 := getStateMgr(fmt.Sprintf("terraform_%s_2", t.Name()))
+
+	// First we need to create the workspace as the lock for creating them is
+	// global
+	lockID1, err := s1.Lock(i1)
+	if err != nil {
+		t.Fatalf("failed to lock first state: %v", err)
+	}
+
+	if err = s1.PersistState(); err != nil {
+		t.Fatalf("failed to persist state: %v", err)
+	}
+
+	if err := s1.Unlock(lockID1); err != nil {
+		t.Fatalf("failed to unlock first state: %v", err)
+	}
+
+	lockID2, err := s2.Lock(i2)
+	if err != nil {
+		t.Fatalf("failed to lock second state: %v", err)
+	}
+
+	if err = s2.PersistState(); err != nil {
+		t.Fatalf("failed to persist state: %v", err)
+	}
+
+	if err := s2.Unlock(lockID2); err != nil {
+		t.Fatalf("failed to unlock first state: %v", err)
+	}
+
+	// Now we can test concurrent lock
+	lockID1, err = s1.Lock(i1)
+	if err != nil {
+		t.Fatalf("failed to lock first state: %v", err)
+	}
+
+	lockID2, err = s2.Lock(i2)
+	if err != nil {
+		t.Fatalf("failed to lock second state: %v", err)
+	}
+
+	if err := s1.Unlock(lockID1); err != nil {
+		t.Fatalf("failed to unlock first state: %v", err)
+	}
+
+	if err := s2.Unlock(lockID2); err != nil {
+		t.Fatalf("failed to unlock first state: %v", err)
+	}
 }
 
 func getDatabaseUrl() string {

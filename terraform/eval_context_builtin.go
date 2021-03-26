@@ -187,12 +187,12 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		return diags
 	}
 
-	req := providers.ConfigureRequest{
+	req := providers.ConfigureProviderRequest{
 		TerraformVersion: version.String(),
 		Config:           cfg,
 	}
 
-	resp := p.Configure(req)
+	resp := p.ConfigureProvider(req)
 	return resp.Diagnostics
 }
 

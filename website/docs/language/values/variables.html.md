@@ -437,6 +437,44 @@ $ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
 
+### Values for Undeclared Variables
+
+If you have defined a variable value, but not its corresponding `variable {}`
+definition, you may get an error or warning depending on how you have provided
+that value.
+
+If you provide values for undeclared variables defined as [environment variables](#environment-variables)
+you will not get an error or warning. This is because environment variables may
+be declared but not used in all configurations that might be run.
+
+If you provide values for undeclared variables defined [in a file](#variable-definitions-tfvars-files)
+you will get a warning. This is to help in cases where you have provided a variable
+value _meant_ for a variable declaration, but perhaps there is a mistake in the
+value definition. For example, the following configuration:
+
+```terraform
+variable "moose" {
+  type = string
+}
+```
+
+And the following `.tfvars` file:
+
+```hcl
+mosse = "Moose"
+```
+
+Will cause Terraform to warn you that there is no variable declared `"mosse"`, which can help
+you spot this mistake.
+
+If you use `.tfvars` files across multiple configurations and expect to continue to see this warning,
+you can use the [`-compact-warnings`](https://www.terraform.io/docs/cli/commands/plan.html#compact-warnings)
+option to simplify your output.
+
+If you provide values for undeclared variables on the [command line](#variables-on-the-command-line),
+Terraform will error. To avoid this error, either declare a variable block for the value, or remove
+the variable value from your Terraform call.
+
 ### Variable Definition Precedence
 
 The above mechanisms for setting variables can be used together in any

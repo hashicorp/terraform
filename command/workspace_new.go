@@ -1,13 +1,14 @@
 package command
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
@@ -124,12 +125,16 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	if stateLock {
-		stateLocker := clistate.NewLocker(context.Background(), stateLockTimeout, c.Ui, c.Colorize())
-		if err := stateLocker.Lock(stateMgr, "workspace_new"); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error locking state: %s", err))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
+		if diags := stateLocker.Lock(stateMgr, "workspace-new"); diags.HasErrors() {
+			c.showDiagnostics(diags)
 			return 1
 		}
-		defer stateLocker.Unlock(nil)
+		defer func() {
+			if diags := stateLocker.Unlock(); diags.HasErrors() {
+				c.showDiagnostics(diags)
+			}
+		}()
 	}
 
 	// read the existing state file
@@ -176,7 +181,7 @@ func (c *WorkspaceNewCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceNewCommand) Help() string {
 	helpText := `
-Usage: terraform workspace new [OPTIONS] NAME
+Usage: terraform [global options] workspace new [OPTIONS] NAME
 
   Create a new Terraform workspace.
 

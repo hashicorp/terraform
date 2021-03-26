@@ -12,21 +12,21 @@ import (
 // provider plugin.
 type Interface interface {
 	// GetSchema returns the complete schema for the provider.
-	GetSchema() GetSchemaResponse
+	GetProviderSchema() GetProviderSchemaResponse
 
-	// PrepareProviderConfig allows the provider to validate the configuration.
-	// The PrepareProviderConfigResponse.PreparedConfig field is unused. The
+	// ValidateProviderConfig allows the provider to validate the configuration.
+	// The ValidateProviderConfigResponse.PreparedConfig field is unused. The
 	// final configuration is not stored in the state, and any modifications
 	// that need to be made must be made during the Configure method call.
-	PrepareProviderConfig(PrepareProviderConfigRequest) PrepareProviderConfigResponse
+	ValidateProviderConfig(ValidateProviderConfigRequest) ValidateProviderConfigResponse
 
-	// ValidateResourceTypeConfig allows the provider to validate the resource
+	// ValidateResourceConfig allows the provider to validate the resource
 	// configuration values.
-	ValidateResourceTypeConfig(ValidateResourceTypeConfigRequest) ValidateResourceTypeConfigResponse
+	ValidateResourceConfig(ValidateResourceConfigRequest) ValidateResourceConfigResponse
 
-	// ValidateDataSource allows the provider to validate the data source
+	// ValidateDataResourceConfig allows the provider to validate the data source
 	// configuration values.
-	ValidateDataSourceConfig(ValidateDataSourceConfigRequest) ValidateDataSourceConfigResponse
+	ValidateDataResourceConfig(ValidateDataResourceConfigRequest) ValidateDataResourceConfigResponse
 
 	// UpgradeResourceState is called when the state loader encounters an
 	// instance state whose schema version is less than the one reported by the
@@ -35,7 +35,7 @@ type Interface interface {
 	UpgradeResourceState(UpgradeResourceStateRequest) UpgradeResourceStateResponse
 
 	// Configure configures and initialized the provider.
-	Configure(ConfigureRequest) ConfigureResponse
+	ConfigureProvider(ConfigureProviderRequest) ConfigureProviderResponse
 
 	// Stop is called when the provider should halt any in-flight actions.
 	//
@@ -71,7 +71,7 @@ type Interface interface {
 	Close() error
 }
 
-type GetSchemaResponse struct {
+type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
 
@@ -95,19 +95,19 @@ type Schema struct {
 	Block   *configschema.Block
 }
 
-type PrepareProviderConfigRequest struct {
+type ValidateProviderConfigRequest struct {
 	// Config is the raw configuration value for the provider.
 	Config cty.Value
 }
 
-type PrepareProviderConfigResponse struct {
-	// PreparedConfig is unused.
+type ValidateProviderConfigResponse struct {
+	// PreparedConfig is unused and will be removed with support for plugin protocol v5.
 	PreparedConfig cty.Value
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ValidateResourceTypeConfigRequest struct {
+type ValidateResourceConfigRequest struct {
 	// TypeName is the name of the resource type to validate.
 	TypeName string
 
@@ -116,12 +116,12 @@ type ValidateResourceTypeConfigRequest struct {
 	Config cty.Value
 }
 
-type ValidateResourceTypeConfigResponse struct {
+type ValidateResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ValidateDataSourceConfigRequest struct {
+type ValidateDataResourceConfigRequest struct {
 	// TypeName is the name of the data source type to validate.
 	TypeName string
 
@@ -130,7 +130,7 @@ type ValidateDataSourceConfigRequest struct {
 	Config cty.Value
 }
 
-type ValidateDataSourceConfigResponse struct {
+type ValidateDataResourceConfigResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }
@@ -160,7 +160,7 @@ type UpgradeResourceStateResponse struct {
 	Diagnostics tfdiags.Diagnostics
 }
 
-type ConfigureRequest struct {
+type ConfigureProviderRequest struct {
 	// Terraform version is the version string from the running instance of
 	// terraform. Providers can use TerraformVersion to verify compatibility,
 	// and to store for informational purposes.
@@ -170,7 +170,7 @@ type ConfigureRequest struct {
 	Config cty.Value
 }
 
-type ConfigureResponse struct {
+type ConfigureProviderResponse struct {
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
 }

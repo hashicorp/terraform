@@ -1,5 +1,5 @@
 variable "test" {
-  type = "map"
+  type = map(string)
   default = {
     "test" = "1"
   }

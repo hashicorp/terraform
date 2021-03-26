@@ -94,6 +94,16 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		return v
 
 	case wantTy.IsObjectType():
+		// For structural types, a null input value must be passed through. We
+		// do not apply default values for missing optional structural values,
+		// only their contents.
+		//
+		// We also pass through the input if the fallback value is null. This
+		// can happen if the given defaults do not include a value for this
+		// attribute.
+		if input.IsNull() || fallback.IsNull() {
+			return input
+		}
 		atys := wantTy.AttributeTypes()
 		ret := map[string]cty.Value{}
 		for attr, aty := range atys {
@@ -107,6 +117,17 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		return cty.ObjectVal(ret)
 
 	case wantTy.IsTupleType():
+		// For structural types, a null input value must be passed through. We
+		// do not apply default values for missing optional structural values,
+		// only their contents.
+		//
+		// We also pass through the input if the fallback value is null. This
+		// can happen if the given defaults do not include a value for this
+		// attribute.
+		if input.IsNull() || fallback.IsNull() {
+			return input
+		}
+
 		l := wantTy.Length()
 		ret := make([]cty.Value, l)
 		for i := 0; i < l; i++ {
@@ -127,9 +148,11 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsMapType():
 			newVals := map[string]cty.Value{}
 
-			for it := input.ElementIterator(); it.Next(); {
-				k, v := it.Element()
-				newVals[k.AsString()] = defaultsApply(v, fallback)
+			if !input.IsNull() {
+				for it := input.ElementIterator(); it.Next(); {
+					k, v := it.Element()
+					newVals[k.AsString()] = defaultsApply(v, fallback)
+				}
 			}
 
 			if len(newVals) == 0 {
@@ -139,10 +162,12 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsListType(), wantTy.IsSetType():
 			var newVals []cty.Value
 
-			for it := input.ElementIterator(); it.Next(); {
-				_, v := it.Element()
-				newV := defaultsApply(v, fallback)
-				newVals = append(newVals, newV)
+			if !input.IsNull() {
+				for it := input.ElementIterator(); it.Next(); {
+					_, v := it.Element()
+					newV := defaultsApply(v, fallback)
+					newVals = append(newVals, newV)
+				}
 			}
 
 			if len(newVals) == 0 {
@@ -183,7 +208,7 @@ func defaultsAssertSuitableFallback(wantTy, fallbackTy cty.Type, fallbackPath ct
 		if fallbackTy.Equals(wantTy) {
 			return nil
 		}
-		conversion := convert.GetConversionUnsafe(fallbackTy, wantTy)
+		conversion := convert.GetConversion(fallbackTy, wantTy)
 		if conversion == nil {
 			msg := convert.MismatchMessage(fallbackTy, wantTy)
 			return fallbackPath.NewErrorf("invalid default value for %s: %s", wantTy.FriendlyName(), msg)

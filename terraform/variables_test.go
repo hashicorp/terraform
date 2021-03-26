@@ -30,21 +30,21 @@ func TestVariables(t *testing.T) {
 					},
 				},
 				"b": &InputValue{
-					Value:      cty.ListValEmpty(cty.DynamicPseudoType),
+					Value:      cty.ListValEmpty(cty.String),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "testdata/vars-basic/main.tf",
-						Start:    tfdiags.SourcePos{Line: 6, Column: 1, Byte: 58},
-						End:      tfdiags.SourcePos{Line: 6, Column: 13, Byte: 70},
+						Start:    tfdiags.SourcePos{Line: 6, Column: 1, Byte: 55},
+						End:      tfdiags.SourcePos{Line: 6, Column: 13, Byte: 67},
 					},
 				},
 				"c": &InputValue{
-					Value:      cty.MapValEmpty(cty.DynamicPseudoType),
+					Value:      cty.MapValEmpty(cty.String),
 					SourceType: ValueFromConfig,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "testdata/vars-basic/main.tf",
-						Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 111},
-						End:      tfdiags.SourcePos{Line: 11, Column: 13, Byte: 123},
+						Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 113},
+						End:      tfdiags.SourcePos{Line: 11, Column: 13, Byte: 125},
 					},
 				},
 			},

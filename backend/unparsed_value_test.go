@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -59,7 +60,7 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 	for _, diag := range diags {
 		t.Logf("%s: %s", diag.Description().Summary, diag.Description().Detail)
 	}
-	if got, want := len(diags), 5; got != want {
+	if got, want := len(diags), 4; got != want {
 		t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
 	}
 
@@ -73,14 +74,14 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 	if got, want := diags[1].Description().Summary, undeclSingular; got != want {
 		t.Errorf("wrong summary for diagnostic 1\ngot:  %s\nwant: %s", got, want)
 	}
-	if got, want := diags[2].Description().Summary, undeclSingular; got != want {
+	if got, want := diags[2].Description().Summary, undeclPlural; got != want {
 		t.Errorf("wrong summary for diagnostic 2\ngot:  %s\nwant: %s", got, want)
 	}
-	if got, want := diags[3].Description().Summary, undeclPlural; got != want {
-		t.Errorf("wrong summary for diagnostic 3\ngot:  %s\nwant: %s", got, want)
+	if got, want := diags[2].Description().Detail, "3 other variable(s)"; !strings.Contains(got, want) {
+		t.Errorf("wrong detail for diagnostic 2\ngot:  %s\nmust contain: %s", got, want)
 	}
-	if got, want := diags[4].Description().Summary, missingRequired; got != want {
-		t.Errorf("wrong summary for diagnostic 4\ngot:  %s\nwant: %s", got, want)
+	if got, want := diags[3].Description().Summary, missingRequired; got != want {
+		t.Errorf("wrong summary for diagnostic 3\ngot:  %s\nwant: %s", got, want)
 	}
 
 	wantVals := terraform.InputValues{

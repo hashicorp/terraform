@@ -22,10 +22,12 @@ import (
 
 func TestShow(t *testing.T) {
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -46,10 +48,12 @@ func TestShow_noArgs(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -93,10 +97,12 @@ func TestShow_aliasedProvider(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -121,10 +127,12 @@ func TestShow_noArgsNoState(t *testing.T) {
 	defer testChdir(t, stateDir)()
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -139,10 +147,12 @@ func TestShow_plan(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	ui := cli.NewMockUi()
+	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -154,7 +164,7 @@ func TestShow_plan(t *testing.T) {
 	}
 
 	want := `Terraform will perform the following actions`
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if !strings.Contains(got, want) {
 		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}
@@ -164,10 +174,12 @@ func TestShow_planWithChanges(t *testing.T) {
 	planPathWithChanges := showFixturePlanFile(t, plans.DeleteThenCreate)
 
 	ui := cli.NewMockUi()
+	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -180,7 +192,7 @@ func TestShow_planWithChanges(t *testing.T) {
 	}
 
 	want := `test_instance.foo must be replaced`
-	got := ui.OutputWriter.String()
+	got := done(t).Stdout()
 	if !strings.Contains(got, want) {
 		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}
@@ -190,10 +202,12 @@ func TestShow_plan_json(t *testing.T) {
 	planPath := showFixturePlanFile(t, plans.Create)
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -212,10 +226,12 @@ func TestShow_state(t *testing.T) {
 	defer os.RemoveAll(filepath.Dir(statePath))
 
 	ui := new(cli.MockUi)
+	view, _ := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(testProvider()),
 			Ui:               ui,
+			View:             view,
 		},
 	}
 
@@ -255,9 +271,11 @@ func TestShow_json_output(t *testing.T) {
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 
@@ -352,9 +370,11 @@ func TestShow_json_output_state(t *testing.T) {
 
 			p := showFixtureProvider()
 			ui := new(cli.MockUi)
+			view, _ := testView(t)
 			m := Meta{
 				testingOverrides: metaOverridesForProvider(p),
 				Ui:               ui,
+				View:             view,
 				ProviderSource:   providerSource,
 			}
 
@@ -408,8 +428,8 @@ func TestShow_json_output_state(t *testing.T) {
 // showFixtureSchema returns a schema suitable for processing the configuration
 // in testdata/show. This schema should be assigned to a mock provider
 // named "test".
-func showFixtureSchema() *providers.GetSchemaResponse {
-	return &providers.GetSchemaResponse{
+func showFixtureSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -437,7 +457,7 @@ func showFixtureSchema() *providers.GetSchemaResponse {
 // Terraform Core.
 func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
-	p.GetSchemaResponse = showFixtureSchema()
+	p.GetProviderSchemaResponse = showFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		idVal := req.ProposedNewState.GetAttr("id")
 		amiVal := req.ProposedNewState.GetAttr("ami")

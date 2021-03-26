@@ -17,7 +17,7 @@ import (
 func TestContext2Input_provider(t *testing.T) {
 	m := testModule(t, "input-provider")
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -54,7 +54,7 @@ func TestContext2Input_provider(t *testing.T) {
 	})
 
 	var actual interface{}
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
@@ -87,7 +87,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	m := testModule(t, "input-provider-multi")
 
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -135,7 +135,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		lock.Lock()
 		defer lock.Unlock()
 		actual = append(actual, req.Config.GetAttr("foo").AsString())
@@ -172,7 +172,7 @@ func TestContext2Input_providerId(t *testing.T) {
 	m := testModule(t, "input-provider")
 
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -203,7 +203,7 @@ func TestContext2Input_providerId(t *testing.T) {
 	})
 
 	var actual interface{}
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
@@ -234,7 +234,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 
 	m := testModule(t, "input-provider-vars")
 	p := testProvider("aws")
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -273,7 +273,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	}
 
 	var actual interface{}
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
@@ -325,7 +325,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 	}
 
 	var actual interface{}
-	p.ConfigureFn = func(req providers.ConfigureRequest) (resp providers.ConfigureResponse) {
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
@@ -388,7 +388,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	p := testProvider("null")
 	m := testModule(t, "input-module-data-vars")
 
-	p.GetSchemaResponse = getSchemaResponseFromProviderSchema(&ProviderSchema{
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		DataSources: map[string]*configschema.Block{
 			"null_data_source": {
 				Attributes: map[string]*configschema.Attribute{

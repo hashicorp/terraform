@@ -119,3 +119,31 @@ func TestSetCopy(t *testing.T) {
 	}
 
 }
+
+func makeSet(n int) Set {
+	ret := make(Set, n)
+	for i := 0; i < n; i++ {
+		ret.Add(i)
+	}
+	return ret
+}
+
+func BenchmarkSetIntersection_100_100000(b *testing.B) {
+	small := makeSet(100)
+	large := makeSet(100000)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		small.Intersection(large)
+	}
+}
+
+func BenchmarkSetIntersection_100000_100(b *testing.B) {
+	small := makeSet(100)
+	large := makeSet(100000)
+
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		large.Intersection(small)
+	}
+}

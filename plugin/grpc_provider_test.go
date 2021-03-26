@@ -88,7 +88,7 @@ func TestGRPCProvider_GetSchema(t *testing.T) {
 		client: mockProviderClient(t),
 	}
 
-	resp := p.GetSchema()
+	resp := p.GetProviderSchema()
 	checkDiags(t, resp.Diagnostics)
 }
 
@@ -104,11 +104,11 @@ func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
 	).Return(&proto.PrepareProviderConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.PrepareProviderConfig(providers.PrepareProviderConfigRequest{Config: cfg})
+	resp := p.ValidateProviderConfig(providers.ValidateProviderConfigRequest{Config: cfg})
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_ValidateResourceTypeConfig(t *testing.T) {
+func TestGRPCProvider_ValidateResourceConfig(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
@@ -120,7 +120,7 @@ func TestGRPCProvider_ValidateResourceTypeConfig(t *testing.T) {
 	).Return(&proto.ValidateResourceTypeConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.ValidateResourceTypeConfig(providers.ValidateResourceTypeConfigRequest{
+	resp := p.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
 		TypeName: "resource",
 		Config:   cfg,
 	})
@@ -139,7 +139,7 @@ func TestGRPCProvider_ValidateDataSourceConfig(t *testing.T) {
 	).Return(&proto.ValidateDataSourceConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
-	resp := p.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
+	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: "data",
 		Config:   cfg,
 	})
@@ -219,7 +219,7 @@ func TestGRPCProvider_Configure(t *testing.T) {
 		gomock.Any(),
 	).Return(&proto.Configure_Response{}, nil)
 
-	resp := p.Configure(providers.ConfigureRequest{
+	resp := p.ConfigureProvider(providers.ConfigureProviderRequest{
 		Config: cty.ObjectVal(map[string]cty.Value{
 			"attr": cty.StringVal("foo"),
 		}),

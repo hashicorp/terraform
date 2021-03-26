@@ -84,7 +84,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
-		&attachDataResourceDependenciesTransformer{},
+		&attachDataResourceDependsOnTransformer{},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

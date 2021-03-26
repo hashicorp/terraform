@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -190,8 +190,6 @@ func TestEvaluatorGetResource(t *testing.T) {
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.foo": rc,
 				},
-				// Necessary while provider sensitive attrs are experimental
-				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
 			},
 		},
 		State: stateSync,
@@ -421,8 +419,6 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 						},
 					},
 				},
-				// Necessary while provider sensitive attrs are experimental
-				ActiveExperiments: experiments.NewSet(experiments.SuppressProviderSensitiveAttrs),
 			},
 		},
 		State:   stateSync,
@@ -553,5 +549,97 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		},
 		State:   stateSync,
 		Changes: changesSync,
+	}
+}
+
+func TestMarkProviderSensitive(t *testing.T) {
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"unsensitive": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"sensitive": {
+				Type:      cty.String,
+				Sensitive: true,
+			},
+		},
+
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"list": &configschema.NestedBlock{
+				Nesting: configschema.NestingList,
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"unsensitive": {
+							Type:     cty.String,
+							Optional: true,
+						},
+						"sensitive": {
+							Type:      cty.String,
+							Sensitive: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range []struct {
+		given  cty.Value
+		expect cty.Value
+	}{
+		{
+			cty.UnknownVal(schema.ImpliedType()),
+			cty.UnknownVal(schema.ImpliedType()),
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"sensitive":   cty.UnknownVal(cty.String),
+				"unsensitive": cty.UnknownVal(cty.String),
+				"list":        cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"sensitive":   cty.UnknownVal(cty.String).Mark("sensitive"),
+				"unsensitive": cty.UnknownVal(cty.String),
+				"list":        cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
+			}),
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"sensitive":   cty.NullVal(cty.String),
+				"unsensitive": cty.UnknownVal(cty.String),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive":   cty.UnknownVal(cty.String),
+						"unsensitive": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive":   cty.NullVal(cty.String),
+						"unsensitive": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"sensitive":   cty.NullVal(cty.String).Mark("sensitive"),
+				"unsensitive": cty.UnknownVal(cty.String),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive":   cty.UnknownVal(cty.String).Mark("sensitive"),
+						"unsensitive": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"sensitive":   cty.NullVal(cty.String).Mark("sensitive"),
+						"unsensitive": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+	} {
+		t.Run(fmt.Sprintf("%#v", tc.given), func(t *testing.T) {
+			got := markProviderSensitiveAttributes(schema, tc.given)
+			if !got.RawEquals(tc.expect) {
+				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expect, got)
+			}
+		})
 	}
 }

@@ -44,7 +44,7 @@ type VersionCheckInfo struct {
 
 func (c *VersionCommand) Help() string {
 	helpText := `
-Usage: terraform version [options]
+Usage: terraform [global options] version [options]
 
   Displays the version of Terraform and all installed plugins
 

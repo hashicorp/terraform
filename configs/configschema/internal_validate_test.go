@@ -10,172 +10,208 @@ import (
 
 func TestBlockInternalValidate(t *testing.T) {
 	tests := map[string]struct {
-		Block    *Block
-		ErrCount int
+		Block *Block
+		Errs  []string
 	}{
 		"empty": {
 			&Block{},
-			0,
+			[]string{},
 		},
 		"valid": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 					},
-					"bar": &Attribute{
+					"bar": {
 						Type:     cty.String,
 						Optional: true,
 					},
-					"baz": &Attribute{
+					"baz": {
 						Type:     cty.String,
 						Computed: true,
 					},
-					"baz_maybe": &Attribute{
+					"baz_maybe": {
 						Type:     cty.String,
 						Optional: true,
 						Computed: true,
 					},
 				},
 				BlockTypes: map[string]*NestedBlock{
-					"single": &NestedBlock{
+					"single": {
 						Nesting: NestingSingle,
 						Block:   Block{},
 					},
-					"single_required": &NestedBlock{
+					"single_required": {
 						Nesting:  NestingSingle,
 						Block:    Block{},
 						MinItems: 1,
 						MaxItems: 1,
 					},
-					"list": &NestedBlock{
+					"list": {
 						Nesting: NestingList,
 						Block:   Block{},
 					},
-					"list_required": &NestedBlock{
+					"list_required": {
 						Nesting:  NestingList,
 						Block:    Block{},
 						MinItems: 1,
 					},
-					"set": &NestedBlock{
+					"set": {
 						Nesting: NestingSet,
 						Block:   Block{},
 					},
-					"set_required": &NestedBlock{
+					"set_required": {
 						Nesting:  NestingSet,
 						Block:    Block{},
 						MinItems: 1,
 					},
-					"map": &NestedBlock{
+					"map": {
 						Nesting: NestingMap,
 						Block:   Block{},
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"attribute with no flags set": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type: cty.String,
 					},
 				},
 			},
-			1, // must set one of the flags
+			[]string{"foo: must set Optional, Required or Computed"},
 		},
 		"attribute required and optional": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 						Optional: true,
 					},
 				},
 			},
-			1, // both required and optional
+			[]string{"foo: cannot set both Optional and Required"},
 		},
 		"attribute required and computed": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Required: true,
 						Computed: true,
 					},
 				},
 			},
-			1, // both required and computed
+			[]string{"foo: cannot set both Computed and Required"},
 		},
 		"attribute optional and computed": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Optional: true,
 						Computed: true,
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"attribute with missing type": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Optional: true,
 					},
 				},
 			},
-			1, // Type must be set
+			[]string{"foo: either Type or NestedType must be defined"},
 		},
-		"attribute with invalid name": {
+		/* FIXME: This caused errors when applied to existing providers (oci)
+		and cannot be enforced without coordination.
+
+		"attribute with invalid name": {&Block{Attributes:
+		    map[string]*Attribute{"fooBar": {Type:     cty.String, Optional:
+		    true,
+		            },
+		        },
+		    },
+		    []string{"fooBar: name may contain only lowercase letters, digits and underscores"},
+		},
+		*/
+		"attribute with invalid NestedType nesting": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"fooBar": &Attribute{
-						Type:     cty.String,
+					"foo": {
+						NestedType: &Object{
+							Nesting:  NestingSingle,
+							MinItems: 10,
+							MaxItems: 10,
+						},
 						Optional: true,
 					},
 				},
 			},
-			1, // name may not contain uppercase letters
+			[]string{"foo: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode"},
+		},
+		"attribute with invalid NestedType attribute": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"foo": {
+									Type:     cty.String,
+									Required: true,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			[]string{"foo: cannot set both Optional and Required"},
 		},
 		"block type with invalid name": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"fooBar": &NestedBlock{
+					"fooBar": {
 						Nesting: NestingSingle,
 					},
 				},
 			},
-			1, // name may not contain uppercase letters
+			[]string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
 		"colliding names": {
 			&Block{
 				Attributes: map[string]*Attribute{
-					"foo": &Attribute{
+					"foo": {
 						Type:     cty.String,
 						Optional: true,
 					},
 				},
 				BlockTypes: map[string]*NestedBlock{
-					"foo": &NestedBlock{
+					"foo": {
 						Nesting: NestingSingle,
 					},
 				},
 			},
-			1, // "foo" is defined as both attribute and block type
+			[]string{"foo: name defined as both attribute and child block type"},
 		},
 		"nested block with badness": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingSingle,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.String,
 									Required: true,
 									Optional: true,
@@ -185,16 +221,16 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // nested_bad is both required and optional
+			[]string{"bad.nested_bad: cannot set both Optional and Required"},
 		},
 		"nested list block with dynamically-typed attribute": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingList,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.DynamicPseudoType,
 									Optional: true,
 								},
@@ -203,16 +239,16 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			0,
+			[]string{},
 		},
 		"nested set block with dynamically-typed attribute": {
 			&Block{
 				BlockTypes: map[string]*NestedBlock{
-					"bad": &NestedBlock{
+					"bad": {
 						Nesting: NestingSet,
 						Block: Block{
 							Attributes: map[string]*Attribute{
-								"nested_bad": &Attribute{
+								"nested_bad": {
 									Type:     cty.DynamicPseudoType,
 									Optional: true,
 								},
@@ -221,11 +257,11 @@ func TestBlockInternalValidate(t *testing.T) {
 					},
 				},
 			},
-			1, // NestingSet blocks may not contain attributes of cty.DynamicPseudoType
+			[]string{"bad: NestingSet blocks may not contain attributes of cty.DynamicPseudoType"},
 		},
 		"nil": {
 			nil,
-			1, // block is nil
+			[]string{"top-level block schema is nil"},
 		},
 		"nil attr": {
 			&Block{
@@ -233,7 +269,7 @@ func TestBlockInternalValidate(t *testing.T) {
 					"bad": nil,
 				},
 			},
-			1, // attribute schema is nil
+			[]string{"bad: attribute schema is nil"},
 		},
 		"nil block type": {
 			&Block{
@@ -241,17 +277,25 @@ func TestBlockInternalValidate(t *testing.T) {
 					"bad": nil,
 				},
 			},
-			1, // block schema is nil
+			[]string{"bad: block schema is nil"},
 		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			errs := multierrorErrors(test.Block.InternalValidate())
-			if got, want := len(errs), test.ErrCount; got != want {
+			if got, want := len(errs), len(test.Errs); got != want {
 				t.Errorf("wrong number of errors %d; want %d", got, want)
 				for _, err := range errs {
 					t.Logf("- %s", err.Error())
+				}
+			} else {
+				if len(errs) > 0 {
+					for i := range errs {
+						if errs[i].Error() != test.Errs[i] {
+							t.Errorf("wrong error: got %s, want %s", errs[i].Error(), test.Errs[i])
+						}
+					}
 				}
 			}
 		})

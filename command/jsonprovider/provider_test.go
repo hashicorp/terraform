@@ -51,6 +51,25 @@ func TestMarshalProvider(t *testing.T) {
 									Optional:        true,
 									DescriptionKind: "plain",
 								},
+								"volumes": {
+									AttributeNestedType: &nestedType{
+										NestingMode: "list",
+										Attributes: map[string]*attribute{
+											"size": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Required:        true,
+												DescriptionKind: "plain",
+											},
+											"mount_point": {
+												AttributeType:   json.RawMessage(`"string"`),
+												Required:        true,
+												DescriptionKind: "plain",
+											},
+										},
+									},
+									Optional:        true,
+									DescriptionKind: "plain",
+								},
 							},
 							BlockTypes: map[string]*blockType{
 								"network_interface": {
@@ -141,6 +160,16 @@ func testProvider() *terraform.ProviderSchema {
 				Attributes: map[string]*configschema.Attribute{
 					"id":  {Type: cty.String, Optional: true, Computed: true},
 					"ami": {Type: cty.String, Optional: true},
+					"volumes": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"size":        {Type: cty.String, Required: true},
+								"mount_point": {Type: cty.String, Required: true},
+							},
+						},
+					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
 					"network_interface": {

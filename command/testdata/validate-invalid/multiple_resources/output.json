@@ -1,4 +1,5 @@
 {
+  "format_version": "0.1",
   "valid": false,
   "error_count": 1,
   "warning_count": 0,
@@ -19,6 +20,14 @@
           "column": 30,
           "byte": 64
         }
+      },
+      "snippet": {
+        "context": null,
+        "code": "resource \"aws_instance\" \"web\" {",
+        "start_line": 4,
+        "highlight_start_offset": 0,
+        "highlight_end_offset": 29,
+        "values": []
       }
     }
   ]

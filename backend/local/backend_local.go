@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/plans/planfile"
@@ -24,11 +23,7 @@ func (b *Local) Context(op *backend.Operation) (*terraform.Context, statemgr.Ful
 	// to ask for input/validate.
 	op.Type = backend.OperationTypeInvalid
 
-	if op.LockState {
-		op.StateLocker = clistate.NewLocker(context.Background(), op.StateLockTimeout, b.CLI, b.Colorize())
-	} else {
-		op.StateLocker = clistate.NewNoopLocker()
-	}
+	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
 	ctx, _, stateMgr, diags := b.context(op)
 	return ctx, stateMgr, diags
@@ -45,8 +40,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		return nil, nil, nil, diags
 	}
 	log.Printf("[TRACE] backend/local: requesting state lock for workspace %q", op.Workspace)
-	if err := op.StateLocker.Lock(s, op.Type.String()); err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error locking state: {{err}}", err))
+	if diags := op.StateLocker.Lock(s, op.Type.String()); diags.HasErrors() {
 		return nil, nil, nil, diags
 	}
 
@@ -54,10 +48,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// If we're returning with errors, and thus not producing a valid
 		// context, we'll want to avoid leaving the workspace locked.
 		if diags.HasErrors() {
-			err := op.StateLocker.Unlock(nil)
-			if err != nil {
-				diags = diags.Append(errwrap.Wrapf("Error unlocking state: {{err}}", err))
-			}
+			diags = diags.Append(op.StateLocker.Unlock())
 		}
 	}()
 
@@ -77,6 +68,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	opts.Destroy = op.Destroy
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
+	opts.Hooks = op.Hooks
 
 	opts.SkipRefresh = op.Type != backend.OperationTypeRefresh && !op.PlanRefresh
 	if opts.SkipRefresh {
@@ -103,6 +95,10 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		}
 		log.Printf("[TRACE] backend/local: building context from plan file")
 		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts, stateMeta)
+		if ctxDiags.HasErrors() {
+			return nil, nil, nil, ctxDiags
+		}
+
 		// Write sources into the cache of the main loader so that they are
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
