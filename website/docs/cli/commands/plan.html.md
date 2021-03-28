@@ -155,3 +155,16 @@ though the root module directory was overridden, use
 [the `TF_DATA_DIR` environment variable](/docs/cli/config/environment-variables.html#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.
+
+## Terraform plan symbols
+
+The following symbols are output from the plan command to demonstrate wht resource changes will be made. You will see these symbols appear before the resource that is changing.:
+
+- `+` create
+- `-` destroy
+- `-/+` replace (destroy and then create, or vice-versa if create-before-destroy is used)
+- `~` update in-place
+- `<=` read
+
+The last one applies only to data resources. Whenever possible Terraform does reads during the refresh phase. If you have a data resource whose configuration depends on something that we don't know yet, such as an attribute of a resource that isn't yet created, then it's necessary to wait until apply time to find out the final configuration before doing the read.
+
