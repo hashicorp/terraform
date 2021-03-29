@@ -59,6 +59,7 @@ type variables map[string]*variable
 type variable struct {
 	Default     json.RawMessage `json:"default,omitempty"`
 	Description string          `json:"description,omitempty"`
+	Sensitive   bool            `json:"sensitive,omitempty"`
 }
 
 // Resource is the representation of a resource in the config
@@ -263,6 +264,7 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 			vars[k] = &variable{
 				Default:     defaultValJSON,
 				Description: v.Description,
+				Sensitive:   v.Sensitive,
 			}
 		}
 		module.Variables = vars
