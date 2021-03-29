@@ -35,7 +35,9 @@
                 },
                 "after_unknown": {
                     "id": true
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         }
     ],

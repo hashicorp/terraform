@@ -2,14 +2,14 @@
     "format_version": "0.1",
     "variables": {
         "test_var": {
-            "value": "bar"
+            "value": "boop"
         }
     },
     "planned_values": {
         "outputs": {
             "test": {
-                "sensitive": false,
-                "value": "bar"
+                "sensitive": true,
+                "value": "boop"
             }
         },
         "root_module": {
@@ -22,8 +22,7 @@
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
-                        "ami": "bar",
-                        "id": "placeholder"
+                        "ami": "boop"
                     }
                 }
             ]
@@ -38,32 +37,32 @@
             "name": "test",
             "change": {
                 "actions": [
-                    "no-op"
+                    "create"
                 ],
-                "before": {
-                    "ami": "bar",
-                    "id": "placeholder"
-                },
+                "before": null,
                 "after": {
-                    "ami": "bar",
-                    "id": "placeholder"
+                    "ami": "boop"
                 },
-                "after_unknown": {},
-                "after_sensitive": {},
-                "before_sensitive": {}
+                "after_unknown": {
+                    "id": true
+                },
+                "after_sensitive": {
+                  "ami": true
+                },
+                "before_sensitive": false
             }
         }
     ],
     "output_changes": {
         "test": {
             "actions": [
-                "no-op"
+                "create"
             ],
-            "before": "bar",
-            "after": "bar",
+            "before": null,
+            "after": "boop",
             "after_unknown": false,
-            "before_sensitive": false,
-            "after_sensitive": false
+            "before_sensitive": true,
+            "after_sensitive": true
         }
     },
     "prior_state": {
@@ -71,26 +70,11 @@
         "values": {
             "outputs": {
                 "test": {
-                    "sensitive": false,
-                    "value": "bar"
+                    "sensitive": true,
+                    "value": "boop"
                 }
             },
-            "root_module": {
-                "resources": [
-                    {
-                        "address": "test_instance.test",
-                        "mode": "managed",
-                        "type": "test_instance",
-                        "name": "test",
-                        "schema_version": 0,
-                        "provider_name": "registry.terraform.io/hashicorp/test",
-                        "values": {
-                            "ami": "bar",
-                            "id": "placeholder"
-                        }
-                    }
-                ]
-            }
+            "root_module": {}
         }
     },
     "configuration": {
@@ -99,9 +83,10 @@
                 "test": {
                     "expression": {
                         "references": [
-                            "var.test_var"
+                            "test_instance.test"
                         ]
-                    }
+                    },
+                    "sensitive": true
                 }
             },
             "resources": [
@@ -123,7 +108,8 @@
             ],
             "variables": {
                 "test_var": {
-                    "default": "bar"
+                    "default": "boop",
+                    "sensitive": true
                 }
             }
         }

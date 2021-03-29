@@ -83,7 +83,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         },
         {
@@ -103,7 +105,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         },
         {
@@ -123,7 +127,9 @@
                 },
                 "after": {
                     "ami": "bar"
-                }
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
             }
         }
     ],
@@ -134,7 +140,9 @@
             ],
             "before": null,
             "after": "bar",
-            "after_unknown": false
+            "after_unknown": false,
+            "before_sensitive": false,
+            "after_sensitive": false
         }
     },
     "configuration": {

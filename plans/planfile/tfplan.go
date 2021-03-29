@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 )
 
 const tfplanFormatVersion = 3
@@ -190,6 +191,15 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.DeposedKey = states.DeposedKey(rawChange.DeposedKey)
 	}
 
+	ret.RequiredReplace = cty.NewPathSet()
+	for _, p := range rawChange.RequiredReplace {
+		path, err := pathFromTfplan(p)
+		if err != nil {
+			return nil, fmt.Errorf("invalid path in required replace: %s", err)
+		}
+		ret.RequiredReplace.Add(path)
+	}
+
 	change, err := changeFromTfplan(rawChange.Change)
 	if err != nil {
 		return nil, fmt.Errorf("invalid plan for resource %s: %s", ret.Addr, err)
@@ -271,6 +281,22 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 		if ret.After == nil {
 			return nil, fmt.Errorf("missing \"after\" value: %s", err)
 		}
+	}
+
+	sensitive := cty.NewValueMarks("sensitive")
+	beforeValMarks, err := pathValueMarksFromTfplan(rawChange.BeforeSensitivePaths, sensitive)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode before sensitive paths: %s", err)
+	}
+	afterValMarks, err := pathValueMarksFromTfplan(rawChange.AfterSensitivePaths, sensitive)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode after sensitive paths: %s", err)
+	}
+	if len(beforeValMarks) > 0 {
+		ret.BeforeValMarks = beforeValMarks
+	}
+	if len(afterValMarks) > 0 {
+		ret.AfterValMarks = afterValMarks
 	}
 
 	return ret, nil
@@ -414,6 +440,16 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 	ret.DeposedKey = string(change.DeposedKey)
 	ret.Provider = change.ProviderAddr.String()
 
+	requiredReplace := change.RequiredReplace.List()
+	ret.RequiredReplace = make([]*planproto.Path, 0, len(requiredReplace))
+	for _, p := range requiredReplace {
+		path, err := pathToTfplan(p)
+		if err != nil {
+			return nil, fmt.Errorf("invalid path in required replace: %s", err)
+		}
+		ret.RequiredReplace = append(ret.RequiredReplace, path)
+	}
+
 	valChange, err := changeToTfplan(&change.ChangeSrc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
@@ -432,6 +468,17 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 
 	before := valueToTfplan(change.Before)
 	after := valueToTfplan(change.After)
+
+	beforeSensitivePaths, err := pathValueMarksToTfplan(change.BeforeValMarks)
+	if err != nil {
+		return nil, err
+	}
+	afterSensitivePaths, err := pathValueMarksToTfplan(change.AfterValMarks)
+	if err != nil {
+		return nil, err
+	}
+	ret.BeforeSensitivePaths = beforeSensitivePaths
+	ret.AfterSensitivePaths = afterSensitivePaths
 
 	switch change.Action {
 	case plans.NoOp:
@@ -471,4 +518,87 @@ func valueToTfplan(val plans.DynamicValue) *planproto.DynamicValue {
 	return &planproto.DynamicValue{
 		Msgpack: []byte(val),
 	}
+}
+
+func pathValueMarksFromTfplan(paths []*planproto.Path, marks cty.ValueMarks) ([]cty.PathValueMarks, error) {
+	ret := make([]cty.PathValueMarks, 0, len(paths))
+	for _, p := range paths {
+		path, err := pathFromTfplan(p)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, cty.PathValueMarks{
+			Path:  path,
+			Marks: marks,
+		})
+	}
+	return ret, nil
+}
+
+func pathValueMarksToTfplan(pvm []cty.PathValueMarks) ([]*planproto.Path, error) {
+	ret := make([]*planproto.Path, 0, len(pvm))
+	for _, p := range pvm {
+		path, err := pathToTfplan(p.Path)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, path)
+	}
+	return ret, nil
+}
+
+func pathFromTfplan(path *planproto.Path) (cty.Path, error) {
+	ret := make([]cty.PathStep, 0, len(path.Steps))
+	for _, step := range path.Steps {
+		switch s := step.Selector.(type) {
+		case *planproto.Path_Step_ElementKey:
+			dynamicVal, err := valueFromTfplan(s.ElementKey)
+			if err != nil {
+				return nil, fmt.Errorf("error decoding path index step: %s", err)
+			}
+			ty, err := dynamicVal.ImpliedType()
+			if err != nil {
+				return nil, fmt.Errorf("error determining path index type: %s", err)
+			}
+			val, err := dynamicVal.Decode(ty)
+			if err != nil {
+				return nil, fmt.Errorf("error decoding path index value: %s", err)
+			}
+			ret = append(ret, cty.IndexStep{Key: val})
+		case *planproto.Path_Step_AttributeName:
+			ret = append(ret, cty.GetAttrStep{Name: s.AttributeName})
+		default:
+			return nil, fmt.Errorf("Unsupported path step %t", step.Selector)
+		}
+	}
+	return ret, nil
+}
+
+func pathToTfplan(path cty.Path) (*planproto.Path, error) {
+	steps := make([]*planproto.Path_Step, 0, len(path))
+	for _, step := range path {
+		switch s := step.(type) {
+		case cty.IndexStep:
+			value, err := plans.NewDynamicValue(s.Key, s.Key.Type())
+			if err != nil {
+				return nil, fmt.Errorf("Error encoding path step: %s", err)
+			}
+			steps = append(steps, &planproto.Path_Step{
+				Selector: &planproto.Path_Step_ElementKey{
+					ElementKey: valueToTfplan(value),
+				},
+			})
+		case cty.GetAttrStep:
+			steps = append(steps, &planproto.Path_Step{
+				Selector: &planproto.Path_Step_AttributeName{
+					AttributeName: s.Name,
+				},
+			})
+		default:
+			return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
+		}
+	}
+	return &planproto.Path{
+		Steps: steps,
+	}, nil
 }
