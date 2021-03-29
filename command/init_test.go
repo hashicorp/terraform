@@ -1618,6 +1618,13 @@ provider "registry.terraform.io/hashicorp/test" {
 	if diff := cmp.Diff(wantLockFile, string(buf)); diff != "" {
 		t.Errorf("wrong dependency lock file contents\n%s", diff)
 	}
+
+	// Make the local directory read-only, and verify that rerunning init
+	// succeeds, to ensure that we don't try to rewrite an unchanged lock file
+	os.Chmod(".", 0555)
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
 }
 
 func TestInit_providerLockFileReadonly(t *testing.T) {
