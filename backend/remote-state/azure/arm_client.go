@@ -11,7 +11,7 @@ import (
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
+	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
@@ -25,6 +25,9 @@ type ArmClient struct {
 	storageAccountsClient *armStorage.AccountsClient
 	containersClient      *containers.Client
 	blobsClient           *blobs.Client
+
+	// azureAdStorageAuth is only here if we're using AzureAD Authentication but is an Authorizer for Storage
+	azureAdStorageAuth *autorest.Authorizer
 
 	accessKey          string
 	environment        azure.Environment
@@ -92,9 +95,18 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return nil, err
 	}
 
-	auth, err := armConfig.GetAuthorizationToken(sender.BuildSender("backend/remote-state/azure"), oauthConfig, env.TokenAudience)
+	sender := sender.BuildSender("backend/remote-state/azure")
+	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.UseAzureADAuthentication {
+		storageAuth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.ResourceIdentifiers.Storage)
+		if err != nil {
+			return nil, err
+		}
+		client.azureAdStorageAuth = &storageAuth
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
@@ -109,6 +121,8 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 }
 
 func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
+	// TODO: can we remove this?
+	// https://github.com/hashicorp/terraform/issues/27156
 	if config.CustomResourceManagerEndpoint != "" {
 		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
 		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
@@ -131,10 +145,16 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 		return &blobsClient, nil
 	}
 
+	if c.azureAdStorageAuth != nil {
+		blobsClient := blobs.NewWithEnvironment(c.environment)
+		c.configureClient(&blobsClient.Client, *c.azureAdStorageAuth)
+		return &blobsClient, nil
+	}
+
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
-		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName, "")
 		if err != nil {
 			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
 		}
@@ -169,10 +189,17 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 		c.configureClient(&containersClient.Client, storageAuth)
 		return &containersClient, nil
 	}
+
+	if c.azureAdStorageAuth != nil {
+		containersClient := containers.NewWithEnvironment(c.environment)
+		c.configureClient(&containersClient.Client, *c.azureAdStorageAuth)
+		return &containersClient, nil
+	}
+
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
-		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName, "")
 		if err != nil {
 			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
 		}

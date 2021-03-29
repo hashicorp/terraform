@@ -1,5 +1,9 @@
 ## 0.15.0-rc1 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/azurerm: Dependency Update and Fixes [GH-28181]
+
 BUG FIXES:
 
 * core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
