@@ -78,7 +78,7 @@ to generate meta-argument blocks such as `lifecycle` and `provisioner`
 blocks, since Terraform must process these before it is safe to evaluate
 expressions.
 
-The `for_each` value must be a map or set with one element per desired
+The `for_each` value must be a collection with one element per desired
 nested block. If you need to declare resource instances based on a nested
 data structure or combinations of elements from multiple data structures you
 can use Terraform expressions and functions to derive a suitable value.
