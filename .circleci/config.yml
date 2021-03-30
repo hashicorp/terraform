@@ -134,6 +134,7 @@ jobs:
   # build all distros
   build-distros: &build-distros
     executor: go
+    resource_class: medium+
     environment: &build-env
       TF_RELEASE: 1
     steps:
