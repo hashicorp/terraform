@@ -357,6 +357,9 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 				"id":              cty.StringVal("foo"),
 				"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
 				"sensitive_value": cty.StringVal("abc"),
+				"sensitive_collection": cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+				}),
 			}),
 		},
 	}
@@ -379,6 +382,11 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 							},
 							"sensitive_value": {
 								Type:      cty.String,
+								Computed:  true,
+								Sensitive: true,
+							},
+							"sensitive_collection": {
+								Type:      cty.Map(cty.String),
 								Computed:  true,
 								Sensitive: true,
 							},
@@ -408,7 +416,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Config: &configs.Config{
 			Module: &configs.Module{
 				ManagedResources: map[string]*configs.Resource{
-					"test_resource.foo": &configs.Resource{
+					"test_resource.foo": {
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_resource",
 						Name: "foo",
@@ -434,6 +442,9 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		"id":              cty.StringVal("foo"),
 		"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
 		"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+		"sensitive_collection": cty.MapVal(map[string]cty.Value{
+			"boop": cty.StringVal("beep"),
+		}).Mark("sensitive"),
 	})
 
 	got, diags := scope.Data.GetResource(addr, tfdiags.SourceRange{})
