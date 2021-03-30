@@ -9,6 +9,7 @@ BUG FIXES:
 * core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
 * core: Extend the Terraform plan file format to include information about sensitivity and required-replace. This ensures that the output of `terraform show saved.tfplan` matches `terraform plan`, and sensitive values are elided. [GH-28201]
 * cli: Fix `fmt` output when unwrapping redundant multi-line string interpolations [GH-28202]
+* cli: Only rewrite provider locks file if its contents has changed. [GH-28230]
 
 ## 0.15.0-beta2 (unreleased)
 
