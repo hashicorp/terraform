@@ -1,5 +1,9 @@
 ## 0.14.10 (Unreleased)
 
+BUG FIXES:
+
+* cli: Only rewrite provider locks file if its contents has changed. [GH-28230]
+
 ## 0.14.9 (March 24, 2021)
 
 BUG FIXES:
