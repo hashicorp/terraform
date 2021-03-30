@@ -88,6 +88,7 @@ of the pattern must be escaped as `\\`.
 | `(x)`          | unnamed capture group for sub-pattern `x`                                        |
 | `(?P<name>x)`  | named capture group, named `name`, for sub-pattern `x`                           |
 | `(?:x)`        | non-capturing sub-pattern `x`                                                    |
+| `\.`           | Literal `.`                                                                      |
 | `\*`           | Literal `*` for any punctuation character `*`                                    |
 | `\Q...\E`      | Literal `...` for any text `...` as long as it does not include literally `\E`   |
 
