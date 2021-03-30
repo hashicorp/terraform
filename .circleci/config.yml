@@ -134,7 +134,6 @@ jobs:
   # build all distros
   build-distros: &build-distros
     executor: go
-    resource_class: medium+
     environment: &build-env
       TF_RELEASE: 1
     steps:
@@ -147,20 +146,12 @@ jobs:
       - store_artifacts:
           path: *ARTIFACTS_DIR
 
-  # build all 386 architecture supported OS binaries
-  build-386:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "freebsd linux openbsd windows"
-      XC_ARCH: "386"
-
   # build all amd64 architecture supported OS binaries
   build-amd64:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "darwin freebsd linux solaris windows"
+      XC_OS: "darwin linux windows"
       XC_ARCH: "amd64"
 
   # build all arm architecture supported OS binaries
@@ -168,7 +159,7 @@ jobs:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "freebsd linux"
+      XC_OS: "linux"
       XC_ARCH: "arm"
 
   test-docker-full:
@@ -296,7 +287,6 @@ workflows:
 
   build-distros:
     jobs:
-      - build-386
       - build-amd64
       - build-arm
 
