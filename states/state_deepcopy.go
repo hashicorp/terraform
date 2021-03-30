@@ -204,10 +204,11 @@ func (o *ResourceInstanceObject) DeepCopy() *ResourceInstanceObject {
 	}
 
 	return &ResourceInstanceObject{
-		Value:        o.Value,
-		Status:       o.Status,
-		Private:      private,
-		Dependencies: dependencies,
+		Value:               o.Value,
+		Status:              o.Status,
+		Private:             private,
+		Dependencies:        dependencies,
+		CreateBeforeDestroy: o.CreateBeforeDestroy,
 	}
 }
 

@@ -267,7 +267,7 @@ const (
 //
 // targetState determines which context state we're writing to during plan. The
 // default is the global working state.
-func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, dependencies []addrs.ConfigResource, targetState phaseState) error {
+func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState) error {
 	absAddr := n.Addr
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
@@ -288,12 +288,6 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 		state.SetResourceInstanceCurrent(absAddr, nil, n.ResolvedProvider)
 		log.Printf("[TRACE] writeResourceInstanceState: removing state object for %s", absAddr)
 		return nil
-	}
-
-	// store the new deps in the state.
-	// We check for nil here because don't want to override existing dependencies on orphaned nodes.
-	if dependencies != nil {
-		obj.Dependencies = dependencies
 	}
 
 	if providerSchema == nil {
@@ -526,8 +520,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.Re
 	ret := state.DeepCopy()
 	ret.Value = resp.NewState
 	ret.Private = resp.Private
-	ret.Dependencies = state.Dependencies
-	ret.CreateBeforeDestroy = state.CreateBeforeDestroy
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {

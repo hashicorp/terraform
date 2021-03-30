@@ -805,15 +805,47 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 	m := testModule(t, "apply-good-create-before-update")
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
-	p.ApplyResourceChangeFn = testApplyFn
+
+	// signal that resource foo has started applying
+	fooChan := make(chan struct{})
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		id := req.PriorState.GetAttr("id").AsString()
+		switch id {
+		case "bar":
+			select {
+			case <-fooChan:
+				resp.Diagnostics = resp.Diagnostics.Append(errors.New("bar must be updated before foo is destroyed"))
+				return resp
+			case <-time.After(100 * time.Millisecond):
+				// wait a moment to ensure that foo is not going to be destroyed first
+			}
+		case "foo":
+			close(fooChan)
+		}
+
+		return testApplyFn(req)
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
+	fooAddr := mustResourceInstanceAddr("aws_instance.foo")
+	root.SetResourceInstanceCurrent(
+		fooAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"foo","foo":"bar"}`),
+			CreateBeforeDestroy: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.bar").Resource,
 		&states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","foo":"bar"}`),
+			Status:              states.ObjectReady,
+			AttrsJSON:           []byte(`{"id":"bar","foo":"bar"}`),
+			CreateBeforeDestroy: true,
+			Dependencies:        []addrs.ConfigResource{fooAddr.ContainingResource().Config()},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
