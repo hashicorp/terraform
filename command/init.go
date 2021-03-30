@@ -861,15 +861,10 @@ Terraform has made some changes to the provider dependency selections recorded
 in the .terraform.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.`))
 		}
+
+		moreDiags = c.replaceLockedDependencies(newLocks)
+		diags = diags.Append(moreDiags)
 	}
-
-	// TODO: Check whether newLocks is different from previousLocks and mention
-	// in the UI if so. We should emit a different message if previousLocks was
-	// empty, because that indicates we were creating a lock file for the first
-	// time and so we need to introduce the user to the idea of it.
-
-	moreDiags = c.replaceLockedDependencies(newLocks)
-	diags = diags.Append(moreDiags)
 
 	return true, false, diags
 }
