@@ -281,6 +281,6 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 		return diags
 	}
 
-	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, nil, workingState))
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, state, workingState))
 	return diags
 }

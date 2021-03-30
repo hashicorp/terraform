@@ -177,3 +177,124 @@ output "data" {
 		t.Fatal(diags.Err())
 	}
 }
+
+// verify that dependencies are updated in the state during refresh and apply
+func TestApply_updateDependencies(t *testing.T) {
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+
+	fooAddr := mustResourceInstanceAddr("aws_instance.foo")
+	barAddr := mustResourceInstanceAddr("aws_instance.bar")
+	bazAddr := mustResourceInstanceAddr("aws_instance.baz")
+	bamAddr := mustResourceInstanceAddr("aws_instance.bam")
+	binAddr := mustResourceInstanceAddr("aws_instance.bin")
+	root.SetResourceInstanceCurrent(
+		fooAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo"}`),
+			Dependencies: []addrs.ConfigResource{
+				bazAddr.ContainingResource().Config(),
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		binAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bin","type":"aws_instance","unknown":"ok"}`),
+			Dependencies: []addrs.ConfigResource{
+				bazAddr.ContainingResource().Config(),
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		bazAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"baz"}`),
+			Dependencies: []addrs.ConfigResource{
+				// Existing dependencies should not be removed from orphaned instances
+				bamAddr.ContainingResource().Config(),
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		barAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+  foo = aws_instance.foo.id
+}
+
+resource "aws_instance" "foo" {
+}
+
+resource "aws_instance" "bin" {
+}
+`,
+	})
+
+	p := testProvider("aws")
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	bar := plan.State.ResourceInstance(barAddr)
+	if len(bar.Current.Dependencies) == 0 || !bar.Current.Dependencies[0].Equal(fooAddr.ContainingResource().Config()) {
+		t.Fatalf("bar should depend on foo after refresh, but got %s", bar.Current.Dependencies)
+	}
+
+	foo := plan.State.ResourceInstance(fooAddr)
+	if len(foo.Current.Dependencies) == 0 || !foo.Current.Dependencies[0].Equal(bazAddr.ContainingResource().Config()) {
+		t.Fatalf("foo should depend on baz after refresh because of the update, but got %s", foo.Current.Dependencies)
+	}
+
+	bin := plan.State.ResourceInstance(binAddr)
+	if len(bin.Current.Dependencies) != 0 {
+		t.Fatalf("bin should depend on nothing after refresh because there is no change, but got %s", bin.Current.Dependencies)
+	}
+
+	baz := plan.State.ResourceInstance(bazAddr)
+	if len(baz.Current.Dependencies) == 0 || !baz.Current.Dependencies[0].Equal(bamAddr.ContainingResource().Config()) {
+		t.Fatalf("baz should depend on bam after refresh, but got %s", baz.Current.Dependencies)
+	}
+
+	state, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	fmt.Println(state)
+
+	bar = state.ResourceInstance(barAddr)
+	if len(bar.Current.Dependencies) == 0 || !bar.Current.Dependencies[0].Equal(fooAddr.ContainingResource().Config()) {
+		t.Fatalf("bar should still depend on foo after apply, but got %s", bar.Current.Dependencies)
+	}
+
+	foo = state.ResourceInstance(fooAddr)
+	if len(foo.Current.Dependencies) != 0 {
+		t.Fatalf("foo should have no deps after apply, but got %s", foo.Current.Dependencies)
+	}
+
+}

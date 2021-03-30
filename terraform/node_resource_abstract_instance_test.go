@@ -145,7 +145,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 	ctx.ProviderProvider = mockProvider
 	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
 
-	err := node.writeResourceInstanceState(ctx, obj, nil, workingState)
+	err := node.writeResourceInstanceState(ctx, obj, workingState)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
