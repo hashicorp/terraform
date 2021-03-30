@@ -54,6 +54,7 @@ of the pattern must be escaped as `\\`.
 | `\S`           | Anything except ASCII spaces                                                     |
 | `\w`           | The same as `[0-9A-Za-z_]`                                                       |
 | `\W`           | Anything except the characters matched by `\w`                                   |
+| `\.`           | A literal `.`                                                                    |
 | `[[:alnum:]]`  | The same as `[0-9A-Za-z]`                                                        |
 | `[[:alpha:]]`  | The same as `[A-Za-z]`                                                           |
 | `[[:ascii:]]`  | Any ASCII character                                                              |
