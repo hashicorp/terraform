@@ -3,7 +3,9 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/providers"
@@ -175,6 +177,75 @@ output "data" {
 	_, diags = ctx.Apply()
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+}
+
+func TestContext2Apply_destroyThenUpdate(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+	value = "udpated"
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.PlanResourceChangeFn = testDiffFn
+
+	var orderMu sync.Mutex
+	var order []string
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		id := req.PriorState.GetAttr("id").AsString()
+		if id == "b" {
+			// slow down the b destroy, since a should wait for it
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		orderMu.Lock()
+		order = append(order, id)
+		orderMu.Unlock()
+
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	addrA := mustResourceInstanceAddr(`test_instance.a`)
+	addrB := mustResourceInstanceAddr(`test_instance.b`)
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"a","value":"old","type":"test"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+
+		// test_instance.b depended on test_instance.a, and therefor should be
+		// destroyed before any changes to test_instance.a
+		s.SetResourceInstanceCurrent(addrB, &states.ResourceInstanceObjectSrc{
+			AttrsJSON:    []byte(`{"id":"b"}`),
+			Status:       states.ObjectReady,
+			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	if _, diags := ctx.Plan(); diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	_, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if order[0] != "b" {
+		t.Fatalf("expected apply order [b, a], got: %v\n", order)
 	}
 }
 
