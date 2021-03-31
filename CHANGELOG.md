@@ -1,5 +1,9 @@
 ## 0.15.0 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix crash when rendering JSON plans containing iterable unknown values [GH-28253]
+
 ## 0.15.0-rc1 (March 31, 2021)
 
 ENHANCEMENTS:
