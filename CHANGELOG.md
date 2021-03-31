@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
+* core: Fix crash with resources which have sensitive iterable attributes  [GH-28245]
 * core: Extend the Terraform plan file format to include information about sensitivity and required-replace. This ensures that the output of `terraform show saved.tfplan` matches `terraform plan`, and sensitive values are elided. [GH-28201]
 * core: Ensure that stored dependencies are retained when a resource is removed entirely from the configuration, and `create_before_destroy` ordering is preserved [GH-28228]
 * core: Resources removed from the configuration will now be destroyed before their dependencies are updated [GH-28165]
