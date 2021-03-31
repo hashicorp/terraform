@@ -1,4 +1,6 @@
-## 0.15.0-rc1 (Unreleased)
+## 0.15.0 (Unreleased)
+
+## 0.15.0-rc1 (March 31, 2021)
 
 ENHANCEMENTS:
 
@@ -14,7 +16,7 @@ BUG FIXES:
 * cli: Fix `fmt` output when unwrapping redundant multi-line string interpolations ([#28202](https://github.com/hashicorp/terraform/issues/28202))
 * cli: Only rewrite provider locks file if its contents has changed. ([#28230](https://github.com/hashicorp/terraform/issues/28230))
 
-## 0.15.0-beta2 (unreleased)
+## 0.15.0-beta2 (March 17, 2021)
 
 UPGRADE NOTES:
 
