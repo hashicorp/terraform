@@ -758,11 +758,12 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 			// If our provider schema contains sensitive values, mark those as sensitive
+			afterMarks := change.AfterValMarks
 			if schema.ContainsSensitive() {
-				val = markProviderSensitiveAttributes(schema, val)
+				afterMarks = append(afterMarks, getValMarks(schema, val, nil)...)
 			}
 
-			instances[key] = val.MarkWithPaths(change.AfterValMarks)
+			instances[key] = val.MarkWithPaths(afterMarks)
 			continue
 		}
 
