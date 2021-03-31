@@ -357,7 +357,12 @@ func wrappedMain() int {
 	// where a command isn't found, because it's likely more helpful to
 	// mention what specifically went wrong, rather than just printing out
 	// a big block of usage information.)
-	if cmd := cliRunner.Subcommand(); cmd != "" {
+
+	// Check if this is being run via shell auto-complete, which uses the
+	// binary name as the first argument and won't be listed as a subcommand.
+	autoComplete := os.Getenv("COMP_LINE") != ""
+
+	if cmd := cliRunner.Subcommand(); cmd != "" && !autoComplete {
 		// Due to the design of cli.CLI, this special error message only works
 		// for typos of top-level commands. For a subcommand typo, like
 		// "terraform state posh", cmd would be "state" here and thus would
