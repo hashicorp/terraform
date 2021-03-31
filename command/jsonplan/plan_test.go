@@ -447,6 +447,22 @@ func TestSensitiveAsBool(t *testing.T) {
 				cty.EmptyObjectVal,
 			}),
 		},
+		{
+			cty.ObjectVal(map[string]cty.Value{
+				"list":   cty.UnknownVal(cty.List(cty.String)),
+				"set":    cty.UnknownVal(cty.Set(cty.Bool)),
+				"tuple":  cty.UnknownVal(cty.Tuple([]cty.Type{cty.String, cty.Number})),
+				"map":    cty.UnknownVal(cty.Map(cty.String)),
+				"object": cty.UnknownVal(cty.Object(map[string]cty.Type{"a": cty.String})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list":   cty.EmptyTupleVal,
+				"set":    cty.EmptyTupleVal,
+				"tuple":  cty.EmptyTupleVal,
+				"map":    cty.EmptyObjectVal,
+				"object": cty.EmptyObjectVal,
+			}),
+		},
 	}
 
 	for _, test := range tests {

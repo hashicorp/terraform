@@ -522,6 +522,11 @@ func sensitiveAsBool(val cty.Value) cty.Value {
 	case val.IsNull(), ty.IsPrimitiveType(), ty.Equals(cty.DynamicPseudoType):
 		return cty.False
 	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
+		if !val.IsKnown() {
+			// If the collection is unknown we can't say anything about the
+			// sensitivity of its contents
+			return cty.EmptyTupleVal
+		}
 		length := val.LengthInt()
 		if length == 0 {
 			// If there are no elements then we can't have sensitive values
@@ -540,6 +545,11 @@ func sensitiveAsBool(val cty.Value) cty.Value {
 		// indistinguishable in JSON.
 		return cty.TupleVal(vals)
 	case ty.IsMapType() || ty.IsObjectType():
+		if !val.IsKnown() {
+			// If the map/object is unknown we can't say anything about the
+			// sensitivity of its attributes
+			return cty.EmptyObjectVal
+		}
 		var length int
 		switch {
 		case ty.IsMapType():
