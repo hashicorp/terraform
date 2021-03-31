@@ -2,17 +2,17 @@
 
 ENHANCEMENTS:
 
-* backend/azurerm: Dependency Update and Fixes [GH-28181]
+* backend/azurerm: Dependency Update and Fixes ([#28181](https://github.com/hashicorp/terraform/issues/28181))
 
 BUG FIXES:
 
-* core: Fix crash when referencing resources with sensitive fields that may be unknown [GH-28180]
-* core: Fix crash with resources which have sensitive iterable attributes  [GH-28245]
-* core: Extend the Terraform plan file format to include information about sensitivity and required-replace. This ensures that the output of `terraform show saved.tfplan` matches `terraform plan`, and sensitive values are elided. [GH-28201]
-* core: Ensure that stored dependencies are retained when a resource is removed entirely from the configuration, and `create_before_destroy` ordering is preserved [GH-28228]
-* core: Resources removed from the configuration will now be destroyed before their dependencies are updated [GH-28165]
-* cli: Fix `fmt` output when unwrapping redundant multi-line string interpolations [GH-28202]
-* cli: Only rewrite provider locks file if its contents has changed. [GH-28230]
+* core: Fix crash when referencing resources with sensitive fields that may be unknown ([#28180](https://github.com/hashicorp/terraform/issues/28180))
+* core: Fix crash with resources which have sensitive iterable attributes  ([#28245](https://github.com/hashicorp/terraform/issues/28245))
+* core: Extend the Terraform plan file format to include information about sensitivity and required-replace. This ensures that the output of `terraform show saved.tfplan` matches `terraform plan`, and sensitive values are elided. ([#28201](https://github.com/hashicorp/terraform/issues/28201))
+* core: Ensure that stored dependencies are retained when a resource is removed entirely from the configuration, and `create_before_destroy` ordering is preserved ([#28228](https://github.com/hashicorp/terraform/issues/28228))
+* core: Resources removed from the configuration will now be destroyed before their dependencies are updated ([#28165](https://github.com/hashicorp/terraform/issues/28165))
+* cli: Fix `fmt` output when unwrapping redundant multi-line string interpolations ([#28202](https://github.com/hashicorp/terraform/issues/28202))
+* cli: Only rewrite provider locks file if its contents has changed. ([#28230](https://github.com/hashicorp/terraform/issues/28230))
 
 ## 0.15.0-beta2 (unreleased)
 
