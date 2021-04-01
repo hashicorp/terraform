@@ -356,8 +356,6 @@ resource "aws_instance" "bin" {
 		t.Fatal(diags.Err())
 	}
 
-	fmt.Println(state)
-
 	bar = state.ResourceInstance(barAddr)
 	if len(bar.Current.Dependencies) == 0 || !bar.Current.Dependencies[0].Equal(fooAddr.ContainingResource().Config()) {
 		t.Fatalf("bar should still depend on foo after apply, but got %s", bar.Current.Dependencies)
