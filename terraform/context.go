@@ -604,7 +604,9 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 
 func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	destroyPlan := &plans.Plan{}
+	destroyPlan := &plans.Plan{
+		State: c.state.DeepCopy(),
+	}
 	c.changes = plans.NewChanges()
 
 	// A destroy plan starts by running Refresh to read any pending data
