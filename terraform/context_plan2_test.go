@@ -333,3 +333,47 @@ resource "test_resource" "b" {
 		}
 	}
 }
+
+func TestContext2Plan_destroySkipRefresh(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	addr := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy:     true,
+		SkipRefresh: true,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if plan.State == nil {
+		t.Fatal("missing plan state")
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.Delete {
+			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
+		}
+	}
+}
