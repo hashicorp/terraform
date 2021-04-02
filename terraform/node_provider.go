@@ -167,14 +167,14 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid provider configuration",
-				fmt.Sprintf(providerConfigErr, configDiags.InConfigBody(configBody).Err(), n.Addr.Provider),
+				fmt.Sprintf(providerConfigErr, configDiags.InConfigBody(configBody, n.Addr.String()).Err(), n.Addr.Provider),
 			))
 			return diags
 		} else {
-			return diags.Append(configDiags.InConfigBody(configBody))
+			return diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
 		}
 	}
-	diags = diags.Append(configDiags.InConfigBody(configBody))
+	diags = diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
 
 	return diags
 }

@@ -1086,13 +1086,13 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	}
 
 	newVal, validateDiags := b.PrepareConfig(configVal)
-	diags = diags.Append(validateDiags.InConfigBody(c.Config))
+	diags = diags.Append(validateDiags.InConfigBody(c.Config, ""))
 	if validateDiags.HasErrors() {
 		return nil, cty.NilVal, diags
 	}
 
 	configureDiags := b.Configure(newVal)
-	diags = diags.Append(configureDiags.InConfigBody(c.Config))
+	diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
 
 	return b, configVal, diags
 }

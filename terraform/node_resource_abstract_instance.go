@@ -625,8 +625,9 @@ func (n *NodeAbstractResourceInstance) plan(
 			Config:   unmarkedConfigVal,
 		},
 	)
+
 	if validateResp.Diagnostics.HasErrors() {
-		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config))
+		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 		return plan, state, diags
 	}
 
@@ -659,7 +660,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		PriorPrivate:     priorPrivate,
 		ProviderMeta:     metaConfigVal,
 	})
-	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return plan, state, diags
 	}
@@ -869,7 +870,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// Consequently, we break from the usual pattern here and only
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
-			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
+			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 			return plan, state, diags
 		}
 		plannedNewVal = resp.PlannedState
@@ -1195,7 +1196,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		},
 	)
 	if validateResp.Diagnostics.HasErrors() {
-		return newVal, validateResp.Diagnostics.InConfigBody(config.Config)
+		return newVal, validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String())
 	}
 
 	// If we get down here then our configuration is complete and we're read
@@ -1207,7 +1208,7 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		Config:       configVal,
 		ProviderMeta: metaConfigVal,
 	})
-	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config))
+	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return newVal, diags
 	}
@@ -1741,7 +1742,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 			Connection: unmarkedConnInfo,
 			UIOutput:   &output,
 		})
-		applyDiags := resp.Diagnostics.InConfigBody(prov.Config)
+		applyDiags := resp.Diagnostics.InConfigBody(prov.Config, n.Addr.String())
 
 		// Call post hook
 		hookErr := ctx.Hook(func(h Hook) (HookAction, error) {
@@ -1907,7 +1908,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	})
 	applyDiags := resp.Diagnostics
 	if applyConfig != nil {
-		applyDiags = applyDiags.InConfigBody(applyConfig.Config)
+		applyDiags = applyDiags.InConfigBody(applyConfig.Config, n.Addr.String())
 	}
 	diags = diags.Append(applyDiags)
 
