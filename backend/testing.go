@@ -39,7 +39,7 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	diags = diags.Append(decDiags)
 
 	newObj, valDiags := b.PrepareConfig(obj)
-	diags = diags.Append(valDiags.InConfigBody(c))
+	diags = diags.Append(valDiags.InConfigBody(c, ""))
 
 	if len(diags) != 0 {
 		t.Fatal(diags.ErrWithWarnings())
@@ -49,7 +49,7 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {
-		confDiags = confDiags.InConfigBody(c)
+		confDiags = confDiags.InConfigBody(c, "")
 		t.Fatal(confDiags.ErrWithWarnings())
 	}
 
