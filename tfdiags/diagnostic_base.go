@@ -9,6 +9,7 @@ type diagnosticBase struct {
 	severity Severity
 	summary  string
 	detail   string
+	address  string
 }
 
 func (d diagnosticBase) Severity() Severity {
@@ -19,6 +20,7 @@ func (d diagnosticBase) Description() Description {
 	return Description{
 		Summary: d.summary,
 		Detail:  d.detail,
+		Address: d.address,
 	}
 }
 

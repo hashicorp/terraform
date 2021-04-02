@@ -25,6 +25,7 @@ const (
 )
 
 type Description struct {
+	Address string
 	Summary string
 	Detail  string
 }
