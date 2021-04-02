@@ -213,6 +213,10 @@ func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Col
 }
 
 func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *colorstring.Colorize) {
+	if diag.Address != "" {
+		fmt.Fprintf(buf, "  (%s)\n", diag.Address)
+	}
+
 	if diag.Range == nil {
 		return
 	}
