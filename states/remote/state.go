@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -121,7 +122,13 @@ func (s *State) refreshState() error {
 		return nil
 	}
 
-	stateFile, err := statefile.Read(bytes.NewReader(payload.Data))
+	data, err := possiblyDecrypt(payload.Data)
+	if err != nil {
+		// TODO handle
+		log.Fatal("error during decryption: %v", err.Error())
+	}
+
+	stateFile, err := statefile.Read(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -178,7 +185,13 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	err = s.Client.Put(buf.Bytes())
+	data, err := possiblyEncrypt(buf.Bytes())
+	if err != nil {
+		// TODO handle
+		log.Fatal("error during encryption: %v", err.Error())
+	}
+
+	err = s.Client.Put(data)
 	if err != nil {
 		return err
 	}
