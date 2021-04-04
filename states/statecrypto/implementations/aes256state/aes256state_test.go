@@ -3,7 +3,6 @@ package aes256state
 import (
 	"encoding/hex"
 	"fmt"
-	"log"
 	"testing"
 )
 
@@ -15,7 +14,11 @@ const tooLongKey = "a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9
 const invalidChars = "somethingsomethinga9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"
 
 const validPlaintext = `{"animals":[{"species":"cheetah","genus":"acinonyx"}]}`
-const validEncryptedKey1 = `{"crypted":"e2222f79474c4a61c4407cd73711297c39638850298fa5152b9a5e4d15a994de77d8bdb5ad47af51793f83b0bd838775990c454015244dd8a37e145f2cd5ee859b1f6a9697d7"}`
+const validEncryptedKey1 = `{"crypted":"e93e3e7ad3434055251f695865a13c11744b97e54cb7dee8f8fb40d1fb096b728f2a00606e7109f0720aacb15008b410cf2f92dd7989c2ff10b9712b6ef7d69ecdad1dccd2f1bddd127f0f0d87c79c3c062e03c2297614e2effa2fb1f4072d86df0dda4fc061"}`
+const invalidEncryptedHash = `{"crypted":"a6625332f6e3061e1202cea86d2ddf7cf6d5f296a9856fe989cd20b18c8522f670d368f523481876bb2b98eea1e8cf845b4e003de11153bc47b884ce907b1e6a075f515ddd2aa4fbdbc7bbab1b411e153d164f84990e9c6fa82d7cacde7401546b47b2f30000"}`
+const invalidEncryptedCutoff = `{"crypted":"447c2fc8982ed203681298be9f1b03ed30dbfe794a68e4ad873fb68c34f10394ffddd9c76b2d3fdb006d75068453854af63766fc059a569d243eb7d8c92ec3a00535ccaab769bdafb534d5471ed01ca36f640d1f`
+const invalidEncryptedChars = `{"crypted":"447c2fc8982ed203681298be9f1b03ed30dbfe794a68e4ad873fb68c34 SOMETHING WEIRD d3fdb006d75068453854af63766fc059a569d243eb7d8c92ec3a00535ccaab769bdafb534d5471ed01ca36f640d1f720c9a2bf0aa4e0a40496dacee92325a9f86"}`
+const invalidEncryptedTooShort = `{"crypted":"a6625332"}`
 
 type parseKeysTestCase struct {
 	description       string
@@ -134,6 +137,7 @@ type roundtripTestCase struct {
 	description       string
 	configuration     []string
 	input             string
+	injectOutput      string
 	expectedNewError  string
 	expectedEncError  string
 	expectedDecError  string
@@ -152,8 +156,42 @@ func TestEncryptDecrypt(t *testing.T) {
 			configuration: []string{"AES256", "", ""},
 			input:         validPlaintext,
 		},
+		{
+			description:   "key rotation with old key present",
+			configuration: []string{"AES256", validKey2, validKey1},
+			input:         validPlaintext,
+			injectOutput:  validEncryptedKey1,
+		},
 
 		// error cases
+		{
+			description:   "invalid hash received on decrypt",
+			configuration: []string{"AES256", validKey1},
+			input:         validPlaintext,
+			injectOutput:  invalidEncryptedHash,
+			expectedDecError: "hash of decrypted payload did not match at position 30",
+		},
+		{
+			description:   "decrypt received incomplete crypted json",
+			configuration: []string{"AES256", validKey1},
+			input:         validPlaintext,
+			injectOutput:  invalidEncryptedCutoff,
+			expectedDecError: "ciphertext contains invalid characters, possibly cut off or garbled",
+		},
+		{
+			description:   "decrypt received invalid crypted json",
+			configuration: []string{"AES256", validKey1},
+			input:         validPlaintext,
+			injectOutput:  invalidEncryptedChars,
+			expectedDecError: "ciphertext contains invalid characters, possibly cut off or garbled",
+		},
+		{
+			description:   "decrypt received crypted json too short even for iv",
+			configuration: []string{"AES256", validKey1},
+			input:         validPlaintext,
+			injectOutput:  invalidEncryptedTooShort,
+			expectedDecError: "ciphertext too short, did not contain initial vector",
+		},
 	}
 	for _, tc := range testCases {
 		cut, err := New(tc.configuration)
@@ -168,13 +206,17 @@ func TestEncryptDecrypt(t *testing.T) {
 				if comp := compareErrors(err, tc.expectedEncError); comp != "" {
 					t.Error(comp)
 				} else {
-					log.Printf("crypted json is %s", string(encOutput))
+					// log.Printf("crypted json is %s", string(encOutput))
+
+					if tc.injectOutput != "" {
+						encOutput = []byte(tc.injectOutput)
+					}
 
 					decOutput, err := cut.Decrypt(encOutput)
 					if comp := compareErrors(err, tc.expectedDecError); comp != "" {
 						t.Error(comp)
 					} else {
-						if !compareSlices(decOutput, []byte(tc.input)) {
+						if err == nil && !compareSlices(decOutput, []byte(tc.input)) {
 							t.Errorf("round trip error, got %#v; want %#v", decOutput, []byte(tc.input))
 						}
 					}

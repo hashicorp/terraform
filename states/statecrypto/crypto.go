@@ -9,8 +9,8 @@ import (
 )
 
 // Set this environment variable to "ALGORITHM:KEY". Supported algorithms:
-//   AES256_SHA, then KEY must be exactly 64 hexadecimal lower case characters for the 32 byte AES256 key
-var KeyEnvName = "STATE_ENCRYPTION"
+//   AES256, then KEY must be exactly 64 hexadecimal lower case characters for the 32 byte AES256 key
+var KeyEnvName = "TF_REMOTE_STATE_ENCRYPTION"
 
 func configuration() []string {
 	return strings.Split(os.Getenv(KeyEnvName), ":")
@@ -36,7 +36,7 @@ func StateCrypto() statecryptoif.StateCrypto {
 	}
 
 	if err != nil {
-		// TODO how to handle configuration errors? Log them and continue without crypto?
+		// TODO how to correctly handle configuration errors?
 		log.Fatalf("error configuring state file crypto: %v", err)
 	}
 

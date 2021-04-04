@@ -4,9 +4,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"log"
 	"regexp"
 )
 
@@ -57,6 +59,11 @@ func (a *AES256StateWrapper) parseKeysFromConfiguration(config []string) error {
 //  determine if data (which is a []byte containing a json structure) is encrypted
 //         (that is, of the form: {"crypted":"<hex containing iv and payload>"})
 func (a *AES256StateWrapper) isEncrypted(data []byte) bool {
+	validator := regexp.MustCompile(`^{"crypted":".*$`)
+	return validator.Match(data)
+}
+
+func (a *AES256StateWrapper) isSyntacticallyValidEncrypted(data []byte) bool {
 	validator := regexp.MustCompile(`^{"crypted":"[0-9a-f]+"}$`)
 	return validator.Match(data)
 }
@@ -64,6 +71,10 @@ func (a *AES256StateWrapper) isEncrypted(data []byte) bool {
 // decrypt the hex-encoded contents of data, which is expected to be of the form
 //         {"crypted":"<hex containing iv and payload>"}
 func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byte) ([]byte, error) {
+	if !a.isSyntacticallyValidEncrypted(jsonCryptedData) {
+		return []byte{}, fmt.Errorf("ciphertext contains invalid characters, possibly cut off or garbled")
+	}
+
 	// extract the hex part only, cutting off {"crypted":" (12 characters) and "} (2 characters)
 	src := jsonCryptedData[12 : len(jsonCryptedData)-2]
 
@@ -85,17 +96,25 @@ func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byt
 		return []byte{}, fmt.Errorf("ciphertext too short, did not contain initial vector")
 	}
 	iv := ciphertext[:aes.BlockSize]
-	payload := ciphertext[aes.BlockSize:]
+	payloadWithHash := ciphertext[aes.BlockSize:]
 
 	stream := cipher.NewCFBDecrypter(block, iv)
 
 	// XORKeyStream can work in-place if the two arguments are the same.
-	stream.XORKeyStream(payload, payload)
+	stream.XORKeyStream(payloadWithHash, payloadWithHash)
 
-	// TODO now split off the hash from the payload and verify it to check that we have successfully decrypted
+	plaintextPayload := payloadWithHash[:len(payloadWithHash)-sha256.Size]
+	hashRead := payloadWithHash[len(payloadWithHash)-sha256.Size:]
 
-	// payload is now decrypted
-	return payload, nil
+	hashComputed := sha256.Sum256(plaintextPayload)
+	for i, v := range hashComputed {
+		if v != hashRead[i] {
+			return []byte{}, fmt.Errorf("hash of decrypted payload did not match at position %d", i)
+		}
+	}
+
+	// payloadWithHash is now decrypted
+	return plaintextPayload, nil
 }
 
 // encrypt data (which is a []byte containing a json structure)
@@ -105,7 +124,7 @@ func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byt
 func (a *AES256StateWrapper) Encrypt(plaintextPayload []byte) ([]byte, error) {
 	// allow planned decryption
 	if a.key == nil || len(a.key) == 0 {
-		// TODO log warning that we are writing unencrypted (i.e. decrypting the state)
+		log.Printf("warning: no encryption key specified, so now writing unencrypted state")
 		return plaintextPayload, nil
 	}
 
@@ -114,16 +133,18 @@ func (a *AES256StateWrapper) Encrypt(plaintextPayload []byte) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	ciphertext := make([]byte, aes.BlockSize+len(plaintextPayload)) // TODO + hash over plaintextPayload
+	ciphertext := make([]byte, aes.BlockSize+len(plaintextPayload)+sha256.Size) // TODO + hash over plaintextPayload
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return []byte{}, err
 	}
 
-	// TODO add hash over plaintext to end of plaintext using append (used to detect decryption errors, but also acts as a mac)
+	// add hash over plaintext to end of plaintext (allows integrity check when decrypting)
+	hashArray := sha256.Sum256(plaintextPayload)
+	plaintextWithHash := append(plaintextPayload, hashArray[0:sha256.Size]...)
 
 	stream := cipher.NewCFBEncrypter(block, iv)
-	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintextPayload)
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintextWithHash)
 
 	prefix := []byte(`{"crypted":"`)
 	postfix := []byte(`"}`)
@@ -140,16 +161,19 @@ func (a *AES256StateWrapper) Decrypt(data []byte) ([]byte, error) {
 		if err != nil {
 			// allow key rotation (just change some null resource that is in the state file so it is rewritten)
 			if a.previousKey != nil && len(a.previousKey) != 0 {
-				// TODO log: error with main key as info, trying secondary key
-				candidate, err = a.attemptDecryption(data, a.previousKey)
+				log.Printf("failed to decrypt with main key, trying secondary key")
+				candidate2, err := a.attemptDecryption(data, a.previousKey)
+				if err != nil {
+					log.Printf("failed to decrypt with secondary key as well, bailing out")
+					return []byte{}, err
+				}
+				return candidate2, nil
 			}
-			if err != nil {
-				return []byte{}, err
-			}
+			return []byte{}, err
 		}
 		return candidate, nil
 	} else {
-		// TODO log info that we have transparently read unencrypted state
+		log.Printf("warning: found unencrypted state, transparently reading it anyway")
 		return data, nil
 	}
 }
