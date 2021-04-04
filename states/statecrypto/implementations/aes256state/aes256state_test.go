@@ -21,11 +21,11 @@ const invalidEncryptedChars = `{"crypted":"447c2fc8982ed203681298be9f1b03ed30dbf
 const invalidEncryptedTooShort = `{"crypted":"a6625332"}`
 
 type parseKeysTestCase struct {
-	description       string
-	configuration     []string
-	expectedError     string
-	expectedKey       []byte
-	expectedPrvKey    []byte
+	description    string
+	configuration  []string
+	expectedError  string
+	expectedKey    []byte
+	expectedPrvKey []byte
 }
 
 func compareSlices(got []byte, expected []byte) bool {
@@ -68,51 +68,51 @@ func TestParseKeysFromConfiguration(t *testing.T) {
 	testCases := []parseKeysTestCase{
 		// happy cases
 		{
-			description: "work on encrypted state files, no previous key",
+			description:   "work on encrypted state files, no previous key",
 			configuration: []string{"AES256", validKey1},
 			expectedKey:   k1,
 		},
 		{
-			description: "work on encrypted state files, empty previous key",
+			description:   "work on encrypted state files, empty previous key",
 			configuration: []string{"AES256", validKey1, ""},
 			expectedKey:   k1,
 		},
 		{
-			description: "key rotation case (with previous key allowed for reading)",
-			configuration: []string{"AES256", validKey1, validKey2},
-			expectedKey:   k1,
+			description:    "key rotation case (with previous key allowed for reading)",
+			configuration:  []string{"AES256", validKey1, validKey2},
+			expectedKey:    k1,
 			expectedPrvKey: k2,
 		},
 		{
-			description: "decryption case",
-			configuration: []string{"AES256", "", validKey2},
+			description:    "decryption case",
+			configuration:  []string{"AES256", "", validKey2},
 			expectedPrvKey: k2,
 		},
 
 		// error cases
 		{
-			description: "too few parts of configuration",
+			description:   "too few parts of configuration",
 			configuration: []string{"AES256"},
 			expectedError: "configuration for AES256 needs to be AES256:key[:previousKey] where keys are 32 byte lower case hexadecimals and previous key is optional",
 		},
 		{
-			description: "too many parts of configuration",
+			description:   "too many parts of configuration",
 			configuration: []string{"AES256", "", "", ""},
 			expectedError: "configuration for AES256 needs to be AES256:key[:previousKey] where keys are 32 byte lower case hexadecimals and previous key is optional",
 		},
 		{
-			description: "too short main key",
+			description:   "too short main key",
 			configuration: []string{"AES256", tooShortKey},
 			expectedError: "main key was not a hex string representing 32 bytes, must match [0-9a-f]{64}",
 		},
 		{
-			description: "too long previous key",
+			description:   "too long previous key",
 			configuration: []string{"AES256", validKey1, tooLongKey},
 			expectedError: "previous key was not a hex string representing 32 bytes, must match [0-9a-f]{64}",
 			expectedKey:   k1,
 		},
 		{
-			description: "invalid chars in main key",
+			description:   "invalid chars in main key",
 			configuration: []string{"AES256", invalidChars},
 			expectedError: "main key was not a hex string representing 32 bytes, must match [0-9a-f]{64}",
 		},
@@ -134,13 +134,13 @@ func TestParseKeysFromConfiguration(t *testing.T) {
 }
 
 type roundtripTestCase struct {
-	description       string
-	configuration     []string
-	input             string
-	injectOutput      string
-	expectedNewError  string
-	expectedEncError  string
-	expectedDecError  string
+	description      string
+	configuration    []string
+	input            string
+	injectOutput     string
+	expectedNewError string
+	expectedEncError string
+	expectedDecError string
 }
 
 func TestEncryptDecrypt(t *testing.T) {
@@ -165,31 +165,31 @@ func TestEncryptDecrypt(t *testing.T) {
 
 		// error cases
 		{
-			description:   "invalid hash received on decrypt",
-			configuration: []string{"AES256", validKey1},
-			input:         validPlaintext,
-			injectOutput:  invalidEncryptedHash,
+			description:      "invalid hash received on decrypt",
+			configuration:    []string{"AES256", validKey1},
+			input:            validPlaintext,
+			injectOutput:     invalidEncryptedHash,
 			expectedDecError: "hash of decrypted payload did not match at position 30",
 		},
 		{
-			description:   "decrypt received incomplete crypted json",
-			configuration: []string{"AES256", validKey1},
-			input:         validPlaintext,
-			injectOutput:  invalidEncryptedCutoff,
+			description:      "decrypt received incomplete crypted json",
+			configuration:    []string{"AES256", validKey1},
+			input:            validPlaintext,
+			injectOutput:     invalidEncryptedCutoff,
 			expectedDecError: "ciphertext contains invalid characters, possibly cut off or garbled",
 		},
 		{
-			description:   "decrypt received invalid crypted json",
-			configuration: []string{"AES256", validKey1},
-			input:         validPlaintext,
-			injectOutput:  invalidEncryptedChars,
+			description:      "decrypt received invalid crypted json",
+			configuration:    []string{"AES256", validKey1},
+			input:            validPlaintext,
+			injectOutput:     invalidEncryptedChars,
 			expectedDecError: "ciphertext contains invalid characters, possibly cut off or garbled",
 		},
 		{
-			description:   "decrypt received crypted json too short even for iv",
-			configuration: []string{"AES256", validKey1},
-			input:         validPlaintext,
-			injectOutput:  invalidEncryptedTooShort,
+			description:      "decrypt received crypted json too short even for iv",
+			configuration:    []string{"AES256", validKey1},
+			input:            validPlaintext,
+			injectOutput:     invalidEncryptedTooShort,
 			expectedDecError: "ciphertext too short, did not contain initial vector",
 		},
 	}
