@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/states/statecrypto"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -122,10 +123,15 @@ func (s *State) refreshState() error {
 		return nil
 	}
 
-	data, err := possiblyDecrypt(payload.Data)
-	if err != nil {
-		// TODO handle
-		log.Fatal("error during decryption: %v", err.Error())
+	data := payload.Data
+
+	cryptoWrapper := statecrypto.StateCrypto()
+	if cryptoWrapper != nil {
+		data, err = cryptoWrapper.Decrypt(data)
+		if err != nil {
+			log.Printf("error during decryption: %v", err.Error())
+			return err
+		}
 	}
 
 	stateFile, err := statefile.Read(bytes.NewReader(data))
@@ -185,10 +191,15 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	data, err := possiblyEncrypt(buf.Bytes())
-	if err != nil {
-		// TODO handle
-		log.Fatal("error during encryption: %v", err.Error())
+	data := buf.Bytes()
+
+	cryptoWrapper := statecrypto.StateCrypto()
+	if cryptoWrapper != nil {
+		data, err = cryptoWrapper.Encrypt(data)
+		if err != nil {
+			log.Printf("error during encryption: %v", err.Error())
+			return err
+		}
 	}
 
 	err = s.Client.Put(data)
