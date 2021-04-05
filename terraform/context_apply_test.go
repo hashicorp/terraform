@@ -400,8 +400,8 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
-			State:   globalState,
-			Destroy: true,
+			State:    globalState,
+			PlanMode: plans.DestroyMode,
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -1157,8 +1157,8 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -1226,7 +1226,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		State:       state,
-		Destroy:     true,
+		PlanMode:    plans.DestroyMode,
 		Parallelism: 1, // To check ordering
 	})
 
@@ -1322,7 +1322,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.Sta
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		State:       state,
-		Destroy:     true,
+		PlanMode:    plans.DestroyMode,
 		Parallelism: 1, // To check ordering
 	})
 
@@ -1419,7 +1419,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *stat
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		State:       state,
-		Destroy:     true,
+		PlanMode:    plans.DestroyMode,
 		Parallelism: 1, // To check ordering
 	})
 
@@ -1498,9 +1498,9 @@ func TestContext2Apply_destroyData(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
-		Hooks:   []Hook{hook},
+		State:    state,
+		PlanMode: plans.DestroyMode,
+		Hooks:    []Hook{hook},
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -1566,8 +1566,8 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if p, diags := ctx.Plan(); diags.HasErrors() {
@@ -1600,8 +1600,8 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -1687,7 +1687,7 @@ func getContextForApply_destroyCrossProviders(t *testing.T, m *configs.Config, p
 		Config:    m,
 		Providers: providerFactories,
 		State:     state,
-		Destroy:   true,
+		PlanMode:  plans.DestroyMode,
 	})
 
 	return ctx
@@ -2493,8 +2493,8 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -2953,8 +2953,8 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -3026,7 +3026,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 				SourceType: ValueFromCaller,
 			},
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -3266,9 +3266,9 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 		p2.ApplyResourceChangeFn = applyFn
 
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			State:   state,
-			Config:  m,
+			PlanMode: plans.DestroyMode,
+			State:    state,
+			Config:   m,
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
 				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
@@ -3387,9 +3387,9 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 		p2.ApplyResourceChangeFn = applyFn
 
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			State:   state,
-			Config:  m,
+			PlanMode: plans.DestroyMode,
+			State:    state,
+			Config:   m,
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
 				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
@@ -4766,9 +4766,9 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 	)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
+		Config:   m,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -4817,9 +4817,9 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 	)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
+		Config:   m,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -4885,9 +4885,9 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 	)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
+		Config:   m,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -4954,9 +4954,9 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 	)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config:  m,
-		State:   state,
-		Destroy: true,
+		Config:   m,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -5324,9 +5324,9 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Config:  m,
-			Destroy: true,
-			State:   state,
+			Config:   m,
+			PlanMode: plans.DestroyMode,
+			State:    state,
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
@@ -5559,10 +5559,10 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	// Next, plan and apply a destroy operation
 	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
-		Destroy: true,
-		State:   state,
-		Config:  m,
-		Hooks:   []Hook{h},
+		PlanMode: plans.DestroyMode,
+		State:    state,
+		Config:   m,
+		Hooks:    []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -5620,10 +5620,10 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	// Next, plan and apply a destroy
 	h.Active = true
 	ctx = testContext2(t, &ContextOpts{
-		Destroy: true,
-		State:   state,
-		Config:  m,
-		Hooks:   []Hook{h},
+		PlanMode: plans.DestroyMode,
+		State:    state,
+		Config:   m,
+		Hooks:    []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -5685,10 +5685,10 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	// Next, plan and apply a destroy operation and reset the hook
 	h = new(MockHook)
 	ctx = testContext2(t, &ContextOpts{
-		Destroy: true,
-		State:   state,
-		Config:  m,
-		Hooks:   []Hook{h},
+		PlanMode: plans.DestroyMode,
+		State:    state,
+		Config:   m,
+		Hooks:    []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -5826,10 +5826,10 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			Config:  m,
-			State:   state,
-			Hooks:   []Hook{h},
+			PlanMode: plans.DestroyMode,
+			Config:   m,
+			State:    state,
+			Hooks:    []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
@@ -5902,10 +5902,10 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			Config:  m,
-			State:   state,
-			Hooks:   []Hook{h},
+			PlanMode: plans.DestroyMode,
+			Config:   m,
+			State:    state,
+			Hooks:    []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
@@ -5975,9 +5975,9 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			Config:  m,
-			State:   state,
+			PlanMode: plans.DestroyMode,
+			Config:   m,
+			State:    state,
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
@@ -6056,10 +6056,10 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			Config:  m,
-			State:   state,
-			Hooks:   []Hook{h},
+			PlanMode: plans.DestroyMode,
+			Config:   m,
+			State:    state,
+			Hooks:    []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 			},
@@ -6136,9 +6136,9 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 
 	// Next, plan and apply a destroy operation
 	ctx = testContext2(t, &ContextOpts{
-		Destroy: true,
-		State:   state,
-		Config:  m,
+		PlanMode: plans.DestroyMode,
+		State:    state,
+		Config:   m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
@@ -6160,9 +6160,9 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 
 	// destroying again should produce no errors
 	ctx = testContext2(t, &ContextOpts{
-		Destroy: true,
-		State:   state,
-		Config:  m,
+		PlanMode: plans.DestroyMode,
+		State:    state,
+		Config:   m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
@@ -6239,8 +6239,8 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7178,7 +7178,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "a",
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if diags := ctx.Validate(); diags.HasErrors() {
@@ -7257,7 +7257,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7325,7 +7325,7 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -7413,7 +7413,7 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "bar", addrs.IntKey(1),
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -8481,9 +8481,9 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 
 	{
 		ctx := testContext2(t, &ContextOpts{
-			Destroy: true,
-			Config:  m,
-			State:   state,
+			PlanMode: plans.DestroyMode,
+			Config:   m,
+			State:    state,
 			Providers: map[addrs.Provider]providers.Factory{
 				addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 			},
@@ -8803,8 +8803,8 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -8860,8 +8860,8 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -8903,8 +8903,8 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	// test that we can't destroy if the provider is missing
@@ -8920,8 +8920,8 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -9124,7 +9124,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		Config:    m,
 		Providers: providers,
 		State:     state,
-		Destroy:   true,
+		PlanMode:  plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -9608,7 +9608,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 		Config:    m,
 		Providers: Providers,
 		State:     state,
-		Destroy:   true,
+		PlanMode:  plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -11079,7 +11079,7 @@ output "c" {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	_, diags = ctx.Plan()
@@ -11147,8 +11147,8 @@ output "myoutput" {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		Destroy: true,
-		State:   state,
+		PlanMode: plans.DestroyMode,
+		State:    state,
 	})
 
 	_, diags = ctx.Plan()
@@ -11471,8 +11471,8 @@ output "output" {
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(nullP),
 		},
 
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	if _, diags := ctx.Plan(); diags.HasErrors() {
@@ -11569,8 +11569,8 @@ output "outputs" {
 				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 			},
 
-			State:   state,
-			Destroy: true,
+			State:    state,
+			PlanMode: plans.DestroyMode,
 		})
 
 		if _, diags := ctx.Plan(); diags.HasErrors() {

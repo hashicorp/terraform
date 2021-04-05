@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
@@ -1056,7 +1057,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	diags := ctx.Validate()

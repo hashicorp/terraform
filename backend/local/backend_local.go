@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -65,7 +66,12 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 	}
 
 	// Copy set options from the operation
-	opts.Destroy = op.Destroy
+	switch {
+	case op.Destroy:
+		opts.PlanMode = plans.DestroyMode
+	default:
+		opts.PlanMode = plans.NormalMode
+	}
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 	opts.Hooks = op.Hooks
