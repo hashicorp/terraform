@@ -1,8 +1,8 @@
 package addrs
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -251,7 +251,17 @@ func (m ModuleInstance) Parent() ModuleInstance {
 //
 // The address of the root module has the empty string as its representation.
 func (m ModuleInstance) String() string {
-	var buf bytes.Buffer
+	if len(m) == 0 {
+		return ""
+	}
+	// Calculate minimal necessary space (no instance keys).
+	l := 0
+	for _, step := range m {
+		l += len(step.Name)
+	}
+	buf := strings.Builder{}
+	// 8 is len(".module.") which separates entries.
+	buf.Grow(l + len(m)*8)
 	sep := ""
 	for _, step := range m {
 		buf.WriteString(sep)
