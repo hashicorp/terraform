@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
@@ -161,7 +162,7 @@ output "data" {
 	ctx = testContext2(t, &ContextOpts{
 		Config:    m,
 		Providers: ps,
-		Destroy:   true,
+		PlanMode:  plans.DestroyMode,
 	})
 
 	_, diags = ctx.Plan()
