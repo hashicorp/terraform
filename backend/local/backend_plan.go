@@ -35,7 +35,7 @@ func (b *Local) opPlan(
 	}
 
 	// Local planning requires a config, unless we're planning to destroy.
-	if !op.Destroy && !op.HasConfig() {
+	if op.PlanMode != plans.DestroyMode && !op.HasConfig() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",

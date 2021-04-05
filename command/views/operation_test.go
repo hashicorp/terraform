@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 )
@@ -24,16 +25,16 @@ func TestOperation_stopping(t *testing.T) {
 
 func TestOperation_cancelled(t *testing.T) {
 	testCases := map[string]struct {
-		destroy bool
-		want    string
+		planMode plans.Mode
+		want     string
 	}{
 		"apply": {
-			destroy: false,
-			want:    "Apply cancelled.\n",
+			planMode: plans.NormalMode,
+			want:     "Apply cancelled.\n",
 		},
 		"destroy": {
-			destroy: true,
-			want:    "Destroy cancelled.\n",
+			planMode: plans.DestroyMode,
+			want:     "Destroy cancelled.\n",
 		},
 	}
 	for name, tc := range testCases {
@@ -41,7 +42,7 @@ func TestOperation_cancelled(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			v := NewOperation(arguments.ViewHuman, false, NewView(streams))
 
-			v.Cancelled(tc.destroy)
+			v.Cancelled(tc.planMode)
 
 			if got, want := done(t).Stdout(), tc.want; got != want {
 				t.Errorf("wrong result\ngot:  %q\nwant: %q", got, want)
