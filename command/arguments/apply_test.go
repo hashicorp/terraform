@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
 )
 
 func TestParseApply_basicValid(t *testing.T) {
@@ -20,6 +22,13 @@ func TestParseApply_basicValid(t *testing.T) {
 				InputEnabled: true,
 				PlanPath:     "",
 				ViewType:     ViewHuman,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 		"auto-approve, disabled input, and plan path": {
@@ -29,9 +38,34 @@ func TestParseApply_basicValid(t *testing.T) {
 				InputEnabled: false,
 				PlanPath:     "saved.tfplan",
 				ViewType:     ViewHuman,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
+		"destroy mode": {
+			[]string{"-destroy"},
+			&Apply{
+				AutoApprove:  false,
+				InputEnabled: true,
+				PlanPath:     "",
+				ViewType:     ViewHuman,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -39,12 +73,8 @@ func TestParseApply_basicValid(t *testing.T) {
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			// Ignore the extended arguments for simplicity
-			got.State = nil
-			got.Operation = nil
-			got.Vars = nil
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}
@@ -174,4 +204,71 @@ func TestParseApply_vars(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseApplyDestroy_basicValid(t *testing.T) {
+	testCases := map[string]struct {
+		args []string
+		want *Apply
+	}{
+		"defaults": {
+			nil,
+			&Apply{
+				AutoApprove:  false,
+				InputEnabled: true,
+				ViewType:     ViewHuman,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
+		"auto-approve and disabled input": {
+			[]string{"-auto-approve", "-input=false"},
+			&Apply{
+				AutoApprove:  true,
+				InputEnabled: false,
+				ViewType:     ViewHuman,
+				State:        &State{Lock: true},
+				Vars:         &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
+	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseApplyDestroy(tc.args)
+			if len(diags) > 0 {
+				t.Fatalf("unexpected diags: %v", diags)
+			}
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestParseApplyDestroy_invalid(t *testing.T) {
+	t.Run("explicit destroy mode", func(t *testing.T) {
+		got, diags := ParseApplyDestroy([]string{"-destroy"})
+		if len(diags) == 0 {
+			t.Fatal("expected diags but got none")
+		}
+		if got, want := diags.Err().Error(), "Invalid mode option:"; !strings.Contains(got, want) {
+			t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
+		}
+		if got.ViewType != ViewHuman {
+			t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
+		}
+	})
 }

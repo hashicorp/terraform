@@ -18,7 +18,7 @@ type Operation interface {
 	Interrupted()
 	FatalInterrupt()
 	Stopping()
-	Cancelled(destroy bool)
+	Cancelled(planMode plans.Mode)
 
 	EmergencyDumpState(stateFile *statefile.File) error
 
@@ -75,10 +75,11 @@ func (v *OperationHuman) Stopping() {
 	v.view.streams.Println("Stopping operation...")
 }
 
-func (v *OperationHuman) Cancelled(destroy bool) {
-	if destroy {
+func (v *OperationHuman) Cancelled(planMode plans.Mode) {
+	switch planMode {
+	case plans.DestroyMode:
 		v.view.streams.Println("Destroy cancelled.")
-	} else {
+	default:
 		v.view.streams.Println("Apply cancelled.")
 	}
 }
