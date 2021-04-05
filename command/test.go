@@ -501,6 +501,11 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 		changes = plan.Changes
 	}
 
+	planMode := plans.NormalMode
+	if destroy {
+		planMode = plans.DestroyMode
+	}
+
 	return terraform.NewContext(&terraform.ContextOpts{
 		Config:    suiteDirs.Config,
 		Providers: providerFactories,
@@ -515,9 +520,9 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 			Env: "test_" + suiteDirs.SuiteName,
 		},
 
-		State:   state,
-		Changes: changes,
-		Destroy: destroy,
+		State:    state,
+		Changes:  changes,
+		PlanMode: planMode,
 	})
 }
 

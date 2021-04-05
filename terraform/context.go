@@ -46,7 +46,7 @@ type ContextOpts struct {
 	Targets     []addrs.Targetable
 	Variables   InputValues
 	Meta        *ContextMeta
-	Destroy     bool
+	PlanMode    plans.Mode
 	SkipRefresh bool
 
 	Hooks        []Hook
@@ -102,7 +102,7 @@ type Context struct {
 	targets      []addrs.Targetable
 	variables    InputValues
 	meta         *ContextMeta
-	destroy      bool
+	planMode     plans.Mode
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -253,6 +253,20 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		}
 	}
 
+	switch opts.PlanMode {
+	case plans.NormalMode, plans.DestroyMode:
+		// OK
+	default:
+		// The CLI layer (and other similar callers) should not try to
+		// create a context for a mode that Terraform Core doesn't support.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported plan mode",
+			fmt.Sprintf("Terraform Core doesn't know how to handle plan mode %s. This is a bug in Terraform.", opts.PlanMode),
+		))
+		return nil, diags
+	}
+
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	// By the time we get here, we should have values defined for all of
@@ -270,7 +284,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	return &Context{
 		components:   components,
 		schemas:      schemas,
-		destroy:      opts.Destroy,
+		planMode:     opts.PlanMode,
 		changes:      changes,
 		hooks:        hooks,
 		meta:         opts.Meta,
@@ -461,7 +475,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 
 	// Determine the operation
 	operation := walkApply
-	if c.destroy {
+	if c.planMode == plans.DestroyMode {
 		operation = walkDestroy
 	}
 
@@ -470,7 +484,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
-	if c.destroy && !diags.HasErrors() {
+	if c.planMode == plans.DestroyMode && !diags.HasErrors() {
 		// If we know we were trying to destroy objects anyway, and we
 		// completed without any errors, then we'll also prune out any
 		// leftover empty resource husks (left after all of the instances
@@ -532,11 +546,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
-	switch {
-	case c.destroy:
+	switch c.planMode {
+	case plans.NormalMode:
+		plan, planDiags = c.plan()
+	case plans.DestroyMode:
 		plan, planDiags = c.destroyPlan()
 	default:
-		plan, planDiags = c.plan()
+		panic(fmt.Sprintf("unsupported plan mode %s", c.planMode))
 	}
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
