@@ -57,7 +57,7 @@ supports only a subset of YAML 1.2, with restrictions including the following:
 ## Examples
 
 ```
-> yamldecode("{\"hello\": \"world\"}")
+> yamldecode("hello: world")
 {
   "hello" = "world"
 }
