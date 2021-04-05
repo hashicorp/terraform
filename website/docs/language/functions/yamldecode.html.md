@@ -57,24 +57,9 @@ supports only a subset of YAML 1.2, with restrictions including the following:
 ## Examples
 
 ```
-> yamldecode(<<EOF
-    foo:
-      bar: Hello world!
-      stuff:
-      - one
-      - two
-      - three
-  EOF
-  )
+> yamldecode("hello: world")
 {
-  "foo" = {
-    "bar" = "Hello world!"
-    "stuff" = [
-      "one",
-      "two",
-      "three",
-    ]
-  }
+  "hello" = "world"
 }
 
 > yamldecode("true")
