@@ -23,6 +23,8 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
@@ -33,7 +35,13 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	c.Meta.Color = c.Meta.color
 
 	// Parse and validate flags
-	args, diags := arguments.ParseApply(rawArgs)
+	var args *arguments.Apply
+	switch {
+	case c.Destroy:
+		args, diags = arguments.ParseApplyDestroy(rawArgs)
+	default:
+		args, diags = arguments.ParseApply(rawArgs)
+	}
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
@@ -253,7 +261,7 @@ func (c *ApplyCommand) OperationRequest(
 	opReq := c.Operation(be)
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = "."
-	opReq.Destroy = c.Destroy
+	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()
 	opReq.PlanFile = planFile
 	opReq.PlanRefresh = args.Refresh
@@ -345,9 +353,6 @@ Options:
   -parallelism=n         Limit the number of parallel resource operations.
                          Defaults to 10.
 
-  -refresh=true          Update state prior to checking for differences. This
-                         has no effect if a plan file is given to apply.
-
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
 
@@ -355,18 +360,10 @@ Options:
                          "-state". This can be used to preserve the old
                          state.
 
-  -target=resource       Resource to target. Operation will be limited to this
-                         resource and its dependencies. This flag can be used
-                         multiple times.
-
-  -var 'foo=bar'         Set a variable in the Terraform configuration. This
-                         flag can be set multiple times.
-
-  -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" or any ".auto.tfvars"
-                         files are present, they will be automatically loaded.
-
-
+  If you don't provide a saved plan file then this command will also accept
+  all of the plan-customization options accepted by the terraform plan command.
+  For more information on those options, run:
+      terraform plan -help
 `
 	return strings.TrimSpace(helpText)
 }
@@ -377,35 +374,12 @@ Usage: terraform [global options] destroy [options]
 
   Destroy Terraform-managed infrastructure.
 
-Options:
+  This command is a convenience alias for:
+      terraform apply -destroy
 
-  -auto-approve          Skip interactive approval before destroying.
-
-  -lock=true             Lock the state file when locking is supported.
-
-  -lock-timeout=0s       Duration to retry a state lock.
-
-  -no-color              If specified, output won't contain any color.
-
-  -parallelism=n         Limit the number of concurrent operations.
-                         Defaults to 10.
-
-  -refresh=true          Update state prior to checking for differences. This
-                         has no effect if a plan file is given to apply.
-
-  -target=resource       Resource to target. Operation will be limited to this
-                         resource and its dependencies. This flag can be used
-                         multiple times.
-
-  -var 'foo=bar'         Set a variable in the Terraform configuration. This
-                         flag can be set multiple times.
-
-  -var-file=foo          Set variables in the Terraform configuration from
-                         a file. If "terraform.tfvars" or any ".auto.tfvars"
-                         files are present, they will be automatically loaded.
-
-  -state, state-out, and -backup are legacy options supported for the local
-  backend only. For more information, see the local backend's documentation.
+  This command also accepts many of the plan-customization options accepted by
+  the terraform plan command. For more information on those options, run:
+      terraform plan -help
 `
 	return strings.TrimSpace(helpText)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
@@ -26,7 +27,7 @@ func (b *Local) opApply(
 
 	// If we have a nil module at this point, then set it to an empty tree
 	// to avoid any potential crashes.
-	if op.PlanFile == nil && !op.Destroy && !op.HasConfig() {
+	if op.PlanFile == nil && op.PlanMode != plans.DestroyMode && !op.HasConfig() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
@@ -76,7 +77,7 @@ func (b *Local) opApply(
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		if mustConfirm {
 			var desc, query string
-			if op.Destroy {
+			if op.PlanMode == plans.DestroyMode {
 				if op.Workspace != "default" {
 					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
 				} else {
@@ -116,7 +117,7 @@ func (b *Local) opApply(
 				return
 			}
 			if v != "yes" {
-				op.View.Cancelled(op.Destroy)
+				op.View.Cancelled(op.PlanMode)
 				runningOp.Result = backend.OperationFailure
 				return
 			}

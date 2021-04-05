@@ -11,9 +11,6 @@ type Plan struct {
 	Operation *Operation
 	Vars      *Vars
 
-	// Destroy can be set to generate a plan to destroy all infrastructure.
-	Destroy bool
-
 	// DetailedExitCode enables different exit codes for error, success with
 	// changes, and success with no changes.
 	DetailedExitCode bool
@@ -41,7 +38,6 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
-	cmdFlags.BoolVar(&plan.Destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
