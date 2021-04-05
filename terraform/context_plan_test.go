@@ -1616,8 +1616,8 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3193,8 +3193,8 @@ func TestContext2Plan_destroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3256,8 +3256,8 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3319,8 +3319,8 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3381,8 +3381,8 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -4152,8 +4152,8 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "orphan",
@@ -4219,8 +4219,8 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
 				addrs.ManagedResourceMode, "aws_instance", "orphan",
