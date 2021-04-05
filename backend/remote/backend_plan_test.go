@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -709,7 +710,7 @@ func TestRemote_planDestroy(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Destroy = true
+	op.PlanMode = plans.DestroyMode
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -734,7 +735,7 @@ func TestRemote_planDestroyNoConfig(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Destroy = true
+	op.PlanMode = plans.DestroyMode
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)

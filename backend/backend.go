@@ -193,8 +193,8 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
+	PlanMode    plans.Mode
 	AutoApprove bool
-	Destroy     bool
 	Parallelism int
 	Targets     []addrs.Targetable
 	Variables   map[string]UnparsedVariableValue

@@ -544,7 +544,7 @@ func TestLocal_planDestroy(t *testing.T) {
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
-	op.Destroy = true
+	op.PlanMode = plans.DestroyMode
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{
@@ -598,7 +598,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/destroy-with-ds")
 	defer configCleanup()
-	op.Destroy = true
+	op.PlanMode = plans.DestroyMode
 	op.PlanRefresh = true
 	op.PlanOutPath = planPath
 	cfg := cty.ObjectVal(map[string]cty.Value{

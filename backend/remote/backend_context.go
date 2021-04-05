@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -62,12 +61,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	// Copy set options from the operation
-	switch {
-	case op.Destroy:
-		opts.PlanMode = plans.DestroyMode
-	default:
-		opts.PlanMode = plans.NormalMode
-	}
+	opts.PlanMode = op.PlanMode
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 
