@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -45,6 +46,11 @@ type State struct {
 // Operation describes arguments which are used to configure how a Terraform
 // operation such as a plan or apply executes.
 type Operation struct {
+	// PlanMode selects one of the mutually-exclusive planning modes that
+	// decides the overall goal of a plan operation. This field is relevant
+	// only for an operation that produces a plan.
+	PlanMode plans.Mode
+
 	// Parallelism is the limit Terraform places on total parallel operations
 	// as it walks the dependency graph.
 	Parallelism int
@@ -57,7 +63,11 @@ type Operation struct {
 	// their dependencies.
 	Targets []addrs.Targetable
 
+	// These private fields are used only temporarily during decoding. Use
+	// method Parse to populate the exported fields from these, validating
+	// the raw values in the process.
 	targetsRaw []string
+	destroyRaw bool
 }
 
 // Parse must be called on Operation after initial flag parse. This processes
@@ -90,6 +100,15 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 
 		o.Targets = append(o.Targets, target.Subject)
+	}
+
+	// If you add a new possible value for o.PlanMode here, consider also
+	// adding a specialized error message for it in ParseApplyDestroy.
+	switch {
+	case o.destroyRaw:
+		o.PlanMode = plans.DestroyMode
+	default:
+		o.PlanMode = plans.NormalMode
 	}
 
 	return diags
@@ -140,6 +159,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 	if operation != nil {
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
+		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")
 	}
 
