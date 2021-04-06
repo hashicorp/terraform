@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 )
 
@@ -150,7 +151,6 @@ func (b *Backend) configure(ctx context.Context) error {
 	if tokenSource != nil {
 		opts = append(opts, option.WithTokenSource(tokenSource))
 	} else if creds != "" {
-		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
 		contents, err := backend.ReadPathOrContents(creds)
@@ -162,14 +162,7 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
 		}
 
-		conf := jwt.Config{
-			Email:      account.ClientEmail,
-			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://oauth2.googleapis.com/token",
-		}
-
-		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
+		opts = append(opts, optionWithCredentialsJSON(), option.WithScopes(storage.ScopeReadWrite))
 	} else {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
@@ -177,7 +170,15 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Service Account Impersonation
 	if v, ok := data.GetOk("impersonate_service_account"); ok {
 		ServiceAccount := v.(string)
-		opts = append(opts, option.ImpersonateCredentials(ServiceAccount))
+		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
+			TargetPrincipal: ServiceAccount,
+			Scopes:          []string{storage.ScopeReadWrite},
+		})
+		if err != nil {
+			return err
+		}
+
+		opts = append(opts, option.WithTokenSource(ts))
 
 		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
 			var delegates []string
@@ -188,7 +189,15 @@ func (b *Backend) configure(ctx context.Context) error {
 			for _, delegate := range d {
 				delegates = append(delegates, delegate.(string))
 			}
-			opts = append(opts, option.ImpersonateCredentials(ServiceAccount, delegates...))
+			ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
+				TargetPrincipal: ServiceAccount,
+				Scopes:          []string{storage.ScopeReadWrite},
+				Delegates:       delegates,
+			})
+			if err != nil {
+				return err
+			}
+			opts = append(opts, option.WithTokenSource(ts))
 		}
 	}
 
