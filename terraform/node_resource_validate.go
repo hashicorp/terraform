@@ -381,7 +381,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateResourceConfig(req)
-		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 
 	case addrs.DataResourceMode:
 		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
@@ -409,7 +409,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		resp := provider.ValidateDataResourceConfig(req)
-		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config))
+		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
 	return diags

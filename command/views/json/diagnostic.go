@@ -30,6 +30,7 @@ type Diagnostic struct {
 	Severity string             `json:"severity"`
 	Summary  string             `json:"summary"`
 	Detail   string             `json:"detail"`
+	Address  string             `json:"address,omitempty"`
 	Range    *DiagnosticRange   `json:"range,omitempty"`
 	Snippet  *DiagnosticSnippet `json:"snippet,omitempty"`
 }
@@ -124,6 +125,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		Severity: sev,
 		Summary:  desc.Summary,
 		Detail:   desc.Detail,
+		Address:  desc.Address,
 	}
 
 	sourceRefs := diag.Source()
