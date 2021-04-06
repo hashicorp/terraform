@@ -66,8 +66,9 @@ type Operation struct {
 	// These private fields are used only temporarily during decoding. Use
 	// method Parse to populate the exported fields from these, validating
 	// the raw values in the process.
-	targetsRaw []string
-	destroyRaw bool
+	targetsRaw     []string
+	destroyRaw     bool
+	refreshOnlyRaw bool
 }
 
 // Parse must be called on Operation after initial flag parse. This processes
@@ -105,8 +106,23 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	// If you add a new possible value for o.PlanMode here, consider also
 	// adding a specialized error message for it in ParseApplyDestroy.
 	switch {
+	case o.destroyRaw && o.refreshOnlyRaw:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Incompatible plan mode options",
+			"The -destroy and -refresh-only options are mutually-exclusive.",
+		))
 	case o.destroyRaw:
 		o.PlanMode = plans.DestroyMode
+	case o.refreshOnlyRaw:
+		o.PlanMode = plans.RefreshOnlyMode
+		if !o.Refresh {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible refresh options",
+				"It doesn't make sense to use -refresh-only at the same time as -refresh=false, because Terraform would have nothing to do.",
+			))
+		}
 	default:
 		o.PlanMode = plans.NormalMode
 	}
@@ -160,6 +176,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.IntVar(&operation.Parallelism, "parallelism", DefaultParallelism, "parallelism")
 		f.BoolVar(&operation.Refresh, "refresh", true, "refresh")
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
+		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
 		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")
 	}
 

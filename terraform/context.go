@@ -256,6 +256,17 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	switch opts.PlanMode {
 	case plans.NormalMode, plans.DestroyMode:
 		// OK
+	case plans.RefreshOnlyMode:
+		if opts.SkipRefresh {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"Cannot skip refreshing in refresh-only mode. This is a bug in Terraform.",
+			))
+			return nil, diags
+		}
 	default:
 		// The CLI layer (and other similar callers) should not try to
 		// create a context for a mode that Terraform Core doesn't support.
@@ -368,6 +379,20 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
+		}).Build(addrs.RootModuleInstance)
+
+	case GraphTypePlanRefreshOnly:
+		// Create the plan graph builder, with skipPlanChanges set to
+		// activate the "refresh only" mode.
+		return (&PlanGraphBuilder{
+			Config:          c.config,
+			State:           c.state,
+			Components:      c.components,
+			Schemas:         c.schemas,
+			Targets:         c.targets,
+			Validate:        opts.Validate,
+			skipRefresh:     c.skipRefresh,
+			skipPlanChanges: true, // this activates "refresh only" mode.
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeEval:
@@ -551,8 +576,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		plan, planDiags = c.plan()
 	case plans.DestroyMode:
 		plan, planDiags = c.destroyPlan()
+	case plans.RefreshOnlyMode:
+		plan, planDiags = c.refreshOnlyPlan()
 	default:
-		panic(fmt.Sprintf("nsupported plan mode %s", c.planMode))
+		panic(fmt.Sprintf("unsupported plan mode %s", c.planMode))
 	}
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
@@ -603,6 +630,7 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
+		Mode:    plans.NormalMode,
 		Changes: c.changes,
 	}
 
@@ -656,8 +684,54 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
+	destroyPlan.Mode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
 	return destroyPlan, diags
+}
+
+func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
+	diags = diags.Append(graphDiags)
+	if graphDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Do the walk
+	walker, walkDiags := c.walk(graph, walkPlan)
+	diags = diags.Append(walker.NonFatalDiagnostics)
+	diags = diags.Append(walkDiags)
+	if walkDiags.HasErrors() {
+		return nil, diags
+	}
+	plan := &plans.Plan{
+		Mode:    plans.RefreshOnlyMode,
+		Changes: c.changes,
+	}
+
+	// If the graph builder and graph nodes correctly obeyed our directive
+	// to refresh only, the set of resource changes should always be empty.
+	// We'll safety-check that here so we can return a clear message about it,
+	// rather than probably just generating confusing output at the UI layer.
+	if len(plan.Changes.Resources) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid refresh-only plan",
+			"Terraform generated planned resource changes in a refresh-only plan. This is a bug in Terraform.",
+		))
+	}
+
+	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
+
+	refreshedState := c.refreshState.DeepCopy()
+	plan.State = refreshedState
+
+	// replace the working state with the updated state, so that immediate calls
+	// to Apply work as expected.
+	c.state = refreshedState
+
+	return plan, diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them

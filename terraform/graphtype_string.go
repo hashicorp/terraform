@@ -11,14 +11,15 @@ func _() {
 	_ = x[GraphTypeInvalid-0]
 	_ = x[GraphTypePlan-1]
 	_ = x[GraphTypePlanDestroy-2]
-	_ = x[GraphTypeApply-3]
-	_ = x[GraphTypeValidate-4]
-	_ = x[GraphTypeEval-5]
+	_ = x[GraphTypePlanRefreshOnly-3]
+	_ = x[GraphTypeApply-4]
+	_ = x[GraphTypeValidate-5]
+	_ = x[GraphTypeEval-6]
 }
 
-const _GraphType_name = "GraphTypeInvalidGraphTypePlanGraphTypePlanDestroyGraphTypeApplyGraphTypeValidateGraphTypeEval"
+const _GraphType_name = "GraphTypeInvalidGraphTypePlanGraphTypePlanDestroyGraphTypePlanRefreshOnlyGraphTypeApplyGraphTypeValidateGraphTypeEval"
 
-var _GraphType_index = [...]uint8{0, 16, 29, 49, 63, 80, 93}
+var _GraphType_index = [...]uint8{0, 16, 29, 49, 73, 87, 104, 117}
 
 func (i GraphType) String() string {
 	if i >= GraphType(len(_GraphType_index)-1) {

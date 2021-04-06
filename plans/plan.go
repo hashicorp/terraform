@@ -21,6 +21,14 @@ import (
 // since the plan does not itself include all of the information required to
 // make the changes indicated.
 type Plan struct {
+	// Mode is the mode under which this plan was created.
+	//
+	// This is only recorded to allow for UI differences when presenting plans
+	// to the end-user, and so it must not be used to influence apply-time
+	// behavior. The actions during apply must be described entirely by
+	// the Changes field, regardless of how the plan was created.
+	Mode Mode
+
 	VariableValues  map[string]DynamicValue
 	Changes         *Changes
 	TargetAddrs     []addrs.Targetable

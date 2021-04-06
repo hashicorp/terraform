@@ -11,6 +11,7 @@ const (
 	GraphTypeInvalid GraphType = iota
 	GraphTypePlan
 	GraphTypePlanDestroy
+	GraphTypePlanRefreshOnly
 	GraphTypeApply
 	GraphTypeValidate
 	GraphTypeEval // only visits in-memory elements such as variables, locals, and outputs.
@@ -20,9 +21,10 @@ const (
 // is useful to use as the mechanism for human input for configurable
 // graph types.
 var GraphTypeMap = map[string]GraphType{
-	"apply":        GraphTypeApply,
-	"plan":         GraphTypePlan,
-	"plan-destroy": GraphTypePlanDestroy,
-	"validate":     GraphTypeValidate,
-	"eval":         GraphTypeEval,
+	"apply":             GraphTypeApply,
+	"plan":              GraphTypePlan,
+	"plan-destroy":      GraphTypePlanDestroy,
+	"plan-refresh-only": GraphTypePlanRefreshOnly,
+	"validate":          GraphTypeValidate,
+	"eval":              GraphTypeEval,
 }

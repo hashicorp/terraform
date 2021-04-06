@@ -45,6 +45,12 @@ type PlanGraphBuilder struct {
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
+	// skipPlanChanges indicates that we should skip the step of comparing
+	// prior state with configuration and generating planned changes to
+	// resource instances. (This is for the "refresh only" planning mode,
+	// where we _only_ do the refresh step.)
+	skipPlanChanges bool
+
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
 	// the plan behavior.
@@ -181,6 +187,7 @@ func (b *PlanGraphBuilder) init() {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
+			skipPlanChanges:      b.skipPlanChanges,
 		}
 	}
 
@@ -188,6 +195,7 @@ func (b *PlanGraphBuilder) init() {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
+			skipPlanChanges:              b.skipPlanChanges,
 		}
 	}
 }
