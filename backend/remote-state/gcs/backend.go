@@ -151,6 +151,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	if tokenSource != nil {
 		opts = append(opts, option.WithTokenSource(tokenSource))
 	} else if creds != "" {
+		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
 		contents, err := backend.ReadPathOrContents(creds)
@@ -162,7 +163,14 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
 		}
 
-		opts = append(opts, optionWithCredentialsJSON(), option.WithScopes(storage.ScopeReadWrite))
+		conf := jwt.Config{
+			Email:      account.ClientEmail,
+			PrivateKey: []byte(account.PrivateKey),
+			Scopes:     []string{storage.ScopeReadWrite},
+			TokenURL:   "https://oauth2.googleapis.com/token",
+		}
+
+		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
 	} else {
 		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
 	}
