@@ -14,7 +14,12 @@ import (
 type NodePlannableResourceInstanceOrphan struct {
 	*NodeAbstractResourceInstance
 
+	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
+
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
 }
 
 var (
@@ -75,9 +80,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 
 	// Declare a bunch of variables that are used for state during
 	// evaluation. These are written to by-address below.
-	var change *plans.ResourceInstanceChange
-
-	state, readDiags := n.readResourceInstanceState(ctx, addr)
+	oldState, readDiags := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
@@ -90,34 +93,38 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		state, refreshDiags := n.refresh(ctx, state)
+		refreshedState, refreshDiags := n.refresh(ctx, oldState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
 		}
 
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, refreshedState, refreshState))
 		if diags.HasErrors() {
 			return diags
 		}
 	}
 
-	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
-	diags = diags.Append(destroyPlanDiags)
-	if diags.HasErrors() {
-		return diags
+	if !n.skipPlanChanges {
+		var change *plans.ResourceInstanceChange
+		change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
+		diags = diags.Append(destroyPlanDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeChange(ctx, change, ""))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 	}
 
-	diags = diags.Append(n.checkPreventDestroy(change))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.writeChange(ctx, change, ""))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 	return diags
 }

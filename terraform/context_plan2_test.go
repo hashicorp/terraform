@@ -1,10 +1,12 @@
 package terraform
 
 import (
+	"bytes"
 	"errors"
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
@@ -484,6 +486,75 @@ provider "test" {
 	_, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+}
+
+func TestContext2Plan_refreshOnlyMode(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+
+	p := simpleMockProvider()
+
+	// The configuration, the prior state, and the refresh result intentionally
+	// have different values for "test_string" so we can observe that the
+	// refresh took effect but the configuration change wasn't considered.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "a" {
+				test_string = "after"
+			}
+		`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"before"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "test_string"}) {
+				return cty.StringVal("current"), nil
+			}
+			return v, nil
+		})
+		if err != nil {
+			// shouldn't get here
+			t.Fatalf("ReadResourceFn transform failed")
+			return providers.ReadResourceResponse{}
+		}
+		return providers.ReadResourceResponse{
+			NewState: newVal,
+		}
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		PlanMode: plans.RefreshOnlyMode,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	if got, want := len(plan.Changes.Resources), 0; got != want {
+		t.Fatalf("plan contains resource changes; want none\n%s", spew.Sdump(plan.Changes.Resources))
+	}
+
+	state = plan.State
+	instState := state.ResourceInstance(addr)
+	if instState == nil {
+		t.Fatalf("%s has no state at all after plan", addr)
+	}
+	if instState.Current == nil {
+		t.Fatalf("%s has no current object after plan", addr)
+	}
+	if got, want := instState.Current.AttrsJSON, `"current"`; !bytes.Contains(got, []byte(want)) {
+		t.Fatalf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
 	}
 }
 

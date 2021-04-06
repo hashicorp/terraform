@@ -18,7 +18,13 @@ import (
 type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
 	ForceCreateBeforeDestroy bool
-	skipRefresh              bool
+
+	// skipRefresh indicates that we should skip refreshing individual instances
+	skipRefresh bool
+
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
 }
 
 var (
@@ -96,7 +102,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	addr := n.ResourceInstanceAddr()
 
 	var change *plans.ResourceInstanceChange
-	var instancePlanState *states.ResourceInstanceObject
+	var instanceRefreshState *states.ResourceInstanceObject
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -150,38 +156,41 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	// Plan the instance
-	change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
-	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.checkPreventDestroy(change))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// If this plan resulted in a NoOp, then apply won't have a chance to make
-	// any changes to the stored dependencies. Since this is a NoOp we know
-	// that the stored dependencies will have no effect during apply, and we can
-	// write them out now.
-	if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
-		// the refresh state will be the final state for this resource, so
-		// finalize the dependencies here if they need to be updated.
-		instanceRefreshState.Dependencies = n.Dependencies
-		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+	// Plan the instance, unless we're in the refresh-only mode
+	if !n.skipPlanChanges {
+		change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
+		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
 		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// If this plan resulted in a NoOp, then apply won't have a chance to make
+		// any changes to the stored dependencies. Since this is a NoOp we know
+		// that the stored dependencies will have no effect during apply, and we can
+		// write them out now.
+		if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
+			// the refresh state will be the final state for this resource, so
+			// finalize the dependencies here if they need to be updated.
+			instanceRefreshState.Dependencies = n.Dependencies
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+			if diags.HasErrors() {
+				return diags
+			}
+		}
+
+		diags = diags.Append(n.writeChange(ctx, change, ""))
 	}
 
-	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 
