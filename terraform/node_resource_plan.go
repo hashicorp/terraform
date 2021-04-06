@@ -24,6 +24,10 @@ type nodeExpandPlannableResource struct {
 	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
 
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
+
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
 	dependencies []addrs.ConfigResource
@@ -84,6 +88,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
 			dependencies:             n.dependencies,
 			skipRefresh:              n.skipRefresh,
+			skipPlanChanges:          n.skipPlanChanges,
 		})
 	}
 
@@ -148,6 +153,10 @@ type NodePlannableResource struct {
 
 	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
+
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
 
 	dependencies []addrs.ConfigResource
 }
@@ -239,6 +248,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			// nodes that have it.
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
+			skipPlanChanges:          n.skipPlanChanges,
 		}
 	}
 
