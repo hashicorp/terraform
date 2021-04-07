@@ -3,61 +3,66 @@ layout: "docs"
 page_title: "Command: refresh"
 sidebar_current: "docs-commands-refresh"
 description: |-
-  The `terraform refresh` command is used to reconcile the state Terraform knows about (via its state file) with the real-world infrastructure. This can be used to detect any drift from the last-known state, and to update the state file.
+  The `terraform refresh` command reads the current settings from all managed
+  remote objects and updates the Terraform state to match.
 ---
 
 # Command: refresh
 
-The `terraform refresh` command is used to reconcile the state Terraform
-knows about (via its state file) with the real-world infrastructure.
-This can be used to detect any drift from the last-known state, and to
-update the state file.
+The `terraform refresh` command reads the current settings from all managed
+remote objects and updates the Terraform state to match.
 
-This does not modify infrastructure, but does modify the state file.
-If the state is changed, this may cause changes to occur during the next
-plan or apply.
+~> *Warning:* This command is deprecated, because its default behavior is
+unsafe if you have misconfigured credentials for any of your providers.
+See below for more information and recommended alternatives.
+
+This won't modify your real remote objects, but it will modify the
+[the Terraform state](/docs/language/state/).
+
+You shouldn't typically need to use this command, because Terraform
+automatically performs the same refreshing actions as a part of creating
+a plan in both the
+[`terraform plan`](./plan.html)
+and
+[`terraform apply`](./apply.html)
+commands. This command is here primarily for backward compatibility, but
+we don't recommend using it because it provides no opportunity to review
+the effects of the operation before updating the state.
 
 ## Usage
 
 Usage: `terraform refresh [options]`
 
-The `terraform refresh` command accepts the following options:
+This command is effectively an alias for the following command:
 
-* `-compact-warnings` - If Terraform produces any warnings that are not
-  accompanied by errors, show them in a more compact form that includes only
-  the summary messages.
+```
+terraform apply -refresh-only -auto-approve
+```
 
-* `-input=true` - Ask for input for variables if not directly set.
+Consequently, it supports all of the same options as
+[`terraform apply`](./apply.html) except that it does not accept a saved
+plan file, it doesn't allow selecting a planning mode other than "refresh only",
+and `-auto-approve` is always enabled.
 
-* `-lock=true` - Lock the state file when locking is supported.
+Automatically applying the effect of a refresh is risky, because if you have
+misconfigured credentials for one or more providers then the provider may
+be misled into thinking that all of the managed objects have been deleted,
+and thus remove all of the tracked objects without any confirmation prompt.
 
-* `-lock-timeout=0s` - Duration to retry a state lock.
+Instead, we recommend using the following command in order to get the same
+effect but with the opportunity to review the the changes that Terraform has
+detected before committing them to the state:
 
-* `-no-color` - If specified, output won't contain any color.
+```
+terraform apply -refresh-only
+```
 
-* `-parallelism=n` - Limit the number of concurrent operation as Terraform
-  [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
-  to 10.
+This alternative command will present an interactive prompt for you to confirm
+the detected changes.
 
-* `-target=resource` - A [Resource
-  Address](/docs/cli/state/resource-addressing.html) to target. Operation will
-  be limited to this resource and its dependencies. This flag can be used
-  multiple times.
-
-* `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
-  can be set multiple times. Variable values are interpreted as
-  [literal expressions](/docs/language/expressions/types.html) in the
-  Terraform language, so list and map values can be specified via this flag.
-
-* `-var-file=foo` - Set variables in the Terraform configuration from
-  a [variable file](/docs/language/values/variables.html#variable-definitions-tfvars-files). If
-  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
-  directory, they will be automatically loaded. `terraform.tfvars` is loaded
-  first and the `.auto.tfvars` files after in alphabetical order. Any files
-  specified by `-var-file` override any values set automatically from files in
-  the working directory. This flag can be used multiple times.
-
-For configurations using
-[the `local` backend](/docs/language/settings/backends/local.html) only,
-`terraform refresh` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
+The `-refresh-only` option for `terraform plan` and `terraform apply` was
+introduced in Terraform v1.0. For prior versions you must use
+`terraform refresh` directly if you need this behavior, while taking into
+account the warnings above. Whereever possible, avoid using `terraform refresh`
+explicitly and instead rely on Terraform's behavior of automatically refreshing
+existing objects as part of creating a normal plan.

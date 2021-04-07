@@ -3,18 +3,26 @@ layout: "docs"
 page_title: "Internals: Resource Address"
 sidebar_current: "docs-internals-resource-addressing"
 description: |-
-  Resource addressing is used to target specific resources in a larger
-  infrastructure.
+  A resource address is a string that identifies zero or more resource
+  instances in your overall configuration.
 ---
 
 # Resource Addressing
 
-A __Resource Address__ is a string that references a specific resource in a
-larger infrastructure. An address is made up of two parts:
+A _resource address_ is a string that identifies zero or more resource
+instances in your overall configuration.
+
+An address is made up of two parts:
 
 ```
 [module path][resource spec]
 ```
+
+In some contexts Terraform might allow for an incomplete resource address that
+only refers to a module as a whole, or that omits the index for a
+multi-instance resource. In those cases, the meaning depends on the context,
+so you'll need to refer to the documentation for the specific feature you
+are using which parses resource addresses.
 
 ## Module path
 
@@ -27,8 +35,9 @@ module.module_name[module index]
  * `module` - Module keyword indicating a child module (non-root). Multiple `module`
    keywords in a path indicate nesting.
  * `module_name` - User-defined name of the module.
- * `[module index]` - (Optional) [Index](#index-values-for-modules-and-resources) into a
-   module with multiple instances, surrounded by square brace characters (`[` and `]`).
+ * `[module index]` - (Optional) [Index](#index-values-for-modules-and-resources)
+   to select an instance from a module call that has multiple instances,
+   surrounded by square bracket characters (`[` and `]`).
 
 An address without a resource spec, i.e. `module.foo` applies to every resource within
 the module if a single module, or all instances of a module if a module has multiple instances.
@@ -43,25 +52,27 @@ An example of the `module` keyword delineating between two modules that have mul
 module.foo[0].module.bar["a"]
 ```
 
--> Module index only applies to modules in Terraform v0.13 or later, as in earlier
+-> Module index only applies to modules in Terraform v0.13 or later. In earlier
 versions of Terraform, a module could not have multiple instances.
 
 ## Resource spec
 
-A resource spec addresses a specific resource in the config. It takes the form:
+A resource spec addresses a specific resource instance in the selected module.
+It has the following syntax:
 
 ```
-resource_type.resource_name[resource index]
+resource_type.resource_name[instance index]
 ```
 
  * `resource_type` - Type of the resource being addressed.
  * `resource_name` - User-defined name of the resource.
- * `[resource index]` - (Optional) [Index](#index-values-for-modules-and-resources)
-   into a resource with multiple instances, surrounded by square brace characters (`[` and `]`).
+ * `[instance index]` - (Optional) [Index](#index-values-for-modules-and-resources)
+   to select an instance from a resource that has multiple instances,
+   surrounded by square bracket characters (`[` and `]`).
 
 -> In Terraform v0.12 and later, a resource spec without a module path prefix
 matches only resources in the root module. In earlier versions, a resource spec
-without a module path prefix will match resources with the same type and name
+without a module path prefix would match resources with the same type and name
 in any descendent module.
 
 ## Index values for Modules and Resources
