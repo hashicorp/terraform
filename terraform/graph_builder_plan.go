@@ -39,6 +39,11 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ForceReplace are resource instances where if we would normally have
+	// generated a NoOp or Update action then we'll force generating a replace
+	// action instead. Create and Delete actions are not affected.
+	ForceReplace []addrs.AbsResourceInstance
+
 	// Validate will do structural validation of the graph.
 	Validate bool
 
@@ -188,6 +193,7 @@ func (b *PlanGraphBuilder) init() {
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
 			skipPlanChanges:      b.skipPlanChanges,
+			forceReplace:         b.ForceReplace,
 		}
 	}
 

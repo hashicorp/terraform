@@ -28,6 +28,12 @@ type nodeExpandPlannableResource struct {
 	// for any instances.
 	skipPlanChanges bool
 
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
+
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
 	dependencies []addrs.ConfigResource
@@ -89,6 +95,7 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			dependencies:             n.dependencies,
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          n.skipPlanChanges,
+			forceReplace:             n.forceReplace,
 		})
 	}
 
@@ -157,6 +164,12 @@ type NodePlannableResource struct {
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
+
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
 
 	dependencies []addrs.ConfigResource
 }
@@ -249,6 +262,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			ForceCreateBeforeDestroy: n.CreateBeforeDestroy(),
 			skipRefresh:              n.skipRefresh,
 			skipPlanChanges:          n.skipPlanChanges,
+			forceReplace:             n.forceReplace,
 		}
 	}
 

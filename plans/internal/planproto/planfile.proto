@@ -17,6 +17,13 @@ message Plan {
     // the file for another message- or field-specific reason.
     uint64 version = 1;
 
+    // The mode that was active when this plan was created.
+    //
+    // This is saved only for UI purposes, so that Terraform can tailor its
+    // rendering of the plan depending on the mode. This must never be used to
+    // make decisions in Terraform Core during the applying of a plan.
+    Mode mode = 17;
+
     // The variables that were set when creating the plan. Each value is
     // a msgpack serialization of an HCL value.
     map<string, DynamicValue> variables = 2;
@@ -37,6 +44,12 @@ message Plan {
     // configuration.
     repeated string target_addrs = 5;
 
+    // An unordered set of force-replace addresses to include when applying.
+    // This must match the set of addresses that was used when creating the
+    // plan, or else applying the plan will fail when it reaches a different
+    // conclusion about what action a particular resource instance needs.
+    repeated string force_replace_addrs = 16;
+
     // The version string for the Terraform binary that created this plan.
     string terraform_version = 14;
 
@@ -47,6 +60,13 @@ message Plan {
     // Backend is a description of the backend configuration and other related
     // settings at the time the plan was created.
     Backend backend = 13;
+}
+
+// Mode describes the planning mode that created the plan.
+enum Mode {
+    NORMAL = 0;
+    DESTROY = 1;
+    REFRESH_ONLY = 2;
 }
 
 // Backend is a description of backend configuration and other related settings.
