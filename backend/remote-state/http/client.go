@@ -45,7 +45,7 @@ func (c *httpClient) httpRequest(method string, remoteUrl *url.URL, data *[]byte
 	}
 
 	// Create the request
-	req, err := retryablehttp.NewRequest(method, url.QueryEscape(remoteUrl.String()), reader)
+	req, err := retryablehttp.NewRequest(method, remoteUrl.String(), reader)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
