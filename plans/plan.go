@@ -29,12 +29,13 @@ type Plan struct {
 	// the Changes field, regardless of how the plan was created.
 	Mode Mode
 
-	VariableValues  map[string]DynamicValue
-	Changes         *Changes
-	TargetAddrs     []addrs.Targetable
-	ProviderSHA256s map[string][]byte
-	Backend         Backend
-	State           *states.State
+	VariableValues    map[string]DynamicValue
+	Changes           *Changes
+	TargetAddrs       []addrs.Targetable
+	ForceReplaceAddrs []addrs.AbsResourceInstance
+	ProviderSHA256s   map[string][]byte
+	Backend           Backend
+	State             *states.State
 }
 
 // Backend represents the backend-related configuration and other data as it
