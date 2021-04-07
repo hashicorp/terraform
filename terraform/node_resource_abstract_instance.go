@@ -541,7 +541,8 @@ func (n *NodeAbstractResourceInstance) plan(
 	ctx EvalContext,
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
-	createBeforeDestroy bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	createBeforeDestroy bool,
+	forceReplace []addrs.AbsResourceInstance) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var state *states.ResourceInstanceObject
 	var plan *plans.ResourceInstanceChange
@@ -808,6 +809,35 @@ func (n *NodeAbstractResourceInstance) plan(
 		}
 	}
 
+	// The user might also ask us to force replacing a particular resource
+	// instance, regardless of whether the provider thinks it needs replacing.
+	// For example, users typically do this if they learn a particular object
+	// has become degraded in an immutable infrastructure scenario and so
+	// replacing it with a new object is a viable repair path.
+	matchedForceReplace := false
+	for _, candidateAddr := range forceReplace {
+		if candidateAddr.Equal(n.Addr) {
+			matchedForceReplace = true
+			break
+		}
+		// For "force replace" purposes we require an exact resource instance
+		// address to match, but just in case a user forgets to include the
+		// instance key for a multi-instance resource we'll give them a
+		// warning hint.
+		if n.Addr.Resource.Key != addrs.NoKey && candidateAddr.Resource.Key == addrs.NoKey {
+			if n.Addr.Resource.Resource.Equal(candidateAddr.Resource.Resource) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Incompletely-matched force-replace resource instance",
+					fmt.Sprintf(
+						"Your force-replace request for %s didn't match %s because it lacks the instance key.\n\nTo force replacement of this particular instance, use -replace=%q .",
+						candidateAddr, n.Addr, n.Addr,
+					),
+				))
+			}
+		}
+	}
+
 	// Unmark for this test for value equality.
 	eqV := unmarkedPlannedNewVal.Equals(unmarkedPriorVal)
 	eq := eqV.IsKnown() && eqV.True()
@@ -816,11 +846,12 @@ func (n *NodeAbstractResourceInstance) plan(
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
-	case eq:
+	case eq && !matchedForceReplace:
 		action = plans.NoOp
-	case !reqRep.Empty():
-		// If there are any "requires replace" paths left _after our filtering
-		// above_ then this is a replace action.
+	case matchedForceReplace || !reqRep.Empty():
+		// If the user "forced replace" of this instance of if there are any
+		// "requires replace" paths left _after our filtering above_ then this
+		// is a replace action.
 		if createBeforeDestroy {
 			action = plans.CreateThenDelete
 		} else {

@@ -25,6 +25,12 @@ type NodePlannableResourceInstance struct {
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
+
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
 }
 
 var (
@@ -159,7 +165,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
-		change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
+		change, instancePlanState, planDiags := n.plan(
+			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags

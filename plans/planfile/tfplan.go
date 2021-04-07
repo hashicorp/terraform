@@ -60,6 +60,17 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		ProviderSHA256s: map[string][]byte{},
 	}
 
+	switch rawPlan.Mode {
+	case planproto.Mode_NORMAL:
+		plan.Mode = plans.NormalMode
+	case planproto.Mode_DESTROY:
+		plan.Mode = plans.DestroyMode
+	case planproto.Mode_REFRESH_ONLY:
+		plan.Mode = plans.RefreshOnlyMode
+	default:
+		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.Mode)
+	}
+
 	for _, rawOC := range rawPlan.OutputChanges {
 		name := rawOC.Name
 		change, err := changeFromTfplan(rawOC.Change)
@@ -93,6 +104,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+	}
+
+	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
+		addr, diags := addrs.ParseAbsResourceInstanceStr(rawReplaceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid force-replace address %q: %s", addr, diags.Err())
+		}
+		plan.ForceReplaceAddrs = append(plan.ForceReplaceAddrs, addr)
 	}
 
 	for name, rawHashObj := range rawPlan.ProviderHashes {
@@ -330,6 +349,17 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 	}
 
+	switch plan.Mode {
+	case plans.NormalMode:
+		rawPlan.Mode = planproto.Mode_NORMAL
+	case plans.DestroyMode:
+		rawPlan.Mode = planproto.Mode_DESTROY
+	case plans.RefreshOnlyMode:
+		rawPlan.Mode = planproto.Mode_REFRESH_ONLY
+	default:
+		return fmt.Errorf("plan has unsupported mode %s", plan.Mode)
+	}
+
 	for _, oc := range plan.Changes.Outputs {
 		// When serializing a plan we only retain the root outputs, since
 		// changes to these are externally-visible side effects (e.g. via
@@ -365,6 +395,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
+	}
+
+	for _, replaceAddr := range plan.ForceReplaceAddrs {
+		rawPlan.ForceReplaceAddrs = append(rawPlan.ForceReplaceAddrs, replaceAddr.String())
 	}
 
 	for name, hash := range plan.ProviderSHA256s {
