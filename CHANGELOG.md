@@ -1,5 +1,9 @@
 ## 0.15.0 (Unreleased)
 
+* core: Fix crash when trying to create a destroy plan with `-refresh=false` [GH-28272]
+
+## 0.15.0-rc2 (April 7, 2021)
+
 BUG FIXES:
 
 * core: Fix crash when rendering JSON plans containing iterable unknown values ([#28253](https://github.com/hashicorp/terraform/issues/28253))
