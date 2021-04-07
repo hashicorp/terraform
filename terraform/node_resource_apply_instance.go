@@ -27,6 +27,12 @@ type NodeApplyableResourceInstance struct {
 	// If this node is forced to be CreateBeforeDestroy, we need to record that
 	// in the state to.
 	ForceCreateBeforeDestroy bool
+
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
 }
 
 var (
@@ -232,7 +238,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, planDiags := n.plan(ctx, diff, state, false)
+	diffApply, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags

@@ -40,14 +40,15 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config      *configs.Config
-	Changes     *plans.Changes
-	State       *states.State
-	Targets     []addrs.Targetable
-	Variables   InputValues
-	Meta        *ContextMeta
-	PlanMode    plans.Mode
-	SkipRefresh bool
+	Config       *configs.Config
+	Changes      *plans.Changes
+	State        *states.State
+	Targets      []addrs.Targetable
+	ForceReplace []addrs.AbsResourceInstance
+	Variables    InputValues
+	Meta         *ContextMeta
+	PlanMode     plans.Mode
+	SkipRefresh  bool
 
 	Hooks        []Hook
 	Parallelism  int
@@ -100,6 +101,7 @@ type Context struct {
 	refreshState *states.State
 	skipRefresh  bool
 	targets      []addrs.Targetable
+	forceReplace []addrs.AbsResourceInstance
 	variables    InputValues
 	meta         *ContextMeta
 	planMode     plans.Mode
@@ -277,6 +279,16 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		))
 		return nil, diags
 	}
+	if len(opts.ForceReplace) > 0 && opts.PlanMode != plans.NormalMode {
+		// The other modes don't generate no-op or update actions that we might
+		// upgrade to be "replace", so doesn't make sense to combine those.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported plan mode",
+			fmt.Sprintf("Forcing resource instance replacement (with -replace=...) is allowed only in normal planning mode."),
+		))
+		return nil, diags
+	}
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
@@ -304,6 +316,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		refreshState: state.DeepCopy(),
 		skipRefresh:  opts.SkipRefresh,
 		targets:      opts.Targets,
+		forceReplace: opts.ForceReplace,
 		uiInput:      opts.UIInput,
 		variables:    variables,
 
@@ -338,13 +351,14 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{
-			Config:     c.config,
-			Changes:    c.changes,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:       c.config,
+			Changes:      c.changes,
+			State:        c.state,
+			Components:   c.components,
+			Schemas:      c.schemas,
+			Targets:      c.targets,
+			ForceReplace: c.forceReplace,
+			Validate:     opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
@@ -362,13 +376,14 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	case GraphTypePlan:
 		// Create the plan graph builder
 		return (&PlanGraphBuilder{
-			Config:      c.config,
-			State:       c.state,
-			Components:  c.components,
-			Schemas:     c.schemas,
-			Targets:     c.targets,
-			Validate:    opts.Validate,
-			skipRefresh: c.skipRefresh,
+			Config:       c.config,
+			State:        c.state,
+			Components:   c.components,
+			Schemas:      c.schemas,
+			Targets:      c.targets,
+			ForceReplace: c.forceReplace,
+			Validate:     opts.Validate,
+			skipRefresh:  c.skipRefresh,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
@@ -630,8 +645,9 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
-		Mode:    plans.NormalMode,
-		Changes: c.changes,
+		Mode:              plans.NormalMode,
+		Changes:           c.changes,
+		ForceReplaceAddrs: c.forceReplace,
 	}
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
