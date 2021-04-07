@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* core: Fix crash when rendering JSON plans containing iterable unknown values [GH-28253]
+* core: Fix crash when rendering JSON plans containing iterable unknown values ([#28253](https://github.com/hashicorp/terraform/issues/28253))
 
 ## 0.15.0-rc1 (March 31, 2021)
 
