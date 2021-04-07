@@ -37,7 +37,7 @@ type httpClient struct {
 	jsonLockInfo []byte
 }
 
-func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what string) (*http.Response, error) {
+func (c *httpClient) httpRequest(method string, remoteUrl *url.URL, data *[]byte, what string) (*http.Response, error) {
 	// If we have data we need a reader
 	var reader io.Reader = nil
 	if data != nil {
@@ -45,13 +45,13 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	}
 
 	// Create the request
-	req, err := retryablehttp.NewRequest(method, url.String(), reader)
+	req, err := retryablehttp.NewRequest(method, url.QueryEscape(remoteUrl.String()), reader)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make %s HTTP request: %s", what, err)
 	}
 	// Set up basic auth
 	if c.Username != "" {
-		req.SetBasicAuth(c.Username, c.Password)
+		req.SetBasicAuth(url.QueryEscape(c.Username), url.QueryEscape(c.Password))
 	}
 
 	// Work with data/body
