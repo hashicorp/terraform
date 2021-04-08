@@ -2086,6 +2086,13 @@ func (n *NodeAbstractResourceInstance) apply(
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
 		}
+
+		// if the resource was being deleted, the dependencies are not going to
+		// be recalculated and we need to restore those as well.
+		if change.Action == plans.Delete {
+			newState.Dependencies = state.Dependencies
+		}
+
 		return newState, diags
 
 	case !newVal.IsNull():
