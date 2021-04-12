@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 )
@@ -89,22 +88,6 @@ func New() backend.Backend {
 				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
 				Default:     "",
 			},
-
-			"project": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Google Cloud Project ID",
-				Default:     "",
-				Removed:     "Please remove this attribute. It is not used since the backend no longer creates the bucket if it does not yet exist.",
-			},
-
-			"region": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Region / location in which to create the bucket",
-				Default:     "",
-				Removed:     "Please remove this attribute. It is not used since the backend no longer creates the bucket if it does not yet exist.",
-			},
 		},
 	}
 
@@ -131,6 +114,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	var opts []option.ClientOption
+	var credOptions []option.ClientOption
 
 	// Add credential source
 	var creds string
@@ -149,7 +133,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if tokenSource != nil {
-		opts = append(opts, option.WithTokenSource(tokenSource))
+		credOptions = append(credOptions, option.WithTokenSource(tokenSource))
 	} else if creds != "" {
 		var account accountFile
 
@@ -163,16 +147,7 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
 		}
 
-		conf := jwt.Config{
-			Email:      account.ClientEmail,
-			PrivateKey: []byte(account.PrivateKey),
-			Scopes:     []string{storage.ScopeReadWrite},
-			TokenURL:   "https://oauth2.googleapis.com/token",
-		}
-
-		opts = append(opts, option.WithHTTPClient(conf.Client(ctx)))
-	} else {
-		opts = append(opts, option.WithScopes(storage.ScopeReadWrite))
+		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
 	}
 
 	// Service Account Impersonation
@@ -181,7 +156,8 @@ func (b *Backend) configure(ctx context.Context) error {
 		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
 			TargetPrincipal: ServiceAccount,
 			Scopes:          []string{storage.ScopeReadWrite},
-		})
+		}, credOptions...)
+
 		if err != nil {
 			return err
 		}
@@ -201,12 +177,15 @@ func (b *Backend) configure(ctx context.Context) error {
 				TargetPrincipal: ServiceAccount,
 				Scopes:          []string{storage.ScopeReadWrite},
 				Delegates:       delegates,
-			})
+			}, credOptions...)
 			if err != nil {
 				return err
 			}
 			opts = append(opts, option.WithTokenSource(ts))
 		}
+
+	} else {
+		opts = append(opts, credOptions...)
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
