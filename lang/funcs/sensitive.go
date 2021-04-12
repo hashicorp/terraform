@@ -48,7 +48,7 @@ var NonsensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if !args[0].HasMark("sensitive") {
+		if args[0].IsKnown() && !args[0].HasMark("sensitive") {
 			return cty.DynamicVal, function.NewArgErrorf(0, "the given value is not sensitive, so this call is redundant")
 		}
 		v, marks := args[0].Unmark()
