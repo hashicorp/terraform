@@ -134,16 +134,19 @@ func TestNonsensitive(t *testing.T) {
 			`the given value is not sensitive, so this call is redundant`,
 		},
 		{
-			cty.DynamicVal,
-			`the given value is not sensitive, so this call is redundant`,
-		},
-		{
 			cty.NullVal(cty.String),
 			`the given value is not sensitive, so this call is redundant`,
 		},
+
+		// Unknown values may become sensitive once they are known, so we
+		// permit them to be marked nonsensitive.
+		{
+			cty.DynamicVal,
+			``,
+		},
 		{
 			cty.UnknownVal(cty.String),
-			`the given value is not sensitive, so this call is redundant`,
+			``,
 		},
 	}
 
