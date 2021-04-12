@@ -1,5 +1,11 @@
 ## 0.15.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* config: New function `one` for concisely converting a zero-or-one element list/set into a single value that might be `null`. [GH-27454]
+
+BUG FIXES:
+
 * core: Fix crash when trying to create a destroy plan with `-refresh=false` [GH-28272]
 
 ## 0.15.0-rc2 (April 7, 2021)
