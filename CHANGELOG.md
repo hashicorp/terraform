@@ -4,7 +4,7 @@ UPGRADE NOTES AND BREAKING CHANGES:
 
 The following is a summary of each of the changes in this release that might require special consideration when upgrading. Refer to [the Terraform v0.15 upgrade guide](https://www.terraform.io/upgrade-guides/0-15.html) for more details and recommended upgrade steps.
 
-* Empty provider configuration blocks should be removed from modules. If a configuration alias is required within the module, it can be defined using the `configuration_aliases` argument within `required_providers`. Existing module configurations which were accepted but could produce incorrect or undefined behavior may now return errors when loading the configuration. ([#27739](https://github.com/hashicorp/terraform/issues/27739))
+* "Proxy configuration blocks" (provider blocks with only `alias` set) in shared modules are now replaced with a more explicit `configuration_aliases` argument within the `required_providers` block. Some support for the old syntax is retained for backward compatibility, but we've added explicit error messages for situations where Terraform would previously silently misinterpret the purpose of an empty `provider` block. ([#27739](https://github.com/hashicorp/terraform/issues/27739))
 
 * The `list` and `map` functions, both of which were deprecated since Terraform v0.12, are now removed. You can replace uses of these functions with `tolist([...])` and `tomap({...})` respectively. ([#26818](https://github.com/hashicorp/terraform/issues/26818))
 
