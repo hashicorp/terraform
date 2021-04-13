@@ -211,13 +211,16 @@ using a sentence structure similar to the above examples.
 
 > **Hands-on:** Try the [Protect Sensitive Input Variables](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
-Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
+Setting a variable as `sensitive` prevents Terraform from showing its value in
+the `plan` or `apply` output, you use that variable elsewhere in your
+configuration.
 
-Sensitive values are still recorded in the [state](/docs/language/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
+Terraform will still record sensitive values in the [state](/docs/language/state/index.html),
+and so anyone who can access the state data will have access to the sensitive
+values in cleartext. For more information, see
+[_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
 
-A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
-
-Define a variable as sensitive by setting the `sensitive` argument to `true`:
+Declare a variable as sensitive by setting the `sensitive` argument to `true`:
 
 ```
 variable "user_information" {
@@ -234,7 +237,9 @@ resource "some_resource" "a" {
 }
 ```
 
-Using this variable throughout your configuration will obfuscate the value from display in `plan` or `apply` output:
+Any expressions whose result depends on the sensitive variable will be treated
+as sensitive themselves, and so in the above example the two arguments of
+`resource "some_resource" "a"` will also be hidden in the plan output:
 
 ```
 Terraform will perform the following actions:
@@ -248,22 +253,12 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-In some cases where a sensitive variable is used in a nested block, the whole block can be redacted. This happens with resources which can have multiple blocks of the same type, where the values must be unique. This looks like:
+In some cases where you use a sensitive variable inside a nested block Terraform
+may treat the entire block as redacted. This happens for resource types where
+all of the blocks of a particular type are required to be unique, and so
+disclosing the content of one block might imply the content of a sibling block.
 
 ```
-# main.tf
-
-resource "some_resource" "a" {
-  nested_block {
-    user_information  = var.user_information # a sensitive variable
-    other_information = "not sensitive data"
-  }
-}
-
-# CLI output
-
-Terraform will perform the following actions:
-
   # some_resource.a will be updated in-place
   ~ resource "some_resource" "a" {
       ~ nested_block {
@@ -271,8 +266,18 @@ Terraform will perform the following actions:
           # so its contents will not be displayed.
         }
     }
-
 ```
+
+A provider can also
+[declare an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag),
+which will cause Terraform to hide it from regular output regardless of how
+you assign it a value. For more information, see
+[Sensitive Resource Attributes](/docs/language/expressions/references.html#sensitive-resource-attributes).
+
+If you use a sensitive value from as part of an
+[output value](/docs/language/values/outputs.html) then Terraform will require
+you to also mark the output value itself as sensitive, to confirm that you
+intended to export it.
 
 #### Cases where Terraform may disclose a sensitive variable
 
