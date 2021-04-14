@@ -133,8 +133,8 @@ module that has a sensitive output value that is lacking this declaration then
 you will need to wait for a new version of that module before you can upgrade
 to Terraform v0.15.
 
-The hiding of the value is only for the main UI, and so the sensitive value
-will still be recorded in the state. If you declared thus output value in order
+The value is only hidden in the main UI, and so the sensitive value
+will still be recorded in the state. If you declared this output value in order
 to use it as part of integration with other software, you can still retrieve
 the cleartext value using commands intended for machine rather than human
 consumption, such as `terraform output -json` or `terraform output -raw`:

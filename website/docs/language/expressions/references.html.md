@@ -287,7 +287,7 @@ a plan involving that attribute.
 A provider attribute marked as sensitive behaves similarly to an
 [an input variable declared as sensitive](/docs/language/values/variables.html#suppressing-values-in-cli-output),
 where Terraform will hide the value in the plan and apply messages and will
-also any other values you derive from it as sensitive.
+also hide any other values you derive from it as sensitive.
 However, there are some limitations to that behavior as described in
 [Cases where Terraform may disclose a sensitive variable](/docs/language/values/variables.html#cases-where-terraform-may-disclose-a-sensitive-variable).
 

@@ -212,7 +212,7 @@ using a sentence structure similar to the above examples.
 > **Hands-on:** Try the [Protect Sensitive Input Variables](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 Setting a variable as `sensitive` prevents Terraform from showing its value in
-the `plan` or `apply` output, you use that variable elsewhere in your
+the `plan` or `apply` output, when you use that variable elsewhere in your
 configuration.
 
 Terraform will still record sensitive values in the [state](/docs/language/state/index.html),
@@ -253,7 +253,7 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-In some cases where you use a sensitive variable inside a nested block Terraform
+In some cases where you use a sensitive variable inside a nested block, Terraform
 may treat the entire block as redacted. This happens for resource types where
 all of the blocks of a particular type are required to be unique, and so
 disclosing the content of one block might imply the content of a sibling block.
