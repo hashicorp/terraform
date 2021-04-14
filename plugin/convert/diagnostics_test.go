@@ -393,7 +393,7 @@ func TestProtoDiagnostics_emptyAttributePath(t *testing.T) {
 	if parseDiags.HasErrors() {
 		t.Fatal(parseDiags)
 	}
-	diags := tfDiags.InConfigBody(f.Body)
+	diags := tfDiags.InConfigBody(f.Body, "")
 
 	if len(tfDiags) != 1 {
 		t.Fatalf("expected 1 diag, got %d", len(tfDiags))

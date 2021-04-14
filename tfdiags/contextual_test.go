@@ -185,6 +185,7 @@ simple_attr = "val"
 				diagnosticBase: diagnosticBase{
 					summary: "preexisting",
 					detail:  "detail",
+					address: "original",
 				},
 				subject: &SourceRange{
 					Filename: "somewhere_else.tf",
@@ -535,9 +536,22 @@ simple_attr = "val"
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("%d:%s", i, tc.Diag.Description()), func(t *testing.T) {
 			var diags Diagnostics
+
+			origAddr := tc.Diag.Description().Address
 			diags = diags.Append(tc.Diag)
-			gotDiags := diags.InConfigBody(f.Body)
+
+			gotDiags := diags.InConfigBody(f.Body, "test.addr")
 			gotRange := gotDiags[0].Source().Subject
+			gotAddr := gotDiags[0].Description().Address
+
+			switch {
+			case origAddr != "":
+				if gotAddr != origAddr {
+					t.Errorf("original diagnostic address modified from %s to %s", origAddr, gotAddr)
+				}
+			case gotAddr != "test.addr":
+				t.Error("missing detail address")
+			}
 
 			for _, problem := range deep.Equal(gotRange, tc.ExpectedRange) {
 				t.Error(problem)

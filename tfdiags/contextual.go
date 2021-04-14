@@ -19,17 +19,20 @@ import (
 
 // contextualFromConfig is an interface type implemented by diagnostic types
 // that can elaborate themselves when given information about the configuration
-// body they are embedded in.
+// body they are embedded in, as well as the runtime address associated with
+// that configuration.
 //
 // Usually this entails extracting source location information in order to
 // populate the "Subject" range.
 type contextualFromConfigBody interface {
-	ElaborateFromConfigBody(hcl.Body) Diagnostic
+	ElaborateFromConfigBody(hcl.Body, string) Diagnostic
 }
 
 // InConfigBody returns a copy of the receiver with any config-contextual
-// diagnostics elaborated in the context of the given body.
-func (diags Diagnostics) InConfigBody(body hcl.Body) Diagnostics {
+// diagnostics elaborated in the context of the given body. An optional address
+// argument may be added to indicate which instance of the configuration the
+// error related to.
+func (diags Diagnostics) InConfigBody(body hcl.Body, addr string) Diagnostics {
 	if len(diags) == 0 {
 		return nil
 	}
@@ -37,7 +40,7 @@ func (diags Diagnostics) InConfigBody(body hcl.Body) Diagnostics {
 	ret := make(Diagnostics, len(diags))
 	for i, srcDiag := range diags {
 		if cd, isCD := srcDiag.(contextualFromConfigBody); isCD {
-			ret[i] = cd.ElaborateFromConfigBody(body)
+			ret[i] = cd.ElaborateFromConfigBody(body, addr)
 		} else {
 			ret[i] = srcDiag
 		}
@@ -112,7 +115,12 @@ type attributeDiagnostic struct {
 // source location information is still available, for more accuracy. This
 // is not always possible due to system architecture, so this serves as a
 // "best effort" fallback behavior for such situations.
-func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic {
+func (d *attributeDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string) Diagnostic {
+	// don't change an existing address
+	if d.address == "" {
+		d.address = addr
+	}
+
 	if len(d.attrPath) < 1 {
 		// Should never happen, but we'll allow it rather than crashing.
 		return d
@@ -353,7 +361,12 @@ type wholeBodyDiagnostic struct {
 	subject *SourceRange // populated only after ElaborateFromConfigBody
 }
 
-func (d *wholeBodyDiagnostic) ElaborateFromConfigBody(body hcl.Body) Diagnostic {
+func (d *wholeBodyDiagnostic) ElaborateFromConfigBody(body hcl.Body, addr string) Diagnostic {
+	// don't change an existing address
+	if d.address == "" {
+		d.address = addr
+	}
+
 	if d.subject != nil {
 		// Don't modify an already-elaborated diagnostic.
 		return d
