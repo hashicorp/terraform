@@ -153,19 +153,9 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Service Account Impersonation
 	if v, ok := data.GetOk("impersonate_service_account"); ok {
 		ServiceAccount := v.(string)
-		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
-			TargetPrincipal: ServiceAccount,
-			Scopes:          []string{storage.ScopeReadWrite},
-		}, credOptions...)
-
-		if err != nil {
-			return err
-		}
-
-		opts = append(opts, option.WithTokenSource(ts))
+		var delegates []string
 
 		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
-			var delegates []string
 			d := v.([]interface{})
 			if len(delegates) > 0 {
 				delegates = make([]string, len(d))
@@ -173,16 +163,19 @@ func (b *Backend) configure(ctx context.Context) error {
 			for _, delegate := range d {
 				delegates = append(delegates, delegate.(string))
 			}
-			ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
-				TargetPrincipal: ServiceAccount,
-				Scopes:          []string{storage.ScopeReadWrite},
-				Delegates:       delegates,
-			}, credOptions...)
-			if err != nil {
-				return err
-			}
-			opts = append(opts, option.WithTokenSource(ts))
 		}
+
+		ts, err := impersonate.CredentialsTokenSource(ctx, impersonate.CredentialsConfig{
+			TargetPrincipal: ServiceAccount,
+			Scopes:          []string{storage.ScopeReadWrite},
+			Delegates:       delegates,
+		}, credOptions...)
+
+		if err != nil {
+			return err
+		}
+
+		opts = append(opts, option.WithTokenSource(ts))
 
 	} else {
 		opts = append(opts, credOptions...)
