@@ -277,6 +277,36 @@ Note that unlike `count`, splat expressions are _not_ directly applicable to res
 
 * `values(aws_instance.example)[*].id`
 
+### Sensitive Resource Attributes
+
+When defining the schema for a resource type, a provider developer can mark
+certain attributes as _sensitive_, in which case Terraform will show a
+placeholder marker `(sensitive)` instead of the actual value when rendering
+a plan involving that attribute.
+
+A provider attribute marked as sensitive behaves similarly to an
+[an input variable declared as sensitive](/docs/language/values/variables.html#suppressing-values-in-cli-output),
+where Terraform will hide the value in the plan and apply messages and will
+also hide any other values you derive from it as sensitive.
+However, there are some limitations to that behavior as described in
+[Cases where Terraform may disclose a sensitive variable](/docs/language/values/variables.html#cases-where-terraform-may-disclose-a-sensitive-variable).
+
+If you use a sensitive value from a resource attribute as part of an
+[output value](/docs/language/values/outputs.html) then Terraform will require
+you to also mark the output value itself as sensitive, to confirm that you
+intended to export it.
+
+Terraform will still record sensitive values in the [state](/docs/language/state/index.html),
+and so anyone who can access the state data will have access to the sensitive
+values in cleartext. For more information, see
+[_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
+
+-> **Note:** Treating values derived from a sensitive resource attribute as
+sensitive themselves was introduced in Terraform v0.15. Earlier versions of
+Terraform will obscure the direct value of a sensitive resource attribute,
+but will _not_ automatically obscure other values derived from sensitive
+resource attributes.
+
 ### Values Not Yet Known
 
 When Terraform is planning a set of changes that will apply your configuration,
@@ -317,43 +347,3 @@ effect:
   until the apply phase, causing the apply to fail.
 
 Unknown values appear in the `terraform plan` output as `(not yet known)`.
-
-### Sensitive Resource Attributes
-
-When defining the schema for a resource type, a provider developer can mark
-certain attributes as _sensitive_, in which case Terraform will show a
-placeholder marker `(sensitive)` instead of the actual value when rendering
-a plan involving that attribute.
-
-The treatment of these particular sensitive values is currently different than
-for values in
-[input variables](/docs/language/values/variables.html)
-and
-[output values](/docs/language/values/outputs.html)
-that have `sensitive = true` set. Sensitive resource attributes will be
-obscured in the plan when they appear directly, but other values that you
-_derive_ from a sensitive resource attribute will not themselves be considered
-sensitive, and so Terraform will include those derived values in its output
-without redacting them.
-
-Terraform v0.14.0 and later has an
-[experimental feature](/docs/language/settings/index.html#experimental-language-features)
-to treat resource attributes that are marked as sensitive in the same way as
-sensitive input variables and output values, so that Terraform will consider
-any derived values as sensitive too. You can activate that experiment for your
-module using the `provider_sensitive_attrs` experiment keyword:
-
-```hcl
-terraform {
-  experiments = [provider_sensitive_attrs]
-}
-```
-
-The behavior of this experiment might change even in future patch releases of
-Terraform, so we don't recommend using this experiment in modules you use
-to describe production infrastructure.
-
-If you enable this experiment and you have exported any sensitive resource
-attributes via your module's output values then you will see an error unless
-you also mark the output value as `sensitive = true`, confirming your intent
-to export it.
