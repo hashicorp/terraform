@@ -1448,6 +1448,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 // immediately reading from the data source where possible, instead forcing us
 // to generate a plan.
 func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
+	nModInst := n.Addr.Module
+	nMod := nModInst.Module()
+
 	// Check and see if any depends_on dependencies have
 	// changes, since they won't show up as changes in the
 	// configuration.
@@ -1462,6 +1465,18 @@ func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
 		}
 
 		for _, change := range changes.GetChangesForConfigResource(d) {
+			changeModInst := change.Addr.Module
+			changeMod := changeModInst.Module()
+
+			if changeMod.Equal(nMod) && !changeModInst.Equal(nModInst) {
+				// Dependencies are tracked by configuration address, which
+				// means we may have changes from other instances of parent
+				// modules. The actual reference can only take effect within
+				// the same module instance, so skip any that aren't an exact
+				// match
+				continue
+			}
+
 			if change != nil && change.Action != plans.NoOp {
 				return true
 			}
