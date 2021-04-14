@@ -1,4 +1,4 @@
-## 0.15.0 (Unreleased)
+## 0.15.0 (April 14, 2021)
 
 UPGRADE NOTES AND BREAKING CHANGES:
 
@@ -54,7 +54,7 @@ ENHANCEMENTS:
 * config: A `required_providers` entry can now contain `configuration_aliases` to declare additional configuration aliases names without requirring a configuration block ([#27739](https://github.com/hashicorp/terraform/issues/27739))
 * config: Improved type inference for conditional expressions. ([#28116](https://github.com/hashicorp/terraform/issues/28116))
 * config: Provider-defined sensitive attributes will now be redacted throughout the plan output. ([#28036](https://github.com/hashicorp/terraform/issues/28036))
-* config: New function `one` for concisely converting a zero-or-one element list/set into a single value that might be `null`. [GH-27454]
+* config: New function `one` for concisely converting a zero-or-one element list/set into a single value that might be `null`. ([#27454](https://github.com/hashicorp/terraform/issues/27454))
 * config: New functions `sensitive` and `nonsensitive` allow module authors to explicitly override Terraform's default infererence of value sensitivity for situations where it's too conservative or not conservative enough. ([#27341](https://github.com/hashicorp/terraform/issues/27341))
 * config: Terraform will now emit a warning if you declare a `backend` block in a non-root module. Terraform has always ignored such declarations, but previously did so silently. This is a warning rather than an error only because it is sometimes convenient to temporarily use a root module as if it were a child module in order to test or debug its behavior separately from its main backend. ([#26954](https://github.com/hashicorp/terraform/issues/26954))
 * config: Removed warning about interpolation-only expressions being deprecated, because `terraform fmt` now automatically fixes most cases that the warning would previously highlight. We still recommend using simpler expressions where possible, but the deprecation warning had caused a common confusion in the community that the interpolation syntax is _always_ deprecated, rather than only in the interpolation-only case. ([#27835](https://github.com/hashicorp/terraform/issues/27835))
@@ -91,7 +91,7 @@ BUG FIXES:
 * `terraform untaint`: show resource name in -allow-missing warning ([#27502](https://github.com/hashicorp/terraform/issues/27502))
 * cli: All commands will now exit with an error if unable to read input at an interactive prompt. For example, this may happen when running in a non-interactive environment but without `-input=false`. Previously Terraform would behave as if the user entered an empty string, which often led to confusing results. ([#26509](https://github.com/hashicorp/terraform/issues/26509))
 * cli: `TF_LOG` levels other than `trace` will now work reliably. ([#26632](https://github.com/hashicorp/terraform/issues/26632))
-* core: Fix crash when trying to create a destroy plan with `-refresh=false`. [GH-28272]
+* core: Fix crash when trying to create a destroy plan with `-refresh=false`. ([#28272](https://github.com/hashicorp/terraform/issues/28272))
 * core: Extend the Terraform plan file format to include information about sensitivity and required-replace. This ensures that the output of `terraform show saved.tfplan` matches `terraform plan`, and sensitive values are elided. ([#28201](https://github.com/hashicorp/terraform/issues/28201))
 * core: Ensure that stored dependencies are retained when a resource is removed entirely from the configuration, and `create_before_destroy` ordering is preserved. ([#28228](https://github.com/hashicorp/terraform/issues/28228))
 * core: Resources removed from the configuration will now be destroyed before their dependencies are updated. ([#28165](https://github.com/hashicorp/terraform/issues/28165))
