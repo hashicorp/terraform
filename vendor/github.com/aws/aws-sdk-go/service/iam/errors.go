@@ -17,7 +17,7 @@ const (
 	//
 	// The request was rejected because the most recent credential report has expired.
 	// To generate a new credential report, use GenerateCredentialReport. For more
-	// information about credential report expiration, see Getting Credential Reports
+	// information about credential report expiration, see Getting credential reports
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 	// in the IAM User Guide.
 	ErrCodeCredentialReportExpiredException = "ReportExpired"
@@ -117,8 +117,7 @@ const (
 	// "LimitExceeded".
 	//
 	// The request was rejected because it attempted to create resources beyond
-	// the current AWS account limitations. The error message describes the limit
-	// exceeded.
+	// the current AWS account limits. The error message describes the limit exceeded.
 	ErrCodeLimitExceededException = "LimitExceeded"
 
 	// ErrCodeMalformedCertificateException for service response error code

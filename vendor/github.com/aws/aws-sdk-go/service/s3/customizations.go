@@ -48,6 +48,8 @@ func defaultInitRequestFn(r *request.Request) {
 		//	case opGetObject:
 		//		r.Handlers.Build.PushBack(askForTxEncodingAppendMD5)
 		//		r.Handlers.Unmarshal.PushBack(useMD5ValidationReader)
+	case opWriteGetObjectResponse:
+		r.Handlers.Build.PushFront(buildWriteGetObjectResponseEndpoint)
 	}
 }
 

@@ -95,7 +95,7 @@ import (
 // StdinTokenProvider will prompt on stderr and read from stdin for a string value.
 // An error is returned if reading from stdin fails.
 //
-// Use this function go read MFA tokens from stdin. The function makes no attempt
+// Use this function to read MFA tokens from stdin. The function makes no attempt
 // to make atomic prompts from stdin across multiple gorouties.
 //
 // Using StdinTokenProvider with multiple AssumeRoleProviders, or Credentials will

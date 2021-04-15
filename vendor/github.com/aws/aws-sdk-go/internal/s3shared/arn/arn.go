@@ -7,6 +7,21 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 )
 
+var supportedServiceARN = []string{
+	"s3",
+	"s3-outposts",
+	"s3-object-lambda",
+}
+
+func isSupportedServiceARN(service string) bool {
+	for _, name := range supportedServiceARN {
+		if name == service {
+			return true
+		}
+	}
+	return false
+}
+
 // Resource provides the interfaces abstracting ARNs of specific resource
 // types.
 type Resource interface {
@@ -29,9 +44,10 @@ func ParseResource(s string, resParser ResourceParser) (resARN Resource, err err
 		return nil, InvalidARNError{ARN: a, Reason: "partition not set"}
 	}
 
-	if a.Service != "s3" && a.Service != "s3-outposts" {
+	if !isSupportedServiceARN(a.Service) {
 		return nil, InvalidARNError{ARN: a, Reason: "service is not supported"}
 	}
+
 	if len(a.Resource) == 0 {
 		return nil, InvalidARNError{ARN: a, Reason: "resource not set"}
 	}

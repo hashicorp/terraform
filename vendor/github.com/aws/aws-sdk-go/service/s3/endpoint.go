@@ -1,6 +1,8 @@
 package s3
 
 import (
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"net/url"
 	"strings"
 
@@ -9,6 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/internal/s3shared"
 	"github.com/aws/aws-sdk-go/internal/s3shared/arn"
+)
+
+const (
+	s3Namespace              = "s3"
+	s3AccessPointNamespace   = "s3-accesspoint"
+	s3ObjectsLambdaNamespace = "s3-object-lambda"
+	s3OutpostsNamespace      = "s3-outposts"
 )
 
 // Used by shapes with members decorated as endpoint ARN.
@@ -20,10 +29,14 @@ func accessPointResourceParser(a awsarn.ARN) (arn.Resource, error) {
 	resParts := arn.SplitResource(a.Resource)
 	switch resParts[0] {
 	case "accesspoint":
-		if a.Service != "s3" {
-			return arn.AccessPointARN{}, arn.InvalidARNError{ARN: a, Reason: "service is not s3"}
+		switch a.Service {
+		case s3Namespace:
+			return arn.ParseAccessPointResource(a, resParts[1:])
+		case s3ObjectsLambdaNamespace:
+			return parseS3ObjectLambdaAccessPointResource(a, resParts)
+		default:
+			return arn.AccessPointARN{}, arn.InvalidARNError{ARN: a, Reason: fmt.Sprintf("service is not %s or %s", s3Namespace, s3ObjectsLambdaNamespace)}
 		}
-		return arn.ParseAccessPointResource(a, resParts[1:])
 	case "outpost":
 		if a.Service != "s3-outposts" {
 			return arn.OutpostAccessPointARN{}, arn.InvalidARNError{ARN: a, Reason: "service is not s3-outposts"}
@@ -80,6 +93,25 @@ func parseOutpostAccessPointResource(a awsarn.ARN, resParts []string) (arn.Outpo
 	return outpostAccessPointARN, nil
 }
 
+func parseS3ObjectLambdaAccessPointResource(a awsarn.ARN, resParts []string) (arn.S3ObjectLambdaAccessPointARN, error) {
+	if a.Service != s3ObjectsLambdaNamespace {
+		return arn.S3ObjectLambdaAccessPointARN{}, arn.InvalidARNError{ARN: a, Reason: fmt.Sprintf("service is not %s", s3ObjectsLambdaNamespace)}
+	}
+
+	accessPointARN, err := arn.ParseAccessPointResource(a, resParts[1:])
+	if err != nil {
+		return arn.S3ObjectLambdaAccessPointARN{}, err
+	}
+
+	if len(accessPointARN.Region) == 0 {
+		return arn.S3ObjectLambdaAccessPointARN{}, arn.InvalidARNError{ARN: a, Reason: fmt.Sprintf("%s region not set", s3ObjectsLambdaNamespace)}
+	}
+
+	return arn.S3ObjectLambdaAccessPointARN{
+		AccessPointARN: accessPointARN,
+	}, nil
+}
+
 func endpointHandler(req *request.Request) {
 	endpoint, ok := req.Params.(endpointARNGetter)
 	if !ok || !endpoint.hasEndpointARN() {
@@ -113,6 +145,11 @@ func endpointHandler(req *request.Request) {
 	switch tv := resource.(type) {
 	case arn.AccessPointARN:
 		err = updateRequestAccessPointEndpoint(req, tv)
+		if err != nil {
+			req.Error = err
+		}
+	case arn.S3ObjectLambdaAccessPointARN:
+		err = updateRequestS3ObjectLambdaAccessPointEndpoint(req, tv)
 		if err != nil {
 			req.Error = err
 		}
@@ -162,6 +199,31 @@ func updateRequestAccessPointEndpoint(req *request.Request, accessPoint arn.Acce
 	return nil
 }
 
+func updateRequestS3ObjectLambdaAccessPointEndpoint(req *request.Request, accessPoint arn.S3ObjectLambdaAccessPointARN) error {
+	// DualStack not supported
+	if aws.BoolValue(req.Config.UseDualStack) {
+		return s3shared.NewClientConfiguredForDualStackError(accessPoint,
+			req.ClientInfo.PartitionID, aws.StringValue(req.Config.Region), nil)
+	}
+
+	// Accelerate not supported
+	if aws.BoolValue(req.Config.S3UseAccelerate) {
+		return s3shared.NewClientConfiguredForAccelerateError(accessPoint,
+			req.ClientInfo.PartitionID, aws.StringValue(req.Config.Region), nil)
+	}
+
+	// Ignore the disable host prefix for access points
+	req.Config.DisableEndpointHostPrefix = aws.Bool(false)
+
+	if err := s3ObjectLambdaAccessPointEndpointBuilder(accessPoint).build(req); err != nil {
+		return err
+	}
+
+	removeBucketFromPath(req.HTTPRequest.URL)
+
+	return nil
+}
+
 func updateRequestOutpostAccessPointEndpoint(req *request.Request, accessPoint arn.OutpostAccessPointARN) error {
 	// Accelerate not supported
 	if aws.BoolValue(req.Config.S3UseAccelerate) {
@@ -191,4 +253,38 @@ func removeBucketFromPath(u *url.URL) {
 	if u.Path == "" {
 		u.Path = "/"
 	}
+}
+
+func buildWriteGetObjectResponseEndpoint(req *request.Request) {
+	// DualStack not supported
+	if aws.BoolValue(req.Config.UseDualStack) {
+		req.Error = awserr.New("ConfigurationError", "client configured for dualstack but not supported for operation", nil)
+		return
+	}
+
+	// Accelerate not supported
+	if aws.BoolValue(req.Config.S3UseAccelerate) {
+		req.Error = awserr.New("ConfigurationError", "client configured for accelerate but not supported for operation", nil)
+		return
+	}
+
+	signingName := s3ObjectsLambdaNamespace
+	signingRegion := req.ClientInfo.SigningRegion
+
+	if !hasCustomEndpoint(req) {
+		endpoint, err := resolveRegionalEndpoint(req, aws.StringValue(req.Config.Region), EndpointsID)
+		if err != nil {
+			req.Error = awserr.New(request.ErrCodeSerialization, "failed to resolve endpoint", err)
+			return
+		}
+		signingRegion = endpoint.SigningRegion
+
+		if err = updateRequestEndpoint(req, endpoint.URL); err != nil {
+			req.Error = err
+			return
+		}
+		updateS3HostPrefixForS3ObjectLambda(req)
+	}
+
+	redirectSigner(req, signingName, signingRegion)
 }

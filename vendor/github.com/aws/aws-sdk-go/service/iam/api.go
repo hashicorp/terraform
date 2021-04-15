@@ -82,8 +82,7 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -157,21 +156,19 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 // AddRoleToInstanceProfile API operation for AWS Identity and Access Management.
 //
 // Adds the specified IAM role to the specified instance profile. An instance
-// profile can contain only one role. (The number and size of IAM resources
-// in an AWS account are limited. For more information, see IAM and STS Quotas
-// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
-// in the IAM User Guide.) You can remove the existing role and then add a different
-// role to an instance profile. You must then wait for the change to appear
-// across all of AWS because of eventual consistency (https://en.wikipedia.org/wiki/Eventual_consistency).
+// profile can contain only one role, and this quota cannot be increased. You
+// can remove the existing role and then add a different role to an instance
+// profile. You must then wait for the change to appear across all of AWS because
+// of eventual consistency (https://en.wikipedia.org/wiki/Eventual_consistency).
 // To force the change, you must disassociate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DisassociateIamInstanceProfile.html)
 // and then associate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateIamInstanceProfile.html),
 // or you can stop your instance and then restart it.
 //
-// The caller of this API must be granted the PassRole permission on the IAM
-// role by a permissions policy.
+// The caller of this operation must be granted the PassRole permission on the
+// IAM role by a permissions policy.
 //
-// For more information about roles, go to Working with Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
-// For more information about instance profiles, go to About Instance Profiles
+// For more information about roles, see Working with roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// For more information about instance profiles, see About instance profiles
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -192,8 +189,7 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -288,8 +284,7 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -364,10 +359,14 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 //
 // Attaches the specified managed policy to the specified IAM group.
 //
-// You use this API to attach a managed policy to a group. To embed an inline
-// policy in a group, use PutGroupPolicy.
+// You use this operation to attach a managed policy to a group. To embed an
+// inline policy in a group, use PutGroupPolicy.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// As a best practice, you can validate your IAM policies. To learn more, see
+// Validating IAM policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_policy-validator.html)
+// in the IAM User Guide.
+//
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -385,8 +384,7 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -475,9 +473,13 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 // policy is created at the same time as the role, using CreateRole. You can
 // update a role's trust policy using UpdateAssumeRolePolicy.
 //
-// Use this API to attach a managed policy to a role. To embed an inline policy
-// in a role, use PutRolePolicy. For more information about policies, see Managed
-// Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// Use this operation to attach a managed policy to a role. To embed an inline
+// policy in a role, use PutRolePolicy. For more information about policies,
+// see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// in the IAM User Guide.
+//
+// As a best practice, you can validate your IAM policies. To learn more, see
+// Validating IAM policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_policy-validator.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -494,8 +496,7 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -584,10 +585,14 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 //
 // Attaches the specified managed policy to the specified user.
 //
-// You use this API to attach a managed policy to a user. To embed an inline
-// policy in a user, use PutUserPolicy.
+// You use this operation to attach a managed policy to a user. To embed an
+// inline policy in a user, use PutUserPolicy.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// As a best practice, you can validate your IAM policies. To learn more, see
+// Validating IAM policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_policy-validator.html)
+// in the IAM User Guide.
+//
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -605,8 +610,7 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -687,11 +691,14 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 
 // ChangePassword API operation for AWS Identity and Access Management.
 //
-// Changes the password of the IAM user who is calling this operation. The AWS
-// account root user password is not affected by this operation.
+// Changes the password of the IAM user who is calling this operation. This
+// operation can be performed using the AWS CLI, the AWS API, or the My Security
+// Credentials page in the AWS Management Console. The AWS account root user
+// password is not affected by this operation.
 //
-// To change the password for a different user, see UpdateLoginProfile. For
-// more information about modifying passwords, see Managing Passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
+// Use UpdateLoginProfile to use the AWS CLI, the AWS API, or the Users page
+// in the IAM console to change the password for any IAM user. For more information
+// about modifying passwords, see Managing passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -712,8 +719,7 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
@@ -804,8 +810,8 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 // to manage AWS account root user credentials. This is true even if the AWS
 // account has no associated users.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about quotas on the number of keys you can create, see IAM
+// and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // To ensure the security of your AWS account, the secret access key is accessible
@@ -828,8 +834,7 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -903,7 +908,7 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 // CreateAccountAlias API operation for AWS Identity and Access Management.
 //
 // Creates an alias for your AWS account. For information about using an AWS
-// account alias, see Using an Alias for Your AWS Account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
+// account alias, see Using an alias for your AWS account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -920,8 +925,7 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -995,8 +999,8 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 //
 // Creates a new group.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about the number of groups you can create, see IAM and STS
+// quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1009,8 +1013,7 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -1091,10 +1094,12 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 // CreateInstanceProfile API operation for AWS Identity and Access Management.
 //
 // Creates a new instance profile. For information about instance profiles,
-// go to About Instance Profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+// see Using roles for applications on Amazon EC2 (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html)
+// in the IAM User Guide, and Instance profiles (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#ec2-instance-profile)
+// in the Amazon EC2 User Guide.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about the number of instance profiles you can create, see
+// IAM object quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1109,10 +1114,18 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
 //
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1184,9 +1197,15 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 
 // CreateLoginProfile API operation for AWS Identity and Access Management.
 //
-// Creates a password for the specified user, giving the user the ability to
-// access AWS services through the AWS Management Console. For more information
-// about managing passwords, see Managing Passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
+// Creates a password for the specified IAM user. A password allows an IAM user
+// to access AWS services through the AWS Management Console.
+//
+// You can use the AWS CLI, the AWS API, or the Users page in the IAM console
+// to create a password for any IAM user. Use ChangePassword to update your
+// own existing password in the My Security Credentials page in the AWS Management
+// Console.
+//
+// For more information about managing passwords, see Managing passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1211,8 +1230,7 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1326,8 +1344,12 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1403,11 +1425,15 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 //
 // This operation creates a policy version with a version identifier of v1 and
 // sets v1 as the policy's default version. For more information about policy
-// versions, see Versioning for Managed Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+// versions, see Versioning for managed policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
 //
-// For more information about managed policies in general, see Managed Policies
-// and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// As a best practice, you can validate your IAM policies. To learn more, see
+// Validating IAM policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_policy-validator.html)
+// in the IAM User Guide.
+//
+// For more information about managed policies in general, see Managed policies
+// and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1424,8 +1450,7 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -1434,6 +1459,11 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
 //   message describes the specific error.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1514,8 +1544,8 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 // The default version is the version that is in effect for the IAM users, groups,
 // and roles to which the policy is attached.
 //
-// For more information about managed policy versions, see Versioning for Managed
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+// For more information about managed policy versions, see Versioning for managed
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1540,8 +1570,7 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1614,9 +1643,9 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 // CreateRole API operation for AWS Identity and Access Management.
 //
 // Creates a new role for your AWS account. For more information about roles,
-// go to IAM Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// see IAM roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// For information about quotas for role names and the number of roles you can
+// create, see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1629,8 +1658,7 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -1737,9 +1765,9 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 //
 // This operation requires Signature Version 4 (https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
-// For more information, see Enabling SAML 2.0 Federated Users to Access the
+// For more information, see Enabling SAML 2.0 federated users to access the
 // AWS Management Console (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_enable-console-saml.html)
-// and About SAML 2.0-based Federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
+// and About SAML 2.0-based federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1760,8 +1788,12 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1839,7 +1871,7 @@ func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput
 // role, which could put your AWS resources into an unknown state. Allowing
 // the service to control the role helps improve service stability and proper
 // cleanup when a service and its role are no longer needed. For more information,
-// see Using Service-Linked Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/using-service-linked-roles.html)
+// see Using service-linked roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/using-service-linked-roles.html)
 // in the IAM User Guide.
 //
 // To attach a policy to this service-linked role, you must make the request
@@ -1859,8 +1891,7 @@ func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -1943,12 +1974,13 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 // You can have a maximum of two sets of service-specific credentials for each
 // supported service per user.
 //
-// The only supported service at this time is AWS CodeCommit.
+// You can create service-specific credentials for AWS CodeCommit and Amazon
+// Keyspaces (for Apache Cassandra).
 //
 // You can reset the password to a new service-generated value by calling ResetServiceSpecificCredential.
 //
 // For more information about service-specific credentials, see Using IAM with
-// AWS CodeCommit: Git Credentials, SSH Keys, and AWS Access Keys (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_ssh-keys.html)
+// AWS CodeCommit: Git credentials, SSH keys, and AWS access keys (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_ssh-keys.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1961,8 +1993,7 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -2039,8 +2070,8 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 //
 // Creates a new IAM user for your AWS account.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about quotas for the number of IAM users you can create,
+// see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2053,8 +2084,7 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -2146,11 +2176,11 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // Creates a new virtual MFA device for the AWS account. After creating the
 // virtual MFA, use EnableMFADevice to attach the MFA device to an IAM user.
 // For more information about creating and working with virtual MFA devices,
-// go to Using a Virtual MFA Device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
+// see Using a virtual MFA device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about the maximum number of MFA devices you can create, see
+// IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // The seed information contained in the QR code and the Base32 string should
@@ -2169,12 +2199,20 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
 //   exists.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2251,7 +2289,7 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 // the user name for which it was originally enabled.
 //
 // For more information about creating and working with virtual MFA devices,
-// go to Enabling a Virtual Multi-factor Authentication (MFA) Device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
+// see Enabling a virtual multi-factor authentication (MFA) device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2274,8 +2312,7 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2370,8 +2407,7 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2445,7 +2481,7 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 // DeleteAccountAlias API operation for AWS Identity and Access Management.
 //
 // Deletes the specified AWS account alias. For information about using an AWS
-// account alias, see Using an Alias for Your AWS Account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
+// account alias, see Using an alias for your AWS account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2462,8 +2498,7 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2552,8 +2587,7 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2647,8 +2681,7 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2726,7 +2759,7 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 //
 // A group can also have managed policies attached to it. To detach a managed
 // policy from a group, use DetachGroupPolicy. For more information about policies,
-// refer to Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// refer to Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2743,8 +2776,7 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2825,7 +2857,7 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 // that is associated with a running instance will break any applications running
 // on the instance.
 //
-// For more information about instance profiles, go to About Instance Profiles
+// For more information about instance profiles, see About instance profiles
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2846,8 +2878,7 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2923,6 +2954,11 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 // Deletes the password for the specified IAM user, which terminates the user's
 // ability to access AWS services through the AWS Management Console.
 //
+// You can use the AWS CLI, the AWS API, or the Users page in the IAM console
+// to delete a password for any IAM user. You can use ChangePassword to update,
+// but not delete, your own password in the My Security Credentials page in
+// the AWS Management Console.
+//
 // Deleting a user's password does not prevent a user from accessing AWS through
 // the command line interface or the API. To prevent all user access, you must
 // also either make any access keys inactive or delete them. For more information
@@ -2948,8 +2984,7 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -3126,9 +3161,9 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 // for deleting a managed policy:
 //
 //    * Detach the policy from all users, groups, and roles that the policy
-//    is attached to, using the DetachUserPolicy, DetachGroupPolicy, or DetachRolePolicy
-//    API operations. To list all the users, groups, and roles that a policy
-//    is attached to, use ListEntitiesForPolicy.
+//    is attached to, using DetachUserPolicy, DetachGroupPolicy, or DetachRolePolicy.
+//    To list all the users, groups, and roles that a policy is attached to,
+//    use ListEntitiesForPolicy.
 //
 //    * Delete all versions of the policy using DeletePolicyVersion. To list
 //    the policy's versions, use ListPolicyVersions. You cannot use DeletePolicyVersion
@@ -3136,9 +3171,9 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 //    the policy's default version in the next step of the process.
 //
 //    * Delete the policy (this automatically deletes the policy's default version)
-//    using this API.
+//    using this operation.
 //
-// For information about managed policies, see Managed Policies and Inline Policies
+// For information about managed policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -3156,8 +3191,7 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -3240,12 +3274,12 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 //
 // Deletes the specified version from the specified managed policy.
 //
-// You cannot delete the default version from a policy using this API. To delete
-// the default version from a policy, use DeletePolicy. To find out which version
-// of a policy is marked as the default version, use ListPolicyVersions.
+// You cannot delete the default version from a policy using this operation.
+// To delete the default version from a policy, use DeletePolicy. To find out
+// which version of a policy is marked as the default version, use ListPolicyVersions.
 //
-// For information about versions for managed policies, see Versioning for Managed
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+// For information about versions for managed policies, see Versioning for managed
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3262,8 +3296,7 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -3345,7 +3378,7 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 // DeleteRole API operation for AWS Identity and Access Management.
 //
 // Deletes the specified role. The role must not have any policies attached.
-// For more information about roles, go to Working with Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// For more information about roles, see Working with roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
 // Make sure that you do not have any Amazon EC2 instances running with the
 // role you are about to delete. Deleting a role or instance profile that is
@@ -3370,8 +3403,7 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -3555,7 +3587,7 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 //
 // A role can also have managed policies attached to it. To detach a managed
 // policy from a role, use DetachRolePolicy. For more information about policies,
-// refer to Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// refer to Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3572,8 +3604,7 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -3675,8 +3706,7 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -3758,7 +3788,7 @@ func (c *IAM) DeleteSSHPublicKeyRequest(input *DeleteSSHPublicKeyInput) (req *re
 // The SSH public key deleted by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
-// Set up AWS CodeCommit for SSH Connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
+// Set up AWS CodeCommit for SSH connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3843,7 +3873,7 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 // Deletes the specified server certificate.
 //
 // For more information about working with server certificates, see Working
-// with Server Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide. This topic also includes a list of AWS services that
 // can use the server certificates that you manage with IAM.
 //
@@ -3853,7 +3883,7 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 // continue to use the certificates. This could cause Elastic Load Balancing
 // to stop accepting traffic. We recommend that you remove the reference to
 // the certificate from Elastic Load Balancing before using this command to
-// delete the certificate. For more information, go to DeleteLoadBalancerListeners
+// delete the certificate. For more information, see DeleteLoadBalancerListeners
 // (https://docs.aws.amazon.com/ElasticLoadBalancing/latest/APIReference/API_DeleteLoadBalancerListeners.html)
 // in the Elastic Load Balancing API Reference.
 //
@@ -3875,8 +3905,7 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -3957,16 +3986,16 @@ func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput
 //
 // If you submit a deletion request for a service-linked role whose linked service
 // is still accessing a resource, then the deletion task fails. If it fails,
-// the GetServiceLinkedRoleDeletionStatus API operation returns the reason for
-// the failure, usually including the resources that must be deleted. To delete
+// the GetServiceLinkedRoleDeletionStatus operation returns the reason for the
+// failure, usually including the resources that must be deleted. To delete
 // the service-linked role, you must first remove those resources from the linked
 // service and then submit the deletion request again. Resources are specific
 // to the service that is linked to the role. For more information about removing
 // resources from a service, see the AWS documentation (http://docs.aws.amazon.com/)
 // for your service.
 //
-// For more information about service-linked roles, see Roles Terms and Concepts:
-// AWS Service-Linked Role (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html#iam-term-service-linked-role)
+// For more information about service-linked roles, see Roles terms and concepts:
+// AWS service-linked role (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html#iam-term-service-linked-role)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -3983,8 +4012,7 @@ func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4160,8 +4188,7 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4237,7 +4264,7 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 // Deletes the specified IAM user. Unlike the AWS Management Console, when you
 // delete a user programmatically, you must delete the items attached to the
 // user manually, or the deletion fails. For more information, see Deleting
-// an IAM User (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_manage.html#id_users_deleting_cli).
+// an IAM user (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_manage.html#id_users_deleting_cli).
 // Before attempting to delete a user, remove the following items:
 //
 //    * Password (DeleteLoginProfile)
@@ -4268,8 +4295,7 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -4449,7 +4475,7 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 //
 // A user can also have managed policies attached to it. To detach a managed
 // policy from a user, use DetachUserPolicy. For more information about policies,
-// refer to Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// refer to Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4466,8 +4492,7 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4563,8 +4588,7 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4640,8 +4664,8 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 // Removes the specified managed policy from the specified IAM group.
 //
 // A group can also have inline policies embedded with it. To delete an inline
-// policy, use the DeleteGroupPolicy API. For information about policies, see
-// Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// policy, use DeleteGroupPolicy. For information about policies, see Managed
+// policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4658,8 +4682,7 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4739,8 +4762,8 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 // Removes the specified managed policy from the specified role.
 //
 // A role can also have inline policies embedded with it. To delete an inline
-// policy, use the DeleteRolePolicy API. For information about policies, see
-// Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// policy, use DeleteRolePolicy. For information about policies, see Managed
+// policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4757,8 +4780,7 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4844,8 +4866,8 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 // Removes the specified managed policy from the specified user.
 //
 // A user can also have inline policies embedded with it. To delete an inline
-// policy, use the DeleteUserPolicy API. For information about policies, see
-// Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// policy, use DeleteUserPolicy. For information about policies, see Managed
+// policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -4862,8 +4884,7 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4968,8 +4989,7 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -5046,7 +5066,7 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 // GenerateCredentialReport API operation for AWS Identity and Access Management.
 //
 // Generates a credential report for the AWS account. For more information about
-// the credential report, see Getting Credential Reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
+// the credential report, see Getting credential reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5059,8 +5079,7 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -5137,11 +5156,11 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 // unit, or account) or policies in your organization.
 //
 // To call this operation, you must be signed in using your AWS Organizations
-// master account credentials. You can use your long-term IAM user or root user
-// credentials, or temporary credentials from assuming an IAM role. SCPs must
-// be enabled for your organization root. You must have the required IAM and
-// AWS Organizations permissions. For more information, see Refining Permissions
-// Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// management account credentials. You can use your long-term IAM user or root
+// user credentials, or temporary credentials from assuming an IAM role. SCPs
+// must be enabled for your organization root. You must have the required IAM
+// and AWS Organizations permissions. For more information, see Refining permissions
+// using service last accessed data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // You can generate a service last accessed data report for entities by specifying
@@ -5156,7 +5175,7 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 // account activity that the policy allows to account principals in the entity
 // or the entity's children. For important information about the data, reporting
 // period, permissions required, troubleshooting, and supported Regions see
-// Reducing Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// Reducing permissions using service last accessed data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // The data includes all attempts to access AWS, not just the successful ones.
@@ -5166,7 +5185,7 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 // account has been compromised, because the request might have been denied.
 // Refer to your CloudTrail logs as the authoritative source for information
 // about all API calls and whether they were successful or denied access. For
-// more information, see Logging IAM Events with CloudTrail (https://docs.aws.amazon.com/IAM/latest/UserGuide/cloudtrail-integration.html)
+// more information, see Logging IAM events with CloudTrail (https://docs.aws.amazon.com/IAM/latest/UserGuide/cloudtrail-integration.html)
 // in the IAM User Guide.
 //
 // This operation returns a JobId. Use this parameter in the GetOrganizationsAccessReport
@@ -5182,19 +5201,19 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 //    * Root – When you specify the organizations root as the entity, the
 //    resulting report lists all of the services allowed by SCPs that are attached
 //    to your root. For each service, the report includes data for all accounts
-//    in your organization except the master account, because the master account
-//    is not limited by SCPs.
+//    in your organization except the management account, because the management
+//    account is not limited by SCPs.
 //
 //    * OU – When you specify an organizational unit (OU) as the entity, the
 //    resulting report lists all of the services allowed by SCPs that are attached
 //    to the OU and its parents. For each service, the report includes data
-//    for all accounts in the OU or its children. This data excludes the master
-//    account, because the master account is not limited by SCPs.
+//    for all accounts in the OU or its children. This data excludes the management
+//    account, because the management account is not limited by SCPs.
 //
-//    * Master account – When you specify the master account, the resulting
-//    report lists all AWS services, because the master account is not limited
-//    by SCPs. For each service, the report includes data for only the master
-//    account.
+//    * management account – When you specify the management account, the
+//    resulting report lists all AWS services, because the management account
+//    is not limited by SCPs. For each service, the report includes data for
+//    only the management account.
 //
 //    * Account – When you specify another account as the entity, the resulting
 //    report lists all of the services allowed by SCPs that are attached to
@@ -5208,8 +5227,8 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 //    * Root – When you specify the root entity and a policy ID, the resulting
 //    report lists all of the services that are allowed by the specified SCP.
 //    For each service, the report includes data for all accounts in your organization
-//    to which the SCP applies. This data excludes the master account, because
-//    the master account is not limited by SCPs. If the SCP is not attached
+//    to which the SCP applies. This data excludes the management account, because
+//    the management account is not limited by SCPs. If the SCP is not attached
 //    to any entities in the organization, then the report will return a list
 //    of services with no data.
 //
@@ -5218,14 +5237,16 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 //    For each service, the report includes data for all accounts in the OU
 //    or its children to which the SCP applies. This means that other accounts
 //    outside the OU that are affected by the SCP might not be included in the
-//    data. This data excludes the master account, because the master account
-//    is not limited by SCPs. If the SCP is not attached to the OU or one of
-//    its children, the report will return a list of services with no data.
+//    data. This data excludes the management account, because the management
+//    account is not limited by SCPs. If the SCP is not attached to the OU or
+//    one of its children, the report will return a list of services with no
+//    data.
 //
-//    * Master account – When you specify the master account, the resulting
-//    report lists all AWS services, because the master account is not limited
-//    by SCPs. If you specify a policy ID in the CLI or API, the policy is ignored.
-//    For each service, the report includes data for only the master account.
+//    * management account – When you specify the management account, the
+//    resulting report lists all AWS services, because the management account
+//    is not limited by SCPs. If you specify a policy ID in the CLI or API,
+//    the policy is ignored. For each service, the report includes data for
+//    only the management account.
 //
 //    * Account – When you specify another account entity and a policy ID,
 //    the resulting report lists all of the services that are allowed by the
@@ -5239,12 +5260,12 @@ func (c *IAM) GenerateOrganizationsAccessReportRequest(input *GenerateOrganizati
 // whether a principal could access a service. These other policy types include
 // identity-based policies, resource-based policies, access control lists, IAM
 // permissions boundaries, and STS assume role policies. It only applies SCP
-// logic. For more about the evaluation of policy types, see Evaluating Policies
+// logic. For more about the evaluation of policy types, see Evaluating policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
 // in the IAM User Guide.
 //
-// For more information about service last accessed data, see Reducing Policy
-// Scope by Viewing User Activity (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// For more information about service last accessed data, see Reducing policy
+// scope by viewing user activity (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5329,7 +5350,7 @@ func (c *IAM) GenerateServiceLastAccessedDetailsRequest(input *GenerateServiceLa
 // group, role, or policy) was last used in an attempt to access AWS services.
 // Recent activity usually appears within four hours. IAM reports activity for
 // the last 365 days, or less if your Region began supporting this feature within
-// the last year. For more information, see Regions Where Data Is Tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period).
+// the last year. For more information, see Regions where data is tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period).
 //
 // The service last accessed data includes all attempts to access an AWS API,
 // not just the successful ones. This includes all attempts that were made using
@@ -5338,7 +5359,7 @@ func (c *IAM) GenerateServiceLastAccessedDetailsRequest(input *GenerateServiceLa
 // data does not mean that your account has been compromised, because the request
 // might have been denied. Refer to your CloudTrail logs as the authoritative
 // source for information about all API calls and whether they were successful
-// or denied access. For more information, see Logging IAM Events with CloudTrail
+// or denied access. For more information, see Logging IAM events with CloudTrail
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/cloudtrail-integration.html)
 // in the IAM User Guide.
 //
@@ -5370,11 +5391,11 @@ func (c *IAM) GenerateServiceLastAccessedDetailsRequest(input *GenerateServiceLa
 // resource-based policies, access control lists, AWS Organizations policies,
 // IAM permissions boundaries, and AWS STS assume role policies. It only applies
 // permissions policy logic. For more about the evaluation of policy types,
-// see Evaluating Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
+// see Evaluating policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
 // in the IAM User Guide.
 //
 // For more information about service and action last accessed data, see Reducing
-// Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// permissions using service last accessed data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5470,6 +5491,12 @@ func (c *IAM) GetAccessKeyLastUsedRequest(input *GetAccessKeyLastUsedInput) (req
 //
 // See the AWS API reference guide for AWS Identity and Access Management's
 // API operation GetAccessKeyLastUsed for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/GetAccessKeyLastUsed
 func (c *IAM) GetAccessKeyLastUsed(input *GetAccessKeyLastUsedInput) (*GetAccessKeyLastUsedOutput, error) {
 	req, out := c.GetAccessKeyLastUsedRequest(input)
@@ -5544,14 +5571,14 @@ func (c *IAM) GetAccountAuthorizationDetailsRequest(input *GetAccountAuthorizati
 //
 // Retrieves information about all IAM users, groups, roles, and policies in
 // your AWS account, including their relationships to one another. Use this
-// API to obtain a snapshot of the configuration of IAM permissions (users,
+// operation to obtain a snapshot of the configuration of IAM permissions (users,
 // groups, roles, and policies) in your account.
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // You can optionally filter the results using the Filter parameter. You can
 // paginate the results using the MaxItems and Marker parameters.
@@ -5686,8 +5713,10 @@ func (c *IAM) GetAccountPasswordPolicyRequest(input *GetAccountPasswordPolicyInp
 
 // GetAccountPasswordPolicy API operation for AWS Identity and Access Management.
 //
-// Retrieves the password policy for the AWS account. For more information about
-// using a password policy, go to Managing an IAM Password Policy (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html).
+// Retrieves the password policy for the AWS account. This tells you the complexity
+// requirements and mandatory rotation periods for the IAM user passwords in
+// your account. For more information about using a password policy, see Managing
+// an IAM password policy (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -5773,8 +5802,7 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 //
 // Retrieves information about IAM entity usage and IAM quotas in the AWS account.
 //
-// The number and size of IAM resources in an AWS account are limited. For more
-// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// For information about IAM quotas, see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5953,9 +5981,9 @@ func (c *IAM) GetContextKeysForPrincipalPolicyRequest(input *GetContextKeysForPr
 // as strings. If you want to include only a list of policies by string, use
 // GetContextKeysForCustomPolicy instead.
 //
-// Note: This API discloses information about the permissions granted to other
-// users. If you do not want users to see other user's permissions, then consider
-// allowing them to use GetContextKeysForCustomPolicy instead.
+// Note: This operation discloses information about the permissions granted
+// to other users. If you do not want users to see other user's permissions,
+// then consider allowing them to use GetContextKeysForCustomPolicy instead.
 //
 // Context keys are variables maintained by AWS and its services that provide
 // details about the context of an API query request. Context keys can be evaluated
@@ -6045,7 +6073,7 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 // GetCredentialReport API operation for AWS Identity and Access Management.
 //
 // Retrieves a credential report for the AWS account. For more information about
-// the credential report, see Getting Credential Reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
+// the credential report, see Getting credential reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6063,7 +6091,7 @@ func (c *IAM) GetCredentialReportRequest(input *GetCredentialReportInput) (req *
 //   * ErrCodeCredentialReportExpiredException "ReportExpired"
 //   The request was rejected because the most recent credential report has expired.
 //   To generate a new credential report, use GenerateCredentialReport. For more
-//   information about credential report expiration, see Getting Credential Reports
+//   information about credential report expiration, see Getting credential reports
 //   (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 //   in the IAM User Guide.
 //
@@ -6286,18 +6314,18 @@ func (c *IAM) GetGroupPolicyRequest(input *GetGroupPolicyInput) (req *request.Re
 // Retrieves the specified inline policy document that is embedded in the specified
 // IAM group.
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // An IAM group can also have managed policies attached to it. To retrieve a
 // managed policy document that is attached to a group, use GetPolicy to determine
 // the policy's default version, then use GetPolicyVersion to retrieve the policy
 // document.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -6385,7 +6413,7 @@ func (c *IAM) GetInstanceProfileRequest(input *GetInstanceProfileInput) (req *re
 //
 // Retrieves information about the specified instance profile, including the
 // instance profile's path, GUID, ARN, and role. For more information about
-// instance profiles, see About Instance Profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html)
+// instance profiles, see About instance profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6470,7 +6498,7 @@ func (c *IAM) GetLoginProfileRequest(input *GetLoginProfileInput) (req *request.
 
 // GetLoginProfile API operation for AWS Identity and Access Management.
 //
-// Retrieves the user name and password-creation date for the specified IAM
+// Retrieves the user name and password creation date for the specified IAM
 // user. If the user has not been assigned a password, the operation returns
 // a 404 (NoSuchEntity) error.
 //
@@ -6652,10 +6680,10 @@ func (c *IAM) GetOrganizationsAccessReportRequest(input *GetOrganizationsAccessR
 // Depending on the parameters that you passed when you generated the report,
 // the data returned could include different information. For details, see GenerateOrganizationsAccessReport.
 //
-// To call this operation, you must be signed in to the master account in your
-// organization. SCPs must be enabled for your organization root. You must have
-// permissions to perform this operation. For more information, see Refining
-// Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// To call this operation, you must be signed in to the management account in
+// your organization. SCPs must be enabled for your organization root. You must
+// have permissions to perform this operation. For more information, see Refining
+// permissions using service last accessed data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // For each service that principals in an account (root users, IAM users, or
@@ -6747,15 +6775,15 @@ func (c *IAM) GetPolicyRequest(input *GetPolicyInput) (req *request.Request, out
 // Retrieves information about the specified managed policy, including the policy's
 // default version and the total number of IAM users, groups, and roles to which
 // the policy is attached. To retrieve the list of the specific users, groups,
-// and roles that the policy is attached to, use the ListEntitiesForPolicy API.
-// This API returns metadata about the policy. To retrieve the actual policy
+// and roles that the policy is attached to, use ListEntitiesForPolicy. This
+// operation returns metadata about the policy. To retrieve the actual policy
 // document for a specific version of the policy, use GetPolicyVersion.
 //
-// This API retrieves information about managed policies. To retrieve information
-// about an inline policy that is embedded with an IAM user, group, or role,
-// use the GetUserPolicy, GetGroupPolicy, or GetRolePolicy API.
+// This operation retrieves information about managed policies. To retrieve
+// information about an inline policy that is embedded with an IAM user, group,
+// or role, use GetUserPolicy, GetGroupPolicy, or GetRolePolicy.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -6848,24 +6876,24 @@ func (c *IAM) GetPolicyVersionRequest(input *GetPolicyVersionInput) (req *reques
 // Retrieves information about the specified version of the specified managed
 // policy, including the policy document.
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // To list the available versions for a policy, use ListPolicyVersions.
 //
-// This API retrieves information about managed policies. To retrieve information
-// about an inline policy that is embedded in a user, group, or role, use the
-// GetUserPolicy, GetGroupPolicy, or GetRolePolicy API.
+// This operation retrieves information about managed policies. To retrieve
+// information about an inline policy that is embedded in a user, group, or
+// role, use GetUserPolicy, GetGroupPolicy, or GetRolePolicy.
 //
-// For more information about the types of policies, see Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about the types of policies, see Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
-// For more information about managed policy versions, see Versioning for Managed
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+// For more information about managed policy versions, see Versioning for managed
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -6956,13 +6984,13 @@ func (c *IAM) GetRoleRequest(input *GetRoleInput) (req *request.Request, output 
 //
 // Retrieves information about the specified role, including the role's path,
 // GUID, ARN, and the role's trust policy that grants permission to assume the
-// role. For more information about roles, see Working with Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// role. For more information about roles, see Working with roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7049,23 +7077,23 @@ func (c *IAM) GetRolePolicyRequest(input *GetRolePolicyInput) (req *request.Requ
 // Retrieves the specified inline policy document that is embedded with the
 // specified IAM role.
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // An IAM role can also have managed policies attached to it. To retrieve a
 // managed policy document that is attached to a role, use GetPolicy to determine
 // the policy's default version, then use GetPolicyVersion to retrieve the policy
 // document.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
-// For more information about roles, see Using Roles to Delegate Permissions
-// and Federate Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
+// For more information about roles, see Using roles to delegate permissions
+// and federate identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7245,7 +7273,7 @@ func (c *IAM) GetSSHPublicKeyRequest(input *GetSSHPublicKeyInput) (req *request.
 // The SSH public key retrieved by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
-// Set up AWS CodeCommit for SSH Connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
+// Set up AWS CodeCommit for SSH connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7333,7 +7361,7 @@ func (c *IAM) GetServerCertificateRequest(input *GetServerCertificateInput) (req
 // Retrieves information about the specified server certificate stored in IAM.
 //
 // For more information about working with server certificates, see Working
-// with Server Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide. This topic includes a list of AWS services that can
 // use the server certificates that you manage with IAM.
 //
@@ -7430,7 +7458,7 @@ func (c *IAM) GetServiceLastAccessedDetailsRequest(input *GetServiceLastAccessed
 // resource-based policies, access control lists, AWS Organizations policies,
 // IAM permissions boundaries, and AWS STS assume role policies. It only applies
 // permissions policy logic. For more about the evaluation of policy types,
-// see Evaluating Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
+// see Evaluating policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
 // in the IAM User Guide.
 //
 // For each service that the resource could access using permissions policies,
@@ -7463,7 +7491,7 @@ func (c *IAM) GetServiceLastAccessedDetailsRequest(input *GetServiceLastAccessed
 // Otherwise, this operation returns only service data.
 //
 // For more information about service and action last accessed data, see Reducing
-// Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// permissions using service last accessed data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7654,8 +7682,8 @@ func (c *IAM) GetServiceLinkedRoleDeletionStatusRequest(input *GetServiceLinkedR
 // GetServiceLinkedRoleDeletionStatus API operation for AWS Identity and Access Management.
 //
 // Retrieves the status of your service-linked role deletion. After you use
-// the DeleteServiceLinkedRole API operation to submit a service-linked role
-// for deletion, you can use the DeletionTaskId parameter in GetServiceLinkedRoleDeletionStatus
+// DeleteServiceLinkedRole to submit a service-linked role for deletion, you
+// can use the DeletionTaskId parameter in GetServiceLinkedRoleDeletionStatus
 // to check the status of the deletion. If the deletion fails, this operation
 // returns the reason that it failed, if that information is returned by the
 // service.
@@ -7750,7 +7778,7 @@ func (c *IAM) GetUserRequest(input *GetUserInput) (req *request.Request, output 
 // creation date, path, unique ID, and ARN.
 //
 // If you do not specify a user name, IAM determines the user name implicitly
-// based on the AWS access key ID used to sign the request to this API.
+// based on the AWS access key ID used to sign the request to this operation.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -7837,18 +7865,18 @@ func (c *IAM) GetUserPolicyRequest(input *GetUserPolicyInput) (req *request.Requ
 // Retrieves the specified inline policy document that is embedded in the specified
 // IAM user.
 //
-// Policies returned by this API are URL-encoded compliant with RFC 3986 (https://tools.ietf.org/html/rfc3986).
-// You can use a URL decoding method to convert the policy back to plain JSON
-// text. For example, if you use Java, you can use the decode method of the
-// java.net.URLDecoder utility class in the Java SDK. Other languages and SDKs
-// provide similar functionality.
+// Policies returned by this operation are URL-encoded compliant with RFC 3986
+// (https://tools.ietf.org/html/rfc3986). You can use a URL decoding method
+// to convert the policy back to plain JSON text. For example, if you use Java,
+// you can use the decode method of the java.net.URLDecoder utility class in
+// the Java SDK. Other languages and SDKs provide similar functionality.
 //
 // An IAM user can also have managed policies attached to it. To retrieve a
 // managed policy document that is attached to a user, use GetPolicy to determine
 // the policy's default version. Then use GetPolicyVersion to retrieve the policy
 // document.
 //
-// For more information about policies, see Managed Policies and Inline Policies
+// For more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -8097,7 +8125,7 @@ func (c *IAM) ListAccountAliasesRequest(input *ListAccountAliasesInput) (req *re
 //
 // Lists the account alias associated with the AWS account (Note: you can have
 // only one). For information about using an AWS account alias, see Using an
-// Alias for Your AWS Account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
+// alias for your AWS account ID (https://docs.aws.amazon.com/IAM/latest/UserGuide/AccountAlias.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -8239,8 +8267,8 @@ func (c *IAM) ListAttachedGroupPoliciesRequest(input *ListAttachedGroupPoliciesI
 // Lists all managed policies that are attached to the specified IAM group.
 //
 // An IAM group can also have inline policies embedded with it. To list the
-// inline policies for a group, use the ListGroupPolicies API. For information
-// about policies, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// inline policies for a group, use ListGroupPolicies. For information about
+// policies, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. You
@@ -8396,8 +8424,8 @@ func (c *IAM) ListAttachedRolePoliciesRequest(input *ListAttachedRolePoliciesInp
 // Lists all managed policies that are attached to the specified IAM role.
 //
 // An IAM role can also have inline policies embedded with it. To list the inline
-// policies for a role, use the ListRolePolicies API. For information about
-// policies, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// policies for a role, use ListRolePolicies. For information about policies,
+// see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. You
@@ -8553,8 +8581,8 @@ func (c *IAM) ListAttachedUserPoliciesRequest(input *ListAttachedUserPoliciesInp
 // Lists all managed policies that are attached to the specified IAM user.
 //
 // An IAM user can also have inline policies embedded with it. To list the inline
-// policies for a user, use the ListUserPolicies API. For information about
-// policies, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// policies for a user, use ListUserPolicies. For information about policies,
+// see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. You
@@ -8866,7 +8894,7 @@ func (c *IAM) ListGroupPoliciesRequest(input *ListGroupPoliciesInput) (req *requ
 //
 // An IAM group can also have managed policies attached to it. To list the managed
 // policies that are attached to a group, use ListAttachedGroupPolicies. For
-// more information about policies, see Managed Policies and Inline Policies
+// more information about policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -9248,6 +9276,93 @@ func (c *IAM) ListGroupsForUserPagesWithContext(ctx aws.Context, input *ListGrou
 	return p.Err()
 }
 
+const opListInstanceProfileTags = "ListInstanceProfileTags"
+
+// ListInstanceProfileTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListInstanceProfileTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListInstanceProfileTags for more information on using the ListInstanceProfileTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListInstanceProfileTagsRequest method.
+//    req, resp := client.ListInstanceProfileTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfileTags
+func (c *IAM) ListInstanceProfileTagsRequest(input *ListInstanceProfileTagsInput) (req *request.Request, output *ListInstanceProfileTagsOutput) {
+	op := &request.Operation{
+		Name:       opListInstanceProfileTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListInstanceProfileTagsInput{}
+	}
+
+	output = &ListInstanceProfileTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListInstanceProfileTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified IAM instance profile. The
+// returned list of tags is sorted by tag key. For more information about tagging,
+// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListInstanceProfileTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListInstanceProfileTags
+func (c *IAM) ListInstanceProfileTags(input *ListInstanceProfileTagsInput) (*ListInstanceProfileTagsOutput, error) {
+	req, out := c.ListInstanceProfileTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListInstanceProfileTagsWithContext is the same as ListInstanceProfileTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListInstanceProfileTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListInstanceProfileTagsWithContext(ctx aws.Context, input *ListInstanceProfileTagsInput, opts ...request.Option) (*ListInstanceProfileTagsOutput, error) {
+	req, out := c.ListInstanceProfileTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListInstanceProfiles = "ListInstanceProfiles"
 
 // ListInstanceProfilesRequest generates a "aws/request.Request" representing the
@@ -9300,7 +9415,12 @@ func (c *IAM) ListInstanceProfilesRequest(input *ListInstanceProfilesInput) (req
 //
 // Lists the instance profiles that have the specified path prefix. If there
 // are none, the operation returns an empty list. For more information about
-// instance profiles, go to About Instance Profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+// instance profiles, see About instance profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for an instance profile, see GetInstanceProfile.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -9442,7 +9562,7 @@ func (c *IAM) ListInstanceProfilesForRoleRequest(input *ListInstanceProfilesForR
 //
 // Lists the instance profiles that have the specified associated IAM role.
 // If there are none, the operation returns an empty list. For more information
-// about instance profiles, go to About Instance Profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
+// about instance profiles, go to About instance profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -9536,6 +9656,97 @@ func (c *IAM) ListInstanceProfilesForRolePagesWithContext(ctx aws.Context, input
 	return p.Err()
 }
 
+const opListMFADeviceTags = "ListMFADeviceTags"
+
+// ListMFADeviceTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListMFADeviceTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListMFADeviceTags for more information on using the ListMFADeviceTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListMFADeviceTagsRequest method.
+//    req, resp := client.ListMFADeviceTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADeviceTags
+func (c *IAM) ListMFADeviceTagsRequest(input *ListMFADeviceTagsInput) (req *request.Request, output *ListMFADeviceTagsOutput) {
+	op := &request.Operation{
+		Name:       opListMFADeviceTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListMFADeviceTagsInput{}
+	}
+
+	output = &ListMFADeviceTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListMFADeviceTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified IAM virtual multi-factor
+// authentication (MFA) device. The returned list of tags is sorted by tag key.
+// For more information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListMFADeviceTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListMFADeviceTags
+func (c *IAM) ListMFADeviceTags(input *ListMFADeviceTagsInput) (*ListMFADeviceTagsOutput, error) {
+	req, out := c.ListMFADeviceTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListMFADeviceTagsWithContext is the same as ListMFADeviceTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListMFADeviceTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListMFADeviceTagsWithContext(ctx aws.Context, input *ListMFADeviceTagsInput, opts ...request.Option) (*ListMFADeviceTagsOutput, error) {
+	req, out := c.ListMFADeviceTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListMFADevices = "ListMFADevices"
 
 // ListMFADevicesRequest generates a "aws/request.Request" representing the
@@ -9589,7 +9800,7 @@ func (c *IAM) ListMFADevicesRequest(input *ListMFADevicesInput) (req *request.Re
 // Lists the MFA devices for an IAM user. If the request includes a IAM user
 // name, then this operation lists all the MFA devices associated with the specified
 // user. If you do not specify a user name, IAM determines the user name implicitly
-// based on the AWS access key ID signing the request for this API.
+// based on the AWS access key ID signing the request for this operation.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -9683,6 +9894,99 @@ func (c *IAM) ListMFADevicesPagesWithContext(ctx aws.Context, input *ListMFADevi
 	return p.Err()
 }
 
+const opListOpenIDConnectProviderTags = "ListOpenIDConnectProviderTags"
+
+// ListOpenIDConnectProviderTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListOpenIDConnectProviderTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListOpenIDConnectProviderTags for more information on using the ListOpenIDConnectProviderTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListOpenIDConnectProviderTagsRequest method.
+//    req, resp := client.ListOpenIDConnectProviderTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviderTags
+func (c *IAM) ListOpenIDConnectProviderTagsRequest(input *ListOpenIDConnectProviderTagsInput) (req *request.Request, output *ListOpenIDConnectProviderTagsOutput) {
+	op := &request.Operation{
+		Name:       opListOpenIDConnectProviderTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListOpenIDConnectProviderTagsInput{}
+	}
+
+	output = &ListOpenIDConnectProviderTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListOpenIDConnectProviderTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified OpenID Connect (OIDC)-compatible
+// identity provider. The returned list of tags is sorted by tag key. For more
+// information, see About web identity federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html).
+//
+// For more information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListOpenIDConnectProviderTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListOpenIDConnectProviderTags
+func (c *IAM) ListOpenIDConnectProviderTags(input *ListOpenIDConnectProviderTagsInput) (*ListOpenIDConnectProviderTagsOutput, error) {
+	req, out := c.ListOpenIDConnectProviderTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListOpenIDConnectProviderTagsWithContext is the same as ListOpenIDConnectProviderTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListOpenIDConnectProviderTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListOpenIDConnectProviderTagsWithContext(ctx aws.Context, input *ListOpenIDConnectProviderTagsInput, opts ...request.Option) (*ListOpenIDConnectProviderTagsOutput, error) {
+	req, out := c.ListOpenIDConnectProviderTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListOpenIDConnectProviders = "ListOpenIDConnectProviders"
 
 // ListOpenIDConnectProvidersRequest generates a "aws/request.Request" representing the
@@ -9729,6 +10033,11 @@ func (c *IAM) ListOpenIDConnectProvidersRequest(input *ListOpenIDConnectProvider
 //
 // Lists information about the IAM OpenID Connect (OIDC) provider resource objects
 // defined in the AWS account.
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for an OIDC provider, see GetOpenIDConnectProvider.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9824,9 +10133,14 @@ func (c *IAM) ListPoliciesRequest(input *ListPoliciesInput) (req *request.Reques
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
-// For more information about managed policies, see Managed Policies and Inline
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, see Managed policies and inline
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for a customer manged policy, see GetPolicy.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -9966,7 +10280,7 @@ func (c *IAM) ListPoliciesGrantingServiceAccessRequest(input *ListPoliciesGranti
 // policies, access control lists, AWS Organizations policies, IAM permissions
 // boundaries, and AWS STS assume role policies. It only applies permissions
 // policy logic. For more about the evaluation of policy types, see Evaluating
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
 // in the IAM User Guide.
 //
 // The list of policies returned by the operation depends on the ARN of the
@@ -9987,7 +10301,7 @@ func (c *IAM) ListPoliciesGrantingServiceAccessRequest(input *ListPoliciesGranti
 // For each managed policy, this operation returns the ARN and policy name.
 // For each inline policy, it returns the policy name and the entity to which
 // it is attached. Inline policies do not have an ARN. For more information
-// about these policy types, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
+// about these policy types, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Policies that are attached to users and roles as permissions boundaries are
@@ -10027,6 +10341,97 @@ func (c *IAM) ListPoliciesGrantingServiceAccess(input *ListPoliciesGrantingServi
 // for more information on using Contexts.
 func (c *IAM) ListPoliciesGrantingServiceAccessWithContext(ctx aws.Context, input *ListPoliciesGrantingServiceAccessInput, opts ...request.Option) (*ListPoliciesGrantingServiceAccessOutput, error) {
 	req, out := c.ListPoliciesGrantingServiceAccessRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opListPolicyTags = "ListPolicyTags"
+
+// ListPolicyTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListPolicyTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListPolicyTags for more information on using the ListPolicyTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListPolicyTagsRequest method.
+//    req, resp := client.ListPolicyTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyTags
+func (c *IAM) ListPolicyTagsRequest(input *ListPolicyTagsInput) (req *request.Request, output *ListPolicyTagsOutput) {
+	op := &request.Operation{
+		Name:       opListPolicyTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListPolicyTagsInput{}
+	}
+
+	output = &ListPolicyTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListPolicyTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified IAM customer managed policy.
+// The returned list of tags is sorted by tag key. For more information about
+// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListPolicyTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListPolicyTags
+func (c *IAM) ListPolicyTags(input *ListPolicyTagsInput) (*ListPolicyTagsOutput, error) {
+	req, out := c.ListPolicyTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListPolicyTagsWithContext is the same as ListPolicyTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListPolicyTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListPolicyTagsWithContext(ctx aws.Context, input *ListPolicyTagsInput, opts ...request.Option) (*ListPolicyTagsOutput, error) {
+	req, out := c.ListPolicyTagsRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -10085,8 +10490,8 @@ func (c *IAM) ListPolicyVersionsRequest(input *ListPolicyVersionsInput) (req *re
 // Lists information about the versions of the specified managed policy, including
 // the version that is currently set as the policy's default version.
 //
-// For more information about managed policies, see Managed Policies and Inline
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, see Managed policies and inline
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -10238,7 +10643,7 @@ func (c *IAM) ListRolePoliciesRequest(input *ListRolePoliciesInput) (req *reques
 //
 // An IAM role can also have managed policies attached to it. To list the managed
 // policies that are attached to a role, use ListAttachedRolePolicies. For more
-// information about policies, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// information about policies, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. If
@@ -10381,7 +10786,7 @@ func (c *IAM) ListRoleTagsRequest(input *ListRoleTagsInput) (req *request.Reques
 //
 // Lists the tags that are attached to the specified role. The returned list
 // of tags is sorted by tag key. For more information about tagging, see Tagging
-// IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -10473,8 +10878,13 @@ func (c *IAM) ListRolesRequest(input *ListRolesInput) (req *request.Request, out
 // ListRoles API operation for AWS Identity and Access Management.
 //
 // Lists the IAM roles that have the specified path prefix. If there are none,
-// the operation returns an empty list. For more information about roles, go
-// to Working with Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// the operation returns an empty list. For more information about roles, see
+// Working with roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for a role, see GetRole.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -10564,6 +10974,99 @@ func (c *IAM) ListRolesPagesWithContext(ctx aws.Context, input *ListRolesInput, 
 	return p.Err()
 }
 
+const opListSAMLProviderTags = "ListSAMLProviderTags"
+
+// ListSAMLProviderTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListSAMLProviderTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListSAMLProviderTags for more information on using the ListSAMLProviderTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListSAMLProviderTagsRequest method.
+//    req, resp := client.ListSAMLProviderTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviderTags
+func (c *IAM) ListSAMLProviderTagsRequest(input *ListSAMLProviderTagsInput) (req *request.Request, output *ListSAMLProviderTagsOutput) {
+	op := &request.Operation{
+		Name:       opListSAMLProviderTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListSAMLProviderTagsInput{}
+	}
+
+	output = &ListSAMLProviderTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListSAMLProviderTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified Security Assertion Markup
+// Language (SAML) identity provider. The returned list of tags is sorted by
+// tag key. For more information, see About SAML 2.0-based federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html).
+//
+// For more information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListSAMLProviderTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListSAMLProviderTags
+func (c *IAM) ListSAMLProviderTags(input *ListSAMLProviderTagsInput) (*ListSAMLProviderTagsOutput, error) {
+	req, out := c.ListSAMLProviderTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListSAMLProviderTagsWithContext is the same as ListSAMLProviderTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListSAMLProviderTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListSAMLProviderTagsWithContext(ctx aws.Context, input *ListSAMLProviderTagsInput, opts ...request.Option) (*ListSAMLProviderTagsOutput, error) {
+	req, out := c.ListSAMLProviderTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListSAMLProviders = "ListSAMLProviders"
 
 // ListSAMLProvidersRequest generates a "aws/request.Request" representing the
@@ -10608,7 +11111,11 @@ func (c *IAM) ListSAMLProvidersRequest(input *ListSAMLProvidersInput) (req *requ
 
 // ListSAMLProviders API operation for AWS Identity and Access Management.
 //
-// Lists the SAML provider resource objects defined in IAM in the account.
+// Lists the SAML provider resource objects defined in IAM in the account. IAM
+// resource-listing operations return a subset of the available attributes for
+// the resource. For example, this operation does not return tags, even though
+// they are an attribute of the returned object. To view all of the information
+// for a SAML provider, see GetSAMLProvider.
 //
 // This operation requires Signature Version 4 (https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html).
 //
@@ -10702,7 +11209,7 @@ func (c *IAM) ListSSHPublicKeysRequest(input *ListSSHPublicKeysInput) (req *requ
 // The SSH public keys returned by this operation are used only for authenticating
 // the IAM user to an AWS CodeCommit repository. For more information about
 // using SSH keys to authenticate to an AWS CodeCommit repository, see Set up
-// AWS CodeCommit for SSH Connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
+// AWS CodeCommit for SSH connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
 //
 // Although each user is limited to a small number of keys, you can still paginate
@@ -10794,6 +11301,99 @@ func (c *IAM) ListSSHPublicKeysPagesWithContext(ctx aws.Context, input *ListSSHP
 	return p.Err()
 }
 
+const opListServerCertificateTags = "ListServerCertificateTags"
+
+// ListServerCertificateTagsRequest generates a "aws/request.Request" representing the
+// client's request for the ListServerCertificateTags operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListServerCertificateTags for more information on using the ListServerCertificateTags
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListServerCertificateTagsRequest method.
+//    req, resp := client.ListServerCertificateTagsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificateTags
+func (c *IAM) ListServerCertificateTagsRequest(input *ListServerCertificateTagsInput) (req *request.Request, output *ListServerCertificateTagsOutput) {
+	op := &request.Operation{
+		Name:       opListServerCertificateTags,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListServerCertificateTagsInput{}
+	}
+
+	output = &ListServerCertificateTagsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListServerCertificateTags API operation for AWS Identity and Access Management.
+//
+// Lists the tags that are attached to the specified IAM server certificate.
+// The returned list of tags is sorted by tag key. For more information about
+// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// For certificates in a Region supported by AWS Certificate Manager (ACM),
+// we recommend that you don't use IAM server certificates. Instead, use ACM
+// to provision, manage, and deploy your server certificates. For more information
+// about IAM server certificates, Working with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation ListServerCertificateTags for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/ListServerCertificateTags
+func (c *IAM) ListServerCertificateTags(input *ListServerCertificateTagsInput) (*ListServerCertificateTagsOutput, error) {
+	req, out := c.ListServerCertificateTagsRequest(input)
+	return out, req.Send()
+}
+
+// ListServerCertificateTagsWithContext is the same as ListServerCertificateTags with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListServerCertificateTags for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) ListServerCertificateTagsWithContext(ctx aws.Context, input *ListServerCertificateTagsInput, opts ...request.Option) (*ListServerCertificateTagsOutput, error) {
+	req, out := c.ListServerCertificateTagsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListServerCertificates = "ListServerCertificates"
 
 // ListServerCertificatesRequest generates a "aws/request.Request" representing the
@@ -10850,9 +11450,14 @@ func (c *IAM) ListServerCertificatesRequest(input *ListServerCertificatesInput) 
 // You can paginate the results using the MaxItems and Marker parameters.
 //
 // For more information about working with server certificates, see Working
-// with Server Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide. This topic also includes a list of AWS services that
 // can use the server certificates that you manage with IAM.
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for a servercertificate, see GetServerCertificate.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -10989,7 +11594,7 @@ func (c *IAM) ListServiceSpecificCredentialsRequest(input *ListServiceSpecificCr
 // The service-specific credentials returned by this operation are used only
 // for authenticating the IAM user to a specific service. For more information
 // about using service-specific credentials to authenticate to an AWS service,
-// see Set Up service-specific credentials (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-gc.html)
+// see Set up service-specific credentials (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-gc.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -11086,10 +11691,10 @@ func (c *IAM) ListSigningCertificatesRequest(input *ListSigningCertificatesInput
 // you can still paginate the results using the MaxItems and Marker parameters.
 //
 // If the UserName field is not specified, the user name is determined implicitly
-// based on the AWS access key ID used to sign the request for this API. This
-// operation works for access keys under the AWS account. Consequently, you
-// can use this operation to manage AWS account root user credentials even if
-// the AWS account has no associated users.
+// based on the AWS access key ID used to sign the request for this operation.
+// This operation works for access keys under the AWS account. Consequently,
+// you can use this operation to manage AWS account root user credentials even
+// if the AWS account has no associated users.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -11235,7 +11840,7 @@ func (c *IAM) ListUserPoliciesRequest(input *ListUserPoliciesInput) (req *reques
 //
 // An IAM user can also have managed policies attached to it. To list the managed
 // policies that are attached to a user, use ListAttachedUserPolicies. For more
-// information about policies, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// information about policies, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
 // You can paginate the results using the MaxItems and Marker parameters. If
@@ -11376,9 +11981,9 @@ func (c *IAM) ListUserTagsRequest(input *ListUserTagsInput) (req *request.Reques
 
 // ListUserTags API operation for AWS Identity and Access Management.
 //
-// Lists the tags that are attached to the specified user. The returned list
-// of tags is sorted by tag key. For more information about tagging, see Tagging
-// IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// Lists the tags that are attached to the specified IAM user. The returned
+// list of tags is sorted by tag key. For more information about tagging, see
+// Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -11472,6 +12077,11 @@ func (c *IAM) ListUsersRequest(input *ListUsersInput) (req *request.Request, out
 // Lists the IAM users that have the specified path prefix. If no path prefix
 // is specified, the operation returns all users in the AWS account. If there
 // are none, the operation returns an empty list.
+//
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for a user, see GetUser.
 //
 // You can paginate the results using the MaxItems and Marker parameters.
 //
@@ -11616,6 +12226,11 @@ func (c *IAM) ListVirtualMFADevicesRequest(input *ListVirtualMFADevicesInput) (r
 // of all virtual MFA devices. Assignment status can be Assigned, Unassigned,
 // or Any.
 //
+// IAM resource-listing operations return a subset of the available attributes
+// for the resource. For example, this operation does not return tags, even
+// though they are an attribute of the returned object. To view all of the information
+// for a virtual MFA device, see ListVirtualMFADevices.
+//
 // You can paginate the results using the MaxItems and Marker parameters.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -11748,17 +12363,17 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 //
 // A user can also have managed policies attached to it. To attach a managed
 // policy to a group, use AttachGroupPolicy. To create a new managed policy,
-// use CreatePolicy. For information about policies, see Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// use CreatePolicy. For information about policies, see Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
-// For information about limits on the number of inline policies that you can
-// embed in a group, see Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// For information about the maximum number of inline policies that you can
+// embed in a group, see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Because policy documents can be large, you should use POST rather than GET
 // when calling PutGroupPolicy. For general information about using the Query
-// API with IAM, go to Making Query Requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
+// API with IAM, see Making query requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -11771,8 +12386,7 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -11863,7 +12477,7 @@ func (c *IAM) PutRolePermissionsBoundaryRequest(input *PutRolePermissionsBoundar
 //
 // Policies used as permissions boundaries do not provide permissions. You must
 // also attach a permissions policy to the role. To learn how the effective
-// permissions for a role are evaluated, see IAM JSON Policy Evaluation Logic
+// permissions for a role are evaluated, see IAM JSON policy evaluation logic
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html)
 // in the IAM User Guide.
 //
@@ -11971,21 +12585,21 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 // of the role's access (permissions) policy. The role's trust policy is created
 // at the same time as the role, using CreateRole. You can update a role's trust
 // policy using UpdateAssumeRolePolicy. For more information about IAM roles,
-// go to Using Roles to Delegate Permissions and Federate Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
+// see Using roles to delegate permissions and federate identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
 //
 // A role can also have a managed policy attached to it. To attach a managed
 // policy to a role, use AttachRolePolicy. To create a new managed policy, use
-// CreatePolicy. For information about policies, see Managed Policies and Inline
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// CreatePolicy. For information about policies, see Managed policies and inline
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
-// For information about limits on the number of inline policies that you can
-// embed with a role, see Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// For information about the maximum number of inline policies that you can
+// embed with a role, see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Because policy documents can be large, you should use POST rather than GET
 // when calling PutRolePolicy. For general information about using the Query
-// API with IAM, go to Making Query Requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
+// API with IAM, see Making query requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -11998,8 +12612,7 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -12094,7 +12707,7 @@ func (c *IAM) PutUserPermissionsBoundaryRequest(input *PutUserPermissionsBoundar
 //
 // Policies that are used as permissions boundaries do not provide permissions.
 // You must also attach a permissions policy to the user. To learn how the effective
-// permissions for a user are evaluated, see IAM JSON Policy Evaluation Logic
+// permissions for a user are evaluated, see IAM JSON policy evaluation logic
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html)
 // in the IAM User Guide.
 //
@@ -12194,17 +12807,17 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 //
 // An IAM user can also have a managed policy attached to it. To attach a managed
 // policy to a user, use AttachUserPolicy. To create a new managed policy, use
-// CreatePolicy. For information about policies, see Managed Policies and Inline
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// CreatePolicy. For information about policies, see Managed policies and inline
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
-// For information about limits on the number of inline policies that you can
-// embed in a user, see Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// For information about the maximum number of inline policies that you can
+// embed in a user, see IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Because policy documents can be large, you should use POST rather than GET
 // when calling PutUserPolicy. For general information about using the Query
-// API with IAM, go to Making Query Requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
+// API with IAM, see Making query requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -12217,8 +12830,7 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -12400,8 +13012,8 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 // an instance profile that is associated with a running instance might break
 // any applications running on the instance.
 //
-// For more information about IAM roles, go to Working with Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
-// For more information about instance profiles, go to About Instance Profiles
+// For more information about IAM roles, see Working with roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
+// For more information about instance profiles, see About instance profiles
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -12418,8 +13030,7 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -12514,8 +13125,7 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -12675,7 +13285,7 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 // AWS servers.
 //
 // For more information about creating and working with virtual MFA devices,
-// go to Using a Virtual MFA Device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
+// see Using a virtual MFA device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -12696,8 +13306,7 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -12775,9 +13384,9 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 //
 // This operation affects all users, groups, and roles that the policy is attached
 // to. To list the users, groups, and roles that the policy is attached to,
-// use the ListEntitiesForPolicy API.
+// use ListEntitiesForPolicy.
 //
-// For information about managed policies, see Managed Policies and Inline Policies
+// For information about managed policies, see Managed policies and inline policies
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 //
@@ -12799,8 +13408,7 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -12880,7 +13488,7 @@ func (c *IAM) SetSecurityTokenServicePreferencesRequest(input *SetSecurityTokenS
 // and all STS requests go to a single endpoint at https://sts.amazonaws.com.
 // AWS recommends using Regional STS endpoints to reduce latency, build in redundancy,
 // and increase session token availability. For information about Regional endpoints
-// for STS, see AWS Regions and Endpoints (https://docs.aws.amazon.com/general/latest/gr/rande.html#sts_region)
+// for STS, see AWS AWS Security Token Service endpoints and quotas (https://docs.aws.amazon.com/general/latest/gr/sts.html)
 // in the AWS General Reference.
 //
 // If you make an STS call to the global endpoint, the resulting session tokens
@@ -12889,8 +13497,8 @@ func (c *IAM) SetSecurityTokenServicePreferencesRequest(input *SetSecurityTokenS
 // that are available by default. These tokens do not work in manually enabled
 // Regions, such as Asia Pacific (Hong Kong). Version 2 tokens are valid in
 // all Regions. However, version 2 tokens are longer and might affect systems
-// where you temporarily store tokens. For information, see Activating and Deactivating
-// STS in an AWS Region (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
+// where you temporarily store tokens. For information, see Activating and deactivating
+// STS in an AWS region (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 // in the IAM User Guide.
 //
 // To view the current session token version, see the GlobalEndpointTokenVersion
@@ -12985,7 +13593,8 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 // effective permissions. The policies are provided as strings.
 //
 // The simulation does not perform the API operations; it only checks the authorization
-// to determine if the simulated policies allow or deny the operations.
+// to determine if the simulated policies allow or deny the operations. You
+// can simulate resources that don't exist in your account.
 //
 // If you want to simulate existing policies that are attached to an IAM user,
 // group, or role, use SimulatePrincipalPolicy instead.
@@ -12998,6 +13607,10 @@ func (c *IAM) SimulateCustomPolicyRequest(input *SimulateCustomPolicyInput) (req
 //
 // If the output is long, you can use MaxItems and Marker parameters to paginate
 // the results.
+//
+// For more information about using the policy simulator, see Testing IAM policies
+// with the IAM policy simulator (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)in
+// the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -13143,7 +13756,8 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 // list of API operations and AWS resources to determine the policies' effective
 // permissions. The entity can be an IAM user, group, or role. If you specify
 // a user, then the simulation also includes all of the policies that are attached
-// to groups that the user belongs to.
+// to groups that the user belongs to. You can simulate resources that don't
+// exist in your account.
 //
 // You can optionally include a list of one or more additional policies specified
 // as strings to include in the simulation. If you want to simulate only policies
@@ -13155,9 +13769,9 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 // The simulation does not perform the API operations; it only checks the authorization
 // to determine if the simulated policies allow or deny the operations.
 //
-// Note: This API discloses information about the permissions granted to other
-// users. If you do not want users to see other user's permissions, then consider
-// allowing them to use SimulateCustomPolicy instead.
+// Note: This operation discloses information about the permissions granted
+// to other users. If you do not want users to see other user's permissions,
+// then consider allowing them to use SimulateCustomPolicy instead.
 //
 // Context keys are variables maintained by AWS and its services that provide
 // details about the context of an API query request. You can use the Condition
@@ -13166,6 +13780,10 @@ func (c *IAM) SimulatePrincipalPolicyRequest(input *SimulatePrincipalPolicyInput
 //
 // If the output is long, you can use the MaxItems and Marker parameters to
 // paginate the results.
+//
+// For more information about using the policy simulator, see Testing IAM policies
+// with the IAM policy simulator (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_testing-policies.html)in
+// the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -13261,6 +13879,506 @@ func (c *IAM) SimulatePrincipalPolicyPagesWithContext(ctx aws.Context, input *Si
 	return p.Err()
 }
 
+const opTagInstanceProfile = "TagInstanceProfile"
+
+// TagInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the TagInstanceProfile operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagInstanceProfile for more information on using the TagInstanceProfile
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagInstanceProfileRequest method.
+//    req, resp := client.TagInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagInstanceProfile
+func (c *IAM) TagInstanceProfileRequest(input *TagInstanceProfileInput) (req *request.Request, output *TagInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opTagInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagInstanceProfileInput{}
+	}
+
+	output = &TagInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagInstanceProfile API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to an IAM instance profile. If a tag with the same
+// key name already exists, then that tag is overwritten with the new value.
+//
+// Each tag consists of a key name and an associated value. By assigning tags
+// to your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an IAM instance profile that
+//    has a specified tag attached. For examples of policies that show how to
+//    use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagInstanceProfile
+func (c *IAM) TagInstanceProfile(input *TagInstanceProfileInput) (*TagInstanceProfileOutput, error) {
+	req, out := c.TagInstanceProfileRequest(input)
+	return out, req.Send()
+}
+
+// TagInstanceProfileWithContext is the same as TagInstanceProfile with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagInstanceProfile for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagInstanceProfileWithContext(ctx aws.Context, input *TagInstanceProfileInput, opts ...request.Option) (*TagInstanceProfileOutput, error) {
+	req, out := c.TagInstanceProfileRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagMFADevice = "TagMFADevice"
+
+// TagMFADeviceRequest generates a "aws/request.Request" representing the
+// client's request for the TagMFADevice operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagMFADevice for more information on using the TagMFADevice
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagMFADeviceRequest method.
+//    req, resp := client.TagMFADeviceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagMFADevice
+func (c *IAM) TagMFADeviceRequest(input *TagMFADeviceInput) (req *request.Request, output *TagMFADeviceOutput) {
+	op := &request.Operation{
+		Name:       opTagMFADevice,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagMFADeviceInput{}
+	}
+
+	output = &TagMFADeviceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagMFADevice API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to an IAM virtual multi-factor authentication (MFA)
+// device. If a tag with the same key name already exists, then that tag is
+// overwritten with the new value.
+//
+// A tag consists of a key name and an associated value. By assigning tags to
+// your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an IAM virtual MFA device
+//    that has a specified tag attached. For examples of policies that show
+//    how to use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagMFADevice
+func (c *IAM) TagMFADevice(input *TagMFADeviceInput) (*TagMFADeviceOutput, error) {
+	req, out := c.TagMFADeviceRequest(input)
+	return out, req.Send()
+}
+
+// TagMFADeviceWithContext is the same as TagMFADevice with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagMFADevice for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagMFADeviceWithContext(ctx aws.Context, input *TagMFADeviceInput, opts ...request.Option) (*TagMFADeviceOutput, error) {
+	req, out := c.TagMFADeviceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagOpenIDConnectProvider = "TagOpenIDConnectProvider"
+
+// TagOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
+// client's request for the TagOpenIDConnectProvider operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagOpenIDConnectProvider for more information on using the TagOpenIDConnectProvider
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagOpenIDConnectProviderRequest method.
+//    req, resp := client.TagOpenIDConnectProviderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagOpenIDConnectProvider
+func (c *IAM) TagOpenIDConnectProviderRequest(input *TagOpenIDConnectProviderInput) (req *request.Request, output *TagOpenIDConnectProviderOutput) {
+	op := &request.Operation{
+		Name:       opTagOpenIDConnectProvider,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagOpenIDConnectProviderInput{}
+	}
+
+	output = &TagOpenIDConnectProviderOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to an OpenID Connect (OIDC)-compatible identity provider.
+// For more information about these providers, see About web identity federation
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html).
+// If a tag with the same key name already exists, then that tag is overwritten
+// with the new value.
+//
+// A tag consists of a key name and an associated value. By assigning tags to
+// your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an OIDC provider that has
+//    a specified tag attached. For examples of policies that show how to use
+//    tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagOpenIDConnectProvider
+func (c *IAM) TagOpenIDConnectProvider(input *TagOpenIDConnectProviderInput) (*TagOpenIDConnectProviderOutput, error) {
+	req, out := c.TagOpenIDConnectProviderRequest(input)
+	return out, req.Send()
+}
+
+// TagOpenIDConnectProviderWithContext is the same as TagOpenIDConnectProvider with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagOpenIDConnectProvider for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagOpenIDConnectProviderWithContext(ctx aws.Context, input *TagOpenIDConnectProviderInput, opts ...request.Option) (*TagOpenIDConnectProviderOutput, error) {
+	req, out := c.TagOpenIDConnectProviderRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagPolicy = "TagPolicy"
+
+// TagPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the TagPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagPolicy for more information on using the TagPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagPolicyRequest method.
+//    req, resp := client.TagPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagPolicy
+func (c *IAM) TagPolicyRequest(input *TagPolicyInput) (req *request.Request, output *TagPolicyOutput) {
+	op := &request.Operation{
+		Name:       opTagPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagPolicyInput{}
+	}
+
+	output = &TagPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagPolicy API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to an IAM customer managed policy. If a tag with the
+// same key name already exists, then that tag is overwritten with the new value.
+//
+// A tag consists of a key name and an associated value. By assigning tags to
+// your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an IAM customer managed policy
+//    that has a specified tag attached. For examples of policies that show
+//    how to use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagPolicy
+func (c *IAM) TagPolicy(input *TagPolicyInput) (*TagPolicyOutput, error) {
+	req, out := c.TagPolicyRequest(input)
+	return out, req.Send()
+}
+
+// TagPolicyWithContext is the same as TagPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagPolicyWithContext(ctx aws.Context, input *TagPolicyInput, opts ...request.Option) (*TagPolicyOutput, error) {
+	req, out := c.TagPolicyRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opTagRole = "TagRole"
 
 // TagRoleRequest generates a "aws/request.Request" representing the
@@ -13319,26 +14437,27 @@ func (c *IAM) TagRoleRequest(input *TagRoleInput) (req *request.Request, output 
 //    Or search for all resources with the key name Cost Center and the value
 //    41200.
 //
-//    * Access control - Reference tags in IAM user-based and resource-based
-//    policies. You can use tags to restrict access to only an IAM user or role
-//    that has a specified tag attached. You can also restrict access to only
-//    those resources that have a certain tag attached. For examples of policies
-//    that show how to use tags to control access, see Control Access Using
-//    IAM Tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an IAM role that has a specified
+//    tag attached. You can also restrict access to only those resources that
+//    have a certain tag attached. For examples of policies that show how to
+//    use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
 //    in the IAM User Guide.
 //
 //    * Cost allocation - Use tags to help track which individuals and teams
 //    are using which AWS resources.
 //
-//    * Make sure that you have no invalid tags and that you do not exceed the
-//    allowed number of tags per role. In either case, the entire request fails
-//    and no tags are added to the role.
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
 //
 //    * AWS always interprets the tag Value as a single string. If you need
 //    to store an array, you can store comma-separated values in the string.
 //    However, you must interpret the value in your code.
 //
-// For more information about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// For more information about tagging, see Tagging IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13355,8 +14474,7 @@ func (c *IAM) TagRoleRequest(input *TagRoleInput) (req *request.Request, output 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -13388,6 +14506,266 @@ func (c *IAM) TagRole(input *TagRoleInput) (*TagRoleOutput, error) {
 // for more information on using Contexts.
 func (c *IAM) TagRoleWithContext(ctx aws.Context, input *TagRoleInput, opts ...request.Option) (*TagRoleOutput, error) {
 	req, out := c.TagRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagSAMLProvider = "TagSAMLProvider"
+
+// TagSAMLProviderRequest generates a "aws/request.Request" representing the
+// client's request for the TagSAMLProvider operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagSAMLProvider for more information on using the TagSAMLProvider
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagSAMLProviderRequest method.
+//    req, resp := client.TagSAMLProviderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagSAMLProvider
+func (c *IAM) TagSAMLProviderRequest(input *TagSAMLProviderInput) (req *request.Request, output *TagSAMLProviderOutput) {
+	op := &request.Operation{
+		Name:       opTagSAMLProvider,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagSAMLProviderInput{}
+	}
+
+	output = &TagSAMLProviderOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagSAMLProvider API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to a Security Assertion Markup Language (SAML) identity
+// provider. For more information about these providers, see About SAML 2.0-based
+// federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html).
+// If a tag with the same key name already exists, then that tag is overwritten
+// with the new value.
+//
+// A tag consists of a key name and an associated value. By assigning tags to
+// your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only a SAML identity provider that
+//    has a specified tag attached. For examples of policies that show how to
+//    use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagSAMLProvider
+func (c *IAM) TagSAMLProvider(input *TagSAMLProviderInput) (*TagSAMLProviderOutput, error) {
+	req, out := c.TagSAMLProviderRequest(input)
+	return out, req.Send()
+}
+
+// TagSAMLProviderWithContext is the same as TagSAMLProvider with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagSAMLProvider for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagSAMLProviderWithContext(ctx aws.Context, input *TagSAMLProviderInput, opts ...request.Option) (*TagSAMLProviderOutput, error) {
+	req, out := c.TagSAMLProviderRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opTagServerCertificate = "TagServerCertificate"
+
+// TagServerCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the TagServerCertificate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See TagServerCertificate for more information on using the TagServerCertificate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the TagServerCertificateRequest method.
+//    req, resp := client.TagServerCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagServerCertificate
+func (c *IAM) TagServerCertificateRequest(input *TagServerCertificateInput) (req *request.Request, output *TagServerCertificateOutput) {
+	op := &request.Operation{
+		Name:       opTagServerCertificate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &TagServerCertificateInput{}
+	}
+
+	output = &TagServerCertificateOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// TagServerCertificate API operation for AWS Identity and Access Management.
+//
+// Adds one or more tags to an IAM server certificate. If a tag with the same
+// key name already exists, then that tag is overwritten with the new value.
+//
+// For certificates in a Region supported by AWS Certificate Manager (ACM),
+// we recommend that you don't use IAM server certificates. Instead, use ACM
+// to provision, manage, and deploy your server certificates. For more information
+// about IAM server certificates, Working with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide.
+//
+// A tag consists of a key name and an associated value. By assigning tags to
+// your resources, you can do the following:
+//
+//    * Administrative grouping and discovery - Attach tags to resources to
+//    aid in organization and search. For example, you could search for all
+//    resources with the key name Project and the value MyImportantProject.
+//    Or search for all resources with the key name Cost Center and the value
+//    41200.
+//
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only a server certificate that
+//    has a specified tag attached. For examples of policies that show how to
+//    use tags to control access, see Control access using IAM tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
+//    in the IAM User Guide.
+//
+//    * Cost allocation - Use tags to help track which individuals and teams
+//    are using which AWS resources.
+//
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
+//
+//    * AWS always interprets the tag Value as a single string. If you need
+//    to store an array, you can store comma-separated values in the string.
+//    However, you must interpret the value in your code.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation TagServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeLimitExceededException "LimitExceeded"
+//   The request was rejected because it attempted to create resources beyond
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/TagServerCertificate
+func (c *IAM) TagServerCertificate(input *TagServerCertificateInput) (*TagServerCertificateOutput, error) {
+	req, out := c.TagServerCertificateRequest(input)
+	return out, req.Send()
+}
+
+// TagServerCertificateWithContext is the same as TagServerCertificate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See TagServerCertificate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) TagServerCertificateWithContext(ctx aws.Context, input *TagServerCertificateInput, opts ...request.Option) (*TagServerCertificateOutput, error) {
+	req, out := c.TagServerCertificateRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -13450,26 +14828,28 @@ func (c *IAM) TagUserRequest(input *TagUserInput) (req *request.Request, output 
 //    Or search for all resources with the key name Cost Center and the value
 //    41200.
 //
-//    * Access control - Reference tags in IAM user-based and resource-based
-//    policies. You can use tags to restrict access to only an IAM requesting
-//    user or to a role that has a specified tag attached. You can also restrict
-//    access to only those resources that have a certain tag attached. For examples
-//    of policies that show how to use tags to control access, see Control Access
-//    Using IAM Tags (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html)
-//    in the IAM User Guide.
+//    * Access control - Include tags in IAM user-based and resource-based policies.
+//    You can use tags to restrict access to only an IAM requesting user that
+//    has a specified tag attached. You can also restrict access to only those
+//    resources that have a certain tag attached. For examples of policies that
+//    show how to use tags to control access, see Control access using IAM tags
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html) in
+//    the IAM User Guide.
 //
 //    * Cost allocation - Use tags to help track which individuals and teams
 //    are using which AWS resources.
 //
-//    * Make sure that you have no invalid tags and that you do not exceed the
-//    allowed number of tags per role. In either case, the entire request fails
-//    and no tags are added to the role.
+//    * If any one of the tags is invalid or if you exceed the allowed maximum
+//    number of tags, then the entire request fails and the resource is not
+//    created. For more information about tagging, see Tagging IAM resources
+//    (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the
+//    IAM User Guide.
 //
 //    * AWS always interprets the tag Value as a single string. If you need
 //    to store an array, you can store comma-separated values in the string.
 //    However, you must interpret the value in your code.
 //
-// For more information about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// For more information about tagging, see Tagging IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13486,8 +14866,7 @@ func (c *IAM) TagUserRequest(input *TagUserInput) (req *request.Request, output 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -13519,6 +14898,393 @@ func (c *IAM) TagUser(input *TagUserInput) (*TagUserOutput, error) {
 // for more information on using Contexts.
 func (c *IAM) TagUserWithContext(ctx aws.Context, input *TagUserInput, opts ...request.Option) (*TagUserOutput, error) {
 	req, out := c.TagUserRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagInstanceProfile = "UntagInstanceProfile"
+
+// UntagInstanceProfileRequest generates a "aws/request.Request" representing the
+// client's request for the UntagInstanceProfile operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagInstanceProfile for more information on using the UntagInstanceProfile
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagInstanceProfileRequest method.
+//    req, resp := client.UntagInstanceProfileRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagInstanceProfile
+func (c *IAM) UntagInstanceProfileRequest(input *UntagInstanceProfileInput) (req *request.Request, output *UntagInstanceProfileOutput) {
+	op := &request.Operation{
+		Name:       opUntagInstanceProfile,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagInstanceProfileInput{}
+	}
+
+	output = &UntagInstanceProfileOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagInstanceProfile API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the IAM instance profile. For more information
+// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagInstanceProfile for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagInstanceProfile
+func (c *IAM) UntagInstanceProfile(input *UntagInstanceProfileInput) (*UntagInstanceProfileOutput, error) {
+	req, out := c.UntagInstanceProfileRequest(input)
+	return out, req.Send()
+}
+
+// UntagInstanceProfileWithContext is the same as UntagInstanceProfile with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagInstanceProfile for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagInstanceProfileWithContext(ctx aws.Context, input *UntagInstanceProfileInput, opts ...request.Option) (*UntagInstanceProfileOutput, error) {
+	req, out := c.UntagInstanceProfileRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagMFADevice = "UntagMFADevice"
+
+// UntagMFADeviceRequest generates a "aws/request.Request" representing the
+// client's request for the UntagMFADevice operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagMFADevice for more information on using the UntagMFADevice
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagMFADeviceRequest method.
+//    req, resp := client.UntagMFADeviceRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagMFADevice
+func (c *IAM) UntagMFADeviceRequest(input *UntagMFADeviceInput) (req *request.Request, output *UntagMFADeviceOutput) {
+	op := &request.Operation{
+		Name:       opUntagMFADevice,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagMFADeviceInput{}
+	}
+
+	output = &UntagMFADeviceOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagMFADevice API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the IAM virtual multi-factor authentication
+// (MFA) device. For more information about tagging, see Tagging IAM resources
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html) in the IAM
+// User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagMFADevice for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagMFADevice
+func (c *IAM) UntagMFADevice(input *UntagMFADeviceInput) (*UntagMFADeviceOutput, error) {
+	req, out := c.UntagMFADeviceRequest(input)
+	return out, req.Send()
+}
+
+// UntagMFADeviceWithContext is the same as UntagMFADevice with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagMFADevice for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagMFADeviceWithContext(ctx aws.Context, input *UntagMFADeviceInput, opts ...request.Option) (*UntagMFADeviceOutput, error) {
+	req, out := c.UntagMFADeviceRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagOpenIDConnectProvider = "UntagOpenIDConnectProvider"
+
+// UntagOpenIDConnectProviderRequest generates a "aws/request.Request" representing the
+// client's request for the UntagOpenIDConnectProvider operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagOpenIDConnectProvider for more information on using the UntagOpenIDConnectProvider
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagOpenIDConnectProviderRequest method.
+//    req, resp := client.UntagOpenIDConnectProviderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagOpenIDConnectProvider
+func (c *IAM) UntagOpenIDConnectProviderRequest(input *UntagOpenIDConnectProviderInput) (req *request.Request, output *UntagOpenIDConnectProviderOutput) {
+	op := &request.Operation{
+		Name:       opUntagOpenIDConnectProvider,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagOpenIDConnectProviderInput{}
+	}
+
+	output = &UntagOpenIDConnectProviderOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagOpenIDConnectProvider API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the specified OpenID Connect (OIDC)-compatible
+// identity provider in IAM. For more information about OIDC providers, see
+// About web identity federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html).
+// For more information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagOpenIDConnectProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagOpenIDConnectProvider
+func (c *IAM) UntagOpenIDConnectProvider(input *UntagOpenIDConnectProviderInput) (*UntagOpenIDConnectProviderOutput, error) {
+	req, out := c.UntagOpenIDConnectProviderRequest(input)
+	return out, req.Send()
+}
+
+// UntagOpenIDConnectProviderWithContext is the same as UntagOpenIDConnectProvider with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagOpenIDConnectProvider for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagOpenIDConnectProviderWithContext(ctx aws.Context, input *UntagOpenIDConnectProviderInput, opts ...request.Option) (*UntagOpenIDConnectProviderOutput, error) {
+	req, out := c.UntagOpenIDConnectProviderRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagPolicy = "UntagPolicy"
+
+// UntagPolicyRequest generates a "aws/request.Request" representing the
+// client's request for the UntagPolicy operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagPolicy for more information on using the UntagPolicy
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagPolicyRequest method.
+//    req, resp := client.UntagPolicyRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagPolicy
+func (c *IAM) UntagPolicyRequest(input *UntagPolicyInput) (req *request.Request, output *UntagPolicyOutput) {
+	op := &request.Operation{
+		Name:       opUntagPolicy,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagPolicyInput{}
+	}
+
+	output = &UntagPolicyOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagPolicy API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the customer managed policy. For more information
+// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagPolicy for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagPolicy
+func (c *IAM) UntagPolicy(input *UntagPolicyInput) (*UntagPolicyOutput, error) {
+	req, out := c.UntagPolicyRequest(input)
+	return out, req.Send()
+}
+
+// UntagPolicyWithContext is the same as UntagPolicy with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagPolicy for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagPolicyWithContext(ctx aws.Context, input *UntagPolicyInput, opts ...request.Option) (*UntagPolicyOutput, error) {
+	req, out := c.UntagPolicyRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -13570,7 +15336,7 @@ func (c *IAM) UntagRoleRequest(input *UntagRoleInput) (req *request.Request, out
 // UntagRole API operation for AWS Identity and Access Management.
 //
 // Removes the specified tags from the role. For more information about tagging,
-// see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13611,6 +15377,206 @@ func (c *IAM) UntagRole(input *UntagRoleInput) (*UntagRoleOutput, error) {
 // for more information on using Contexts.
 func (c *IAM) UntagRoleWithContext(ctx aws.Context, input *UntagRoleInput, opts ...request.Option) (*UntagRoleOutput, error) {
 	req, out := c.UntagRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagSAMLProvider = "UntagSAMLProvider"
+
+// UntagSAMLProviderRequest generates a "aws/request.Request" representing the
+// client's request for the UntagSAMLProvider operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagSAMLProvider for more information on using the UntagSAMLProvider
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagSAMLProviderRequest method.
+//    req, resp := client.UntagSAMLProviderRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagSAMLProvider
+func (c *IAM) UntagSAMLProviderRequest(input *UntagSAMLProviderInput) (req *request.Request, output *UntagSAMLProviderOutput) {
+	op := &request.Operation{
+		Name:       opUntagSAMLProvider,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagSAMLProviderInput{}
+	}
+
+	output = &UntagSAMLProviderOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagSAMLProvider API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the specified Security Assertion Markup Language
+// (SAML) identity provider in IAM. For more information about these providers,
+// see About web identity federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_oidc.html).
+// For more information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagSAMLProvider for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagSAMLProvider
+func (c *IAM) UntagSAMLProvider(input *UntagSAMLProviderInput) (*UntagSAMLProviderOutput, error) {
+	req, out := c.UntagSAMLProviderRequest(input)
+	return out, req.Send()
+}
+
+// UntagSAMLProviderWithContext is the same as UntagSAMLProvider with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagSAMLProvider for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagSAMLProviderWithContext(ctx aws.Context, input *UntagSAMLProviderInput, opts ...request.Option) (*UntagSAMLProviderOutput, error) {
+	req, out := c.UntagSAMLProviderRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUntagServerCertificate = "UntagServerCertificate"
+
+// UntagServerCertificateRequest generates a "aws/request.Request" representing the
+// client's request for the UntagServerCertificate operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UntagServerCertificate for more information on using the UntagServerCertificate
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UntagServerCertificateRequest method.
+//    req, resp := client.UntagServerCertificateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagServerCertificate
+func (c *IAM) UntagServerCertificateRequest(input *UntagServerCertificateInput) (req *request.Request, output *UntagServerCertificateOutput) {
+	op := &request.Operation{
+		Name:       opUntagServerCertificate,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UntagServerCertificateInput{}
+	}
+
+	output = &UntagServerCertificateOutput{}
+	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(query.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
+	return
+}
+
+// UntagServerCertificate API operation for AWS Identity and Access Management.
+//
+// Removes the specified tags from the IAM server certificate. For more information
+// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// in the IAM User Guide.
+//
+// For certificates in a Region supported by AWS Certificate Manager (ACM),
+// we recommend that you don't use IAM server certificates. Instead, use ACM
+// to provision, manage, and deploy your server certificates. For more information
+// about IAM server certificates, Working with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Identity and Access Management's
+// API operation UntagServerCertificate for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeNoSuchEntityException "NoSuchEntity"
+//   The request was rejected because it referenced a resource entity that does
+//   not exist. The error message describes the resource.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
+//
+//   * ErrCodeServiceFailureException "ServiceFailure"
+//   The request processing has failed because of an unknown error, exception
+//   or failure.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/iam-2010-05-08/UntagServerCertificate
+func (c *IAM) UntagServerCertificate(input *UntagServerCertificateInput) (*UntagServerCertificateOutput, error) {
+	req, out := c.UntagServerCertificateRequest(input)
+	return out, req.Send()
+}
+
+// UntagServerCertificateWithContext is the same as UntagServerCertificate with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UntagServerCertificate for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *IAM) UntagServerCertificateWithContext(ctx aws.Context, input *UntagServerCertificateInput, opts ...request.Option) (*UntagServerCertificateOutput, error) {
+	req, out := c.UntagServerCertificateRequest(input)
 	req.SetContext(ctx)
 	req.ApplyOptions(opts...)
 	return out, req.Send()
@@ -13662,7 +15628,7 @@ func (c *IAM) UntagUserRequest(input *UntagUserInput) (req *request.Request, out
 // UntagUser API operation for AWS Identity and Access Management.
 //
 // Removes the specified tags from the user. For more information about tagging,
-// see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13763,7 +15729,7 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 // to manage AWS account root user credentials even if the AWS account has no
 // associated users.
 //
-// For information about rotating keys, see Managing Keys and Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html)
+// For information about rotating keys, see Managing keys and certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/ManagingCredentials.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13780,8 +15746,7 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -13863,8 +15828,8 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //    parameter to be explicitly set. Instead, to invoke the default value,
 //    do not include that parameter when you invoke the operation.
 //
-// For more information about using a password policy, see Managing an IAM Password
-// Policy (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html)
+// For more information about using a password policy, see Managing an IAM password
+// policy (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingPasswordPolicies.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13885,8 +15850,7 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -13961,7 +15925,7 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 //
 // Updates the policy that grants an IAM entity permission to assume a role.
 // This is typically referred to as the "role trust policy". For more information
-// about roles, go to Using Roles to Delegate Permissions and Federate Identities
+// about roles, see Using roles to delegate permissions and federate identities
 // (https://docs.aws.amazon.com/IAM/latest/UserGuide/roles-toplevel.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -13982,8 +15946,7 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -14065,7 +16028,7 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 // Updates the name and/or the path of the specified IAM group.
 //
 // You should understand the implications of changing a group's path or name.
-// For more information, see Renaming Users and Groups (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_WorkingWithGroupsAndUsers.html)
+// For more information, see Renaming users and groups (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_WorkingWithGroupsAndUsers.html)
 // in the IAM User Guide.
 //
 // The person making the request (the principal), must have permission to change
@@ -14073,7 +16036,7 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 // the group named Managers to MGRs, the principal must have a policy that allows
 // them to update both groups. If the principal has permission to update the
 // Managers group, but not the MGRs group, then the update fails. For more information
-// about permissions, see Access Management (https://docs.aws.amazon.com/IAM/latest/UserGuide/access.html).
+// about permissions, see Access management (https://docs.aws.amazon.com/IAM/latest/UserGuide/access.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -14093,8 +16056,7 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14167,10 +16129,12 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 
 // UpdateLoginProfile API operation for AWS Identity and Access Management.
 //
-// Changes the password for the specified IAM user.
+// Changes the password for the specified IAM user. You can use the AWS CLI,
+// the AWS API, or the Users page in the IAM console to change the password
+// for any IAM user. Use ChangePassword to change your own password in the My
+// Security Credentials page in the AWS Management Console.
 //
-// IAM users can change their own passwords by calling ChangePassword. For more
-// information about modifying passwords, see Managing Passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
+// For more information about modifying passwords, see Managing passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_ManagingLogins.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -14197,8 +16161,7 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14579,8 +16542,7 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14661,7 +16623,7 @@ func (c *IAM) UpdateSSHPublicKeyRequest(input *UpdateSSHPublicKeyInput) (req *re
 // The SSH public key affected by this operation is used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
-// Set up AWS CodeCommit for SSH Connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
+// Set up AWS CodeCommit for SSH connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -14747,12 +16709,12 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 // in IAM.
 //
 // For more information about working with server certificates, see Working
-// with Server Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide. This topic also includes a list of AWS services that
 // can use the server certificates that you manage with IAM.
 //
 // You should understand the implications of changing a server certificate's
-// path or name. For more information, see Renaming a Server Certificate (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs_manage.html#RenamingServerCerts)
+// path or name. For more information, see Renaming a server certificate (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs_manage.html#RenamingServerCerts)
 // in the IAM User Guide.
 //
 // The person making the request (the principal), must have permission to change
@@ -14761,7 +16723,7 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 // have a policy that allows them to update both certificates. If the principal
 // has permission to update the ProductionCert group, but not the ProdCert certificate,
 // then the update fails. For more information about permissions, see Access
-// Management (https://docs.aws.amazon.com/IAM/latest/UserGuide/access.html)
+// management (https://docs.aws.amazon.com/IAM/latest/UserGuide/access.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -14782,8 +16744,7 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14964,8 +16925,7 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -15041,15 +17001,15 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 // Updates the name and/or the path of the specified IAM user.
 //
 // You should understand the implications of changing an IAM user's path or
-// name. For more information, see Renaming an IAM User (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_manage.html#id_users_renaming)
-// and Renaming an IAM Group (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups_manage_rename.html)
+// name. For more information, see Renaming an IAM user (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_manage.html#id_users_renaming)
+// and Renaming an IAM group (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups_manage_rename.html)
 // in the IAM User Guide.
 //
 // To change a user name, the requester must have appropriate permissions on
 // both the source object and the target object. For example, to change Bob
 // to Robert, the entity making the request must have permission on Bob and
 // Robert, or must have permission on all (*). For more information about permissions,
-// see Permissions and Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html).
+// see Permissions and policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/PermissionsAndPolicies.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -15065,8 +17025,7 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -15158,7 +17117,7 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 // The SSH public key uploaded by this operation can be used only for authenticating
 // the associated IAM user to an AWS CodeCommit repository. For more information
 // about using SSH keys to authenticate to an AWS CodeCommit repository, see
-// Set up AWS CodeCommit for SSH Connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
+// Set up AWS CodeCommit for SSH connections (https://docs.aws.amazon.com/codecommit/latest/userguide/setting-up-credentials-ssh.html)
 // in the AWS CodeCommit User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -15171,8 +17130,7 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -15267,20 +17225,20 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // about using ACM, see the AWS Certificate Manager User Guide (https://docs.aws.amazon.com/acm/latest/userguide/).
 //
 // For more information about working with server certificates, see Working
-// with Server Certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// with server certificates (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
 // in the IAM User Guide. This topic includes a list of AWS services that can
 // use the server certificates that you manage with IAM.
 //
 // For information about the number of server certificates you can upload, see
-// Limitations on IAM Entities and Objects (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-limits.html)
+// IAM and STS quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Because the body of the public key certificate, private key, and the certificate
 // chain can be large, you should use POST rather than GET when calling UploadServerCertificate.
 // For information about setting up signatures and authorization through the
-// API, go to Signing AWS API Requests (https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
+// API, see Signing AWS API requests (https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
 // in the AWS General Reference. For general information about using the Query
-// API with IAM, go to Calling the API by Making HTTP Query Requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/programming.html)
+// API with IAM, see Calling the API by making HTTP query requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/programming.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -15293,8 +17251,11 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
+//
+//   * ErrCodeInvalidInputException "InvalidInput"
+//   The request was rejected because an invalid or out-of-range value was supplied
+//   for an input parameter.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -15307,6 +17268,11 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 //   * ErrCodeKeyPairMismatchException "KeyPairMismatch"
 //   The request was rejected because the public key certificate and the private
 //   key do not match.
+//
+//   * ErrCodeConcurrentModificationException "ConcurrentModification"
+//   The request was rejected because multiple requests to change this object
+//   were submitted simultaneously. Wait a few minutes and submit your request
+//   again.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -15379,9 +17345,13 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // UploadSigningCertificate API operation for AWS Identity and Access Management.
 //
 // Uploads an X.509 signing certificate and associates it with the specified
-// IAM user. Some AWS services use X.509 signing certificates to validate requests
+// IAM user. Some AWS services require you to use certificates to validate requests
 // that are signed with a corresponding private key. When you upload the certificate,
 // its default status is Active.
+//
+// For information about when you would use an X.509 signing certificate, see
+// Managing server certificates in IAM (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_server-certs.html)
+// in the IAM User Guide.
 //
 // If the UserName is not specified, the IAM user name is determined implicitly
 // based on the AWS access key ID used to sign the request. This operation works
@@ -15391,10 +17361,10 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 //
 // Because the body of an X.509 certificate can be large, you should use POST
 // rather than GET when calling UploadSigningCertificate. For information about
-// setting up signatures and authorization through the API, go to Signing AWS
-// API Requests (https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
+// setting up signatures and authorization through the API, see Signing AWS
+// API requests (https://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html)
 // in the AWS General Reference. For general information about using the Query
-// API with IAM, go to Making Query Requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
+// API with IAM, see Making query requests (https://docs.aws.amazon.com/IAM/latest/UserGuide/IAM_UsingQueryAPI.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -15407,8 +17377,7 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limitations. The error message describes the limit
-//   exceeded.
+//   the current AWS account limits. The error message describes the limit exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -15495,12 +17464,12 @@ type AccessDetail struct {
 
 	// The namespace of the service in which access was attempted.
 	//
-	// To learn the service namespace of a service, go to Actions, Resources, and
-	// Condition Keys for AWS Services (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
-	// in the IAM User Guide. Choose the name of the service to view details for
-	// that service. In the first paragraph, find the service prefix. For example,
-	// (service prefix: a4b). For more information about service namespaces, see
-	// AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// To learn the service namespace of a service, see Actions, resources, and
+	// condition keys for AWS services (https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
+	// in the Service Authorization Reference. Choose the name of the service to
+	// view details for that service. In the first paragraph, find the service prefix.
+	// For example, (service prefix: a4b). For more information about service namespaces,
+	// see AWS service namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the AWS General Reference.
 	//
 	// ServiceNamespace is a required field
@@ -15666,7 +17635,7 @@ type AccessKeyLastUsed struct {
 	//
 	//    * There is no sign-in data associated with the user.
 	//
-	// For more information about AWS Regions, see Regions and Endpoints (https://docs.aws.amazon.com/general/latest/gr/rande.html)
+	// For more information about AWS Regions, see Regions and endpoints (https://docs.aws.amazon.com/general/latest/gr/rande.html)
 	// in the Amazon Web Services General Reference.
 	//
 	// Region is a required field
@@ -16017,8 +17986,7 @@ type AttachGroupPolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to attach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -16088,8 +18056,7 @@ type AttachRolePolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to attach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -16168,8 +18135,7 @@ type AttachUserPolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to attach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -16248,8 +18214,8 @@ func (s AttachUserPolicyOutput) GoString() string {
 // An attached permissions boundary is a managed policy that has been attached
 // to a user or role to set the permissions boundary.
 //
-// For more information about permissions boundaries, see Permissions Boundaries
-// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+// For more information about permissions boundaries, see Permissions boundaries
+// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 // in the IAM User Guide.
 type AttachedPermissionsBoundary struct {
 	_ struct{} `type:"structure"`
@@ -16293,16 +18259,15 @@ func (s *AttachedPermissionsBoundary) SetPermissionsBoundaryType(v string) *Atta
 // ListAttachedRolePolicies, ListAttachedUserPolicies, and GetAccountAuthorizationDetails
 // operations.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type AttachedPolicy struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	PolicyArn *string `min:"20" type:"string"`
 
@@ -16617,7 +18582,7 @@ type CreateGroupInput struct {
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
-	// The path to the group. For more information about paths, see IAM Identifiers
+	// The path to the group. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -16726,6 +18691,15 @@ type CreateInstanceProfileInput struct {
 	// (\u007F), including most punctuation characters, digits, and upper and lowercased
 	// letters.
 	Path *string `min:"1" type:"string"`
+
+	// A list of tags that you want to attach to the newly created IAM instance
+	// profile. Each tag consists of a key name and an associated value. For more
+	// information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -16750,6 +18724,16 @@ func (s *CreateInstanceProfileInput) Validate() error {
 	if s.Path != nil && len(*s.Path) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Path", 1))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16766,6 +18750,12 @@ func (s *CreateInstanceProfileInput) SetInstanceProfileName(v string) *CreateIns
 // SetPath sets the Path field's value.
 func (s *CreateInstanceProfileInput) SetPath(v string) *CreateInstanceProfileInput {
 	s.Path = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateInstanceProfileInput) SetTags(v []*Tag) *CreateInstanceProfileInput {
+	s.Tags = v
 	return s
 }
 
@@ -16918,6 +18908,15 @@ type CreateOpenIDConnectProviderInput struct {
 	// operation accepts client IDs up to 255 characters long.
 	ClientIDList []*string `type:"list"`
 
+	// A list of tags that you want to attach to the new IAM OpenID Connect (OIDC)
+	// provider. Each tag consists of a key name and an associated value. For more
+	// information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
+
 	// A list of server certificate thumbprints for the OpenID Connect (OIDC) identity
 	// provider's server certificates. Typically this list includes only one entry.
 	// However, IAM lets you have up to five thumbprints for an OIDC provider. This
@@ -16935,7 +18934,7 @@ type CreateOpenIDConnectProviderInput struct {
 	// of the certificate used by https://keys.server.example.com.
 	//
 	// For more information about obtaining the OIDC provider's thumbprint, see
-	// Obtaining the Thumbprint for an OpenID Connect Provider (https://docs.aws.amazon.com/IAM/latest/UserGuide/identity-providers-oidc-obtain-thumbprint.html)
+	// Obtaining the thumbprint for an OpenID Connect provider (https://docs.aws.amazon.com/IAM/latest/UserGuide/identity-providers-oidc-obtain-thumbprint.html)
 	// in the IAM User Guide.
 	//
 	// ThumbprintList is a required field
@@ -16977,6 +18976,16 @@ func (s *CreateOpenIDConnectProviderInput) Validate() error {
 	if s.Url != nil && len(*s.Url) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("Url", 1))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -16987,6 +18996,12 @@ func (s *CreateOpenIDConnectProviderInput) Validate() error {
 // SetClientIDList sets the ClientIDList field's value.
 func (s *CreateOpenIDConnectProviderInput) SetClientIDList(v []*string) *CreateOpenIDConnectProviderInput {
 	s.ClientIDList = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateOpenIDConnectProviderInput) SetTags(v []*Tag) *CreateOpenIDConnectProviderInput {
+	s.Tags = v
 	return s
 }
 
@@ -17009,6 +19024,12 @@ type CreateOpenIDConnectProviderOutput struct {
 	// The Amazon Resource Name (ARN) of the new IAM OpenID Connect provider that
 	// is created. For more information, see OpenIDConnectProviderListEntry.
 	OpenIDConnectProviderArn *string `min:"20" type:"string"`
+
+	// A list of tags that are attached to the new IAM OIDC provider. The returned
+	// list of tags is sorted by tag key. For more information about tagging, see
+	// Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -17027,6 +19048,12 @@ func (s *CreateOpenIDConnectProviderOutput) SetOpenIDConnectProviderArn(v string
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateOpenIDConnectProviderOutput) SetTags(v []*Tag) *CreateOpenIDConnectProviderOutput {
+	s.Tags = v
+	return s
+}
+
 type CreatePolicyInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17041,7 +19068,7 @@ type CreatePolicyInput struct {
 
 	// The path for the policy.
 	//
-	// For more information about paths, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// For more information about paths, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
@@ -17086,6 +19113,15 @@ type CreatePolicyInput struct {
 	//
 	// PolicyName is a required field
 	PolicyName *string `min:"1" type:"string" required:"true"`
+
+	// A list of tags that you want to attach to the new IAM customer managed policy.
+	// Each tag consists of a key name and an associated value. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -17116,6 +19152,16 @@ func (s *CreatePolicyInput) Validate() error {
 	if s.PolicyName != nil && len(*s.PolicyName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("PolicyName", 1))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17144,6 +19190,12 @@ func (s *CreatePolicyInput) SetPolicyDocument(v string) *CreatePolicyInput {
 // SetPolicyName sets the PolicyName field's value.
 func (s *CreatePolicyInput) SetPolicyName(v string) *CreatePolicyInput {
 	s.PolicyName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreatePolicyInput) SetTags(v []*Tag) *CreatePolicyInput {
+	s.Tags = v
 	return s
 }
 
@@ -17177,8 +19229,7 @@ type CreatePolicyVersionInput struct {
 	// The Amazon Resource Name (ARN) of the IAM policy to which you want to add
 	// a new version.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -17213,8 +19264,8 @@ type CreatePolicyVersionInput struct {
 	// version. That is, it becomes the version that is in effect for the IAM users,
 	// groups, and roles that the policy is attached to.
 	//
-	// For more information about managed policy versions, see Versioning for Managed
-	// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+	// For more information about managed policy versions, see Versioning for managed
+	// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
 	SetAsDefault *bool `type:"boolean"`
 }
@@ -17335,7 +19386,7 @@ type CreateRoleInput struct {
 	// for the DurationSeconds parameter, their security credentials are valid for
 	// one hour by default. This applies when you use the AssumeRole* API operations
 	// or the assume-role* CLI operations but does not apply when you use those
-	// operations to create a console URL. For more information, see Using IAM Roles
+	// operations to create a console URL. For more information, see Using IAM roles
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html) in the
 	// IAM User Guide.
 	MaxSessionDuration *int64 `min:"3600" type:"integer"`
@@ -17368,13 +19419,13 @@ type CreateRoleInput struct {
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 
-	// A list of tags that you want to attach to the newly created role. Each tag
-	// consists of a key name and an associated value. For more information about
-	// tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that you want to attach to the new role. Each tag consists
+	// of a key name and an associated value. For more information about tagging,
+	// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	//
-	// If any one of the tags is invalid or if you exceed the allowed number of
-	// tags per role, then the entire request fails and the role is not created.
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
 	Tags []*Tag `type:"list"`
 }
 
@@ -17515,11 +19566,20 @@ type CreateSAMLProviderInput struct {
 	// that are received from the IdP. You must generate the metadata document using
 	// the identity management software that is used as your organization's IdP.
 	//
-	// For more information, see About SAML 2.0-based Federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
+	// For more information, see About SAML 2.0-based federation (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_saml.html)
 	// in the IAM User Guide
 	//
 	// SAMLMetadataDocument is a required field
 	SAMLMetadataDocument *string `min:"1000" type:"string" required:"true"`
+
+	// A list of tags that you want to attach to the new IAM SAML provider. Each
+	// tag consists of a key name and an associated value. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -17547,6 +19607,16 @@ func (s *CreateSAMLProviderInput) Validate() error {
 	if s.SAMLMetadataDocument != nil && len(*s.SAMLMetadataDocument) < 1000 {
 		invalidParams.Add(request.NewErrParamMinLen("SAMLMetadataDocument", 1000))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17566,12 +19636,24 @@ func (s *CreateSAMLProviderInput) SetSAMLMetadataDocument(v string) *CreateSAMLP
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateSAMLProviderInput) SetTags(v []*Tag) *CreateSAMLProviderInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the response to a successful CreateSAMLProvider request.
 type CreateSAMLProviderOutput struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) of the new SAML provider resource in IAM.
 	SAMLProviderArn *string `min:"20" type:"string"`
+
+	// A list of tags that are attached to the new IAM SAML provider. The returned
+	// list of tags is sorted by tag key. For more information about tagging, see
+	// Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -17590,6 +19672,12 @@ func (s *CreateSAMLProviderOutput) SetSAMLProviderArn(v string) *CreateSAMLProvi
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *CreateSAMLProviderOutput) SetTags(v []*Tag) *CreateSAMLProviderOutput {
+	s.Tags = v
+	return s
+}
+
 type CreateServiceLinkedRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -17598,7 +19686,7 @@ type CreateServiceLinkedRoleInput struct {
 	// elasticbeanstalk.amazonaws.com.
 	//
 	// Service principals are unique and case-sensitive. To find the exact service
-	// principal for your service-linked role, see AWS Services That Work with IAM
+	// principal for your service-linked role, see AWS services that work with IAM
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_aws-services-that-work-with-iam.html)
 	// in the IAM User Guide. Look for the services that have Yes in the Service-Linked
 	// Role column. Choose the Yes link to view the service-linked role documentation
@@ -17785,7 +19873,7 @@ func (s *CreateServiceSpecificCredentialOutput) SetServiceSpecificCredential(v *
 type CreateUserInput struct {
 	_ struct{} `type:"structure"`
 
-	// The path for the user name. For more information about paths, see IAM Identifiers
+	// The path for the user name. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -17804,13 +19892,13 @@ type CreateUserInput struct {
 	// user.
 	PermissionsBoundary *string `min:"20" type:"string"`
 
-	// A list of tags that you want to attach to the newly created user. Each tag
-	// consists of a key name and an associated value. For more information about
-	// tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that you want to attach to the new user. Each tag consists
+	// of a key name and an associated value. For more information about tagging,
+	// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	//
-	// If any one of the tags is invalid or if you exceed the allowed number of
-	// tags per user, then the entire request fails and the user is not created.
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
 	Tags []*Tag `type:"list"`
 
 	// The name of the user to create.
@@ -17917,7 +20005,7 @@ type CreateVirtualMFADeviceInput struct {
 	_ struct{} `type:"structure"`
 
 	// The path for the virtual MFA device. For more information about paths, see
-	// IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
@@ -17930,6 +20018,15 @@ type CreateVirtualMFADeviceInput struct {
 	// (\u007F), including most punctuation characters, digits, and upper and lowercased
 	// letters.
 	Path *string `min:"1" type:"string"`
+
+	// A list of tags that you want to attach to the new IAM virtual MFA device.
+	// Each tag consists of a key name and an associated value. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
 
 	// The name of the virtual MFA device. Use with path to uniquely identify a
 	// virtual MFA device.
@@ -17964,6 +20061,16 @@ func (s *CreateVirtualMFADeviceInput) Validate() error {
 	if s.VirtualMFADeviceName != nil && len(*s.VirtualMFADeviceName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("VirtualMFADeviceName", 1))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -17974,6 +20081,12 @@ func (s *CreateVirtualMFADeviceInput) Validate() error {
 // SetPath sets the Path field's value.
 func (s *CreateVirtualMFADeviceInput) SetPath(v string) *CreateVirtualMFADeviceInput {
 	s.Path = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *CreateVirtualMFADeviceInput) SetTags(v []*Tag) *CreateVirtualMFADeviceInput {
+	s.Tags = v
 	return s
 }
 
@@ -18574,8 +20687,7 @@ type DeletePolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to delete.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -18634,8 +20746,7 @@ type DeletePolicyVersionInput struct {
 	// The Amazon Resource Name (ARN) of the IAM policy from which you want to delete
 	// a version.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -18648,8 +20759,8 @@ type DeletePolicyVersionInput struct {
 	// by one or two digits, and optionally followed by a period '.' and a string
 	// of letters and digits.
 	//
-	// For more information about managed policy versions, see Versioning for Managed
-	// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+	// For more information about managed policy versions, see Versioning for managed
+	// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
 	//
 	// VersionId is a required field
@@ -19632,8 +21743,7 @@ type DetachGroupPolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to detach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -19703,8 +21813,7 @@ type DetachRolePolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to detach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -19783,8 +21892,7 @@ type DetachUserPolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy you want to detach.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -20043,8 +22151,7 @@ type EntityInfo struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// Arn is a required field
@@ -20061,7 +22168,7 @@ type EntityInfo struct {
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The path to the entity (user or role). For more information about paths,
-	// see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
 
@@ -20182,7 +22289,7 @@ type EvaluationResult struct {
 	// When you make a cross-account request, AWS evaluates the request in the trusting
 	// account and the trusted account. The request is allowed only if both evaluations
 	// return true. For more information about how policies are evaluated, see Evaluating
-	// Policies Within a Single Account (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics).
+	// policies within a single account (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics).
 	//
 	// If an AWS Organizations SCP included in the evaluation denies access, the
 	// simulation ends. In this case, policy evaluation does not proceed any further
@@ -20910,8 +23017,7 @@ type GetContextKeysForPrincipalPolicyInput struct {
 	// form here for clarity, but must be URL encoded to be included as a part of
 	// a real HTML request.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicySourceArn is a required field
@@ -21423,8 +23529,7 @@ type GetOpenIDConnectProviderInput struct {
 	// to get information for. You can get a list of OIDC provider resource ARNs
 	// by using the ListOpenIDConnectProviders operation.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// OpenIDConnectProviderArn is a required field
@@ -21475,6 +23580,12 @@ type GetOpenIDConnectProviderOutput struct {
 	// in the AWS account.
 	CreateDate *time.Time `type:"timestamp"`
 
+	// A list of tags that are attached to the specified IAM OIDC provider. The
+	// returned list of tags is sorted by tag key. For more information about tagging,
+	// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
+
 	// A list of certificate thumbprints that are associated with the specified
 	// IAM OIDC provider resource object. For more information, see CreateOpenIDConnectProvider.
 	ThumbprintList []*string `type:"list"`
@@ -21503,6 +23614,12 @@ func (s *GetOpenIDConnectProviderOutput) SetClientIDList(v []*string) *GetOpenID
 // SetCreateDate sets the CreateDate field's value.
 func (s *GetOpenIDConnectProviderOutput) SetCreateDate(v time.Time) *GetOpenIDConnectProviderOutput {
 	s.CreateDate = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetOpenIDConnectProviderOutput) SetTags(v []*Tag) *GetOpenIDConnectProviderOutput {
+	s.Tags = v
 	return s
 }
 
@@ -21729,8 +23846,7 @@ type GetPolicyInput struct {
 	// The Amazon Resource Name (ARN) of the managed policy that you want information
 	// about.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -21799,8 +23915,7 @@ type GetPolicyVersionInput struct {
 	// The Amazon Resource Name (ARN) of the managed policy that you want information
 	// about.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -22077,8 +24192,7 @@ type GetSAMLProviderInput struct {
 	// The Amazon Resource Name (ARN) of the SAML provider resource object in IAM
 	// to get information about.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// SAMLProviderArn is a required field
@@ -22127,6 +24241,12 @@ type GetSAMLProviderOutput struct {
 	// The XML metadata document that includes information about an identity provider.
 	SAMLMetadataDocument *string `min:"1000" type:"string"`
 
+	// A list of tags that are attached to the specified IAM SAML provider. The
+	// returned list of tags is sorted by tag key. For more information about tagging,
+	// see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
+
 	// The expiration date and time for the SAML provider.
 	ValidUntil *time.Time `type:"timestamp"`
 }
@@ -22150,6 +24270,12 @@ func (s *GetSAMLProviderOutput) SetCreateDate(v time.Time) *GetSAMLProviderOutpu
 // SetSAMLMetadataDocument sets the SAMLMetadataDocument field's value.
 func (s *GetSAMLProviderOutput) SetSAMLMetadataDocument(v string) *GetSAMLProviderOutput {
 	s.SAMLMetadataDocument = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *GetSAMLProviderOutput) SetTags(v []*Tag) *GetSAMLProviderOutput {
+	s.Tags = v
 	return s
 }
 
@@ -22552,12 +24678,12 @@ type GetServiceLastAccessedDetailsWithEntitiesInput struct {
 	// The service namespace for an AWS service. Provide the service namespace to
 	// learn when the IAM entity last attempted to access the specified service.
 	//
-	// To learn the service namespace for a service, go to Actions, Resources, and
-	// Condition Keys for AWS Services (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
+	// To learn the service namespace for a service, see Actions, resources, and
+	// condition keys for AWS services (https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
 	// in the IAM User Guide. Choose the name of the service to view details for
 	// that service. In the first paragraph, find the service prefix. For example,
 	// (service prefix: a4b). For more information about service namespaces, see
-	// AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// AWS service namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the AWS General Reference.
 	//
 	// ServiceNamespace is a required field
@@ -22852,10 +24978,10 @@ type GetUserOutput struct {
 	// sign-in (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_finding-unused.html)
 	// dates shown in the IAM console and password last used dates in the IAM credential
 	// report (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_getting-report.html),
-	// and returned by this GetUser API. If users signed in during the affected
-	// time, the password last used date that is returned is the date the user last
-	// signed in before May 3, 2018. For users that signed in after May 23, 2018
-	// 14:08 PDT, the returned password last used date is accurate.
+	// and returned by this operation. If users signed in during the affected time,
+	// the password last used date that is returned is the date the user last signed
+	// in before May 3, 2018. For users that signed in after May 23, 2018 14:08
+	// PDT, the returned password last used date is accurate.
 	//
 	// You can use password last used information to identify unused credentials
 	// for deletion. For example, you might delete users who did not sign in to
@@ -23015,7 +25141,7 @@ type Group struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) specifying the group. For more information
-	// about ARNs and how to use them in policies, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// about ARNs and how to use them in policies, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// Arn is a required field
@@ -23028,7 +25154,7 @@ type Group struct {
 	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The stable and unique string identifying the group. For more information
-	// about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// GroupId is a required field
@@ -23039,7 +25165,7 @@ type Group struct {
 	// GroupName is a required field
 	GroupName *string `min:"1" type:"string" required:"true"`
 
-	// The path to the group. For more information about paths, see IAM Identifiers
+	// The path to the group. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -23096,8 +25222,7 @@ type GroupDetail struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
@@ -23109,7 +25234,7 @@ type GroupDetail struct {
 	CreateDate *time.Time `type:"timestamp"`
 
 	// The stable and unique string identifying the group. For more information
-	// about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	GroupId *string `min:"16" type:"string"`
 
@@ -23119,7 +25244,7 @@ type GroupDetail struct {
 	// A list of the inline policies embedded in the group.
 	GroupPolicyList []*PolicyDetail `type:"list"`
 
-	// The path to the group. For more information about paths, see IAM Identifiers
+	// The path to the group. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
@@ -23192,7 +25317,7 @@ type InstanceProfile struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) specifying the instance profile. For more
-	// information about ARNs and how to use them in policies, see IAM Identifiers
+	// information about ARNs and how to use them in policies, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -23205,7 +25330,7 @@ type InstanceProfile struct {
 	CreateDate *time.Time `type:"timestamp" required:"true"`
 
 	// The stable and unique string identifying the instance profile. For more information
-	// about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// InstanceProfileId is a required field
@@ -23217,7 +25342,7 @@ type InstanceProfile struct {
 	InstanceProfileName *string `min:"1" type:"string" required:"true"`
 
 	// The path to the instance profile. For more information about paths, see IAM
-	// Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// Path is a required field
@@ -23227,6 +25352,11 @@ type InstanceProfile struct {
 	//
 	// Roles is a required field
 	Roles []*Role `type:"list" required:"true"`
+
+	// A list of tags that are attached to the instance profile. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -23272,6 +25402,12 @@ func (s *InstanceProfile) SetPath(v string) *InstanceProfile {
 // SetRoles sets the Roles field's value.
 func (s *InstanceProfile) SetRoles(v []*Role) *InstanceProfile {
 	s.Roles = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *InstanceProfile) SetTags(v []*Tag) *InstanceProfile {
+	s.Tags = v
 	return s
 }
 
@@ -23996,8 +26132,7 @@ type ListEntitiesForPolicyInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy for which you want the versions.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -24544,6 +26679,138 @@ func (s *ListGroupsOutput) SetMarker(v string) *ListGroupsOutput {
 	return s
 }
 
+type ListInstanceProfileTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the IAM instance profile whose tags you want to see.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
+	InstanceProfileName *string `min:"1" type:"string" required:"true"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+}
+
+// String returns the string representation
+func (s ListInstanceProfileTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListInstanceProfileTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListInstanceProfileTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListInstanceProfileTagsInput"}
+	if s.InstanceProfileName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceProfileName"))
+	}
+	if s.InstanceProfileName != nil && len(*s.InstanceProfileName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceProfileName", 1))
+	}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceProfileName sets the InstanceProfileName field's value.
+func (s *ListInstanceProfileTagsInput) SetInstanceProfileName(v string) *ListInstanceProfileTagsInput {
+	s.InstanceProfileName = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListInstanceProfileTagsInput) SetMarker(v string) *ListInstanceProfileTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListInstanceProfileTagsInput) SetMaxItems(v int64) *ListInstanceProfileTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+type ListInstanceProfileTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the IAM instance profile.
+	// Each tag consists of a key name and an associated value. If no tags are attached
+	// to the specified resource, the response contains an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListInstanceProfileTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListInstanceProfileTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListInstanceProfileTagsOutput) SetIsTruncated(v bool) *ListInstanceProfileTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListInstanceProfileTagsOutput) SetMarker(v string) *ListInstanceProfileTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListInstanceProfileTagsOutput) SetTags(v []*Tag) *ListInstanceProfileTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListInstanceProfilesForRoleInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24804,6 +27071,139 @@ func (s *ListInstanceProfilesOutput) SetMarker(v string) *ListInstanceProfilesOu
 	return s
 }
 
+type ListMFADeviceTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+
+	// The unique identifier for the IAM virtual MFA device whose tags you want
+	// to see. For virtual MFA devices, the serial number is the same as the ARN.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SerialNumber is a required field
+	SerialNumber *string `min:"9" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListMFADeviceTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListMFADeviceTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListMFADeviceTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListMFADeviceTagsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.SerialNumber == nil {
+		invalidParams.Add(request.NewErrParamRequired("SerialNumber"))
+	}
+	if s.SerialNumber != nil && len(*s.SerialNumber) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("SerialNumber", 9))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListMFADeviceTagsInput) SetMarker(v string) *ListMFADeviceTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListMFADeviceTagsInput) SetMaxItems(v int64) *ListMFADeviceTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetSerialNumber sets the SerialNumber field's value.
+func (s *ListMFADeviceTagsInput) SetSerialNumber(v string) *ListMFADeviceTagsInput {
+	s.SerialNumber = &v
+	return s
+}
+
+type ListMFADeviceTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the virtual MFA device. Each
+	// tag consists of a key name and an associated value. If no tags are attached
+	// to the specified resource, the response contains an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListMFADeviceTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListMFADeviceTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListMFADeviceTagsOutput) SetIsTruncated(v bool) *ListMFADeviceTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListMFADeviceTagsOutput) SetMarker(v string) *ListMFADeviceTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListMFADeviceTagsOutput) SetTags(v []*Tag) *ListMFADeviceTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListMFADevicesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -24929,6 +27329,140 @@ func (s *ListMFADevicesOutput) SetMarker(v string) *ListMFADevicesOutput {
 	return s
 }
 
+type ListOpenIDConnectProviderTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+
+	// The ARN of the OpenID Connect (OIDC) identity provider whose tags you want
+	// to see.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// OpenIDConnectProviderArn is a required field
+	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListOpenIDConnectProviderTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOpenIDConnectProviderTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListOpenIDConnectProviderTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListOpenIDConnectProviderTagsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.OpenIDConnectProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("OpenIDConnectProviderArn"))
+	}
+	if s.OpenIDConnectProviderArn != nil && len(*s.OpenIDConnectProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("OpenIDConnectProviderArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListOpenIDConnectProviderTagsInput) SetMarker(v string) *ListOpenIDConnectProviderTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListOpenIDConnectProviderTagsInput) SetMaxItems(v int64) *ListOpenIDConnectProviderTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetOpenIDConnectProviderArn sets the OpenIDConnectProviderArn field's value.
+func (s *ListOpenIDConnectProviderTagsInput) SetOpenIDConnectProviderArn(v string) *ListOpenIDConnectProviderTagsInput {
+	s.OpenIDConnectProviderArn = &v
+	return s
+}
+
+type ListOpenIDConnectProviderTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the OpenID Connect (OIDC)
+	// identity provider. Each tag consists of a key name and an associated value.
+	// If no tags are attached to the specified resource, the response contains
+	// an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListOpenIDConnectProviderTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListOpenIDConnectProviderTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListOpenIDConnectProviderTagsOutput) SetIsTruncated(v bool) *ListOpenIDConnectProviderTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListOpenIDConnectProviderTagsOutput) SetMarker(v string) *ListOpenIDConnectProviderTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListOpenIDConnectProviderTagsOutput) SetTags(v []*Tag) *ListOpenIDConnectProviderTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListOpenIDConnectProvidersInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -24981,12 +27515,12 @@ type ListPoliciesGrantingServiceAccessEntry struct {
 
 	// The namespace of the service that was accessed.
 	//
-	// To learn the service namespace of a service, go to Actions, Resources, and
-	// Condition Keys for AWS Services (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
-	// in the IAM User Guide. Choose the name of the service to view details for
-	// that service. In the first paragraph, find the service prefix. For example,
-	// (service prefix: a4b). For more information about service namespaces, see
-	// AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// To learn the service namespace of a service, see Actions, resources, and
+	// condition keys for AWS services (https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
+	// in the Service Authorization Reference. Choose the name of the service to
+	// view details for that service. In the first paragraph, find the service prefix.
+	// For example, (service prefix: a4b). For more information about service namespaces,
+	// see AWS service namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the AWS General Reference.
 	ServiceNamespace *string `min:"1" type:"string"`
 }
@@ -25030,12 +27564,12 @@ type ListPoliciesGrantingServiceAccessInput struct {
 
 	// The service namespace for the AWS services whose policies you want to list.
 	//
-	// To learn the service namespace for a service, go to Actions, Resources, and
-	// Condition Keys for AWS Services (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
+	// To learn the service namespace for a service, see Actions, resources, and
+	// condition keys for AWS services (https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
 	// in the IAM User Guide. Choose the name of the service to view details for
 	// that service. In the first paragraph, find the service prefix. For example,
 	// (service prefix: a4b). For more information about service namespaces, see
-	// AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// AWS service namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the AWS General Reference.
 	//
 	// ServiceNamespaces is a required field
@@ -25313,6 +27847,138 @@ func (s *ListPoliciesOutput) SetPolicies(v []*Policy) *ListPoliciesOutput {
 	return s
 }
 
+type ListPolicyTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+
+	// The ARN of the IAM customer managed policy whose tags you want to see.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyArn is a required field
+	PolicyArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListPolicyTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPolicyTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListPolicyTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListPolicyTagsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.PolicyArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyArn"))
+	}
+	if s.PolicyArn != nil && len(*s.PolicyArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListPolicyTagsInput) SetMarker(v string) *ListPolicyTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListPolicyTagsInput) SetMaxItems(v int64) *ListPolicyTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetPolicyArn sets the PolicyArn field's value.
+func (s *ListPolicyTagsInput) SetPolicyArn(v string) *ListPolicyTagsInput {
+	s.PolicyArn = &v
+	return s
+}
+
+type ListPolicyTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the IAM customer managed
+	// policy. Each tag consists of a key name and an associated value. If no tags
+	// are attached to the specified resource, the response contains an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListPolicyTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListPolicyTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListPolicyTagsOutput) SetIsTruncated(v bool) *ListPolicyTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListPolicyTagsOutput) SetMarker(v string) *ListPolicyTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListPolicyTagsOutput) SetTags(v []*Tag) *ListPolicyTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListPolicyVersionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -25335,8 +28001,7 @@ type ListPolicyVersionsInput struct {
 
 	// The Amazon Resource Name (ARN) of the IAM policy for which you want the versions.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -25411,8 +28076,8 @@ type ListPolicyVersionsOutput struct {
 
 	// A list of policy versions.
 	//
-	// For more information about managed policy versions, see Versioning for Managed
-	// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+	// For more information about managed policy versions, see Versioning for managed
+	// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
 	Versions []*PolicyVersion `type:"list"`
 }
@@ -25671,9 +28336,9 @@ type ListRoleTagsOutput struct {
 	// to use for the Marker parameter in a subsequent pagination request.
 	Marker *string `type:"string"`
 
-	// The list of tags currently that is attached to the role. Each tag consists
+	// The list of tags that are currently attached to the role. Each tag consists
 	// of a key name and an associated value. If no tags are attached to the specified
-	// role, the response contains an empty list.
+	// resource, the response contains an empty list.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
@@ -25837,6 +28502,140 @@ func (s *ListRolesOutput) SetRoles(v []*Role) *ListRolesOutput {
 	return s
 }
 
+type ListSAMLProviderTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+
+	// The ARN of the Security Assertion Markup Language (SAML) identity provider
+	// whose tags you want to see.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SAMLProviderArn is a required field
+	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListSAMLProviderTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSAMLProviderTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListSAMLProviderTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListSAMLProviderTagsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.SAMLProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SAMLProviderArn"))
+	}
+	if s.SAMLProviderArn != nil && len(*s.SAMLProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("SAMLProviderArn", 20))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListSAMLProviderTagsInput) SetMarker(v string) *ListSAMLProviderTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListSAMLProviderTagsInput) SetMaxItems(v int64) *ListSAMLProviderTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetSAMLProviderArn sets the SAMLProviderArn field's value.
+func (s *ListSAMLProviderTagsInput) SetSAMLProviderArn(v string) *ListSAMLProviderTagsInput {
+	s.SAMLProviderArn = &v
+	return s
+}
+
+type ListSAMLProviderTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the Security Assertion Markup
+	// Language (SAML) identity provider. Each tag consists of a key name and an
+	// associated value. If no tags are attached to the specified resource, the
+	// response contains an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListSAMLProviderTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListSAMLProviderTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListSAMLProviderTagsOutput) SetIsTruncated(v bool) *ListSAMLProviderTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListSAMLProviderTagsOutput) SetMarker(v string) *ListSAMLProviderTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListSAMLProviderTagsOutput) SetTags(v []*Tag) *ListSAMLProviderTagsOutput {
+	s.Tags = v
+	return s
+}
+
 type ListSAMLProvidersInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -25997,6 +28796,138 @@ func (s *ListSSHPublicKeysOutput) SetMarker(v string) *ListSSHPublicKeysOutput {
 // SetSSHPublicKeys sets the SSHPublicKeys field's value.
 func (s *ListSSHPublicKeysOutput) SetSSHPublicKeys(v []*SSHPublicKeyMetadata) *ListSSHPublicKeysOutput {
 	s.SSHPublicKeys = v
+	return s
+}
+
+type ListServerCertificateTagsInput struct {
+	_ struct{} `type:"structure"`
+
+	// Use this parameter only when paginating results and only after you receive
+	// a response indicating that the results are truncated. Set it to the value
+	// of the Marker element in the response that you received to indicate where
+	// the next call should start.
+	Marker *string `min:"1" type:"string"`
+
+	// (Optional) Use this only when paginating results to indicate the maximum
+	// number of items that you want in the response. If additional items exist
+	// beyond the maximum that you specify, the IsTruncated response element is
+	// true.
+	//
+	// If you do not include this parameter, it defaults to 100. Note that IAM might
+	// return fewer results, even when more results are available. In that case,
+	// the IsTruncated response element returns true, and Marker contains a value
+	// to include in the subsequent call that tells the service where to continue
+	// from.
+	MaxItems *int64 `min:"1" type:"integer"`
+
+	// The name of the IAM server certificate whose tags you want to see.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
+	ServerCertificateName *string `min:"1" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s ListServerCertificateTagsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListServerCertificateTagsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListServerCertificateTagsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListServerCertificateTagsInput"}
+	if s.Marker != nil && len(*s.Marker) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("Marker", 1))
+	}
+	if s.MaxItems != nil && *s.MaxItems < 1 {
+		invalidParams.Add(request.NewErrParamMinValue("MaxItems", 1))
+	}
+	if s.ServerCertificateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServerCertificateName"))
+	}
+	if s.ServerCertificateName != nil && len(*s.ServerCertificateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServerCertificateName", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListServerCertificateTagsInput) SetMarker(v string) *ListServerCertificateTagsInput {
+	s.Marker = &v
+	return s
+}
+
+// SetMaxItems sets the MaxItems field's value.
+func (s *ListServerCertificateTagsInput) SetMaxItems(v int64) *ListServerCertificateTagsInput {
+	s.MaxItems = &v
+	return s
+}
+
+// SetServerCertificateName sets the ServerCertificateName field's value.
+func (s *ListServerCertificateTagsInput) SetServerCertificateName(v string) *ListServerCertificateTagsInput {
+	s.ServerCertificateName = &v
+	return s
+}
+
+type ListServerCertificateTagsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A flag that indicates whether there are more items to return. If your results
+	// were truncated, you can use the Marker request parameter to make a subsequent
+	// pagination request that retrieves more items. Note that IAM might return
+	// fewer than the MaxItems number of results even when more results are available.
+	// Check IsTruncated after every call to ensure that you receive all of your
+	// results.
+	IsTruncated *bool `type:"boolean"`
+
+	// When IsTruncated is true, this element is present and contains the value
+	// to use for the Marker parameter in a subsequent pagination request.
+	Marker *string `type:"string"`
+
+	// The list of tags that are currently attached to the IAM server certificate.
+	// Each tag consists of a key name and an associated value. If no tags are attached
+	// to the specified resource, the response contains an empty list.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s ListServerCertificateTagsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListServerCertificateTagsOutput) GoString() string {
+	return s.String()
+}
+
+// SetIsTruncated sets the IsTruncated field's value.
+func (s *ListServerCertificateTagsOutput) SetIsTruncated(v bool) *ListServerCertificateTagsOutput {
+	s.IsTruncated = &v
+	return s
+}
+
+// SetMarker sets the Marker field's value.
+func (s *ListServerCertificateTagsOutput) SetMarker(v string) *ListServerCertificateTagsOutput {
+	s.Marker = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *ListServerCertificateTagsOutput) SetTags(v []*Tag) *ListServerCertificateTagsOutput {
+	s.Tags = v
 	return s
 }
 
@@ -26558,7 +29489,7 @@ type ListUserTagsOutput struct {
 
 	// The list of tags that are currently attached to the user. Each tag consists
 	// of a key name and an associated value. If no tags are attached to the specified
-	// user, the response contains an empty list.
+	// resource, the response contains an empty list.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
@@ -26951,16 +29882,15 @@ func (s *MFADevice) SetUserName(v string) *MFADevice {
 // This data type is used as a response element in the GetAccountAuthorizationDetails
 // operation.
 //
-// For more information about managed policies, see Managed Policies and Inline
-// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, see Managed policies and inline
+// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type ManagedPolicyDetail struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
@@ -26975,7 +29905,7 @@ type ManagedPolicyDetail struct {
 	// The identifier for the version of the policy that is set as the default (operative)
 	// version.
 	//
-	// For more information about policy versions, see Versioning for Managed Policies
+	// For more information about policy versions, see Versioning for managed policies
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
 	DefaultVersionId *string `type:"string"`
@@ -26988,21 +29918,21 @@ type ManagedPolicyDetail struct {
 
 	// The path to the policy.
 	//
-	// For more information about paths, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// For more information about paths, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
 
 	// The number of entities (users and roles) for which the policy is used as
 	// the permissions boundary.
 	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundaryUsageCount *int64 `type:"integer"`
 
 	// The stable and unique string identifying the policy.
 	//
-	// For more information about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// For more information about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	PolicyId *string `min:"16" type:"string"`
 
@@ -27110,8 +30040,7 @@ type OpenIDConnectProviderListEntry struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 }
@@ -27187,16 +30116,22 @@ type PasswordPolicy struct {
 	// reusing.
 	PasswordReusePrevention *int64 `min:"1" type:"integer"`
 
-	// Specifies whether to require lowercase characters for IAM user passwords.
+	// Specifies whether IAM user passwords must contain at least one lowercase
+	// character (a to z).
 	RequireLowercaseCharacters *bool `type:"boolean"`
 
-	// Specifies whether to require numbers for IAM user passwords.
+	// Specifies whether IAM user passwords must contain at least one numeric character
+	// (0 to 9).
 	RequireNumbers *bool `type:"boolean"`
 
-	// Specifies whether to require symbols for IAM user passwords.
+	// Specifies whether IAM user passwords must contain at least one of the following
+	// symbols:
+	//
+	// ! @ # $ % ^ & * ( ) _ + - = [ ] { } | '
 	RequireSymbols *bool `type:"boolean"`
 
-	// Specifies whether to require uppercase characters for IAM user passwords.
+	// Specifies whether IAM user passwords must contain at least one uppercase
+	// character (A to Z).
 	RequireUppercaseCharacters *bool `type:"boolean"`
 }
 
@@ -27307,16 +30242,15 @@ func (s *PermissionsBoundaryDecisionDetail) SetAllowedByPermissionsBoundary(v bo
 // This data type is used as a response element in the CreatePolicy, GetPolicy,
 // and ListPolicies operations.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type Policy struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
@@ -27342,26 +30276,31 @@ type Policy struct {
 
 	// The path to the policy.
 	//
-	// For more information about paths, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// For more information about paths, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
 
 	// The number of entities (users and roles) for which the policy is used to
 	// set the permissions boundary.
 	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundaryUsageCount *int64 `type:"integer"`
 
 	// The stable and unique string identifying the policy.
 	//
-	// For more information about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// For more information about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	PolicyId *string `min:"16" type:"string"`
 
 	// The friendly name (not ARN) identifying the policy.
 	PolicyName *string `min:"1" type:"string"`
+
+	// A list of tags that are attached to the instance profile. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the policy was last updated.
@@ -27443,6 +30382,12 @@ func (s *Policy) SetPolicyName(v string) *Policy {
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *Policy) SetTags(v []*Tag) *Policy {
+	s.Tags = v
+	return s
+}
+
 // SetUpdateDate sets the UpdateDate field's value.
 func (s *Policy) SetUpdateDate(v time.Time) *Policy {
 	s.UpdateDate = &v
@@ -27496,7 +30441,7 @@ type PolicyGrantingServiceAccess struct {
 	// The name of the entity (user or role) to which the inline policy is attached.
 	//
 	// This field is null for managed policies. For more information about these
-	// policy types, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
+	// policy types, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
 	// in the IAM User Guide.
 	EntityName *string `min:"1" type:"string"`
 
@@ -27504,14 +30449,13 @@ type PolicyGrantingServiceAccess struct {
 	// to which the inline policy is attached.
 	//
 	// This field is null for managed policies. For more information about these
-	// policy types, see Managed Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
+	// policy types, see Managed policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
 	// in the IAM User Guide.
 	EntityType *string `type:"string" enum:"PolicyOwnerEntityType"`
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	PolicyArn *string `min:"20" type:"string"`
 
@@ -27521,7 +30465,7 @@ type PolicyGrantingServiceAccess struct {
 	PolicyName *string `min:"1" type:"string" required:"true"`
 
 	// The policy type. For more information about these policy types, see Managed
-	// Policies and Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
+	// policies and inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_managed-vs-inline.html)
 	// in the IAM User Guide.
 	//
 	// PolicyType is a required field
@@ -27573,14 +30517,14 @@ func (s *PolicyGrantingServiceAccess) SetPolicyType(v string) *PolicyGrantingSer
 // This data type is used as a response element in the ListEntitiesForPolicy
 // operation.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type PolicyGroup struct {
 	_ struct{} `type:"structure"`
 
 	// The stable and unique string identifying the group. For more information
-	// about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
 	// in the IAM User Guide.
 	GroupId *string `min:"16" type:"string"`
 
@@ -27615,14 +30559,14 @@ func (s *PolicyGroup) SetGroupName(v string) *PolicyGroup {
 // This data type is used as a response element in the ListEntitiesForPolicy
 // operation.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type PolicyRole struct {
 	_ struct{} `type:"structure"`
 
 	// The stable and unique string identifying the role. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
 	// in the IAM User Guide.
 	RoleId *string `min:"16" type:"string"`
 
@@ -27657,14 +30601,14 @@ func (s *PolicyRole) SetRoleName(v string) *PolicyRole {
 // This data type is used as a response element in the ListEntitiesForPolicy
 // operation.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type PolicyUser struct {
 	_ struct{} `type:"structure"`
 
 	// The stable and unique string identifying the user. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html)
 	// in the IAM User Guide.
 	UserId *string `min:"16" type:"string"`
 
@@ -27700,8 +30644,8 @@ func (s *PolicyUser) SetUserName(v string) *PolicyUser {
 // GetPolicyVersion, ListPolicyVersions, and GetAccountAuthorizationDetails
 // operations.
 //
-// For more information about managed policies, refer to Managed Policies and
-// Inline Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
+// For more information about managed policies, refer to Managed policies and
+// inline policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-vs-inline.html)
 // in the IAM User Guide.
 type PolicyVersion struct {
 	_ struct{} `type:"structure"`
@@ -28306,8 +31250,7 @@ type RemoveClientIDFromOpenIDConnectProviderInput struct {
 	// the client ID from. You can get a list of OIDC provider ARNs by using the
 	// ListOpenIDConnectProviders operation.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// OpenIDConnectProviderArn is a required field
@@ -28838,7 +31781,7 @@ type Role struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) specifying the role. For more information
-	// about ARNs and how to use them in policies, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// about ARNs and how to use them in policies, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide guide.
 	//
 	// Arn is a required field
@@ -28862,7 +31805,7 @@ type Role struct {
 	// parameter.
 	MaxSessionDuration *int64 `min:"3600" type:"integer"`
 
-	// The path to the role. For more information about paths, see IAM Identifiers
+	// The path to the role. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -28871,13 +31814,13 @@ type Role struct {
 
 	// The ARN of the policy used to set the permissions boundary for the role.
 	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the role. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// RoleId is a required field
@@ -28888,7 +31831,7 @@ type Role struct {
 	// Activity is only reported for the trailing 400 days. This period can be shorter
 	// if your Region began supporting these features within the last year. The
 	// role might have been used more than 400 days ago. For more information, see
-	// Regions Where Data Is Tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
+	// Regions where data is tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
 	// in the IAM User Guide.
 	RoleLastUsed *RoleLastUsed `type:"structure"`
 
@@ -28897,8 +31840,8 @@ type Role struct {
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 
-	// A list of tags that are attached to the specified role. For more information
-	// about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that are attached to the role. For more information about
+	// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	Tags []*Tag `type:"list"`
 }
@@ -28988,8 +31931,7 @@ type RoleDetail struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
@@ -29007,20 +31949,20 @@ type RoleDetail struct {
 	// A list of instance profiles that contain this role.
 	InstanceProfileList []*InstanceProfile `type:"list"`
 
-	// The path to the role. For more information about paths, see IAM Identifiers
+	// The path to the role. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
 
 	// The ARN of the policy used to set the permissions boundary for the role.
 	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
 	// The stable and unique string identifying the role. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	RoleId *string `min:"16" type:"string"`
 
@@ -29029,7 +31971,7 @@ type RoleDetail struct {
 	// Activity is only reported for the trailing 400 days. This period can be shorter
 	// if your Region began supporting these features within the last year. The
 	// role might have been used more than 400 days ago. For more information, see
-	// Regions Where Data Is Tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
+	// Regions where data is tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
 	// in the IAM User Guide.
 	RoleLastUsed *RoleLastUsed `type:"structure"`
 
@@ -29040,8 +31982,8 @@ type RoleDetail struct {
 	// access (permissions) policies.
 	RolePolicyList []*PolicyDetail `type:"list"`
 
-	// A list of tags that are attached to the specified role. For more information
-	// about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that are attached to the role. For more information about
+	// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	Tags []*Tag `type:"list"`
 }
@@ -29133,7 +32075,7 @@ func (s *RoleDetail) SetTags(v []*Tag) *RoleDetail {
 // Activity is only reported for the trailing 400 days. This period can be shorter
 // if your Region began supporting these features within the last year. The
 // role might have been used more than 400 days ago. For more information, see
-// Regions Where Data Is Tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
+// Regions where data is tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
 // in the IAM User Guide.
 //
 // This data type is returned as a response element in the GetRole and GetAccountAuthorizationDetails
@@ -29145,8 +32087,8 @@ type RoleLastUsed struct {
 	// that the role was last used.
 	//
 	// This field is null if the role has not been used within the IAM tracking
-	// period. For more information about the tracking period, see Regions Where
-	// Data Is Tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
+	// period. For more information about the tracking period, see Regions where
+	// data is tracked (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#access-advisor_tracking-period)
 	// in the IAM User Guide.
 	LastUsedDate *time.Time `type:"timestamp"`
 
@@ -29424,6 +32366,11 @@ type ServerCertificate struct {
 	//
 	// ServerCertificateMetadata is a required field
 	ServerCertificateMetadata *ServerCertificateMetadata `type:"structure" required:"true"`
+
+	// A list of tags that are attached to the server certificate. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -29454,6 +32401,12 @@ func (s *ServerCertificate) SetServerCertificateMetadata(v *ServerCertificateMet
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *ServerCertificate) SetTags(v []*Tag) *ServerCertificate {
+	s.Tags = v
+	return s
+}
+
 // Contains information about a server certificate without its certificate body,
 // certificate chain, and private key.
 //
@@ -29463,7 +32416,7 @@ type ServerCertificateMetadata struct {
 	_ struct{} `type:"structure"`
 
 	// The Amazon Resource Name (ARN) specifying the server certificate. For more
-	// information about ARNs and how to use them in policies, see IAM Identifiers
+	// information about ARNs and how to use them in policies, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
@@ -29474,14 +32427,14 @@ type ServerCertificateMetadata struct {
 	Expiration *time.Time `type:"timestamp"`
 
 	// The path to the server certificate. For more information about paths, see
-	// IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
 	// The stable and unique string identifying the server certificate. For more
-	// information about IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// information about IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// ServerCertificateId is a required field
@@ -29578,12 +32531,12 @@ type ServiceLastAccessed struct {
 
 	// The namespace of the service in which access was attempted.
 	//
-	// To learn the service namespace of a service, go to Actions, Resources, and
-	// Condition Keys for AWS Services (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_actions-resources-contextkeys.html)
-	// in the IAM User Guide. Choose the name of the service to view details for
-	// that service. In the first paragraph, find the service prefix. For example,
-	// (service prefix: a4b). For more information about service namespaces, see
-	// AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
+	// To learn the service namespace of a service, see Actions, resources, and
+	// condition keys for AWS services (https://docs.aws.amazon.com/service-authorization/latest/reference/reference_policies_actions-resources-contextkeys.html)
+	// in the Service Authorization Reference. Choose the name of the service to
+	// view details for that service. In the first paragraph, find the service prefix.
+	// For example, (service prefix: a4b). For more information about service namespaces,
+	// see AWS Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#genref-aws-service-namespaces)
 	// in the AWS General Reference.
 	//
 	// ServiceNamespace is a required field
@@ -29845,8 +32798,7 @@ type SetDefaultPolicyVersionInput struct {
 	// The Amazon Resource Name (ARN) of the IAM policy whose default version you
 	// want to set.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicyArn is a required field
@@ -29854,8 +32806,8 @@ type SetDefaultPolicyVersionInput struct {
 
 	// The version of the policy to set as the default (operative) version.
 	//
-	// For more information about managed policy versions, see Versioning for Managed
-	// Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
+	// For more information about managed policy versions, see Versioning for managed
+	// policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/policies-managed-versions.html)
 	// in the IAM User Guide.
 	//
 	// VersionId is a required field
@@ -29926,7 +32878,7 @@ type SetSecurityTokenServicePreferencesInput struct {
 	// are valid in all Regions. However, version 2 tokens are longer and might
 	// affect systems where you temporarily store tokens.
 	//
-	// For information, see Activating and Deactivating STS in an AWS Region (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
+	// For information, see Activating and deactivating STS in an AWS region (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_enable-regions.html)
 	// in the IAM User Guide.
 	//
 	// GlobalEndpointTokenVersion is a required field
@@ -30093,8 +33045,8 @@ type SimulateCustomPolicyInput struct {
 	// The IAM permissions boundary policy to simulate. The permissions boundary
 	// sets the maximum permissions that an IAM entity can have. You can input only
 	// one permissions boundary when you pass a policy to this operation. For more
-	// information about permissions boundaries, see Permissions Boundaries for
-	// IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// information about permissions boundaries, see Permissions boundaries for
+	// IAM entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide. The policy input is specified as a string that contains
 	// the complete, valid JSON text of a permissions boundary policy.
 	//
@@ -30140,7 +33092,8 @@ type SimulateCustomPolicyInput struct {
 	// is not provided, then the value defaults to * (all resources). Each API in
 	// the ActionNames parameter is evaluated for each resource in this list. The
 	// simulation determines the access result (allowed or denied) of each combination
-	// and reports it in the response.
+	// and reports it in the response. You can simulate resources that don't exist
+	// in your account.
 	//
 	// The simulation does not automatically retrieve policies for the specified
 	// resources. If you want to include a resource policy in the simulation, then
@@ -30149,8 +33102,7 @@ type SimulateCustomPolicyInput struct {
 	// If you include a ResourcePolicy, then it must be applicable to all of the
 	// resources included in the simulation or you receive an invalid input error.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	ResourceArns []*string `type:"list"`
 
@@ -30167,7 +33119,7 @@ type SimulateCustomPolicyInput struct {
 	// must specify that volume as a resource. If the EC2 scenario includes VPC,
 	// then you must supply the network-interface resource. If it includes an IP
 	// subnet, then you must specify the subnet resource. For more information on
-	// the EC2 scenario options, see Supported Platforms (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
+	// the EC2 scenario options, see Supported platforms (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
 	// in the Amazon EC2 User Guide.
 	//
 	//    * EC2-Classic-InstanceStore instance, image, security-group
@@ -30412,8 +33364,7 @@ type SimulatePrincipalPolicyInput struct {
 	// is not the ARN for an IAM user. This is required so that the resource-based
 	// policy's Principal element has a value to use in evaluating the policy.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	CallerArn *string `min:"1" type:"string"`
 
@@ -30446,7 +33397,7 @@ type SimulatePrincipalPolicyInput struct {
 	// if a permissions boundary is attached to an entity and you pass in a different
 	// permissions boundary policy using this parameter, then the new permissions
 	// boundary policy is used for the simulation. For more information about permissions
-	// boundaries, see Permissions Boundaries for IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// boundaries, see Permissions boundaries for IAM entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide. The policy input is specified as a string containing
 	// the complete, valid JSON text of a permissions boundary policy.
 	//
@@ -30486,8 +33437,7 @@ type SimulatePrincipalPolicyInput struct {
 	// If you specify a user, the simulation also includes all policies that are
 	// attached to any groups the user belongs to.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// PolicySourceArn is a required field
@@ -30497,14 +33447,14 @@ type SimulatePrincipalPolicyInput struct {
 	// is not provided, then the value defaults to * (all resources). Each API in
 	// the ActionNames parameter is evaluated for each resource in this list. The
 	// simulation determines the access result (allowed or denied) of each combination
-	// and reports it in the response.
+	// and reports it in the response. You can simulate resources that don't exist
+	// in your account.
 	//
 	// The simulation does not automatically retrieve policies for the specified
 	// resources. If you want to include a resource policy in the simulation, then
 	// you must include the policy as a string in the ResourcePolicy parameter.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	ResourceArns []*string `type:"list"`
 
@@ -30521,7 +33471,7 @@ type SimulatePrincipalPolicyInput struct {
 	// must specify that volume as a resource. If the EC2 scenario includes VPC,
 	// then you must supply the network interface resource. If it includes an IP
 	// subnet, then you must specify the subnet resource. For more information on
-	// the EC2 scenario options, see Supported Platforms (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
+	// the EC2 scenario options, see Supported platforms (https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-supported-platforms.html)
 	// in the Amazon EC2 User Guide.
 	//
 	//    * EC2-Classic-InstanceStore instance, image, security group
@@ -30753,8 +33703,8 @@ func (s *Statement) SetStartPosition(v *Position) *Statement {
 }
 
 // A structure that represents user-provided metadata that can be associated
-// with a resource such as an IAM user or role. For more information about tagging,
-// see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+// with an IAM resource. For more information about tagging, see Tagging IAM
+// resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 // in the IAM User Guide.
 type Tag struct {
 	_ struct{} `type:"structure"`
@@ -30820,10 +33770,347 @@ func (s *Tag) SetValue(v string) *Tag {
 	return s
 }
 
+type TagInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the IAM instance profile to which you want to add tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
+	InstanceProfileName *string `min:"1" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the IAM instance profile. Each
+	// tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagInstanceProfileInput"}
+	if s.InstanceProfileName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceProfileName"))
+	}
+	if s.InstanceProfileName != nil && len(*s.InstanceProfileName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceProfileName", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceProfileName sets the InstanceProfileName field's value.
+func (s *TagInstanceProfileInput) SetInstanceProfileName(v string) *TagInstanceProfileInput {
+	s.InstanceProfileName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagInstanceProfileInput) SetTags(v []*Tag) *TagInstanceProfileInput {
+	s.Tags = v
+	return s
+}
+
+type TagInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+type TagMFADeviceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier for the IAM virtual MFA device to which you want to
+	// add tags. For virtual MFA devices, the serial number is the same as the ARN.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SerialNumber is a required field
+	SerialNumber *string `min:"9" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the IAM virtual MFA device. Each
+	// tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagMFADeviceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagMFADeviceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagMFADeviceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagMFADeviceInput"}
+	if s.SerialNumber == nil {
+		invalidParams.Add(request.NewErrParamRequired("SerialNumber"))
+	}
+	if s.SerialNumber != nil && len(*s.SerialNumber) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("SerialNumber", 9))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSerialNumber sets the SerialNumber field's value.
+func (s *TagMFADeviceInput) SetSerialNumber(v string) *TagMFADeviceInput {
+	s.SerialNumber = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagMFADeviceInput) SetTags(v []*Tag) *TagMFADeviceInput {
+	s.Tags = v
+	return s
+}
+
+type TagMFADeviceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagMFADeviceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagMFADeviceOutput) GoString() string {
+	return s.String()
+}
+
+type TagOpenIDConnectProviderInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the OIDC identity provider in IAM to which you want to add tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// OpenIDConnectProviderArn is a required field
+	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the OIDC identity provider in
+	// IAM. Each tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagOpenIDConnectProviderInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagOpenIDConnectProviderInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagOpenIDConnectProviderInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagOpenIDConnectProviderInput"}
+	if s.OpenIDConnectProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("OpenIDConnectProviderArn"))
+	}
+	if s.OpenIDConnectProviderArn != nil && len(*s.OpenIDConnectProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("OpenIDConnectProviderArn", 20))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOpenIDConnectProviderArn sets the OpenIDConnectProviderArn field's value.
+func (s *TagOpenIDConnectProviderInput) SetOpenIDConnectProviderArn(v string) *TagOpenIDConnectProviderInput {
+	s.OpenIDConnectProviderArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagOpenIDConnectProviderInput) SetTags(v []*Tag) *TagOpenIDConnectProviderInput {
+	s.Tags = v
+	return s
+}
+
+type TagOpenIDConnectProviderOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagOpenIDConnectProviderOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagOpenIDConnectProviderOutput) GoString() string {
+	return s.String()
+}
+
+type TagPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the IAM customer managed policy to which you want to add tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyArn is a required field
+	PolicyArn *string `min:"20" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the IAM customer managed policy.
+	// Each tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagPolicyInput"}
+	if s.PolicyArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyArn"))
+	}
+	if s.PolicyArn != nil && len(*s.PolicyArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyArn", 20))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPolicyArn sets the PolicyArn field's value.
+func (s *TagPolicyInput) SetPolicyArn(v string) *TagPolicyInput {
+	s.PolicyArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagPolicyInput) SetTags(v []*Tag) *TagPolicyInput {
+	s.Tags = v
+	return s
+}
+
+type TagPolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagPolicyOutput) GoString() string {
+	return s.String()
+}
+
 type TagRoleInput struct {
 	_ struct{} `type:"structure"`
 
-	// The name of the role that you want to add tags to.
+	// The name of the IAM role to which you want to add tags.
 	//
 	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters that consist of upper and lowercase alphanumeric characters
@@ -30832,8 +34119,8 @@ type TagRoleInput struct {
 	// RoleName is a required field
 	RoleName *string `min:"1" type:"string" required:"true"`
 
-	// The list of tags that you want to attach to the role. Each tag consists of
-	// a key name and an associated value. You can specify this with a JSON string.
+	// The list of tags that you want to attach to the IAM role. Each tag consists
+	// of a key name and an associated value.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
@@ -30904,16 +34191,184 @@ func (s TagRoleOutput) GoString() string {
 	return s.String()
 }
 
+type TagSAMLProviderInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the SAML identity provider in IAM to which you want to add tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SAMLProviderArn is a required field
+	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the SAML identity provider in
+	// IAM. Each tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagSAMLProviderInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagSAMLProviderInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagSAMLProviderInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagSAMLProviderInput"}
+	if s.SAMLProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SAMLProviderArn"))
+	}
+	if s.SAMLProviderArn != nil && len(*s.SAMLProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("SAMLProviderArn", 20))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSAMLProviderArn sets the SAMLProviderArn field's value.
+func (s *TagSAMLProviderInput) SetSAMLProviderArn(v string) *TagSAMLProviderInput {
+	s.SAMLProviderArn = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagSAMLProviderInput) SetTags(v []*Tag) *TagSAMLProviderInput {
+	s.Tags = v
+	return s
+}
+
+type TagSAMLProviderOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagSAMLProviderOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagSAMLProviderOutput) GoString() string {
+	return s.String()
+}
+
+type TagServerCertificateInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the IAM server certificate to which you want to add tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
+	ServerCertificateName *string `min:"1" type:"string" required:"true"`
+
+	// The list of tags that you want to attach to the IAM server certificate. Each
+	// tag consists of a key name and an associated value.
+	//
+	// Tags is a required field
+	Tags []*Tag `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s TagServerCertificateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagServerCertificateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *TagServerCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "TagServerCertificateInput"}
+	if s.ServerCertificateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServerCertificateName"))
+	}
+	if s.ServerCertificateName != nil && len(*s.ServerCertificateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServerCertificateName", 1))
+	}
+	if s.Tags == nil {
+		invalidParams.Add(request.NewErrParamRequired("Tags"))
+	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetServerCertificateName sets the ServerCertificateName field's value.
+func (s *TagServerCertificateInput) SetServerCertificateName(v string) *TagServerCertificateInput {
+	s.ServerCertificateName = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *TagServerCertificateInput) SetTags(v []*Tag) *TagServerCertificateInput {
+	s.Tags = v
+	return s
+}
+
+type TagServerCertificateOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s TagServerCertificateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TagServerCertificateOutput) GoString() string {
+	return s.String()
+}
+
 type TagUserInput struct {
 	_ struct{} `type:"structure"`
 
-	// The list of tags that you want to attach to the user. Each tag consists of
-	// a key name and an associated value.
+	// The list of tags that you want to attach to the IAM user. Each tag consists
+	// of a key name and an associated value.
 	//
 	// Tags is a required field
 	Tags []*Tag `type:"list" required:"true"`
 
-	// The name of the user that you want to add tags to.
+	// The name of the IAM user to which you want to add tags.
 	//
 	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
 	// a string of characters that consist of upper and lowercase alphanumeric characters
@@ -31002,8 +34457,7 @@ type TrackedActionLastAccessed struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	LastAccessedEntity *string `min:"20" type:"string"`
 
@@ -31055,6 +34509,305 @@ func (s *TrackedActionLastAccessed) SetLastAccessedRegion(v string) *TrackedActi
 func (s *TrackedActionLastAccessed) SetLastAccessedTime(v time.Time) *TrackedActionLastAccessed {
 	s.LastAccessedTime = &v
 	return s
+}
+
+type UntagInstanceProfileInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the IAM instance profile from which you want to remove tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// InstanceProfileName is a required field
+	InstanceProfileName *string `min:"1" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified instance profile.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagInstanceProfileInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagInstanceProfileInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagInstanceProfileInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagInstanceProfileInput"}
+	if s.InstanceProfileName == nil {
+		invalidParams.Add(request.NewErrParamRequired("InstanceProfileName"))
+	}
+	if s.InstanceProfileName != nil && len(*s.InstanceProfileName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("InstanceProfileName", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetInstanceProfileName sets the InstanceProfileName field's value.
+func (s *UntagInstanceProfileInput) SetInstanceProfileName(v string) *UntagInstanceProfileInput {
+	s.InstanceProfileName = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagInstanceProfileInput) SetTagKeys(v []*string) *UntagInstanceProfileInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagInstanceProfileOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagInstanceProfileOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagInstanceProfileOutput) GoString() string {
+	return s.String()
+}
+
+type UntagMFADeviceInput struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier for the IAM virtual MFA device from which you want
+	// to remove tags. For virtual MFA devices, the serial number is the same as
+	// the ARN.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SerialNumber is a required field
+	SerialNumber *string `min:"9" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified instance profile.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagMFADeviceInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagMFADeviceInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagMFADeviceInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagMFADeviceInput"}
+	if s.SerialNumber == nil {
+		invalidParams.Add(request.NewErrParamRequired("SerialNumber"))
+	}
+	if s.SerialNumber != nil && len(*s.SerialNumber) < 9 {
+		invalidParams.Add(request.NewErrParamMinLen("SerialNumber", 9))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSerialNumber sets the SerialNumber field's value.
+func (s *UntagMFADeviceInput) SetSerialNumber(v string) *UntagMFADeviceInput {
+	s.SerialNumber = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagMFADeviceInput) SetTagKeys(v []*string) *UntagMFADeviceInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagMFADeviceOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagMFADeviceOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagMFADeviceOutput) GoString() string {
+	return s.String()
+}
+
+type UntagOpenIDConnectProviderInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the OIDC provider in IAM from which you want to remove tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// OpenIDConnectProviderArn is a required field
+	OpenIDConnectProviderArn *string `min:"20" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified OIDC provider.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagOpenIDConnectProviderInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagOpenIDConnectProviderInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagOpenIDConnectProviderInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagOpenIDConnectProviderInput"}
+	if s.OpenIDConnectProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("OpenIDConnectProviderArn"))
+	}
+	if s.OpenIDConnectProviderArn != nil && len(*s.OpenIDConnectProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("OpenIDConnectProviderArn", 20))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetOpenIDConnectProviderArn sets the OpenIDConnectProviderArn field's value.
+func (s *UntagOpenIDConnectProviderInput) SetOpenIDConnectProviderArn(v string) *UntagOpenIDConnectProviderInput {
+	s.OpenIDConnectProviderArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagOpenIDConnectProviderInput) SetTagKeys(v []*string) *UntagOpenIDConnectProviderInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagOpenIDConnectProviderOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagOpenIDConnectProviderOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagOpenIDConnectProviderOutput) GoString() string {
+	return s.String()
+}
+
+type UntagPolicyInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the IAM customer managed policy from which you want to remove
+	// tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// PolicyArn is a required field
+	PolicyArn *string `min:"20" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified policy.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagPolicyInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagPolicyInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagPolicyInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagPolicyInput"}
+	if s.PolicyArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("PolicyArn"))
+	}
+	if s.PolicyArn != nil && len(*s.PolicyArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("PolicyArn", 20))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetPolicyArn sets the PolicyArn field's value.
+func (s *UntagPolicyInput) SetPolicyArn(v string) *UntagPolicyInput {
+	s.PolicyArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagPolicyInput) SetTagKeys(v []*string) *UntagPolicyInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagPolicyOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagPolicyOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagPolicyOutput) GoString() string {
+	return s.String()
 }
 
 type UntagRoleInput struct {
@@ -31128,6 +34881,155 @@ func (s UntagRoleOutput) String() string {
 
 // GoString returns the string representation
 func (s UntagRoleOutput) GoString() string {
+	return s.String()
+}
+
+type UntagSAMLProviderInput struct {
+	_ struct{} `type:"structure"`
+
+	// The ARN of the SAML identity provider in IAM from which you want to remove
+	// tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// SAMLProviderArn is a required field
+	SAMLProviderArn *string `min:"20" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified SAML identity provider.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagSAMLProviderInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagSAMLProviderInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagSAMLProviderInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagSAMLProviderInput"}
+	if s.SAMLProviderArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("SAMLProviderArn"))
+	}
+	if s.SAMLProviderArn != nil && len(*s.SAMLProviderArn) < 20 {
+		invalidParams.Add(request.NewErrParamMinLen("SAMLProviderArn", 20))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetSAMLProviderArn sets the SAMLProviderArn field's value.
+func (s *UntagSAMLProviderInput) SetSAMLProviderArn(v string) *UntagSAMLProviderInput {
+	s.SAMLProviderArn = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagSAMLProviderInput) SetTagKeys(v []*string) *UntagSAMLProviderInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagSAMLProviderOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagSAMLProviderOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagSAMLProviderOutput) GoString() string {
+	return s.String()
+}
+
+type UntagServerCertificateInput struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the IAM server certificate from which you want to remove tags.
+	//
+	// This parameter accepts (through its regex pattern (http://wikipedia.org/wiki/regex))
+	// a string of characters that consist of upper and lowercase alphanumeric characters
+	// with no spaces. You can also include any of the following characters: =,.@-
+	//
+	// ServerCertificateName is a required field
+	ServerCertificateName *string `min:"1" type:"string" required:"true"`
+
+	// A list of key names as a simple array of strings. The tags with matching
+	// keys are removed from the specified IAM server certificate.
+	//
+	// TagKeys is a required field
+	TagKeys []*string `type:"list" required:"true"`
+}
+
+// String returns the string representation
+func (s UntagServerCertificateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagServerCertificateInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UntagServerCertificateInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UntagServerCertificateInput"}
+	if s.ServerCertificateName == nil {
+		invalidParams.Add(request.NewErrParamRequired("ServerCertificateName"))
+	}
+	if s.ServerCertificateName != nil && len(*s.ServerCertificateName) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("ServerCertificateName", 1))
+	}
+	if s.TagKeys == nil {
+		invalidParams.Add(request.NewErrParamRequired("TagKeys"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetServerCertificateName sets the ServerCertificateName field's value.
+func (s *UntagServerCertificateInput) SetServerCertificateName(v string) *UntagServerCertificateInput {
+	s.ServerCertificateName = &v
+	return s
+}
+
+// SetTagKeys sets the TagKeys field's value.
+func (s *UntagServerCertificateInput) SetTagKeys(v []*string) *UntagServerCertificateInput {
+	s.TagKeys = v
+	return s
+}
+
+type UntagServerCertificateOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UntagServerCertificateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UntagServerCertificateOutput) GoString() string {
 	return s.String()
 }
 
@@ -31218,8 +35120,8 @@ type UpdateAccessKeyInput struct {
 	AccessKeyId *string `min:"16" type:"string" required:"true"`
 
 	// The status you want to assign to the secret access key. Active means that
-	// the key can be used for API calls to AWS, while Inactive means that the key
-	// cannot be used.
+	// the key can be used for programmatic calls to AWS, while Inactive means that
+	// the key cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"StatusType"`
@@ -31300,8 +35202,8 @@ type UpdateAccountPasswordPolicyInput struct {
 	_ struct{} `type:"structure"`
 
 	// Allows all IAM users in your account to use the AWS Management Console to
-	// change their own passwords. For more information, see Letting IAM Users Change
-	// Their Own Passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/HowToPwdIAMUser.html)
+	// change their own passwords. For more information, see Letting IAM users change
+	// their own passwords (https://docs.aws.amazon.com/IAM/latest/UserGuide/HowToPwdIAMUser.html)
 	// in the IAM User Guide.
 	//
 	// If you do not specify a value for this parameter, then the operation uses
@@ -31761,8 +35663,7 @@ type UpdateOpenIDConnectProviderThumbprintInput struct {
 	// which you want to update the thumbprint. You can get a list of OIDC provider
 	// ARNs by using the ListOpenIDConnectProviders operation.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// OpenIDConnectProviderArn is a required field
@@ -31925,7 +35826,7 @@ type UpdateRoleInput struct {
 	// for the DurationSeconds parameter, their security credentials are valid for
 	// one hour by default. This applies when you use the AssumeRole* API operations
 	// or the assume-role* CLI operations but does not apply when you use those
-	// operations to create a console URL. For more information, see Using IAM Roles
+	// operations to create a console URL. For more information, see Using IAM roles
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use.html) in the
 	// IAM User Guide.
 	MaxSessionDuration *int64 `min:"3600" type:"integer"`
@@ -32011,8 +35912,7 @@ type UpdateSAMLProviderInput struct {
 
 	// The Amazon Resource Name (ARN) of the SAML provider to update.
 	//
-	// For more information about ARNs, see Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, see Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	//
 	// SAMLProviderArn is a required field
@@ -32384,8 +36284,8 @@ type UpdateSigningCertificateInput struct {
 	CertificateId *string `min:"24" type:"string" required:"true"`
 
 	// The status you want to assign to the certificate. Active means that the certificate
-	// can be used for API calls to AWS Inactive means that the certificate cannot
-	// be used.
+	// can be used for programmatic calls to AWS Inactive means that the certificate
+	// cannot be used.
 	//
 	// Status is a required field
 	Status *string `type:"string" required:"true" enum:"StatusType"`
@@ -32697,7 +36597,7 @@ type UploadServerCertificateInput struct {
 	CertificateChain *string `min:"1" type:"string"`
 
 	// The path for the server certificate. For more information about paths, see
-	// IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// This parameter is optional. If it is not included, it defaults to a slash
@@ -32740,6 +36640,15 @@ type UploadServerCertificateInput struct {
 	//
 	// ServerCertificateName is a required field
 	ServerCertificateName *string `min:"1" type:"string" required:"true"`
+
+	// A list of tags that you want to attach to the new IAM server certificate
+	// resource. Each tag consists of a key name and an associated value. For more
+	// information about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	//
+	// If any one of the tags is invalid or if you exceed the allowed maximum number
+	// of tags, then the entire request fails and the resource is not created.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -32779,6 +36688,16 @@ func (s *UploadServerCertificateInput) Validate() error {
 	if s.ServerCertificateName != nil && len(*s.ServerCertificateName) < 1 {
 		invalidParams.Add(request.NewErrParamMinLen("ServerCertificateName", 1))
 	}
+	if s.Tags != nil {
+		for i, v := range s.Tags {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Tags", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 
 	if invalidParams.Len() > 0 {
 		return invalidParams
@@ -32816,6 +36735,12 @@ func (s *UploadServerCertificateInput) SetServerCertificateName(v string) *Uploa
 	return s
 }
 
+// SetTags sets the Tags field's value.
+func (s *UploadServerCertificateInput) SetTags(v []*Tag) *UploadServerCertificateInput {
+	s.Tags = v
+	return s
+}
+
 // Contains the response to a successful UploadServerCertificate request.
 type UploadServerCertificateOutput struct {
 	_ struct{} `type:"structure"`
@@ -32823,6 +36748,12 @@ type UploadServerCertificateOutput struct {
 	// The meta information of the uploaded server certificate without its certificate
 	// body, certificate chain, and private key.
 	ServerCertificateMetadata *ServerCertificateMetadata `type:"structure"`
+
+	// A list of tags that are attached to the new IAM server certificate. The returned
+	// list of tags is sorted by tag key. For more information about tagging, see
+	// Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
 }
 
 // String returns the string representation
@@ -32838,6 +36769,12 @@ func (s UploadServerCertificateOutput) GoString() string {
 // SetServerCertificateMetadata sets the ServerCertificateMetadata field's value.
 func (s *UploadServerCertificateOutput) SetServerCertificateMetadata(v *ServerCertificateMetadata) *UploadServerCertificateOutput {
 	s.ServerCertificateMetadata = v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *UploadServerCertificateOutput) SetTags(v []*Tag) *UploadServerCertificateOutput {
+	s.Tags = v
 	return s
 }
 
@@ -32964,7 +36901,7 @@ type User struct {
 	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
 	// when the user's password was last used to sign in to an AWS website. For
 	// a list of AWS websites that capture a user's last sign-in time, see the Credential
-	// Reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
+	// reports (https://docs.aws.amazon.com/IAM/latest/UserGuide/credential-reports.html)
 	// topic in the IAM User Guide. If a password is used more than once in a five-minute
 	// span, only the first use is returned in this field. If the field is null
 	// (no value), then it indicates that they never signed in with a password.
@@ -32982,27 +36919,27 @@ type User struct {
 	// This value is returned only in the GetUser and ListUsers operations.
 	PasswordLastUsed *time.Time `type:"timestamp"`
 
-	// The path to the user. For more information about paths, see IAM Identifiers
+	// The path to the user. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
+	//
+	// The ARN of the policy used to set the permissions boundary for the user.
 	//
 	// Path is a required field
 	Path *string `min:"1" type:"string" required:"true"`
 
-	// The ARN of the policy used to set the permissions boundary for the user.
-	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
-	// A list of tags that are associated with the specified user. For more information
-	// about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that are associated with the user. For more information about
+	// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	Tags []*Tag `type:"list"`
 
 	// The stable and unique string identifying the user. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	//
 	// UserId is a required field
@@ -33082,8 +37019,7 @@ type UserDetail struct {
 
 	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
 	//
-	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
-	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
 	// in the AWS General Reference.
 	Arn *string `min:"20" type:"string"`
 
@@ -33097,25 +37033,25 @@ type UserDetail struct {
 	// A list of IAM groups that the user is in.
 	GroupList []*string `type:"list"`
 
-	// The path to the user. For more information about paths, see IAM Identifiers
+	// The path to the user. For more information about paths, see IAM identifiers
 	// (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	Path *string `min:"1" type:"string"`
 
 	// The ARN of the policy used to set the permissions boundary for the user.
 	//
-	// For more information about permissions boundaries, see Permissions Boundaries
-	// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+	// For more information about permissions boundaries, see Permissions boundaries
+	// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide.
 	PermissionsBoundary *AttachedPermissionsBoundary `type:"structure"`
 
-	// A list of tags that are associated with the specified user. For more information
-	// about tagging, see Tagging IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// A list of tags that are associated with the user. For more information about
+	// tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
 	// in the IAM User Guide.
 	Tags []*Tag `type:"list"`
 
 	// The stable and unique string identifying the user. For more information about
-	// IDs, see IAM Identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
+	// IDs, see IAM identifiers (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html)
 	// in the IAM User Guide.
 	UserId *string `min:"16" type:"string"`
 
@@ -33222,6 +37158,11 @@ type VirtualMFADevice struct {
 	// SerialNumber is a required field
 	SerialNumber *string `min:"9" type:"string" required:"true"`
 
+	// A list of tags that are attached to the virtual MFA device. For more information
+	// about tagging, see Tagging IAM resources (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_tags.html)
+	// in the IAM User Guide.
+	Tags []*Tag `type:"list"`
+
 	// The IAM user associated with this virtual MFA device.
 	User *User `type:"structure"`
 }
@@ -33257,6 +37198,12 @@ func (s *VirtualMFADevice) SetQRCodePNG(v []byte) *VirtualMFADevice {
 // SetSerialNumber sets the SerialNumber field's value.
 func (s *VirtualMFADevice) SetSerialNumber(v string) *VirtualMFADevice {
 	s.SerialNumber = &v
+	return s
+}
+
+// SetTags sets the Tags field's value.
+func (s *VirtualMFADevice) SetTags(v []*Tag) *VirtualMFADevice {
+	s.Tags = v
 	return s
 }
 
@@ -33589,8 +37536,8 @@ func PolicyType_Values() []string {
 // The policy usage type that indicates whether the policy is used as a permissions
 // policy or as the permissions boundary for an entity.
 //
-// For more information about permissions boundaries, see Permissions Boundaries
-// for IAM Identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
+// For more information about permissions boundaries, see Permissions boundaries
+// for IAM identities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 // in the IAM User Guide.
 const (
 	// PolicyUsageTypePermissionsPolicy is a PolicyUsageType enum value

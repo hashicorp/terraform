@@ -116,7 +116,7 @@ github.com/armon/circbuf
 # github.com/armon/go-radix v1.0.0
 ## explicit
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.37.2
+# github.com/aws/aws-sdk-go v1.38.21
 ## explicit
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
