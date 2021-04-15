@@ -48,6 +48,9 @@ const (
 //     svc := s3.New(mySession, aws.NewConfig().WithRegion("us-west-2"))
 func New(p client.ConfigProvider, cfgs ...*aws.Config) *S3 {
 	c := p.ClientConfig(EndpointsID, cfgs...)
+	if c.SigningNameDerived || len(c.SigningName) == 0 {
+		c.SigningName = "s3"
+	}
 	return newClient(*c.Config, c.Handlers, c.PartitionID, c.Endpoint, c.SigningRegion, c.SigningName)
 }
 

@@ -82,7 +82,8 @@ func (c *IAM) AddClientIDToOpenIDConnectProviderRequest(input *AddClientIDToOpen
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -156,10 +157,12 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 // AddRoleToInstanceProfile API operation for AWS Identity and Access Management.
 //
 // Adds the specified IAM role to the specified instance profile. An instance
-// profile can contain only one role, and this limit cannot be increased. You
-// can remove the existing role and then add a different role to an instance
-// profile. You must then wait for the change to appear across all of AWS because
-// of eventual consistency (https://en.wikipedia.org/wiki/Eventual_consistency).
+// profile can contain only one role. (The number and size of IAM resources
+// in an AWS account are limited. For more information, see IAM and STS Quotas
+// (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
+// in the IAM User Guide.) You can remove the existing role and then add a different
+// role to an instance profile. You must then wait for the change to appear
+// across all of AWS because of eventual consistency (https://en.wikipedia.org/wiki/Eventual_consistency).
 // To force the change, you must disassociate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DisassociateIamInstanceProfile.html)
 // and then associate the instance profile (https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_AssociateIamInstanceProfile.html),
 // or you can stop your instance and then restart it.
@@ -189,7 +192,8 @@ func (c *IAM) AddRoleToInstanceProfileRequest(input *AddRoleToInstanceProfileInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -284,7 +288,8 @@ func (c *IAM) AddUserToGroupRequest(input *AddUserToGroupInput) (req *request.Re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -380,7 +385,8 @@ func (c *IAM) AttachGroupPolicyRequest(input *AttachGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -488,7 +494,8 @@ func (c *IAM) AttachRolePolicyRequest(input *AttachRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -598,7 +605,8 @@ func (c *IAM) AttachUserPolicyRequest(input *AttachUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -704,7 +712,8 @@ func (c *IAM) ChangePasswordRequest(input *ChangePasswordInput) (req *request.Re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityTemporarilyUnmodifiableException "EntityTemporarilyUnmodifiable"
 //   The request was rejected because it referenced an entity that is temporarily
@@ -795,8 +804,8 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 // to manage AWS account root user credentials. This is true even if the AWS
 // account has no associated users.
 //
-// For information about limits on the number of keys you can create, see Limitations
-// on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // To ensure the security of your AWS account, the secret access key is accessible
@@ -819,7 +828,8 @@ func (c *IAM) CreateAccessKeyRequest(input *CreateAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -910,7 +920,8 @@ func (c *IAM) CreateAccountAliasRequest(input *CreateAccountAliasInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -984,8 +995,8 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 //
 // Creates a new group.
 //
-// For information about the number of groups you can create, see Limitations
-// on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -998,7 +1009,8 @@ func (c *IAM) CreateGroupRequest(input *CreateGroupInput) (req *request.Request,
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -1081,8 +1093,8 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 // Creates a new instance profile. For information about instance profiles,
 // go to About Instance Profiles (https://docs.aws.amazon.com/IAM/latest/UserGuide/AboutInstanceProfiles.html).
 //
-// For information about the number of instance profiles you can create, see
-// Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1099,7 +1111,8 @@ func (c *IAM) CreateInstanceProfileRequest(input *CreateInstanceProfileInput) (r
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1198,7 +1211,8 @@ func (c *IAM) CreateLoginProfileRequest(input *CreateLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1312,7 +1326,8 @@ func (c *IAM) CreateOpenIDConnectProviderRequest(input *CreateOpenIDConnectProvi
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1409,7 +1424,8 @@ func (c *IAM) CreatePolicyRequest(input *CreatePolicyInput) (req *request.Reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -1524,7 +1540,8 @@ func (c *IAM) CreatePolicyVersionRequest(input *CreatePolicyVersionInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1598,8 +1615,8 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 //
 // Creates a new role for your AWS account. For more information about roles,
 // go to IAM Roles (https://docs.aws.amazon.com/IAM/latest/UserGuide/WorkingWithRoles.html).
-// For information about limitations on role names and the number of roles you
-// can create, go to Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -1612,7 +1629,8 @@ func (c *IAM) CreateRoleRequest(input *CreateRoleInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -1742,7 +1760,8 @@ func (c *IAM) CreateSAMLProviderRequest(input *CreateSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -1840,7 +1859,8 @@ func (c *IAM) CreateServiceLinkedRoleRequest(input *CreateServiceLinkedRoleInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -1941,7 +1961,8 @@ func (c *IAM) CreateServiceSpecificCredentialRequest(input *CreateServiceSpecifi
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -2018,8 +2039,8 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 //
 // Creates a new IAM user for your AWS account.
 //
-// For information about limitations on the number of IAM users you can create,
-// see Limitations on IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -2032,7 +2053,8 @@ func (c *IAM) CreateUserRequest(input *CreateUserInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -2127,8 +2149,8 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // go to Using a Virtual MFA Device (https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_VirtualMFA.html)
 // in the IAM User Guide.
 //
-// For information about limits on the number of MFA devices you can create,
-// see Limitations on Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // The seed information contained in the QR code and the Base32 string should
@@ -2147,7 +2169,8 @@ func (c *IAM) CreateVirtualMFADeviceRequest(input *CreateVirtualMFADeviceInput) 
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -2251,7 +2274,8 @@ func (c *IAM) DeactivateMFADeviceRequest(input *DeactivateMFADeviceInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2346,7 +2370,8 @@ func (c *IAM) DeleteAccessKeyRequest(input *DeleteAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2437,7 +2462,8 @@ func (c *IAM) DeleteAccountAliasRequest(input *DeleteAccountAliasInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2526,7 +2552,8 @@ func (c *IAM) DeleteAccountPasswordPolicyRequest(input *DeleteAccountPasswordPol
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2620,7 +2647,8 @@ func (c *IAM) DeleteGroupRequest(input *DeleteGroupInput) (req *request.Request,
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2715,7 +2743,8 @@ func (c *IAM) DeleteGroupPolicyRequest(input *DeleteGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2817,7 +2846,8 @@ func (c *IAM) DeleteInstanceProfileRequest(input *DeleteInstanceProfileInput) (r
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -2918,7 +2948,8 @@ func (c *IAM) DeleteLoginProfileRequest(input *DeleteLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -3125,7 +3156,8 @@ func (c *IAM) DeletePolicyRequest(input *DeletePolicyInput) (req *request.Reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -3230,7 +3262,8 @@ func (c *IAM) DeletePolicyVersionRequest(input *DeletePolicyVersionInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -3337,7 +3370,8 @@ func (c *IAM) DeleteRoleRequest(input *DeleteRoleInput) (req *request.Request, o
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -3538,7 +3572,8 @@ func (c *IAM) DeleteRolePolicyRequest(input *DeleteRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -3640,7 +3675,8 @@ func (c *IAM) DeleteSAMLProviderRequest(input *DeleteSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -3839,7 +3875,8 @@ func (c *IAM) DeleteServerCertificateRequest(input *DeleteServerCertificateInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -3946,7 +3983,8 @@ func (c *IAM) DeleteServiceLinkedRoleRequest(input *DeleteServiceLinkedRoleInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4122,7 +4160,8 @@ func (c *IAM) DeleteSigningCertificateRequest(input *DeleteSigningCertificateInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4229,7 +4268,8 @@ func (c *IAM) DeleteUserRequest(input *DeleteUserInput) (req *request.Request, o
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -4426,7 +4466,8 @@ func (c *IAM) DeleteUserPolicyRequest(input *DeleteUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4522,7 +4563,8 @@ func (c *IAM) DeleteVirtualMFADeviceRequest(input *DeleteVirtualMFADeviceInput) 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -4616,7 +4658,8 @@ func (c *IAM) DetachGroupPolicyRequest(input *DetachGroupPolicyInput) (req *requ
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4714,7 +4757,8 @@ func (c *IAM) DetachRolePolicyRequest(input *DetachRolePolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4818,7 +4862,8 @@ func (c *IAM) DetachUserPolicyRequest(input *DetachUserPolicyInput) (req *reques
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -4923,7 +4968,8 @@ func (c *IAM) EnableMFADeviceRequest(input *EnableMFADeviceInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -5013,7 +5059,8 @@ func (c *IAM) GenerateCredentialReportRequest(input *GenerateCredentialReportInp
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -5326,8 +5373,8 @@ func (c *IAM) GenerateServiceLastAccessedDetailsRequest(input *GenerateServiceLa
 // see Evaluating Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html#policy-eval-basics)
 // in the IAM User Guide.
 //
-// For more information about service last accessed data, see Reducing Policy
-// Scope by Viewing User Activity (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// For more information about service and action last accessed data, see Reducing
+// Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -5726,8 +5773,8 @@ func (c *IAM) GetAccountSummaryRequest(input *GetAccountSummaryInput) (req *requ
 //
 // Retrieves information about IAM entity usage and IAM quotas in the AWS account.
 //
-// For information about limitations on IAM entities, see Limitations on IAM
-// Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/LimitationsOnEntities.html)
+// The number and size of IAM resources in an AWS account are limited. For more
+// information, see IAM and STS Quotas (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html)
 // in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
@@ -7409,6 +7456,15 @@ func (c *IAM) GetServiceLastAccessedDetailsRequest(input *GetServiceLastAccessed
 //    to attempt to access the service
 //
 // By default, the list is sorted by service namespace.
+//
+// If you specified ACTION_LEVEL granularity when you generated the report,
+// this operation returns service and action last accessed data. This includes
+// the most recent access attempt for each tracked action within a service.
+// Otherwise, this operation returns only service data.
+//
+// For more information about service and action last accessed data, see Reducing
+// Permissions Using Service Last Accessed Data (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html)
+// in the IAM User Guide.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -11715,7 +11771,8 @@ func (c *IAM) PutGroupPolicyRequest(input *PutGroupPolicyInput) (req *request.Re
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -11941,7 +11998,8 @@ func (c *IAM) PutRolePolicyRequest(input *PutRolePolicyInput) (req *request.Requ
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -12159,7 +12217,8 @@ func (c *IAM) PutUserPolicyRequest(input *PutUserPolicyInput) (req *request.Requ
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeMalformedPolicyDocumentException "MalformedPolicyDocument"
 //   The request was rejected because the policy document was malformed. The error
@@ -12359,7 +12418,8 @@ func (c *IAM) RemoveRoleFromInstanceProfileRequest(input *RemoveRoleFromInstance
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -12454,7 +12514,8 @@ func (c *IAM) RemoveUserFromGroupRequest(input *RemoveUserFromGroupInput) (req *
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -12635,7 +12696,8 @@ func (c *IAM) ResyncMFADeviceRequest(input *ResyncMFADeviceInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -12737,7 +12799,8 @@ func (c *IAM) SetDefaultPolicyVersionRequest(input *SetDefaultPolicyVersionInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -13292,7 +13355,8 @@ func (c *IAM) TagRoleRequest(input *TagRoleInput) (req *request.Request, output 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -13422,7 +13486,8 @@ func (c *IAM) TagUserRequest(input *TagUserInput) (req *request.Request, output 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeInvalidInputException "InvalidInput"
 //   The request was rejected because an invalid or out-of-range value was supplied
@@ -13715,7 +13780,8 @@ func (c *IAM) UpdateAccessKeyRequest(input *UpdateAccessKeyInput) (req *request.
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -13819,7 +13885,8 @@ func (c *IAM) UpdateAccountPasswordPolicyRequest(input *UpdateAccountPasswordPol
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -13915,7 +13982,8 @@ func (c *IAM) UpdateAssumeRolePolicyRequest(input *UpdateAssumeRolePolicyInput) 
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeUnmodifiableEntityException "UnmodifiableEntity"
 //   The request was rejected because only the service that depends on the service-linked
@@ -14025,7 +14093,8 @@ func (c *IAM) UpdateGroupRequest(input *UpdateGroupInput) (req *request.Request,
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14128,7 +14197,8 @@ func (c *IAM) UpdateLoginProfileRequest(input *UpdateLoginProfileInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14509,7 +14579,8 @@ func (c *IAM) UpdateSAMLProviderRequest(input *UpdateSAMLProviderInput) (req *re
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14711,7 +14782,8 @@ func (c *IAM) UpdateServerCertificateRequest(input *UpdateServerCertificateInput
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14892,7 +14964,8 @@ func (c *IAM) UpdateSigningCertificateRequest(input *UpdateSigningCertificateInp
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeServiceFailureException "ServiceFailure"
 //   The request processing has failed because of an unknown error, exception
@@ -14992,7 +15065,8 @@ func (c *IAM) UpdateUserRequest(input *UpdateUserInput) (req *request.Request, o
 //
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -15097,7 +15171,8 @@ func (c *IAM) UploadSSHPublicKeyRequest(input *UploadSSHPublicKeyInput) (req *re
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeNoSuchEntityException "NoSuchEntity"
 //   The request was rejected because it referenced a resource entity that does
@@ -15218,7 +15293,8 @@ func (c *IAM) UploadServerCertificateRequest(input *UploadServerCertificateInput
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -15331,7 +15407,8 @@ func (c *IAM) UploadSigningCertificateRequest(input *UploadSigningCertificateInp
 // Returned Error Codes:
 //   * ErrCodeLimitExceededException "LimitExceeded"
 //   The request was rejected because it attempted to create resources beyond
-//   the current AWS account limits. The error message describes the limit exceeded.
+//   the current AWS account limitations. The error message describes the limit
+//   exceeded.
 //
 //   * ErrCodeEntityAlreadyExistsException "EntityAlreadyExists"
 //   The request was rejected because it attempted to create a resource that already
@@ -20346,6 +20423,14 @@ type GenerateServiceLastAccessedDetailsInput struct {
 	//
 	// Arn is a required field
 	Arn *string `min:"20" type:"string" required:"true"`
+
+	// The level of detail that you want to generate. You can specify whether you
+	// want to generate information about the last attempt to access services or
+	// actions. If you specify service-level granularity, this operation generates
+	// only service data. If you specify action-level granularity, it generates
+	// service and action data. If you don't include this optional parameter, the
+	// operation generates service data.
+	Granularity *string `type:"string" enum:"AccessAdvisorUsageGranularityType"`
 }
 
 // String returns the string representation
@@ -20377,6 +20462,12 @@ func (s *GenerateServiceLastAccessedDetailsInput) Validate() error {
 // SetArn sets the Arn field's value.
 func (s *GenerateServiceLastAccessedDetailsInput) SetArn(v string) *GenerateServiceLastAccessedDetailsInput {
 	s.Arn = &v
+	return s
+}
+
+// SetGranularity sets the Granularity field's value.
+func (s *GenerateServiceLastAccessedDetailsInput) SetGranularity(v string) *GenerateServiceLastAccessedDetailsInput {
+	s.Granularity = &v
 	return s
 }
 
@@ -22358,6 +22449,11 @@ type GetServiceLastAccessedDetailsOutput struct {
 	// JobStatus is a required field
 	JobStatus *string `type:"string" required:"true" enum:"JobStatusType"`
 
+	// The type of job. Service jobs return information about when each service
+	// was last accessed. Action jobs also include information about when tracked
+	// actions within the service were last accessed.
+	JobType *string `type:"string" enum:"AccessAdvisorUsageGranularityType"`
+
 	// When IsTruncated is true, this element is present and contains the value
 	// to use for the Marker parameter in a subsequent pagination request.
 	Marker *string `type:"string"`
@@ -22406,6 +22502,12 @@ func (s *GetServiceLastAccessedDetailsOutput) SetJobCreationDate(v time.Time) *G
 // SetJobStatus sets the JobStatus field's value.
 func (s *GetServiceLastAccessedDetailsOutput) SetJobStatus(v string) *GetServiceLastAccessedDetailsOutput {
 	s.JobStatus = &v
+	return s
+}
+
+// SetJobType sets the JobType field's value.
+func (s *GetServiceLastAccessedDetailsOutput) SetJobType(v string) *GetServiceLastAccessedDetailsOutput {
+	s.JobType = &v
 	return s
 }
 
@@ -29462,6 +29564,13 @@ type ServiceLastAccessed struct {
 	// the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
 	LastAuthenticatedEntity *string `min:"20" type:"string"`
 
+	// The Region from which the authenticated entity (user or role) last attempted
+	// to access the service. AWS does not report unauthenticated requests.
+	//
+	// This field is null if no IAM entities attempted to access the service within
+	// the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
+	LastAuthenticatedRegion *string `type:"string"`
+
 	// The name of the service in which access was attempted.
 	//
 	// ServiceName is a required field
@@ -29486,6 +29595,16 @@ type ServiceLastAccessed struct {
 	// This field is null if no principals attempted to access the service within
 	// the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
 	TotalAuthenticatedEntities *int64 `type:"integer"`
+
+	// An object that contains details about the most recent attempt to access a
+	// tracked action within the service.
+	//
+	// This field is null if there no tracked actions or if the principal did not
+	// use the tracked actions within the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
+	// This field is also null if the report was generated at the service level
+	// and not the action level. For more information, see the Granularity field
+	// in GenerateServiceLastAccessedDetails.
+	TrackedActionsLastAccessed []*TrackedActionLastAccessed `type:"list"`
 }
 
 // String returns the string representation
@@ -29510,6 +29629,12 @@ func (s *ServiceLastAccessed) SetLastAuthenticatedEntity(v string) *ServiceLastA
 	return s
 }
 
+// SetLastAuthenticatedRegion sets the LastAuthenticatedRegion field's value.
+func (s *ServiceLastAccessed) SetLastAuthenticatedRegion(v string) *ServiceLastAccessed {
+	s.LastAuthenticatedRegion = &v
+	return s
+}
+
 // SetServiceName sets the ServiceName field's value.
 func (s *ServiceLastAccessed) SetServiceName(v string) *ServiceLastAccessed {
 	s.ServiceName = &v
@@ -29525,6 +29650,12 @@ func (s *ServiceLastAccessed) SetServiceNamespace(v string) *ServiceLastAccessed
 // SetTotalAuthenticatedEntities sets the TotalAuthenticatedEntities field's value.
 func (s *ServiceLastAccessed) SetTotalAuthenticatedEntities(v int64) *ServiceLastAccessed {
 	s.TotalAuthenticatedEntities = &v
+	return s
+}
+
+// SetTrackedActionsLastAccessed sets the TrackedActionsLastAccessed field's value.
+func (s *ServiceLastAccessed) SetTrackedActionsLastAccessed(v []*TrackedActionLastAccessed) *ServiceLastAccessed {
+	s.TrackedActionsLastAccessed = v
 	return s
 }
 
@@ -30313,7 +30444,7 @@ type SimulatePrincipalPolicyInput struct {
 	// one permissions boundary when you pass a policy to this operation. An IAM
 	// entity can only have one permissions boundary in effect at a time. For example,
 	// if a permissions boundary is attached to an entity and you pass in a different
-	// permissions boundary policy using this parameter, then the new permission
+	// permissions boundary policy using this parameter, then the new permissions
 	// boundary policy is used for the simulation. For more information about permissions
 	// boundaries, see Permissions Boundaries for IAM Entities (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html)
 	// in the IAM User Guide. The policy input is specified as a string containing
@@ -30855,6 +30986,75 @@ func (s TagUserOutput) String() string {
 // GoString returns the string representation
 func (s TagUserOutput) GoString() string {
 	return s.String()
+}
+
+// Contains details about the most recent attempt to access an action within
+// the service.
+//
+// This data type is used as a response element in the GetServiceLastAccessedDetails
+// operation.
+type TrackedActionLastAccessed struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the tracked action to which access was attempted. Tracked actions
+	// are actions that report activity to IAM.
+	ActionName *string `type:"string"`
+
+	// The Amazon Resource Name (ARN). ARNs are unique identifiers for AWS resources.
+	//
+	// For more information about ARNs, go to Amazon Resource Names (ARNs) and AWS
+	// Service Namespaces (https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html)
+	// in the AWS General Reference.
+	LastAccessedEntity *string `min:"20" type:"string"`
+
+	// The Region from which the authenticated entity (user or role) last attempted
+	// to access the tracked action. AWS does not report unauthenticated requests.
+	//
+	// This field is null if no IAM entities attempted to access the service within
+	// the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
+	LastAccessedRegion *string `type:"string"`
+
+	// The date and time, in ISO 8601 date-time format (http://www.iso.org/iso/iso8601),
+	// when an authenticated entity most recently attempted to access the tracked
+	// service. AWS does not report unauthenticated requests.
+	//
+	// This field is null if no IAM entities attempted to access the service within
+	// the reporting period (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_access-advisor.html#service-last-accessed-reporting-period).
+	LastAccessedTime *time.Time `type:"timestamp"`
+}
+
+// String returns the string representation
+func (s TrackedActionLastAccessed) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s TrackedActionLastAccessed) GoString() string {
+	return s.String()
+}
+
+// SetActionName sets the ActionName field's value.
+func (s *TrackedActionLastAccessed) SetActionName(v string) *TrackedActionLastAccessed {
+	s.ActionName = &v
+	return s
+}
+
+// SetLastAccessedEntity sets the LastAccessedEntity field's value.
+func (s *TrackedActionLastAccessed) SetLastAccessedEntity(v string) *TrackedActionLastAccessed {
+	s.LastAccessedEntity = &v
+	return s
+}
+
+// SetLastAccessedRegion sets the LastAccessedRegion field's value.
+func (s *TrackedActionLastAccessed) SetLastAccessedRegion(v string) *TrackedActionLastAccessed {
+	s.LastAccessedRegion = &v
+	return s
+}
+
+// SetLastAccessedTime sets the LastAccessedTime field's value.
+func (s *TrackedActionLastAccessed) SetLastAccessedTime(v time.Time) *TrackedActionLastAccessed {
+	s.LastAccessedTime = &v
+	return s
 }
 
 type UntagRoleInput struct {
@@ -33067,6 +33267,22 @@ func (s *VirtualMFADevice) SetUser(v *User) *VirtualMFADevice {
 }
 
 const (
+	// AccessAdvisorUsageGranularityTypeServiceLevel is a AccessAdvisorUsageGranularityType enum value
+	AccessAdvisorUsageGranularityTypeServiceLevel = "SERVICE_LEVEL"
+
+	// AccessAdvisorUsageGranularityTypeActionLevel is a AccessAdvisorUsageGranularityType enum value
+	AccessAdvisorUsageGranularityTypeActionLevel = "ACTION_LEVEL"
+)
+
+// AccessAdvisorUsageGranularityType_Values returns all elements of the AccessAdvisorUsageGranularityType enum
+func AccessAdvisorUsageGranularityType_Values() []string {
+	return []string{
+		AccessAdvisorUsageGranularityTypeServiceLevel,
+		AccessAdvisorUsageGranularityTypeActionLevel,
+	}
+}
+
+const (
 	// AssignmentStatusTypeAssigned is a AssignmentStatusType enum value
 	AssignmentStatusTypeAssigned = "Assigned"
 
@@ -33076,6 +33292,15 @@ const (
 	// AssignmentStatusTypeAny is a AssignmentStatusType enum value
 	AssignmentStatusTypeAny = "Any"
 )
+
+// AssignmentStatusType_Values returns all elements of the AssignmentStatusType enum
+func AssignmentStatusType_Values() []string {
+	return []string{
+		AssignmentStatusTypeAssigned,
+		AssignmentStatusTypeUnassigned,
+		AssignmentStatusTypeAny,
+	}
+}
 
 const (
 	// ContextKeyTypeEnumString is a ContextKeyTypeEnum enum value
@@ -33115,6 +33340,24 @@ const (
 	ContextKeyTypeEnumDateList = "dateList"
 )
 
+// ContextKeyTypeEnum_Values returns all elements of the ContextKeyTypeEnum enum
+func ContextKeyTypeEnum_Values() []string {
+	return []string{
+		ContextKeyTypeEnumString,
+		ContextKeyTypeEnumStringList,
+		ContextKeyTypeEnumNumeric,
+		ContextKeyTypeEnumNumericList,
+		ContextKeyTypeEnumBoolean,
+		ContextKeyTypeEnumBooleanList,
+		ContextKeyTypeEnumIp,
+		ContextKeyTypeEnumIpList,
+		ContextKeyTypeEnumBinary,
+		ContextKeyTypeEnumBinaryList,
+		ContextKeyTypeEnumDate,
+		ContextKeyTypeEnumDateList,
+	}
+}
+
 const (
 	// DeletionTaskStatusTypeSucceeded is a DeletionTaskStatusType enum value
 	DeletionTaskStatusTypeSucceeded = "SUCCEEDED"
@@ -33129,6 +33372,16 @@ const (
 	DeletionTaskStatusTypeNotStarted = "NOT_STARTED"
 )
 
+// DeletionTaskStatusType_Values returns all elements of the DeletionTaskStatusType enum
+func DeletionTaskStatusType_Values() []string {
+	return []string{
+		DeletionTaskStatusTypeSucceeded,
+		DeletionTaskStatusTypeInProgress,
+		DeletionTaskStatusTypeFailed,
+		DeletionTaskStatusTypeNotStarted,
+	}
+}
+
 const (
 	// EncodingTypeSsh is a EncodingType enum value
 	EncodingTypeSsh = "SSH"
@@ -33136,6 +33389,14 @@ const (
 	// EncodingTypePem is a EncodingType enum value
 	EncodingTypePem = "PEM"
 )
+
+// EncodingType_Values returns all elements of the EncodingType enum
+func EncodingType_Values() []string {
+	return []string{
+		EncodingTypeSsh,
+		EncodingTypePem,
+	}
+}
 
 const (
 	// EntityTypeUser is a EntityType enum value
@@ -33154,6 +33415,17 @@ const (
 	EntityTypeAwsmanagedPolicy = "AWSManagedPolicy"
 )
 
+// EntityType_Values returns all elements of the EntityType enum
+func EntityType_Values() []string {
+	return []string{
+		EntityTypeUser,
+		EntityTypeRole,
+		EntityTypeGroup,
+		EntityTypeLocalManagedPolicy,
+		EntityTypeAwsmanagedPolicy,
+	}
+}
+
 const (
 	// GlobalEndpointTokenVersionV1token is a GlobalEndpointTokenVersion enum value
 	GlobalEndpointTokenVersionV1token = "v1Token"
@@ -33161,6 +33433,14 @@ const (
 	// GlobalEndpointTokenVersionV2token is a GlobalEndpointTokenVersion enum value
 	GlobalEndpointTokenVersionV2token = "v2Token"
 )
+
+// GlobalEndpointTokenVersion_Values returns all elements of the GlobalEndpointTokenVersion enum
+func GlobalEndpointTokenVersion_Values() []string {
+	return []string{
+		GlobalEndpointTokenVersionV1token,
+		GlobalEndpointTokenVersionV2token,
+	}
+}
 
 const (
 	// JobStatusTypeInProgress is a JobStatusType enum value
@@ -33173,10 +33453,26 @@ const (
 	JobStatusTypeFailed = "FAILED"
 )
 
+// JobStatusType_Values returns all elements of the JobStatusType enum
+func JobStatusType_Values() []string {
+	return []string{
+		JobStatusTypeInProgress,
+		JobStatusTypeCompleted,
+		JobStatusTypeFailed,
+	}
+}
+
 const (
 	// PermissionsBoundaryAttachmentTypePermissionsBoundaryPolicy is a PermissionsBoundaryAttachmentType enum value
 	PermissionsBoundaryAttachmentTypePermissionsBoundaryPolicy = "PermissionsBoundaryPolicy"
 )
+
+// PermissionsBoundaryAttachmentType_Values returns all elements of the PermissionsBoundaryAttachmentType enum
+func PermissionsBoundaryAttachmentType_Values() []string {
+	return []string{
+		PermissionsBoundaryAttachmentTypePermissionsBoundaryPolicy,
+	}
+}
 
 const (
 	// PolicyEvaluationDecisionTypeAllowed is a PolicyEvaluationDecisionType enum value
@@ -33189,6 +33485,15 @@ const (
 	PolicyEvaluationDecisionTypeImplicitDeny = "implicitDeny"
 )
 
+// PolicyEvaluationDecisionType_Values returns all elements of the PolicyEvaluationDecisionType enum
+func PolicyEvaluationDecisionType_Values() []string {
+	return []string{
+		PolicyEvaluationDecisionTypeAllowed,
+		PolicyEvaluationDecisionTypeExplicitDeny,
+		PolicyEvaluationDecisionTypeImplicitDeny,
+	}
+}
+
 const (
 	// PolicyOwnerEntityTypeUser is a PolicyOwnerEntityType enum value
 	PolicyOwnerEntityTypeUser = "USER"
@@ -33200,6 +33505,15 @@ const (
 	PolicyOwnerEntityTypeGroup = "GROUP"
 )
 
+// PolicyOwnerEntityType_Values returns all elements of the PolicyOwnerEntityType enum
+func PolicyOwnerEntityType_Values() []string {
+	return []string{
+		PolicyOwnerEntityTypeUser,
+		PolicyOwnerEntityTypeRole,
+		PolicyOwnerEntityTypeGroup,
+	}
+}
+
 const (
 	// PolicyScopeTypeAll is a PolicyScopeType enum value
 	PolicyScopeTypeAll = "All"
@@ -33210,6 +33524,15 @@ const (
 	// PolicyScopeTypeLocal is a PolicyScopeType enum value
 	PolicyScopeTypeLocal = "Local"
 )
+
+// PolicyScopeType_Values returns all elements of the PolicyScopeType enum
+func PolicyScopeType_Values() []string {
+	return []string{
+		PolicyScopeTypeAll,
+		PolicyScopeTypeAws,
+		PolicyScopeTypeLocal,
+	}
+}
 
 const (
 	// PolicySourceTypeUser is a PolicySourceType enum value
@@ -33234,6 +33557,19 @@ const (
 	PolicySourceTypeNone = "none"
 )
 
+// PolicySourceType_Values returns all elements of the PolicySourceType enum
+func PolicySourceType_Values() []string {
+	return []string{
+		PolicySourceTypeUser,
+		PolicySourceTypeGroup,
+		PolicySourceTypeRole,
+		PolicySourceTypeAwsManaged,
+		PolicySourceTypeUserManaged,
+		PolicySourceTypeResource,
+		PolicySourceTypeNone,
+	}
+}
+
 const (
 	// PolicyTypeInline is a PolicyType enum value
 	PolicyTypeInline = "INLINE"
@@ -33241,6 +33577,14 @@ const (
 	// PolicyTypeManaged is a PolicyType enum value
 	PolicyTypeManaged = "MANAGED"
 )
+
+// PolicyType_Values returns all elements of the PolicyType enum
+func PolicyType_Values() []string {
+	return []string{
+		PolicyTypeInline,
+		PolicyTypeManaged,
+	}
+}
 
 // The policy usage type that indicates whether the policy is used as a permissions
 // policy or as the permissions boundary for an entity.
@@ -33256,10 +33600,25 @@ const (
 	PolicyUsageTypePermissionsBoundary = "PermissionsBoundary"
 )
 
+// PolicyUsageType_Values returns all elements of the PolicyUsageType enum
+func PolicyUsageType_Values() []string {
+	return []string{
+		PolicyUsageTypePermissionsPolicy,
+		PolicyUsageTypePermissionsBoundary,
+	}
+}
+
 const (
 	// ReportFormatTypeTextCsv is a ReportFormatType enum value
 	ReportFormatTypeTextCsv = "text/csv"
 )
+
+// ReportFormatType_Values returns all elements of the ReportFormatType enum
+func ReportFormatType_Values() []string {
+	return []string{
+		ReportFormatTypeTextCsv,
+	}
+}
 
 const (
 	// ReportStateTypeStarted is a ReportStateType enum value
@@ -33271,6 +33630,15 @@ const (
 	// ReportStateTypeComplete is a ReportStateType enum value
 	ReportStateTypeComplete = "COMPLETE"
 )
+
+// ReportStateType_Values returns all elements of the ReportStateType enum
+func ReportStateType_Values() []string {
+	return []string{
+		ReportStateTypeStarted,
+		ReportStateTypeInprogress,
+		ReportStateTypeComplete,
+	}
+}
 
 const (
 	// SortKeyTypeServiceNamespaceAscending is a SortKeyType enum value
@@ -33286,6 +33654,16 @@ const (
 	SortKeyTypeLastAuthenticatedTimeDescending = "LAST_AUTHENTICATED_TIME_DESCENDING"
 )
 
+// SortKeyType_Values returns all elements of the SortKeyType enum
+func SortKeyType_Values() []string {
+	return []string{
+		SortKeyTypeServiceNamespaceAscending,
+		SortKeyTypeServiceNamespaceDescending,
+		SortKeyTypeLastAuthenticatedTimeAscending,
+		SortKeyTypeLastAuthenticatedTimeDescending,
+	}
+}
+
 const (
 	// StatusTypeActive is a StatusType enum value
 	StatusTypeActive = "Active"
@@ -33293,6 +33671,14 @@ const (
 	// StatusTypeInactive is a StatusType enum value
 	StatusTypeInactive = "Inactive"
 )
+
+// StatusType_Values returns all elements of the StatusType enum
+func StatusType_Values() []string {
+	return []string{
+		StatusTypeActive,
+		StatusTypeInactive,
+	}
+}
 
 const (
 	// SummaryKeyTypeUsers is a SummaryKeyType enum value
@@ -33373,3 +33759,35 @@ const (
 	// SummaryKeyTypeGlobalEndpointTokenVersion is a SummaryKeyType enum value
 	SummaryKeyTypeGlobalEndpointTokenVersion = "GlobalEndpointTokenVersion"
 )
+
+// SummaryKeyType_Values returns all elements of the SummaryKeyType enum
+func SummaryKeyType_Values() []string {
+	return []string{
+		SummaryKeyTypeUsers,
+		SummaryKeyTypeUsersQuota,
+		SummaryKeyTypeGroups,
+		SummaryKeyTypeGroupsQuota,
+		SummaryKeyTypeServerCertificates,
+		SummaryKeyTypeServerCertificatesQuota,
+		SummaryKeyTypeUserPolicySizeQuota,
+		SummaryKeyTypeGroupPolicySizeQuota,
+		SummaryKeyTypeGroupsPerUserQuota,
+		SummaryKeyTypeSigningCertificatesPerUserQuota,
+		SummaryKeyTypeAccessKeysPerUserQuota,
+		SummaryKeyTypeMfadevices,
+		SummaryKeyTypeMfadevicesInUse,
+		SummaryKeyTypeAccountMfaenabled,
+		SummaryKeyTypeAccountAccessKeysPresent,
+		SummaryKeyTypeAccountSigningCertificatesPresent,
+		SummaryKeyTypeAttachedPoliciesPerGroupQuota,
+		SummaryKeyTypeAttachedPoliciesPerRoleQuota,
+		SummaryKeyTypeAttachedPoliciesPerUserQuota,
+		SummaryKeyTypePolicies,
+		SummaryKeyTypePoliciesQuota,
+		SummaryKeyTypePolicySizeQuota,
+		SummaryKeyTypePolicyVersionsInUse,
+		SummaryKeyTypePolicyVersionsInUseQuota,
+		SummaryKeyTypeVersionsPerPolicyQuota,
+		SummaryKeyTypeGlobalEndpointTokenVersion,
+	}
+}

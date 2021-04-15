@@ -8,7 +8,7 @@ const (
 	// "BucketAlreadyExists".
 	//
 	// The requested bucket name is not available. The bucket namespace is shared
-	// by all users of the system. Please select a different name and try again.
+	// by all users of the system. Select a different name and try again.
 	ErrCodeBucketAlreadyExists = "BucketAlreadyExists"
 
 	// ErrCodeBucketAlreadyOwnedByYou for service response error code
@@ -20,6 +20,12 @@ const (
 	// own in the North Virginia Region, Amazon S3 returns 200 OK and resets the
 	// bucket access control lists (ACLs).
 	ErrCodeBucketAlreadyOwnedByYou = "BucketAlreadyOwnedByYou"
+
+	// ErrCodeInvalidObjectState for service response error code
+	// "InvalidObjectState".
+	//
+	// Object is archived and inaccessible until restored.
+	ErrCodeInvalidObjectState = "InvalidObjectState"
 
 	// ErrCodeNoSuchBucket for service response error code
 	// "NoSuchBucket".
