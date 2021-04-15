@@ -563,7 +563,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 	}
 }
 
-func TestMarkProviderSensitive(t *testing.T) {
+func TestGetValMarks(t *testing.T) {
 	schema := &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
 			"unsensitive": {
@@ -647,7 +647,7 @@ func TestMarkProviderSensitive(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%#v", tc.given), func(t *testing.T) {
-			got := markProviderSensitiveAttributes(schema, tc.given)
+			got := tc.given.MarkWithPaths(getValMarks(schema, tc.given, nil))
 			if !got.RawEquals(tc.expect) {
 				t.Fatalf("\nexpected: %#v\ngot:      %#v\n", tc.expect, got)
 			}
