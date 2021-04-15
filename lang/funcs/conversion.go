@@ -85,3 +85,67 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 		},
 	})
 }
+
+// ExpandNullFunc is a specialized function that recursively walks a given
+// data structure looking for null values of structural types or collection
+// types.
+//
+// It will then replace each structural type with a non-null instance of that
+// type whose attributes are all either null or recursively expanded, and
+// each collection type with an empty collection of that type.
+//
+// This is intended as a helper function for modules that accept complex
+// data structures containing optional attributes where they'd rather push
+// all of the "null-ness" to the primitive-typed leaves of the data structure
+// in order to traverse it more easily elsewhere in the module.
+var ExpandNullFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name:      "v",
+			Type:      cty.DynamicPseudoType,
+			AllowNull: true,
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		// This function only replaces null values with non-null values of
+		// the same type, so the return type is always the same.
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.Transform(args[0], func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if !v.IsKnown() || !v.IsNull() {
+				// We're only interested in known, null values here
+				return v, nil
+			}
+			return expandedNull(v.Type()), nil
+		})
+	},
+})
+
+func expandedNull(ty cty.Type) cty.Value {
+	switch {
+	case ty.IsObjectType():
+		atys := ty.AttributeTypes()
+		attrs := make(map[string]cty.Value, len(atys))
+		for name, aty := range atys {
+			attrs[name] = expandedNull(aty)
+		}
+		return cty.ObjectVal(attrs)
+	case ty.IsTupleType():
+		etys := ty.TupleElementTypes()
+		elems := make([]cty.Value, len(etys))
+		for i, ety := range etys {
+			elems[i] = expandedNull(ety)
+		}
+		return cty.TupleVal(elems)
+	case ty.IsListType():
+		return cty.ListValEmpty(ty.ElementType())
+	case ty.IsMapType():
+		return cty.MapValEmpty(ty.ElementType())
+	case ty.IsSetType():
+		return cty.SetValEmpty(ty.ElementType())
+	default:
+		// Otherwise we just return a direct null of the requested type
+		return cty.NullVal(ty)
+	}
+}
