@@ -684,7 +684,7 @@ var extra = []string{
 	"frame",
 	"frameset",
 	"image",
-	"isindex",
+	"isindex", // "isindex" has been removed from the spec, but are kept here for backwards compatibility.
 	"listing",
 	"malignmark",
 	"marquee",

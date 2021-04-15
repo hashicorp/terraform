@@ -91,7 +91,7 @@ github.com/apparentlymart/go-versions/versions/constraints
 github.com/armon/circbuf
 # github.com/armon/go-radix v1.0.0
 github.com/armon/go-radix
-# github.com/aws/aws-sdk-go v1.30.12
+# github.com/aws/aws-sdk-go v1.38.21
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/dynamodb
@@ -109,13 +109,15 @@ github.com/aws/aws-sdk-go/aws/signer/v4
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/jsonrpc
 github.com/aws/aws-sdk-go/aws/arn
-github.com/aws/aws-sdk-go/internal/s3err
+github.com/aws/aws-sdk-go/internal/s3shared
+github.com/aws/aws-sdk-go/internal/s3shared/arn
+github.com/aws/aws-sdk-go/internal/s3shared/s3err
+github.com/aws/aws-sdk-go/private/checksum
 github.com/aws/aws-sdk-go/private/protocol/eventstream
 github.com/aws/aws-sdk-go/private/protocol/eventstream/eventstreamapi
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/restxml
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
-github.com/aws/aws-sdk-go/service/s3/internal/arn
 github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
 github.com/aws/aws-sdk-go/aws/credentials/stscreds
 github.com/aws/aws-sdk-go/aws/defaults
@@ -136,8 +138,12 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
 github.com/aws/aws-sdk-go/aws/credentials/processcreds
+github.com/aws/aws-sdk-go/aws/credentials/ssocreds
 github.com/aws/aws-sdk-go/aws/csm
 github.com/aws/aws-sdk-go/private/protocol/query/queryutil
+github.com/aws/aws-sdk-go/service/sso
+github.com/aws/aws-sdk-go/service/sso/ssoiface
+github.com/aws/aws-sdk-go/private/protocol/restjson
 # github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d
 github.com/bgentry/go-netrc/netrc
 # github.com/bgentry/speakeasy v0.1.0
@@ -387,7 +393,7 @@ github.com/hashicorp/vault/helper/jsonutil
 github.com/hashicorp/vault/helper/compressutil
 # github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
-# github.com/jmespath/go-jmespath v0.3.0
+# github.com/jmespath/go-jmespath v0.4.0
 github.com/jmespath/go-jmespath
 # github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 github.com/joyent/triton-go
@@ -531,7 +537,7 @@ go.opencensus.io/stats/internal
 go.opencensus.io/internal/tagencoding
 go.opencensus.io/metric/metricproducer
 go.opencensus.io/resource
-# golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+# golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/knownhosts
@@ -554,7 +560,7 @@ golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/md4
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+# golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 golang.org/x/net/idna
 golang.org/x/net/context
 golang.org/x/net/trace
@@ -572,11 +578,12 @@ golang.org/x/oauth2/jwt
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/google
-# golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+# golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 golang.org/x/sys/windows
 golang.org/x/sys/unix
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/cpu
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.3
 golang.org/x/text/unicode/norm
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
@@ -685,5 +692,5 @@ google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/attributes
 # gopkg.in/ini.v1 v1.42.0
 gopkg.in/ini.v1
-# gopkg.in/yaml.v2 v2.2.2
+# gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2

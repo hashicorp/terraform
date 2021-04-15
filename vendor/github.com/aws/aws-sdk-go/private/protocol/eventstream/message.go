@@ -57,6 +57,20 @@ func (m *Message) rawMessage() (rawMessage, error) {
 	return raw, nil
 }
 
+// Clone returns a deep copy of the message.
+func (m Message) Clone() Message {
+	var payload []byte
+	if m.Payload != nil {
+		payload = make([]byte, len(m.Payload))
+		copy(payload, m.Payload)
+	}
+
+	return Message{
+		Headers: m.Headers.Clone(),
+		Payload: payload,
+	}
+}
+
 type messagePrelude struct {
 	Length     uint32
 	HeadersLen uint32

@@ -69,7 +69,7 @@ func computeKeyMD5(keyHeader, keyMD5Header, key string, r *http.Request) {
 			return
 		}
 
-		// In backwards compatiable, the header's value is not base64 encoded,
+		// In backwards compatible, the header's value is not base64 encoded,
 		// and needs to be encoded and updated by the SDK's customizations.
 		b64Key := base64.StdEncoding.EncodeToString([]byte(key))
 		r.Header.Set(keyHeader, b64Key)

@@ -398,3 +398,9 @@ type CapRights C.struct_cap_rights
 // Uname
 
 type Utsname C.struct_utsname
+
+// Clockinfo
+
+const SizeofClockinfo = C.sizeof_struct_clockinfo
+
+type Clockinfo C.struct_clockinfo

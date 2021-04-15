@@ -17,7 +17,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
-	github.com/aws/aws-sdk-go v1.30.12
+	github.com/aws/aws-sdk-go v1.38.21
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bmatcuk/doublestar v1.1.5
@@ -40,6 +40,7 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.4
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
+	github.com/google/btree v1.0.1 // indirect
 	github.com/google/go-cmp v0.3.1
 	github.com/google/uuid v1.1.1
 	github.com/gophercloud/gophercloud v0.0.0-20190208042652-bc37892e1968
@@ -75,7 +76,7 @@ require (
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20191212124732-c6ae6269b9d7
 	github.com/hashicorp/terraform-svchost v0.0.0-20191011084731-65d371908596
 	github.com/hashicorp/vault v0.10.4
-	github.com/jmespath/go-jmespath v0.3.0
+	github.com/jmespath/go-jmespath v0.4.0
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/json-iterator/go v1.1.5 // indirect
@@ -113,6 +114,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/spf13/afero v1.2.1
+	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
 	github.com/terraform-providers/terraform-provider-openstack v1.15.0
@@ -127,15 +129,15 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+	golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f
 	golang.org/x/tools v0.0.0-20190628153133-6cdbf07be9d0
 	google.golang.org/api v0.9.0
 	google.golang.org/grpc v1.27.1
 	gopkg.in/ini.v1 v1.42.0 // indirect
-	gopkg.in/yaml.v2 v2.2.2
+	gopkg.in/yaml.v2 v2.2.8
 	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
 )
 

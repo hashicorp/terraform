@@ -32,9 +32,10 @@ import (
 )
 
 var (
-	b32  = flag.Bool("b32", false, "32bit big-endian")
-	l32  = flag.Bool("l32", false, "32bit little-endian")
-	tags = flag.String("tags", "", "build tags")
+	b32     = flag.Bool("b32", false, "32bit big-endian")
+	l32     = flag.Bool("l32", false, "32bit little-endian")
+	tags    = flag.String("tags", "", "build tags")
+	illumos = flag.Bool("illumos", false, "illumos specific code generation")
 )
 
 // cmdLine returns this programs's commandline arguments
@@ -306,11 +307,16 @@ func main() {
 	imp := ""
 	if pack != "unix" {
 		imp = "import \"golang.org/x/sys/unix\"\n"
-
 	}
+
+	syscallimp := ""
+	if !*illumos {
+		syscallimp = "\"syscall\""
+	}
+
 	vardecls := "\t" + strings.Join(vars, ",\n\t")
 	vardecls += " syscallFunc"
-	fmt.Printf(srcTemplate, cmdLine(), buildTags(), pack, imp, dynimports, linknames, vardecls, text)
+	fmt.Printf(srcTemplate, cmdLine(), buildTags(), pack, syscallimp, imp, dynimports, linknames, vardecls, text)
 }
 
 const srcTemplate = `// %s
@@ -321,8 +327,8 @@ const srcTemplate = `// %s
 package %s
 
 import (
-	"syscall"
-	"unsafe"
+        "unsafe"
+        %s
 )
 %s
 %s

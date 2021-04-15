@@ -69,8 +69,21 @@ func (r *EventReader) ReadEvent() (event interface{}, err error) {
 	case ErrorMessageType:
 		return nil, r.unmarshalErrorMessage(msg)
 	default:
-		return nil, fmt.Errorf("unknown eventstream message type, %v", typ)
+		return nil, &UnknownMessageTypeError{
+			Type: typ, Message: msg.Clone(),
+		}
 	}
+}
+
+// UnknownMessageTypeError provides an error when a message is received from
+// the stream, but the reader is unable to determine what kind of message it is.
+type UnknownMessageTypeError struct {
+	Type    string
+	Message eventstream.Message
+}
+
+func (e *UnknownMessageTypeError) Error() string {
+	return "unknown eventstream message type, " + e.Type
 }
 
 func (r *EventReader) unmarshalEventMessage(

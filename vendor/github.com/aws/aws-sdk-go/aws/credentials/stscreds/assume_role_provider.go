@@ -95,7 +95,7 @@ import (
 // StdinTokenProvider will prompt on stderr and read from stdin for a string value.
 // An error is returned if reading from stdin fails.
 //
-// Use this function go read MFA tokens from stdin. The function makes no attempt
+// Use this function to read MFA tokens from stdin. The function makes no attempt
 // to make atomic prompts from stdin across multiple gorouties.
 //
 // Using StdinTokenProvider with multiple AssumeRoleProviders, or Credentials will
@@ -169,6 +169,29 @@ type AssumeRoleProvider struct {
 	// size.
 	Policy *string
 
+	// The ARNs of IAM managed policies you want to use as managed session policies.
+	// The policies must exist in the same account as the role.
+	//
+	// This parameter is optional. You can provide up to 10 managed policy ARNs.
+	// However, the plain text that you use for both inline and managed session
+	// policies can't exceed 2,048 characters.
+	//
+	// An AWS conversion compresses the passed session policies and session tags
+	// into a packed binary format that has a separate limit. Your request can fail
+	// for this limit even if your plain text meets the other requirements. The
+	// PackedPolicySize response element indicates by percentage how close the policies
+	// and tags for your request are to the upper size limit.
+	//
+	// Passing policies to this operation returns new temporary credentials. The
+	// resulting session's permissions are the intersection of the role's identity-based
+	// policy and the session policies. You can use the role's temporary credentials
+	// in subsequent AWS API calls to access resources in the account that owns
+	// the role. You cannot use session policies to grant more permissions than
+	// those allowed by the identity-based policy of the role that is being assumed.
+	// For more information, see Session Policies (https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#policies_session)
+	// in the IAM User Guide.
+	PolicyArns []*sts.PolicyDescriptorType
+
 	// The identification number of the MFA device that is associated with the user
 	// who is making the AssumeRole call. Specify this value if the trust policy
 	// of the role being assumed includes a condition that requires MFA authentication.
@@ -221,9 +244,11 @@ type AssumeRoleProvider struct {
 	MaxJitterFrac float64
 }
 
-// NewCredentials returns a pointer to a new Credentials object wrapping the
+// NewCredentials returns a pointer to a new Credentials value wrapping the
 // AssumeRoleProvider. The credentials will expire every 15 minutes and the
-// role will be named after a nanosecond timestamp of this operation.
+// role will be named after a nanosecond timestamp of this operation. The
+// Credentials value will attempt to refresh the credentials using the provider
+// when Credentials.Get is called, if the cached credentials are expiring.
 //
 // Takes a Config provider to create the STS client. The ConfigProvider is
 // satisfied by the session.Session type.
@@ -245,9 +270,11 @@ func NewCredentials(c client.ConfigProvider, roleARN string, options ...func(*As
 	return credentials.NewCredentials(p)
 }
 
-// NewCredentialsWithClient returns a pointer to a new Credentials object wrapping the
+// NewCredentialsWithClient returns a pointer to a new Credentials value wrapping the
 // AssumeRoleProvider. The credentials will expire every 15 minutes and the
-// role will be named after a nanosecond timestamp of this operation.
+// role will be named after a nanosecond timestamp of this operation. The
+// Credentials value will attempt to refresh the credentials using the provider
+// when Credentials.Get is called, if the cached credentials are expiring.
 //
 // Takes an AssumeRoler which can be satisfied by the STS client.
 //
@@ -291,6 +318,7 @@ func (p *AssumeRoleProvider) RetrieveWithContext(ctx credentials.Context) (crede
 		RoleSessionName:   aws.String(p.RoleSessionName),
 		ExternalId:        p.ExternalID,
 		Tags:              p.Tags,
+		PolicyArns:        p.PolicyArns,
 		TransitiveTagKeys: p.TransitiveTagKeys,
 	}
 	if p.Policy != nil {

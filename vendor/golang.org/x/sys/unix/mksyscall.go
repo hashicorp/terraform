@@ -86,15 +86,13 @@ func parseParam(p string) Param {
 }
 
 func main() {
-	// Get the OS and architecture (using GOARCH_TARGET if it exists)
-	goos := os.Getenv("GOOS")
+	goos := os.Getenv("GOOS_TARGET")
+	if goos == "" {
+		goos = os.Getenv("GOOS")
+	}
 	if goos == "" {
 		fmt.Fprintln(os.Stderr, "GOOS not defined in environment")
 		os.Exit(1)
-	}
-	goarch := os.Getenv("GOARCH_TARGET")
-	if goarch == "" {
-		goarch = os.Getenv("GOARCH")
 	}
 
 	// Check that we are using the Docker-based build system if we should
@@ -121,7 +119,7 @@ func main() {
 	}
 
 	libc := false
-	if goos == "darwin" && strings.Contains(buildTags(), ",go1.12") {
+	if goos == "darwin" {
 		libc = true
 	}
 	trampolines := map[string]bool{}
@@ -152,11 +150,6 @@ func main() {
 				os.Exit(1)
 			}
 			funct, inps, outps, sysname := f[2], f[3], f[4], f[5]
-
-			// ClockGettime doesn't have a syscall number on Darwin, only generate libc wrappers.
-			if goos == "darwin" && !libc && funct == "ClockGettime" {
-				continue
-			}
 
 			// Split argument lists on comma.
 			in := parseParamList(inps)
@@ -292,11 +285,6 @@ func main() {
 				asm = "syscall_" + strings.ToLower(asm[:1]) + asm[1:] // internal syscall call
 				sysname = strings.TrimPrefix(sysname, "SYS_")         // remove SYS_
 				sysname = strings.ToLower(sysname)                    // lowercase
-				if sysname == "getdirentries64" {
-					// Special case - libSystem name and
-					// raw syscall name don't match.
-					sysname = "__getdirentries64"
-				}
 				libcFn = sysname
 				sysname = "funcPC(libc_" + sysname + "_trampoline)"
 			}
