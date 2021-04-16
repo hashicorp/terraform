@@ -374,6 +374,13 @@ type ProviderConfigRef struct {
 	NameRange  hcl.Range
 	Alias      string
 	AliasRange *hcl.Range // nil if alias not set
+
+	// TODO: this may not be set in some cases, so it is not yet suitable for
+	// use outside of this package. We currently only use it for internal
+	// validation, but once we verify that this can be set in all cases, we can
+	// export this so providers don't need to be re-resolved.
+	// This same field is also added to the Provider struct.
+	providerType addrs.Provider
 }
 
 func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConfigRef, hcl.Diagnostics) {
