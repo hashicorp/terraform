@@ -329,6 +329,53 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 	return diags
 }
 
+// resolveProviderTypes walks through the providers in the module and ensures
+// the true types are assigned based on the provider requirements for the
+// module.
+func (c *Config) resolveProviderTypes() {
+	for _, child := range c.Children {
+		child.resolveProviderTypes()
+	}
+
+	// collect the required_providers, and then add any missing default providers
+	providers := map[string]addrs.Provider{}
+	for name, p := range c.Module.ProviderRequirements.RequiredProviders {
+		providers[name] = p.Type
+	}
+
+	// ensure all provider configs know their correct type
+	for _, p := range c.Module.ProviderConfigs {
+		addr, required := providers[p.Name]
+		if required {
+			p.providerType = addr
+		} else {
+			addr := addrs.NewDefaultProvider(p.Name)
+			p.providerType = addr
+			providers[p.Name] = addr
+		}
+	}
+
+	// connect module call providers to the correct type
+	for _, mod := range c.Module.ModuleCalls {
+		for _, p := range mod.Providers {
+			if addr, known := providers[p.InParent.Name]; known {
+				p.InParent.providerType = addr
+			}
+		}
+	}
+
+	// fill in parent module calls too
+	if c.Parent != nil {
+		for _, mod := range c.Parent.Module.ModuleCalls {
+			for _, p := range mod.Providers {
+				if addr, known := providers[p.InChild.Name]; known {
+					p.InChild.providerType = addr
+				}
+			}
+		}
+	}
+}
+
 // ProviderTypes returns the FQNs of each distinct provider type referenced
 // in the receiving configuration.
 //
