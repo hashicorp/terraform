@@ -287,6 +287,10 @@ the directories indicated above that exists when Terraform starts up.
 In addition, if a `terraform.d/plugins` directory exists in the current working
 directory, it will be added as a filesystem mirror.
 
+Note that providers installed in these directories need to be placed in the
+appropriate nested directory structure described in the
+[filesystem_mirror](#filesystem_mirror) section of this document.
+
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the
 filesystem mirror directories to see which providers are placed there and
