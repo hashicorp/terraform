@@ -123,8 +123,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Render the resource count and outputs, unless we're using the remote
-	// backend, in which case these are rendered remotely
-	if _, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend {
+	// backend locally, in which case these are rendered remotely
+	if _, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend || c.RunningInAutomation {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootModule().OutputValues)
