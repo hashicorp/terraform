@@ -138,7 +138,7 @@ require (
 	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
 )
 
-replace google.golang.org/grpc v1.31.1 => google.golang.org/grpc v1.27.1
+replace google.golang.org/grpc v1.36.0 => google.golang.org/grpc v1.27.1
 
 replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
