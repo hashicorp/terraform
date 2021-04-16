@@ -8,6 +8,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend [GH-28409]
+* config: Fix validation error when passing providers from a non-default namespace into modules [GH-28414]
 * core: Don't trigger data source reads from changes in sibling module instances [GH-28267]
 * core: Restore saved dependencies when a resource destroy operation fails [GH-28317]
 * core: Fix crash when setting sensitive attributes to a sensitive value [GH-28383]
