@@ -318,8 +318,6 @@ github.com/hashicorp/go-checkpoint v0.5.0/go.mod h1:7nfLNL10NsxqO4iWuW6tWW0HjZuD
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
 github.com/hashicorp/go-cleanhttp v0.5.1/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
-github.com/hashicorp/go-getter v1.5.1 h1:lM9sM02nvEApQGFgkXxWbhfqtyN+AyhQmi+MaMdBDOI=
-github.com/hashicorp/go-getter v1.5.1/go.mod h1:a7z7NPPfNQpJWcn4rSWFtdrSldqLdLPEF3d8nFMsSLM=
 github.com/hashicorp/go-getter v1.5.2 h1:XDo8LiAcDisiqZdv0TKgz+HtX3WN7zA2JD1R1tjsabE=
 github.com/hashicorp/go-getter v1.5.2/go.mod h1:orNH3BTYLu/fIxGIdLjLoAJHWMDQ/UKQr5O4m3iBuoo=
 github.com/hashicorp/go-hclog v0.14.1/go.mod h1:whpDNt7SSdeAju8AWKIWsul05p54N/39EeqMAyrmvFQ=
@@ -360,8 +358,8 @@ github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f h1:UdxlrJz4JOnY8W+DbLISwf2B8WXEolNRA8BGCwI9jws=
 github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f/go.mod h1:oZtUIOe8dh44I2q6ScRibXws4Ajl+d+nod3AaR9vL5w=
 github.com/hashicorp/hcl/v2 v2.0.0/go.mod h1:oVVDG71tEinNGYCxinCYadcmKU9bglqW9pV3txagJ90=
-github.com/hashicorp/hcl/v2 v2.9.1 h1:eOy4gREY0/ZQHNItlfuEZqtcQbXIxzojlP301hDpnac=
-github.com/hashicorp/hcl/v2 v2.9.1/go.mod h1:FwWsfWEjyV/CMj8s/gqAuiviY72rJ1/oayI9WftqcKg=
+github.com/hashicorp/hcl/v2 v2.10.0 h1:1S1UnuhDGlv3gRFV4+0EdwB+znNP5HmcGbIqwnSCByg=
+github.com/hashicorp/hcl/v2 v2.10.0/go.mod h1:FwWsfWEjyV/CMj8s/gqAuiviY72rJ1/oayI9WftqcKg=
 github.com/hashicorp/memberlist v0.1.0 h1:qSsCiC0WYD39lbSitKNt40e30uorm2Ss/d4JGU1hzH8=
 github.com/hashicorp/memberlist v0.1.0/go.mod h1:ncdBp14cuox2iFOq3kDiquKU6fqsTBc3W6JvZwjxxsE=
 github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb h1:ZbgmOQt8DOg796figP87/EFCVx2v2h9yRvwHF/zceX4=
