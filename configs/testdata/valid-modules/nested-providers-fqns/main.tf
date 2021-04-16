@@ -10,6 +10,9 @@ provider "foo-test" {}
 
 module "child" {
   source = "./child"
+  providers = {
+    foo-test.other = foo-test
+  }
 }
 
 resource "test_instance" "explicit" {
