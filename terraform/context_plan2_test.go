@@ -250,6 +250,90 @@ resource "test_object" "a" {
 	}
 }
 
+func TestContext2Plan_dataReferencesResourceInModules(t *testing.T) {
+	p := testProvider("test")
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		cfg["id"] = cty.StringVal("d")
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  things = {
+    old = "first"
+    new = "second"
+  }
+}
+
+module "mod" {
+  source = "./mod"
+  for_each = local.things
+}
+`,
+
+		"./mod/main.tf": `
+resource "test_resource" "a" {
+}
+
+data "test_data_source" "d" {
+  depends_on = [test_resource.a]
+}
+
+resource "test_resource" "b" {
+  value = data.test_data_source.d.id
+}
+`})
+
+	oldDataAddr := mustResourceInstanceAddr(`module.mod["old"].data.test_data_source.d`)
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`module.mod["old"].test_resource.a`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"a"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`module.mod["old"].test_resource.b`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"b","value":"d"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			oldDataAddr,
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"d"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	assertNoErrors(t, diags)
+
+	oldMod := oldDataAddr.Module
+
+	for _, c := range plan.Changes.Resources {
+		// there should be no changes from the old module instance
+		if c.Addr.Module.Equal(oldMod) && c.Action != plans.NoOp {
+			t.Errorf("unexpected change %s for %s\n", c.Action, c.Addr)
+		}
+	}
+}
+
 func TestContext2Plan_destroySkipRefresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -355,86 +439,49 @@ output "result" {
 		}
 	}
 }
-func TestContext2Plan_dataReferencesResourceInModules(t *testing.T) {
-	p := testProvider("test")
-	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
-		cfg := req.Config.AsValueMap()
-		cfg["id"] = cty.StringVal("d")
-		resp.State = cty.ObjectVal(cfg)
+
+func TestContext2Plan_destroyNoProviderConfig(t *testing.T) {
+	// providers do not need to be configured during a destroy plan
+	p := simpleMockProvider()
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+		v := req.Config.GetAttr("test_string")
+		if v.IsNull() || !v.IsKnown() || v.AsString() != "ok" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("invalid provider configuration"))
+		}
 		return resp
 	}
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
- locals {
-   things = {
-     old = "first"
-     new = "second"
-   }
- }
+locals {
+  value = "ok"
+}
 
- module "mod" {
-   source = "./mod"
-   for_each = local.things
- }
- `,
+provider "test" {
+  test_string = local.value
+}
+`,
+	})
 
-		"./mod/main.tf": `
- resource "test_resource" "a" {
- }
-
- data "test_data_source" "d" {
-   depends_on = [test_resource.a]
- }
-
- resource "test_resource" "b" {
-   value = data.test_data_source.d.id
- }
- `})
-
-	oldDataAddr := mustResourceInstanceAddr(`module.mod["old"].data.test_data_source.d`)
-
+	addr := mustResourceInstanceAddr("test_object.a")
 	state := states.BuildState(func(s *states.SyncState) {
-		s.SetResourceInstanceCurrent(
-			mustResourceInstanceAddr(`module.mod["old"].test_resource.a`),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"a"}`),
-				Status:    states.ObjectReady,
-			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-		)
-		s.SetResourceInstanceCurrent(
-			mustResourceInstanceAddr(`module.mod["old"].test_resource.b`),
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"b","value":"d"}`),
-				Status:    states.ObjectReady,
-			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-		)
-		s.SetResourceInstanceCurrent(
-			oldDataAddr,
-			&states.ResourceInstanceObjectSrc{
-				AttrsJSON: []byte(`{"id":"d"}`),
-				Status:    states.ObjectReady,
-			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
-		)
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
+		State:  state,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: state,
+		Destroy: true,
 	})
 
-	plan, diags := ctx.Plan()
-	assertNoErrors(t, diags)
-
-	oldMod := oldDataAddr.Module
-
-	for _, c := range plan.Changes.Resources {
-		// there should be no changes from the old module instance
-		if c.Addr.Module.Equal(oldMod) && c.Action != plans.NoOp {
-			t.Errorf("unexpected change %s for %s\n", c.Action, c.Addr)
-		}
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }

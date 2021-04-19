@@ -633,7 +633,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan)
+	walker, walkDiags := c.walk(graph, walkPlanDestroy)
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
