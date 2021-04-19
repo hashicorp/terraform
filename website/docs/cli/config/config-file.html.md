@@ -289,7 +289,7 @@ system.
 Terraform will check each of the paths above to see if it exists, and if so
 treat it as a filesystem mirror. The directory structure inside each one must
 therefore match one of the two structures described for `filesystem_mirror`
-blocks.
+blocks in [Explicit Installation Method Configuration](#explicit-installation-method-configuration).
 
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the
