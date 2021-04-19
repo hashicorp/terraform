@@ -28,8 +28,9 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				// messages to be more appropriate for an explicit type
 				// conversion, whereas the cty function system produces
 				// messages aimed at _implicit_ type conversions.
-				Type:      cty.DynamicPseudoType,
-				AllowNull: true,
+				Type:        cty.DynamicPseudoType,
+				AllowNull:   true,
+				AllowMarked: true,
 			},
 		},
 		Type: func(args []cty.Value) (cty.Type, error) {
@@ -65,6 +66,11 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				// once we note that the value isn't either "true" or "false".
 				gotTy := args[0].Type()
 				switch {
+				case args[0].ContainsMarked():
+					// Generic message so we won't inadvertently disclose
+					// information about sensitive values.
+					return cty.NilVal, function.NewArgErrorf(0, "cannot convert this sensitive %s to %s", gotTy.FriendlyName(), wantTy.FriendlyNameForConstraint())
+
 				case gotTy == cty.String && wantTy == cty.Bool:
 					what := "string"
 					if !args[0].IsNull() {
