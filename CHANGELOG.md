@@ -8,6 +8,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * config: Fix validation error when passing providers from a non-default namespace into modules. [GH-28414]
+* config: The conversion functions like `tomap` and `tolist` will no longer mark the entire result as sensitive just because one element in a collection had a sensitive value. Instead, they will preserve the sensitivity of individual elements as far as the type system's treatment of sensitive values can allow. [GH-28446]
 * cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend. [GH-28409]
 * cli: Diagnostics messages will only indicate that a referenced value is sensitive if that value is _directly_ sensitive, as opposed to being a complex-typed value that _contains_ a sensitive value. [GH-28442]
 * core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
