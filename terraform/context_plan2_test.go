@@ -439,3 +439,49 @@ output "result" {
 		}
 	}
 }
+
+func TestContext2Plan_destroyNoProviderConfig(t *testing.T) {
+	// providers do not need to be configured during a destroy plan
+	p := simpleMockProvider()
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+		v := req.Config.GetAttr("test_string")
+		if v.IsNull() || !v.IsKnown() || v.AsString() != "ok" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("invalid provider configuration"))
+		}
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  value = "ok"
+}
+
+provider "test" {
+  test_string = local.value
+}
+`,
+	})
+
+	addr := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+}
