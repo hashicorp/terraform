@@ -33,6 +33,18 @@ func TestTo(t *testing.T) {
 			``,
 		},
 		{
+			cty.StringVal("a").Mark("boop"),
+			cty.String,
+			cty.StringVal("a").Mark("boop"),
+			``,
+		},
+		{
+			cty.NullVal(cty.String).Mark("boop"),
+			cty.String,
+			cty.NullVal(cty.String).Mark("boop"),
+			``,
+		},
+		{
 			cty.True,
 			cty.String,
 			cty.StringVal("true"),
@@ -45,10 +57,22 @@ func TestTo(t *testing.T) {
 			`cannot convert "a" to bool; only the strings "true" or "false" are allowed`,
 		},
 		{
+			cty.StringVal("a").Mark("boop"),
+			cty.Bool,
+			cty.DynamicVal,
+			`cannot convert this sensitive string to bool`,
+		},
+		{
 			cty.StringVal("a"),
 			cty.Number,
 			cty.DynamicVal,
 			`cannot convert "a" to number; given string must be a decimal representation of a number`,
+		},
+		{
+			cty.StringVal("a").Mark("boop"),
+			cty.Number,
+			cty.DynamicVal,
+			`cannot convert this sensitive string to number`,
 		},
 		{
 			cty.NullVal(cty.String),
@@ -84,6 +108,30 @@ func TestTo(t *testing.T) {
 			cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.True}),
 			cty.Map(cty.String),
 			cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.StringVal("true")}),
+			``,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.StringVal("world").Mark("boop")}),
+			cty.Map(cty.String),
+			cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.StringVal("world").Mark("boop")}),
+			``,
+		},
+		{
+			cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.StringVal("world")}).Mark("boop"),
+			cty.Map(cty.String),
+			cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("hello"), "bar": cty.StringVal("world")}).Mark("boop"),
+			``,
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("hello"), cty.StringVal("world").Mark("boop")}),
+			cty.List(cty.String),
+			cty.ListVal([]cty.Value{cty.StringVal("hello"), cty.StringVal("world").Mark("boop")}),
+			``,
+		},
+		{
+			cty.TupleVal([]cty.Value{cty.StringVal("hello"), cty.StringVal("world")}).Mark("boop"),
+			cty.List(cty.String),
+			cty.ListVal([]cty.Value{cty.StringVal("hello"), cty.StringVal("world")}).Mark("boop"),
 			``,
 		},
 		{
