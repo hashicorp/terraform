@@ -2,16 +2,17 @@
 
 ENHANCEMENTS:
 
-* cli: Diagnostic messages can now be annotated with resource and provider addresses [GH-28275]
-* core: Minor graph performance optimizations [GH-28329]
+* cli: Diagnostic messages can now be annotated with resource and provider addresses. [GH-28275]
+* core: Minor graph performance optimizations. [GH-28329]
 
 BUG FIXES:
 
-* cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend [GH-28409]
-* config: Fix validation error when passing providers from a non-default namespace into modules [GH-28414]
-* core: Don't trigger data source reads from changes in sibling module instances [GH-28267]
-* core: Restore saved dependencies when a resource destroy operation fails [GH-28317]
-* core: Fix crash when setting sensitive attributes to a sensitive value [GH-28383]
+* config: Fix validation error when passing providers from a non-default namespace into modules. [GH-28414]
+* cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend. [GH-28409]
+* cli: Diagnostics messages will only indicate that a referenced value is sensitive if that value is _directly_ sensitive, as opposed to being a complex-typed value that _contains_ a sensitive value. [GH-28442]
+* core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
+* core: Restore saved dependencies when a resource destroy operation fails. [GH-28317]
+* core: Fix crash when setting sensitive attributes to a sensitive value. [GH-28383]
 
 ## 0.15.0 (April 14, 2021)
 
