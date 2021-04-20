@@ -128,6 +128,10 @@ func (p *provisioner) Close() error {
 func generateScripts(inline cty.Value) ([]string, error) {
 	var lines []string
 	for _, l := range inline.AsValueSlice() {
+		if l.IsNull() {
+			return nil, errors.New("invalid null string in 'scripts'")
+		}
+
 		s := l.AsString()
 		if s == "" {
 			return nil, errors.New("invalid empty string in 'scripts'")
@@ -169,11 +173,14 @@ func collectScripts(v cty.Value) ([]io.ReadCloser, error) {
 
 	if scriptList := v.GetAttr("scripts"); !scriptList.IsNull() {
 		for _, script := range scriptList.AsValueSlice() {
+			if script.IsNull() {
+				return nil, errors.New("invalid null string in 'script'")
+			}
 			s := script.AsString()
 			if s == "" {
 				return nil, errors.New("invalid empty string in 'script'")
 			}
-			scripts = append(scripts, script.AsString())
+			scripts = append(scripts, s)
 		}
 	}
 
