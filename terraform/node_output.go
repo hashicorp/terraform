@@ -275,16 +275,24 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		// depends_on expressions here too
 		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
-		// Ensure that non-sensitive outputs don't include sensitive values
+		// For root module outputs in particular, an output value must be
+		// statically declared as sensitive in order to dynamically return
+		// a sensitive result, to help avoid accidental exposure in the state
+		// of a sensitive value that the user doesn't want to include there.
 		_, marks := val.UnmarkDeep()
 		_, hasSensitive := marks["sensitive"]
-		if !n.Config.Sensitive && hasSensitive {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Output refers to sensitive values",
-				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
-				Subject:  n.Config.DeclRange.Ptr(),
-			})
+		if n.Addr.Module.IsRoot() {
+			if !n.Config.Sensitive && hasSensitive {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Output refers to sensitive values",
+					Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
+
+If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
+    sensitive = true`,
+					Subject: n.Config.DeclRange.Ptr(),
+				})
+			}
 		}
 	}
 
@@ -454,7 +462,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		sensitiveChange := sensitiveBefore || n.Config.Sensitive
 
 		// strip any marks here just to be sure we don't panic on the True comparison
-		val, _ = val.UnmarkDeep()
+		unmarkedVal, _ := val.UnmarkDeep()
 
 		action := plans.Update
 		switch {
@@ -468,7 +476,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			action = plans.Create
 
 		case val.IsWhollyKnown() &&
-			val.Equals(before).True() &&
+			unmarkedVal.Equals(before).True() &&
 			n.Config.Sensitive == sensitiveBefore:
 			// Sensitivity must also match to be a NoOp.
 			// Theoretically marks may not match here, but sensitivity is the
