@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/dynamic"
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // Import to initialize client auth plugins.
 	"k8s.io/utils/pointer"
 
 	coordinationv1 "k8s.io/api/coordination/v1"
