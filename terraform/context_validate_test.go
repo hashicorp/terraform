@@ -1379,7 +1379,7 @@ resource "aws_instance" "foo" {
 	}
 }
 
-func TestContext2Validate_invalidSensitiveModuleOutput(t *testing.T) {
+func TestContext2Validate_sensitiveRootModuleOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"child/main.tf": `
 variable "foo" {
@@ -1395,27 +1395,19 @@ module "child" {
   source = "./child"
 }
 
-resource "aws_instance" "foo" {
-  foo = module.child.out
+output "root" {
+  value = module.child.out
+  sensitive = true
 }`,
 	})
 
-	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
 	})
 
 	diags := ctx.Validate()
-	if !diags.HasErrors() {
-		t.Fatal("succeeded; want errors")
-	}
-	// Should get this error:
-	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
-	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
-		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }
 
