@@ -3,6 +3,7 @@ package remoteexec
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"testing"
@@ -272,5 +273,48 @@ func TestResourceProvisioner_connectionRequired(t *testing.T) {
 	got := resp.Diagnostics.Err().Error()
 	if !strings.Contains(got, "missing connection") {
 		t.Fatalf("expected 'missing connection' error: got %q", got)
+	}
+}
+
+func TestResourceProvisioner_nullsInOptionals(t *testing.T) {
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	for i, cfg := range []cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"script": cty.StringVal("echo"),
+			"inline": cty.NullVal(cty.List(cty.String)),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"inline": cty.ListVal([]cty.Value{
+				cty.NullVal(cty.String),
+			}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"script": cty.NullVal(cty.String),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"scripts": cty.NullVal(cty.List(cty.String)),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"scripts": cty.ListVal([]cty.Value{
+				cty.NullVal(cty.String),
+			}),
+		}),
+	} {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+
+			cfg, err := schema.CoerceValue(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// verifying there are no panics
+			p.ProvisionResource(provisioners.ProvisionResourceRequest{
+				Config:   cfg,
+				UIOutput: output,
+			})
+		})
 	}
 }
