@@ -275,16 +275,19 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		// depends_on expressions here too
 		diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
 
-		// Ensure that non-sensitive outputs don't include sensitive values
-		_, marks := val.UnmarkDeep()
-		_, hasSensitive := marks["sensitive"]
-		if !n.Config.Sensitive && hasSensitive {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Output refers to sensitive values",
-				Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
-				Subject:  n.Config.DeclRange.Ptr(),
-			})
+		// For root module outputs in particular, an output value must be
+		// statically declared as sensitive in order to dynamically return
+		// a sensitive result, to help avoid accidental exposure in the state
+		// of a sensitive value that the user doesn't want to include there.
+		if n.Addr.Module.IsRoot() {
+			if !n.Config.Sensitive && val.HasMark("sensitive") {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Output refers to sensitive values",
+					Detail:   "Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.",
+					Subject:  n.Config.DeclRange.Ptr(),
+				})
+			}
 		}
 	}
 
