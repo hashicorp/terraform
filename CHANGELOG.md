@@ -14,6 +14,7 @@ BUG FIXES:
 * core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
 * core: Restore saved dependencies when a resource destroy operation fails. [GH-28317]
 * core: Fix crash when setting sensitive attributes to a sensitive value. [GH-28383]
+* provisioner: Fix panic with unexpected null values in provisioner configuration [GH-28457]
 
 ## 0.15.0 (April 14, 2021)
 
