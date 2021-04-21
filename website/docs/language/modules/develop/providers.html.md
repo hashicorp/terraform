@@ -222,7 +222,7 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = ">= 2.7.0"
-      configuration_aliases = [ aws.src, aws.dest ]
+      configuration_aliases = [ "aws.src", "aws.dest" ]
     }
   }
 }
