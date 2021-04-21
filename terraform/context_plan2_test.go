@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -483,5 +484,34 @@ provider "test" {
 	_, diags := ctx.Plan()
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
+	}
+}
+
+func TestContext2Plan_invalidSensitiveModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+output "out" {
+  value = sensitive("xyz")
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+output "root" {
+  value = module.child.out
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
