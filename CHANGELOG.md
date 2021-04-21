@@ -18,6 +18,7 @@ BUG FIXES:
 * core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
 * core: Restore saved dependencies when a resource destroy operation fails. [GH-28317]
 * core: Fix crash when setting sensitive attributes to a sensitive value. [GH-28383]
+* core: Loosen output value sensitivity requirement for non-root modules. This means that modules which may receive sensitive values as input variables no longer need to mark all related outputs as sensitive. The requirement for root modules to specify the `sensitive` attribute for sensitive values remains, with an extended diagnostic message to explain why. [GH-28472]
 * provisioner: Fix panic with unexpected null values in provisioner configuration [GH-28457]
 
 ## 0.15.0 (April 14, 2021)
