@@ -318,8 +318,6 @@ github.com/hashicorp/go-checkpoint v0.5.0/go.mod h1:7nfLNL10NsxqO4iWuW6tWW0HjZuD
 github.com/hashicorp/go-cleanhttp v0.5.0/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
 github.com/hashicorp/go-cleanhttp v0.5.1 h1:dH3aiDG9Jvb5r5+bYHsikaOUIpcM0xvgMXVoDkXMzJM=
 github.com/hashicorp/go-cleanhttp v0.5.1/go.mod h1:JpRdi6/HCYpAwUzNwuwqhbovhLtngrth3wmdIIUrZ80=
-github.com/hashicorp/go-getter v1.5.1 h1:lM9sM02nvEApQGFgkXxWbhfqtyN+AyhQmi+MaMdBDOI=
-github.com/hashicorp/go-getter v1.5.1/go.mod h1:a7z7NPPfNQpJWcn4rSWFtdrSldqLdLPEF3d8nFMsSLM=
 github.com/hashicorp/go-getter v1.5.2 h1:XDo8LiAcDisiqZdv0TKgz+HtX3WN7zA2JD1R1tjsabE=
 github.com/hashicorp/go-getter v1.5.2/go.mod h1:orNH3BTYLu/fIxGIdLjLoAJHWMDQ/UKQr5O4m3iBuoo=
 github.com/hashicorp/go-hclog v0.14.1/go.mod h1:whpDNt7SSdeAju8AWKIWsul05p54N/39EeqMAyrmvFQ=
@@ -332,8 +330,8 @@ github.com/hashicorp/go-msgpack v0.5.4/go.mod h1:ahLV/dePpqEmjfWmKiqvPkv/twdG7iP
 github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHhCYQXV3UM06sGGrk=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
-github.com/hashicorp/go-plugin v1.4.0 h1:b0O7rs5uiJ99Iu9HugEzsM67afboErkHUWddUSpUO3A=
-github.com/hashicorp/go-plugin v1.4.0/go.mod h1:5fGEH17QVwTTcR0zV7yhDPLLmFX9YSZ38b18Udy6vYQ=
+github.com/hashicorp/go-plugin v1.4.1 h1:6UltRQlLN9iZO513VveELp5xyaFxVD2+1OVylE+2E+w=
+github.com/hashicorp/go-plugin v1.4.1/go.mod h1:5fGEH17QVwTTcR0zV7yhDPLLmFX9YSZ38b18Udy6vYQ=
 github.com/hashicorp/go-retryablehttp v0.5.2 h1:AoISa4P4IsW0/m4T6St8Yw38gTl5GtBAgfkhYh1xAz4=
 github.com/hashicorp/go-retryablehttp v0.5.2/go.mod h1:9B5zBasrRhHXnJnui7y6sL7es7NDiJgTc6Er0maI1Xs=
 github.com/hashicorp/go-rootcerts v1.0.0 h1:Rqb66Oo1X/eSV1x66xbDccZjhJigjg0+e82kpwzSwCI=
