@@ -2,13 +2,17 @@
 
 ENHANCEMENTS:
 
+* config: Various Terraform language functions now have more precise inference rules for propagating the "sensitive" characteristic values.
+ 
+    The affected functions are `chunklist`, `concat`, `flatten`, `keys`, `length`, `lookup`, `merge`, `setproduct`, `tolist`, `tomap`, `values`, and `zipmap`. The details are a little different for each of these but the general idea is to, as far as possible, preserve the sensitive characteristic on individual element or attribute values in result structures rather than always conservatively applying sensitivity to the whole result.
+    
+    The primary benefit of these improvements is that you can now use these functions as part of constructing maps for `for_each` in situations where the input collection is never sensitive but some of the elements/attributes inside might be. [GH-28446] [GH-28460]
 * cli: Diagnostic messages can now be annotated with resource and provider addresses. [GH-28275]
 * core: Minor graph performance optimizations. [GH-28329]
 
 BUG FIXES:
 
 * config: Fix validation error when passing providers from a non-default namespace into modules. [GH-28414]
-* config: The conversion functions like `tomap` and `tolist` will no longer mark the entire result as sensitive just because one element in a collection had a sensitive value. Instead, they will preserve the sensitivity of individual elements as far as the type system's treatment of sensitive values can allow. [GH-28446]
 * cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend. [GH-28409]
 * cli: Diagnostics messages will only indicate that a referenced value is sensitive if that value is _directly_ sensitive, as opposed to being a complex-typed value that _contains_ a sensitive value. [GH-28442]
 * core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
