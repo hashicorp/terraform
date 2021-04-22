@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -417,7 +418,11 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			// go-plugin), so client.NegotiatedVersion() always returns 0. We
 			// assume that an unmanaged provider reporting protocol version 0 is
 			// actually using proto v5 for backwards compatibility.
-			config.Plugins = tfplugin.VersionedPlugins[5]
+			if defaultPlugins, ok := tfplugin.VersionedPlugins[5]; ok {
+				config.Plugins = defaultPlugins
+			} else {
+				return nil, errors.New("no supported plugins for protocol 0")
+			}
 		} else if plugins, ok := tfplugin.VersionedPlugins[reattach.ProtocolVersion]; !ok {
 			return nil, fmt.Errorf("no supported plugins for protocol %d", reattach.ProtocolVersion)
 		} else {
