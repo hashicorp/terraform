@@ -56,16 +56,6 @@ func TestLogin(t *testing.T) {
 			svcs := disco.NewWithCredentialsSource(creds)
 			svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
-			svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
-				"login.v1": map[string]interface{}{
-					// On app.terraform.io we use password-based authorization.
-					// That's the only hostname that it's permitted for, so we can't
-					// use a fake hostname here.
-					"client":      "terraformcli",
-					"token":       s.URL + "/token",
-					"grant_types": []interface{}{"password"},
-				},
-			})
 			svcs.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
 				"login.v1": map[string]interface{}{
 					// For this fake hostname we'll use a conventional OAuth flow,
@@ -86,9 +76,17 @@ func TestLogin(t *testing.T) {
 					"scopes": []interface{}{"app1.full_access", "app2.read_only"},
 				},
 			})
+			svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
+				// This represents Terraform Cloud, which does not yet support the
+				// login API, but does support its own bespoke tokens API.
+				"tfe.v2":   ts.URL + "/api/v2",
+				"tfe.v2.1": ts.URL + "/api/v2",
+				"tfe.v2.2": ts.URL + "/api/v2",
+				"motd.v1":  ts.URL + "/api/terraform/motd",
+			})
 			svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
 				// This represents a Terraform Enterprise instance which does not
-				// yet support the login API, but does support the TFE tokens API.
+				// yet support the login API, but does support its own bespoke tokens API.
 				"tfe.v2":   ts.URL + "/api/v2",
 				"tfe.v2.1": ts.URL + "/api/v2",
 				"tfe.v2.2": ts.URL + "/api/v2",
@@ -109,13 +107,14 @@ func TestLogin(t *testing.T) {
 		}
 	}
 
-	t.Run("defaulting to app.terraform.io with password flow", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("app.terraform.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+		// Enter "yes" at the consent prompt, then paste a token with some
+		// accidental whitespace.
 		defer testInputMap(t, map[string]string{
-			"approve":  "yes",
-			"username": "foo",
-			"password": "bar",
+			"approve": "yes",
+			"token":   "  good-token ",
 		})()
-		status := c.Run(nil)
+		status := c.Run([]string{"app.terraform.io"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
 		}
@@ -127,6 +126,9 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
+		}
+		if got, want := ui.OutputWriter.String(), "Welcome to Terraform Cloud!"; !strings.Contains(got, want) {
+			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
 
@@ -147,6 +149,10 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
+		}
+
+		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
 
@@ -178,6 +184,10 @@ func TestLogin(t *testing.T) {
 
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
+		}
+
+		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
 
@@ -215,6 +225,10 @@ func TestLogin(t *testing.T) {
 		}
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
+		}
+
+		if got, want := ui.OutputWriter.String(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
+			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
 
