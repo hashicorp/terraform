@@ -8,6 +8,7 @@ ENHANCEMENTS:
     
     The primary benefit of these improvements is that you can now use these functions as part of constructing maps for `for_each` in situations where the input collection is never sensitive but some of the elements/attributes inside might be. [GH-28446] [GH-28460]
 * cli: Diagnostic messages can now be annotated with resource and provider addresses. [GH-28275]
+* cli: `terraform login` now has a new user experience for successful log-ins to Terraform Cloud and Terraform Enterprise. [GH-28487]
 * core: Minor graph performance optimizations. [GH-28329]
 
 BUG FIXES:
