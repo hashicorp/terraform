@@ -237,13 +237,15 @@ func (c *LoginCommand) Run(args []string) int {
 
 		motdServiceURL, err := host.ServiceURL("motd.v1")
 		if err != nil {
-			c.outputDefaultTFCLoginSuccess(err)
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
 			return 0
 		}
 
 		req, err := http.NewRequest("GET", motdServiceURL.String(), nil)
 		if err != nil {
-			c.outputDefaultTFCLoginSuccess(err)
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
 			return 0
 		}
 
@@ -251,13 +253,15 @@ func (c *LoginCommand) Run(args []string) int {
 
 		resp, err := httpclient.New().Do(req)
 		if err != nil {
-			c.outputDefaultTFCLoginSuccess(err)
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
 			return 0
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			c.outputDefaultTFCLoginSuccess(err)
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
 			return 0
 		}
 
@@ -270,7 +274,8 @@ func (c *LoginCommand) Run(args []string) int {
 			)
 			return 0
 		} else {
-			c.outputDefaultTFCLoginSuccess(fmt.Errorf("platform responded with errors or an empty message"))
+			c.logMOTDError(fmt.Errorf("platform responded with errors or an empty message"))
+			c.outputDefaultTFCLoginSuccess()
 			return 0
 		}
 	}
@@ -305,8 +310,7 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 	)
 }
 
-func (c *LoginCommand) outputDefaultTFCLoginSuccess(err error) {
-	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for Terraform Cloud: %s", err)
+func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
 	c.Ui.Output(
 		fmt.Sprintf(
 			c.Colorize().Color(strings.TrimSpace(`
@@ -314,6 +318,10 @@ func (c *LoginCommand) outputDefaultTFCLoginSuccess(err error) {
 `)),
 		) + "\n",
 	)
+}
+
+func (c *LoginCommand) logMOTDError(err error) {
+	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for Terraform Cloud: %s", err)
 }
 
 // Help implements cli.Command.
