@@ -344,15 +344,12 @@ func TestBlockDecoderSpec(t *testing.T) {
 					},
 					&hcl.Block{
 						Type: "foo",
-						Body: hcl.EmptyBody(),
+						Body: unknownBody{hcl.EmptyBody()},
 					},
 				},
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.ListVal([]cty.Value{
-					cty.EmptyObjectVal,
-					cty.EmptyObjectVal,
-				}),
+				"foo": cty.UnknownVal(cty.List(cty.EmptyObject)),
 			}),
 			0, // max items cannot be validated during decode
 		},
@@ -372,14 +369,12 @@ func TestBlockDecoderSpec(t *testing.T) {
 				Blocks: hcl.Blocks{
 					&hcl.Block{
 						Type: "foo",
-						Body: hcl.EmptyBody(),
+						Body: unknownBody{hcl.EmptyBody()},
 					},
 				},
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"foo": cty.ListVal([]cty.Value{
-					cty.EmptyObjectVal,
-				}),
+				"foo": cty.UnknownVal(cty.List(cty.EmptyObject)),
 			}),
 			0,
 		},
@@ -401,6 +396,7 @@ func TestBlockDecoderSpec(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			spec := test.Schema.DecoderSpec()
+
 			got, diags := hcldec.Decode(test.TestBody, spec, nil)
 			if len(diags) != test.DiagCount {
 				t.Errorf("wrong number of diagnostics %d; want %d", len(diags), test.DiagCount)
@@ -425,6 +421,16 @@ func TestBlockDecoderSpec(t *testing.T) {
 			}
 		})
 	}
+}
+
+// this satisfies hcldec.UnknownBody to simulate a dynamic block with an
+// unknown number of values.
+type unknownBody struct {
+	hcl.Body
+}
+
+func (b unknownBody) Unknown() bool {
+	return true
 }
 
 func TestAttributeDecoderSpec(t *testing.T) {
