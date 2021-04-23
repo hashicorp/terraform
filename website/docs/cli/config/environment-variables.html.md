@@ -160,3 +160,15 @@ export TF_IGNORE=trace
 ```
 
 For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/language/settings/backends/remote.html#excluding-files-from-upload-with-terraformignore).
+
+## TF_PLUGIN_CACHE_DIR
+
+`TF_PLUGIN_CACHE_DIR` environment variable can be used to enable caching or to override an existing cache directory within a particular shell session:
+
+```shell
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+```
+
+When a plugin cache directory is enabled, the `terraform init` command will still use the configured or implied installation methods to obtain metadata about which plugins are available, but once a suitable version has been selected it will first check to see if the chosen plugin is already available in the cache directory. If so, Terraform will use the previously-downloaded copy.
+
+For more on how plugin cache operates, check out [Provider Plugin Cache](/docs/cli/config/config-file.html#provider-plugin-cache) section.
