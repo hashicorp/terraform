@@ -324,18 +324,6 @@ func TestSignatureAuthentication_success(t *testing.T) {
 		keys      []SigningKey
 		result    PackageAuthenticationResult
 	}{
-		"official provider": {
-			testHashicorpSignatureGoodBase64,
-			[]SigningKey{
-				{
-					ASCIIArmor: HashicorpPublicKey,
-				},
-			},
-			PackageAuthenticationResult{
-				result: officialProvider,
-				KeyID:  testHashiCorpPublicKeyID,
-			},
-		},
 		"partner provider": {
 			testAuthorSignatureGoodBase64,
 			[]SigningKey{
@@ -389,6 +377,49 @@ func TestSignatureAuthentication_success(t *testing.T) {
 			}
 
 			auth := NewSignatureAuthentication([]byte(testShaSums), signature, test.keys)
+			result, err := auth.AuthenticatePackage(location)
+
+			if result == nil || *result != test.result {
+				t.Errorf("wrong result: got %#v, want %#v", result, test.result)
+			}
+			if err != nil {
+				t.Errorf("wrong err: got %s, want nil", err)
+			}
+		})
+	}
+}
+
+func TestNewSignatureAuthentication_success(t *testing.T) {
+	tests := map[string]struct {
+		signature string
+		keys      []SigningKey
+		result    PackageAuthenticationResult
+	}{
+		"official provider": {
+			testHashicorpSignatureGoodBase64,
+			[]SigningKey{
+				{
+					ASCIIArmor: HashicorpPublicKey,
+				},
+			},
+			PackageAuthenticationResult{
+				result: officialProvider,
+				KeyID:  testHashiCorpPublicKeyID,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Location is unused
+			location := PackageLocalArchive("testdata/my-package.zip")
+
+			signature, err := base64.StdEncoding.DecodeString(test.signature)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			auth := NewSignatureAuthentication([]byte(testProviderShaSums), signature, test.keys)
 			result, err := auth.AuthenticatePackage(location)
 
 			if result == nil || *result != test.result {
@@ -576,18 +607,35 @@ const testSignatureBadBase64 = `iQEzBAABCAAdFiEEW/7sQxfnRgCGIZcGN6arO88s` +
 	`n1ayZdaCIw/r4w==`
 
 // testHashiCorpPublicKeyID is the Key ID of the HashiCorpPublicKey.
-const testHashiCorpPublicKeyID = `51852D87348FFC4C`
+const testHashiCorpPublicKeyID = `34365D9472D7468F`
 
-// testHashicorpSignatureGoodBase64 is a signature of testShaSums signed with
+const testProviderShaSums = `fea4227271ebf7d9e2b61b89ce2328c7262acd9fd190e1fd6d15a591abfa848e  terraform-provider-null_3.1.0_darwin_amd64.zip
+9ebf4d9704faba06b3ec7242c773c0fbfe12d62db7d00356d4f55385fc69bfb2  terraform-provider-null_3.1.0_darwin_arm64.zip
+a6576c81adc70326e4e1c999c04ad9ca37113a6e925aefab4765e5a5198efa7e  terraform-provider-null_3.1.0_freebsd_386.zip
+5f9200bf708913621d0f6514179d89700e9aa3097c77dac730e8ba6e5901d521  terraform-provider-null_3.1.0_freebsd_amd64.zip
+fc39cc1fe71234a0b0369d5c5c7f876c71b956d23d7d6f518289737a001ba69b  terraform-provider-null_3.1.0_freebsd_arm.zip
+c797744d08a5307d50210e0454f91ca4d1c7621c68740441cf4579390452321d  terraform-provider-null_3.1.0_linux_386.zip
+53e30545ff8926a8e30ad30648991ca8b93b6fa496272cd23b26763c8ee84515  terraform-provider-null_3.1.0_linux_amd64.zip
+cecb6a304046df34c11229f20a80b24b1603960b794d68361a67c5efe58e62b8  terraform-provider-null_3.1.0_linux_arm64.zip
+e1371aa1e502000d9974cfaff5be4cfa02f47b17400005a16f14d2ef30dc2a70  terraform-provider-null_3.1.0_linux_arm.zip
+a8a42d13346347aff6c63a37cda9b2c6aa5cc384a55b2fe6d6adfa390e609c53  terraform-provider-null_3.1.0_windows_386.zip
+02a1675fd8de126a00460942aaae242e65ca3380b5bb192e8773ef3da9073fd2  terraform-provider-null_3.1.0_windows_amd64.zip
+`
+
+// testHashicorpSignatureGoodBase64 is a signature of testProviderShaSums signed with
 // HashicorpPublicKey, which represents the SHA256SUMS.sig file downloaded for
 // an official release.
-const testHashicorpSignatureGoodBase64 = `iQFLBAABCAA1FiEEkabn+F0FxlYwvvGJUYUth` +
-	`zSP/EwFAl5w784XHHNlY3VyaXR5QGhhc2hpY29ycC5jb20ACgkQUYUthzSP/EyB8QgAv9ijp` +
-	`kTcoFwDAs+1iEUrcW18h/2cU+bvFtdqNDiffzk7+YJ9ioxeWisPta/Z6hEyhdss2+5L1MNbo` +
-	`oUBLABI+Aebfxa/uYFT2kX6r/eySmlY9kqNVpjXdemOQutS4NNZxdJL7CEbh2qIKCVuyo0ul` +
-	`YrTdDH35vwVyLXImWiZLnrXcT/fXLpQGx/N8PDy6WmCeju5Y5RD7TuntB71eCaCZi7wFe1tR` +
-	`qSoe9tD9A7ONB0rGuCY7BxqUj0S81hhz960YbNR9Q81WoNvF7b5SmcLJ1qJx1yvBLyqya6Su` +
-	`DKjU/YYCh7bwHIYzpk1/nK/7SaTHpisekqojVsfDth4TA+jGA==`
+const testHashicorpSignatureGoodBase64 = `wsFcBAABCAAQBQJgga+GCRCwtEEJdoW2dgAA` +
+	`o0YQAAW911BGDr2WHLo5NwcZenwHyxL5DX9g+4BknKbc/WxRC1hD8Afi3eygZk1yR6eT4Gp2H` +
+	`yNOwCjGL1PTONBumMfj9udIeuX8onrJMMvjFHh+bORGxBi4FKr4V3b2ZV1IYOjWMEyyTGRDvw` +
+	`SCdxBkp3apH3s2xZLmRoAj84JZ4KaxGF7hlT0j4IkNyQKd2T5cCByN9DV80+x+HtzaOieFwJL` +
+	`97iyGj6aznXfKfslK6S4oIrVTwyLTrQbxSxA0LsdUjRPHnJamL3sFOG77qUEUoXG3r61yi5vW` +
+	`V4P5gCH/+C+VkfGHqaB1s0jHYLxoTEXtwthe66MydDBPe2Hd0J12u9ppOIeK3leeb4uiixWIi` +
+	`rNdpWyjr/LU1KKWPxsDqMGYJ9TexyWkXjEpYmIEiY1Rxar8jrLh+FqVAhxRJajjgSRu5pZj50` +
+	`CNeKmmbyolLhPCmICjYYU/xKPGXSyDFqonVVyMWCSpO+8F38OmwDQHIk5AWyc8hPOAZ+g5N95` +
+	`cfUAzEqlvmNvVHQIU40Y6/Ip2HZzzFCLKQkMP1aDakYHq5w4ZO/ucjhKuoh1HDQMuMnZSu4eo` +
+	`2nMTBzYZnUxwtROrJZF1t103avbmP2QE/GaPvLIQn7o5WMV3ZcPCJ+szzzby7H2e33WIynrY/` +
+	`95ensBxh7mGFbcQ1C59b5o7viwIaaY2`
 
 // entityString function is used for logging the signing key.
 func TestEntityString(t *testing.T) {
@@ -609,7 +657,7 @@ func TestEntityString(t *testing.T) {
 		{
 			"HashicorpPublicKey",
 			testReadArmoredEntity(t, HashicorpPublicKey),
-			"51852D87348FFC4C HashiCorp Security <security@hashicorp.com>",
+			"34365D9472D7468F HashiCorp Security (hashicorp.com/security) <security@hashicorp.com>",
 		},
 		{
 			"HashicorpPartnersKey",
