@@ -129,20 +129,21 @@ func (i *ProviderInstaller) Get(provider string, req Constraints) (PluginMeta, e
 	for _, v := range versions {
 		url := i.providerURL(provider, v.String())
 
-		if !i.SkipVerify {
-			sha256, err := i.getProviderChecksum(provider, v.String())
-			if err != nil {
-				return PluginMeta{}, err
-			}
-
-			// add the checksum parameter for go-getter to verify the download for us.
-			if sha256 != "" {
-				url = url + "?checksum=sha256:" + sha256
-			}
-		}
-
 		log.Printf("[DEBUG] fetching provider info for %s version %s", provider, v)
 		if checkPlugin(url, i.PluginProtocolVersion) {
+
+			if !i.SkipVerify {
+				sha256, err := i.getProviderChecksum(provider, v.String())
+				if err != nil {
+					return PluginMeta{}, err
+				}
+
+				// add the checksum parameter for go-getter to verify the download for us.
+				if sha256 != "" {
+					url = url + "?checksum=sha256:" + sha256
+				}
+			}
+
 			i.Ui.Info(fmt.Sprintf("- Downloading plugin for provider %q (%s)...", provider, v.String()))
 			log.Printf("[DEBUG] getting provider %q version %q", provider, v)
 			err := i.install(provider, v, url)
@@ -506,22 +507,26 @@ func checksumForFile(sums []byte, name string) string {
 
 // fetch the SHA256SUMS file provided, and verify its signature.
 func getPluginSHA256SUMs(sumsURL string) ([]byte, error) {
-	sigURL := sumsURL + ".sig"
+	// this is the well-known location for the new signatures, and will be
+	// updated with new signings based on the published subkeys as required.
+	sigURL := sumsURL + ".72D7468F.sig"
 
 	sums, err := getFile(sumsURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching checksums: %s", err)
 	}
 
+	log.Printf("[DEBUG] looking for signature %s", sigURL)
 	sig, err := getFile(sigURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching checksums signature: %s", err)
 	}
 
+	log.Printf("[DEBUG] found signature %s", sigURL)
 	if err := verifySig(sums, sig); err != nil {
 		return nil, err
 	}
-
+	log.Println("[DEBUG] valid 72D7468F signature found")
 	return sums, nil
 }
 
