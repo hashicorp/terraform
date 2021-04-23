@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+* cli: Update the HashiCorp Public Key [GH-28498]
 * backend/http: New options for retries on outgoing requests. [GH-19702]
 * communicator/ssh: Keepalive support [GH-20437]
 
