@@ -199,6 +199,26 @@ func TestType(t *testing.T) {
 		},
 		// Collections
 		{
+			cty.EmptyObjectVal,
+			`object({})`,
+		},
+		{
+			cty.EmptyTupleVal,
+			`tuple([])`,
+		},
+		{
+			cty.ListValEmpty(cty.String),
+			`list(string)`,
+		},
+		{
+			cty.MapValEmpty(cty.String),
+			`map(string)`,
+		},
+		{
+			cty.SetValEmpty(cty.String),
+			`set(string)`,
+		},
+		{
 			cty.ListVal([]cty.Value{cty.StringVal("a")}),
 			`list(string)`,
 		},
@@ -226,6 +246,12 @@ func TestType(t *testing.T) {
 				"foo": cty.String,
 			})),
 			"object({\n    foo: string,\n})",
+		},
+		{ // irrelevant marks do nothing
+			cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar").Mark("ignore me"),
+			})}),
+			"list(\n    object({\n        foo: string,\n    }),\n)",
 		},
 	}
 	for _, test := range tests {

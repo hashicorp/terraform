@@ -135,7 +135,7 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 	case ty.IsObjectType():
 		atys := ty.AttributeTypes()
 		if len(atys) == 0 {
-			b.WriteString("object{}")
+			b.WriteString("object({})")
 			return
 		}
 		attrNames := make([]string, 0, len(atys))
@@ -158,7 +158,7 @@ func writeType(ty cty.Type, b *strings.Builder, indent int) {
 	case ty.IsTupleType():
 		etys := ty.TupleElementTypes()
 		if len(etys) == 0 {
-			b.WriteString("tuple")
+			b.WriteString("tuple([])")
 			return
 		}
 		b.WriteString("tuple([\n")
