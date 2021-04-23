@@ -516,6 +516,7 @@ func getPluginSHA256SUMs(sumsURL string) ([]byte, error) {
 		return nil, fmt.Errorf("error fetching checksums: %s", err)
 	}
 
+	log.Printf("[DEBUG] looking for signature %s", sigURL)
 	sig, err := getFile(sigURL)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching checksums signature: %s", err)

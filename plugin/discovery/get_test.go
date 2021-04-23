@@ -34,6 +34,10 @@ func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS.sig")
 		return
 	}
+	if r.URL.Path == "/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig")
+		return
+	}
 
 	// this this checksum file is corrupt and doesn't match the sig
 	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS" {
