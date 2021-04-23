@@ -1,5 +1,9 @@
 ## 0.14.11 (Unreleased)
 
+ENHANCEMENTS:
+
+* cli: Update the HashiCorp public key [GH-28503]
+
 ## 0.14.10 (April 07, 2021)
 
 BUG FIXES:
