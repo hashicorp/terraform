@@ -760,7 +760,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			// If our provider schema contains sensitive values, mark those as sensitive
 			afterMarks := change.AfterValMarks
 			if schema.ContainsSensitive() {
-				afterMarks = append(afterMarks, getValMarks(schema, val, nil)...)
+				afterMarks = append(afterMarks, schema.ValueMarks(val, nil)...)
 			}
 
 			instances[key] = val.MarkWithPaths(afterMarks)
@@ -789,7 +789,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		if schema.ContainsSensitive() {
 			var marks []cty.PathValueMarks
 			val, marks = val.UnmarkDeepWithPaths()
-			marks = append(marks, getValMarks(schema, val, nil)...)
+			marks = append(marks, schema.ValueMarks(val, nil)...)
 			val = val.MarkWithPaths(marks)
 		}
 		instances[key] = val
@@ -958,51 +958,4 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
-}
-
-func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {
-	var pvm []cty.PathValueMarks
-	for name, attrS := range schema.Attributes {
-		if attrS.Sensitive {
-			// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-			attrPath := make(cty.Path, len(path), len(path)+1)
-			copy(attrPath, path)
-			attrPath = append(path, cty.GetAttrStep{Name: name})
-			pvm = append(pvm, cty.PathValueMarks{
-				Path:  attrPath,
-				Marks: cty.NewValueMarks("sensitive"),
-			})
-		}
-	}
-
-	for name, blockS := range schema.BlockTypes {
-		// If our block doesn't contain any sensitive attributes, skip inspecting it
-		if !blockS.Block.ContainsSensitive() {
-			continue
-		}
-
-		blockV := val.GetAttr(name)
-		if blockV.IsNull() || !blockV.IsKnown() {
-			continue
-		}
-
-		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		blockPath := make(cty.Path, len(path), len(path)+1)
-		copy(blockPath, path)
-		blockPath = append(path, cty.GetAttrStep{Name: name})
-
-		switch blockS.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			pvm = append(pvm, getValMarks(&blockS.Block, blockV, blockPath)...)
-		case configschema.NestingList, configschema.NestingMap, configschema.NestingSet:
-			for it := blockV.ElementIterator(); it.Next(); {
-				idx, blockEV := it.Element()
-				morePaths := getValMarks(&blockS.Block, blockEV, append(blockPath, cty.IndexStep{Key: idx}))
-				pvm = append(pvm, morePaths...)
-			}
-		default:
-			panic(fmt.Sprintf("unsupported nesting mode %s", blockS.Nesting))
-		}
-	}
-	return pvm
 }
