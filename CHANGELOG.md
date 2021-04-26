@@ -1,8 +1,8 @@
-## 0.14.11 (Unreleased)
+## 0.14.11 (April 26, 2021)
 
 ENHANCEMENTS:
 
-* cli: Update the HashiCorp public key [GH-28503]
+* cli: Update the HashiCorp public key ([#28503](https://github.com/hashicorp/terraform/issues/28503))
 
 ## 0.14.10 (April 07, 2021)
 
