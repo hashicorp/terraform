@@ -1,5 +1,9 @@
 ## 0.12.31 (Unreleased)
 
+ENHANCEMENTS:
+
+* cli: Update the HashiCorp public key [GH-28499]
+
 ## 0.12.30 (January 06, 2021)
 
 UPGRADE NOTES:
