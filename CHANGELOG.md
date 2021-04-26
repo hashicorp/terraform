@@ -1,4 +1,4 @@
-## 0.15.1 (Unreleased)
+## 0.15.1 (April 26, 2021)
 
 ENHANCEMENTS:
 
@@ -6,22 +6,22 @@ ENHANCEMENTS:
  
     The affected functions are `chunklist`, `concat`, `flatten`, `keys`, `length`, `lookup`, `merge`, `setproduct`, `tolist`, `tomap`, `values`, and `zipmap`. The details are a little different for each of these but the general idea is to, as far as possible, preserve the sensitive characteristic on individual element or attribute values in result structures rather than always conservatively applying sensitivity to the whole result.
     
-    The primary benefit of these improvements is that you can now use these functions as part of constructing maps for `for_each` in situations where the input collection is never sensitive but some of the elements/attributes inside might be. [GH-28446] [GH-28460]
-* cli: Update the HashiCorp public key [GH-28505]
-* cli: Diagnostic messages can now be annotated with resource and provider addresses. [GH-28275]
-* cli: `terraform login` now has a new user experience for successful log-ins to Terraform Cloud and Terraform Enterprise. [GH-28487]
-* core: Minor graph performance optimizations. [GH-28329]
+    The primary benefit of these improvements is that you can now use these functions as part of constructing maps for `for_each` in situations where the input collection is never sensitive but some of the elements/attributes inside might be. ([#28446](https://github.com/hashicorp/terraform/issues/28446)] [[#28460](https://github.com/hashicorp/terraform/issues/28460))
+* cli: Update the HashiCorp public key ([#28505](https://github.com/hashicorp/terraform/issues/28505))
+* cli: Diagnostic messages can now be annotated with resource and provider addresses. ([#28275](https://github.com/hashicorp/terraform/issues/28275))
+* cli: `terraform login` now has a new user experience for successful log-ins to Terraform Cloud and Terraform Enterprise. ([#28487](https://github.com/hashicorp/terraform/issues/28487))
+* core: Minor graph performance optimizations. ([#28329](https://github.com/hashicorp/terraform/issues/28329))
 
 BUG FIXES:
 
-* config: Fix validation error when passing providers from a non-default namespace into modules. [GH-28414]
-* cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend. [GH-28409]
-* cli: Diagnostics messages will only indicate that a referenced value is sensitive if that value is _directly_ sensitive, as opposed to being a complex-typed value that _contains_ a sensitive value. [GH-28442]
-* core: Don't trigger data source reads from changes in sibling module instances. [GH-28267]
-* core: Restore saved dependencies when a resource destroy operation fails. [GH-28317]
-* core: Fix crash when setting sensitive attributes to a sensitive value. [GH-28383]
-* core: Loosen output value sensitivity requirement for non-root modules. This means that modules which may receive sensitive values as input variables no longer need to mark all related outputs as sensitive. The requirement for root modules to specify the `sensitive` attribute for sensitive values remains, with an extended diagnostic message to explain why. [GH-28472]
-* provisioner: Fix panic with unexpected null values in provisioner configuration [GH-28457]
+* config: Fix validation error when passing providers from a non-default namespace into modules. ([#28414](https://github.com/hashicorp/terraform/issues/28414))
+* cli: Fix missing colors and extraneous resource summary for plan/apply with the remote backend. ([#28409](https://github.com/hashicorp/terraform/issues/28409))
+* cli: Diagnostics messages will only indicate that a referenced value is sensitive if that value is _directly_ sensitive, as opposed to being a complex-typed value that _contains_ a sensitive value. ([#28442](https://github.com/hashicorp/terraform/issues/28442))
+* core: Don't trigger data source reads from changes in sibling module instances. ([#28267](https://github.com/hashicorp/terraform/issues/28267))
+* core: Restore saved dependencies when a resource destroy operation fails. ([#28317](https://github.com/hashicorp/terraform/issues/28317))
+* core: Fix crash when setting sensitive attributes to a sensitive value. ([#28383](https://github.com/hashicorp/terraform/issues/28383))
+* core: Loosen output value sensitivity requirement for non-root modules. This means that modules which may receive sensitive values as input variables no longer need to mark all related outputs as sensitive. The requirement for root modules to specify the `sensitive` attribute for sensitive values remains, with an extended diagnostic message to explain why. ([#28472](https://github.com/hashicorp/terraform/issues/28472))
+* provisioner: Fix panic with unexpected null values in provisioner configuration ([#28457](https://github.com/hashicorp/terraform/issues/28457))
 
 ## 0.15.0 (April 14, 2021)
 
