@@ -1,10 +1,10 @@
-## 0.11.15 (Unreleased)
+## 0.11.15 (April 26, 2021)
 
 IMPROVEMENTS:
 
-* cli: Update the HashiCorp Public Key [GH-28498]
-* backend/http: New options for retries on outgoing requests. [GH-19702]
-* communicator/ssh: Keepalive support [GH-20437]
+* cli: Update the HashiCorp Public Key ([#28498](https://github.com/hashicorp/terraform/issues/28498))
+* backend/http: New options for retries on outgoing requests. ([#19702](https://github.com/hashicorp/terraform/issues/19702))
+* communicator/ssh: Keepalive support ([#20437](https://github.com/hashicorp/terraform/issues/20437))
 
 ## 0.11.14 (May 16, 2019)
 
