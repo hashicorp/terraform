@@ -87,6 +87,10 @@ func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS.sig")
 		return
 	}
+	if r.URL.Path == "/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig")
+		return
+	}
 
 	// this this checksum file is corrupt and doesn't match the sig
 	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS" {
@@ -95,6 +99,10 @@ func testChecksumHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.sig" {
 		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS.sig")
+		return
+	}
+	if r.URL.Path == "/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.72D7468F.sig" {
+		http.ServeFile(w, r, "testdata/terraform-provider-badsig_0.1.0_SHA256SUMS.72D7468F.sig")
 		return
 	}
 
@@ -618,9 +626,9 @@ func TestProviderChecksum(t *testing.T) {
 			"good",
 			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
-				Shasum:              "3c3e7df78b1f0161a3f941c271d5501f7b5e5f2c53738e7a371459712f5d4726",
+				Shasum:              "95ac46d12c737be2f69913db36ddf557bd4fdc298d763d184fe679f915e8540d",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
-				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig",
 				SigningKeys: response.SigningKeyList{
 					GPGKeys: []*response.GPGKey{
 						&response.GPGKey{
@@ -636,7 +644,7 @@ func TestProviderChecksum(t *testing.T) {
 			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS",
-				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.sig",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-badsig/0.1.0/terraform-provider-badsig_0.1.0_SHA256SUMS.72D7468F.sig",
 				SigningKeys: response.SigningKeyList{
 					GPGKeys: []*response.GPGKey{
 						&response.GPGKey{
@@ -652,7 +660,7 @@ func TestProviderChecksum(t *testing.T) {
 			&response.TerraformProviderPlatformLocation{
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
-				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig",
 				SigningKeys: response.SigningKeyList{
 					GPGKeys: []*response.GPGKey{},
 				},
@@ -665,7 +673,7 @@ func TestProviderChecksum(t *testing.T) {
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64.zip",
 				Shasum:              "force mismatch",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
-				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig",
 				SigningKeys: response.SigningKeyList{
 					GPGKeys: []*response.GPGKey{
 						&response.GPGKey{
@@ -682,7 +690,7 @@ func TestProviderChecksum(t *testing.T) {
 				Filename:            "terraform-provider-template_0.1.0_darwin_amd64_missing_checksum.zip",
 				Shasum:              "checksum",
 				ShasumsURL:          "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS",
-				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.sig",
+				ShasumsSignatureURL: "http://127.0.0.1:8080/terraform-provider-template/0.1.0/terraform-provider-template_0.1.0_SHA256SUMS.72D7468F.sig",
 				SigningKeys: response.SigningKeyList{
 					GPGKeys: []*response.GPGKey{
 						&response.GPGKey{
