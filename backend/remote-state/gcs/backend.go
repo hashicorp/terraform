@@ -4,7 +4,6 @@ package gcs
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -135,16 +134,11 @@ func (b *Backend) configure(ctx context.Context) error {
 	if tokenSource != nil {
 		credOptions = append(credOptions, option.WithTokenSource(tokenSource))
 	} else if creds != "" {
-		var account accountFile
 
 		// to mirror how the provider works, we accept the file path or the contents
 		contents, err := backend.ReadPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
-		}
-
-		if err := json.Unmarshal([]byte(contents), &account); err != nil {
-			return fmt.Errorf("Error parsing credentials '%s': %s", contents, err)
 		}
 
 		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
@@ -214,12 +208,4 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// accountFile represents the structure of the account file JSON file.
-type accountFile struct {
-	PrivateKeyId string `json:"private_key_id"`
-	PrivateKey   string `json:"private_key"`
-	ClientEmail  string `json:"client_email"`
-	ClientId     string `json:"client_id"`
 }
