@@ -459,7 +459,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				continue
 			}
 
-			instance[cfg.Name] = change.After
+			instance[cfg.Name] = change.After.MarkWithPaths(changeSrc.AfterValMarks)
 
 			if change.Sensitive && !change.After.HasMark("sensitive") {
 				instance[cfg.Name] = change.After.Mark("sensitive")
@@ -782,9 +782,15 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 		val := ios.Value
 
-		// If our schema contains sensitive values, mark those as sensitive
+		// If our schema contains sensitive values, mark those as sensitive.
+		// Since decoding the instance object can also apply sensitivity marks,
+		// we must remove and combine those before remarking to avoid a double-
+		// mark error.
 		if schema.ContainsSensitive() {
-			val = markProviderSensitiveAttributes(schema, val)
+			var marks []cty.PathValueMarks
+			val, marks = val.UnmarkDeepWithPaths()
+			marks = append(marks, getValMarks(schema, val, nil)...)
+			val = val.MarkWithPaths(marks)
 		}
 		instances[key] = val
 	}
@@ -952,12 +958,6 @@ func moduleDisplayAddr(addr addrs.ModuleInstance) string {
 	default:
 		return addr.String()
 	}
-}
-
-// markProviderSensitiveAttributes returns an updated value
-// where attributes that are Sensitive are marked
-func markProviderSensitiveAttributes(schema *configschema.Block, val cty.Value) cty.Value {
-	return val.MarkWithPaths(getValMarks(schema, val, nil))
 }
 
 func getValMarks(schema *configschema.Block, val cty.Value, path cty.Path) []cty.PathValueMarks {

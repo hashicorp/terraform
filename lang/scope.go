@@ -37,6 +37,10 @@ type Scope struct {
 	// considered as active in the module that this scope will be used for.
 	// Callers can populate it by calling the SetActiveExperiments method.
 	activeExperiments experiments.Set
+
+	// ConsoleMode can be set to true to request any console-only functions are
+	// included in this scope.
+	ConsoleMode bool
 }
 
 // SetActiveExperiments allows a caller to declare that a set of experiments

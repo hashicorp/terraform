@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -131,9 +133,9 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	// If login service is unavailable, check for a TFE v2 API as fallback
-	var service *url.URL
+	var tfeservice *url.URL
 	if clientConfig == nil {
-		service, err = host.ServiceURL("tfe.v2")
+		tfeservice, err = host.ServiceURL("tfe.v2")
 		switch err.(type) {
 		case nil:
 			// Success!
@@ -184,6 +186,8 @@ func (c *LoginCommand) Run(args []string) int {
 			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
 			// The password grant type is allowed only for Terraform Cloud SaaS.
+			// Note this case is purely theoretical at this point, as TFC currently uses
+			// its own bespoke login protocol (tfe)
 			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
 		default:
 			tokenDiags = tokenDiags.Append(tfdiags.Sourceless(
@@ -195,8 +199,8 @@ func (c *LoginCommand) Run(args []string) int {
 		if oauthToken != nil {
 			token = svcauth.HostCredentialsToken(oauthToken.AccessToken)
 		}
-	} else if service != nil {
-		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, service)
+	} else if tfeservice != nil {
+		token, tokenDiags = c.interactiveGetTokenByUI(hostname, credsCtx, tfeservice)
 	}
 
 	diags = diags.Append(tokenDiags)
@@ -220,19 +224,104 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
+	if hostname == "app.terraform.io" { // Terraform Cloud
+		var motd struct {
+			Message string        `json:"msg"`
+			Errors  []interface{} `json:"errors"`
+		}
+
+		// Throughout the entire process of fetching a MOTD from TFC, use a default
+		// message if the platform-provided message is unavailable for any reason -
+		// be it the service isn't provided, the request failed, or any sort of
+		// platform error returned.
+
+		motdServiceURL, err := host.ServiceURL("motd.v1")
+		if err != nil {
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
+			return 0
+		}
+
+		req, err := http.NewRequest("GET", motdServiceURL.String(), nil)
+		if err != nil {
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
+			return 0
+		}
+
+		req.Header.Set("Authorization", "Bearer "+token.Token())
+
+		resp, err := httpclient.New().Do(req)
+		if err != nil {
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
+			return 0
+		}
+
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			c.logMOTDError(err)
+			c.outputDefaultTFCLoginSuccess()
+			return 0
+		}
+
+		defer resp.Body.Close()
+		json.Unmarshal(body, &motd)
+
+		if motd.Errors == nil && motd.Message != "" {
+			c.Ui.Output(
+				c.Colorize().Color(motd.Message),
+			)
+			return 0
+		} else {
+			c.logMOTDError(fmt.Errorf("platform responded with errors or an empty message"))
+			c.outputDefaultTFCLoginSuccess()
+			return 0
+		}
+	}
+
+	if tfeservice != nil { // Terraform Enterprise
+		c.outputDefaultTFELoginSuccess(dispHostname)
+	} else {
+		c.Ui.Output(
+			fmt.Sprintf(
+				c.Colorize().Color(strings.TrimSpace(`
 [green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
 
 The new API token will be used for any future Terraform command that must make
 authenticated requests to %s.
 `)),
+				dispHostname,
+			) + "\n",
+		)
+	}
+
+	return 0
+}
+
+func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
+	c.Ui.Output(
+		fmt.Sprintf(
+			c.Colorize().Color(strings.TrimSpace(`
+[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]
+`)),
 			dispHostname,
 		) + "\n",
 	)
+}
 
-	return 0
+func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
+	c.Ui.Output(
+		fmt.Sprintf(
+			c.Colorize().Color(strings.TrimSpace(`
+[green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
+`)),
+		) + "\n",
+	)
+}
+
+func (c *LoginCommand) logMOTDError(err error) {
+	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for Terraform Cloud: %s", err)
 }
 
 // Help implements cli.Command.

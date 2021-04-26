@@ -41,6 +41,17 @@ type fixupBody struct {
 	names    map[string]struct{}
 }
 
+type unknownBlock interface {
+	Unknown() bool
+}
+
+func (b *fixupBody) Unknown() bool {
+	if u, ok := b.original.(unknownBlock); ok {
+		return u.Unknown()
+	}
+	return false
+}
+
 // Content decodes content from the body. The given schema must be the lower-level
 // representation of the same schema that was previously passed to FixUpBlockAttrs,
 // or else the result is undefined.

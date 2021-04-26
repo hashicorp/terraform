@@ -93,6 +93,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"md5":              funcs.Md5Func,
 			"merge":            stdlib.MergeFunc,
 			"min":              stdlib.MinFunc,
+			"one":              funcs.OneFunc,
 			"parseint":         stdlib.ParseIntFunc,
 			"pathexpand":       funcs.PathExpandFunc,
 			"pow":              stdlib.PowFunc,
@@ -150,6 +151,11 @@ func (s *Scope) Functions() map[string]function.Function {
 			// by copying this map and overwriting the "templatefile" entry.
 			return s.funcs
 		})
+
+		if s.ConsoleMode {
+			// The type function is only available in terraform console.
+			s.funcs["type"] = funcs.TypeFunc
+		}
 
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we

@@ -107,7 +107,7 @@ func (b *Local) opApply(
 
 			v, err := op.UIIn.Input(stopCtx, &terraform.InputOpts{
 				Id:          "approve",
-				Query:       query,
+				Query:       "\n" + query,
 				Description: desc,
 			})
 			if err != nil {

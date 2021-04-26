@@ -282,10 +282,14 @@ the operating system where you are running Terraform:
   `~/.local/share/terraform/plugins`,
   `/usr/local/share/terraform/plugins`, and `/usr/share/terraform/plugins`.
 
-Terraform will create an implied `filesystem_mirror` method block for each of
-the directories indicated above that exists when Terraform starts up.
-In addition, if a `terraform.d/plugins` directory exists in the current working
-directory, it will be added as a filesystem mirror.
+If a `terraform.d/plugins` directory exists in the current working directory
+then Terraform will also include that directory, regardless of your operating
+system.
+
+Terraform will check each of the paths above to see if it exists, and if so
+treat it as a filesystem mirror. The directory structure inside each one must
+therefore match one of the two structures described for `filesystem_mirror`
+blocks in [Explicit Installation Method Configuration](#explicit-installation-method-configuration).
 
 In addition to the zero or more implied `filesystem_mirror` blocks, Terraform
 also creates an implied `direct` block. Terraform will scan all of the

@@ -82,8 +82,10 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 
 	if !envVal.IsNull() {
 		for k, v := range envVal.AsValueMap() {
-			entry := fmt.Sprintf("%s=%s", k, v.AsString())
-			env = append(env, entry)
+			if !v.IsNull() {
+				entry := fmt.Sprintf("%s=%s", k, v.AsString())
+				env = append(env, entry)
+			}
 		}
 	}
 
@@ -93,7 +95,9 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	var cmdargs []string
 	if !intrVal.IsNull() && intrVal.LengthInt() > 0 {
 		for _, v := range intrVal.AsValueSlice() {
-			cmdargs = append(cmdargs, v.AsString())
+			if !v.IsNull() {
+				cmdargs = append(cmdargs, v.AsString())
+			}
 		}
 	} else {
 		if runtime.GOOS == "windows" {

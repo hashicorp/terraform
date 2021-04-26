@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/backend"
+	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/plans/planfile"
@@ -25,6 +26,11 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
+
+	// Propagate -no-color for the remote backend's legacy use of Ui. This
+	// should be removed when the remote backend is migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
 
 	// Parse and validate flags
 	args, diags := arguments.ParseApply(rawArgs)
@@ -116,10 +122,13 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	// // Render the resource count and outputs
-	view.ResourceCount(args.State.StateOutPath)
-	if !c.Destroy && op.State != nil {
-		view.Outputs(op.State.RootModule().OutputValues)
+	// Render the resource count and outputs, unless we're using the remote
+	// backend locally, in which case these are rendered remotely
+	if rb, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend || rb.IsLocalOperations() {
+		view.ResourceCount(args.State.StateOutPath)
+		if !c.Destroy && op.State != nil {
+			view.Outputs(op.State.RootModule().OutputValues)
+		}
 	}
 
 	view.Diagnostics(diags)

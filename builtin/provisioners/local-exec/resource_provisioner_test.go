@@ -1,6 +1,7 @@
 package localexec
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -203,4 +204,49 @@ func TestResourceProvisioner_StopClose(t *testing.T) {
 	p := New()
 	p.Stop()
 	p.Close()
+}
+
+func TestResourceProvisioner_nullsInOptionals(t *testing.T) {
+	output := cli.NewMockUi()
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	for i, cfg := range []cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"command": cty.StringVal("echo OK"),
+			"environment": cty.MapVal(map[string]cty.Value{
+				"FOO": cty.NullVal(cty.String),
+			}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"command":     cty.StringVal("echo OK"),
+			"environment": cty.NullVal(cty.Map(cty.String)),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"command":     cty.StringVal("echo OK"),
+			"interpreter": cty.ListVal([]cty.Value{cty.NullVal(cty.String)}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"command":     cty.StringVal("echo OK"),
+			"interpreter": cty.NullVal(cty.List(cty.String)),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"command":     cty.StringVal("echo OK"),
+			"working_dir": cty.NullVal(cty.String),
+		}),
+	} {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+
+			cfg, err := schema.CoerceValue(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// verifying there are no panics
+			p.ProvisionResource(provisioners.ProvisionResourceRequest{
+				Config:   cfg,
+				UIOutput: output,
+			})
+		})
+	}
 }

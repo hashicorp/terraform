@@ -56,13 +56,13 @@ func (s Set) Intersection(other Set) Set {
 // Difference returns a set with the elements that s has but
 // other doesn't.
 func (s Set) Difference(other Set) Set {
+	if other == nil || other.Len() == 0 {
+		return s.Copy()
+	}
+
 	result := make(Set)
 	for k, v := range s {
-		var ok bool
-		if other != nil {
-			_, ok = other[k]
-		}
-		if !ok {
+		if _, ok := other[k]; !ok {
 			result.Add(v)
 		}
 	}
@@ -105,7 +105,7 @@ func (s Set) List() []interface{} {
 
 // Copy returns a shallow copy of the set.
 func (s Set) Copy() Set {
-	c := make(Set)
+	c := make(Set, len(s))
 	for k, v := range s {
 		c[k] = v
 	}

@@ -93,6 +93,12 @@ func proposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value 
 }
 
 func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.Value) cty.Value {
+	// The only time we should encounter an entirely unknown block is from the
+	// use of dynamic with an unknown for_each expression.
+	if !config.IsKnown() {
+		return config
+	}
+
 	var newV cty.Value
 
 	switch schema.Nesting {
@@ -103,7 +109,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.
 		configVLen := 0
-		if config.IsKnown() && !config.IsNull() {
+		if !config.IsNull() {
 			configVLen = config.LengthInt()
 		}
 		if configVLen > 0 {

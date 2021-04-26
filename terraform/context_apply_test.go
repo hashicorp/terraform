@@ -12467,9 +12467,10 @@ func TestContext2Apply_errorRestoreStatus(t *testing.T) {
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
-			Status:    states.ObjectTainted,
-			AttrsJSON: []byte(`{"test_string":"foo"}`),
-			Private:   []byte("private"),
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"foo"}`),
+			Private:      []byte("private"),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.b")},
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
 
@@ -12504,6 +12505,10 @@ func TestContext2Apply_errorRestoreStatus(t *testing.T) {
 
 	if res.Current.Status != states.ObjectTainted {
 		t.Fatal("resource should still be tainted in the state")
+	}
+
+	if len(res.Current.Dependencies) != 1 || !res.Current.Dependencies[0].Equal(mustConfigResourceAddr("test_object.b")) {
+		t.Fatalf("incorrect dependencies, got %q", res.Current.Dependencies)
 	}
 
 	if string(res.Current.Private) != "private" {

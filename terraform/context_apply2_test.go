@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
@@ -366,4 +367,81 @@ resource "aws_instance" "bin" {
 		t.Fatalf("foo should have no deps after apply, but got %s", foo.Current.Dependencies)
 	}
 
+}
+
+func TestContext2Apply_additionalSensitiveFromState(t *testing.T) {
+	// Ensure we're not trying to double-mark values decoded from state
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "secret" {
+  sensitive = true
+  default = ["secret"]
+}
+
+resource "test_resource" "a" {
+  sensitive_attr = var.secret
+}
+
+resource "test_resource" "b" {
+  value = test_resource.a.id
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+					"sensitive_attr": {
+						Type:      cty.List(cty.String),
+						Optional:  true,
+						Sensitive: true,
+					},
+				},
+			},
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr(`test_resource.a`),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"a","sensitive_attr":["secret"]}`),
+				AttrSensitivePaths: []cty.PathValueMarks{
+					{
+						Path:  cty.GetAttrPath("sensitive_attr"),
+						Marks: cty.NewValueMarks("sensitive"),
+					},
+				},
+				Status: states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
 }

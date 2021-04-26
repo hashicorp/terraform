@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
@@ -375,5 +376,142 @@ resource "test_object" "a" {
 		if c.Action != plans.Delete {
 			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
 		}
+	}
+}
+
+func TestContext2Plan_unmarkingSensitiveAttributeForOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "foo" {
+}
+
+output "result" {
+  value = nonsensitive(test_resource.foo.sensitive_attr)
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"sensitive_attr": {
+						Type:      cty.String,
+						Computed:  true,
+						Sensitive: true,
+					},
+				},
+			},
+		},
+	})
+
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"id":             cty.String,
+				"sensitive_attr": cty.String,
+			})),
+		}
+	}
+
+	state := states.NewState()
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		if res.Action != plans.Create {
+			t.Fatalf("expected create, got: %q %s", res.Addr, res.Action)
+		}
+	}
+}
+
+func TestContext2Plan_destroyNoProviderConfig(t *testing.T) {
+	// providers do not need to be configured during a destroy plan
+	p := simpleMockProvider()
+	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
+		v := req.Config.GetAttr("test_string")
+		if v.IsNull() || !v.IsKnown() || v.AsString() != "ok" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("invalid provider configuration"))
+		}
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  value = "ok"
+}
+
+provider "test" {
+  test_string = local.value
+}
+`,
+	})
+
+	addr := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		Destroy: true,
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+}
+
+func TestContext2Plan_invalidSensitiveModuleOutput(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"child/main.tf": `
+output "out" {
+  value = sensitive("xyz")
+}`,
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+
+output "root" {
+  value = module.child.out
+}`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+	})
+
+	_, diags := ctx.Plan()
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }

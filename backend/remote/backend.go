@@ -704,6 +704,9 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Check if we need to use the local backend to run the operation.
 	if b.forceLocal || !w.Operations {
+		// Record that we're forced to run operations locally to allow the
+		// command package UI to operate correctly
+		b.forceLocal = true
 		return b.local.Operation(ctx, op)
 	}
 
@@ -947,6 +950,10 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 	))
 
 	return diags
+}
+
+func (b *Remote) IsLocalOperations() bool {
+	return b.forceLocal
 }
 
 // Colorize returns the Colorize structure that can be used for colorizing

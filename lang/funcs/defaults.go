@@ -16,13 +16,15 @@ import (
 var DefaultsFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name:      "input",
-			Type:      cty.DynamicPseudoType,
-			AllowNull: true,
+			Name:        "input",
+			Type:        cty.DynamicPseudoType,
+			AllowNull:   true,
+			AllowMarked: true,
 		},
 		{
-			Name: "defaults",
-			Type: cty.DynamicPseudoType,
+			Name:        "defaults",
+			Type:        cty.DynamicPseudoType,
+			AllowMarked: true,
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -69,8 +71,14 @@ var DefaultsFunc = function.New(&function.Spec{
 
 func defaultsApply(input, fallback cty.Value) cty.Value {
 	wantTy := input.Type()
-	if !(input.IsKnown() && fallback.IsKnown()) {
-		return cty.UnknownVal(wantTy)
+
+	umInput, inputMarks := input.Unmark()
+	umFb, fallbackMarks := fallback.Unmark()
+
+	// If neither are known, we very conservatively return an unknown value
+	// with the union of marks on both input and default.
+	if !(umInput.IsKnown() && umFb.IsKnown()) {
+		return cty.UnknownVal(wantTy).WithMarks(inputMarks).WithMarks(fallbackMarks)
 	}
 
 	// For the rest of this function we're assuming that the given defaults
@@ -83,15 +91,15 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 	case wantTy.IsPrimitiveType():
 		// For leaf primitive values the rule is relatively simple: use the
 		// input if it's non-null, or fallback if input is null.
-		if !input.IsNull() {
+		if !umInput.IsNull() {
 			return input
 		}
-		v, err := convert.Convert(fallback, wantTy)
+		v, err := convert.Convert(umFb, wantTy)
 		if err != nil {
 			// Should not happen because we checked in defaultsAssertSuitableFallback
 			panic(err.Error())
 		}
-		return v
+		return v.WithMarks(fallbackMarks)
 
 	case wantTy.IsObjectType():
 		// For structural types, a null input value must be passed through. We
@@ -101,18 +109,18 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		// We also pass through the input if the fallback value is null. This
 		// can happen if the given defaults do not include a value for this
 		// attribute.
-		if input.IsNull() || fallback.IsNull() {
+		if umInput.IsNull() || umFb.IsNull() {
 			return input
 		}
 		atys := wantTy.AttributeTypes()
 		ret := map[string]cty.Value{}
 		for attr, aty := range atys {
-			inputSub := input.GetAttr(attr)
+			inputSub := umInput.GetAttr(attr)
 			fallbackSub := cty.NullVal(aty)
-			if fallback.Type().HasAttribute(attr) {
-				fallbackSub = fallback.GetAttr(attr)
+			if umFb.Type().HasAttribute(attr) {
+				fallbackSub = umFb.GetAttr(attr)
 			}
-			ret[attr] = defaultsApply(inputSub, fallbackSub)
+			ret[attr] = defaultsApply(inputSub.WithMarks(inputMarks), fallbackSub.WithMarks(fallbackMarks))
 		}
 		return cty.ObjectVal(ret)
 
@@ -124,16 +132,16 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		// We also pass through the input if the fallback value is null. This
 		// can happen if the given defaults do not include a value for this
 		// attribute.
-		if input.IsNull() || fallback.IsNull() {
+		if umInput.IsNull() || umFb.IsNull() {
 			return input
 		}
 
 		l := wantTy.Length()
 		ret := make([]cty.Value, l)
 		for i := 0; i < l; i++ {
-			inputSub := input.Index(cty.NumberIntVal(int64(i)))
-			fallbackSub := fallback.Index(cty.NumberIntVal(int64(i)))
-			ret[i] = defaultsApply(inputSub, fallbackSub)
+			inputSub := umInput.Index(cty.NumberIntVal(int64(i)))
+			fallbackSub := umFb.Index(cty.NumberIntVal(int64(i)))
+			ret[i] = defaultsApply(inputSub.WithMarks(inputMarks), fallbackSub.WithMarks(fallbackMarks))
 		}
 		return cty.TupleVal(ret)
 
@@ -148,10 +156,10 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsMapType():
 			newVals := map[string]cty.Value{}
 
-			if !input.IsNull() {
-				for it := input.ElementIterator(); it.Next(); {
+			if !umInput.IsNull() {
+				for it := umInput.ElementIterator(); it.Next(); {
 					k, v := it.Element()
-					newVals[k.AsString()] = defaultsApply(v, fallback)
+					newVals[k.AsString()] = defaultsApply(v.WithMarks(inputMarks), fallback.WithMarks(fallbackMarks))
 				}
 			}
 
@@ -162,10 +170,10 @@ func defaultsApply(input, fallback cty.Value) cty.Value {
 		case wantTy.IsListType(), wantTy.IsSetType():
 			var newVals []cty.Value
 
-			if !input.IsNull() {
-				for it := input.ElementIterator(); it.Next(); {
+			if !umInput.IsNull() {
+				for it := umInput.ElementIterator(); it.Next(); {
 					_, v := it.Element()
-					newV := defaultsApply(v, fallback)
+					newV := defaultsApply(v.WithMarks(inputMarks), fallback.WithMarks(fallbackMarks))
 					newVals = append(newVals, newV)
 				}
 			}
