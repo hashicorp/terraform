@@ -1,5 +1,9 @@
 ## 0.15.2 (Unreleased)
 
+ENHANCEMENTS:
+
+* `terraform apply`: Now has a `-destroy` option for symmetry with `terraform plan -destroy`, which makes `terraform destroy` effectively an alias for `terraform apply -destroy`. This change is only for consistency between `terraform plan` and `terraform apply`; there are no current plans to deprecate `terraform destroy`. [GH-28489]
+
 ## 0.15.1 (April 26, 2021)
 
 ENHANCEMENTS:
