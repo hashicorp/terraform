@@ -122,7 +122,31 @@ For ease of consumption by callers, the plan representation includes a partial r
 
       // "change" describes the change that will be made to the indicated
       // object. The <change-representation> is detailed in a section below.
-      "change": <change-representation>
+      "change": <change-representation>,
+
+      // "action_reason" is some optional extra context about why the
+      // actions given inside "change" were selected. This is the JSON
+      // equivalent of annotations shown in the normal plan output like
+      // "is tainted, so must be replaced" as opposed to just "must be
+      // replaced".
+      //
+      // These reason codes are display hints only and the set of possible
+      // hints may change over time. Users of this must be prepared to
+      // encounter unrecognized reasons and treat them as unspecified reasons.
+      //
+      // The current set of possible values is:
+      // - "replace_because_tainted": the object in question is marked as
+      //   "tainted" in the prior state, so Terraform planned to replace it.
+      // - "replace_because_cannot_update": the provider indicated that one
+      //   of the requested changes isn't possible without replacing the
+      //   existing object with a new object.
+      // - "replace_by_request": the user explicitly called for this object
+      //   to be replaced as an option when creating the plan, which therefore
+      //   overrode what would have been a "no-op" or "update" action otherwise.
+      //
+      // If there is no special reason to note, Terraform will omit this
+      // property altogether.
+      action_reason: "replace_because_tainted"
     }
   ],
 
