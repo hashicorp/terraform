@@ -61,4 +61,14 @@ type resourceChange struct {
 
 	// Change describes the change that will be made to this object
 	Change change `json:"change,omitempty"`
+
+	// ActionReason is a keyword representing some optional extra context
+	// for why the actions in Change.Actions were chosen.
+	//
+	// This extra detail is only for display purposes, to help a UI layer
+	// present some additional explanation to a human user. The possible
+	// values here might grow and change over time, so any consumer of this
+	// information should be resilient to encountering unrecognized values
+	// and treat them as an unspecified reason.
+	ActionReason string `json:"action_reason,omitempty"`
 }

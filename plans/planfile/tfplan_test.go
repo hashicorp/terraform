@@ -85,6 +85,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 					RequiredReplace: cty.NewPathSet(
 						cty.GetAttrPath("boop"),
 					),
+					ActionReason: plans.ResourceInstanceReplaceBecauseCannotUpdate,
 				},
 				{
 					Addr: addrs.Resource{

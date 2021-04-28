@@ -813,6 +813,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	eq := eqV.IsKnown() && eqV.True()
 
 	var action plans.Action
+	var actionReason plans.ResourceInstanceChangeActionReason
 	switch {
 	case priorVal.IsNull():
 		action = plans.Create
@@ -826,6 +827,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		} else {
 			action = plans.DeleteThenCreate
 		}
+		actionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
 	default:
 		action = plans.Update
 		// "Delete" is never chosen here, because deletion plans are always
@@ -905,6 +907,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			action = plans.DeleteThenCreate
 		}
 		priorVal = priorValTainted
+		actionReason = plans.ResourceInstanceReplaceBecauseTainted
 	}
 
 	// If we plan to write or delete sensitive paths from state,
@@ -949,6 +952,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			// Marks will be removed when encoding.
 			After: plannedNewVal,
 		},
+		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
 	}
 

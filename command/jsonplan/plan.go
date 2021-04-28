@@ -281,6 +281,19 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.Type = addr.Resource.Resource.Type
 		r.ProviderName = rc.ProviderAddr.Provider.String()
 
+		switch rc.ActionReason {
+		case plans.ResourceInstanceChangeNoReason:
+			r.ActionReason = "" // will be omitted in output
+		case plans.ResourceInstanceReplaceBecauseCannotUpdate:
+			r.ActionReason = "replace_because_cannot_update"
+		case plans.ResourceInstanceReplaceBecauseTainted:
+			r.ActionReason = "replace_because_tainted"
+		case plans.ResourceInstanceReplaceByRequest:
+			r.ActionReason = "replace_by_request"
+		default:
+			return fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
+		}
+
 		p.ResourceChanges = append(p.ResourceChanges, r)
 
 	}

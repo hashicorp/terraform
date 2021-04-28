@@ -34,6 +34,19 @@ type ResourceInstanceChangeSrc struct {
 	// ChangeSrc is an embedded description of the not-yet-decoded change.
 	ChangeSrc
 
+	// ActionReason is an optional extra indication of why we chose the
+	// action recorded in Change.Action for this particular resource instance.
+	//
+	// This is an approximate mechanism only for the purpose of explaining the
+	// plan to end-users in the UI and is not to be used for any
+	// decision-making during the apply step; if apply behavior needs to vary
+	// depending on the "action reason" then the information for that decision
+	// must be recorded more precisely elsewhere for that purpose.
+	//
+	// See the field of the same name in ResourceInstanceChange for more
+	// details.
+	ActionReason ResourceInstanceChangeActionReason
+
 	// RequiredReplace is a set of paths that caused the change action to be
 	// Replace rather than Update. Always nil if the change action is not
 	// Replace.
@@ -58,6 +71,7 @@ func (rcs *ResourceInstanceChangeSrc) Decode(ty cty.Type) (*ResourceInstanceChan
 		DeposedKey:      rcs.DeposedKey,
 		ProviderAddr:    rcs.ProviderAddr,
 		Change:          *change,
+		ActionReason:    rcs.ActionReason,
 		RequiredReplace: rcs.RequiredReplace,
 		Private:         rcs.Private,
 	}, nil

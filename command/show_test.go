@@ -464,11 +464,16 @@ func showFixtureProvider() *terraform.MockProvider {
 		if idVal.IsNull() {
 			idVal = cty.UnknownVal(cty.String)
 		}
+		var reqRep []cty.Path
+		if amiVal.RawEquals(cty.StringVal("force-replace")) {
+			reqRep = append(reqRep, cty.GetAttrPath("ami"))
+		}
 		return providers.PlanResourceChangeResponse{
 			PlannedState: cty.ObjectVal(map[string]cty.Value{
 				"id":  idVal,
 				"ami": amiVal,
 			}),
+			RequiresReplace: reqRep,
 		}
 	}
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
