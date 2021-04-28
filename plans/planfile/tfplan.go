@@ -207,6 +207,19 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 
 	ret.ChangeSrc = *change
 
+	switch rawChange.ActionReason {
+	case planproto.ResourceInstanceActionReason_NONE:
+		ret.ActionReason = plans.ResourceInstanceChangeNoReason
+	case planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_CANNOT_UPDATE:
+		ret.ActionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
+	case planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED:
+		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
+	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
+		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	default:
+		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
+	}
+
 	if len(rawChange.Private) != 0 {
 		ret.Private = rawChange.Private
 	}
@@ -455,6 +468,19 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
 	}
 	ret.Change = valChange
+
+	switch change.ActionReason {
+	case plans.ResourceInstanceChangeNoReason:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_NONE
+	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_CANNOT_UPDATE
+	case plans.ResourceInstanceReplaceBecauseTainted:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
+	case plans.ResourceInstanceReplaceByRequest:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	default:
+		return nil, fmt.Errorf("resource %s has unsupported action reason %s", relAddr, change.ActionReason)
+	}
 
 	if len(change.Private) > 0 {
 		ret.Private = change.Private

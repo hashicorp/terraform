@@ -97,6 +97,17 @@ message Change {
     repeated Path after_sensitive_paths = 4;
 }
 
+// ResourceInstanceActionReason sometimes provides some additional user-facing
+// context for why a particular action was chosen for a resource instance.
+// This is for user feedback only and never used to drive behavior during the
+// subsequent apply step.
+enum ResourceInstanceActionReason {
+    NONE = 0;
+    REPLACE_BECAUSE_TAINTED = 1;
+    REPLACE_BY_REQUEST = 2;
+    REPLACE_BECAUSE_CANNOT_UPDATE = 3;
+}
+
 message ResourceInstanceChange {
     // module_path is an address to the module that defined this resource.
     // module_path is omitted for resources in the root module. For descendent modules
@@ -152,6 +163,11 @@ message ResourceInstanceChange {
     // "replace" rather than "update". Empty for any action other than
     // "replace".
     repeated Path required_replace = 11;
+
+    // Optional extra user-oriented context for why change.Action was chosen.
+    // This is for user feedback only and never used to drive behavior during
+    // apply.
+    ResourceInstanceActionReason action_reason = 12;
 }
 
 message OutputChange {
