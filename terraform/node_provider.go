@@ -56,13 +56,13 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 		return nil
 	}
 
-	resp := provider.GetProviderSchema()
-	diags = diags.Append(resp.Diagnostics)
+	schemaResp := provider.GetProviderSchema()
+	diags = diags.Append(schemaResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	configSchema := resp.Provider.Block
+	configSchema := schemaResp.Provider.Block
 	if configSchema == nil {
 		// Should never happen in real code, but often comes up in tests where
 		// mock schemas are being used that tend to be incomplete.
@@ -85,7 +85,7 @@ func (n *NodeApplyableProvider) ValidateProvider(ctx EvalContext, provider provi
 	}
 
 	validateResp := provider.ValidateProviderConfig(req)
-	diags = diags.Append(validateResp.Diagnostics)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 
 	return diags
 }
@@ -99,7 +99,7 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 	configBody := buildProviderConfig(ctx, n.Addr, config)
 
 	resp := provider.GetProviderSchema()
-	diags = diags.Append(resp.Diagnostics)
+	diags = diags.Append(resp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
 	if diags.HasErrors() {
 		return diags
 	}
@@ -133,53 +133,44 @@ func (n *NodeApplyableProvider) ConfigureProvider(ctx EvalContext, provider prov
 
 	// ValidateProviderConfig is only used for validation. We are intentionally
 	// ignoring the PreparedConfig field to maintain existing behavior.
-	prepareResp := provider.ValidateProviderConfig(req)
-	if prepareResp.Diagnostics.HasErrors() {
-		if config == nil {
-			// If there isn't an explicit "provider" block in the configuration,
-			// this error message won't be very clear. Add some detail to the
-			// error message in this case.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider configuration",
-				fmt.Sprintf(providerConfigErr, prepareResp.Diagnostics.Err(), n.Addr.Provider),
-			))
-			return diags
-		} else {
-			return diags.Append(prepareResp.Diagnostics)
-		}
+	validateResp := provider.ValidateProviderConfig(req)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(configBody, n.Addr.String()))
+	if diags.HasErrors() && config == nil {
+		// If there isn't an explicit "provider" block in the configuration,
+		// this error message won't be very clear. Add some detail to the error
+		// message in this case.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid provider configuration",
+			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
+		))
 	}
-	diags = diags.Append(prepareResp.Diagnostics)
+
+	if diags.HasErrors() {
+		return diags
+	}
 
 	// If the provider returns something different, log a warning to help
 	// indicate to provider developers that the value is not used.
-	preparedCfg := prepareResp.PreparedConfig
+	preparedCfg := validateResp.PreparedConfig
 	if preparedCfg != cty.NilVal && !preparedCfg.IsNull() && !preparedCfg.RawEquals(unmarkedConfigVal) {
 		log.Printf("[WARN] ValidateProviderConfig from %q changed the config value, but that value is unused", n.Addr)
 	}
 
 	configDiags := ctx.ConfigureProvider(n.Addr, unmarkedConfigVal)
-	if configDiags.HasErrors() {
-		if config == nil {
-			// If there isn't an explicit "provider" block in the configuration,
-			// this error message won't be very clear. Add some detail to the
-			// error message in this case.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid provider configuration",
-				fmt.Sprintf(providerConfigErr, configDiags.InConfigBody(configBody, n.Addr.String()).Err(), n.Addr.Provider),
-			))
-			return diags
-		} else {
-			return diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
-		}
-	}
 	diags = diags.Append(configDiags.InConfigBody(configBody, n.Addr.String()))
-
+	if diags.HasErrors() && config == nil {
+		// If there isn't an explicit "provider" block in the configuration,
+		// this error message won't be very clear. Add some detail to the error
+		// message in this case.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid provider configuration",
+			fmt.Sprintf(providerConfigErr, n.Addr.Provider),
+		))
+	}
 	return diags
 }
 
-const providerConfigErr = `%s
-
-Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.
+const providerConfigErr = `Provider %q requires explicit configuration. Add a provider block to the root module and configure the provider's required arguments as described in the provider documentation.
 `
