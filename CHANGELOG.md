@@ -6,6 +6,10 @@ ENHANCEMENTS:
 * core: Update HCL to allow better planning of dynamic blocks [GH-28424]
 * core: Unmark values when planning data sources [GH-28539]
 
+BUG FIXES:
+
+* core: Fix JSON plan output to add sensitivity data for provider-specified sensitive attribute values [GH-28523]
+
 ## 0.15.1 (April 26, 2021)
 
 ENHANCEMENTS:
