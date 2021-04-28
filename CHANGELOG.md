@@ -4,6 +4,7 @@ ENHANCEMENTS:
 
 * `terraform apply`: Now has a `-destroy` option for symmetry with `terraform plan -destroy`, which makes `terraform destroy` effectively an alias for `terraform apply -destroy`. This change is only for consistency between `terraform plan` and `terraform apply`; there are no current plans to deprecate `terraform destroy`. [GH-28489]
 * core: Update HCL to allow better planning of dynamic blocks [GH-28424]
+* core: Unmark values when planning data sources [GH-28539]
 
 ## 0.15.1 (April 26, 2021)
 
