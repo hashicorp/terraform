@@ -515,3 +515,118 @@ output "root" {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
 }
+
+func TestContext2Plan_planDataSourceSensitiveNested(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "bar" {
+}
+
+data "test_data_source" "foo" {
+  foo {
+    bar = test_instance.bar.sensitive
+  }
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = cty.ObjectVal(map[string]cty.Value{
+			"sensitive": cty.UnknownVal(cty.String),
+		})
+		return resp
+	}
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"sensitive": {
+						Type:      cty.String,
+						Computed:  true,
+						Sensitive: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+		},
+	})
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("data.test_data_source.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"string":"data_id", "foo":[{"bar":"old"}]}`),
+			AttrSensitivePaths: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("foo"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.bar").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"sensitive":"old"}`),
+			AttrSensitivePaths: []cty.PathValueMarks{
+				{
+					Path:  cty.GetAttrPath("sensitive"),
+					Marks: cty.NewValueMarks("sensitive"),
+				},
+			},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	for _, res := range plan.Changes.Resources {
+		switch res.Addr.String() {
+		case "test_instance.bar":
+			if res.Action != plans.Update {
+				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+			}
+		case "data.test_data_source.foo":
+			if res.Action != plans.Read {
+				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+			}
+		default:
+			t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+		}
+	}
+}

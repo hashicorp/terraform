@@ -160,9 +160,9 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 			ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
 			ctx.ProviderProvider = providers.Interface(mockProvider)
 
-			got, err := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
-			if err != nil {
-				t.Fatalf("[%s] Got err: %#v", k, err.Error())
+			got, readDiags := test.Node.readResourceInstanceState(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+			if readDiags.HasErrors() {
+				t.Fatalf("[%s] Got err: %#v", k, readDiags.Err())
 			}
 
 			expected := test.ExpectedInstanceId
@@ -223,9 +223,9 @@ func TestNodeAbstractResource_ReadResourceInstanceStateDeposed(t *testing.T) {
 
 			key := states.DeposedKey("00000001") // shim from legacy state assigns 0th deposed index this key
 
-			got, err := test.Node.readResourceInstanceStateDeposed(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance), key)
-			if err != nil {
-				t.Fatalf("[%s] Got err: %#v", k, err.Error())
+			got, readDiags := test.Node.readResourceInstanceStateDeposed(ctx, test.Node.Addr.Resource.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance), key)
+			if readDiags.HasErrors() {
+				t.Fatalf("[%s] Got err: %#v", k, readDiags.Err())
 			}
 
 			expected := test.ExpectedInstanceId
