@@ -52,7 +52,6 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	addr := n.ResourceInstanceAddr()
 
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -60,8 +59,8 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	state, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -97,7 +96,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	addr := n.ResourceInstanceAddr()
 
 	var change *plans.ResourceInstanceChange
-	var instanceRefreshState *states.ResourceInstanceObject
 	var instancePlanState *states.ResourceInstanceObject
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
@@ -111,8 +109,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	instanceRefreshState, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
