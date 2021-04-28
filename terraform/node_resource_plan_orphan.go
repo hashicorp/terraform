@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -77,11 +76,9 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// Declare a bunch of variables that are used for state during
 	// evaluation. These are written to by-address below.
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
-	var err error
 
-	state, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	state, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}

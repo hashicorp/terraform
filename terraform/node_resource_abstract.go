@@ -347,10 +347,12 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 
 // readResourceInstanceState reads the current object for a specific instance in
 // the state.
-func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, error) {
+func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr addrs.AbsResourceInstance) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
+		return nil, diags
 	}
 
 	log.Printf("[TRACE] readResourceInstanceState: reading state for %s", addr)
@@ -365,36 +367,41 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
 	if schema == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
-		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
+		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 	}
-	var diags tfdiags.Diagnostics
-	src, diags = upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	if n.Config != nil {
+		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
+	}
+	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
 		// be pretty weird anyway, since this operation is supposed to seem
 		// invisible to the user.
-		return nil, diags.Err()
+		return nil, diags
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
 	}
 
-	return obj, nil
+	return obj, diags
 }
 
 // readResourceInstanceStateDeposed reads the deposed object for a specific
 // instance in the state.
-func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, error) {
+func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext, addr addrs.AbsResourceInstance, key states.DeposedKey) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
+		return nil, diags
 	}
 
 	if key == states.NotDeposed {
-		return nil, fmt.Errorf("readResourceInstanceStateDeposed used with no instance key; this is a bug in Terraform and should be reported")
+		return nil, diags.Append(fmt.Errorf("readResourceInstanceStateDeposed used with no instance key; this is a bug in Terraform and should be reported"))
 	}
 
 	log.Printf("[TRACE] readResourceInstanceStateDeposed: reading state for %s deposed object %s", addr, key)
@@ -403,31 +410,35 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 	if src == nil {
 		// Presumably we only have deposed objects, then.
 		log.Printf("[TRACE] readResourceInstanceStateDeposed: no state present for %s deposed object %s", addr, key)
-		return nil, nil
+		return nil, diags
 	}
 
 	schema, currentVersion := (providerSchema).SchemaForResourceAddr(addr.Resource.ContainingResource())
 	if schema == nil {
 		// Shouldn't happen since we should've failed long ago if no schema is present
-		return nil, fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr)
+		return nil, diags.Append(fmt.Errorf("no schema available for %s while reading state; this is a bug in Terraform and should be reported", addr))
 
 	}
 
-	src, diags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	src, upgradeDiags := upgradeResourceState(addr, provider, src, schema, currentVersion)
+	if n.Config != nil {
+		upgradeDiags = upgradeDiags.InConfigBody(n.Config.Config, addr.String())
+	}
+	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
 		// Note that we don't have any channel to return warnings here. We'll
 		// accept that for now since warnings during a schema upgrade would
 		// be pretty weird anyway, since this operation is supposed to seem
 		// invisible to the user.
-		return nil, diags.Err()
+		return nil, diags
 	}
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
-		return nil, err
+		diags = diags.Append(err)
 	}
 
-	return obj, nil
+	return obj, diags
 }
 
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an

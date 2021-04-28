@@ -184,9 +184,10 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	// Always write the resource back to the state deposed. If it
 	// was successfully destroyed it will be pruned. If it was not, it will
 	// be caught on the next run.
-	err = n.writeResourceInstanceState(ctx, state)
-	if err != nil {
-		return diags.Append(err)
+	writeDiags := n.writeResourceInstanceState(ctx, state)
+	diags.Append(writeDiags)
+	if diags.HasErrors() {
+		return diags
 	}
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
