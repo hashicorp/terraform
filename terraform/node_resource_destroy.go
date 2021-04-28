@@ -177,8 +177,8 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 		return diags
 	}
 
-	state, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	state, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
