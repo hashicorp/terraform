@@ -136,19 +136,8 @@ func renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 			continue
 		}
 
-		// check if the change is due to a tainted resource
-		tainted := false
-		if !baseState.Empty() {
-			if is := baseState.ResourceInstance(rcs.Addr); is != nil {
-				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
-					tainted = obj.Status == states.ObjectTainted
-				}
-			}
-		}
-
 		view.streams.Println(format.ResourceChange(
 			rcs,
-			tainted,
 			rSchema,
 			view.colorize,
 		))
