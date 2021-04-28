@@ -1346,6 +1346,11 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		return nil, nil, diags
 	}
 
+	unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
+	// We drop marks on the values used here as the result is only
+	// temporarily used for validation.
+	unmarkedPriorVal, _ := priorVal.UnmarkDeep()
+
 	configKnown := configVal.IsWhollyKnown()
 	// If our configuration contains any unknown values, or we depend on any
 	// unknown values then we must defer the read to the apply phase by
@@ -1358,7 +1363,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 			log.Printf("[TRACE] planDataSource: %s configuration not fully known yet, so deferring to apply phase", n.Addr)
 		}
 
-		proposedNewVal := objchange.PlannedDataResourceObject(schema, configVal)
+		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
 
 		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
@@ -1366,6 +1371,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		if diags.HasErrors() {
 			return nil, nil, diags
 		}
+		proposedNewVal = proposedNewVal.MarkWithPaths(configMarkPaths)
 
 		// Apply detects that the data source will need to be read by the After
 		// value containing unknowns from PlanDataResourceObject.
@@ -1408,11 +1414,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 
 	// if we have a prior value, we can check for any irregularities in the response
 	if !priorVal.IsNull() {
-		// We drop marks on the values used here as the result is only
-		// temporarily used for validation.
-		unmarkedConfigVal, _ := configVal.UnmarkDeep()
-		unmarkedPriorVal, _ := priorVal.UnmarkDeep()
-
 		// While we don't propose planned changes for data sources, we can
 		// generate a proposed value for comparison to ensure the data source
 		// is returning a result following the rules of the provider contract.
