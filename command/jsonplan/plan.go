@@ -213,7 +213,11 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			if err != nil {
 				return err
 			}
-			bs := sensitiveAsBool(changeV.Before.MarkWithPaths(rc.BeforeValMarks))
+			marks := rc.BeforeValMarks
+			if schema.ContainsSensitive() {
+				marks = append(marks, schema.ValueMarks(changeV.Before, nil)...)
+			}
+			bs := sensitiveAsBool(changeV.Before.MarkWithPaths(marks))
 			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 			if err != nil {
 				return err
@@ -238,7 +242,11 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				}
 				afterUnknown = unknownAsBool(changeV.After)
 			}
-			as := sensitiveAsBool(changeV.After.MarkWithPaths(rc.AfterValMarks))
+			marks := rc.AfterValMarks
+			if schema.ContainsSensitive() {
+				marks = append(marks, schema.ValueMarks(changeV.After, nil)...)
+			}
+			as := sensitiveAsBool(changeV.After.MarkWithPaths(marks))
 			afterSensitive, err = ctyjson.Marshal(as, as.Type())
 			if err != nil {
 				return err
