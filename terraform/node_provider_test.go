@@ -316,7 +316,8 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	provider.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		region := req.Config.GetAttr("region")
 		if region.IsNull() {
-			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("value is not found"))
+			resp.Diagnostics = resp.Diagnostics.Append(
+				tfdiags.WholeContainingBody(tfdiags.Error, "value is not found", "you did not supply a required value"))
 		}
 		return
 	}
@@ -376,7 +377,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 		if !diags.HasErrors() {
 			t.Fatal("missing expected error with invalid config")
 		}
-		if diags.Err().Error() != "value is not found" {
+		if !strings.Contains(diags.Err().Error(), "value is not found") {
 			t.Errorf("wrong diagnostic: %s", diags.Err())
 		}
 	})
@@ -469,4 +470,30 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 			t.Errorf("wrong diagnostic: %s", diags.Err())
 		}
 	})
+}
+
+func TestGetSchemaError(t *testing.T) {
+	provider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Diagnostics: tfdiags.Diagnostics.Append(nil, tfdiags.WholeContainingBody(tfdiags.Error, "oops", "error")),
+		},
+	}
+
+	providerAddr := mustProviderConfig(`provider["terraform.io/some/provider"]`)
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	ctx.installSimpleEval()
+	node := NodeApplyableProvider{
+		NodeAbstractProvider: &NodeAbstractProvider{
+			Addr: providerAddr,
+		},
+	}
+
+	diags := node.ConfigureProvider(ctx, provider, false)
+	for _, d := range diags {
+		desc := d.Description()
+		if desc.Address != providerAddr.String() {
+			t.Fatalf("missing provider address from diagnostics: %#v", desc)
+		}
+	}
+
 }

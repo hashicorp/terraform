@@ -478,6 +478,10 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.Re
 	}
 
 	resp := provider.ReadResource(providerReq)
+	if n.Config != nil {
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
+	}
+
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
 		return state, diags
@@ -626,8 +630,8 @@ func (n *NodeAbstractResourceInstance) plan(
 		},
 	)
 
-	if validateResp.Diagnostics.HasErrors() {
-		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
 		return plan, state, diags
 	}
 
@@ -1195,8 +1199,9 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 			Config:   configVal,
 		},
 	)
-	if validateResp.Diagnostics.HasErrors() {
-		return newVal, validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String())
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return newVal, diags
 	}
 
 	// If we get down here then our configuration is complete and we're read
