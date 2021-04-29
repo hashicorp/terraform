@@ -110,27 +110,6 @@ jobs:
           fail_only: true
           only_for_branches: master
 
-  # combine code coverage results from the parallel circleci executors
-  coverage-merge:
-    executor:
-      name: go
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run: mkdir -p $TEST_RESULTS_DIR
-      - run:
-          name: merge coverage reports
-          command: |
-            echo "mode: set" > coverage.out
-            grep -h -v "mode: set" cov_*.part >> coverage.out
-            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
-      - run:
-          name: codecov upload
-          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-
   # build all distros
   build-distros: &build-distros
     executor: go
@@ -282,10 +261,6 @@ workflows:
       - go-test-e2e:
           requires:
             - go-checks
-      - coverage-merge:
-          requires:
-            - go-test
-            - go-test-e2e
       - test-docker-full:
           filters:
             branches:
