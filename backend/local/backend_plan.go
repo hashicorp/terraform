@@ -126,7 +126,7 @@ func (b *Local) opPlan(
 	runningOp.PlanEmpty = plan.Changes.Empty()
 
 	// Save the plan to disk
-	if path := op.PlanOutPath; path != "" {
+	if path, jsonPath := op.PlanOutPath, op.PlanOutJsonPath; path != "" || jsonPath != "" {
 		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.
@@ -143,16 +143,34 @@ func (b *Local) opPlan(
 		// only write it if this plan is subsequently applied.
 		plannedStateFile := statemgr.PlannedStateUpdate(opState, baseState)
 
-		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err := planfile.Create(path, configSnap, plannedStateFile, plan)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to write plan file",
-				fmt.Sprintf("The plan file could not be written: %s.", err),
-			))
-			b.ReportResult(runningOp, diags)
-			return
+		if path != "" {
+			log.Printf("[INFO] backend/local: writing plan output to: %s", path)
+			err := planfile.Create(path, configSnap, plannedStateFile, plan)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to write plan file",
+					fmt.Sprintf("The plan file could not be written: %s.", err),
+				))
+				b.ReportResult(runningOp, diags)
+				return
+			}
+		}
+
+		if jsonPath != "" {
+			log.Printf("[INFO] backend/local: writing plan output as JSON to: %s", jsonPath)
+			config := tfCtx.Config()
+			schemas := tfCtx.Schemas()
+			err := planfile.CreateJson(jsonPath, config, plannedStateFile, plan, schemas)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to write plan file as JSON",
+					fmt.Sprintf("The plan file could not be written as JSON: %s.", err),
+				))
+				b.ReportResult(runningOp, diags)
+				return
+			}
 		}
 	}
 
