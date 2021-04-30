@@ -645,7 +645,7 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
-		Mode:              plans.NormalMode,
+		UIMode:            plans.NormalMode,
 		Changes:           c.changes,
 		ForceReplaceAddrs: c.forceReplace,
 	}
@@ -700,7 +700,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	destroyPlan.Mode = plans.DestroyMode
+	destroyPlan.UIMode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
 	return destroyPlan, diags
 }
@@ -722,7 +722,7 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
-		Mode:    plans.RefreshOnlyMode,
+		UIMode:  plans.RefreshOnlyMode,
 		Changes: c.changes,
 	}
 

@@ -60,15 +60,15 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		ProviderSHA256s: map[string][]byte{},
 	}
 
-	switch rawPlan.Mode {
+	switch rawPlan.UiMode {
 	case planproto.Mode_NORMAL:
-		plan.Mode = plans.NormalMode
+		plan.UIMode = plans.NormalMode
 	case planproto.Mode_DESTROY:
-		plan.Mode = plans.DestroyMode
+		plan.UIMode = plans.DestroyMode
 	case planproto.Mode_REFRESH_ONLY:
-		plan.Mode = plans.RefreshOnlyMode
+		plan.UIMode = plans.RefreshOnlyMode
 	default:
-		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.Mode)
+		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.UiMode)
 	}
 
 	for _, rawOC := range rawPlan.OutputChanges {
@@ -362,15 +362,15 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 	}
 
-	switch plan.Mode {
+	switch plan.UIMode {
 	case plans.NormalMode:
-		rawPlan.Mode = planproto.Mode_NORMAL
+		rawPlan.UiMode = planproto.Mode_NORMAL
 	case plans.DestroyMode:
-		rawPlan.Mode = planproto.Mode_DESTROY
+		rawPlan.UiMode = planproto.Mode_DESTROY
 	case plans.RefreshOnlyMode:
-		rawPlan.Mode = planproto.Mode_REFRESH_ONLY
+		rawPlan.UiMode = planproto.Mode_REFRESH_ONLY
 	default:
-		return fmt.Errorf("plan has unsupported mode %s", plan.Mode)
+		return fmt.Errorf("plan has unsupported mode %s", plan.UIMode)
 	}
 
 	for _, oc := range plan.Changes.Outputs {
