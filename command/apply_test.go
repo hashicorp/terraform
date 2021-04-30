@@ -3,9 +3,11 @@ package command
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -19,12 +21,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestApply(t *testing.T) {
@@ -1896,6 +1900,118 @@ func TestApply_pluginPath(t *testing.T) {
 
 	if !reflect.DeepEqual(pluginPath, c.Meta.pluginPath) {
 		t.Fatalf("expected plugin path %#v, got %#v", pluginPath, c.Meta.pluginPath)
+	}
+}
+
+func TestApply_jsonGoldenReference(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	statePath := testTempFile(t)
+
+	p := applyFixtureProvider()
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-json",
+		"-state", statePath,
+		"-auto-approve",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state := testStateRead(t, statePath)
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	// Load the golden reference fixture
+	wantFile, err := os.Open(path.Join(testFixturePath("apply"), "output.jsonlog"))
+	if err != nil {
+		t.Fatalf("failed to open output file: %s", err)
+	}
+	defer wantFile.Close()
+	wantBytes, err := ioutil.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("failed to read output file: %s", err)
+	}
+	want := string(wantBytes)
+
+	got := output.Stdout()
+
+	// Split the output and the reference into lines so that we can compare
+	// messages
+	got = strings.TrimSuffix(got, "\n")
+	gotLines := strings.Split(got, "\n")
+
+	want = strings.TrimSuffix(want, "\n")
+	wantLines := strings.Split(want, "\n")
+
+	if len(gotLines) != len(wantLines) {
+		t.Fatalf("unexpected number of log lines: got %d, want %d", len(gotLines), len(wantLines))
+	}
+
+	// Verify that the log starts with a version message
+	type versionMessage struct {
+		Level     string `json:"@level"`
+		Message   string `json:"@message"`
+		Type      string `json:"type"`
+		Terraform string `json:"terraform"`
+		UI        string `json:"ui"`
+	}
+	var gotVersion versionMessage
+	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
+		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
+	}
+	wantVersion := versionMessage{
+		"info",
+		fmt.Sprintf("Terraform %s", tfversion.String()),
+		"version",
+		tfversion.String(),
+		views.JSON_UI_VERSION,
+	}
+	if !cmp.Equal(wantVersion, gotVersion) {
+		t.Errorf("unexpected first message:\n%s", cmp.Diff(wantVersion, gotVersion))
+	}
+
+	// Compare the rest of the lines against the golden reference
+	for i := range gotLines[1:] {
+		index := i + 1
+		var gotMap, wantMap map[string]interface{}
+		if err := json.Unmarshal([]byte(gotLines[index]), &gotMap); err != nil {
+			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[i])
+		}
+		if err := json.Unmarshal([]byte(wantLines[index]), &wantMap); err != nil {
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, wantLines[i])
+		}
+
+		// The timestamp field is the only one that should change, so we drop
+		// it from the comparison
+		if _, ok := gotMap["@timestamp"]; !ok {
+			t.Errorf("missing @timestamp field in log: %s", gotLines[i])
+		}
+		delete(gotMap, "@timestamp")
+
+		if !cmp.Equal(wantMap, gotMap) {
+			t.Errorf("unexpected log:\n%s", cmp.Diff(wantMap, gotMap))
+		}
 	}
 }
 

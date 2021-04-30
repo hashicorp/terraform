@@ -11,3 +11,18 @@ const (
 	ViewJSON  ViewType = 'J'
 	ViewRaw   ViewType = 'R'
 )
+
+func (vt ViewType) String() string {
+	switch vt {
+	case ViewNone:
+		return "none"
+	case ViewHuman:
+		return "human"
+	case ViewJSON:
+		return "json"
+	case ViewRaw:
+		return "raw"
+	default:
+		return "unknown"
+	}
+}

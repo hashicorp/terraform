@@ -71,3 +71,37 @@ func TestRefreshHuman_outputsEmpty(t *testing.T) {
 		t.Errorf("output should be empty, but got: %q", got)
 	}
 }
+
+// Basic test coverage of Outputs, since most of its functionality is tested
+// elsewhere.
+func TestRefreshJSON_outputs(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewRefresh(arguments.ViewJSON, false, NewView(streams))
+
+	v.Outputs(map[string]*states.OutputValue{
+		"boop_count": {Value: cty.NumberIntVal(92)},
+		"password":   {Value: cty.StringVal("horse-battery").Mark("sensitive"), Sensitive: true},
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Outputs: 2",
+			"@module":  "terraform.ui",
+			"type":     "outputs",
+			"outputs": map[string]interface{}{
+				"boop_count": map[string]interface{}{
+					"sensitive": false,
+					"value":     float64(92),
+					"type":      "number",
+				},
+				"password": map[string]interface{}{
+					"sensitive": true,
+					"value":     "horse-battery",
+					"type":      "string",
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
