@@ -824,22 +824,12 @@ func (n *NodeAbstractResourceInstance) plan(
 			matchedForceReplace = true
 			break
 		}
+
 		// For "force replace" purposes we require an exact resource instance
-		// address to match, but just in case a user forgets to include the
-		// instance key for a multi-instance resource we'll give them a
-		// warning hint.
-		if n.Addr.Resource.Key != addrs.NoKey && candidateAddr.Resource.Key == addrs.NoKey {
-			if n.Addr.Resource.Resource.Equal(candidateAddr.Resource.Resource) {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Incompletely-matched force-replace resource instance",
-					fmt.Sprintf(
-						"Your force-replace request for %s didn't match %s because it lacks the instance key.\n\nTo force replacement of this particular instance, use -replace=%q .",
-						candidateAddr, n.Addr, n.Addr,
-					),
-				))
-			}
-		}
+		// address to match. If a user forgets to include the instance key
+		// for a multi-instance resource then it won't match here, but we
+		// have an earlier check in NodePlannableResource.Execute that should
+		// prevent us from getting here in that case.
 	}
 
 	// Unmark for this test for value equality.
