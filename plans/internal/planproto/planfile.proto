@@ -22,7 +22,7 @@ message Plan {
     // This is saved only for UI purposes, so that Terraform can tailor its
     // rendering of the plan depending on the mode. This must never be used to
     // make decisions in Terraform Core during the applying of a plan.
-    Mode mode = 17;
+    Mode ui_mode = 17;
 
     // The variables that were set when creating the plan. Each value is
     // a msgpack serialization of an HCL value.

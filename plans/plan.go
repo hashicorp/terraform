@@ -27,7 +27,7 @@ type Plan struct {
 	// to the end-user, and so it must not be used to influence apply-time
 	// behavior. The actions during apply must be described entirely by
 	// the Changes field, regardless of how the plan was created.
-	Mode Mode
+	UIMode Mode
 
 	VariableValues    map[string]DynamicValue
 	Changes           *Changes
