@@ -211,6 +211,65 @@ func TestParseApply_targets(t *testing.T) {
 	}
 }
 
+func TestParseApply_replace(t *testing.T) {
+	foobarbaz, _ := addrs.ParseAbsResourceInstanceStr("foo_bar.baz")
+	foobarbeep, _ := addrs.ParseAbsResourceInstanceStr("foo_bar.beep")
+	testCases := map[string]struct {
+		args    []string
+		want    []addrs.AbsResourceInstance
+		wantErr string
+	}{
+		"no addresses by default": {
+			args: nil,
+			want: nil,
+		},
+		"one address": {
+			args: []string{"-replace=foo_bar.baz"},
+			want: []addrs.AbsResourceInstance{foobarbaz},
+		},
+		"two addresses": {
+			args: []string{"-replace=foo_bar.baz", "-replace", "foo_bar.beep"},
+			want: []addrs.AbsResourceInstance{foobarbaz, foobarbeep},
+		},
+		"non-resource-instance address": {
+			args:    []string{"-replace=module.boop"},
+			want:    nil,
+			wantErr: "A resource instance address is required here.",
+		},
+		"data resource address": {
+			args:    []string{"-replace=data.foo.bar"},
+			want:    nil,
+			wantErr: "Only managed resources can be used",
+		},
+		"invalid traversal": {
+			args:    []string{"-replace=foo."},
+			want:    nil,
+			wantErr: "Dot must be followed by attribute name",
+		},
+		"invalid address": {
+			args:    []string{"-replace=data[0].foo"},
+			want:    nil,
+			wantErr: "A data source name is required",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, diags := ParseApply(tc.args)
+			if len(diags) > 0 {
+				if tc.wantErr == "" {
+					t.Fatalf("unexpected diags: %v", diags)
+				} else if got := diags.Err().Error(); !strings.Contains(got, tc.wantErr) {
+					t.Fatalf("wrong diags\n got: %s\nwant: %s", got, tc.wantErr)
+				}
+			}
+			if !cmp.Equal(got.Operation.ForceReplace, tc.want) {
+				t.Fatalf("unexpected result\n%s", cmp.Diff(got.Operation.Targets, tc.want))
+			}
+		})
+	}
+}
+
 func TestParseApply_vars(t *testing.T) {
 	testCases := map[string]struct {
 		args []string
