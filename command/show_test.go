@@ -198,6 +198,78 @@ func TestShow_planWithChanges(t *testing.T) {
 	}
 }
 
+func TestShow_planWithForceReplaceChange(t *testing.T) {
+	// The main goal of this test is to see that the "replace by request"
+	// resource instance action reason can round-trip through a plan file and
+	// be reflected correctly in the "terraform show" output, the same way
+	// as it would appear in "terraform plan" output.
+
+	_, snap := testModuleWithSnapshot(t, "show")
+	plannedVal := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.UnknownVal(cty.String),
+		"ami": cty.StringVal("bar"),
+	})
+	priorValRaw, err := plans.NewDynamicValue(cty.NullVal(plannedVal.Type()), plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plannedValRaw, err := plans.NewDynamicValue(plannedVal, plannedVal.Type())
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan := testPlan(t)
+	plan.Changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		ProviderAddr: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.CreateThenDelete,
+			Before: priorValRaw,
+			After:  plannedValRaw,
+		},
+		ActionReason: plans.ResourceInstanceReplaceByRequest,
+	})
+	planFilePath := testPlanFile(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+	)
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		planFilePath,
+	}
+
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	got := done(t).Stdout()
+	if want := `test_instance.foo will be replaced, as requested`; !strings.Contains(got, want) {
+		t.Errorf("wrong output\ngot:\n%s\n\nwant substring: %s", got, want)
+	}
+	if want := `Plan: 1 to add, 0 to change, 1 to destroy.`; !strings.Contains(got, want) {
+		t.Errorf("wrong output\ngot:\n%s\n\nwant substring: %s", got, want)
+	}
+
+}
+
 func TestShow_plan_json(t *testing.T) {
 	planPath := showFixturePlanFile(t, plans.Create)
 

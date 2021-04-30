@@ -1033,6 +1033,78 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 	}
 }
 
+func TestPlan_replace(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-replace"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "a",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"hello"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-no-color",
+		"-replace", "test_instance.a",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("wrong exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	stdout := output.Stdout()
+	if got, want := stdout, "1 to add, 0 to change, 1 to destroy"; !strings.Contains(got, want) {
+		t.Errorf("wrong plan summary\ngot output:\n%s\n\nwant substring: %s", got, want)
+	}
+	if got, want := stdout, "test_instance.a will be replaced, as requested"; !strings.Contains(got, want) {
+		t.Errorf("missing replace explanation\ngot output:\n%s\n\nwant substring: %s", got, want)
+	}
+
+}
+
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".

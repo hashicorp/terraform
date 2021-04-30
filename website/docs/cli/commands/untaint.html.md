@@ -28,6 +28,14 @@ you can use `terraform untaint` to remove the taint marker from that object.
 This command _will not_ modify any real remote objects, but will modify the
 state in order to remove the tainted status.
 
+If you remove the taint marker from an object but then later discover that it
+was degraded after all, you can create and apply a plan to replace it without
+first re-tainting the object, by using a command like the following:
+
+```
+terraform apply -replace="aws_instance.example[0]"
+```
+
 ## Usage
 
 Usage: `terraform untaint [options] address`

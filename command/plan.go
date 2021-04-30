@@ -149,6 +149,7 @@ func (c *PlanCommand) OperationRequest(
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
 	opReq.Targets = args.Targets
+	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backend.OperationTypePlan
 	opReq.View = view.Operation()
 
@@ -204,11 +205,21 @@ Plan Customization Options:
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
 
-  -refresh=true       Update state prior to checking for differences.
+  -refresh=false      Skip checking for changes to remote objects while
+                      creating the plan. This can potentially make planning
+                      faster, but at the expense of possibly planning against
+                      a stale record of the remote system state.
 
-  -target=resource    Resource to target. Operation will be limited to this
-                      resource and its dependencies. This flag can be used
-                      multiple times.
+  -replace=resource   Force replacement of a particular resource instance using
+                      its resource address. If the plan would've normally
+                      produced an update or no-op action for this instance,
+                      Terraform will plan to replace it instead.
+
+  -target=resource    Limit the planning operation to only the given module,
+                      resource, or resource instance and all of its
+                      dependencies. You can use this option multiple times to
+                      include more than one object. This is for exceptional
+                      use only.
 
   -var 'foo=bar'      Set a variable in the Terraform configuration. This
                       flag can be set multiple times.
