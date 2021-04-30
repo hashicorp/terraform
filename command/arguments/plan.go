@@ -42,6 +42,9 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
 
+	var json bool
+	cmdFlags.BoolVar(&json, "json", false, "json")
+
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -62,7 +65,14 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 
 	diags = diags.Append(plan.Operation.Parse())
 
+	// JSON view currently does not support input, so we disable it here
+	if json {
+		plan.InputEnabled = false
+	}
+
 	switch {
+	case json:
+		plan.ViewType = ViewJSON
 	default:
 		plan.ViewType = ViewHuman
 	}

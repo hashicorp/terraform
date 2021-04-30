@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/command/views/json"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -23,6 +24,10 @@ type Refresh interface {
 // NewRefresh returns an initialized Refresh implementation for the given ViewType.
 func NewRefresh(vt arguments.ViewType, runningInAutomation bool, view *View) Refresh {
 	switch vt {
+	case arguments.ViewJSON:
+		return &RefreshJSON{
+			view: NewJSONView(view),
+		}
 	case arguments.ViewHuman:
 		return &RefreshHuman{
 			view:         view,
@@ -70,4 +75,38 @@ func (v *RefreshHuman) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (v *RefreshHuman) HelpPrompt() {
 	v.view.HelpPrompt("refresh")
+}
+
+// The RefreshJSON implementation renders streaming JSON logs, suitable for
+// integrating with other software.
+type RefreshJSON struct {
+	view *JSONView
+}
+
+var _ Refresh = (*RefreshJSON)(nil)
+
+func (v *RefreshJSON) Outputs(outputValues map[string]*states.OutputValue) {
+	outputs, diags := json.OutputsFromMap(outputValues)
+	if diags.HasErrors() {
+		v.Diagnostics(diags)
+	} else {
+		v.view.Outputs(outputs)
+	}
+}
+
+func (v *RefreshJSON) Operation() Operation {
+	return &OperationJSON{view: v.view}
+}
+
+func (v *RefreshJSON) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		newJSONHook(v.view),
+	}
+}
+
+func (v *RefreshJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *RefreshJSON) HelpPrompt() {
 }
