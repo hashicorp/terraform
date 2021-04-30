@@ -189,7 +189,7 @@ plan to remove it in Terraform v0.15. If your workflow relies on overriding
 the root module directory, use
 [the `-chdir` global option](./#switching-working-directory-with-chdir)
 instead, which works across all commands and makes Terraform consistently look
-in the given directory for all files it would normaly read or write in the
+in the given directory for all files it would normally read or write in the
 current working directory.
 
 If your previous use of this legacy pattern was also relying on Terraform
