@@ -1862,6 +1862,93 @@ func TestApply_targetFlagsDiags(t *testing.T) {
 	}
 }
 
+func TestApply_replace(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply-replace"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "a",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"hello"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	createCount := 0
+	deleteCount := 0
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		if req.PriorState.IsNull() {
+			createCount++
+		}
+		if req.PlannedState.IsNull() {
+			deleteCount++
+		}
+		return providers.ApplyResourceChangeResponse{
+			NewState: req.PlannedState,
+		}
+	}
+
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-auto-approve",
+		"-state", statePath,
+		"-replace", "test_instance.a",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("wrong exit code %d\n\n%s", code, output.Stderr())
+	}
+
+	if got, want := output.Stdout(), "1 added, 0 changed, 1 destroyed"; !strings.Contains(got, want) {
+		t.Errorf("wrong change summary\ngot output:\n%s\n\nwant substring: %s", got, want)
+	}
+
+	if got, want := createCount, 1; got != want {
+		t.Errorf("wrong create count %d; want %d", got, want)
+	}
+	if got, want := deleteCount, 1; got != want {
+		t.Errorf("wrong create count %d; want %d", got, want)
+	}
+}
+
 func TestApply_pluginPath(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

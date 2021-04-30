@@ -135,6 +135,23 @@ the previous section, are also available with the same meanings on
     it would effectively disable the entirety of the planning operation in that
     case.
 
+* `-replace=ADDRESS` - Instructs Terraform to plan to replace the single
+  resource instance with the given address. If the given instance would
+  normally have caused only an "update" action, or no action at all, then
+  Terraform will choose a "replace" action instead.
+
+    You can use this option if you have learned that a particular remote object
+    has become degraded in some way. If you are using immutable infrastructure
+    patterns then you may wish to respond to that by replacing the
+    malfunctioning object with a new object that has the same configuration.
+
+    This option is allowed only in the normal planning mode, so this option
+    is incompatible with the `-destroy` option.
+
+    The `-replace=...` option is available only from Terraform v1.0 onwards.
+    For earlier versions, you can achieve a similar effect (with some caveats)
+    using [`terraform taint`](./taint.html).
+
 * `-target=ADDRESS` - Instructs Terraform to focus its planning efforts only
   on resource instances which match the given address and on any objects that
   those instances depend on.

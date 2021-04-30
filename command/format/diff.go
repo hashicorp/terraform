@@ -60,6 +60,8 @@ func ResourceChange(
 		switch change.ActionReason {
 		case plans.ResourceInstanceReplaceBecauseTainted:
 			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced", dispAddr)))
+		case plans.ResourceInstanceReplaceByRequest:
+			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested", dispAddr)))
 		default:
 			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
 		}
