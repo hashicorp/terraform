@@ -244,13 +244,3 @@ func TestEncryptDecrypt(t *testing.T) {
 		}
 	}
 }
-
-// TODO low level tests for fallbackretry
-
-// TODO encryption only uses first choice (make it passthrough, fallback AES256)
-
-// TODO decryption tries first choice first
-
-// TODO decryption tries fallback first if passthrough + non-nil
-
-// TODO decryption tries second choice if first fails
