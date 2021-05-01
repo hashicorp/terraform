@@ -7,29 +7,8 @@ import (
 	"log"
 )
 
-func instanceFromConfig(config cryptoconfig.StateCryptoConfig, allowPassthrough bool) StateCryptoProvider {
-	var implementation StateCryptoProvider
-	var err error = nil
-
-	switch config.Implementation {
-	case "client-side/AES256-cfb/SHA256":
-		implementation, err = aes256state.New(config)
-	case "":
-		if allowPassthrough {
-			implementation, err = passthrough.New(config)
-		} else {
-			// valid case for fallback
-			return nil
-		}
-	default:
-		log.Fatalf("error configuring state file crypto: unsupported implementation '%s'", config.Implementation)
-	}
-
-	if err != nil {
-		log.Fatalf("error configuring state file crypto: %v", err)
-	}
-
-	return implementation
+func StateCryptoWrapper() StateCryptoProvider {
+	return fallbackRetryInstance(firstChoice(), fallback())
 }
 
 func firstChoice() StateCryptoProvider {
@@ -40,9 +19,30 @@ func fallback() StateCryptoProvider {
 	return instanceFromConfig(cryptoconfig.FallbackConfiguration(), false)
 }
 
-func StateCryptoWrapper() StateCryptoProvider {
-	return &FallbackRetryStateWrapper{
-		firstChoice: firstChoice(),
-		fallback:    fallback(),
+var logFatalf = log.Fatalf
+
+func instanceFromConfig(config cryptoconfig.StateCryptoConfig, allowPassthrough bool) StateCryptoProvider {
+	var implementation StateCryptoProvider
+	var err error = nil
+
+	switch config.Implementation {
+	case cryptoconfig.ClientSide_Aes256cfb_Sha256:
+		implementation, err = aes256state.New(config)
+	// add additional implementations here
+	case "":
+		if allowPassthrough {
+			implementation, err = passthrough.New(config)
+		} else {
+			// valid case for fallback - means no fallback available
+			return nil
+		}
+	default:
+		logFatalf("error configuring state file crypto: unsupported implementation '%s'", config.Implementation)
 	}
+
+	if err != nil {
+		logFatalf("error configuring state file crypto: %s", err.Error())
+	}
+
+	return implementation
 }

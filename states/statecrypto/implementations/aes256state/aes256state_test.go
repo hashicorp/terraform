@@ -9,8 +9,6 @@ import (
 
 const validKey1 = "a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"
 
-// const validKey2 = "89346775897897a35892735ffd34723489734ee238748293741abcdef0123456"
-
 const tooShortKey = "a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9"
 const tooLongKey = "a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1d2d3d4d5"
 const invalidChars = "somethingsomethinga9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"
@@ -21,6 +19,7 @@ const invalidEncryptedHash = `{"crypted":"a6625332f6e3061e1202cea86d2ddf7cf6d5f2
 const invalidEncryptedCutoff = `{"crypted":"447c2fc8982ed203681298be9f1b03ed30dbfe794a68e4ad873fb68c34f10394ffddd9c76b2d3fdb006d75068453854af63766fc059a569d243eb7d8c92ec3a00535ccaab769bdafb534d5471ed01ca36f640d1f`
 const invalidEncryptedChars = `{"crypted":"447c2fc8982ed203681298be9f1b03ed30dbfe794a68e4ad873fb68c34 SOMETHING WEIRD d3fdb006d75068453854af63766fc059a569d243eb7d8c92ec3a00535ccaab769bdafb534d5471ed01ca36f640d1f720c9a2bf0aa4e0a40496dacee92325a9f86"}`
 const invalidEncryptedTooShort = `{"crypted":"a6625332"}`
+const invalidEncryptedOddNumberCharacters = `{"crypted":"e93e3e7ad3434055251f695865a13c11744b97e54cb7dee8f8fb40d1fb096b728f2a00606e7109f0720aacb15008b410cf2f92dd7989c2ff10b9712b6ef7d69ecdad1dccd2f1bddd127f0f0d87c79c3c062e03c2297614e2effa2fb1f4072d86df0dda4fc06"}`
 
 type parseKeyTestCase struct {
 	description   string
@@ -86,18 +85,6 @@ func TestParseKeysFromConfiguration(t *testing.T) {
 			configuration: conf(validKey1),
 			expectedKey:   k1,
 		},
-		// TODO move to top level package (cannot test locally)
-		//{
-		//	description:    "key rotation case (with previous key allowed for reading)",
-		//	configuration:  []string{"AES256", validKey1, validKey2},
-		//	expectedKey:    k1,
-		//	expectedPrvKey: k2,
-		//},
-		//{
-		//	description:    "decryption case",
-		//	configuration:  []string{"AES256", "", validKey2},
-		//	expectedPrvKey: k2,
-		//},
 
 		// error cases
 		{
@@ -163,18 +150,6 @@ func TestEncryptDecrypt(t *testing.T) {
 			input:         validPlaintext,
 			injectOutput:  validPlaintext,
 		},
-		// TODO pull up to top level package, cannot test locally
-		//{
-		//	description:   "no keys either direction",
-		//	configuration: []string{"AES256", "", ""},
-		//	input:         validPlaintext,
-		//},
-		//{
-		//	description:   "key rotation with old key present",
-		//	configuration: []string{"AES256", validKey2, validKey1},
-		//	input:         validPlaintext,
-		//	injectOutput:  validEncryptedKey1,
-		//},
 
 		// error cases
 		{
@@ -254,5 +229,29 @@ func TestEncryptDoesNotUseSameIV(t *testing.T) {
 	}
 	if compareSlices(encOutput1, encOutput2) {
 		t.Error("random iv created same vector as in previous call! SECURITY PROBLEM!")
+	}
+}
+
+func TestEncrypt_FailingCipherCreation(t *testing.T) {
+	cut := &AES256StateWrapper{key: []byte{127, 42}}
+	_, err := cut.Encrypt([]byte(validPlaintext))
+	if comp := compareErrors(err, "crypto/aes: invalid key size 2"); comp != "" {
+		t.Error(comp)
+	}
+}
+
+func TestAttemptDecryption_FailingCipherCreation(t *testing.T) {
+	cut := &AES256StateWrapper{key: []byte{127, 42}}
+	_, err := cut.attemptDecryption([]byte(validEncryptedKey1), cut.key)
+	if comp := compareErrors(err, "crypto/aes: invalid key size 2"); comp != "" {
+		t.Error(comp)
+	}
+}
+
+func TestAttemptDecryption_InvalidHexadecimal(t *testing.T) {
+	cut := &AES256StateWrapper{}
+	_, err := cut.attemptDecryption([]byte(invalidEncryptedOddNumberCharacters), cut.key)
+	if comp := compareErrors(err, "encoding/hex: odd length hex string"); comp != "" {
+		t.Error(comp)
 	}
 }

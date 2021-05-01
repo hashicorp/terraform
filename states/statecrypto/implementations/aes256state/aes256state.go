@@ -43,8 +43,8 @@ func (a *AES256StateWrapper) parseKeyFromConfiguration(config cryptoconfig.State
 	return nil
 }
 
-//  determine if data (which is a []byte containing a json structure) is encrypted
-//         (that is, of the form: {"crypted":"<hex containing iv and payload>"})
+// determine if data (which is a []byte containing a json structure) is encrypted, that is, of the following form:
+//     {"crypted":"<hex containing iv and payload>"}
 func (a *AES256StateWrapper) isEncrypted(data []byte) bool {
 	validator := regexp.MustCompile(`^{"crypted":".*$`)
 	return validator.Match(data)
@@ -74,7 +74,7 @@ func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byt
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to create cipher implementation: %v", err.Error())
+		return []byte{}, err
 	}
 
 	if len(ciphertext) < aes.BlockSize {
@@ -102,23 +102,16 @@ func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byt
 	return plaintextPayload, nil
 }
 
-// encrypt data (which is a []byte containing a json structure)
-//      into a json structure {"crypted":"<hex-encoded random iv + hex-encoded CFB encrypted data>"}
-// fail if encryption is not possible to prevent writing unencrypted state, but
-// the case that key is empty is explicitly allowed to support planned decryption
+// Encrypt data (which is a []byte containing a json structure) into a json structure
+//      {"crypted":"<hex-encoded random iv + hex-encoded CFB encrypted data including hash>"}
+// fail if encryption is not possible to prevent writing unencrypted state
 func (a *AES256StateWrapper) Encrypt(plaintextPayload []byte) ([]byte, error) {
-	// allow planned decryption
-	if a.key == nil || len(a.key) == 0 {
-		log.Printf("warning: no encryption key specified, so now writing unencrypted state")
-		return plaintextPayload, nil
-	}
-
 	block, err := aes.NewCipher(a.key)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	ciphertext := make([]byte, aes.BlockSize+len(plaintextPayload)+sha256.Size) // TODO + hash over plaintextPayload
+	ciphertext := make([]byte, aes.BlockSize+len(plaintextPayload)+sha256.Size)
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
 		return []byte{}, err
@@ -140,7 +133,7 @@ func (a *AES256StateWrapper) Encrypt(plaintextPayload []byte) ([]byte, error) {
 	return jsonCryptedData, nil
 }
 
-// decrypt the hex-encoded contents of data, which is expected to be of the form
+// Decrypt the hex-encoded contents of data, which is expected to be of the form
 //         {"crypted":"<hex containing iv and payload>"}
 // supports reading unencrypted state as well but logs a warning
 func (a *AES256StateWrapper) Decrypt(data []byte) ([]byte, error) {

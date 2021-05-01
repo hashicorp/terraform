@@ -123,15 +123,13 @@ func (s *State) refreshState() error {
 		return nil
 	}
 
-	data := payload.Data
-
-	data, err = statecrypto.StateCryptoWrapper().Decrypt(data)
+	decrypted, err := statecrypto.StateCryptoWrapper().Decrypt(payload.Data)
 	if err != nil {
-		log.Printf("error during decryption: %v", err.Error())
+		log.Printf("error during remote state decryption: %s", err.Error())
 		return err
 	}
 
-	stateFile, err := statefile.Read(bytes.NewReader(data))
+	stateFile, err := statefile.Read(bytes.NewReader(decrypted))
 	if err != nil {
 		return err
 	}
@@ -188,15 +186,13 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	data := buf.Bytes()
-
-	data, err = statecrypto.StateCryptoWrapper().Encrypt(data)
+	maybeEncrypted, err := statecrypto.StateCryptoWrapper().Encrypt(buf.Bytes())
 	if err != nil {
-		log.Printf("error during encryption: %v", err.Error())
+		log.Printf("error during remote state encryption: %s", err.Error())
 		return err
 	}
 
-	err = s.Client.Put(data)
+	err = s.Client.Put(maybeEncrypted)
 	if err != nil {
 		return err
 	}
