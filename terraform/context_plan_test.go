@@ -4420,7 +4420,7 @@ func TestContext2Plan_targetedModuleUntargetedVariable(t *testing.T) {
 	}
 }
 
-// ensure that outputs missing references due to targetting are removed from
+// ensure that outputs missing references due to targeting are removed from
 // the graph.
 func TestContext2Plan_outputContainsTargetedResource(t *testing.T) {
 	m := testModule(t, "plan-untargeted-resource-output")
