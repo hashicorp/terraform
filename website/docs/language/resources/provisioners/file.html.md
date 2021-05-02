@@ -10,7 +10,8 @@ description: |-
 
 The `file` provisioner is used to copy files or directories from the machine
 executing Terraform to the newly created resource. The `file` provisioner
-supports both `ssh` and `winrm` type [connections](/docs/language/resources/provisioners/connection.html).
+requires a [connection](/docs/language/resources/provisioners/connection.html)
+and supports both `ssh` and `winrm`.
 
 -> **Note:** Provisioners should only be used as a last resort. For most
 common situations there are better alternatives. For more information, see
@@ -21,6 +22,15 @@ common situations there are better alternatives. For more information, see
 ```hcl
 resource "aws_instance" "web" {
   # ...
+
+  # Establishes connection to be used by all 
+  # generic remote provisioners (i.e. file/remote-exec)
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
 
   # Copies the myapp.conf file to /etc/myapp.conf
   provisioner "file" {
