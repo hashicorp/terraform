@@ -160,3 +160,37 @@ export TF_IGNORE=trace
 ```
 
 For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/docs/language/settings/backends/remote.html#excluding-files-from-upload-with-terraformignore).
+
+## TF_REMOTE_STATE_ENCRYPTION
+
+**This is an experimental feature!**
+
+Set `TF_REMOTE_STATE_ENCRYPTION` to a valid json document with two fields
+
+  * `implementation`: select a _state crypto provider_ by name
+  * `parameters`: configure the _state crypto provider_
+
+to enable client-side remote state encryption.
+
+```shell
+export TF_REMOTE_STATE_ENCRYPTION='{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}'
+```
+
+Not setting this environment variable (or leaving it empty) disables this feature, that is Terraform sends 
+unencrypted state to the remote state backend as usual.
+
+For more details please see [Client-Side Remote State Encryption](/docs/language/state/encryption.html).
+
+## TF_REMOTE_STATE_DECRYPTION_FALLBACK
+
+**This is an experimental feature!**
+
+Set `TF_REMOTE_STATE_DECRYPTION_FALLBACK` to a fallback configuration for client-side remote state decryption.
+
+When decrypting remote state, Terraform will always try the configuration in `TF_REMOTE_STATE_ENCRYPTION` first, 
+then try this one, if provided.
+
+This is useful for key rotation, permanent decryption, and switching between state crypto providers. Just set this
+variable to the old configuration, then cause a change in state.
+
+For more details please see [Client-Side Remote State Encryption](/docs/language/state/encryption.html).
