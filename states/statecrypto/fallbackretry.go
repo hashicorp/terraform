@@ -34,24 +34,28 @@ func (f *FallbackRetryStateWrapper) Decrypt(data []byte) ([]byte, error) {
 		// (note that all StateCryptoProviders are required to be able to pass through unencrypted state during decryption)
 		candidate, err := f.fallback.Decrypt(data)
 		if err != nil {
-			log.Printf("failed to decrypt state with fallback configuration and main configuration is passthrough, bailing out")
+			log.Printf("[ERROR] failed to decrypt state with fallback configuration and main configuration is passthrough, bailing out")
 			return []byte{}, err
 		}
+		log.Printf("[TRACE] successfully decrypted state using fallback configuration, input %d bytes, output %d bytes", len(data), len(candidate))
 		return candidate, nil
 	} else {
 		candidate, err := f.firstChoice.Decrypt(data)
 		if err != nil {
 			if f.fallback != nil {
-				log.Printf("failed to decrypt state with main encryption configuration, trying fallback configuration")
+				log.Printf("[INFO] failed to decrypt state with main encryption configuration, trying fallback configuration")
 				candidate2, err := f.fallback.Decrypt(data)
 				if err != nil {
-					log.Printf("failed to decrypt state with fallback configuration as well, bailing out")
+					log.Printf("[ERROR] failed to decrypt state with fallback configuration as well, bailing out")
 					return []byte{}, err
 				}
+				log.Printf("[TRACE] successfully decrypted state using fallback configuration, input %d bytes, output %d bytes", len(data), len(candidate2))
 				return candidate2, nil
 			}
+			log.Print("[TRACE] failed to decrypt state with first choice configuration and no fallback available")
 			return []byte{}, err
 		}
+		log.Printf("[TRACE] successfully decrypted state using first choice configuration, input %d bytes, output %d bytes", len(data), len(candidate))
 		return candidate, nil
 	}
 }

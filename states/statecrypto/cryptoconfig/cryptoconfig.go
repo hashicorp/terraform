@@ -56,7 +56,7 @@ var logFatalf = log.Fatalf
 func configFromEnv(envName string) StateCryptoConfig {
 	config, err := Parse(os.Getenv(envName))
 	if err != nil {
-		logFatalf("error parsing remote state encryption configuration from environment variable %s: %s", envName, err.Error())
+		logFatalf("[ERROR] failed to parse remote state encryption configuration from environment variable %s: %s", envName, err.Error())
 	}
 	return config
 }

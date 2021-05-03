@@ -36,7 +36,7 @@ func TestUnexpectedJsonInConfigurationProducesError(t *testing.T) {
 
 	_ = configFromEnv(envName)
 
-	expected := "error parsing remote state encryption configuration from environment variable TEST_CRYPTOCONFIG_TestInvalidJsonInConfigurationProducesError: "
+	expected := "[ERROR] failed to parse remote state encryption configuration from environment variable TEST_CRYPTOCONFIG_TestInvalidJsonInConfigurationProducesError: "
 	if !strings.HasPrefix(lastError, expected) {
 		t.Error("did not receive expected error")
 	}

@@ -37,11 +37,11 @@ func instanceFromConfig(config cryptoconfig.StateCryptoConfig, allowPassthrough 
 			return nil
 		}
 	default:
-		logFatalf("error configuring state file crypto: unsupported implementation '%s'", config.Implementation)
+		logFatalf("[ERROR] failed to configure remote state encryption: unsupported implementation '%s'", config.Implementation)
 	}
 
 	if err != nil {
-		logFatalf("error configuring state file crypto: %s", err.Error())
+		logFatalf("[ERROR] failed to configure remote state encryption: %s", err.Error())
 	}
 
 	return implementation

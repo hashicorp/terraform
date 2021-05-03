@@ -125,7 +125,7 @@ func (s *State) refreshState() error {
 
 	decrypted, err := statecrypto.StateCryptoWrapper().Decrypt(payload.Data)
 	if err != nil {
-		log.Printf("error during remote state decryption: %s", err.Error())
+		log.Printf("[ERROR] remote state decryption failed: %s", err.Error())
 		return err
 	}
 
@@ -188,7 +188,7 @@ func (s *State) PersistState() error {
 
 	maybeEncrypted, err := statecrypto.StateCryptoWrapper().Encrypt(buf.Bytes())
 	if err != nil {
-		log.Printf("error during remote state encryption: %s", err.Error())
+		log.Printf("[ERROR] remote state encryption failed: %s", err.Error())
 		return err
 	}
 

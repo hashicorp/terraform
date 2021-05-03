@@ -144,7 +144,7 @@ func (a *AES256StateWrapper) Decrypt(data []byte) ([]byte, error) {
 		}
 		return candidate, nil
 	} else {
-		log.Printf("warning: found unencrypted state, transparently reading it anyway")
+		log.Printf("[WARN] found unencrypted state, transparently reading it anyway")
 		return data, nil
 	}
 }

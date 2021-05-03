@@ -58,11 +58,11 @@ const invalidConfigUnknownImpl = `{"implementation":"something-unknown","paramet
 const invalidConfigNoKey = `{"implementation":"client-side/AES256-cfb/SHA256","parameters":{}}`
 
 func TestCreation_invalidConfigUnknownImpl(t *testing.T) {
-	creationErrorCase(t, invalidConfigUnknownImpl, "error configuring state file crypto: unsupported implementation 'something-unknown'")
+	creationErrorCase(t, invalidConfigUnknownImpl, "[ERROR] failed to configure remote state encryption: unsupported implementation 'something-unknown'")
 }
 
 func TestCreation_invalidConfigNoKey(t *testing.T) {
-	creationErrorCase(t, invalidConfigNoKey, "error configuring state file crypto: configuration for AES256 needs the parameter 'key' set to a 32 byte lower case hexadecimal value")
+	creationErrorCase(t, invalidConfigNoKey, "[ERROR] failed to configure remote state encryption: configuration for AES256 needs the parameter 'key' set to a 32 byte lower case hexadecimal value")
 }
 
 // business scenarios
