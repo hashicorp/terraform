@@ -433,9 +433,16 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
 	derp := addrs.Resource{Mode: addrs.DataResourceMode, Type: "test_source", Name: "derp"}
 
+	// Replace requested by user
+	v.PlannedChange(&plans.ResourceInstanceChangeSrc{
+		Addr:         boop.Instance(addrs.IntKey(0)).Absolute(root),
+		ChangeSrc:    plans.ChangeSrc{Action: plans.DeleteThenCreate},
+		ActionReason: plans.ResourceInstanceReplaceByRequest,
+	})
+
 	// Simple create
 	v.PlannedChange(&plans.ResourceInstanceChangeSrc{
-		Addr:      boop.Instance(addrs.IntKey(0)).Absolute(root),
+		Addr:      boop.Instance(addrs.IntKey(1)).Absolute(root),
 		ChangeSrc: plans.ChangeSrc{Action: plans.Create},
 	})
 
@@ -445,21 +452,40 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 		ChangeSrc: plans.ChangeSrc{Action: plans.Delete},
 	})
 
-	// Expect one message only, as the data source deletion should be a no-op
+	// Expect only two messages, as the data source deletion should be a no-op
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop[0]: Plan to create",
+			"@message": "test_instance.boop[0]: Plan to replace",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
-				"action": "create",
+				"action": "replace",
+				"reason": "requested",
 				"resource": map[string]interface{}{
 					"addr":             `test_instance.boop[0]`,
 					"implied_provider": "test",
 					"module":           "",
 					"resource":         `test_instance.boop[0]`,
 					"resource_key":     float64(0),
+					"resource_name":    "boop",
+					"resource_type":    "test_instance",
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "test_instance.boop[1]: Plan to create",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "create",
+				"resource": map[string]interface{}{
+					"addr":             `test_instance.boop[1]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_instance.boop[1]`,
+					"resource_key":     float64(1),
 					"resource_name":    "boop",
 					"resource_type":    "test_instance",
 				},
