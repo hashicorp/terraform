@@ -534,6 +534,37 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 	mod := c.Module
 	path := c.Path
 
+	// If this is the root module, we can add nodes for required providers that
+	// have no configuration, equivalent to having an empty configuration
+	// block. This will ensure that a provider node exists for modules to
+	// access when passing around configuration and inheritance.
+	if path.IsRoot() && c.Module.ProviderRequirements != nil {
+		for name, p := range c.Module.ProviderRequirements.RequiredProviders {
+			if _, configured := mod.ProviderConfigs[name]; configured {
+				continue
+			}
+
+			addr := addrs.AbsProviderConfig{
+				Provider: p.Type,
+				Module:   path,
+			}
+
+			abstract := &NodeAbstractProvider{
+				Addr: addr,
+			}
+
+			var v dag.Vertex
+			if t.Concrete != nil {
+				v = t.Concrete(abstract)
+			} else {
+				v = abstract
+			}
+
+			g.Add(v)
+			t.providers[addr.String()] = v.(GraphNodeProvider)
+		}
+	}
+
 	// add all providers from the configuration
 	for _, p := range mod.ProviderConfigs {
 		fqn := mod.ProviderForLocalConfig(p.Addr())
@@ -558,13 +589,17 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 		key := addr.String()
 		t.providers[key] = v.(GraphNodeProvider)
 
-		// A provider configuration is "proxyable" if its configuration is
-		// entirely empty. This means it's standing in for a provider
-		// configuration that must be passed in from the parent module.
-		// We decide this by evaluating the config with an empty schema;
-		// if this succeeds, then we know there's nothing in the body.
-		_, diags := p.Config.Content(&hcl.BodySchema{})
-		t.proxiable[key] = !diags.HasErrors()
+		// While deprecated, we still accept empty configuration blocks within
+		// modules as being a possible proxy for passed configuration.
+		if !path.IsRoot() {
+			// A provider configuration is "proxyable" if its configuration is
+			// entirely empty. This means it's standing in for a provider
+			// configuration that must be passed in from the parent module.
+			// We decide this by evaluating the config with an empty schema;
+			// if this succeeds, then we know there's nothing in the body.
+			_, diags := p.Config.Content(&hcl.BodySchema{})
+			t.proxiable[key] = !diags.HasErrors()
+		}
 	}
 
 	// Now replace the provider nodes with proxy nodes if a provider was being
@@ -577,7 +612,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 	path := c.Path
 
 	// can't add proxies at the root
-	if len(path) == 0 {
+	if path.IsRoot() {
 		return nil
 	}
 
@@ -648,6 +683,7 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 		g.Add(proxy)
 		t.providers[fullName] = proxy
 	}
+
 	return nil
 }
 
