@@ -16,6 +16,7 @@
 /backend/remote-state/s3                @hashicorp/terraform-aws
 /backend/remote-state/swift             Unmaintained
 /backend/remote-state/kubernetes        @jrhouston @alexsomesan 
+/backend/remote-state/nxrm              @sonatype
 
 # Provisioners
 builtin/provisioners/chef               Deprecated
