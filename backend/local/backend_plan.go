@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -69,6 +72,12 @@ func (b *Local) opPlan(
 		}
 	}()
 
+	// TEMP: We'll keep a snapshot of the original state, prior to any
+	// refreshing as a temporary way to approximate detecting and reporting
+	// changes during refresh, until we've integrated that properly into
+	// the plan model.
+	initialState := tfCtx.State().DeepCopy()
+
 	runningOp.State = tfCtx.State()
 
 	// Perform the plan in a goroutine so we can be interrupted
@@ -96,8 +105,10 @@ func (b *Local) opPlan(
 		return
 	}
 
+	refreshFoundChanges := tempRefreshReporting(initialState, plan.State, op.View)
+
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = plan.Changes.Empty()
+	runningOp.PlanEmpty = plan.Changes.Empty() && !refreshFoundChanges
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -148,4 +159,51 @@ func (b *Local) opPlan(
 	op.View.Diagnostics(diags)
 
 	op.View.PlanNextStep(op.PlanOutPath)
+}
+
+// tempRefreshReporting is a temporary placeholder for what will hopefully be
+// a better-integrated and more user-friendly report of any changes detected
+// as a result of refreshing existing managed resources.
+//
+// For now it just prints out a developer-oriented summary of what it found
+// and returns true only if there is at least one resource instance difference
+// which a user might therefore want to save as part of a new state snapshot.
+func tempRefreshReporting(baseState, priorState *states.State, view views.Operation) bool {
+	if baseState == nil || priorState == nil {
+		return false
+	}
+	changes := false
+	for _, bms := range baseState.Modules {
+		for _, brs := range bms.Resources {
+			if brs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue // only managed resources can "drift"
+			}
+			prs := priorState.Resource(brs.Addr)
+			if prs == nil {
+				// Refreshing detected that the remote object has been deleted
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"(Prototype-only refresh result reporting)",
+					fmt.Sprintf("Apparently %s has been deleted outside of Terraform.", brs.Addr),
+				))
+				view.Diagnostics(diags)
+				changes = true
+				continue
+			}
+			if !prs.Equal(brs) {
+				// Refreshing detected that the remote object has changed.
+				var diags tfdiags.Diagnostics
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"(Prototype-only refresh result reporting)",
+					fmt.Sprintf("Apparently %s has been changed outside of Terraform.", brs.Addr),
+				))
+				view.Diagnostics(diags)
+				changes = true
+				continue
+			}
+		}
+	}
+	return changes
 }

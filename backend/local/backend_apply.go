@@ -59,6 +59,12 @@ func (b *Local) opApply(
 		}
 	}()
 
+	// TEMP: We'll keep a snapshot of the original state, prior to any
+	// refreshing as a temporary way to approximate detecting and reporting
+	// changes during refresh, until we've integrated that properly into
+	// the plan model.
+	initialState := tfCtx.State().DeepCopy()
+
 	runningOp.State = tfCtx.State()
 
 	// If we weren't given a plan, then we refresh/plan
@@ -72,7 +78,9 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := plan.Changes.Empty()
+		refreshFoundChanges := tempRefreshReporting(initialState, plan.State, op.View)
+
+		trivialPlan := plan.Changes.Empty() && !refreshFoundChanges
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		if mustConfirm {
