@@ -359,6 +359,9 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 
 	if attrS.Sensitive {
 		p.buf.WriteString("(sensitive value)")
+		if p.pathForcesNewResource(path) {
+			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+		}
 	} else {
 		switch {
 		case showJustNew:
