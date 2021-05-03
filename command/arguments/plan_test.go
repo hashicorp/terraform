@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/plans"
 )
 
 func TestParsePlan_basicValid(t *testing.T) {
@@ -16,24 +18,54 @@ func TestParsePlan_basicValid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Plan{
-				Destroy:          false,
 				DetailedExitCode: false,
 				InputEnabled:     true,
 				OutPath:          "",
 				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 		"setting all options": {
 			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
 			&Plan{
-				Destroy:          true,
 				DetailedExitCode: true,
 				InputEnabled:     false,
 				OutPath:          "saved.tfplan",
 				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
+		"JSON view disables input": {
+			[]string{"-json"},
+			&Plan{
+				DetailedExitCode: false,
+				InputEnabled:     false,
+				OutPath:          "",
+				ViewType:         ViewJSON,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.NormalMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
 			},
 		},
 	}
+
+	cmpOpts := cmpopts.IgnoreUnexported(Operation{}, Vars{}, State{})
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -41,12 +73,8 @@ func TestParsePlan_basicValid(t *testing.T) {
 			if len(diags) > 0 {
 				t.Fatalf("unexpected diags: %v", diags)
 			}
-			// Ignore the extended arguments for simplicity
-			got.State = nil
-			got.Operation = nil
-			got.Vars = nil
-			if *got != *tc.want {
-				t.Fatalf("unexpected result\n got: %#v\nwant: %#v", got, tc.want)
+			if diff := cmp.Diff(tc.want, got, cmpOpts); diff != "" {
+				t.Errorf("unexpected result\n%s", diff)
 			}
 		})
 	}

@@ -343,6 +343,88 @@ func TestShow_json_output(t *testing.T) {
 	}
 }
 
+func TestShow_json_output_sensitive(t *testing.T) {
+	td := tempDir(t)
+	inputDir := "testdata/show-json-sensitive"
+	testCopyDir(t, inputDir, td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
+	defer close()
+
+	p := showFixtureSensitiveProvider()
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(p),
+		Ui:               ui,
+		View:             view,
+		ProviderSource:   providerSource,
+	}
+
+	// init
+	ic := &InitCommand{
+		Meta: m,
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// flush init output
+	ui.OutputWriter.Reset()
+
+	pc := &PlanCommand{
+		Meta: m,
+	}
+
+	args := []string{
+		"-out=terraform.plan",
+	}
+
+	if code := pc.Run(args); code != 0 {
+		fmt.Println(ui.OutputWriter.String())
+		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+	}
+
+	// flush the plan output from the mock ui
+	ui.OutputWriter.Reset()
+	sc := &ShowCommand{
+		Meta: m,
+	}
+
+	args = []string{
+		"-json",
+		"terraform.plan",
+	}
+	defer os.Remove("terraform.plan")
+
+	if code := sc.Run(args); code != 0 {
+		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
+	}
+
+	// compare ui output to wanted output
+	var got, want plan
+
+	gotString := ui.OutputWriter.String()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open("output.json")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := ioutil.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
 	fixtureDir := "testdata/show-json-state"
@@ -450,6 +532,32 @@ func showFixtureSchema() *providers.GetProviderSchemaResponse {
 	}
 }
 
+// showFixtureSensitiveSchema returns a schema suitable for processing the configuration
+// in testdata/show. This schema should be assigned to a mock provider
+// named "test". It includes a sensitive attribute.
+func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
+	return &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id":       {Type: cty.String, Optional: true, Computed: true},
+						"ami":      {Type: cty.String, Optional: true},
+						"password": {Type: cty.String, Optional: true, Sensitive: true},
+					},
+				},
+			},
+		},
+	}
+}
+
 // showFixtureProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/show. This mock has
 // GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
@@ -464,11 +572,16 @@ func showFixtureProvider() *terraform.MockProvider {
 		if idVal.IsNull() {
 			idVal = cty.UnknownVal(cty.String)
 		}
+		var reqRep []cty.Path
+		if amiVal.RawEquals(cty.StringVal("force-replace")) {
+			reqRep = append(reqRep, cty.GetAttrPath("ami"))
+		}
 		return providers.PlanResourceChangeResponse{
 			PlannedState: cty.ObjectVal(map[string]cty.Value{
 				"id":  idVal,
 				"ami": amiVal,
 			}),
+			RequiresReplace: reqRep,
 		}
 	}
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
@@ -481,6 +594,43 @@ func showFixtureProvider() *terraform.MockProvider {
 			NewState: cty.ObjectVal(map[string]cty.Value{
 				"id":  idVal,
 				"ami": amiVal,
+			}),
+		}
+	}
+	return p
+}
+
+// showFixtureSensitiveProvider returns a mock provider that is configured for basic
+// operation with the configuration in testdata/show. This mock has
+// GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
+// with the plan/apply steps just passing through the data determined by
+// Terraform Core. It also has a sensitive attribute in the provider schema.
+func showFixtureSensitiveProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetProviderSchemaResponse = showFixtureSensitiveSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		idVal := req.ProposedNewState.GetAttr("id")
+		if idVal.IsNull() {
+			idVal = cty.UnknownVal(cty.String)
+		}
+		return providers.PlanResourceChangeResponse{
+			PlannedState: cty.ObjectVal(map[string]cty.Value{
+				"id":       idVal,
+				"ami":      req.ProposedNewState.GetAttr("ami"),
+				"password": req.ProposedNewState.GetAttr("password"),
+			}),
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		idVal := req.PlannedState.GetAttr("id")
+		if !idVal.IsKnown() {
+			idVal = cty.StringVal("placeholder")
+		}
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":       idVal,
+				"ami":      req.PlannedState.GetAttr("ami"),
+				"password": req.PlannedState.GetAttr("password"),
 			}),
 		}
 	}

@@ -39,11 +39,22 @@ type PlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
+	// ForceReplace are resource instances where if we would normally have
+	// generated a NoOp or Update action then we'll force generating a replace
+	// action instead. Create and Delete actions are not affected.
+	ForceReplace []addrs.AbsResourceInstance
+
 	// Validate will do structural validation of the graph.
 	Validate bool
 
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
+
+	// skipPlanChanges indicates that we should skip the step of comparing
+	// prior state with configuration and generating planned changes to
+	// resource instances. (This is for the "refresh only" planning mode,
+	// where we _only_ do the refresh step.)
+	skipPlanChanges bool
 
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
@@ -181,6 +192,8 @@ func (b *PlanGraphBuilder) init() {
 		return &nodeExpandPlannableResource{
 			NodeAbstractResource: a,
 			skipRefresh:          b.skipRefresh,
+			skipPlanChanges:      b.skipPlanChanges,
+			forceReplace:         b.ForceReplace,
 		}
 	}
 
@@ -188,6 +201,7 @@ func (b *PlanGraphBuilder) init() {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  b.skipRefresh,
+			skipPlanChanges:              b.skipPlanChanges,
 		}
 	}
 }

@@ -13,6 +13,7 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -508,7 +509,7 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 
 					if err == errRunDiscarded {
 						err = errApplyDiscarded
-						if op.Destroy {
+						if op.PlanMode == plans.DestroyMode {
 							err = errDestroyDiscarded
 						}
 					}
@@ -551,7 +552,7 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 			if r.Actions.IsDiscardable {
 				err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
 				if err != nil {
-					if op.Destroy {
+					if op.PlanMode == plans.DestroyMode {
 						return generalError("Failed to discard destroy", err)
 					}
 					return generalError("Failed to discard apply", err)
@@ -560,7 +561,7 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 
 			// Even if the run was discarded successfully, we still
 			// return an error as the apply command was canceled.
-			if op.Destroy {
+			if op.PlanMode == plans.DestroyMode {
 				return errDestroyDiscarded
 			}
 			return errApplyDiscarded

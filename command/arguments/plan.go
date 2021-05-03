@@ -11,9 +11,6 @@ type Plan struct {
 	Operation *Operation
 	Vars      *Vars
 
-	// Destroy can be set to generate a plan to destroy all infrastructure.
-	Destroy bool
-
 	// DetailedExitCode enables different exit codes for error, success with
 	// changes, and success with no changes.
 	DetailedExitCode bool
@@ -41,10 +38,12 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	}
 
 	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
-	cmdFlags.BoolVar(&plan.Destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
+
+	var json bool
+	cmdFlags.BoolVar(&json, "json", false, "json")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -66,7 +65,14 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 
 	diags = diags.Append(plan.Operation.Parse())
 
+	// JSON view currently does not support input, so we disable it here
+	if json {
+		plan.InputEnabled = false
+	}
+
 	switch {
+	case json:
+		plan.ViewType = ViewJSON
 	default:
 		plan.ViewType = ViewHuman
 	}

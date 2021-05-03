@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/states"
@@ -1056,7 +1057,7 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 				addrs.ManagedResourceMode, "aws_instance", "foo",
 			),
 		},
-		Destroy: true,
+		PlanMode: plans.DestroyMode,
 	})
 
 	diags := ctx.Validate()
@@ -1379,7 +1380,7 @@ resource "aws_instance" "foo" {
 	}
 }
 
-func TestContext2Validate_invalidSensitiveModuleOutput(t *testing.T) {
+func TestContext2Validate_sensitiveRootModuleOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"child/main.tf": `
 variable "foo" {
@@ -1395,27 +1396,19 @@ module "child" {
   source = "./child"
 }
 
-resource "aws_instance" "foo" {
-  foo = module.child.out
+output "root" {
+  value = module.child.out
+  sensitive = true
 }`,
 	})
 
-	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
 	})
 
 	diags := ctx.Validate()
-	if !diags.HasErrors() {
-		t.Fatal("succeeded; want errors")
-	}
-	// Should get this error:
-	// Output refers to sensitive values: Expressions used in outputs can only refer to sensitive values if the sensitive attribute is true.
-	if got, want := diags.Err().Error(), "Output refers to sensitive values"; !strings.Contains(got, want) {
-		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
 	}
 }
 
@@ -2006,5 +1999,97 @@ func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
 	}
 	if !pr.ValidateProvisionerConfigCalled {
 		t.Fatal("ValidateProvisionerConfig not called")
+	}
+}
+
+func TestContext2Plan_validateMinMaxDynamicBlock(t *testing.T) {
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"things": {
+						Type:     cty.List(cty.String),
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String, Optional: true},
+							},
+						},
+						Nesting:  configschema.NestingList,
+						MinItems: 2,
+						MaxItems: 3,
+					},
+				},
+			},
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  // MinItems 2
+  foo {
+    bar = "a"
+  }
+  foo {
+    bar = "b"
+  }
+}
+
+resource "test_instance" "b" {
+  // one dymamic block can satisfy MinItems of 2
+  dynamic "foo" {
+	for_each = test_instance.a.things
+	content {
+	  bar = foo.value
+	}
+  }
+}
+
+resource "test_instance" "c" {
+  // we may have more than MaxItems dynamic blocks when they are unknown
+  foo {
+    bar = "b"
+  }
+  dynamic "foo" {
+    for_each = test_instance.a.things
+    content {
+      bar = foo.value
+    }
+  }
+  dynamic "foo" {
+    for_each = test_instance.a.things
+    content {
+      bar = "${foo.value}-2"
+    }
+  }
+  dynamic "foo" {
+    for_each = test_instance.b.things
+    content {
+      bar = foo.value
+    }
+  }
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
 	}
 }

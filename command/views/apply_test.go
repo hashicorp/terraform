@@ -1,6 +1,7 @@
 package views
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -96,7 +97,7 @@ func TestApplyHuman_help(t *testing.T) {
 }
 
 // Hooks and ResourceCount are tangled up and easiest to test together.
-func TestApplyHuman_resourceCount(t *testing.T) {
+func TestApply_resourceCount(t *testing.T) {
 	testCases := map[string]struct {
 		destroy bool
 		want    string
@@ -111,33 +112,39 @@ func TestApplyHuman_resourceCount(t *testing.T) {
 		},
 	}
 
+	// For compatibility reasons, these tests should hold true for both human
+	// and JSON output modes
+	views := []arguments.ViewType{arguments.ViewHuman, arguments.ViewJSON}
+
 	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			streams, done := terminal.StreamsForTesting(t)
-			v := NewApply(arguments.ViewHuman, tc.destroy, false, NewView(streams))
-			hooks := v.Hooks()
+		for _, viewType := range views {
+			t.Run(fmt.Sprintf("%s (%s view)", name, viewType), func(t *testing.T) {
+				streams, done := terminal.StreamsForTesting(t)
+				v := NewApply(viewType, tc.destroy, false, NewView(streams))
+				hooks := v.Hooks()
 
-			var count *countHook
-			for _, hook := range hooks {
-				if ch, ok := hook.(*countHook); ok {
-					count = ch
+				var count *countHook
+				for _, hook := range hooks {
+					if ch, ok := hook.(*countHook); ok {
+						count = ch
+					}
 				}
-			}
-			if count == nil {
-				t.Fatalf("expected Hooks to include a countHook: %#v", hooks)
-			}
+				if count == nil {
+					t.Fatalf("expected Hooks to include a countHook: %#v", hooks)
+				}
 
-			count.Added = 1
-			count.Changed = 2
-			count.Removed = 3
+				count.Added = 1
+				count.Changed = 2
+				count.Removed = 3
 
-			v.ResourceCount("")
+				v.ResourceCount("")
 
-			got := done(t).Stdout()
-			if !strings.Contains(got, tc.want) {
-				t.Errorf("wrong result\ngot:  %q\nwant: %q", got, tc.want)
-			}
-		})
+				got := done(t).Stdout()
+				if !strings.Contains(got, tc.want) {
+					t.Errorf("wrong result\ngot:  %q\nwant: %q", got, tc.want)
+				}
+			})
+		}
 	}
 }
 
@@ -171,8 +178,8 @@ func TestApplyHuman_resourceCountStatePath(t *testing.T) {
 			wantContains: true,
 		},
 		"changed": {
-			added:        5,
-			changed:      0,
+			added:        0,
+			changed:      5,
 			removed:      0,
 			statePath:    "foo.tfstate",
 			wantContains: true,
@@ -211,4 +218,38 @@ func TestApplyHuman_resourceCountStatePath(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Basic test coverage of Outputs, since most of its functionality is tested
+// elsewhere.
+func TestApplyJSON_outputs(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewApply(arguments.ViewJSON, false, false, NewView(streams))
+
+	v.Outputs(map[string]*states.OutputValue{
+		"boop_count": {Value: cty.NumberIntVal(92)},
+		"password":   {Value: cty.StringVal("horse-battery").Mark("sensitive"), Sensitive: true},
+	})
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": "Outputs: 2",
+			"@module":  "terraform.ui",
+			"type":     "outputs",
+			"outputs": map[string]interface{}{
+				"boop_count": map[string]interface{}{
+					"sensitive": false,
+					"value":     float64(92),
+					"type":      "number",
+				},
+				"password": map[string]interface{}{
+					"sensitive": true,
+					"value":     "horse-battery",
+					"type":      "string",
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }

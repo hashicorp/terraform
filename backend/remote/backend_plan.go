@@ -17,6 +17,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -89,7 +90,7 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if !op.HasConfig() && !op.Destroy {
+	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files found",
@@ -238,10 +239,24 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	runOptions := tfe.RunCreateOptions{
-		IsDestroy:            tfe.Bool(op.Destroy),
 		Message:              tfe.String(queueMessage),
 		ConfigurationVersion: cv,
 		Workspace:            w,
+	}
+
+	switch op.PlanMode {
+	case plans.NormalMode:
+		// okay, but we don't need to do anything special for this
+	case plans.DestroyMode:
+		runOptions.IsDestroy = tfe.Bool(true)
+	default:
+		// Shouldn't get here because we should update this for each new
+		// plan mode we add, mapping it to the corresponding RunCreateOptions
+		// field.
+		return nil, generalError(
+			"Invalid plan mode",
+			fmt.Errorf("remote backend doesn't support %s", op.PlanMode),
+		)
 	}
 
 	if len(op.Targets) != 0 {

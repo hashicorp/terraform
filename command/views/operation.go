@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/command/views/json"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
@@ -18,10 +20,11 @@ type Operation interface {
 	Interrupted()
 	FatalInterrupt()
 	Stopping()
-	Cancelled(destroy bool)
+	Cancelled(planMode plans.Mode)
 
 	EmergencyDumpState(stateFile *statefile.File) error
 
+	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	PlanNoChanges()
 	Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas)
 	PlanNextStep(planPath string)
@@ -61,24 +64,15 @@ func (v *OperationHuman) FatalInterrupt() {
 	v.view.streams.Eprintln(format.WordWrap(fatalInterrupt, v.view.errorColumns()))
 }
 
-const fatalInterrupt = `
-Two interrupts received. Exiting immediately. Note that data loss may have occurred.
-`
-
-const interrupted = `
-Interrupt received.
-Please wait for Terraform to exit or data loss may occur.
-Gracefully shutting down...
-`
-
 func (v *OperationHuman) Stopping() {
 	v.view.streams.Println("Stopping operation...")
 }
 
-func (v *OperationHuman) Cancelled(destroy bool) {
-	if destroy {
+func (v *OperationHuman) Cancelled(planMode plans.Mode) {
+	switch planMode {
+	case plans.DestroyMode:
 		v.view.streams.Println("Destroy cancelled.")
-	} else {
+	default:
 		v.view.streams.Println("Apply cancelled.")
 	}
 }
@@ -100,6 +94,9 @@ func (v *OperationHuman) PlanNoChanges() {
 
 func (v *OperationHuman) Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
 	renderPlan(plan, baseState, schemas, v.view)
+}
+
+func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
 }
 
 // PlanNextStep gives the user some next-steps, unless we're running in an
@@ -125,6 +122,111 @@ func (v *OperationHuman) PlanNextStep(planPath string) {
 func (v *OperationHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
 }
+
+type OperationJSON struct {
+	view *JSONView
+}
+
+var _ Operation = (*OperationJSON)(nil)
+
+func (v *OperationJSON) Interrupted() {
+	v.view.Log(interrupted)
+}
+
+func (v *OperationJSON) FatalInterrupt() {
+	v.view.Log(fatalInterrupt)
+}
+
+func (v *OperationJSON) Stopping() {
+	v.view.Log("Stopping operation...")
+}
+
+func (v *OperationJSON) Cancelled(planMode plans.Mode) {
+	switch planMode {
+	case plans.DestroyMode:
+		v.view.Log("Destroy cancelled")
+	default:
+		v.view.Log("Apply cancelled")
+	}
+}
+
+func (v *OperationJSON) EmergencyDumpState(stateFile *statefile.File) error {
+	stateBuf := new(bytes.Buffer)
+	jsonErr := statefile.Write(stateFile, stateBuf)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	v.view.StateDump(stateBuf.String())
+	return nil
+}
+
+// Log an empty change summary.
+func (v *OperationJSON) PlanNoChanges() {
+	v.view.ChangeSummary(&json.ChangeSummary{
+		Add:       0,
+		Change:    0,
+		Remove:    0,
+		Operation: json.OperationPlanned,
+	})
+}
+
+// Log a change summary and a series of "planned" messages for the changes in
+// the plan.
+func (v *OperationJSON) Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
+	cs := &json.ChangeSummary{
+		Operation: json.OperationPlanned,
+	}
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+			// Avoid rendering data sources on deletion
+			continue
+		}
+		switch change.Action {
+		case plans.Create:
+			cs.Add++
+		case plans.Delete:
+			cs.Remove++
+		case plans.Update:
+			cs.Change++
+		case plans.CreateThenDelete, plans.DeleteThenCreate:
+			cs.Add++
+			cs.Remove++
+		}
+
+		if change.Action != plans.NoOp {
+			v.view.PlannedChange(json.NewResourceInstanceChange(change))
+		}
+	}
+
+	v.view.ChangeSummary(cs)
+}
+
+func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
+	if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		// Avoid rendering data sources on deletion
+		return
+	}
+	v.view.PlannedChange(json.NewResourceInstanceChange(change))
+}
+
+// PlanNextStep does nothing for the JSON view as it is a hook for user-facing
+// output only applicable to human-readable UI.
+func (v *OperationJSON) PlanNextStep(planPath string) {
+}
+
+func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+const fatalInterrupt = `
+Two interrupts received. Exiting immediately. Note that data loss may have occurred.
+`
+
+const interrupted = `
+Interrupt received.
+Please wait for Terraform to exit or data loss may occur.
+Gracefully shutting down...
+`
 
 const planNoChanges = `
 [reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]

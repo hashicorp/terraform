@@ -1616,8 +1616,8 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3193,8 +3193,8 @@ func TestContext2Plan_destroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3256,8 +3256,8 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3319,8 +3319,8 @@ func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3381,8 +3381,8 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 	})
 
 	plan, diags := ctx.Plan()
@@ -3641,9 +3641,15 @@ func TestContext2Plan_orphan(t *testing.T) {
 			if res.Action != plans.Delete {
 				t.Fatalf("resource %s should be removed", i)
 			}
+			if got, want := ric.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+			}
 		case "aws_instance.foo":
 			if res.Action != plans.Create {
 				t.Fatalf("resource %s should be created", i)
+			}
+			if got, want := ric.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
@@ -3722,6 +3728,9 @@ func TestContext2Plan_state(t *testing.T) {
 			if res.Action != plans.Create {
 				t.Fatalf("resource %s should be created", i)
 			}
+			if got, want := ric.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
 				"foo":  cty.StringVal("2"),
@@ -3730,6 +3739,9 @@ func TestContext2Plan_state(t *testing.T) {
 		case "aws_instance.foo":
 			if res.Action != plans.Update {
 				t.Fatalf("resource %s should be updated", i)
+			}
+			if got, want := ric.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.StringVal("bar"),
@@ -3744,6 +3756,91 @@ func TestContext2Plan_state(t *testing.T) {
 		default:
 			t.Fatal("unknown instance:", i)
 		}
+	}
+}
+
+func TestContext2Plan_requiresReplace(t *testing.T) {
+	m := testModule(t, "plan-requires-replace")
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_thing": providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"v": {
+							Type:     cty.String,
+							Required: true,
+						},
+					},
+				},
+			},
+		},
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+			RequiresReplace: []cty.Path{
+				cty.GetAttrPath("v"),
+			},
+		}
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_thing.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"v":"hello"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	schema := p.GetProviderSchemaResponse.ResourceTypes["test_thing"].Block
+	ty := schema.ImpliedType()
+
+	if got, want := len(plan.Changes.Resources), 1; got != want {
+		t.Fatalf("got %d changes; want %d", got, want)
+	}
+
+	for _, res := range plan.Changes.Resources {
+		t.Run(res.Addr.String(), func(t *testing.T) {
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			switch i := ric.Addr.String(); i {
+			case "test_thing.foo":
+				if got, want := ric.Action, plans.DeleteThenCreate; got != want {
+					t.Errorf("wrong action\ngot:  %s\nwant: %s", got, want)
+				}
+				if got, want := ric.ActionReason, plans.ResourceInstanceReplaceBecauseCannotUpdate; got != want {
+					t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"v": cty.StringVal("goodbye"),
+				}), ric.After)
+			default:
+				t.Fatalf("unexpected resource instance %s", i)
+			}
+		})
 	}
 }
 
@@ -3791,28 +3888,36 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 
 	for _, res := range plan.Changes.Resources {
-		ric, err := res.Decode(ty)
-		if err != nil {
-			t.Fatal(err)
-		}
+		t.Run(res.Addr.String(), func(t *testing.T) {
+			ric, err := res.Decode(ty)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		switch i := ric.Addr.String(); i {
-		case "aws_instance.bar":
-			if res.Action != plans.DeleteThenCreate {
-				t.Fatalf("resource %s should be replaced", i)
+			switch i := ric.Addr.String(); i {
+			case "aws_instance.bar":
+				if got, want := res.Action, plans.DeleteThenCreate; got != want {
+					t.Errorf("wrong action\ngot:  %s\nwant: %s", got, want)
+				}
+				if got, want := res.ActionReason, plans.ResourceInstanceReplaceBecauseTainted; got != want {
+					t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+				}
+				checkVals(t, objectVal(t, schema, map[string]cty.Value{
+					"id":   cty.UnknownVal(cty.String),
+					"foo":  cty.StringVal("2"),
+					"type": cty.UnknownVal(cty.String),
+				}), ric.After)
+			case "aws_instance.foo":
+				if got, want := res.Action, plans.NoOp; got != want {
+					t.Errorf("wrong action\ngot:  %s\nwant: %s", got, want)
+				}
+				if got, want := res.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+					t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+				}
+			default:
+				t.Fatal("unknown instance:", i)
 			}
-			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"id":   cty.UnknownVal(cty.String),
-				"foo":  cty.StringVal("2"),
-				"type": cty.UnknownVal(cty.String),
-			}), ric.After)
-		case "aws_instance.foo":
-			if res.Action != plans.NoOp {
-				t.Fatalf("resource %s should not be changed", i)
-			}
-		default:
-			t.Fatal("unknown instance:", i)
-		}
+		})
 	}
 }
 
@@ -3870,8 +3975,11 @@ func TestContext2Plan_taintIgnoreChanges(t *testing.T) {
 
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
-			if res.Action != plans.DeleteThenCreate {
-				t.Fatalf("resource %s should be replaced", i)
+			if got, want := res.Action, plans.DeleteThenCreate; got != want {
+				t.Errorf("wrong action\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := res.ActionReason, plans.ResourceInstanceReplaceBecauseTainted; got != want {
+				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 			}
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
 				"id":   cty.StringVal("foo"),
@@ -3950,8 +4058,11 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 
 			switch i := ric.Addr.String(); i {
 			case "aws_instance.foo[0]":
-				if res.Action != plans.DeleteThenCreate {
-					t.Fatalf("resource %s should be replaced, not %s", i, res.Action)
+				if got, want := ric.Action, plans.DeleteThenCreate; got != want {
+					t.Errorf("wrong action\ngot:  %s\nwant: %s", got, want)
+				}
+				if got, want := ric.ActionReason, plans.ResourceInstanceReplaceBecauseTainted; got != want {
+					t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 				}
 				checkVals(t, objectVal(t, schema, map[string]cty.Value{
 					"id":   cty.StringVal("bar"),
@@ -4152,8 +4263,8 @@ func TestContext2Plan_targetedOrphan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Resource(
 				addrs.ManagedResourceMode, "aws_instance", "orphan",
@@ -4219,8 +4330,8 @@ func TestContext2Plan_targetedModuleOrphan(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State:   state,
-		Destroy: true,
+		State:    state,
+		PlanMode: plans.DestroyMode,
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child", addrs.NoKey).Resource(
 				addrs.ManagedResourceMode, "aws_instance", "orphan",

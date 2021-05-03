@@ -18,7 +18,19 @@ import (
 type NodePlannableResourceInstance struct {
 	*NodeAbstractResourceInstance
 	ForceCreateBeforeDestroy bool
-	skipRefresh              bool
+
+	// skipRefresh indicates that we should skip refreshing individual instances
+	skipRefresh bool
+
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
+
+	// forceReplace are resource instance addresses where the user wants to
+	// force generating a replace action. This set isn't pre-filtered, so
+	// it might contain addresses that have nothing to do with the resource
+	// that this node represents, which the node itself must therefore ignore.
+	forceReplace []addrs.AbsResourceInstance
 }
 
 var (
@@ -52,7 +64,6 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	addr := n.ResourceInstanceAddr()
 
 	var change *plans.ResourceInstanceChange
-	var state *states.ResourceInstanceObject
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -60,8 +71,8 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	state, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -98,7 +109,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
-	var instancePlanState *states.ResourceInstanceObject
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
@@ -111,8 +121,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, err = n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(err)
+	instanceRefreshState, readDiags := n.readResourceInstanceState(ctx, addr)
+	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -152,38 +162,43 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	// Plan the instance
-	change, instancePlanState, planDiags := n.plan(ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy)
-	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.checkPreventDestroy(change))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// If this plan resulted in a NoOp, then apply won't have a chance to make
-	// any changes to the stored dependencies. Since this is a NoOp we know
-	// that the stored dependencies will have no effect during apply, and we can
-	// write them out now.
-	if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
-		// the refresh state will be the final state for this resource, so
-		// finalize the dependencies here if they need to be updated.
-		instanceRefreshState.Dependencies = n.Dependencies
-		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+	// Plan the instance, unless we're in the refresh-only mode
+	if !n.skipPlanChanges {
+		change, instancePlanState, planDiags := n.plan(
+			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+		)
+		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
 		}
+
+		diags = diags.Append(n.checkPreventDestroy(change))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// If this plan resulted in a NoOp, then apply won't have a chance to make
+		// any changes to the stored dependencies. Since this is a NoOp we know
+		// that the stored dependencies will have no effect during apply, and we can
+		// write them out now.
+		if change.Action == plans.NoOp && !depsEqual(instanceRefreshState.Dependencies, n.Dependencies) {
+			// the refresh state will be the final state for this resource, so
+			// finalize the dependencies here if they need to be updated.
+			instanceRefreshState.Dependencies = n.Dependencies
+			diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+			if diags.HasErrors() {
+				return diags
+			}
+		}
+
+		diags = diags.Append(n.writeChange(ctx, change, ""))
 	}
 
-	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
 }
 

@@ -213,7 +213,11 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			if err != nil {
 				return err
 			}
-			bs := sensitiveAsBool(changeV.Before.MarkWithPaths(rc.BeforeValMarks))
+			marks := rc.BeforeValMarks
+			if schema.ContainsSensitive() {
+				marks = append(marks, schema.ValueMarks(changeV.Before, nil)...)
+			}
+			bs := sensitiveAsBool(changeV.Before.MarkWithPaths(marks))
 			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 			if err != nil {
 				return err
@@ -238,7 +242,11 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				}
 				afterUnknown = unknownAsBool(changeV.After)
 			}
-			as := sensitiveAsBool(changeV.After.MarkWithPaths(rc.AfterValMarks))
+			marks := rc.AfterValMarks
+			if schema.ContainsSensitive() {
+				marks = append(marks, schema.ValueMarks(changeV.After, nil)...)
+			}
+			as := sensitiveAsBool(changeV.After.MarkWithPaths(marks))
 			afterSensitive, err = ctyjson.Marshal(as, as.Type())
 			if err != nil {
 				return err
@@ -280,6 +288,19 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		r.Name = addr.Resource.Resource.Name
 		r.Type = addr.Resource.Resource.Type
 		r.ProviderName = rc.ProviderAddr.Provider.String()
+
+		switch rc.ActionReason {
+		case plans.ResourceInstanceChangeNoReason:
+			r.ActionReason = "" // will be omitted in output
+		case plans.ResourceInstanceReplaceBecauseCannotUpdate:
+			r.ActionReason = "replace_because_cannot_update"
+		case plans.ResourceInstanceReplaceBecauseTainted:
+			r.ActionReason = "replace_because_tainted"
+		case plans.ResourceInstanceReplaceByRequest:
+			r.ActionReason = "replace_by_request"
+		default:
+			return fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
+		}
 
 		p.ResourceChanges = append(p.ResourceChanges, r)
 

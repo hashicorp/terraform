@@ -10,6 +10,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -84,7 +85,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		))
 	}
 
-	if !op.HasConfig() && !op.Destroy {
+	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files found",
@@ -152,10 +153,12 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		if r.Actions.IsDiscardable {
 			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
 			if err != nil {
-				if op.Destroy {
+				switch op.PlanMode {
+				case plans.DestroyMode:
 					return r, generalError("Failed to discard destroy", err)
+				default:
+					return r, generalError("Failed to discard apply", err)
 				}
-				return r, generalError("Failed to discard apply", err)
 			}
 		}
 		diags = diags.Append(tfdiags.Sourceless(
@@ -176,7 +179,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		if mustConfirm {
 			opts := &terraform.InputOpts{Id: "approve"}
 
-			if op.Destroy {
+			if op.PlanMode == plans.DestroyMode {
 				opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
 				opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."

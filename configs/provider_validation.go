@@ -136,9 +136,18 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 
 	// You cannot pass in a provider that cannot be used
 	for name, passed := range passedIn {
+		childTy := passed.InChild.providerType
+		// get a default type if there was none set
+		if childTy.IsZero() {
+			// This means the child module is only using an inferred
+			// provider type. We allow this but will generate a warning to
+			// declare provider_requirements below.
+			childTy = addrs.NewDefaultProvider(passed.InChild.Name)
+		}
+
 		providerAddr := addrs.AbsProviderConfig{
 			Module:   cfg.Path,
-			Provider: addrs.NewDefaultProvider(passed.InChild.Name),
+			Provider: childTy,
 			Alias:    passed.InChild.Alias,
 		}
 
@@ -172,9 +181,12 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 		}
 
 		// The provider being passed in must also be of the correct type.
-		// While we would like to ensure required_providers exists here,
-		// implied default configuration is still allowed.
-		pTy := addrs.NewDefaultProvider(passed.InParent.Name)
+		pTy := passed.InParent.providerType
+		if pTy.IsZero() {
+			// While we would like to ensure required_providers exists here,
+			// implied default configuration is still allowed.
+			pTy = addrs.NewDefaultProvider(passed.InParent.Name)
+		}
 
 		// use the full address for a nice diagnostic output
 		parentAddr := addrs.AbsProviderConfig{

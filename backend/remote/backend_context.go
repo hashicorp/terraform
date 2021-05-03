@@ -61,7 +61,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	// Copy set options from the operation
-	opts.Destroy = op.Destroy
+	opts.PlanMode = op.PlanMode
 	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 

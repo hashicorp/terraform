@@ -60,6 +60,17 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		ProviderSHA256s: map[string][]byte{},
 	}
 
+	switch rawPlan.UiMode {
+	case planproto.Mode_NORMAL:
+		plan.UIMode = plans.NormalMode
+	case planproto.Mode_DESTROY:
+		plan.UIMode = plans.DestroyMode
+	case planproto.Mode_REFRESH_ONLY:
+		plan.UIMode = plans.RefreshOnlyMode
+	default:
+		return nil, fmt.Errorf("plan has invalid mode %s", rawPlan.UiMode)
+	}
+
 	for _, rawOC := range rawPlan.OutputChanges {
 		name := rawOC.Name
 		change, err := changeFromTfplan(rawOC.Change)
@@ -93,6 +104,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid target address %q: %s", target, diags.Err())
 		}
 		plan.TargetAddrs = append(plan.TargetAddrs, target.Subject)
+	}
+
+	for _, rawReplaceAddr := range rawPlan.ForceReplaceAddrs {
+		addr, diags := addrs.ParseAbsResourceInstanceStr(rawReplaceAddr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan contains invalid force-replace address %q: %s", addr, diags.Err())
+		}
+		plan.ForceReplaceAddrs = append(plan.ForceReplaceAddrs, addr)
 	}
 
 	for name, rawHashObj := range rawPlan.ProviderHashes {
@@ -206,6 +225,19 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 	}
 
 	ret.ChangeSrc = *change
+
+	switch rawChange.ActionReason {
+	case planproto.ResourceInstanceActionReason_NONE:
+		ret.ActionReason = plans.ResourceInstanceChangeNoReason
+	case planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_CANNOT_UPDATE:
+		ret.ActionReason = plans.ResourceInstanceReplaceBecauseCannotUpdate
+	case planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED:
+		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
+	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
+		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	default:
+		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
+	}
 
 	if len(rawChange.Private) != 0 {
 		ret.Private = rawChange.Private
@@ -330,6 +362,17 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 	}
 
+	switch plan.UIMode {
+	case plans.NormalMode:
+		rawPlan.UiMode = planproto.Mode_NORMAL
+	case plans.DestroyMode:
+		rawPlan.UiMode = planproto.Mode_DESTROY
+	case plans.RefreshOnlyMode:
+		rawPlan.UiMode = planproto.Mode_REFRESH_ONLY
+	default:
+		return fmt.Errorf("plan has unsupported mode %s", plan.UIMode)
+	}
+
 	for _, oc := range plan.Changes.Outputs {
 		// When serializing a plan we only retain the root outputs, since
 		// changes to these are externally-visible side effects (e.g. via
@@ -365,6 +408,10 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
+	}
+
+	for _, replaceAddr := range plan.ForceReplaceAddrs {
+		rawPlan.ForceReplaceAddrs = append(rawPlan.ForceReplaceAddrs, replaceAddr.String())
 	}
 
 	for name, hash := range plan.ProviderSHA256s {
@@ -455,6 +502,19 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
 	}
 	ret.Change = valChange
+
+	switch change.ActionReason {
+	case plans.ResourceInstanceChangeNoReason:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_NONE
+	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_CANNOT_UPDATE
+	case plans.ResourceInstanceReplaceBecauseTainted:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
+	case plans.ResourceInstanceReplaceByRequest:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	default:
+		return nil, fmt.Errorf("resource %s has unsupported action reason %s", relAddr, change.ActionReason)
+	}
 
 	if len(change.Private) > 0 {
 		ret.Private = change.Private

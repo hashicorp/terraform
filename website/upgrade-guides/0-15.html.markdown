@@ -52,6 +52,7 @@ Upgrade guide sections:
 * [Commands Accepting a Configuration Directory Argument](#commands-accepting-a-configuration-directory-argument)
 * [Microsoft Windows Terminal Support](#microsoft-windows-terminal-support)
 * [Other Minor Command Line Behavior Changes](#other-minor-command-line-behavior-changes)
+* [Azure Backend `arm_`-prefixed Arguments](#azure-backend-removed-arguments)
 
 ## Sensitive Output Values
 
@@ -202,7 +203,7 @@ upgrading to Terraform v0.15:
     ```
 
     If you need to update a module which was using the `map` function, you
-    can get the same result by replacing `map(...)` with `tomap([...])`.
+    can get the same result by replacing `map(...)` with `tomap({...})`.
     For example:
 
     ```diff
@@ -493,3 +494,44 @@ cleanup of obsolete features and improved consistency:
 
     If you are using `-force` in an automated call to `terraform destroy`,
     change to using `-auto-approve` instead.
+
+## Azure Backend Removed Arguments
+
+In an earlier release the `azure` backend changed to remove the `arm_` prefix
+from a number of the configuration arguments:
+
+| Old Name              | New Name          |
+|-----------------------|-------------------|
+| `arm_client_id`       | `client_id`       |
+| `arm_client_secret`   | `client_secret`   |
+| `arm_subscription_id` | `subscription_id` |
+| `arm_tenant_id`       | `tenant_id`       |
+
+The old names were previously deprecated, but we've removed them altogether
+in Terraform v0.15 in order to conclude that deprecation cycle.
+
+If you have a backend configuration using the old names then you may see
+errors like the following when upgrading to Terraform v0.15:
+
+```
+╷
+│ Error: Invalid backend configuration argument
+│
+│ The backend configuration argument "arm_client_id" given on
+│ the command line is not expected for the selected backend type.
+╵
+```
+
+If you see errors like this, rename the arguments in your backend configuration
+as shown in the table above and then run the following to re-initialize your
+backend configuration:
+
+```
+terraform init -reconfigure
+```
+
+The `-reconfigure` argument instructs Terraform to just replace the old
+configuration with the new configuration directly, rather than offering to
+migrate the latest state snapshots from the old to the new configuration.
+Migration would not be appropriate in this case because the old and new
+configurations are equivalent and refer to the same remote objects.

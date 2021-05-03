@@ -13,6 +13,30 @@ func TestDefaults(t *testing.T) {
 		Want            cty.Value
 		WantErr         string
 	}{
+		{ // When *either* input or default are unknown, an unknown is returned.
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+		},
+		{
+			//  When *either* input or default are unknown, an unknown is
+			//  returned with marks from both input and defaults.
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("marked"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String).Mark("marked"),
+			}),
+		},
 		{
 			Input: cty.ObjectVal(map[string]cty.Value{
 				"a": cty.NullVal(cty.String),
@@ -493,6 +517,110 @@ func TestDefaults(t *testing.T) {
 				"a": cty.StringVal("5"),
 			}),
 			WantErr: ".a: invalid default value for bool: bool required",
+		},
+		// marks: we should preserve marks from both input value and defaults as leafily as possible
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("world"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("world"),
+			}),
+		},
+		{ // "unused" marks don't carry over
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String).Mark("a"),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+			}),
+		},
+		{ // Marks on tuples remain attached to individual elements
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.TupleVal([]cty.Value{
+					cty.NullVal(cty.String),
+					cty.StringVal("hey").Mark("input"),
+					cty.NullVal(cty.String),
+				}),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.TupleVal([]cty.Value{
+					cty.StringVal("hello 0").Mark("fallback"),
+					cty.StringVal("hello 1"),
+					cty.StringVal("hello 2"),
+				}),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.TupleVal([]cty.Value{
+					cty.StringVal("hello 0").Mark("fallback"),
+					cty.StringVal("hey").Mark("input"),
+					cty.StringVal("hello 2"),
+				}),
+			}),
+		},
+		{ // Marks from list elements
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.NullVal(cty.String),
+					cty.StringVal("hey").Mark("input"),
+					cty.NullVal(cty.String),
+				}),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello 0").Mark("fallback"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("hello 0").Mark("fallback"),
+					cty.StringVal("hey").Mark("input"),
+					cty.StringVal("hello 0").Mark("fallback"),
+				}),
+			}),
+		},
+		{
+			// Sets don't allow individually-marked elements, so the marks
+			// end up aggregating on the set itself anyway in this case.
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.SetVal([]cty.Value{
+					cty.NullVal(cty.String),
+					cty.NullVal(cty.String),
+					cty.StringVal("hey").Mark("input"),
+				}),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello 0").Mark("fallback"),
+			}),
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.SetVal([]cty.Value{
+					cty.StringVal("hello 0"),
+					cty.StringVal("hey"),
+					cty.StringVal("hello 0"),
+				}).WithMarks(cty.NewValueMarks("fallback", "input")),
+			}),
+		},
+		{
+			Input: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.NullVal(cty.String),
+				}),
+			}),
+			Defaults: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("beep"),
+			}).Mark("boop"),
+			// This is the least-intuitive case. The mark "boop" is attached to
+			// the default object, not it's elements, but both marks end up
+			// aggregated on the list element.
+			Want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("hello").WithMarks(cty.NewValueMarks("beep", "boop")),
+				}),
+			}),
 		},
 	}
 

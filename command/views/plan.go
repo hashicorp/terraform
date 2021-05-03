@@ -27,6 +27,10 @@ type Plan interface {
 // NewPlan returns an initialized Plan implementation for the given ViewType.
 func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
 	switch vt {
+	case arguments.ViewJSON:
+		return &PlanJSON{
+			view: NewJSONView(view),
+		}
 	case arguments.ViewHuman:
 		return &PlanHuman{
 			view:         view,
@@ -63,6 +67,31 @@ func (v *PlanHuman) Diagnostics(diags tfdiags.Diagnostics) {
 
 func (v *PlanHuman) HelpPrompt() {
 	v.view.HelpPrompt("plan")
+}
+
+// The PlanJSON implementation renders streaming JSON logs, suitable for
+// integrating with other software.
+type PlanJSON struct {
+	view *JSONView
+}
+
+var _ Plan = (*PlanJSON)(nil)
+
+func (v *PlanJSON) Operation() Operation {
+	return &OperationJSON{view: v.view}
+}
+
+func (v *PlanJSON) Hooks() []terraform.Hook {
+	return []terraform.Hook{
+		newJSONHook(v.view),
+	}
+}
+
+func (v *PlanJSON) Diagnostics(diags tfdiags.Diagnostics) {
+	v.view.Diagnostics(diags)
+}
+
+func (v *PlanJSON) HelpPrompt() {
 }
 
 // The plan renderer is used by the Operation view (for plan and apply
@@ -136,19 +165,8 @@ func renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Sc
 			continue
 		}
 
-		// check if the change is due to a tainted resource
-		tainted := false
-		if !baseState.Empty() {
-			if is := baseState.ResourceInstance(rcs.Addr); is != nil {
-				if obj := is.GetGeneration(rcs.DeposedKey.Generation()); obj != nil {
-					tainted = obj.Status == states.ObjectTainted
-				}
-			}
-		}
-
 		view.streams.Println(format.ResourceChange(
 			rcs,
-			tainted,
 			rSchema,
 			view.colorize,
 		))

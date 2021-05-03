@@ -152,6 +152,11 @@ func (s *Scope) Functions() map[string]function.Function {
 			return s.funcs
 		})
 
+		if s.ConsoleMode {
+			// The type function is only available in terraform console.
+			s.funcs["type"] = funcs.TypeFunc
+		}
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.

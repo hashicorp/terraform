@@ -1541,6 +1541,99 @@ func TestTranspose(t *testing.T) {
 			cty.NilVal,
 			true,
 		},
+		{ // marks (deep or shallow) on any elements will propegate to the entire return value
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.ListVal([]cty.Value{
+					cty.StringVal("a").Mark("beep"), // mark on the inner list element
+					cty.StringVal("b"),
+				}),
+				"key2": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}).Mark("boop"), // mark on the map element
+				"key3": cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+				}),
+				"key4": cty.ListValEmpty(cty.String),
+			}),
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"c": cty.ListVal([]cty.Value{
+					cty.StringVal("key2"),
+					cty.StringVal("key3")}),
+			}).WithMarks(cty.NewValueMarks("beep", "boop")),
+			false,
+		},
+		{ // Marks on the input value will be applied to the return value
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}),
+				"key2": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"key3": cty.ListVal([]cty.Value{
+					cty.StringVal("c"),
+				}),
+			}).Mark("beep"), // mark on the entire input value
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"c": cty.ListVal([]cty.Value{
+					cty.StringVal("key2"),
+					cty.StringVal("key3"),
+				}),
+			}).Mark("beep"),
+			false,
+		},
+		{ // Marks on the entire input value AND inner elements (deep or shallow) ALL apply to the return
+			cty.MapVal(map[string]cty.Value{
+				"key1": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+				}).Mark("beep"), // mark on the map element
+				"key2": cty.ListVal([]cty.Value{
+					cty.StringVal("a"),
+					cty.StringVal("b"),
+					cty.StringVal("c"),
+				}),
+				"key3": cty.ListVal([]cty.Value{
+					cty.StringVal("c").Mark("boop"), // mark on the inner list element
+				}),
+			}).Mark("bloop"), // mark on the entire input value
+			cty.MapVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"b": cty.ListVal([]cty.Value{
+					cty.StringVal("key1"),
+					cty.StringVal("key2"),
+				}),
+				"c": cty.ListVal([]cty.Value{
+					cty.StringVal("key2"),
+					cty.StringVal("key3"),
+				}),
+			}).WithMarks(cty.NewValueMarks("beep", "boop", "bloop")),
+			false,
+		},
 	}
 
 	for _, test := range tests {

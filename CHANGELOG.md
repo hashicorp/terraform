@@ -1,6 +1,8 @@
 ## Next Major Release
 
-(nothing yet)
+NEW FEATURES:
+
+* lang/funcs: add a new `type()` function, only available in `terraform console` [GH-28501]
 
 ## Previous Releases
 

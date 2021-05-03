@@ -21,6 +21,11 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
+	// Propagate -no-color for the remote backend's legacy use of Ui. This
+	// should be removed when the remote backend is migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
+
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
 
@@ -66,7 +71,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.Destroy, args.OutPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -132,7 +137,6 @@ func (c *PlanCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Plan,
 	args *arguments.Operation,
-	destroy bool,
 	planOutPath string,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -140,7 +144,7 @@ func (c *PlanCommand) OperationRequest(
 	// Build the operation
 	opReq := c.Operation(be)
 	opReq.ConfigDir = "."
-	opReq.Destroy = destroy
+	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
@@ -191,14 +195,33 @@ Usage: terraform [global options] plan [options]
   You can optionally save the plan to a file, which you can then pass to
   the "apply" command to perform exactly the actions described in the plan.
 
-Options:
+Plan Customization Options:
+
+  The following options customize how Terraform will produce its plan. You
+  can also use these options when you run "terraform apply" without passing
+  it a saved plan, in order to plan and apply in a single command.
+
+  -destroy            If set, a plan will be generated to destroy all resources
+                      managed by the given configuration and state.
+
+  -refresh=true       Update state prior to checking for differences.
+
+  -target=resource    Resource to target. Operation will be limited to this
+                      resource and its dependencies. This flag can be used
+                      multiple times.
+
+  -var 'foo=bar'      Set a variable in the Terraform configuration. This
+                      flag can be set multiple times.
+
+  -var-file=foo       Set variables in the Terraform configuration from
+                      a file. If "terraform.tfvars" or any ".auto.tfvars"
+                      files are present, they will be automatically loaded.
+
+Other Options:
 
   -compact-warnings   If Terraform produces any warnings that are not
                       accompanied by errors, show them in a more compact form
                       that includes only the summary messages.
-
-  -destroy            If set, a plan will be generated to destroy all resources
-                      managed by the given configuration and state.
 
   -detailed-exitcode  Return detailed exit codes when the command exits. This
                       will change the meaning of exit codes to:
@@ -219,21 +242,8 @@ Options:
 
   -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
 
-  -refresh=true       Update state prior to checking for differences.
-
   -state=statefile    A legacy option used for the local backend only. See the
                       local backend's documentation for more information.
-
-  -target=resource    Resource to target. Operation will be limited to this
-                      resource and its dependencies. This flag can be used
-                      multiple times.
-
-  -var 'foo=bar'      Set a variable in the Terraform configuration. This
-                      flag can be set multiple times.
-
-  -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" or any ".auto.tfvars"
-                      files are present, they will be automatically loaded.
 `
 	return strings.TrimSpace(helpText)
 }

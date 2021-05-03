@@ -40,14 +40,15 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config      *configs.Config
-	Changes     *plans.Changes
-	State       *states.State
-	Targets     []addrs.Targetable
-	Variables   InputValues
-	Meta        *ContextMeta
-	Destroy     bool
-	SkipRefresh bool
+	Config       *configs.Config
+	Changes      *plans.Changes
+	State        *states.State
+	Targets      []addrs.Targetable
+	ForceReplace []addrs.AbsResourceInstance
+	Variables    InputValues
+	Meta         *ContextMeta
+	PlanMode     plans.Mode
+	SkipRefresh  bool
 
 	Hooks        []Hook
 	Parallelism  int
@@ -100,9 +101,10 @@ type Context struct {
 	refreshState *states.State
 	skipRefresh  bool
 	targets      []addrs.Targetable
+	forceReplace []addrs.AbsResourceInstance
 	variables    InputValues
 	meta         *ContextMeta
-	destroy      bool
+	planMode     plans.Mode
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -253,6 +255,41 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		}
 	}
 
+	switch opts.PlanMode {
+	case plans.NormalMode, plans.DestroyMode:
+		// OK
+	case plans.RefreshOnlyMode:
+		if opts.SkipRefresh {
+			// The CLI layer (and other similar callers) should prevent this
+			// combination of options.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible plan options",
+				"Cannot skip refreshing in refresh-only mode. This is a bug in Terraform.",
+			))
+			return nil, diags
+		}
+	default:
+		// The CLI layer (and other similar callers) should not try to
+		// create a context for a mode that Terraform Core doesn't support.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported plan mode",
+			fmt.Sprintf("Terraform Core doesn't know how to handle plan mode %s. This is a bug in Terraform.", opts.PlanMode),
+		))
+		return nil, diags
+	}
+	if len(opts.ForceReplace) > 0 && opts.PlanMode != plans.NormalMode {
+		// The other modes don't generate no-op or update actions that we might
+		// upgrade to be "replace", so doesn't make sense to combine those.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported plan mode",
+			fmt.Sprintf("Forcing resource instance replacement (with -replace=...) is allowed only in normal planning mode."),
+		))
+		return nil, diags
+	}
+
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
 	// By the time we get here, we should have values defined for all of
@@ -270,7 +307,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	return &Context{
 		components:   components,
 		schemas:      schemas,
-		destroy:      opts.Destroy,
+		planMode:     opts.PlanMode,
 		changes:      changes,
 		hooks:        hooks,
 		meta:         opts.Meta,
@@ -279,6 +316,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		refreshState: state.DeepCopy(),
 		skipRefresh:  opts.SkipRefresh,
 		targets:      opts.Targets,
+		forceReplace: opts.ForceReplace,
 		uiInput:      opts.UIInput,
 		variables:    variables,
 
@@ -313,13 +351,14 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	switch typ {
 	case GraphTypeApply:
 		return (&ApplyGraphBuilder{
-			Config:     c.config,
-			Changes:    c.changes,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:       c.config,
+			Changes:      c.changes,
+			State:        c.state,
+			Components:   c.components,
+			Schemas:      c.schemas,
+			Targets:      c.targets,
+			ForceReplace: c.forceReplace,
+			Validate:     opts.Validate,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeValidate:
@@ -337,13 +376,14 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 	case GraphTypePlan:
 		// Create the plan graph builder
 		return (&PlanGraphBuilder{
-			Config:      c.config,
-			State:       c.state,
-			Components:  c.components,
-			Schemas:     c.schemas,
-			Targets:     c.targets,
-			Validate:    opts.Validate,
-			skipRefresh: c.skipRefresh,
+			Config:       c.config,
+			State:        c.state,
+			Components:   c.components,
+			Schemas:      c.schemas,
+			Targets:      c.targets,
+			ForceReplace: c.forceReplace,
+			Validate:     opts.Validate,
+			skipRefresh:  c.skipRefresh,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:
@@ -354,6 +394,20 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			Schemas:    c.schemas,
 			Targets:    c.targets,
 			Validate:   opts.Validate,
+		}).Build(addrs.RootModuleInstance)
+
+	case GraphTypePlanRefreshOnly:
+		// Create the plan graph builder, with skipPlanChanges set to
+		// activate the "refresh only" mode.
+		return (&PlanGraphBuilder{
+			Config:          c.config,
+			State:           c.state,
+			Components:      c.components,
+			Schemas:         c.schemas,
+			Targets:         c.targets,
+			Validate:        opts.Validate,
+			skipRefresh:     c.skipRefresh,
+			skipPlanChanges: true, // this activates "refresh only" mode.
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypeEval:
@@ -461,7 +515,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 
 	// Determine the operation
 	operation := walkApply
-	if c.destroy {
+	if c.planMode == plans.DestroyMode {
 		operation = walkDestroy
 	}
 
@@ -470,7 +524,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
-	if c.destroy && !diags.HasErrors() {
+	if c.planMode == plans.DestroyMode && !diags.HasErrors() {
 		// If we know we were trying to destroy objects anyway, and we
 		// completed without any errors, then we'll also prune out any
 		// leftover empty resource husks (left after all of the instances
@@ -532,11 +586,15 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
-	switch {
-	case c.destroy:
-		plan, planDiags = c.destroyPlan()
-	default:
+	switch c.planMode {
+	case plans.NormalMode:
 		plan, planDiags = c.plan()
+	case plans.DestroyMode:
+		plan, planDiags = c.destroyPlan()
+	case plans.RefreshOnlyMode:
+		plan, planDiags = c.refreshOnlyPlan()
+	default:
+		panic(fmt.Sprintf("unsupported plan mode %s", c.planMode))
 	}
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
@@ -587,7 +645,9 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
-		Changes: c.changes,
+		UIMode:            plans.NormalMode,
+		Changes:           c.changes,
+		ForceReplaceAddrs: c.forceReplace,
 	}
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
@@ -633,15 +693,61 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan)
+	walker, walkDiags := c.walk(graph, walkPlanDestroy)
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		return nil, diags
 	}
 
+	destroyPlan.UIMode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
 	return destroyPlan, diags
+}
+
+func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
+	diags = diags.Append(graphDiags)
+	if graphDiags.HasErrors() {
+		return nil, diags
+	}
+
+	// Do the walk
+	walker, walkDiags := c.walk(graph, walkPlan)
+	diags = diags.Append(walker.NonFatalDiagnostics)
+	diags = diags.Append(walkDiags)
+	if walkDiags.HasErrors() {
+		return nil, diags
+	}
+	plan := &plans.Plan{
+		UIMode:  plans.RefreshOnlyMode,
+		Changes: c.changes,
+	}
+
+	// If the graph builder and graph nodes correctly obeyed our directive
+	// to refresh only, the set of resource changes should always be empty.
+	// We'll safety-check that here so we can return a clear message about it,
+	// rather than probably just generating confusing output at the UI layer.
+	if len(plan.Changes.Resources) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid refresh-only plan",
+			"Terraform generated planned resource changes in a refresh-only plan. This is a bug in Terraform.",
+		))
+	}
+
+	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
+
+	refreshedState := c.refreshState.DeepCopy()
+	plan.State = refreshedState
+
+	// replace the working state with the updated state, so that immediate calls
+	// to Apply work as expected.
+	c.state = refreshedState
+
+	return plan, diags
 }
 
 // Refresh goes through all the resources in the state and refreshes them
