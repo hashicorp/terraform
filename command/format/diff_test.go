@@ -3994,6 +3994,33 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
     }
 `,
 		},
+		"update with sensitive attribute forcing replacement": {
+			Action: plans.DeleteThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Optional: true, Computed: true},
+					"ami": {Type: cty.String, Optional: true, Computed: true, Sensitive: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(
+				cty.GetAttrPath("ami"),
+			),
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      ~ ami = (sensitive value) # forces replacement
+        id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
