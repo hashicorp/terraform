@@ -2,6 +2,7 @@
 
 ENHANCEMENTS:
 
+* `terraform plan` and `terraform apply`: Both now support a new planning option `-replace=...` which takes the address of a resource instance already tracked in the state and forces Terraform to upgrade either an update or no-op plan for that instance into a "replace" (either destroy-then-create or create-then-destroy depending on configuration), to allow replacing a degraded object with a new object of the same configuration in a single action and preview the effect of that before applying it.
 * `terraform apply`: Now has a `-destroy` option for symmetry with `terraform plan -destroy`, which makes `terraform destroy` effectively an alias for `terraform apply -destroy`. This change is only for consistency between `terraform plan` and `terraform apply`; there are no current plans to deprecate `terraform destroy`. [GH-28489]
 * core: Update HCL to allow better planning of dynamic blocks [GH-28424]
 * core: Unmark values when planning data sources [GH-28539]
