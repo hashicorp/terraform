@@ -23,20 +23,17 @@ import (
 // noProviderConfig argument is passed down the call stack, indicating that the
 // module call, or a parent module call, has used a feature that precludes
 // providers from being configured at all within the module.
-func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig bool) (diags hcl.Diagnostics) {
+func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfig bool) (diags hcl.Diagnostics) {
+	mod := cfg.Module
+
 	for name, child := range cfg.Children {
-		mc := cfg.Module.ModuleCalls[name]
+		mc := mod.ModuleCalls[name]
 
 		// if the module call has any of count, for_each or depends_on,
 		// providers are prohibited from being configured in this module, or
 		// any module beneath this module.
 		nope := noProviderConfig || mc.Count != nil || mc.ForEach != nil || mc.DependsOn != nil
 		diags = append(diags, validateProviderConfigs(mc, child, nope)...)
-	}
-
-	// nothing else to do in the root module
-	if call == nil {
-		return diags
 	}
 
 	// the set of provider configuration names passed into the module, with the
@@ -58,13 +55,6 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 	// the set of provider names defined in the required_providers block, and
 	// their provider types.
 	localNames := map[string]addrs.AbsProviderConfig{}
-
-	for _, passed := range call.Providers {
-		name := providerName(passed.InChild.Name, passed.InChild.Alias)
-		passedIn[name] = passed
-	}
-
-	mod := cfg.Module
 
 	for _, pc := range mod.ProviderConfigs {
 		name := providerName(pc.Name, pc.Alias)
@@ -93,6 +83,76 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 				configAliases[providerName(alias.LocalName, alias.Alias)] = addr
 			}
 		}
+	}
+
+	// collect providers passed from the parent
+	if parentCall != nil {
+		for _, passed := range parentCall.Providers {
+			name := providerName(passed.InChild.Name, passed.InChild.Alias)
+			passedIn[name] = passed
+		}
+	}
+
+	parentModuleText := "the root module"
+	moduleText := "the root module"
+	if !cfg.Path.IsRoot() {
+		moduleText = cfg.Path.String()
+		if parent := cfg.Path.Parent(); !parent.IsRoot() {
+			// module address are prefixed with `module.`
+			parentModuleText = parent.String()
+		}
+	}
+
+	// Verify that any module calls only refer to named providers, and that
+	// those providers will have a configuration at runtime. This way we can
+	// direct users where to add the missing configuration, because the runtime
+	// error is only "missing provider X".
+	for _, modCall := range mod.ModuleCalls {
+		for _, passed := range modCall.Providers {
+			// aliased providers are handled more strictly, and are never
+			// inherited, so they are validated within modules further down.
+			// Skip these checks to prevent redundant diagnostics.
+			if passed.InParent.Alias != "" {
+				continue
+			}
+
+			name := passed.InParent.String()
+			_, confOK := configured[name]
+			_, localOK := localNames[name]
+			_, passedOK := passedIn[name]
+
+			// This name was not declared somewhere within in the
+			// configuration. We ignore empty configs, because they will
+			// already produce a warning.
+			if !(confOK || localOK) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  fmt.Sprintf("Provider %s is undefined", name),
+					Detail: fmt.Sprintf("No provider named %s has been declared in %s.\n", name, moduleText) +
+						fmt.Sprintf("If you wish to refer to the %s provider within the module, add a provider configuration, or an entry in the required_providers block.", name),
+					Subject: &passed.InParent.NameRange,
+				})
+				continue
+			}
+
+			// Now we may have named this provider within the module, but
+			// there won't be a configuration available at runtime if the
+			// parent module did not pass one in.
+			if !cfg.Path.IsRoot() && !(confOK || passedOK) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  fmt.Sprintf("No configuration passed in for provider %s in %s", name, cfg.Path),
+					Detail: fmt.Sprintf("Provider %s is referenced within %s, but no configuration has been supplied.\n", name, moduleText) +
+						fmt.Sprintf("Add a provider named %s to the providers map for %s in %s.", name, cfg.Path, parentModuleText),
+					Subject: &passed.InParent.NameRange,
+				})
+			}
+		}
+	}
+
+	if cfg.Path.IsRoot() {
+		// nothing else to do in the root module
+		return diags
 	}
 
 	// there cannot be any configurations if no provider config is allowed
@@ -129,8 +189,9 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("No configuration for provider %s", name),
-			Detail:   fmt.Sprintf("Configuration required for %s.", providerAddr),
-			Subject:  &call.DeclRange,
+			Detail: fmt.Sprintf("Configuration required for %s.\n", providerAddr) +
+				fmt.Sprintf("Add a provider named %s to the providers map for %s in %s.", name, cfg.Path, parentModuleText),
+			Subject: &parentCall.DeclRange,
 		})
 	}
 
@@ -238,10 +299,6 @@ func validateProviderConfigs(call *ModuleCall, cfg *Config, noProviderConfig boo
 			Detail:   detail,
 			Subject:  src,
 		})
-	}
-
-	if diags.HasErrors() {
-		return diags
 	}
 
 	return diags
