@@ -133,6 +133,12 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		// We'll borrow HCL's range implementation here, because it has some
 		// handy features to help us produce a nice source code snippet.
 		highlightRange := sourceRefs.Subject.ToHCL()
+
+		// Some diagnostic sources fail to set the end of the subject range.
+		if highlightRange.End == (hcl.Pos{}) {
+			highlightRange.End = highlightRange.Start
+		}
+
 		snippetRange := highlightRange
 		if sourceRefs.Context != nil {
 			snippetRange = sourceRefs.Context.ToHCL()
