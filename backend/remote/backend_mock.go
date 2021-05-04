@@ -447,16 +447,18 @@ func (m *mockOrganizations) RunQueue(ctx context.Context, name string, options t
 }
 
 type mockPlans struct {
-	client *mockClient
-	logs   map[string]string
-	plans  map[string]*tfe.Plan
+	client      *mockClient
+	logs        map[string]string
+	planOutputs map[string]string
+	plans       map[string]*tfe.Plan
 }
 
 func newMockPlans(client *mockClient) *mockPlans {
 	return &mockPlans{
-		client: client,
-		logs:   make(map[string]string),
-		plans:  make(map[string]*tfe.Plan),
+		client:      client,
+		logs:        make(map[string]string),
+		planOutputs: make(map[string]string),
+		plans:       make(map[string]*tfe.Plan),
 	}
 }
 
@@ -534,6 +536,15 @@ func (m *mockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 		done: done,
 		logs: bytes.NewBuffer(logs),
 	}, nil
+}
+
+func (m *mockPlans) JSONOutput(ctx context.Context, planID string) ([]byte, error) {
+	planOutput, ok := m.planOutputs[planID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	return []byte(planOutput), nil
 }
 
 type mockPolicyChecks struct {
@@ -814,6 +825,10 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 }
 
 func (m *mockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
+	return m.ReadWithOptions(ctx, runID, nil)
+}
+
+func (m *mockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.RunReadOptions) (*tfe.Run, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -960,6 +975,10 @@ func (m *mockStateVersions) Create(ctx context.Context, workspaceID string, opti
 }
 
 func (m *mockStateVersions) Read(ctx context.Context, svID string) (*tfe.StateVersion, error) {
+	return m.ReadWithOptions(ctx, svID, nil)
+}
+
+func (m *mockStateVersions) ReadWithOptions(ctx context.Context, svID string, options *tfe.StateVersionReadOptions) (*tfe.StateVersion, error) {
 	sv, ok := m.stateVersions[svID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -968,6 +987,10 @@ func (m *mockStateVersions) Read(ctx context.Context, svID string) (*tfe.StateVe
 }
 
 func (m *mockStateVersions) Current(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
+	return m.CurrentWithOptions(ctx, workspaceID, nil)
+}
+
+func (m *mockStateVersions) CurrentWithOptions(ctx context.Context, workspaceID string, options *tfe.StateVersionCurrentOptions) (*tfe.StateVersion, error) {
 	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -1298,6 +1321,26 @@ func (m *mockWorkspaces) AssignSSHKey(ctx context.Context, workspaceID string, o
 }
 
 func (m *mockWorkspaces) UnassignSSHKey(ctx context.Context, workspaceID string) (*tfe.Workspace, error) {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) RemoteStateConsumers(ctx context.Context, workspaceID string) (*tfe.WorkspaceList, error) {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) AddRemoteStateConsumers(ctx context.Context, workspaceID string, options tfe.WorkspaceAddRemoteStateConsumersOptions) error {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) RemoveRemoteStateConsumers(ctx context.Context, workspaceID string, options tfe.WorkspaceRemoveRemoteStateConsumersOptions) error {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) UpdateRemoteStateConsumers(ctx context.Context, workspaceID string, options tfe.WorkspaceUpdateRemoteStateConsumersOptions) error {
+	panic("not implemented")
+}
+
+func (m *mockWorkspaces) Readme(ctx context.Context, workspaceID string) (io.Reader, error) {
 	panic("not implemented")
 }
 
