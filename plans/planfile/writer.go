@@ -18,7 +18,7 @@ import (
 // state file in addition to the plan itself, so that Terraform can detect
 // if the world has changed since the plan was created and thus refuse to
 // apply it.
-func Create(filename string, configSnap *configload.Snapshot, stateFile *statefile.File, plan *plans.Plan) error {
+func Create(filename string, configSnap *configload.Snapshot, prevStateFile, stateFile *statefile.File, plan *plans.Plan) error {
 	f, err := os.Create(filename)
 	if err != nil {
 		return err
@@ -57,6 +57,22 @@ func Create(filename string, configSnap *configload.Snapshot, stateFile *statefi
 		err = statefile.Write(stateFile, w)
 		if err != nil {
 			return fmt.Errorf("failed to write state snapshot: %s", err)
+		}
+	}
+
+	// tfstate-prev file
+	{
+		w, err := zw.CreateHeader(&zip.FileHeader{
+			Name:     tfstatePreviousFilename,
+			Method:   zip.Deflate,
+			Modified: time.Now(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create embedded tfstate-prev file: %s", err)
+		}
+		err = statefile.Write(prevStateFile, w)
+		if err != nil {
+			return fmt.Errorf("failed to write previous state snapshot: %s", err)
 		}
 	}
 
