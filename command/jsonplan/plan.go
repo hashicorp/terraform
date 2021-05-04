@@ -84,6 +84,14 @@ type change struct {
 	// display of sensitive values in user interfaces.
 	BeforeSensitive json.RawMessage `json:"before_sensitive,omitempty"`
 	AfterSensitive  json.RawMessage `json:"after_sensitive,omitempty"`
+
+	// ReplacePaths is an array of arrays representing a set of paths into the
+	// object value which resulted in the action being "replace". This will be
+	// omitted if the action is not replace, or if no paths caused the
+	// replacement (for example, if the resource was tainted). Each path
+	// consists of one or more steps, each of which will be a number or a
+	// string.
+	ReplacePaths json.RawMessage `json:"replace_paths,omitempty"`
 }
 
 type output struct {
@@ -257,6 +265,10 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		if err != nil {
 			return err
 		}
+		replacePaths, err := encodePaths(rc.RequiredReplace)
+		if err != nil {
+			return err
+		}
 
 		r.Change = change{
 			Actions:         actionString(rc.Action.String()),
@@ -265,6 +277,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			AfterUnknown:    a,
 			BeforeSensitive: json.RawMessage(beforeSensitive),
 			AfterSensitive:  json.RawMessage(afterSensitive),
+			ReplacePaths:    replacePaths,
 		}
 
 		if rc.DeposedKey != states.NotDeposed {
@@ -624,4 +637,55 @@ func actionString(action string) []string {
 	default:
 		return []string{action}
 	}
+}
+
+// encodePaths lossily encodes a cty.PathSet into an array of arrays of step
+// values, such as:
+//
+//   [["length"],["triggers",0,"value"]]
+//
+// The lossiness is that we cannot distinguish between an IndexStep with string
+// key and a GetAttr step. This is fine with JSON output, because JSON's type
+// system means that those two steps are equivalent anyway: both are object
+// indexes.
+//
+// JavaScript (or similar dynamic language) consumers of these values can
+// recursively apply the steps to a given object using an index operation for
+// each step.
+func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
+	if pathSet.Empty() {
+		return nil, nil
+	}
+
+	pathList := pathSet.List()
+	jsonPaths := make([]json.RawMessage, 0, len(pathList))
+
+	for _, path := range pathList {
+		steps := make([]json.RawMessage, 0, len(path))
+		for _, step := range path {
+			switch s := step.(type) {
+			case cty.IndexStep:
+				key, err := ctyjson.Marshal(s.Key, s.Key.Type())
+				if err != nil {
+					return nil, fmt.Errorf("Failed to marshal index step key %#v: %s", s.Key, err)
+				}
+				steps = append(steps, key)
+			case cty.GetAttrStep:
+				name, err := json.Marshal(s.Name)
+				if err != nil {
+					return nil, fmt.Errorf("Failed to marshal get attr step name %#v: %s", s.Name, err)
+				}
+				steps = append(steps, name)
+			default:
+				return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
+			}
+		}
+		jsonPath, err := json.Marshal(steps)
+		if err != nil {
+			return nil, err
+		}
+		jsonPaths = append(jsonPaths, jsonPath)
+	}
+
+	return json.Marshal(jsonPaths)
 }
