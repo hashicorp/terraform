@@ -256,6 +256,8 @@ in order to capture the filesystem context the remote workspace expects:
 	switch op.PlanMode {
 	case plans.NormalMode:
 		// okay, but we don't need to do anything special for this
+	case plans.RefreshOnlyMode:
+		runOptions.RefreshOnly = tfe.Bool(true)
 	case plans.DestroyMode:
 		runOptions.IsDestroy = tfe.Bool(true)
 	default:
