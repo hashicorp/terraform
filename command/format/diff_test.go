@@ -2309,6 +2309,10 @@ func TestResourceChange_nestedList(t *testing.T) {
 						"mount_point": cty.StringVal("/var/diska"),
 						"size":        cty.NullVal(cty.String),
 					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("50GB"),
+					}),
 				}),
 				"root_block_device": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -2323,6 +2327,10 @@ func TestResourceChange_nestedList(t *testing.T) {
 				"disks": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
 						"size":        cty.StringVal("50GB"),
 					}),
 				}),
@@ -2343,6 +2351,7 @@ func TestResourceChange_nestedList(t *testing.T) {
             + size        = "50GB"
               # (1 unchanged attribute hidden)
           },
+          # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2992,9 +3001,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
             + mount_point = "/var/disk2"
             + size        = "50GB"
           },
-            "disk_a" = {
-              # (2 unchanged attributes hidden)
-          },
+          # (1 unchanged element hidden)
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -4018,6 +4025,51 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 -/+ resource "test_instance" "example" {
       ~ ami = (sensitive value) # forces replacement
         id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"update with sensitive nested type attribute forcing replacement": {
+			Action: plans.DeleteThenCreate,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":     cty.StringVal("not-secret"),
+					"password": cty.StringVal("top-secret"),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"conn_info": cty.ObjectVal(map[string]cty.Value{
+					"user":     cty.StringVal("not-secret"),
+					"password": cty.StringVal("new-secret"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"conn_info": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"user":     {Type: cty.String, Optional: true},
+								"password": {Type: cty.String, Optional: true, Sensitive: true},
+							},
+						},
+					},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(
+				cty.GetAttrPath("conn_info"),
+				cty.GetAttrPath("password"),
+			),
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {
+      ~ conn_info = { # forces replacement
+        ~ password = (sensitive value)
+          # (1 unchanged attribute hidden)
+      }
+        id        = "i-02ae66f368e8518a9"
     }
 `,
 		},
