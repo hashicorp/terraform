@@ -13,6 +13,7 @@ BUG FIXES:
 * core: Fix JSON plan output to add sensitivity data for provider-specified sensitive attribute values [GH-28523]
 * cli: Fix missing "forces replacement" UI for attribute changes which are marked as sensitive by the provider [GH-28583]
 * cli: Fix crash when rendering diagnostic caused by missing trailing quote [GH-28598]
+* functions: Fix crash when calling `setproduct` with one or more empty collections [GH-28607]
 
 ## 0.15.1 (April 26, 2021)
 
