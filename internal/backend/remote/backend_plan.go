@@ -65,23 +65,6 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if !op.PlanRefresh {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Planning without refresh is currently not supported",
-			`Currently the "remote" backend will always do an in-memory refresh of `+
-				`the Terraform state prior to generating the plan.`,
-		))
-	}
-
-	if op.PlanMode == plans.RefreshOnlyMode {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Refresh-only mode is currently not supported",
-			`The "remote" backend does not currently support the refresh-only planning mode.`,
-		))
-	}
-
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -110,19 +93,28 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if len(op.ForceReplace) != 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Forced replacement is currently not supported",
-			`The "remote" backend does not currently support the -replace=... planning option.`,
-		))
+	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+	// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+	// equivalent to an API version < 2.3.
+	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+
+	if !op.PlanRefresh {
+		desiredAPIVersion, _ := version.NewVersion("2.4")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Planning without refresh is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -refresh=false option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
 	}
 
 	if len(op.Targets) != 0 {
-		// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
-		// so if there's an error when parsing the RemoteAPIVersion, it's handled as
-		// equivalent to an API version < 2.3.
-		currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
 		desiredAPIVersion, _ := version.NewVersion("2.3")
 
 		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
@@ -255,8 +247,9 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	runOptions := tfe.RunCreateOptions{
-		Message:              tfe.String(queueMessage),
 		ConfigurationVersion: cv,
+		Message:              tfe.String(queueMessage),
+		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
 	}
 

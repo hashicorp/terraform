@@ -60,15 +60,6 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		))
 	}
 
-	if !op.PlanRefresh {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Applying without refresh is currently not supported",
-			`Currently the "remote" backend will always do an in-memory refresh of `+
-				`the Terraform state prior to generating the plan.`,
-		))
-	}
-
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -96,11 +87,28 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		))
 	}
 
+	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+	// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+	// equivalent to an API version < 2.3.
+	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+
+	if !op.PlanRefresh {
+		desiredAPIVersion, _ := version.NewVersion("2.4")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Planning without refresh is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -refresh=false option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
+	}
+
 	if len(op.Targets) != 0 {
-		// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
-		// so if there's an error when parsing the RemoteAPIVersion, it's handled as
-		// equivalent to an API version < 2.3.
-		currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
 		desiredAPIVersion, _ := version.NewVersion("2.3")
 
 		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
