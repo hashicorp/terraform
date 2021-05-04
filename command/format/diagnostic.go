@@ -240,6 +240,16 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 		// Split the snippet and render the highlighted section with underlines
 		start := snippet.HighlightStartOffset
 		end := snippet.HighlightEndOffset
+
+		// Only buggy diagnostics can have an end range before the start, but
+		// we need to ensure we don't crash here if that happens.
+		if end < start {
+			end = start + 1
+			if end > len(code) {
+				end = len(code)
+			}
+		}
+
 		before, highlight, after := code[0:start], code[start:end], code[end:]
 		code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
 
