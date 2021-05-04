@@ -370,7 +370,7 @@ resource "test_object" "a" {
 		t.Fatal(diags.Err())
 	}
 
-	if plan.State == nil {
+	if plan.PriorState == nil {
 		t.Fatal("missing plan state")
 	}
 
@@ -545,7 +545,7 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 		t.Fatalf("plan contains resource changes; want none\n%s", spew.Sdump(plan.Changes.Resources))
 	}
 
-	state = plan.State
+	state = plan.PriorState
 	instState := state.ResourceInstance(addr)
 	if instState == nil {
 		t.Fatalf("%s has no state at all after plan", addr)

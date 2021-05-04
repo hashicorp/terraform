@@ -631,6 +631,8 @@ The -target option is not for routine use, and is provided only for exceptional 
 func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	prevRunState := c.state.DeepCopy()
+
 	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -648,12 +650,13 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		UIMode:            plans.NormalMode,
 		Changes:           c.changes,
 		ForceReplaceAddrs: c.forceReplace,
+		PrevRunState:      prevRunState,
 	}
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	refreshedState := c.refreshState.DeepCopy()
-	plan.State = refreshedState
+	plan.PriorState = refreshedState
 
 	// replace the working state with the updated state, so that immediate calls
 	// to Apply work as expected.
@@ -665,7 +668,8 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	destroyPlan := &plans.Plan{
-		State: c.state.DeepCopy(),
+		PrevRunState: c.state.DeepCopy(),
+		PriorState:   c.state.DeepCopy(),
 	}
 	c.changes = plans.NewChanges()
 
@@ -682,7 +686,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 
 		// insert the refreshed state into the destroy plan result, and discard
 		// the changes recorded from the refresh.
-		destroyPlan.State = refreshPlan.State
+		destroyPlan.PriorState = refreshPlan.PriorState.DeepCopy()
 		c.changes = plans.NewChanges()
 	}
 
@@ -708,6 +712,8 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	prevRunState := c.state.DeepCopy()
+
 	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -722,8 +728,9 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 	plan := &plans.Plan{
-		UIMode:  plans.RefreshOnlyMode,
-		Changes: c.changes,
+		UIMode:       plans.RefreshOnlyMode,
+		Changes:      c.changes,
+		PrevRunState: prevRunState,
 	}
 
 	// If the graph builder and graph nodes correctly obeyed our directive
@@ -740,11 +747,12 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
-	refreshedState := c.refreshState.DeepCopy()
-	plan.State = refreshedState
+	refreshedState := c.refreshState
+	plan.PriorState = refreshedState.DeepCopy()
 
 	// replace the working state with the updated state, so that immediate calls
-	// to Apply work as expected.
+	// to Apply work as expected. DeepCopy because such an apply should not
+	// mutate
 	c.state = refreshedState
 
 	return plan, diags
@@ -761,7 +769,7 @@ func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	return p.State, diags
+	return p.PriorState, diags
 }
 
 // Stop stops the running task.

@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
+	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -115,10 +116,22 @@ func (b *Local) opPlan(
 		// We may have updated the state in the refresh step above, but we
 		// will freeze that updated state in the plan file for now and
 		// only write it if this plan is subsequently applied.
-		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.State)
+		plannedStateFile := statemgr.PlannedStateUpdate(opState, plan.PriorState)
+
+		// We also include a file containing the state as it existed before
+		// we took any action at all, but this one isn't intended to ever
+		// be saved to the backend (an equivalent snapshot should already be
+		// there) and so we just use a stub state file header in this case.
+		// NOTE: This won't be exactly identical to the latest state snapshot
+		// in the backend because it's still been subject to state upgrading
+		// to make it consumable by the current Terraform version, and
+		// intentionally doesn't preserve the header info.
+		prevStateFile := &statefile.File{
+			State: plan.PrevRunState,
+		}
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err := planfile.Create(path, configSnap, plannedStateFile, plan)
+		err := planfile.Create(path, configSnap, prevStateFile, plannedStateFile, plan)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -140,7 +153,7 @@ func (b *Local) opPlan(
 	}
 
 	// Render the plan
-	op.View.Plan(plan, plan.State, tfCtx.Schemas())
+	op.View.Plan(plan, plan.PriorState, tfCtx.Schemas())
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered

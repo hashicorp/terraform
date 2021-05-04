@@ -6332,9 +6332,9 @@ data "test_data_source" "d" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
-	d := plan.State.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.d"))
+	d := plan.PriorState.ResourceInstance(mustResourceInstanceAddr("data.test_data_source.d"))
 	if d == nil || d.Current == nil {
-		t.Fatal("data.test_data_source.d not found in state:", plan.State)
+		t.Fatal("data.test_data_source.d not found in state:", plan.PriorState)
 	}
 
 	if d.Current.Status != states.ObjectReady {
