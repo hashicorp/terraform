@@ -98,6 +98,22 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	// equivalent to an API version < 2.3.
 	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
 
+	if len(op.Targets) != 0 {
+		desiredAPIVersion, _ := version.NewVersion("2.3")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Resource targeting is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -target option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
+	}
+
 	if !op.PlanRefresh {
 		desiredAPIVersion, _ := version.NewVersion("2.4")
 
@@ -114,15 +130,15 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		}
 	}
 
-	if len(op.Targets) != 0 {
-		desiredAPIVersion, _ := version.NewVersion("2.3")
+	if len(op.ForceReplace) != 0 {
+		desiredAPIVersion, _ := version.NewVersion("2.4")
 
 		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Resource targeting is not supported",
+				"Planning resource replacements is not supported",
 				fmt.Sprintf(
-					`The host %s does not support the -target option for `+
+					`The host %s does not support the -replace option for `+
 						`remote plans.`,
 					b.hostname,
 				),
@@ -273,11 +289,14 @@ in order to capture the filesystem context the remote workspace expects:
 	if len(op.Targets) != 0 {
 		runOptions.TargetAddrs = make([]string, 0, len(op.Targets))
 		for _, addr := range op.Targets {
-			// The API client wants the normal string representation of a
-			// target address, which will ultimately get inserted into a
-			// -target option when Terraform CLI is launched in the
-			// Cloud/Enterprise execution environment.
 			runOptions.TargetAddrs = append(runOptions.TargetAddrs, addr.String())
+		}
+	}
+
+	if len(op.ForceReplace) != 0 {
+		runOptions.ReplaceAddrs = make([]string, 0, len(op.ForceReplace))
+		for _, addr := range op.ForceReplace {
+			runOptions.ReplaceAddrs = append(runOptions.ReplaceAddrs, addr.String())
 		}
 	}
 
