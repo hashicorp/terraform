@@ -728,7 +728,10 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	// to run through any of the codepaths that care about Lineage/Serial/etc
 	// here anyway.
 	stateFile := &statefile.File{
-		State: plan.State,
+		State: plan.PriorState,
+	}
+	prevStateFile := &statefile.File{
+		State: plan.PrevRunState,
 	}
 
 	// To make life a little easier for test authors, we'll populate a simple
@@ -746,7 +749,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	}
 
 	filename := filepath.Join(dir, "tfplan")
-	err = planfile.Create(filename, configSnap, stateFile, plan)
+	err = planfile.Create(filename, configSnap, prevStateFile, stateFile, plan)
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,24 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	ProviderSHA256s   map[string][]byte
 	Backend           Backend
-	State             *states.State
+
+	// PrevRunState and PriorState both describe the situation that the plan
+	// was derived from:
+	//
+	// PrevRunState is a representation of the outcome of the previous
+	// Terraform operation, without any updates from the remote system but
+	// potentially including some changes that resulted from state upgrade
+	// actions.
+	//
+	// PriorState is a representation of the current state of remote objects,
+	// which will differ from PrevRunState if the "refresh" step returned
+	// different data, which might reflect drift.
+	//
+	// PriorState is the main snapshot we use for actions during apply.
+	// PrevRunState is only here so that we can diff PriorState against it in
+	// order to report to the user any out-of-band changes we've detected.
+	PrevRunState *states.State
+	PriorState   *states.State
 }
 
 // Backend represents the backend-related configuration and other data as it

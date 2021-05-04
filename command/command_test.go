@@ -182,9 +182,14 @@ func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.S
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
+	prevStateFile := &statefile.File{
+		Lineage:          "",
+		State:            state, // we just assume no changes detected during refresh
+		TerraformVersion: version.SemVer,
+	}
 
 	path := testTempFile(t)
-	err := planfile.Create(path, configSnap, stateFile, plan)
+	err := planfile.Create(path, configSnap, prevStateFile, stateFile, plan)
 	if err != nil {
 		t.Fatalf("failed to create temporary plan file: %s", err)
 	}

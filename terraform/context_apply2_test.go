@@ -333,22 +333,22 @@ resource "aws_instance" "bin" {
 		t.Fatal(diags.Err())
 	}
 
-	bar := plan.State.ResourceInstance(barAddr)
+	bar := plan.PriorState.ResourceInstance(barAddr)
 	if len(bar.Current.Dependencies) == 0 || !bar.Current.Dependencies[0].Equal(fooAddr.ContainingResource().Config()) {
 		t.Fatalf("bar should depend on foo after refresh, but got %s", bar.Current.Dependencies)
 	}
 
-	foo := plan.State.ResourceInstance(fooAddr)
+	foo := plan.PriorState.ResourceInstance(fooAddr)
 	if len(foo.Current.Dependencies) == 0 || !foo.Current.Dependencies[0].Equal(bazAddr.ContainingResource().Config()) {
 		t.Fatalf("foo should depend on baz after refresh because of the update, but got %s", foo.Current.Dependencies)
 	}
 
-	bin := plan.State.ResourceInstance(binAddr)
+	bin := plan.PriorState.ResourceInstance(binAddr)
 	if len(bin.Current.Dependencies) != 0 {
 		t.Fatalf("bin should depend on nothing after refresh because there is no change, but got %s", bin.Current.Dependencies)
 	}
 
-	baz := plan.State.ResourceInstance(bazAddr)
+	baz := plan.PriorState.ResourceInstance(bazAddr)
 	if len(baz.Current.Dependencies) == 0 || !baz.Current.Dependencies[0].Equal(bamAddr.ContainingResource().Config()) {
 		t.Fatalf("baz should depend on bam after refresh, but got %s", baz.Current.Dependencies)
 	}

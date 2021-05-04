@@ -14,6 +14,7 @@ import (
 )
 
 const tfstateFilename = "tfstate"
+const tfstatePreviousFilename = "tfstate-prev"
 
 // Reader is the main type used to read plan files. Create a Reader by calling
 // Open.
@@ -90,7 +91,8 @@ func (r *Reader) ReadPlan() (*plans.Plan, error) {
 	return readTfplan(pr)
 }
 
-// ReadStateFile reads the state file embedded in the plan file.
+// ReadStateFile reads the state file embedded in the plan file, which
+// represents the "PriorState" as defined in plans.Plan.
 //
 // If the plan file contains no embedded state file, the returned error is
 // statefile.ErrNoState.
@@ -100,6 +102,24 @@ func (r *Reader) ReadStateFile() (*statefile.File, error) {
 			r, err := file.Open()
 			if err != nil {
 				return nil, fmt.Errorf("failed to extract state from plan file: %s", err)
+			}
+			return statefile.Read(r)
+		}
+	}
+	return nil, statefile.ErrNoState
+}
+
+// ReadPrevStateFile reads the previous state file embedded in the plan file, which
+// represents the "PrevRunState" as defined in plans.Plan.
+//
+// If the plan file contains no embedded previous state file, the returned error is
+// statefile.ErrNoState.
+func (r *Reader) ReadPrevStateFile() (*statefile.File, error) {
+	for _, file := range r.zip.File {
+		if file.Name == tfstatePreviousFilename {
+			r, err := file.Open()
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract previous state from plan file: %s", err)
 			}
 			return statefile.Read(r)
 		}
