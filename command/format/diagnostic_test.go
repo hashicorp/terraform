@@ -10,6 +10,8 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
+	viewsjson "github.com/hashicorp/terraform/command/views/json"
+
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -697,5 +699,58 @@ eventually make it onto multiple lines. THE END
 
 	if output != expected {
 		t.Fatalf("unexpected output: got:\n%s\nwant\n%s\n", output, expected)
+	}
+}
+
+// Test cases covering invalid JSON diagnostics which should still render
+// correctly. These JSON diagnostic values cannot be generated from the
+// json.NewDiagnostic code path, but we may read and display JSON diagnostics
+// in future from other sources.
+func TestDiagnosticFromJSON_invalid(t *testing.T) {
+	tests := map[string]struct {
+		Diag *viewsjson.Diagnostic
+		Want string
+	}{
+		"zero-value end range and highlight end byte": {
+			&viewsjson.Diagnostic{
+				Severity: viewsjson.DiagnosticSeverityError,
+				Summary:  "Bad end",
+				Detail:   "It all went wrong.",
+				Range: &viewsjson.DiagnosticRange{
+					Filename: "ohno.tf",
+					Start:    viewsjson.Pos{Line: 1, Column: 23, Byte: 22},
+					End:      viewsjson.Pos{Line: 0, Column: 0, Byte: 0},
+				},
+				Snippet: &viewsjson.DiagnosticSnippet{
+					Code:                 `resource "foo_bar "baz" {`,
+					StartLine:            1,
+					HighlightStartOffset: 22,
+					HighlightEndOffset:   0,
+				},
+			},
+			`[red]╷[reset]
+[red]│[reset] [bold][red]Error: [reset][bold]Bad end[reset]
+[red]│[reset]
+[red]│[reset]   on ohno.tf line 1:
+[red]│[reset]    1: resource "foo_bar "baz[underline]"[reset] {
+[red]│[reset]
+[red]│[reset] It all went wrong.
+[red]╵[reset]
+`,
+		},
+	}
+
+	// This empty Colorize just passes through all of the formatting codes
+	// untouched, because it doesn't define any formatting keywords.
+	colorize := &colorstring.Colorize{}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := strings.TrimSpace(DiagnosticFromJSON(test.Diag, colorize, 40))
+			want := strings.TrimSpace(test.Want)
+			if got != want {
+				t.Errorf("wrong result\ngot:\n%s\n\nwant:\n%s\n\n", got, want)
+			}
+		})
 	}
 }

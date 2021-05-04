@@ -246,6 +246,44 @@ func TestNewDiagnostic(t *testing.T) {
 				},
 			},
 		},
+		"error with unset highlight end position": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "There is no end",
+				Detail:   "But there is a beginning",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 16, Byte: 15},
+					End:      hcl.Pos{Line: 0, Column: 0, Byte: 0},
+				},
+			},
+			&Diagnostic{
+				Severity: "error",
+				Summary:  "There is no end",
+				Detail:   "But there is a beginning",
+				Range: &DiagnosticRange{
+					Filename: "test.tf",
+					Start: Pos{
+						Line:   1,
+						Column: 16,
+						Byte:   15,
+					},
+					End: Pos{
+						Line:   1,
+						Column: 17,
+						Byte:   16,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "test"`),
+					Code:                 `resource "test_resource" "test" {`,
+					StartLine:            1,
+					HighlightStartOffset: 15,
+					HighlightEndOffset:   16,
+					Values:               []DiagnosticExpressionValue{},
+				},
+			},
+		},
 		"error with source code subject and known expression": {
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -698,6 +736,11 @@ func TestNewDiagnostic(t *testing.T) {
 				"diagnostic",
 				fmt.Sprintf("%s.json", strings.ReplaceAll(name, " ", "-")),
 			)
+
+			// Generate golden reference by uncommenting the next two lines:
+			// gotBytes = append(gotBytes, '\n')
+			// os.WriteFile(filename, gotBytes, 0644)
+
 			wantFile, err := os.Open(filename)
 			if err != nil {
 				t.Fatalf("failed to open golden file: %s", err)
