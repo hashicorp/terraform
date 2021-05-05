@@ -25,6 +25,7 @@ type ContextGraphWalker struct {
 	Context            *Context
 	State              *states.SyncState   // Used for safe concurrent access to state
 	RefreshState       *states.SyncState   // Used for safe concurrent access to state
+	PrevRunState       *states.SyncState   // Used for safe concurrent access to state
 	Changes            *plans.ChangesSync  // Used for safe concurrent writes to changes
 	InstanceExpander   *instances.Expander // Tracks our gradual expansion of module and resource instances
 	Operation          walkOperation
@@ -95,6 +96,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ChangesValue:          w.Changes,
 		StateValue:            w.State,
 		RefreshStateValue:     w.RefreshState,
+		PrevRunStateValue:     w.PrevRunState,
 		Evaluator:             evaluator,
 		VariableValues:        w.variableValues,
 		VariableValuesLock:    &w.variableValuesLock,

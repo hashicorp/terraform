@@ -16,9 +16,10 @@ import (
 )
 
 func TestContext2Plan_removedDuringRefresh(t *testing.T) {
-	// The resource was added to state but actually failed to create and was
-	// left tainted. This should be removed during plan and result in a Create
-	// action.
+	// This tests the situation where an object tracked in the previous run
+	// state has been deleted outside of Terraform, which we should detect
+	// during the refresh step and thus ultimately produce a plan to recreate
+	// the object, since it's still present in the configuration.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 resource "test_object" "a" {
@@ -27,15 +28,41 @@ resource "test_object" "a" {
 	})
 
 	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
 		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return resp
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		// We should've been given the prior state JSON as our input to upgrade.
+		if !bytes.Contains(req.RawStateJSON, []byte("previous_run")) {
+			t.Fatalf("UpgradeResourceState request doesn't contain the previous run object\n%s", req.RawStateJSON)
+		}
+
+		// We'll put something different in "arg" as part of upgrading, just
+		// so that we can verify below that PrevRunState contains the upgraded
+		// (but NOT refreshed) version of the object.
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("upgraded"),
+		})
 		return resp
 	}
 
 	addr := mustResourceInstanceAddr("test_object.a")
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			AttrsJSON: []byte(`{"arg":"previous_run"}`),
 			Status:    states.ObjectTainted,
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
@@ -53,6 +80,37 @@ resource "test_object" "a" {
 		t.Fatal(diags.Err())
 	}
 
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
+	}
+	if !p.ReadResourceCalled {
+		t.Errorf("Provider's ReadResource wasn't called; should've been")
+	}
+
+	// The object should be absent from the plan's prior state, because that
+	// records the result of refreshing.
+	if got := plan.PriorState.ResourceInstance(addr); got != nil {
+		t.Errorf(
+			"instance %s is in the prior state after planning; should've been removed\n%s",
+			addr, spew.Sdump(got),
+		)
+	}
+
+	// However, the object should still be in the PrevRunState, because
+	// that reflects what we believed to exist before refreshing.
+	if got := plan.PrevRunState.ResourceInstance(addr); got == nil {
+		t.Errorf(
+			"instance %s is missing from the previous run state after planning; should've been preserved",
+			addr,
+		)
+	} else {
+		if !bytes.Contains(got.Current.AttrsJSON, []byte("upgraded")) {
+			t.Fatalf("previous run state has non-upgraded object\n%s", got.Current.AttrsJSON)
+		}
+	}
+
+	// Because the configuration still mentions test_object.a, we should've
+	// planned to recreate it in order to fix the drift.
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.Create {
 			t.Fatalf("expected Create action for missing %s, got %s", c.Addr, c.Action)
@@ -337,6 +395,127 @@ resource "test_resource" "b" {
 	}
 }
 
+func TestContext2Plan_destroyWithRefresh(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
+				return cty.StringVal("current"), nil
+			}
+			return v, nil
+		})
+		if err != nil {
+			// shouldn't get here
+			t.Fatalf("ReadResourceFn transform failed")
+			return providers.ReadResourceResponse{}
+		}
+		return providers.ReadResourceResponse{
+			NewState: newVal,
+		}
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		t.Logf("UpgradeResourceState %s", req.RawStateJSON)
+
+		// In the destroy-with-refresh codepath we end up calling
+		// UpgradeResourceState twice, because we do so once during refreshing
+		// (as part making a normal plan) and then again during the plan-destroy
+		// walk. The second call recieves the result of the earlier refresh,
+		// so we need to tolerate both "before" and "current" as possible
+		// inputs here.
+		if !bytes.Contains(req.RawStateJSON, []byte("before")) {
+			if !bytes.Contains(req.RawStateJSON, []byte("current")) {
+				t.Fatalf("UpgradeResourceState request doesn't contain the 'before' object or the 'current' object\n%s", req.RawStateJSON)
+			}
+		}
+
+		// We'll put something different in "arg" as part of upgrading, just
+		// so that we can verify below that PrevRunState contains the upgraded
+		// (but NOT refreshed) version of the object.
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("upgraded"),
+		})
+		return resp
+	}
+
+	addr := mustResourceInstanceAddr("test_object.a")
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"arg":"before"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		PlanMode:    plans.DestroyMode,
+		SkipRefresh: false,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
+	}
+	if !p.ReadResourceCalled {
+		t.Errorf("Provider's ReadResource wasn't called; should've been")
+	}
+
+	if plan.PriorState == nil {
+		t.Fatal("missing plan state")
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.Delete {
+			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
+		}
+	}
+
+	if instState := plan.PrevRunState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no previous run state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object in the previous run state", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
+			t.Errorf("%s has wrong previous run state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+	if instState := plan.PriorState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no prior state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object in the prior state", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"current"`; !bytes.Contains(got, []byte(want)) {
+			t.Errorf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+}
+
 func TestContext2Plan_destroySkipRefresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -346,11 +525,44 @@ resource "test_object" "a" {
 	})
 
 	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		t.Helper()
+		t.Errorf("unexpected call to ReadResource")
+		resp.NewState = req.PriorState
+		return resp
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		t.Logf("UpgradeResourceState %s", req.RawStateJSON)
+		// We should've been given the prior state JSON as our input to upgrade.
+		if !bytes.Contains(req.RawStateJSON, []byte("before")) {
+			t.Fatalf("UpgradeResourceState request doesn't contain the 'before' object\n%s", req.RawStateJSON)
+		}
+
+		// We'll put something different in "arg" as part of upgrading, just
+		// so that we can verify below that PrevRunState contains the upgraded
+		// (but NOT refreshed) version of the object.
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("upgraded"),
+		})
+		return resp
+	}
 
 	addr := mustResourceInstanceAddr("test_object.a")
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"test_string":"foo"}`),
+			AttrsJSON: []byte(`{"arg":"before"}`),
 			Status:    states.ObjectReady,
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
@@ -370,6 +582,13 @@ resource "test_object" "a" {
 		t.Fatal(diags.Err())
 	}
 
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
+	}
+	if p.ReadResourceCalled {
+		t.Errorf("Provider's ReadResource was called; shouldn't have been")
+	}
+
 	if plan.PriorState == nil {
 		t.Fatal("missing plan state")
 	}
@@ -377,6 +596,27 @@ resource "test_object" "a" {
 	for _, c := range plan.Changes.Resources {
 		if c.Action != plans.Delete {
 			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
+		}
+	}
+
+	if instState := plan.PrevRunState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no previous run state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object in the previous run state", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
+			t.Errorf("%s has wrong previous run state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+	if instState := plan.PriorState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no prior state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object in the prior state", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
+			// NOTE: The prior state should still have been _upgraded_, even
+			// though we skipped running refresh after upgrading it.
+			t.Errorf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
 		}
 	}
 }
@@ -492,27 +732,39 @@ provider "test" {
 func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 	addr := mustResourceInstanceAddr("test_object.a")
 
-	p := simpleMockProvider()
-
 	// The configuration, the prior state, and the refresh result intentionally
 	// have different values for "test_string" so we can observe that the
 	// refresh took effect but the configuration change wasn't considered.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 			resource "test_object" "a" {
-				test_string = "after"
+				arg = "after"
 			}
 		`,
 	})
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(addr, &states.ResourceInstanceObjectSrc{
-			AttrsJSON: []byte(`{"test_string":"before"}`),
+			AttrsJSON: []byte(`{"arg":"before"}`),
 			Status:    states.ObjectReady,
 		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
 	})
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
-			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "test_string"}) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
 				return cty.StringVal("current"), nil
 			}
 			return v, nil
@@ -525,6 +777,20 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 		return providers.ReadResourceResponse{
 			NewState: newVal,
 		}
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		// We should've been given the prior state JSON as our input to upgrade.
+		if !bytes.Contains(req.RawStateJSON, []byte("before")) {
+			t.Fatalf("UpgradeResourceState request doesn't contain the 'before' object\n%s", req.RawStateJSON)
+		}
+
+		// We'll put something different in "arg" as part of upgrading, just
+		// so that we can verify below that PrevRunState contains the upgraded
+		// (but NOT refreshed) version of the object.
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("upgraded"),
+		})
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -541,20 +807,36 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 
-	if got, want := len(plan.Changes.Resources), 0; got != want {
-		t.Fatalf("plan contains resource changes; want none\n%s", spew.Sdump(plan.Changes.Resources))
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
+	}
+	if !p.ReadResourceCalled {
+		t.Errorf("Provider's ReadResource wasn't called; should've been")
 	}
 
-	state = plan.PriorState
-	instState := state.ResourceInstance(addr)
-	if instState == nil {
-		t.Fatalf("%s has no state at all after plan", addr)
+	if got, want := len(plan.Changes.Resources), 0; got != want {
+		t.Errorf("plan contains resource changes; want none\n%s", spew.Sdump(plan.Changes.Resources))
 	}
-	if instState.Current == nil {
-		t.Fatalf("%s has no current object after plan", addr)
+
+	if instState := plan.PriorState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no prior state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object after plan", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"current"`; !bytes.Contains(got, []byte(want)) {
+			// Should've saved the result of refreshing
+			t.Errorf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
 	}
-	if got, want := instState.Current.AttrsJSON, `"current"`; !bytes.Contains(got, []byte(want)) {
-		t.Fatalf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+	if instState := plan.PrevRunState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no previous run state at all after plan", addr)
+	} else {
+		if instState.Current == nil {
+			t.Errorf("%s has no current object in the previous run state", addr)
+		} else if got, want := instState.Current.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
+			// Should've saved the result of upgrading
+			t.Errorf("%s has wrong previous run state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
 	}
 }
 

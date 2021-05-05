@@ -256,7 +256,10 @@ type phaseState int
 const (
 	workingState phaseState = iota
 	refreshState
+	prevRunState
 )
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type phaseState
 
 // writeResourceInstanceState saves the given object as the current object for
 // the selected resource instance.
@@ -276,11 +279,23 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 
 	var state *states.SyncState
 	switch targetState {
+	case workingState:
+		state = ctx.State()
 	case refreshState:
 		log.Printf("[TRACE] writeResourceInstanceState: using RefreshState for %s", absAddr)
 		state = ctx.RefreshState()
+	case prevRunState:
+		state = ctx.PrevRunState()
 	default:
-		state = ctx.State()
+		panic(fmt.Sprintf("unsupported phaseState value %#v", targetState))
+	}
+	if state == nil {
+		// Should not happen, because we shouldn't ever try to write to
+		// a state that isn't applicable to the current operation.
+		// (We can also get in here for unit tests which are using
+		// EvalContextMock but not populating PrevRunStateState with
+		// a suitable state object.)
+		return fmt.Errorf("state of type %s is not applicable to the current operation; this is a bug in Terraform", targetState)
 	}
 
 	if obj == nil || obj.Value.IsNull() {
@@ -430,6 +445,7 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := n.Addr
+	log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s", absAddr)
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return state, diags.Append(err)

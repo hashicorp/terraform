@@ -151,6 +151,12 @@ type EvalContext interface {
 	// values.
 	RefreshState() *states.SyncState
 
+	// PrevRunState returns a wrapper object that provides safe concurrent
+	// access to the state which represents the result of the previous run,
+	// updated only so that object data conforms to current schemas for
+	// meaningful comparison with RefreshState.
+	PrevRunState() *states.SyncState
+
 	// InstanceExpander returns a helper object for tracking the expansion of
 	// graph nodes during the plan phase in response to "count" and "for_each"
 	// arguments.
