@@ -97,14 +97,36 @@ type ContextMeta struct {
 type Context struct {
 	config       *configs.Config
 	changes      *plans.Changes
-	state        *states.State
-	refreshState *states.State
 	skipRefresh  bool
 	targets      []addrs.Targetable
 	forceReplace []addrs.AbsResourceInstance
 	variables    InputValues
 	meta         *ContextMeta
 	planMode     plans.Mode
+
+	// state, refreshState, and prevRunState simultaneously track three
+	// different incarnations of the Terraform state:
+	//
+	// "state" is always the most "up-to-date". During planning it represents
+	// our best approximation of the planned new state, and during applying
+	// it represents the results of all of the actions we've taken so far.
+	//
+	// "refreshState" is populated and relevant only during planning, where we
+	// update it to reflect a provider's sense of the current state of the
+	// remote object each resource instance is bound to but don't include
+	// any changes implied by the configuration.
+	//
+	// "prevRunState" is similar to refreshState except that it doesn't even
+	// include the result of the provider's refresh step, and instead reflects
+	// the state as we found it prior to any changes, although it does reflect
+	// the result of running the provider's schema upgrade actions so that the
+	// resource instance objects will all conform to the _current_ resource
+	// type schemas if planning is successful, so that in that case it will
+	// be meaningful to compare prevRunState to refreshState to detect changes
+	// made outside of Terraform.
+	state        *states.State
+	refreshState *states.State
+	prevRunState *states.State
 
 	hooks      []Hook
 	components contextComponentFactory
@@ -314,6 +336,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config:       config,
 		state:        state,
 		refreshState: state.DeepCopy(),
+		prevRunState: state.DeepCopy(),
 		skipRefresh:  opts.SkipRefresh,
 		targets:      opts.Targets,
 		forceReplace: opts.ForceReplace,
@@ -388,12 +411,13 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 
 	case GraphTypePlanDestroy:
 		return (&DestroyPlanGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
+			Config:      c.config,
+			State:       c.state,
+			Components:  c.components,
+			Schemas:     c.schemas,
+			Targets:     c.targets,
+			Validate:    opts.Validate,
+			skipRefresh: c.skipRefresh,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanRefreshOnly:
@@ -631,8 +655,6 @@ The -target option is not for routine use, and is provided only for exceptional 
 func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	prevRunState := c.state.DeepCopy()
-
 	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -650,7 +672,7 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 		UIMode:            plans.NormalMode,
 		Changes:           c.changes,
 		ForceReplaceAddrs: c.forceReplace,
-		PrevRunState:      prevRunState,
+		PrevRunState:      c.prevRunState.DeepCopy(),
 	}
 
 	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
@@ -668,8 +690,7 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	destroyPlan := &plans.Plan{
-		PrevRunState: c.state.DeepCopy(),
-		PriorState:   c.state.DeepCopy(),
+		PriorState: c.state.DeepCopy(),
 	}
 	c.changes = plans.NewChanges()
 
@@ -677,6 +698,13 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	// sources, and remove missing managed resources. This is required because
 	// a "destroy plan" is only creating delete changes, and is essentially a
 	// local operation.
+	//
+	// NOTE: if skipRefresh _is_ set then we'll rely on the destroy-plan walk
+	// below to upgrade the prevRunState and priorState both to the latest
+	// resource type schemas, so NodePlanDestroyableResourceInstance.Execute
+	// must coordinate with this by taking that action only when c.skipRefresh
+	// _is_ set. This coupling between the two is unfortunate but necessary
+	// to work within our current structure.
 	if !c.skipRefresh {
 		refreshPlan, refreshDiags := c.plan()
 		diags = diags.Append(refreshDiags)
@@ -687,6 +715,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		// insert the refreshed state into the destroy plan result, and discard
 		// the changes recorded from the refresh.
 		destroyPlan.PriorState = refreshPlan.PriorState.DeepCopy()
+		destroyPlan.PrevRunState = refreshPlan.PrevRunState.DeepCopy()
 		c.changes = plans.NewChanges()
 	}
 
@@ -704,6 +733,17 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
+	if c.skipRefresh {
+		// If we didn't do refreshing then both the previous run state and
+		// the prior state are the result of upgrading the previous run state,
+		// which we should've upgraded as part of the plan-destroy walk
+		// in NodePlanDestroyableResourceInstance.Execute, so they'll have the
+		// current schema but neither will reflect any out-of-band changes in
+		// the remote system.
+		destroyPlan.PrevRunState = c.prevRunState.DeepCopy()
+		destroyPlan.PriorState = c.prevRunState.DeepCopy()
+	}
+
 	destroyPlan.UIMode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
 	return destroyPlan, diags
@@ -711,8 +751,6 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 
 func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	prevRunState := c.state.DeepCopy()
 
 	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
 	diags = diags.Append(graphDiags)
@@ -730,7 +768,7 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	plan := &plans.Plan{
 		UIMode:       plans.RefreshOnlyMode,
 		Changes:      c.changes,
-		PrevRunState: prevRunState,
+		PrevRunState: c.prevRunState.DeepCopy(),
 	}
 
 	// If the graph builder and graph nodes correctly obeyed our directive
@@ -923,6 +961,7 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 	var state *states.SyncState
 	var refreshState *states.SyncState
+	var prevRunState *states.SyncState
 
 	switch operation {
 	case walkValidate:
@@ -930,12 +969,14 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		state = states.NewState().SyncWrapper()
 
 		// validate currently uses the plan graph, so we have to populate the
-		// refreshState.
+		// refreshState and the prevRunState.
 		refreshState = states.NewState().SyncWrapper()
+		prevRunState = states.NewState().SyncWrapper()
 
-	case walkPlan:
+	case walkPlan, walkPlanDestroy:
 		state = c.state.SyncWrapper()
 		refreshState = c.refreshState.SyncWrapper()
+		prevRunState = c.prevRunState.SyncWrapper()
 
 	default:
 		state = c.state.SyncWrapper()
@@ -945,6 +986,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		Context:            c,
 		State:              state,
 		RefreshState:       refreshState,
+		PrevRunState:       prevRunState,
 		Changes:            c.changes.SyncWrapper(),
 		InstanceExpander:   instances.NewExpander(),
 		Operation:          operation,

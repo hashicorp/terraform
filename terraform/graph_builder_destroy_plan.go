@@ -36,6 +36,11 @@ type DestroyPlanGraphBuilder struct {
 
 	// Validate will do structural validation of the graph.
 	Validate bool
+
+	// If set, skipRefresh will cause us stop skip refreshing any existing
+	// resource instances as part of our planning. This will cause us to fail
+	// to detect if an object has already been deleted outside of Terraform.
+	skipRefresh bool
 }
 
 // See GraphBuilder
@@ -52,6 +57,7 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		return &NodePlanDestroyableResourceInstance{
 			NodeAbstractResourceInstance: a,
+			skipRefresh:                  b.skipRefresh,
 		}
 	}
 	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {

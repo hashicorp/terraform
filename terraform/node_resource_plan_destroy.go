@@ -11,6 +11,9 @@ import (
 // to be planned for destruction.
 type NodePlanDestroyableResourceInstance struct {
 	*NodeAbstractResourceInstance
+
+	// skipRefresh indicates that we should skip refreshing
+	skipRefresh bool
 }
 
 var (
@@ -46,6 +49,26 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
+	}
+
+	// If we are in the "skip refresh" mode then we will have skipped over our
+	// usual opportunity to update the previous run state and refresh state
+	// with the result of any provider schema upgrades, so we'll compensate
+	// by doing that here.
+	//
+	// NOTE: this is coupled with logic in Context.destroyPlan which skips
+	// running a normal plan walk when refresh is enabled. These two
+	// conditionals must agree (be exactly opposite) in order to get the
+	// correct behavior in both cases.
+	if n.skipRefresh {
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
+		if diags.HasErrors() {
+			return diags
+		}
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, refreshState))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	change, destroyPlanDiags := n.planDestroy(ctx, state, "")
