@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/views/json"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -26,7 +25,7 @@ type Operation interface {
 
 	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	PlanNoChanges()
-	Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas)
+	Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	PlanNextStep(planPath string)
 
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -92,8 +91,8 @@ func (v *OperationHuman) PlanNoChanges() {
 	v.view.streams.Println("\n" + strings.TrimSpace(format.WordWrap(planNoChangesDetail, v.view.outputColumns())))
 }
 
-func (v *OperationHuman) Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
-	renderPlan(plan, baseState, schemas, v.view)
+func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	renderPlan(plan, schemas, v.view)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -172,7 +171,7 @@ func (v *OperationJSON) PlanNoChanges() {
 
 // Log a change summary and a series of "planned" messages for the changes in
 // the plan.
-func (v *OperationJSON) Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
+func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	cs := &json.ChangeSummary{
 		Operation: json.OperationPlanned,
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -96,7 +95,7 @@ func (v *PlanJSON) HelpPrompt() {
 
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
-func renderPlan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas, view *View) {
+func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
