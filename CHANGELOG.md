@@ -1,19 +1,19 @@
-## 0.15.2 (Unreleased)
+## 0.15.2 (May 05, 2021)
 
 ENHANCEMENTS:
 
 * `terraform plan` and `terraform apply`: Both now support a new planning option `-replace=...` which takes the address of a resource instance already tracked in the state and forces Terraform to upgrade either an update or no-op plan for that instance into a "replace" (either destroy-then-create or create-then-destroy depending on configuration), to allow replacing a degraded object with a new object of the same configuration in a single action and preview the effect of that before applying it.
-* `terraform apply`: Now has a `-destroy` option for symmetry with `terraform plan -destroy`, which makes `terraform destroy` effectively an alias for `terraform apply -destroy`. This change is only for consistency between `terraform plan` and `terraform apply`; there are no current plans to deprecate `terraform destroy`. [GH-28489]
-* core: Update HCL to allow better planning of dynamic blocks [GH-28424]
-* core: Unmark values when planning data sources [GH-28539]
+* `terraform apply`: Now has a `-destroy` option for symmetry with `terraform plan -destroy`, which makes `terraform destroy` effectively an alias for `terraform apply -destroy`. This change is only for consistency between `terraform plan` and `terraform apply`; there are no current plans to deprecate `terraform destroy`. ([#28489](https://github.com/hashicorp/terraform/issues/28489))
+* core: Update HCL to allow better planning of dynamic blocks ([#28424](https://github.com/hashicorp/terraform/issues/28424))
+* core: Unmark values when planning data sources ([#28539](https://github.com/hashicorp/terraform/issues/28539))
 
 BUG FIXES:
 
-* command/format: Fix various issues with nested-type attribute formatting [GH-28600]
-* core: Fix JSON plan output to add sensitivity data for provider-specified sensitive attribute values [GH-28523]
-* cli: Fix missing "forces replacement" UI for attribute changes which are marked as sensitive by the provider [GH-28583]
-* cli: Fix crash when rendering diagnostic caused by missing trailing quote [GH-28598]
-* functions: Fix crash when calling `setproduct` with one or more empty collections [GH-28607]
+* command/format: Fix various issues with nested-type attribute formatting ([#28600](https://github.com/hashicorp/terraform/issues/28600))
+* core: Fix JSON plan output to add sensitivity data for provider-specified sensitive attribute values ([#28523](https://github.com/hashicorp/terraform/issues/28523))
+* cli: Fix missing "forces replacement" UI for attribute changes which are marked as sensitive by the provider ([#28583](https://github.com/hashicorp/terraform/issues/28583))
+* cli: Fix crash when rendering diagnostic caused by missing trailing quote ([#28598](https://github.com/hashicorp/terraform/issues/28598))
+* functions: Fix crash when calling `setproduct` with one or more empty collections ([#28607](https://github.com/hashicorp/terraform/issues/28607))
 
 ## 0.15.1 (April 26, 2021)
 
