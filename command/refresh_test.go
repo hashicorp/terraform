@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var equateEmpty = cmpopts.EquateEmpty()
@@ -857,6 +858,78 @@ func TestRefresh_targetFlagsDiags(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRefresh_warnings(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = refreshFixtureSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.SimpleWarning("warning 1"),
+				tfdiags.SimpleWarning("warning 2"),
+			},
+		}
+	}
+
+	t.Run("full warnings", func(t *testing.T) {
+		view, done := testView(t)
+		c := &RefreshCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		code := c.Run([]string{})
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
+
+	t.Run("compact warnings", func(t *testing.T) {
+		view, done := testView(t)
+		c := &RefreshCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		code := c.Run([]string{"-compact-warnings"})
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		// the output should contain 2 warnings and a message about -compact-warnings
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+			"To see the full warning notes, run Terraform without -compact-warnings.",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
 }
 
 // configuration in testdata/refresh . This schema should be
