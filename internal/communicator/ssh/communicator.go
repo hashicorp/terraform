@@ -419,7 +419,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	return c.scpSession("scp -vt "+targetDir, scpFunc)
+	return c.scpSession("scp -vt "+ quoteFilesystemPath(targetDir), scpFunc)
 }
 
 // UploadScript implementation of communicator.Communicator interface
@@ -815,4 +815,9 @@ type bastionConn struct {
 func (c *bastionConn) Close() error {
 	c.Conn.Close()
 	return c.Bastion.Close()
+}
+
+func quoteFilesystemPath(path string) string {
+	replacedQuotes := strings.ReplaceAll(path, "'", "")
+	return fmt.Sprintf("'%s'", replacedQuotes)
 }
