@@ -2,6 +2,8 @@ package command
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func TestPlan(t *testing.T) {
@@ -808,21 +811,37 @@ func TestPlan_detailedExitcode(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	p := planFixtureProvider()
-	view, done := testView(t)
-	c := &PlanCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			View:             view,
-		},
-	}
+	t.Run("return 1", func(t *testing.T) {
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				// Running plan without setting testingOverrides is similar to plan without init
+				View: view,
+			},
+		}
+		code := c.Run([]string{"-detailed-exitcode"})
+		output := done(t)
+		if code != 1 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
 
-	args := []string{"-detailed-exitcode"}
-	code := c.Run(args)
-	output := done(t)
-	if code != 2 {
-		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
-	}
+	t.Run("return 2", func(t *testing.T) {
+		p := planFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		code := c.Run([]string{"-detailed-exitcode"})
+		output := done(t)
+		if code != 2 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+	})
 }
 
 func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
@@ -1102,7 +1121,155 @@ func TestPlan_replace(t *testing.T) {
 	if got, want := stdout, "test_instance.a will be replaced, as requested"; !strings.Contains(got, want) {
 		t.Errorf("missing replace explanation\ngot output:\n%s\n\nwant substring: %s", got, want)
 	}
+}
 
+// Verify that the parallelism flag allows no more than the desired number of
+// concurrent calls to PlanResourceChange.
+func TestPlan_parallelism(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("parallelism"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	par := 4
+
+	// started is a semaphore that we use to ensure that we never have more
+	// than "par" plan operations happening concurrently
+	started := make(chan struct{}, par)
+
+	// beginCtx is used as a starting gate to hold back PlanResourceChange
+	// calls until we reach the desired concurrency. The cancel func "begin" is
+	// called once we reach the desired concurrency, allowing all apply calls
+	// to proceed in unison.
+	beginCtx, begin := context.WithCancel(context.Background())
+
+	// Since our mock provider has its own mutex preventing concurrent calls
+	// to ApplyResourceChange, we need to use a number of separate providers
+	// here. They will all have the same mock implementation function assigned
+	// but crucially they will each have their own mutex.
+	providerFactories := map[addrs.Provider]providers.Factory{}
+	for i := 0; i < 10; i++ {
+		name := fmt.Sprintf("test%d", i)
+		provider := &terraform.MockProvider{}
+		provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				name + "_instance": {Block: &configschema.Block{}},
+			},
+		}
+		provider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			// If we ever have more than our intended parallelism number of
+			// plan operations running concurrently, the semaphore will fail.
+			select {
+			case started <- struct{}{}:
+				defer func() {
+					<-started
+				}()
+			default:
+				t.Fatal("too many concurrent apply operations")
+			}
+
+			// If we never reach our intended parallelism, the context will
+			// never be canceled and the test will time out.
+			if len(started) >= par {
+				begin()
+			}
+			<-beginCtx.Done()
+
+			// do some "work"
+			// Not required for correctness, but makes it easier to spot a
+			// failure when there is more overlap.
+			time.Sleep(10 * time.Millisecond)
+			return providers.PlanResourceChangeResponse{
+				PlannedState: req.ProposedNewState,
+			}
+		}
+		providerFactories[addrs.NewDefaultProvider(name)] = providers.FactoryFixed(provider)
+	}
+	testingOverrides := &testingOverrides{
+		Providers: providerFactories,
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: testingOverrides,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		fmt.Sprintf("-parallelism=%d", par),
+	}
+
+	res := c.Run(args)
+	output := done(t)
+	if res != 0 {
+		t.Fatal(output.Stdout())
+	}
+}
+
+func TestPlan_warnings(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	t.Run("full warnings", func(t *testing.T) {
+		p := planWarningsFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		code := c.Run([]string{})
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		// the output should contain 3 warnings (returned by planWarningsFixtureProvider())
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+			"warning 3",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
+
+	t.Run("compact warnings", func(t *testing.T) {
+		p := planWarningsFixtureProvider()
+		view, done := testView(t)
+		c := &PlanCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+		code := c.Run([]string{"-compact-warnings"})
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		// the output should contain 3 warnings (returned by planWarningsFixtureProvider())
+		// and the message that plan was run with -compact-warnings
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+			"warning 3",
+			"To see the full warning notes, run Terraform without -compact-warnings.",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
 }
 
 // planFixtureSchema returns a schema suitable for processing the
@@ -1176,6 +1343,25 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 	p.GetProviderSchemaResponse = planVarsFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+		}
+	}
+	return p
+}
+
+// planFixtureProvider returns a mock provider that is configured for basic
+// operation with the configuration in testdata/plan. This mock has
+// GetSchemaResponse and PlanResourceChangeFn populated, returning 3 warnings.
+func planWarningsFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.GetProviderSchemaResponse = planFixtureSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.SimpleWarning("warning 1"),
+				tfdiags.SimpleWarning("warning 2"),
+				tfdiags.SimpleWarning("warning 3"),
+			},
 			PlannedState: req.ProposedNewState,
 		}
 	}
