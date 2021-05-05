@@ -1,0 +1,1 @@
+unknown-root-provider/main.tf:5,11-14: Provider bar is undefined; No provider named bar has been declared in the root module
