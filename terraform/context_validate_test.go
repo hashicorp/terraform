@@ -2093,3 +2093,71 @@ resource "test_instance" "c" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Validate_passInheritedProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+	test = {
+	  source = "hashicorp/test"
+	}
+  }
+}
+
+module "first" {
+  source = "./first"
+  providers = {
+    test = test
+  }
+}
+`,
+
+		// This module does not define a config for the test provider, but we
+		// should be able to pass whatever the implied config is to a child
+		// module.
+		"first/main.tf": `
+terraform {
+  required_providers {
+    test = {
+	  source = "hashicorp/test"
+    }
+  }
+}
+
+module "second" {
+  source = "./second"
+  providers = {
+	test.alias = test
+  }
+}`,
+
+		"first/second/main.tf": `
+terraform {
+  required_providers {
+    test = {
+	  source = "hashicorp/test"
+      configuration_aliases = [test.alias]
+    }
+  }
+}
+
+resource "test_object" "t" {
+  provider = test.alias
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
