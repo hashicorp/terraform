@@ -153,7 +153,7 @@ func (b *Local) opPlan(
 	}
 
 	// Render the plan
-	op.View.Plan(plan, plan.PriorState, tfCtx.Schemas())
+	op.View.Plan(plan, tfCtx.Schemas())
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered

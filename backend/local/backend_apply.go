@@ -96,7 +96,7 @@ func (b *Local) opApply(
 			}
 
 			if !trivialPlan {
-				op.View.Plan(plan, runningOp.State, tfCtx.Schemas())
+				op.View.Plan(plan, tfCtx.Schemas())
 			}
 
 			// We'll show any accumulated warnings before we display the prompt,

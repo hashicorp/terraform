@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 )
 
@@ -88,9 +87,8 @@ func TestOperation_plan(t *testing.T) {
 	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
 
 	plan := testPlan(t)
-	state := states.NewState()
 	schemas := testSchemas()
-	v.Plan(plan, state, schemas)
+	v.Plan(plan, schemas)
 
 	want := `
 Terraform used the selected providers to generate the following execution
@@ -308,7 +306,7 @@ func TestOperationJSON_plan(t *testing.T) {
 			},
 		},
 	}
-	v.Plan(plan, nil, nil)
+	v.Plan(plan, nil)
 
 	want := []map[string]interface{}{
 		// Create-then-delete should result in replace

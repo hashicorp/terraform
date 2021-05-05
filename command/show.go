@@ -160,7 +160,7 @@ func (c *ShowCommand) Run(args []string) int {
 		}
 
 		view := views.NewShow(arguments.ViewHuman, c.View)
-		view.Plan(plan, stateFile.State, schemas)
+		view.Plan(plan, schemas)
 		return 0
 	}
 

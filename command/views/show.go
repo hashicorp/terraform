@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/plans"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -13,7 +12,7 @@ import (
 // command, in place to allow access to the plan renderer which is now in the
 // views package.
 type Show interface {
-	Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas)
+	Plan(plan *plans.Plan, schemas *terraform.Schemas)
 }
 
 // FIXME: the show view should support both human and JSON types. This code is
@@ -34,6 +33,6 @@ type ShowHuman struct {
 
 var _ Show = (*ShowHuman)(nil)
 
-func (v *ShowHuman) Plan(plan *plans.Plan, baseState *states.State, schemas *terraform.Schemas) {
-	renderPlan(plan, baseState, schemas, &v.View)
+func (v *ShowHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	renderPlan(plan, schemas, &v.View)
 }
