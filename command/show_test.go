@@ -41,11 +41,11 @@ func TestShow(t *testing.T) {
 }
 
 func TestShow_noArgs(t *testing.T) {
+	// Get a temp cwd
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
 	// Create the default state
-	statePath := testStateFile(t, testState())
-	stateDir := filepath.Dir(statePath)
-	defer os.RemoveAll(stateDir)
-	defer testChdir(t, stateDir)()
+	testStateFileDefault(t, testState())
 
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
@@ -57,10 +57,7 @@ func TestShow_noArgs(t *testing.T) {
 		},
 	}
 
-	// the statefile created by testStateFile is named state.tfstate
-	// so one arg is required
-	args := []string{"state.tfstate"}
-	if code := c.Run(args); code != 0 {
+	if code := c.Run([]string{}); code != 0 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
 

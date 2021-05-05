@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -1023,6 +1024,56 @@ func TestApply_refresh(t *testing.T) {
 	}
 }
 
+func TestApply_refreshFalse(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	originalState := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"ami":"bar"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, originalState)
+
+	p := applyFixtureProvider()
+	view, done := testView(t)
+	c := &ApplyCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-auto-approve",
+		"-refresh=false",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if p.ReadResourceCalled {
+		t.Fatal("should not call ReadResource when refresh=false")
+	}
+}
 func TestApply_shutdown(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -2100,6 +2151,84 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 			t.Errorf("unexpected log:\n%s", cmp.Diff(wantMap, gotMap))
 		}
 	}
+}
+
+func TestApply_warnings(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("apply"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	p.GetProviderSchemaResponse = applyFixtureSchema()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		return providers.PlanResourceChangeResponse{
+			PlannedState: req.ProposedNewState,
+			Diagnostics: tfdiags.Diagnostics{
+				tfdiags.SimpleWarning("warning 1"),
+				tfdiags.SimpleWarning("warning 2"),
+			},
+		}
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		return providers.ApplyResourceChangeResponse{
+			NewState: cty.UnknownAsNull(req.PlannedState),
+		}
+	}
+
+	t.Run("full warnings", func(t *testing.T) {
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		args := []string{"-auto-approve"}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
+
+	t.Run("compact warnings", func(t *testing.T) {
+		view, done := testView(t)
+		c := &ApplyCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				View:             view,
+			},
+		}
+
+		code := c.Run([]string{"-auto-approve", "-compact-warnings"})
+		output := done(t)
+		if code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+		}
+		// the output should contain 2 warnings and a message about -compact-warnings
+		wantWarnings := []string{
+			"warning 1",
+			"warning 2",
+			"To see the full warning notes, run Terraform without -compact-warnings.",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(output.Stdout(), want) {
+				t.Errorf("missing warning %s", want)
+			}
+		}
+	})
 }
 
 // applyFixtureSchema returns a schema suitable for processing the
