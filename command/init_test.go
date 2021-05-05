@@ -485,6 +485,54 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	}
 }
 
+func TestInit_backendReconfigure(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			ProviderSource:   providerSource,
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	// create some state, so the backend has something to migrate.
+	f, err := os.Create("foo") // this is the path" in the backend config
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = writeStateForTesting(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// now run init again, changing the path.
+	// The -reconfigure flag prevents init from migrating
+	// Without -reconfigure, the test fails since the backend asks for input on migrating state
+	args = []string{"-reconfigure", "-backend-config", "path=changed"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestInit_backendConfigFileChange(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
