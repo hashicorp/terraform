@@ -78,10 +78,21 @@ func (n *NodePlannableResourceInstanceOrphan) dataResourceExecute(ctx EvalContex
 func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
-	// Declare a bunch of variables that are used for state during
-	// evaluation. These are written to by-address below.
 	oldState, readDiags := n.readResourceInstanceState(ctx, addr)
 	diags = diags.Append(readDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// Note any upgrades that readResourceInstanceState might've done in the
+	// prevRunState, so that it'll conform to current schema.
+	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, prevRunState))
+	if diags.HasErrors() {
+		return diags
+	}
+	// Also the refreshState, because that should still reflect schema upgrades
+	// even if not refreshing.
+	diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, refreshState))
 	if diags.HasErrors() {
 		return diags
 	}

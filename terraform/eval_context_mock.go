@@ -125,6 +125,9 @@ type MockEvalContext struct {
 	RefreshStateCalled bool
 	RefreshStateState  *states.SyncState
 
+	PrevRunStateCalled bool
+	PrevRunStateState  *states.SyncState
+
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
 }
@@ -337,6 +340,11 @@ func (c *MockEvalContext) State() *states.SyncState {
 func (c *MockEvalContext) RefreshState() *states.SyncState {
 	c.RefreshStateCalled = true
 	return c.RefreshStateState
+}
+
+func (c *MockEvalContext) PrevRunState() *states.SyncState {
+	c.PrevRunStateCalled = true
+	return c.PrevRunStateState
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

@@ -33,7 +33,8 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := &MockEvalContext{
 		StateState:               state.SyncWrapper(),
-		RefreshStateState:        state.SyncWrapper(),
+		RefreshStateState:        state.DeepCopy().SyncWrapper(),
+		PrevRunStateState:        state.DeepCopy().SyncWrapper(),
 		InstanceExpanderExpander: instances.NewExpander(),
 		ProviderProvider:         p,
 		ProviderSchemaSchema: &ProviderSchema{

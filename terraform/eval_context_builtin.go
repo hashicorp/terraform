@@ -72,6 +72,7 @@ type BuiltinEvalContext struct {
 	ChangesValue          *plans.ChangesSync
 	StateValue            *states.SyncState
 	RefreshStateValue     *states.SyncState
+	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
 }
 
@@ -357,6 +358,10 @@ func (ctx *BuiltinEvalContext) State() *states.SyncState {
 
 func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {
 	return ctx.RefreshStateValue
+}
+
+func (ctx *BuiltinEvalContext) PrevRunState() *states.SyncState {
+	return ctx.PrevRunStateValue
 }
 
 func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
