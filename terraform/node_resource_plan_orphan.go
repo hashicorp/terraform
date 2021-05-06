@@ -114,6 +114,10 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		if diags.HasErrors() {
 			return diags
 		}
+
+		// If we refreshed then our subsequent planning should be in terms of
+		// the new object, not the original object.
+		oldState = refreshedState
 	}
 
 	if !n.skipPlanChanges {
