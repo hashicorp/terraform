@@ -55,36 +55,44 @@ type Plan struct {
 	PriorState   *states.State
 }
 
-// Backend represents the backend-related configuration and other data as it
-// existed when a plan was created.
-type Backend struct {
-	// Type is the type of backend that the plan will apply against.
-	Type string
+// CanApply returns true if and only if the recieving plan includes content
+// that would make sense to apply. If it returns false, the plan operation
+// should indicate that there's nothing to do and Terraform should exit
+// without prompting the user to confirm the changes.
+//
+// This function represents our main business logic for making the decision
+// about whether a given plan represents meaningful "changes", and so its
+// exact definition may change over time; the intent is just to centralize the
+// rules for that rather than duplicating different versions of it at various
+// locations in the UI code.
+func (p *Plan) CanApply() bool {
+	switch {
+	case !p.Changes.Empty():
+		// "Empty" means that everything in the changes is a "NoOp", so if
+		// not empty then there's at least one non-NoOp change.
+		return true
 
-	// Config is the configuration of the backend, whose schema is decided by
-	// the backend Type.
-	Config DynamicValue
+	case !p.PriorState.ManagedResourcesEqual(p.PrevRunState):
+		// If there are no changes planned but we detected some
+		// outside-Terraform changes while refreshing then we consider
+		// that applyable in isolation only if this was a refresh-only
+		// plan where we expect updating the state to include these
+		// changes was the intended goal.
+		//
+		// (We don't treat a "refresh only" plan as applyable in normal
+		// planning mode because historically the refresh result wasn't
+		// considered part of a plan at all, and so it would be
+		// a disruptive breaking change if refreshing alone suddenly
+		// became applyable in the normal case and an existing configuration
+		// was relying on ignore_changes in order to be convergent in spite
+		// of intentional out-of-band operations.)
+		return p.UIMode == RefreshOnlyMode
 
-	// Workspace is the name of the workspace that was active when the plan
-	// was created. It is illegal to apply a plan created for one workspace
-	// to the state of another workspace.
-	// (This constraint is already enforced by the statefile lineage mechanism,
-	// but storing this explicitly allows us to return a better error message
-	// in the situation where the user has the wrong workspace selected.)
-	Workspace string
-}
-
-func NewBackend(typeName string, config cty.Value, configSchema *configschema.Block, workspaceName string) (*Backend, error) {
-	dv, err := NewDynamicValue(config, configSchema.ImpliedType())
-	if err != nil {
-		return nil, err
+	default:
+		// Otherwise, there are either no changes to apply or they are changes
+		// our cases above don't consider as worthy of applying in isolation.
+		return false
 	}
-
-	return &Backend{
-		Type:      typeName,
-		Config:    dv,
-		Workspace: workspaceName,
-	}, nil
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses
@@ -117,4 +125,36 @@ func (p *Plan) ProviderAddrs() []addrs.AbsProviderConfig {
 	}
 
 	return ret
+}
+
+// Backend represents the backend-related configuration and other data as it
+// existed when a plan was created.
+type Backend struct {
+	// Type is the type of backend that the plan will apply against.
+	Type string
+
+	// Config is the configuration of the backend, whose schema is decided by
+	// the backend Type.
+	Config DynamicValue
+
+	// Workspace is the name of the workspace that was active when the plan
+	// was created. It is illegal to apply a plan created for one workspace
+	// to the state of another workspace.
+	// (This constraint is already enforced by the statefile lineage mechanism,
+	// but storing this explicitly allows us to return a better error message
+	// in the situation where the user has the wrong workspace selected.)
+	Workspace string
+}
+
+func NewBackend(typeName string, config cty.Value, configSchema *configschema.Block, workspaceName string) (*Backend, error) {
+	dv, err := NewDynamicValue(config, configSchema.ImpliedType())
+	if err != nil {
+		return nil, err
+	}
+
+	return &Backend{
+		Type:      typeName,
+		Config:    dv,
+		Workspace: workspaceName,
+	}, nil
 }

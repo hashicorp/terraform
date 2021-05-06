@@ -98,7 +98,7 @@ func (b *Local) opPlan(
 	}
 
 	// Record whether this plan includes any side-effects that could be applied.
-	runningOp.PlanEmpty = plan.Changes.Empty()
+	runningOp.PlanEmpty = !plan.CanApply()
 
 	// Save the plan to disk
 	if path := op.PlanOutPath; path != "" {
@@ -143,15 +143,6 @@ func (b *Local) opPlan(
 		}
 	}
 
-	// Perform some output tasks
-	if runningOp.PlanEmpty {
-		op.View.PlanNoChanges()
-
-		// Even if there are no changes, there still could be some warnings
-		op.View.Diagnostics(diags)
-		return
-	}
-
 	// Render the plan
 	op.View.Plan(plan, tfCtx.Schemas())
 
@@ -160,5 +151,7 @@ func (b *Local) opPlan(
 	// errors then we would've returned early at some other point above.
 	op.View.Diagnostics(diags)
 
-	op.View.PlanNextStep(op.PlanOutPath)
+	if !runningOp.PlanEmpty {
+		op.View.PlanNextStep(op.PlanOutPath)
+	}
 }

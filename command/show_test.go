@@ -140,7 +140,7 @@ func TestShow_noArgsNoState(t *testing.T) {
 	}
 }
 
-func TestShow_plan(t *testing.T) {
+func TestShow_planNoop(t *testing.T) {
 	planPath := testPlanFileNoop(t)
 
 	ui := cli.NewMockUi()
@@ -160,7 +160,7 @@ func TestShow_plan(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	want := `Terraform will perform the following actions`
+	want := `No changes. Your infrastructure matches the configuration.`
 	got := done(t).Stdout()
 	if !strings.Contains(got, want) {
 		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)

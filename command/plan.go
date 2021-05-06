@@ -202,13 +202,19 @@ Plan Customization Options:
   can also use these options when you run "terraform apply" without passing
   it a saved plan, in order to plan and apply in a single command.
 
-  -destroy            If set, a plan will be generated to destroy all resources
-                      managed by the given configuration and state.
+  -destroy            Select the "destroy" planning mode, which creates a plan
+                      to destroy all objects currently managed by this
+                      Terraform configuration instead of the usual behavior.
 
-  -refresh=false      Skip checking for changes to remote objects while
-                      creating the plan. This can potentially make planning
-                      faster, but at the expense of possibly planning against
-                      a stale record of the remote system state.
+  -refresh-only       Select the "refresh only" planning mode, which checks
+                      whether remote objects still match the outcome of the
+                      most recent Terraform apply but does not propose any
+                      actions to undo any changes made outside of Terraform.
+
+  -refresh=false      Skip checking for external changes to remote objects
+                      while creating the plan. This can potentially make
+                      planning faster, but at the expense of possibly planning
+                      against a stale record of the remote system state.
 
   -replace=resource   Force replacement of a particular resource instance using
                       its resource address. If the plan would've normally
@@ -221,17 +227,19 @@ Plan Customization Options:
                       include more than one object. This is for exceptional
                       use only.
 
-  -var 'foo=bar'      Set a variable in the Terraform configuration. This
-                      flag can be set multiple times.
+  -var 'foo=bar'      Set a value for one of the input variables in the root
+                      module of the configuration. Use this option more than
+                      once to set more than one variable.
 
-  -var-file=foo       Set variables in the Terraform configuration from
-                      a file. If "terraform.tfvars" or any ".auto.tfvars"
-                      files are present, they will be automatically loaded.
+  -var-file=filename  Load variable values from the given file, in addition
+                      to the default files terraform.tfvars and *.auto.tfvars.
+                      Use this option more than once to include more than one
+                      variables file.
 
 Other Options:
 
   -compact-warnings   If Terraform produces any warnings that are not
-                      accompanied by errors, show them in a more compact form
+                      accompanied by errors, shows them in a more compact form
                       that includes only the summary messages.
 
   -detailed-exitcode  Return detailed exit codes when the command exits. This
