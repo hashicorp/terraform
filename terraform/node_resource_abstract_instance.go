@@ -350,7 +350,22 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// If there is no state or our attributes object is null then we're already
 	// destroyed.
 	if currentState == nil || currentState.Value.IsNull() {
-		return nil, nil
+		// We still need to generate a NoOp change, because that allows
+		// outside consumers of the plan to distinguish between us affirming
+		// that we checked something and concluded no changes were needed
+		// vs. that something being entirely excluded e.g. due to -target.
+		noop := &plans.ResourceInstanceChange{
+			Addr:       absAddr,
+			DeposedKey: deposedKey,
+			Change: plans.Change{
+				Action: plans.NoOp,
+				Before: cty.NullVal(cty.DynamicPseudoType),
+				After:  cty.NullVal(cty.DynamicPseudoType),
+			},
+			Private:      currentState.Private,
+			ProviderAddr: n.ResolvedProvider,
+		}
+		return noop, nil
 	}
 
 	// Call pre-diff hook
