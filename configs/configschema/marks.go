@@ -24,6 +24,9 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		}
 	}
 
+	if val.IsNull() {
+		return pvm
+	}
 	for name, blockS := range b.BlockTypes {
 		// If our block doesn't contain any sensitive attributes, skip inspecting it
 		if !blockS.Block.ContainsSensitive() {
