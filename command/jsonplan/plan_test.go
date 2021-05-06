@@ -1,9 +1,11 @@
 package jsonplan
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -473,5 +475,45 @@ func TestSensitiveAsBool(t *testing.T) {
 				test.Input, got, test.Want,
 			)
 		}
+	}
+}
+
+func TestEncodePaths(t *testing.T) {
+	tests := map[string]struct {
+		Input cty.PathSet
+		Want  json.RawMessage
+	}{
+		"empty set": {
+			cty.NewPathSet(),
+			json.RawMessage(nil),
+		},
+		"index path with string and int steps": {
+			cty.NewPathSet(cty.IndexStringPath("boop").IndexInt(0)),
+			json.RawMessage(`[["boop",0]]`),
+		},
+		"get attr path with one step": {
+			cty.NewPathSet(cty.GetAttrPath("triggers")),
+			json.RawMessage(`[["triggers"]]`),
+		},
+		"multiple paths of different types": {
+			cty.NewPathSet(
+				cty.GetAttrPath("alpha").GetAttr("beta").GetAttr("gamma"),
+				cty.GetAttrPath("triggers").IndexString("name"),
+				cty.IndexIntPath(0).IndexInt(1).IndexInt(2).IndexInt(3),
+			),
+			json.RawMessage(`[["alpha","beta","gamma"],["triggers","name"],[0,1,2,3]]`),
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := encodePaths(test.Input)
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+			if !cmp.Equal(got, test.Want) {
+				t.Errorf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+			}
+		})
 	}
 }

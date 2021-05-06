@@ -40,7 +40,8 @@
                     "id": true
                 },
                 "after_sensitive": {},
-                "before_sensitive": {}
+                "before_sensitive": {},
+                "replace_paths": [["ami"]]
             },
             "action_reason": "replace_because_cannot_update"
         }
