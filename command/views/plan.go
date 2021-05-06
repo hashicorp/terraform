@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
 )
@@ -96,6 +97,24 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
+	haveRefreshChanges := renderChangesDetectedByRefresh(plan.PrevRunState, plan.PriorState, schemas, view)
+	if haveRefreshChanges {
+		switch plan.UIMode {
+		case plans.RefreshOnlyMode:
+			view.streams.Println(format.WordWrap(
+				"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+				view.outputColumns(),
+			))
+		default:
+			view.streams.Println(format.WordWrap(
+				"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+				view.outputColumns(),
+			))
+		}
+		view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
+		view.streams.Println("")
+	}
+
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
@@ -207,6 +226,72 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 				format.OutputChanges(changedRootModuleOutputs, view.colorize),
 		)
 	}
+}
+
+// renderChangesDetectedByRefresh is a part of renderPlan that generates
+// the note about changes detected by refresh (sometimes considered as "drift").
+//
+// It will only generate output if there's at least one difference detected.
+// Otherwise, it will produce nothing at all. To help the caller recognize
+// those two situations incase subsequent output must accommodate it,
+// renderChangesDetectedByRefresh returns true if it produced at least one
+// line of output, and guarantees to always produce whole lines terminated
+// by newline characters.
+func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraform.Schemas, view *View) bool {
+	if after.ManagedResourcesEqual(before) {
+		return false
+	}
+
+	view.streams.Print(
+		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
+	)
+	view.streams.Print(format.WordWrap(
+		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
+		view.outputColumns(),
+	))
+
+	for _, bms := range before.Modules {
+		for _, brs := range bms.Resources {
+			if brs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue // only managed resources can "drift"
+			}
+			addr := brs.Addr
+			prs := after.Resource(brs.Addr)
+
+			provider := brs.ProviderConfig.Provider
+			providerSchema := schemas.ProviderSchema(provider)
+			if providerSchema == nil {
+				// Should never happen
+				view.streams.Printf("(schema missing for %s)\n", provider)
+				continue
+			}
+			rSchema, _ := providerSchema.SchemaForResourceAddr(addr.Resource)
+			if rSchema == nil {
+				// Should never happen
+				view.streams.Printf("(schema missing for %s)\n", addr)
+				continue
+			}
+
+			for key, bis := range brs.Instances {
+				var pis *states.ResourceInstance
+				if prs != nil {
+					pis = prs.Instance(key)
+				}
+
+				diff := format.ResourceInstanceDrift(
+					addr.Instance(key),
+					bis, pis,
+					rSchema,
+					view.colorize,
+				)
+				if diff != "" {
+					view.streams.Print(diff)
+				}
+			}
+		}
+	}
+
+	return true
 }
 
 const planHeaderIntro = `
