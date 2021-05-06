@@ -74,6 +74,14 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
+	if op.PlanMode == plans.RefreshOnlyMode {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Refresh-only mode is currently not supported",
+			`The "remote" backend does not currently support the refresh-only planning mode.`,
+		))
+	}
+
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -99,6 +107,14 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 				`If you would like to destroy everything, please run plan with the "-destroy" `+
 				`flag or create a single empty configuration file. Otherwise, please create `+
 				`a Terraform configuration file in the path being executed and try again.`,
+		))
+	}
+
+	if len(op.ForceReplace) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Forced replacement is currently not supported",
+			`The "remote" backend does not currently support the -replace=... planning option.`,
 		))
 	}
 

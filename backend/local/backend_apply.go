@@ -72,12 +72,15 @@ func (b *Local) opApply(
 			return
 		}
 
-		trivialPlan := plan.Changes.Empty()
+		trivialPlan := !plan.CanApply()
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
+		op.View.Plan(plan, tfCtx.Schemas())
+
 		if mustConfirm {
 			var desc, query string
-			if op.PlanMode == plans.DestroyMode {
+			switch op.PlanMode {
+			case plans.DestroyMode:
 				if op.Workspace != "default" {
 					query = "Do you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
 				} else {
@@ -85,7 +88,15 @@ func (b *Local) opApply(
 				}
 				desc = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
-			} else {
+			case plans.RefreshOnlyMode:
+				if op.Workspace != "default" {
+					query = "Would you like to update the Terraform state for \"" + op.Workspace + "\" to reflect these detected changes?"
+				} else {
+					query = "Would you like to update the Terraform state to reflect these detected changes?"
+				}
+				desc = "Terraform will write these changes to the state without modifying any real infrastructure.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm."
+			default:
 				if op.Workspace != "default" {
 					query = "Do you want to perform these actions in workspace \"" + op.Workspace + "\"?"
 				} else {
@@ -93,10 +104,6 @@ func (b *Local) opApply(
 				}
 				desc = "Terraform will perform the actions described above.\n" +
 					"Only 'yes' will be accepted to approve."
-			}
-
-			if !trivialPlan {
-				op.View.Plan(plan, tfCtx.Schemas())
 			}
 
 			// We'll show any accumulated warnings before we display the prompt,
@@ -120,12 +127,6 @@ func (b *Local) opApply(
 				op.View.Cancelled(op.PlanMode)
 				runningOp.Result = backend.OperationFailure
 				return
-			}
-		} else {
-			for _, change := range plan.Changes.Resources {
-				if change.Action != plans.NoOp {
-					op.View.PlannedChange(change)
-				}
 			}
 		}
 	} else {

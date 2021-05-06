@@ -202,22 +202,23 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 		t.Fatalf("plan operation failed")
 	}
 	if run.PlanEmpty {
-		t.Fatal("plan should not be empty")
+		t.Error("plan should not be empty")
 	}
 
 	expectedOutput := strings.TrimSpace(`
-Plan: 0 to add, 0 to change, 0 to destroy.
-
 Changes to Outputs:
   + added            = "after"
   ~ changed          = "before" -> "after"
   - removed          = "before" -> null
   ~ sensitive_after  = (sensitive value)
   ~ sensitive_before = (sensitive value)
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
 `)
 
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
-		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
+		t.Errorf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
 	}
 }
 
@@ -262,7 +263,7 @@ func TestLocal_planModuleOutputsChanged(t *testing.T) {
 	}
 
 	expectedOutput := strings.TrimSpace(`
-No changes. Infrastructure is up-to-date.
+No changes. Your infrastructure matches the configuration.
 `)
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output:\n%s\n\nwant output containing:\n%s", output, expectedOutput)
@@ -323,7 +324,7 @@ Terraform will perform the following actions:
 
 Plan: 1 to add, 0 to change, 1 to destroy.`
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
-		t.Fatalf("Unexpected output:\n%s", output)
+		t.Fatalf("Unexpected output\ngot\n%s\n\nwant:\n%s", output, expectedOutput)
 	}
 }
 

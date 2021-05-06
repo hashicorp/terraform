@@ -31,8 +31,9 @@ type plan struct {
 	TerraformVersion string      `json:"terraform_version,omitempty"`
 	Variables        variables   `json:"variables,omitempty"`
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
-	// ResourceChanges are sorted in a user-friendly order that is undefined at
-	// this time, but consistent.
+	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
+	// that is undefined at this time, but consistent.
+	ResourceDrift   []resourceChange  `json:"resource_drift,omitempty"`
 	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]change `json:"output_changes,omitempty"`
 	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
@@ -128,6 +129,12 @@ func Marshal(
 		return nil, fmt.Errorf("error in marshalPlannedValues: %s", err)
 	}
 
+	// output.ResourceDrift
+	err = output.marshalResourceDrift(p.PrevRunState, p.PriorState, schemas)
+	if err != nil {
+		return nil, fmt.Errorf("error in marshalResourceDrift: %s", err)
+	}
+
 	// output.ResourceChanges
 	err = output.marshalResourceChanges(p.Changes, schemas)
 	if err != nil {
@@ -178,6 +185,136 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas 
 			Value: valJSON,
 		}
 	}
+	return nil
+}
+
+func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *terraform.Schemas) error {
+	// Our goal here is to build a data structure of the same shape as we use
+	// to describe planned resource changes, but in this case we'll be
+	// taking the old and new values from different state snapshots rather
+	// than from a real "Changes" object.
+	//
+	// In doing this we make an assumption that drift detection can only
+	// ever show objects as updated or removed, and will never show anything
+	// as created because we only refresh objects we were already tracking
+	// after the previous run. This means we can use oldState as our baseline
+	// for what resource instances we might include, and check for each item
+	// whether it's present in newState. If we ever have some mechanism to
+	// detect "additive drift" later then we'll need to take a different
+	// approach here, but we have no plans for that at the time of writing.
+	//
+	// We also assume that both states have had all managed resource objects
+	// upgraded to match the current schemas given in schemas, so we shouldn't
+	// need to contend with oldState having old-shaped objects even if the
+	// user changed provider versions since the last run.
+
+	if newState.ManagedResourcesEqual(oldState) {
+		// Nothing to do, because we only detect and report drift for managed
+		// resource instances.
+		return nil
+	}
+	for _, ms := range oldState.Modules {
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				// Drift reporting is only for managed resources
+				continue
+			}
+
+			provider := rs.ProviderConfig.Provider
+			for key, oldIS := range rs.Instances {
+				if oldIS.Current == nil {
+					// Not interested in instances that only have deposed objects
+					continue
+				}
+				addr := rs.Addr.Instance(key)
+				newIS := newState.ResourceInstance(addr)
+
+				schema, _ := schemas.ResourceTypeConfig(
+					provider,
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				if schema == nil {
+					return fmt.Errorf("no schema found for %s (in provider %s)", addr, provider)
+				}
+				ty := schema.ImpliedType()
+
+				oldObj, err := oldIS.Current.Decode(ty)
+				if err != nil {
+					return fmt.Errorf("failed to decode previous run data for %s: %s", addr, err)
+				}
+
+				var newObj *states.ResourceInstanceObject
+				if newIS != nil && newIS.Current != nil {
+					newObj, err = newIS.Current.Decode(ty)
+					if err != nil {
+						return fmt.Errorf("failed to decode refreshed data for %s: %s", addr, err)
+					}
+				}
+
+				var oldVal, newVal cty.Value
+				oldVal = oldObj.Value
+				if newObj != nil {
+					newVal = newObj.Value
+				} else {
+					newVal = cty.NullVal(ty)
+				}
+				oldSensitive := sensitiveAsBool(oldVal)
+				newSensitive := sensitiveAsBool(newVal)
+				oldVal, _ = oldVal.UnmarkDeep()
+				newVal, _ = newVal.UnmarkDeep()
+
+				var before, after []byte
+				var beforeSensitive, afterSensitive []byte
+				before, err = ctyjson.Marshal(oldVal, oldVal.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode previous run data for %s as JSON: %s", addr, err)
+				}
+				after, err = ctyjson.Marshal(newVal, oldVal.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode refreshed data for %s as JSON: %s", addr, err)
+				}
+				beforeSensitive, err = ctyjson.Marshal(oldSensitive, oldSensitive.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode previous run data sensitivity for %s as JSON: %s", addr, err)
+				}
+				afterSensitive, err = ctyjson.Marshal(newSensitive, newSensitive.Type())
+				if err != nil {
+					return fmt.Errorf("failed to encode refreshed data sensitivity for %s as JSON: %s", addr, err)
+				}
+
+				// We can only detect updates and deletes as drift.
+				action := plans.Update
+				if newVal.IsNull() {
+					action = plans.Delete
+				}
+
+				change := resourceChange{
+					ModuleAddress: addr.Module.String(),
+					Mode:          "managed", // drift reporting is only for managed resources
+					Name:          addr.Resource.Resource.Name,
+					Type:          addr.Resource.Resource.Type,
+					ProviderName:  provider.String(),
+
+					Change: change{
+						Actions:         actionString(action.String()),
+						Before:          json.RawMessage(before),
+						BeforeSensitive: json.RawMessage(beforeSensitive),
+						After:           json.RawMessage(after),
+						AfterSensitive:  json.RawMessage(afterSensitive),
+						// AfterUnknown is never populated here because
+						// values in a state are always fully known.
+					},
+				}
+				p.ResourceDrift = append(p.ResourceDrift, change)
+			}
+		}
+	}
+
+	sort.Slice(p.ResourceChanges, func(i, j int) bool {
+		return p.ResourceChanges[i].Address < p.ResourceChanges[j].Address
+	})
+
 	return nil
 }
 

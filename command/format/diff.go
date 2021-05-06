@@ -235,12 +235,14 @@ func ResourceInstanceDrift(
 	}
 	if after != nil && after.Current != nil {
 		newObj, err = after.Current.Decode(ty)
-		// We shouldn't encounter errors here because Terraform Core should've
-		// made sure that the prior state object conforms to the current
-		// schema by having the provider upgrade it, even if we skipped
-		// refreshing on this run, but we'll be robust here in case there are
-		// some edges we didn't find yet.
-		return fmt.Sprintf("  # %s refreshed state doesn't conform to current schema; this is a Terraform bug\n  # %s\n", addr, err)
+		if err != nil {
+			// We shouldn't encounter errors here because Terraform Core should've
+			// made sure that the prior state object conforms to the current
+			// schema by having the provider upgrade it, even if we skipped
+			// refreshing on this run, but we'll be robust here in case there are
+			// some edges we didn't find yet.
+			return fmt.Sprintf("  # %s refreshed state doesn't conform to current schema; this is a Terraform bug\n  # %s\n", addr, err)
+		}
 	}
 
 	oldVal := oldObj.Value

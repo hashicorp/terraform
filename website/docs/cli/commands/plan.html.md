@@ -86,7 +86,7 @@ The section above described Terraform's default planning behavior, which is
 intended for changing the remote system to match with changes you've made to
 your configuration.
 
-Terraform has one alternative planning mode, which creates a plan with
+Terraform has two alternative planning modes, each of which creates a plan with
 a different intended outcome:
 
 * **Destroy mode:** creates a plan whose goal is to destroy all remote objects
@@ -95,6 +95,15 @@ a different intended outcome:
   objects cease to be useful once the development task is complete.
 
     Activate destroy mode using the `-destroy` command line option.
+
+* **Refresh-only mode:** creates a plan whose goal is only to update the
+  Terraform state and any root module output values to match changes made to
+  remote objects outside of Terraform. This can be useful if you've
+  intentionally changed one or more remote objects outside of the usual
+  workflow (e.g. while responding to an incident) and you now need to reconcile
+  Terraform's records with those changes.
+
+    Activate refresh-only mode using the `-refresh-only` command line option.
 
 In situations where we need to discuss the default planning mode that Terraform
 uses when none of the alternative modes are selected, we refer to it as
