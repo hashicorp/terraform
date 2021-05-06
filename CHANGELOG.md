@@ -1,5 +1,9 @@
 ## 0.15.2 (Unreleased)
 
+ENHANCEMENTS:
+
+* `terraform show`: add data to the JSON plan output describing which changes caused a resource to be replaced [GH-28608]
+
 ## 0.15.2 (May 05, 2021)
 
 ENHANCEMENTS:
