@@ -48,6 +48,10 @@ func TestBlockValueMarks(t *testing.T) {
 			cty.UnknownVal(schema.ImpliedType()),
 		},
 		{
+			cty.NullVal(schema.ImpliedType()),
+			cty.NullVal(schema.ImpliedType()),
+		},
+		{
 			cty.ObjectVal(map[string]cty.Value{
 				"sensitive":   cty.UnknownVal(cty.String),
 				"unsensitive": cty.UnknownVal(cty.String),
