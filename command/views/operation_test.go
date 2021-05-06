@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestOperation_stopping(t *testing.T) {
@@ -72,13 +74,130 @@ func TestOperation_emergencyDumpState(t *testing.T) {
 }
 
 func TestOperation_planNoChanges(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	v := NewOperation(arguments.ViewHuman, false, NewView(streams))
 
-	v.PlanNoChanges()
+	tests := map[string]struct {
+		plan     func(schemas *terraform.Schemas) *plans.Plan
+		wantText string
+	}{
+		"nothing at all in normal mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:       plans.NormalMode,
+					Changes:      plans.NewChanges(),
+					PrevRunState: states.NewState(),
+					PriorState:   states.NewState(),
+				}
+			},
+			"no differences, so no changes are needed.",
+		},
+		"nothing at all in refresh-only mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:       plans.RefreshOnlyMode,
+					Changes:      plans.NewChanges(),
+					PrevRunState: states.NewState(),
+					PriorState:   states.NewState(),
+				}
+			},
+			"Terraform has checked that the real remote objects still match",
+		},
+		"nothing at all in destroy mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:       plans.DestroyMode,
+					Changes:      plans.NewChanges(),
+					PrevRunState: states.NewState(),
+					PriorState:   states.NewState(),
+				}
+			},
+			"No objects need to be destroyed.",
+		},
+		"drift detected in normal mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "something",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"to update the Terraform state to match, create and apply a refresh-only plan",
+		},
+		"drift detected in refresh-only mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.RefreshOnlyMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "something",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"If you were expecting these changes then you can apply this plan",
+		},
+		"drift detected in destroy mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.DestroyMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "something",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"No objects need to be destroyed.",
+		},
+	}
 
-	if got, want := done(t).Stdout(), "No changes. Infrastructure is up-to-date."; !strings.Contains(got, want) {
-		t.Errorf("wrong result\ngot:  %q\nwant: %q", got, want)
+	schemas := testSchemas()
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			v := NewOperation(arguments.ViewHuman, false, NewView(streams))
+			plan := test.plan(schemas)
+			v.Plan(plan, schemas)
+			got := done(t).Stdout()
+			if want := test.wantText; want != "" && !strings.Contains(got, want) {
+				t.Errorf("missing expected message\ngot:\n%s\n\nwant substring: %s", got, want)
+			}
+		})
 	}
 }
 
@@ -242,7 +361,10 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	v := &OperationJSON{view: NewJSONView(NewView(streams))}
 
-	v.PlanNoChanges()
+	plan := &plans.Plan{
+		Changes: plans.NewChanges(),
+	}
+	v.Plan(plan, nil)
 
 	want := []map[string]interface{}{
 		{

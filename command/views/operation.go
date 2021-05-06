@@ -24,7 +24,6 @@ type Operation interface {
 	EmergencyDumpState(stateFile *statefile.File) error
 
 	PlannedChange(change *plans.ResourceInstanceChangeSrc)
-	PlanNoChanges()
 	Plan(plan *plans.Plan, schemas *terraform.Schemas)
 	PlanNextStep(planPath string)
 
@@ -86,16 +85,15 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 	return nil
 }
 
-func (v *OperationHuman) PlanNoChanges() {
-	v.view.streams.Println("\n" + v.view.colorize.Color(strings.TrimSpace(planNoChanges)))
-	v.view.streams.Println("\n" + strings.TrimSpace(format.WordWrap(planNoChangesDetail, v.view.outputColumns())))
-}
-
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	renderPlan(plan, schemas, v.view)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
+	// PlannedChange is primarily for machine-readable output in order to
+	// get a per-resource-instance change description. We don't use it
+	// with OperationHuman because the output of Plan already includes the
+	// change details for all resource instances.
 }
 
 // PlanNextStep gives the user some next-steps, unless we're running in an
@@ -159,16 +157,6 @@ func (v *OperationJSON) EmergencyDumpState(stateFile *statefile.File) error {
 	return nil
 }
 
-// Log an empty change summary.
-func (v *OperationJSON) PlanNoChanges() {
-	v.view.ChangeSummary(&json.ChangeSummary{
-		Add:       0,
-		Change:    0,
-		Remove:    0,
-		Operation: json.OperationPlanned,
-	})
-}
-
 // Log a change summary and a series of "planned" messages for the changes in
 // the plan.
 func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
@@ -225,14 +213,6 @@ const interrupted = `
 Interrupt received.
 Please wait for Terraform to exit or data loss may occur.
 Gracefully shutting down...
-`
-
-const planNoChanges = `
-[reset][bold][green]No changes. Infrastructure is up-to-date.[reset][green]
-`
-
-const planNoChangesDetail = `
-This means that Terraform did not detect any differences between your configuration and the remote system(s). As a result, there are no actions to take.
 `
 
 const planHeaderNoOutput = `

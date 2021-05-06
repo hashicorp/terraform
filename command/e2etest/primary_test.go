@@ -165,8 +165,8 @@ func TestPrimaryChdirOption(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "0 to add, 0 to change, 0 to destroy") {
-		t.Errorf("incorrect plan tally; want 0 to add:\n%s", stdout)
+	if want := "You can apply this plan to save these new output values"; !strings.Contains(stdout, want) {
+		t.Errorf("missing expected message for an outputs-only plan\ngot:\n%s\n\nwant substring: %s", stdout, want)
 	}
 
 	if !strings.Contains(stdout, "Saved the plan to: tfplan") {

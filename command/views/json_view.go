@@ -103,6 +103,14 @@ func (v *JSONView) ChangeSummary(cs *json.ChangeSummary) {
 	)
 }
 
+func (v *JSONView) DriftSummary(cs *json.ChangeSummary) {
+	v.log.Info(
+		cs.String(),
+		"type", json.MessageDriftSummary,
+		"changes", cs,
+	)
+}
+
 func (v *JSONView) Hook(h json.Hook) {
 	v.log.Info(
 		h.String(),

@@ -2052,7 +2052,7 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 	wantLines := strings.Split(want, "\n")
 
 	if len(gotLines) != len(wantLines) {
-		t.Fatalf("unexpected number of log lines: got %d, want %d", len(gotLines), len(wantLines))
+		t.Errorf("unexpected number of log lines: got %d, want %d", len(gotLines), len(wantLines))
 	}
 
 	// Verify that the log starts with a version message
@@ -2079,26 +2079,30 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 	}
 
 	// Compare the rest of the lines against the golden reference
-	for i := range gotLines[1:] {
+	var gotLineMaps []map[string]interface{}
+	for i, line := range gotLines[1:] {
 		index := i + 1
-		var gotMap, wantMap map[string]interface{}
-		if err := json.Unmarshal([]byte(gotLines[index]), &gotMap); err != nil {
-			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[i])
+		var gotMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &gotMap); err != nil {
+			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[index])
 		}
-		if err := json.Unmarshal([]byte(wantLines[index]), &wantMap); err != nil {
-			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, wantLines[i])
-		}
-
-		// The timestamp field is the only one that should change, so we drop
-		// it from the comparison
 		if _, ok := gotMap["@timestamp"]; !ok {
-			t.Errorf("missing @timestamp field in log: %s", gotLines[i])
+			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
 		}
 		delete(gotMap, "@timestamp")
-
-		if !cmp.Equal(wantMap, gotMap) {
-			t.Errorf("unexpected log:\n%s", cmp.Diff(wantMap, gotMap))
+		gotLineMaps = append(gotLineMaps, gotMap)
+	}
+	var wantLineMaps []map[string]interface{}
+	for i, line := range wantLines[1:] {
+		index := i + 1
+		var wantMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
 		}
+		wantLineMaps = append(wantLineMaps, wantMap)
+	}
+	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
+		t.Errorf("wrong output lines\n%s", diff)
 	}
 }
 
