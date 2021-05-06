@@ -1,8 +1,12 @@
-## 0.15.2 (Unreleased)
+## 0.15.3 (Unreleased)
 
 ENHANCEMENTS:
 
-* `terraform show`: add data to the JSON plan output describing which changes caused a resource to be replaced [GH-28608]
+* `terraform show`: Add data to the JSON plan output describing which changes caused a resource to be replaced [GH-28608]
+
+BUG FIXES:
+
+* `terraform show`: Fix crash for JSON plan output of new resources with sensitive attributes in nested blocks [GH-28624]
 
 ## 0.15.2 (May 05, 2021)
 
