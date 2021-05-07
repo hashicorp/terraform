@@ -122,6 +122,54 @@ func TestLength(t *testing.T) {
 			cty.DynamicVal,
 			cty.UnknownVal(cty.Number),
 		},
+		{ // Marked collections return a marked length
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}).Mark("secret"),
+			cty.NumberIntVal(2).Mark("secret"),
+		},
+		{ // Marks on values in unmarked collections do not propagate
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello").Mark("a"),
+				cty.StringVal("world").Mark("b"),
+			}),
+			cty.NumberIntVal(2),
+		},
+		{ // Marked strings return a marked length
+			cty.StringVal("hello world").Mark("secret"),
+			cty.NumberIntVal(11).Mark("secret"),
+		},
+		{ // Marked tuples return a marked length
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}).Mark("secret"),
+			cty.NumberIntVal(2).Mark("secret"),
+		},
+		{ // Marks on values in unmarked tuples do not propagate
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello").Mark("a"),
+				cty.StringVal("world").Mark("b"),
+			}),
+			cty.NumberIntVal(2),
+		},
+		{ // Marked objects return a marked length
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+				"b": cty.StringVal("world"),
+				"c": cty.StringVal("nice to meet you"),
+			}).Mark("secret"),
+			cty.NumberIntVal(3).Mark("secret"),
+		},
+		{ // Marks on object attribute values do not propagate
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("a"),
+				"b": cty.StringVal("world").Mark("b"),
+				"c": cty.StringVal("nice to meet you").Mark("c"),
+			}),
+			cty.NumberIntVal(3),
+		},
 	}
 
 	for _, test := range tests {
@@ -745,6 +793,88 @@ func TestLookup(t *testing.T) {
 				cty.UnknownVal(cty.String),
 			},
 			cty.DynamicVal, // if the key is unknown then we don't know which object attribute and thus can't know the type
+			false,
+		},
+		{ // successful marked collection lookup returns marked value
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+				}).Mark("a"),
+				cty.StringVal("boop"),
+				cty.StringVal("nope"),
+			},
+			cty.StringVal("beep").Mark("a"),
+			false,
+		},
+		{ // apply collection marks to unknown return vaue
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+					"frob": cty.UnknownVal(cty.String),
+				}).Mark("a"),
+				cty.StringVal("frob"),
+				cty.StringVal("nope"),
+			},
+			cty.UnknownVal(cty.String).Mark("a"),
+			false,
+		},
+		{ // propagate collection marks to default when returning
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+				}).Mark("a"),
+				cty.StringVal("frob"),
+				cty.StringVal("nope").Mark("b"),
+			},
+			cty.StringVal("nope").WithMarks(cty.NewValueMarks("a", "b")),
+			false,
+		},
+		{ // on unmarked collection, return only marks from found value
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("frob"),
+				cty.StringVal("nope").Mark("c"),
+			},
+			cty.StringVal("honk").Mark("b"),
+			false,
+		},
+		{ // on unmarked collection, return default exactly on missing
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("squish"),
+				cty.StringVal("nope").Mark("c"),
+			},
+			cty.StringVal("nope").Mark("c"),
+			false,
+		},
+		{ // retain marks on default if converted
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("squish"),
+				cty.NumberIntVal(5).Mark("c"),
+			},
+			cty.StringVal("5").Mark("c"),
+			false,
+		},
+		{ // propagate marks from key
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+					"frob": cty.StringVal("honk"),
+				}),
+				cty.StringVal("boop").Mark("a"),
+				cty.StringVal("nope"),
+			},
+			cty.StringVal("beep").Mark("a"),
 			false,
 		},
 	}
