@@ -88,7 +88,35 @@ func (r *Reader) ReadPlan() (*plans.Plan, error) {
 	}
 	defer pr.Close()
 
-	return readTfplan(pr)
+	// There's a slight mismatch in how plans.Plan is modeled vs. how
+	// the underlying plan file format works, because the "tfplan" embedded
+	// file contains only some top-level metadata and the planned changes,
+	// and not the previous run or prior states. Therefore we need to
+	// build this up in multiple steps.
+	// This is some technical debt because historically we considered the
+	// planned changes and prior state as totally separate, but later realized
+	// that it made sense for a plans.Plan to include the prior state directly
+	// so we can see what state the plan applies to. Hopefully later we'll
+	// clean this up some more so that we don't have two different ways to
+	// access the prior state (this and the ReadStateFile method).
+	ret, err := readTfplan(pr)
+	if err != nil {
+		return nil, err
+	}
+
+	prevRunStateFile, err := r.ReadPrevStateFile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read previous run state from plan file: %s", err)
+	}
+	priorStateFile, err := r.ReadStateFile()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read prior state from plan file: %s", err)
+	}
+
+	ret.PrevRunState = prevRunStateFile.State
+	ret.PriorState = priorStateFile.State
+
+	return ret, nil
 }
 
 // ReadStateFile reads the state file embedded in the plan file, which
