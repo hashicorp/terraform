@@ -1,7 +1,7 @@
 {
   "format_version": "0.1",
   "valid": false,
-  "error_count": 6,
+  "error_count": 4,
   "warning_count": 0,
   "diagnostics": [
     {
@@ -105,58 +105,6 @@
         "start_line": 5,
         "highlight_start_offset": 11,
         "highlight_end_offset": 25,
-        "values": []
-      }
-    },
-    {
-      "severity": "error",
-      "summary": "Module not installed",
-      "detail": "This module is not yet installed. Run \"terraform init\" to install all modules required by this configuration.",
-      "range": {
-        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
-        "start": {
-          "line": 4,
-          "column": 1,
-          "byte": 27
-        },
-        "end": {
-          "line": 4,
-          "column": 15,
-          "byte": 41
-        }
-      },
-      "snippet": {
-        "context": null,
-        "code": "module \"super\" {",
-        "start_line": 4,
-        "highlight_start_offset": 0,
-        "highlight_end_offset": 14,
-        "values": []
-      }
-    },
-    {
-      "severity": "error",
-      "summary": "Module not installed",
-      "detail": "This module is not yet installed. Run \"terraform init\" to install all modules required by this configuration.",
-      "range": {
-        "filename": "testdata/validate-invalid/incorrectmodulename/main.tf",
-        "start": {
-          "line": 1,
-          "column": 1,
-          "byte": 0
-        },
-        "end": {
-          "line": 1,
-          "column": 22,
-          "byte": 21
-        }
-      },
-      "snippet": {
-        "context": null,
-        "code": "module \"super#module\" {",
-        "start_line": 1,
-        "highlight_start_offset": 0,
-        "highlight_end_offset": 21,
         "values": []
       }
     }
