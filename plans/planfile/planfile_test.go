@@ -60,6 +60,15 @@ func TestRoundtrip(t *testing.T) {
 			Config:    plans.DynamicValue([]byte("config placeholder")),
 			Workspace: "default",
 		},
+
+		// Due to some historical oddities in how we've changed modelling over
+		// time, we also include the states (without the corresponding file
+		// headers) in the plans.Plan object. This is currently ignored by
+		// Create but will be returned by ReadPlan and so we need to include
+		// it here so that we'll get a match when we compare input and output
+		// below.
+		PrevRunState: prevStateFileIn.State,
+		PriorState:   stateFileIn.State,
 	}
 
 	workDir, err := ioutil.TempDir("", "tf-planfile")
