@@ -81,7 +81,7 @@ var ConnectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"bastion_port": {
-			Type:     cty.Number,
+			Type:     cty.String,
 			Optional: true,
 		},
 		"bastion_user": {
