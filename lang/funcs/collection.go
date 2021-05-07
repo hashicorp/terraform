@@ -20,6 +20,7 @@ var LengthFunc = function.New(&function.Spec{
 			Type:             cty.DynamicPseudoType,
 			AllowDynamicType: true,
 			AllowUnknown:     true,
+			AllowMarked:      true,
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -34,15 +35,16 @@ var LengthFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		coll := args[0]
 		collTy := args[0].Type()
+		marks := coll.Marks()
 		switch {
 		case collTy == cty.DynamicPseudoType:
-			return cty.UnknownVal(cty.Number), nil
+			return cty.UnknownVal(cty.Number).WithMarks(marks), nil
 		case collTy.IsTupleType():
 			l := len(collTy.TupleElementTypes())
-			return cty.NumberIntVal(int64(l)), nil
+			return cty.NumberIntVal(int64(l)).WithMarks(marks), nil
 		case collTy.IsObjectType():
 			l := len(collTy.AttributeTypes())
-			return cty.NumberIntVal(int64(l)), nil
+			return cty.NumberIntVal(int64(l)).WithMarks(marks), nil
 		case collTy == cty.String:
 			// We'll delegate to the cty stdlib strlen function here, because
 			// it deals with all of the complexities of tokenizing unicode
