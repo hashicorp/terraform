@@ -226,6 +226,16 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		diags = diags.Append(n.writeChange(ctx, change, ""))
+	} else {
+		// Even if we don't plan changes, we do still need to at least update
+		// the working state to reflect the refresh result. If not, then e.g.
+		// any output values refering to this will not react to the drift.
+		// (Even if we didn't actually refresh above, this will still save
+		// the result of any schema upgrading we did in readResourceInstanceState.)
+		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	return diags
