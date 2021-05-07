@@ -17,6 +17,13 @@ type View struct {
 
 	compactWarnings bool
 
+	// When this is true it's a hint that Terraform is being run indirectly
+	// via a wrapper script or other automation and so we may wish to replace
+	// direct examples of commands to run with more conceptual directions.
+	// However, we only do this on a best-effort basis, typically prioritizing
+	// the messages that users are most likely to see.
+	runningInAutomation bool
+
 	// This unfortunate wart is required to enable rendering of diagnostics which
 	// have associated source code in the configuration. This function pointer
 	// will be dereferenced as late as possible when rendering diagnostics in
@@ -36,6 +43,18 @@ func NewView(streams *terminal.Streams) *View {
 		},
 		configSources: func() map[string][]byte { return nil },
 	}
+}
+
+// SetRunningInAutomation modifies the view's "running in automation" flag,
+// which causes some slight adjustments to certain messages that would normally
+// suggest specific Terraform commands to run, to make more conceptual gestures
+// instead for situations where the user isn't running Terraform directly.
+//
+// For convenient use during initialization (in conjunction with NewView),
+// SetRunningInAutomation returns the reciever after modifying it.
+func (v *View) SetRunningInAutomation(new bool) *View {
+	v.runningInAutomation = new
+	return v
 }
 
 // Configure applies the global view configuration flags.
