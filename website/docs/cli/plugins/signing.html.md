@@ -16,12 +16,12 @@ Terraform providers installed from the Registry are cryptographically signed, an
 * **Signed by HashiCorp** - are built, signed, and supported by HashiCorp.
 * **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has
 verified the ownership of the private key and we provide a chain of trust to the CLI to verify this
-programatically.
+programmatically.
 * **Self-signed** - are built, signed, and supported by a third party. HashiCorp does not provide a
 verification or chain of trust for the signature. You may obtain and validate fingerprints manually
 if you want to ensure you are using a binary you can trust.
 
 Terraform does **NOT** support fetching and using unsigned binaries, but you can manually install
-unsigned binaries. You should take extreme care when doing so as no programatic authentication is performed.
+unsigned binaries. You should take extreme care when doing so as no programmatic authentication is performed.
 
 Usage of plugins from the registry is subject to the Registry's [Terms of Use](https://registry.terraform.io/terms).

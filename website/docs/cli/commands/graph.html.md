@@ -51,7 +51,7 @@ The output of `terraform graph` is in the DOT format, which can
 easily be converted to an image by making use of `dot` provided
 by GraphViz:
 
-```shellsession
+```shell-session
 $ terraform graph | dot -Tsvg > graph.svg
 ```
 

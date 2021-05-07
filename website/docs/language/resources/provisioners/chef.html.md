@@ -177,5 +177,5 @@ The following arguments are supported:
   If not set, the latest available version will be installed.
 
 * `wait_for_retry (integer)` - (Optional) - Amount of time in seconds to wait before
-  retrying the provisionining process after receiving an exit code in the `retry_on_error`
+  retrying the provisioning process after receiving an exit code in the `retry_on_error`
   list.  Defaults to `30`.

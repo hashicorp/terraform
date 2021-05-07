@@ -36,7 +36,7 @@ Some existing efforts have piloted both approaches:
 Both of these approaches have both advantages and disadvantages, and so it's
 likely that both will coexist for different situations, but the community
 efforts have already explored the external-language testing model quite deeply
-while the Terraform-integrated testing model has not yet been widely trialled.
+while the Terraform-integrated testing model has not yet been widely trialed.
 For that reason, the current iteration of the module testing experiment is
 aimed at trying to make the Terraform-integrated approach more accessible so
 that more module authors can hopefully try it and share their experiences.
@@ -241,7 +241,7 @@ will, for each suite:
 * Destroy all of the objects recorded in the temporary test state, as if running
   `terraform destroy` against the test configuration.
 
-```shellsession
+```shell-session
 $ terraform test
 ─── Failed: defaults.api_url.scheme (default scheme is https) ───────────────
 wrong value

@@ -60,7 +60,7 @@ There are 2 configuration levels, `supervisor` and `service`.  Configuration pla
 * `service_name (string)` - (Optional) The name of the Habitat supervisor service, if using an init system such as `systemd`. (Defaults to `hab-supervisor`)
 * `use_sudo (bool)` - (Optional) Use `sudo` when executing remote commands.  Required when the user specified in the `connection` block is not `root`.  (Defaults to `true`)
 * `permanent_peer (bool)` - (Optional) Marks this supervisor as a permanent peer.  (Defaults to false)
-* `listen_ctl (string)` - (Optional) The listen address for the countrol gateway system (Defaults to 127.0.0.1:9632)
+* `listen_ctl (string)` - (Optional) The listen address for the control gateway system (Defaults to 127.0.0.1:9632)
 * `listen_gossip (string)` - (Optional) The listen address for the gossip system (Defaults to 0.0.0.0:9638)
 * `listen_http (string)` - (Optional) The listen address for the HTTP gateway (Defaults to 0.0.0.0:9631)
 * `ring_key (string)` - (Optional) The name of the ring key for encrypting gossip ring communication (Defaults to no encryption)

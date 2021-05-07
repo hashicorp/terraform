@@ -140,7 +140,7 @@ to use it as part of integration with other software, you can still retrieve
 the cleartext value using commands intended for machine rather than human
 consumption, such as `terraform output -json` or `terraform output -raw`:
 
-```shellsession
+```shell-session
 $ terraform output -raw private_key
 -----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAoahsvJ1rIxTIOOmJZ7yErs5eOq/Kv9+5l3h0LbxW78K8//Kb
@@ -348,7 +348,7 @@ To address these design flaws, Terraform v0.14 introduced a new global option
 run the subcommand as if the given directory had been the current working
 directory:
 
-```shellsession
+```shell-session
 $ terraform -chdir=example init
 ```
 

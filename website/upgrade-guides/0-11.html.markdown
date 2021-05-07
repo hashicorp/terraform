@@ -259,7 +259,7 @@ resource "aws_vpc" "example" {
 }
 ```
 
-After the above refactoring, run `terraform apply` to re-synchoronize
+After the above refactoring, run `terraform apply` to re-synchronize
 Terraform's record (in [the Terraform state](/docs/language/state/index.html)) of the
 location of each resource's provider configuration. This should make no changes
 to actual infrastructure, since no resource configurations were changed.

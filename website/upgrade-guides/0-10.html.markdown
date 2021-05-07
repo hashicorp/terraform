@@ -133,7 +133,7 @@ default. Although no immediate action is required, we strongly recommend
 adjusting any Terraform automation or wrapper scripts to prepare for this
 upcoming change in behavior, in the following ways:
 
-* Non-interative automation around production systems should _always_
+* Non-interactive automation around production systems should _always_
   separately run `terraform plan -out=tfplan` and then (after approval)
   `terraform apply tfplan`, to ensure operators have a chance to review
   the plan before applying it.

@@ -30,7 +30,7 @@ This command has one optional flag:
 
 Basic usage, with upgrade and security information shown if relevant:
 
-```shellsession
+```shell-session
 $ terraform version
 Terraform v0.15.0
 on darwin_amd64
@@ -42,7 +42,7 @@ is X.Y.Z. You can update by downloading from https://www.terraform.io/downloads.
 
 As JSON:
 
-```shellsession
+```shell-session
 $ terraform version -json
 {
   "terraform_version": "0.15.0",

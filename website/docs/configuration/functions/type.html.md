@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This function is available only in Terraform 1.0 and later.
 
-`type` retuns the type of a given value.
+`type` returns the type of a given value.
 
 Sometimes a Terraform configuration can result in confusing errors regarding
 inconsistent types. This function displays terraform's evaluation of a given

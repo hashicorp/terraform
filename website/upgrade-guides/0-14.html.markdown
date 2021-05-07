@@ -147,7 +147,7 @@ network mirrors:
   checksum for the provider package on the platform you are currently using.
 
   For example, if you run `terraform init` on a macOS system and then commit
-  the lock file, a collegue running `terraform init` on a Linux system may
+  the lock file, a colleague running `terraform init` on a Linux system may
   encounter a checksum error, because the mirror-based installation was only
   able to safely record the checksum for the package it actually installed.
 

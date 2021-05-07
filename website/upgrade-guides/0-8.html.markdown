@@ -67,7 +67,7 @@ ${4/2*5}   => 10 (was 10 in 0.7)
 ${(1+5)*2} => 12 (was 12 in 0.7)
 ```
 
-**Action:** Use parantheses where necessary to be explicit about ordering.
+**Action:** Use parentheses where necessary to be explicit about ordering.
 
 ## Escaped Variables in Templates
 

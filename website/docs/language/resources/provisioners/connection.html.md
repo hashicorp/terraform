@@ -141,7 +141,7 @@ block would create a dependency cycle.
 
 ## Connecting through a Bastion Host with SSH
 
-The `ssh` connection also supports the following fields to facilitate connnections via a
+The `ssh` connection also supports the following fields to facilitate connections via a
 [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 
 * `bastion_host` - Setting this enables the bastion Host connection. This host

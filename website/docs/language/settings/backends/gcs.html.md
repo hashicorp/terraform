@@ -50,7 +50,7 @@ resource "template_file" "bar" {
 
 ## Authentication
 
-IAM Changes to buckets are [eventually consistent](https://cloud.google.com/storage/docs/consistency#eventually_consistent_operations) and may take upto a few minutes to take effect. Terraform will return 403 errors till it is eventually consistent.
+IAM Changes to buckets are [eventually consistent](https://cloud.google.com/storage/docs/consistency#eventually_consistent_operations) and may take up to a few minutes to take effect. Terraform will return 403 errors till it is eventually consistent.
 
 ### Running Terraform on your workstation.
 

@@ -4,7 +4,7 @@ page_title: "Command: console"
 sidebar_current: "docs-commands-console"
 description: |-
   The `terraform console` command provides an interactive console for
-  evaluting expressions.
+  evaluating expressions.
 ---
 
 # Command: console

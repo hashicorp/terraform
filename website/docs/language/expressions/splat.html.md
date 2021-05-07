@@ -61,7 +61,7 @@ tuple value. If the value is _null_ then the splat expression will return an
 empty tuple.
 
 This special behavior can be useful for modules that accept optional input
-variables whose default value is `null` to represent the absense of any value,
+variables whose default value is `null` to represent the absence of any value,
 to adapt the variable value to work with other Terraform language features that
 are designed to work with collections. For example:
 

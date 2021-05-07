@@ -150,7 +150,7 @@ The `modules` array in the response always includes the requested module as the
 first element.
 
 Other elements of this list are not currently used. Third-party implementations
-should always use a single-element list for forward compatiblity with possible
+should always use a single-element list for forward compatibility with possible
 future extensions to the protocol.
 
 Each returned module has an array of available versions, which Terraform

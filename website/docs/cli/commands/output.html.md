@@ -54,7 +54,7 @@ output "password" {
 
 To list all outputs:
 
-```shellsession
+```shell-session
 $ terraform output
 instance_ips = [
   "54.43.114.12",
@@ -67,21 +67,21 @@ password = <sensitive>
 
 Note that outputs with the `sensitive` attribute will be redacted:
 
-```shellsession
+```shell-session
 $ terraform output password
 password = <sensitive>
 ```
 
 To query for the DNS address of the load balancer:
 
-```shellsession
+```shell-session
 $ terraform output lb_address
 "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 ```
 
 To query for all instance IP addresses:
 
-```shellsession
+```shell-session
 $ terraform output instance_ips
 instance_ips = [
   "54.43.114.12",
@@ -99,7 +99,7 @@ For scripting and automation, use `-json` to produce the stable JSON format.
 You can parse the output using a JSON command-line parser such as
 [jq](https://stedolan.github.io/jq/):
 
-```shellsession
+```shell-session
 $ terraform output -json instance_ips | jq -r '.[0]'
 54.43.114.12
 ```
@@ -108,7 +108,7 @@ For the common case of directly using a string value in a shell script, you
 can use `-raw` instead, which will print the string directly with no extra
 escaping or whitespace.
 
-```shellsession
+```shell-session
 $ terraform output -raw lb_address
 my-app-alb-1657023003.us-east-1.elb.amazonaws.com
 ```
