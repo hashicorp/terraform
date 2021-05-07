@@ -122,6 +122,54 @@ func TestLength(t *testing.T) {
 			cty.DynamicVal,
 			cty.UnknownVal(cty.Number),
 		},
+		{ // Marked collections return a marked length
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}).Mark("secret"),
+			cty.NumberIntVal(2).Mark("secret"),
+		},
+		{ // Marks on values in unmarked collections do not propagate
+			cty.ListVal([]cty.Value{
+				cty.StringVal("hello").Mark("a"),
+				cty.StringVal("world").Mark("b"),
+			}),
+			cty.NumberIntVal(2),
+		},
+		{ // Marked strings return a marked length
+			cty.StringVal("hello world").Mark("secret"),
+			cty.NumberIntVal(11).Mark("secret"),
+		},
+		{ // Marked tuples return a marked length
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello"),
+				cty.StringVal("world"),
+			}).Mark("secret"),
+			cty.NumberIntVal(2).Mark("secret"),
+		},
+		{ // Marks on values in unmarked tuples do not propagate
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("hello").Mark("a"),
+				cty.StringVal("world").Mark("b"),
+			}),
+			cty.NumberIntVal(2),
+		},
+		{ // Marked objects return a marked length
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello"),
+				"b": cty.StringVal("world"),
+				"c": cty.StringVal("nice to meet you"),
+			}).Mark("secret"),
+			cty.NumberIntVal(3).Mark("secret"),
+		},
+		{ // Marks on object attribute values do not propagate
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("hello").Mark("a"),
+				"b": cty.StringVal("world").Mark("b"),
+				"c": cty.StringVal("nice to meet you").Mark("c"),
+			}),
+			cty.NumberIntVal(3),
+		},
 	}
 
 	for _, test := range tests {
