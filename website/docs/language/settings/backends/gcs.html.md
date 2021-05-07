@@ -104,4 +104,4 @@ The following configuration options are supported:
  *  `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64
     encoded 'customer supplied encryption key' used to encrypt all state. For
     more information see [Customer Supplied Encryption
-    Keys](https://cloud.google.com/storage/docs/encryption#customer-supplied).
+    Keys](https://cloud.google.com/storage/docs/encryption).
