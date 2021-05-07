@@ -20,6 +20,7 @@ var LengthFunc = function.New(&function.Spec{
 			Type:             cty.DynamicPseudoType,
 			AllowDynamicType: true,
 			AllowUnknown:     true,
+			AllowMarked:      true,
 		},
 	},
 	Type: func(args []cty.Value) (cty.Type, error) {
@@ -34,15 +35,16 @@ var LengthFunc = function.New(&function.Spec{
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		coll := args[0]
 		collTy := args[0].Type()
+		marks := coll.Marks()
 		switch {
 		case collTy == cty.DynamicPseudoType:
-			return cty.UnknownVal(cty.Number), nil
+			return cty.UnknownVal(cty.Number).WithMarks(marks), nil
 		case collTy.IsTupleType():
 			l := len(collTy.TupleElementTypes())
-			return cty.NumberIntVal(int64(l)), nil
+			return cty.NumberIntVal(int64(l)).WithMarks(marks), nil
 		case collTy.IsObjectType():
 			l := len(collTy.AttributeTypes())
-			return cty.NumberIntVal(int64(l)), nil
+			return cty.NumberIntVal(int64(l)).WithMarks(marks), nil
 		case collTy == cty.String:
 			// We'll delegate to the cty stdlib strlen function here, because
 			// it deals with all of the complexities of tokenizing unicode
@@ -212,12 +214,14 @@ var IndexFunc = function.New(&function.Spec{
 var LookupFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name: "inputMap",
-			Type: cty.DynamicPseudoType,
+			Name:        "inputMap",
+			Type:        cty.DynamicPseudoType,
+			AllowMarked: true,
 		},
 		{
-			Name: "key",
-			Type: cty.String,
+			Name:        "key",
+			Type:        cty.String,
+			AllowMarked: true,
 		},
 	},
 	VarParam: &function.Parameter{
@@ -226,6 +230,7 @@ var LookupFunc = function.New(&function.Spec{
 		AllowUnknown:     true,
 		AllowDynamicType: true,
 		AllowNull:        true,
+		AllowMarked:      true,
 	},
 	Type: func(args []cty.Value) (ret cty.Type, err error) {
 		if len(args) < 1 || len(args) > 3 {
@@ -240,7 +245,8 @@ var LookupFunc = function.New(&function.Spec{
 				return cty.DynamicPseudoType, nil
 			}
 
-			key := args[1].AsString()
+			keyVal, _ := args[1].Unmark()
+			key := keyVal.AsString()
 			if ty.HasAttribute(key) {
 				return args[0].GetAttr(key).Type(), nil
 			} else if len(args) == 3 {
@@ -266,23 +272,35 @@ var LookupFunc = function.New(&function.Spec{
 		defaultValueSet := false
 
 		if len(args) == 3 {
+			// intentionally leave default value marked
 			defaultVal = args[2]
 			defaultValueSet = true
 		}
 
-		mapVar := args[0]
-		lookupKey := args[1].AsString()
+		// keep track of marks from the collection and key
+		var markses []cty.ValueMarks
+
+		// unmark collection, retain marks to reapply later
+		mapVar, mapMarks := args[0].Unmark()
+		markses = append(markses, mapMarks)
+
+		// include marks on the key in the result
+		keyVal, keyMarks := args[1].Unmark()
+		if len(keyMarks) > 0 {
+			markses = append(markses, keyMarks)
+		}
+		lookupKey := keyVal.AsString()
 
 		if !mapVar.IsKnown() {
-			return cty.UnknownVal(retType), nil
+			return cty.UnknownVal(retType).WithMarks(markses...), nil
 		}
 
 		if mapVar.Type().IsObjectType() {
 			if mapVar.Type().HasAttribute(lookupKey) {
-				return mapVar.GetAttr(lookupKey), nil
+				return mapVar.GetAttr(lookupKey).WithMarks(markses...), nil
 			}
 		} else if mapVar.HasIndex(cty.StringVal(lookupKey)) == cty.True {
-			return mapVar.Index(cty.StringVal(lookupKey)), nil
+			return mapVar.Index(cty.StringVal(lookupKey)).WithMarks(markses...), nil
 		}
 
 		if defaultValueSet {
@@ -290,10 +308,10 @@ var LookupFunc = function.New(&function.Spec{
 			if err != nil {
 				return cty.NilVal, err
 			}
-			return defaultVal, nil
+			return defaultVal.WithMarks(markses...), nil
 		}
 
-		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
+		return cty.UnknownVal(cty.DynamicPseudoType).WithMarks(markses...), fmt.Errorf(
 			"lookup failed to find '%s'", lookupKey)
 	},
 })
