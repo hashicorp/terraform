@@ -740,6 +740,10 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 			resource "test_object" "a" {
 				arg = "after"
 			}
+
+			output "out" {
+				value = test_object.a.arg
+			}
 		`,
 	})
 	state := states.BuildState(func(s *states.SyncState) {
@@ -836,6 +840,23 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 		} else if got, want := instState.Current.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
 			// Should've saved the result of upgrading
 			t.Errorf("%s has wrong previous run state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+
+	// The output value should also have updated. If not, it's likely that we
+	// skipped updating the working state to match the refreshed state when we
+	// were evaluating the resource.
+	if outChangeSrc := plan.Changes.OutputValue(addrs.RootModuleInstance.OutputValue("out")); outChangeSrc == nil {
+		t.Errorf("no change planned for output value 'out'")
+	} else {
+		outChange, err := outChangeSrc.Decode()
+		if err != nil {
+			t.Fatalf("failed to decode output value 'out': %s", err)
+		}
+		got := outChange.After
+		want := cty.StringVal("current")
+		if !want.RawEquals(got) {
+			t.Errorf("wrong value for output value 'out'\ngot:  %#v\nwant: %#v", got, want)
 		}
 	}
 }
