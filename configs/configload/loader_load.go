@@ -20,7 +20,7 @@ import (
 // required to process the individual modules
 func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
-	if rootMod == nil {
+	if rootMod == nil || diags.HasErrors() {
 		return nil, diags
 	}
 
