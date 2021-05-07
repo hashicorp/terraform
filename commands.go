@@ -82,7 +82,7 @@ func initCommands(
 	meta := command.Meta{
 		OriginalWorkingDir: originalWorkingDir,
 		Streams:            streams,
-		View:               views.NewView(streams),
+		View:               views.NewView(streams).SetRunningInAutomation(inAutomation),
 
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
