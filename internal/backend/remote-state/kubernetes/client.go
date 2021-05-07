@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
@@ -46,7 +47,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	if err != nil {
 		return nil, err
 	}
-	secret, err := c.kubernetesSecretClient.Get(secretName, metav1.GetOptions{})
+	secret, err := c.kubernetesSecretClient.Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return nil, nil
@@ -78,6 +79,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 }
 
 func (c *RemoteClient) Put(data []byte) error {
+	ctx := context.Background()
 	secretName, err := c.createSecretName()
 	if err != nil {
 		return err
@@ -105,14 +107,14 @@ func (c *RemoteClient) Put(data []byte) error {
 			},
 		}
 
-		secret, err = c.kubernetesSecretClient.Create(secret, metav1.CreateOptions{})
+		secret, err = c.kubernetesSecretClient.Create(ctx, secret, metav1.CreateOptions{})
 		if err != nil {
 			return err
 		}
 	}
 
 	setState(secret, payload)
-	_, err = c.kubernetesSecretClient.Update(secret, metav1.UpdateOptions{})
+	_, err = c.kubernetesSecretClient.Update(ctx, secret, metav1.UpdateOptions{})
 	return err
 }
 
@@ -145,6 +147,7 @@ func (c *RemoteClient) Delete() error {
 }
 
 func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
+	ctx := context.Background()
 	leaseName, err := c.createLeaseName()
 	if err != nil {
 		return "", err
@@ -170,7 +173,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 			},
 		}
 
-		_, err = c.kubernetesLeaseClient.Create(lease)
+		_, err = c.kubernetesLeaseClient.Create(ctx, lease, metav1.CreateOptions{})
 		if err != nil {
 			return "", err
 		} else {
@@ -197,7 +200,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 	lease.Spec.HolderIdentity = pointer.StringPtr(info.ID)
 	setLockInfo(lease, info.Marshal())
-	_, err = c.kubernetesLeaseClient.Update(lease)
+	_, err = c.kubernetesLeaseClient.Update(ctx, lease, metav1.UpdateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -234,7 +237,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	lease.Spec.HolderIdentity = nil
 	removeLockInfo(lease)
 
-	_, err = c.kubernetesLeaseClient.Update(lease)
+	_, err = c.kubernetesLeaseClient.Update(context.Background(), lease, metav1.UpdateOptions{})
 	if err != nil {
 		lockErr.Err = err
 		return lockErr
@@ -276,11 +279,11 @@ func (c *RemoteClient) getLabels() map[string]string {
 }
 
 func (c *RemoteClient) getSecret(name string) (*unstructured.Unstructured, error) {
-	return c.kubernetesSecretClient.Get(name, metav1.GetOptions{})
+	return c.kubernetesSecretClient.Get(context.Background(), name, metav1.GetOptions{})
 }
 
 func (c *RemoteClient) getLease(name string) (*coordinationv1.Lease, error) {
-	return c.kubernetesLeaseClient.Get(name, metav1.GetOptions{})
+	return c.kubernetesLeaseClient.Get(context.Background(), name, metav1.GetOptions{})
 }
 
 func (c *RemoteClient) deleteSecret(name string) error {
@@ -296,8 +299,8 @@ func (c *RemoteClient) deleteSecret(name string) error {
 	}
 
 	delProp := metav1.DeletePropagationBackground
-	delOps := &metav1.DeleteOptions{PropagationPolicy: &delProp}
-	return c.kubernetesSecretClient.Delete(name, delOps)
+	delOps := metav1.DeleteOptions{PropagationPolicy: &delProp}
+	return c.kubernetesSecretClient.Delete(context.Background(), name, delOps)
 }
 
 func (c *RemoteClient) deleteLease(name string) error {
@@ -313,8 +316,8 @@ func (c *RemoteClient) deleteLease(name string) error {
 	}
 
 	delProp := metav1.DeletePropagationBackground
-	delOps := &metav1.DeleteOptions{PropagationPolicy: &delProp}
-	return c.kubernetesLeaseClient.Delete(name, delOps)
+	delOps := metav1.DeleteOptions{PropagationPolicy: &delProp}
+	return c.kubernetesLeaseClient.Delete(context.Background(), name, delOps)
 }
 
 func (c *RemoteClient) createSecretName() (string, error) {

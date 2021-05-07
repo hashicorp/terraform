@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"os"
@@ -124,6 +125,7 @@ func TestBackendLocksSoak(t *testing.T) {
 }
 
 func cleanupK8sResources(t *testing.T) {
+	ctx := context.Background()
 	// Get a backend to use the k8s client
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"secret_suffix": secretSuffix,
@@ -138,13 +140,13 @@ func cleanupK8sResources(t *testing.T) {
 
 	// Delete secrets
 	opts := metav1.ListOptions{LabelSelector: tfstateKey + "=true"}
-	secrets, err := sClient.List(opts)
+	secrets, err := sClient.List(ctx, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	delProp := metav1.DeletePropagationBackground
-	delOps := &metav1.DeleteOptions{PropagationPolicy: &delProp}
+	delOps := metav1.DeleteOptions{PropagationPolicy: &delProp}
 	var errs []error
 
 	for _, secret := range secrets.Items {
@@ -155,7 +157,7 @@ func cleanupK8sResources(t *testing.T) {
 		}
 
 		if key == secretSuffix {
-			err = sClient.Delete(secret.GetName(), delOps)
+			err = sClient.Delete(ctx, secret.GetName(), delOps)
 			if err != nil {
 				errs = append(errs, err)
 			}
@@ -168,7 +170,7 @@ func cleanupK8sResources(t *testing.T) {
 	}
 
 	// Delete leases
-	leases, err := leaseClient.List(opts)
+	leases, err := leaseClient.List(ctx, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,7 +183,7 @@ func cleanupK8sResources(t *testing.T) {
 		}
 
 		if key == secretSuffix {
-			err = leaseClient.Delete(lease.GetName(), delOps)
+			err = leaseClient.Delete(ctx, lease.GetName(), delOps)
 			if err != nil {
 				errs = append(errs, err)
 			}

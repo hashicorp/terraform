@@ -122,7 +122,6 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-<<<<<<< HEAD
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
@@ -130,15 +129,6 @@ require (
 	golang.org/x/tools v0.1.0
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/grpc v1.36.0
-=======
-	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
-	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
-	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
-	golang.org/x/text v0.3.5
-	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
-	google.golang.org/api v0.34.0
-	google.golang.org/grpc v1.31.1
->>>>>>> 03dcaa364 (Remove use of retracted k8s client-go lib)
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	k8s.io/api v0.21.0
