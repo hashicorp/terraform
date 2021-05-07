@@ -42,7 +42,6 @@ require (
 	github.com/gophercloud/gophercloud v0.10.1-0.20200424014253-c3bfe50899e5
 	github.com/gophercloud/utils v0.0.0-20200423144003-7c72efc7435d
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
-	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
@@ -123,6 +122,7 @@ require (
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/mod v0.4.2
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+<<<<<<< HEAD
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
 	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
@@ -130,18 +130,25 @@ require (
 	golang.org/x/tools v0.1.0
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/grpc v1.36.0
+=======
+	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
+	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
+	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d
+	golang.org/x/text v0.3.5
+	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
+	google.golang.org/api v0.34.0
+	google.golang.org/grpc v1.31.1
+>>>>>>> 03dcaa364 (Remove use of retracted k8s client-go lib)
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/ini.v1 v1.42.0 // indirect
-	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
-	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-	k8s.io/client-go v10.0.0+incompatible
-	k8s.io/utils v0.0.0-20200411171748-3d5a2fe318e4
+	k8s.io/api v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/client-go v0.21.0
+	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 )
 
 replace google.golang.org/grpc v1.36.0 => google.golang.org/grpc v1.27.1
 
 replace github.com/golang/mock v1.5.0 => github.com/golang/mock v1.4.4
-
-replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 
 go 1.14
