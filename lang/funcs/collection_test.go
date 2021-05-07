@@ -795,6 +795,88 @@ func TestLookup(t *testing.T) {
 			cty.DynamicVal, // if the key is unknown then we don't know which object attribute and thus can't know the type
 			false,
 		},
+		{ // successful marked collection lookup returns marked value
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+				}).Mark("a"),
+				cty.StringVal("boop"),
+				cty.StringVal("nope"),
+			},
+			cty.StringVal("beep").Mark("a"),
+			false,
+		},
+		{ // apply collection marks to unknown return vaue
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+					"frob": cty.UnknownVal(cty.String),
+				}).Mark("a"),
+				cty.StringVal("frob"),
+				cty.StringVal("nope"),
+			},
+			cty.UnknownVal(cty.String).Mark("a"),
+			false,
+		},
+		{ // propagate collection marks to default when returning
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+				}).Mark("a"),
+				cty.StringVal("frob"),
+				cty.StringVal("nope").Mark("b"),
+			},
+			cty.StringVal("nope").WithMarks(cty.NewValueMarks("a", "b")),
+			false,
+		},
+		{ // on unmarked collection, return only marks from found value
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("frob"),
+				cty.StringVal("nope").Mark("c"),
+			},
+			cty.StringVal("honk").Mark("b"),
+			false,
+		},
+		{ // on unmarked collection, return default exactly on missing
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("squish"),
+				cty.StringVal("nope").Mark("c"),
+			},
+			cty.StringVal("nope").Mark("c"),
+			false,
+		},
+		{ // retain marks on default if converted
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep").Mark("a"),
+					"frob": cty.StringVal("honk").Mark("b"),
+				}),
+				cty.StringVal("squish"),
+				cty.NumberIntVal(5).Mark("c"),
+			},
+			cty.StringVal("5").Mark("c"),
+			false,
+		},
+		{ // propagate marks from key
+			[]cty.Value{
+				cty.MapVal(map[string]cty.Value{
+					"boop": cty.StringVal("beep"),
+					"frob": cty.StringVal("honk"),
+				}),
+				cty.StringVal("boop").Mark("a"),
+				cty.StringVal("nope"),
+			},
+			cty.StringVal("beep").Mark("a"),
+			false,
+		},
 	}
 
 	for _, test := range tests {
