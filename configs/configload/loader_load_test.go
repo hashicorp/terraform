@@ -80,3 +80,19 @@ func TestLoaderLoadConfig_addVersion(t *testing.T) {
 		t.Fatalf("wrong error\ngot:\n%s\n\nwant: containing %q", got, want)
 	}
 }
+
+func TestLoaderLoadConfig_loadDiags(t *testing.T) {
+	// building a config which didn't load correctly may cause configs to panic
+	fixtureDir := filepath.Clean("testdata/invalid-names")
+	loader, err := NewLoader(&Config{
+		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+	})
+	if err != nil {
+		t.Fatalf("unexpected error from NewLoader: %s", err)
+	}
+
+	_, diags := loader.LoadConfig(fixtureDir)
+	if !diags.HasErrors() {
+		t.Fatalf("success; want error")
+	}
+}
