@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -56,7 +55,7 @@ type connectionInfo struct {
 	Certificate    string
 	Host           string
 	HostKey        string
-	Port           int
+	Port           uint16
 	Agent          bool
 	ScriptPath     string
 	TargetPlatform string
@@ -69,7 +68,7 @@ type connectionInfo struct {
 	BastionCertificate string
 	BastionHost        string
 	BastionHostKey     string
-	BastionPort        int
+	BastionPort        uint16
 
 	AgentIdentity string
 }
@@ -102,11 +101,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "host_key":
 			connInfo.HostKey = v.AsString()
 		case "port":
-			p, err := strconv.Atoi(v.AsString())
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.Port); err != nil {
 				return nil, err
 			}
-			connInfo.Port = p
 		case "agent":
 			connInfo.Agent = v.True()
 		case "script_path":
