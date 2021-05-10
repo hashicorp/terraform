@@ -26,24 +26,46 @@ This two-step workflow is primarily intended for when
 
 ## Usage
 
-Usage: `terraform apply [options] [plan]`
+Usage: `terraform apply [options] [plan file]`
 
 The behavior of `terraform apply` differs significantly depending on whether
 you pass it the filename of a previously-saved plan file.
 
-In the default case, with no saved plan file, `terraform apply` effectively
-runs [`terraform plan`](./plan.html) internally itself in order to propose a
-new plan. In that case, `terraform apply` supports all of the same
-[Planning Modes](./plan.html#planning-modes) and
-[Planning Options](./plan.html#planning-options) that `terraform plan`
-would accept, so you can customize how Terraform will create the plan.
-Terraform will prompt you to approve the plan before taking the described
-actions, unless you override that prompt using the `-auto-approve` option.
+### Automatic Plan Mode
 
-If you pass the filename of a previously-saved plan file, none of the options
-related to planning modes and planning options are supported, because Terraform
-will instead use the options that you set on the earlier `terraform plan` call
-that created the plan file.
+In the default case, with no saved plan file, `terraform apply` creates its own
+plan of action, in the same way that [`terraform plan`](./plan.html) would.
+
+Terraform will propose the plan to you and prompt you to approve it before
+taking the described actions, unless you waive that prompt by using the
+`-auto-approve` option.
+
+When performing its own plan, `terraform apply` supports all of the same
+[planning modes](./plan.html#planning-modes) and
+[planning options](./plan.html#planning-options) that `terraform plan` would
+accept, so you can customize how Terraform will create the plan.
+
+### Saved Plan Mode
+
+If you pass the filename of a previously-saved plan file, `terraform apply`
+performs exactly the steps specified by that plan file. It does not prompt for
+approval; if you want to inspect a plan file before applying it, you can use
+[`terraform show`](./show.html).
+
+When using a saved plan, none of the planning modes or planning options linked
+above are supported; these options only affect Terraform's decisions about which
+actions to take, and the plan file contains the final results of those
+decisions.
+
+### Plan Options
+
+When run without a saved plan file, `terraform apply` supports all of `terraform
+plan`'s planning modes and planning options. For details, see:
+
+- [Planning Modes](./plan.html#planning-modes)
+- [Planning Options](./plan.html#planning-options)
+
+### Apply Options
 
 The following options allow you to change various details about how the
 apply command executes and reports on the apply operation. If you are running
