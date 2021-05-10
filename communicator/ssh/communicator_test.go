@@ -331,7 +331,7 @@ func TestHostKey(t *testing.T) {
 		Password: "pass",
 		Host:     host,
 		HostKey:  pubKey,
-		Port:     port,
+		Port:     uint16(port),
 		Timeout:  "30s",
 	}
 
@@ -363,7 +363,7 @@ func TestHostKey(t *testing.T) {
 	port, _ = strconv.Atoi(p)
 
 	connInfo.HostKey = testClientPublicKey
-	connInfo.Port = port
+	connInfo.Port = uint16(port)
 
 	cfg, err = prepareSSHConfig(connInfo)
 	if err != nil {
@@ -406,7 +406,7 @@ func TestHostCert(t *testing.T) {
 		Password: "pass",
 		Host:     host,
 		HostKey:  testCAPublicKey,
-		Port:     port,
+		Port:     uint16(port),
 		Timeout:  "30s",
 	}
 
@@ -438,7 +438,7 @@ func TestHostCert(t *testing.T) {
 	port, _ = strconv.Atoi(p)
 
 	connInfo.HostKey = testClientPublicKey
-	connInfo.Port = port
+	connInfo.Port = uint16(port)
 
 	cfg, err = prepareSSHConfig(connInfo)
 	if err != nil {
@@ -528,7 +528,7 @@ func TestCertificateBasedAuth(t *testing.T) {
 		Host:        host,
 		PrivateKey:  CLIENT_PEM,
 		Certificate: CLIENT_CERT_SIGNED_BY_SERVER,
-		Port:        port,
+		Port:        uint16(port),
 		Timeout:     "30s",
 	}
 

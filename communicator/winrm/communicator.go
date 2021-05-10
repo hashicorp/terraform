@@ -33,7 +33,7 @@ func New(v cty.Value) (*Communicator, error) {
 
 	endpoint := &winrm.Endpoint{
 		Host:     connInfo.Host,
-		Port:     connInfo.Port,
+		Port:     int(connInfo.Port),
 		HTTPS:    connInfo.HTTPS,
 		Insecure: connInfo.Insecure,
 		Timeout:  connInfo.TimeoutVal,

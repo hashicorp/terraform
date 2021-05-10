@@ -159,3 +159,22 @@ func TestProvisioner_stringBastionPort(t *testing.T) {
 		t.Fatalf("bad %v", conf)
 	}
 }
+
+func TestProvisioner_invalidPortNumber(t *testing.T) {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"type":        cty.StringVal("ssh"),
+		"user":        cty.StringVal("root"),
+		"password":    cty.StringVal("supersecret"),
+		"private_key": cty.StringVal("someprivatekeycontents"),
+		"host":        cty.StringVal("example.com"),
+		"port":        cty.NumberIntVal(123456789),
+	})
+
+	_, err := parseConnectionInfo(v)
+	if err == nil {
+		t.Fatalf("bad: should not allow invalid port number")
+	}
+	if got, want := err.Error(), "value must be a whole number, between 0 and 65535 inclusive"; got != want {
+		t.Errorf("unexpected error\n got: %s\nwant: %s", got, want)
+	}
+}

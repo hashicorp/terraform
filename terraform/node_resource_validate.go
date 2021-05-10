@@ -177,7 +177,7 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"port": {
-			Type:     cty.String,
+			Type:     cty.Number,
 			Optional: true,
 		},
 		"timeout": {
