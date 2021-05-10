@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/communicator/shared"
 	sshagent "github.com/xanzy/ssh-agent"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -127,11 +128,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "bastion_host_key":
 			connInfo.BastionHostKey = v.AsString()
 		case "bastion_port":
-			p, err := strconv.Atoi(v.AsString())
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.BastionPort); err != nil {
 				return nil, err
 			}
-			connInfo.BastionPort = p
 		case "agent_identity":
 			connInfo.AgentIdentity = v.AsString()
 		}
