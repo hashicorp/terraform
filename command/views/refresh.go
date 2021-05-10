@@ -22,7 +22,7 @@ type Refresh interface {
 }
 
 // NewRefresh returns an initialized Refresh implementation for the given ViewType.
-func NewRefresh(vt arguments.ViewType, runningInAutomation bool, view *View) Refresh {
+func NewRefresh(vt arguments.ViewType, view *View) Refresh {
 	switch vt {
 	case arguments.ViewJSON:
 		return &RefreshJSON{
@@ -31,7 +31,7 @@ func NewRefresh(vt arguments.ViewType, runningInAutomation bool, view *View) Ref
 	case arguments.ViewHuman:
 		return &RefreshHuman{
 			view:         view,
-			inAutomation: runningInAutomation,
+			inAutomation: view.RunningInAutomation(),
 			countHook:    &countHook{},
 		}
 	default:

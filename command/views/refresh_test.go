@@ -15,7 +15,7 @@ import (
 func TestRefreshHuman_operation(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	defer done(t)
-	v := NewRefresh(arguments.ViewHuman, true, NewView(streams)).Operation()
+	v := NewRefresh(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true)).Operation()
 	if hv, ok := v.(*OperationHuman); !ok {
 		t.Fatalf("unexpected return type %t", v)
 	} else if hv.inAutomation != true {
@@ -27,7 +27,7 @@ func TestRefreshHuman_operation(t *testing.T) {
 func TestRefreshHuman_hooks(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	defer done(t)
-	v := NewRefresh(arguments.ViewHuman, true, NewView(streams))
+	v := NewRefresh(arguments.ViewHuman, NewView(streams).SetRunningInAutomation(true))
 	hooks := v.Hooks()
 
 	var uiHook *UiHook
@@ -45,7 +45,7 @@ func TestRefreshHuman_hooks(t *testing.T) {
 // elsewhere.
 func TestRefreshHuman_outputs(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
-	v := NewRefresh(arguments.ViewHuman, false, NewView(streams))
+	v := NewRefresh(arguments.ViewHuman, NewView(streams))
 
 	v.Outputs(map[string]*states.OutputValue{
 		"foo": {Value: cty.StringVal("secret")},
@@ -62,7 +62,7 @@ func TestRefreshHuman_outputs(t *testing.T) {
 // Outputs should do nothing if there are no outputs to render.
 func TestRefreshHuman_outputsEmpty(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
-	v := NewRefresh(arguments.ViewHuman, false, NewView(streams))
+	v := NewRefresh(arguments.ViewHuman, NewView(streams))
 
 	v.Outputs(map[string]*states.OutputValue{})
 
@@ -76,7 +76,7 @@ func TestRefreshHuman_outputsEmpty(t *testing.T) {
 // elsewhere.
 func TestRefreshJSON_outputs(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
-	v := NewRefresh(arguments.ViewJSON, false, NewView(streams))
+	v := NewRefresh(arguments.ViewJSON, NewView(streams))
 
 	v.Outputs(map[string]*states.OutputValue{
 		"boop_count": {Value: cty.NumberIntVal(92)},
