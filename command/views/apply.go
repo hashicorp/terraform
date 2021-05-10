@@ -24,7 +24,7 @@ type Apply interface {
 }
 
 // NewApply returns an initialized Apply implementation for the given ViewType.
-func NewApply(vt arguments.ViewType, destroy bool, runningInAutomation bool, view *View) Apply {
+func NewApply(vt arguments.ViewType, destroy bool, view *View) Apply {
 	switch vt {
 	case arguments.ViewJSON:
 		return &ApplyJSON{
@@ -36,7 +36,7 @@ func NewApply(vt arguments.ViewType, destroy bool, runningInAutomation bool, vie
 		return &ApplyHuman{
 			view:         view,
 			destroy:      destroy,
-			inAutomation: runningInAutomation,
+			inAutomation: view.RunningInAutomation(),
 			countHook:    &countHook{},
 		}
 	default:
