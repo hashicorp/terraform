@@ -57,6 +57,10 @@ func (v *View) SetRunningInAutomation(new bool) *View {
 	return v
 }
 
+func (v *View) RunningInAutomation() bool {
+	return v.runningInAutomation
+}
+
 // Configure applies the global view configuration flags.
 func (v *View) Configure(view *arguments.View) {
 	v.colorize.Disable = view.NoColor

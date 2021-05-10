@@ -27,7 +27,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
 	var view views.Refresh
-	view = views.NewRefresh(args.ViewType, c.RunningInAutomation, c.View)
+	view = views.NewRefresh(args.ViewType, c.View)
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)

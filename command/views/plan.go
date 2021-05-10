@@ -24,7 +24,7 @@ type Plan interface {
 }
 
 // NewPlan returns an initialized Plan implementation for the given ViewType.
-func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
+func NewPlan(vt arguments.ViewType, view *View) Plan {
 	switch vt {
 	case arguments.ViewJSON:
 		return &PlanJSON{
@@ -33,7 +33,7 @@ func NewPlan(vt arguments.ViewType, runningInAutomation bool, view *View) Plan {
 	case arguments.ViewHuman:
 		return &PlanHuman{
 			view:         view,
-			inAutomation: runningInAutomation,
+			inAutomation: view.RunningInAutomation(),
 		}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
