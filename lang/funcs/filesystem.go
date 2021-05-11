@@ -352,7 +352,7 @@ var PathExpandFunc = function.New(&function.Spec{
 	},
 })
 
-func readFileBytes(baseDir, path string) ([]byte, error) {
+func openFile(baseDir, path string) (*os.File, error) {
 	path, err := homedir.Expand(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to expand ~: %s", err)
@@ -365,13 +365,21 @@ func readFileBytes(baseDir, path string) ([]byte, error) {
 	// Ensure that the path is canonical for the host OS
 	path = filepath.Clean(path)
 
-	src, err := ioutil.ReadFile(path)
+	return os.Open(path)
+}
+
+func readFileBytes(baseDir, path string) ([]byte, error) {
+	f, err := openFile(baseDir, path)
 	if err != nil {
-		// ReadFile does not return Terraform-user-friendly error
-		// messages, so we'll provide our own.
 		if os.IsNotExist(err) {
+			// An extra Terraform-specific hint for this situation
 			return nil, fmt.Errorf("no file exists at %s; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource", path)
 		}
+		return nil, err
+	}
+
+	src, err := ioutil.ReadAll(f)
+	if err != nil {
 		return nil, fmt.Errorf("failed to read %s", path)
 	}
 
