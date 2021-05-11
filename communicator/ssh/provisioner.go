@@ -10,13 +10,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
 	sshagent "github.com/xanzy/ssh-agent"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/crypto/ssh/knownhosts"
@@ -55,7 +55,7 @@ type connectionInfo struct {
 	Certificate    string
 	Host           string
 	HostKey        string
-	Port           int
+	Port           uint16
 	Agent          bool
 	ScriptPath     string
 	TargetPlatform string
@@ -68,7 +68,7 @@ type connectionInfo struct {
 	BastionCertificate string
 	BastionHost        string
 	BastionHostKey     string
-	BastionPort        int
+	BastionPort        uint16
 
 	AgentIdentity string
 }
@@ -101,11 +101,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "host_key":
 			connInfo.HostKey = v.AsString()
 		case "port":
-			p, err := strconv.Atoi(v.AsString())
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.Port); err != nil {
 				return nil, err
 			}
-			connInfo.Port = p
 		case "agent":
 			connInfo.Agent = v.True()
 		case "script_path":
@@ -127,11 +125,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "bastion_host_key":
 			connInfo.BastionHostKey = v.AsString()
 		case "bastion_port":
-			p, err := strconv.Atoi(v.AsString())
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.BastionPort); err != nil {
 				return nil, err
 			}
-			connInfo.BastionPort = p
 		case "agent_identity":
 			connInfo.AgentIdentity = v.AsString()
 		}
