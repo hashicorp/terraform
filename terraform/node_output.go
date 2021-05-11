@@ -259,9 +259,11 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// we we have a change recorded, we don't need to re-evaluate if the value
 	// was known
 	if changeRecorded {
-		var err error
-		val, err = n.Change.After.Decode(cty.DynamicPseudoType)
+		change, err := n.Change.Decode()
 		diags = diags.Append(err)
+		if err == nil {
+			val = change.After
+		}
 	}
 
 	// If there was no change recorded, or the recorded change was not wholly
