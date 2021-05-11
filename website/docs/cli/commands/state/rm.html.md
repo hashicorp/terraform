@@ -3,46 +3,43 @@ layout: "docs"
 page_title: "Command: state rm"
 sidebar_current: "docs-commands-state-sub-rm"
 description: |-
-  The `terraform state rm` command removes items from the Terraform state.
+  The `terraform state rm` command removes bindings from the Terraform state, causing Terraform to "forget about" existing objects.
 ---
 
 # Command: state rm
 
-The `terraform state rm` command is used to remove items from the
-[Terraform state](/docs/language/state/index.html). This command can remove
-single resources, single instances of a resource, entire modules,
-and more.
+The main function of [Terraform state](/docs/language/state/index.html) is
+to track the bindings between resource instance addresses in your configuration
+and the remote objects they represent. Normally Terraform automatically
+updates the state in response to actions taken when applying a plan, such as
+removing a binding for an remote object that has now been deleted.
+
+You can use `terraform state rm` in the less common situation where you wish
+to remove a binding to an existing remote object without first destroying it,
+which will effectively make Terraform "forget" the object while it continues
+to exist in the remote system.
 
 ## Usage
 
 Usage: `terraform state rm [options] ADDRESS...`
 
-Remove one or more items from the Terraform state.
+Terraform will search the state for any instances matching the given
+[resource address](/docs/cli/state/resource-addressing.html), and remove
+the record of each one so that Terraform will no longer be tracking the
+corresponding remote objects.
 
-Items removed from the Terraform state are _not physically destroyed_.
-Items removed from the Terraform state are only no longer managed by
-Terraform. For example, if you remove an AWS instance from the state, the AWS
-instance will continue running, but `terraform plan` will no longer see that
-instance.
+This means that although the objects will still continue to exist in the
+remote system, a subsequent
+[`terraform plan`](../plan.html)
+will include an action to create a new object for each of the "forgotten"
+instances. Depending on the constraints imposed by the remote system, creating
+those objects might fail if their names or other identifiers conflict with
+the old objects still present.
 
-There are various use cases for removing items from a Terraform state
-file. The most common is refactoring a configuration to no longer manage
-that resource (perhaps moving it to another Terraform configuration/state).
+This command also accepts the following option:
 
-The state will only be saved on successful removal of all addresses.
-If any specific address errors for any reason (such as a syntax error),
-the state will not be modified at all.
-
-This command will output a backup copy of the state prior to saving any
-changes. The backup cannot be disabled. Due to the destructive nature
-of this command, backups are required.
-
-This command requires one or more addresses that point to a resources in the
-state. Addresses are
-in [resource addressing format](/docs/cli/state/resource-addressing.html).
-
-This command doesn't normally accept any command line options, except in
-the special situations described in the following paragraphs.
+* `-dry-run` - Report all of the resource instances that match the given
+  address without actually "forgetting" any of them.
 
 For configurations using
 [the `remote` backend](/docs/language/settings/backends/remote.html)
@@ -55,58 +52,77 @@ For configurations using
 `terraform state rm` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
-## Example: Remove a Resource
+## Example: Remove all Instances of a Resource
 
-The example below removes the `packet_device` resource named `worker`:
+The following example will cause Terraform to "forget" all of the instances
+of the `packet_device` resource named "worker".
 
 ```shell
 $ terraform state rm 'packet_device.worker'
 ```
 
-## Example: Remove a Module
+A resource that doesn't use `count` or `for_each` has only one instance, so
+this is also the appropriate syntax to select that single instance.
 
-The example below removes the entire module named `foo`:
+## Example: Remove all Instances of a Resource in a Module
 
-```shell
-$ terraform state rm 'module.foo'
-```
-
-## Example: Remove a Module Resource
-
-The example below removes the `packet_device` resource named `worker` inside a module named `foo`:
+To select a resource that you've defined in a child module you must specify
+the path of that module as part of the resource address:
 
 ```shell
 $ terraform state rm 'module.foo.packet_device.worker'
 ```
 
-## Example: Remove a Resource configured with count
+## Example: Remove all Instances of all Resources in a Module
 
-The example below removes the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/language/meta-arguments/count.html):
+The following example will cause Terraform to "forget" all of the instances
+associated with all resources defined in all instances of the module named
+`foo`:
+
+```shell
+$ terraform state rm 'module.foo'
+```
+
+## Example: Remove a Particular Instance of a Resource using `count`
+
+A resource defined with [the `count` meta-argument](/docs/language/meta-arguments/count.html)
+has multiple instances that are each identified by an integer. You can
+select a particular instance by including an explicit index in your given
+address:
 
 ```shell
 $ terraform state rm 'packet_device.worker[0]'
 ```
 
-## Example: Remove a Resource configured with for_each
+Brackets (`[`, `]`) have a special meaning in some shells, so you may need to
+quote or escape the address in order to pass it literally to Terraform.
+The above shows the typical quoting syntax for Unix-style shells.
 
-The example below removes the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/language/meta-arguments/for_each.html):
+## Example: Remove a Particular Instance of a Resource using `for_each`
 
-Linux, Mac OS, and UNIX:
+A resource defined with [the `for_each` meta-argument](/docs/language/meta-arguments/for_each.html)
+has multiple instances that are each identified by an string. You can
+select a particular instance by including an explicit key in your given
+address.
+
+However, the syntax for strings includes quotes and the quote symbol often
+has special meaning in command shells, so you'll need to use the appropriate
+quoting and/or escaping syntax for the shell you are using. For example:
+
+Unix-style shells, such as on Linux or macOS:
 
 ```shell
 $ terraform state rm 'packet_device.worker["example"]'
+```
+
+Windows Command Prompt (`cmd.exe`):
+
+```shell
+$ terraform state rm packet_device.worker[\"example\"]
 ```
 
 PowerShell:
 
 ```shell
 $ terraform state rm 'packet_device.worker[\"example\"]'
-```
-
-Windows `cmd.exe`:
-
-```shell
-$ terraform state rm packet_device.worker[\"example\"]
 ```
