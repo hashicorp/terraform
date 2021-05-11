@@ -227,7 +227,7 @@ paths to ignore from upload via a `.terraformignore` file at the root of your co
 * .terraform/ directories (exclusive of .terraform/modules)
 
 The `.terraformignore` file can include rules as one would include in a
-[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files)
+[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring)
 
 
 * Comments (starting with `#`) or blank lines are ignored
