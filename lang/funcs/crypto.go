@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"hash"
+	"io"
 	"strings"
 
 	uuidv5 "github.com/google/uuid"
@@ -243,13 +244,16 @@ func makeFileHashFunction(baseDir string, hf func() hash.Hash, enc func([]byte) 
 		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 			path := args[0].AsString()
-			src, err := readFileBytes(baseDir, path)
+			f, err := openFile(baseDir, path)
 			if err != nil {
 				return cty.UnknownVal(cty.String), err
 			}
 
 			h := hf()
-			h.Write(src)
+			_, err = io.Copy(h, f)
+			if err != nil {
+				return cty.UnknownVal(cty.String), err
+			}
 			rv := enc(h.Sum(nil))
 			return cty.StringVal(rv), nil
 		},
