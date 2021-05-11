@@ -307,9 +307,9 @@ Options:
 
   -allow-missing-config   Allow import when no resource configuration block exists.
 
-  -input=true             Ask for input for variables if not directly set.
+  -input=false            Disable interactive input prompts.
 
-  -lock=true              Lock the state file when locking is supported.
+  -lock                   Lock the state file when locking is supported.
 
   -lock-timeout=0s        Duration to retry a state lock.
 
@@ -323,9 +323,8 @@ Options:
                           a file. If "terraform.tfvars" or any ".auto.tfvars"
                           files are present, they will be automatically loaded.
 
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          are incompatible. This may result in an unusable
-                          workspace, and should be used with extreme caution.
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
 
   -state, state-out, and -backup are legacy options supported for the local
   backend only. For more information, see the local backend's documentation.

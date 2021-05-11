@@ -38,29 +38,19 @@ This command requires a source and destination address of the item to move.
 Addresses are
 in [resource addressing format](/docs/cli/state/resource-addressing.html).
 
-The command-line flags are all optional. The list of available flags are:
+This command doesn't normally accept any command line options, except in
+the special situations described in the following paragraphs.
 
-* `-backup=path` - Path where Terraform should write the backup for the
-  original state. This can't be disabled. If not set, Terraform will write it
-  to the same path as the statefile with a ".backup" extension.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform state mv`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
-* `-backup-out=path` - Path where Terraform should write the backup for the
-  destination state. This can't be disabled. If not set, Terraform will write
-  it to the same path as the destination state file with a backup extension.
-  This only needs to be specified if -state-out is set to a different path than
-  -state.
-
-* `-state=path` - Path to the source state file to read from. Defaults to the
-  configured backend, or "terraform.tfstate".
-
-* `-state-out=path` - Path to the destination state file to write to. If this
-  isn't specified the source state file will be used. This can be a new or
-  existing path.
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `local` state mv](/docs/language/settings/backends/local.html) only,
+`terraform taint` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Example: Rename a Resource
 

@@ -62,12 +62,13 @@ This command also accepts the following options:
   if you are running Terraform in a context where its output will be
   rendered by a system that cannot interpret terminal formatting.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform untaint`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
 For configurations using
 [the `local` backend](/docs/language/settings/backends/local.html) only,
-`terraform taint` also accepts the legacy options
+`terraform untaint` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).

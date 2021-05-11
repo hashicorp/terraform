@@ -67,10 +67,11 @@ This command accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform taint`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
 For configurations using
 [the `local` backend](/docs/language/settings/backends/local.html) only,

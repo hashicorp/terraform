@@ -235,23 +235,15 @@ Options:
   -allow-missing          If specified, the command will succeed (exit code 0)
                           even if the resource is missing.
 
-  -backup=path            Path to backup the existing state file before
-                          modifying. Defaults to the "-state-out" path with
-                          ".backup" extension. Set to "-" to disable backup.
-
-  -lock=true              Lock the state file when locking is supported.
+  -lock                   Lock the state file when locking is supported.
 
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -state=path             Path to read and save state (unless state-out
-                          is specified). Defaults to "terraform.tfstate".
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
 
-  -state-out=path         Path to write updated state file. By default, the
-                          "-state" path will be used.
-
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          are incompatible. This may result in an unusable
-                          workspace, and should be used with extreme caution.
+  -state, state-out, and -backup are legacy options supported for the local
+  backend only. For more information, see the local backend's documentation.
 
 `
 	return strings.TrimSpace(helpText)
