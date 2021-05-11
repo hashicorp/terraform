@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
 * functions: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
 
 ## 0.15.3 (May 06, 2021)
