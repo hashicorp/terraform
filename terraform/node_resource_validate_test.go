@@ -31,6 +31,7 @@ func TestNodeValidatableResource_ValidateProvisioner_valid(t *testing.T) {
 			Config: configs.SynthBody("", map[string]cty.Value{
 				"host": cty.StringVal("localhost"),
 				"type": cty.StringVal("ssh"),
+				"port": cty.NumberIntVal(10022),
 			}),
 		},
 	}
@@ -104,7 +105,7 @@ func TestNodeValidatableResource_ValidateProvisioner__warning(t *testing.T) {
 	}
 }
 
-func TestNodeValidatableResource_ValidateProvisioner__conntectionInvalid(t *testing.T) {
+func TestNodeValidatableResource_ValidateProvisioner__connectionInvalid(t *testing.T) {
 	ctx := &MockEvalContext{}
 	ctx.installSimpleEval()
 	mp := &MockProvisioner{}

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/shared"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 const (
@@ -37,7 +37,7 @@ type connectionInfo struct {
 	User       string
 	Password   string
 	Host       string
-	Port       int
+	Port       uint16
 	HTTPS      bool
 	Insecure   bool
 	NTLM       bool   `mapstructure:"use_ntlm"`
@@ -69,11 +69,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "host":
 			connInfo.Host = v.AsString()
 		case "port":
-			p, err := strconv.Atoi(v.AsString())
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.Port); err != nil {
 				return nil, err
 			}
-			connInfo.Port = p
 		case "https":
 			connInfo.HTTPS = v.True()
 		case "insecure":
