@@ -200,9 +200,10 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 			return nil, fmt.Errorf("error decoding 'after' value: %s", err)
 		}
 	}
+
 	return &Change{
 		Action: cs.Action,
-		Before: before,
-		After:  after,
+		Before: before.MarkWithPaths(cs.BeforeValMarks),
+		After:  after.MarkWithPaths(cs.AfterValMarks),
 	}, nil
 }
