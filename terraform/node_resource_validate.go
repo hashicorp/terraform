@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -345,10 +346,23 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	case addrs.ManagedResourceMode:
 		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
 		if schema == nil {
+			var suggestion string
+			if dSchema, _ := providerSchema.SchemaForResourceType(addrs.DataResourceMode, n.Config.Type); dSchema != nil {
+				suggestion = fmt.Sprintf("\n\nDid you intend to use the data source %q? If so, declare this using a \"data\" block instead of a \"resource\" block.", n.Config.Type)
+			} else if len(providerSchema.ResourceTypes) > 0 {
+				suggestions := make([]string, 0, len(providerSchema.ResourceTypes))
+				for name := range providerSchema.ResourceTypes {
+					suggestions = append(suggestions, name)
+				}
+				if suggestion = didyoumean.NameSuggestion(n.Config.Type, suggestions); suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid resource type",
-				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.", n.Config.ProviderConfigAddr(), n.Config.Type),
+				Detail:   fmt.Sprintf("The provider %s does not support resource type %q.%s", n.Provider().ForDisplay(), n.Config.Type, suggestion),
 				Subject:  &n.Config.TypeRange,
 			})
 			return diags
@@ -386,10 +400,23 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	case addrs.DataResourceMode:
 		schema, _ := providerSchema.SchemaForResourceType(n.Config.Mode, n.Config.Type)
 		if schema == nil {
+			var suggestion string
+			if dSchema, _ := providerSchema.SchemaForResourceType(addrs.ManagedResourceMode, n.Config.Type); dSchema != nil {
+				suggestion = fmt.Sprintf("\n\nDid you intend to use the managed resource type %q? If so, declare this using a \"resource\" block instead of a \"data\" block.", n.Config.Type)
+			} else if len(providerSchema.DataSources) > 0 {
+				suggestions := make([]string, 0, len(providerSchema.DataSources))
+				for name := range providerSchema.DataSources {
+					suggestions = append(suggestions, name)
+				}
+				if suggestion = didyoumean.NameSuggestion(n.Config.Type, suggestions); suggestion != "" {
+					suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+				}
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid data source",
-				Detail:   fmt.Sprintf("The provider %s does not support data source %q.", n.Config.ProviderConfigAddr(), n.Config.Type),
+				Detail:   fmt.Sprintf("The provider %s does not support data source %q.%s", n.Provider().ForDisplay(), n.Config.Type, suggestion),
 				Subject:  &n.Config.TypeRange,
 			})
 			return diags
