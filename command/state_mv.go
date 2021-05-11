@@ -477,32 +477,15 @@ Options:
   -dry-run                If set, prints out what would've been moved but doesn't
                           actually move anything.
 
-  -backup=PATH            Path where Terraform should write the backup for the
-                          original state. This can't be disabled. If not set,
-                          Terraform will write it to the same path as the
-                          statefile with a ".backup" extension.
-
-  -backup-out=PATH        Path where Terraform should write the backup for the
-                          destination state. This can't be disabled. If not
-                          set, Terraform will write it to the same path as the
-                          destination state file with a backup extension. This
-                          only needs to be specified if -state-out is set to a
-                          different path than -state.
-
-  -lock=true              Lock the state files when locking is supported.
+  -lock                   Lock the state files when locking is supported.
 
   -lock-timeout=0s        Duration to retry a state lock.
 
-  -state=PATH             Path to the source state file. Defaults to the
-                          configured backend, or "terraform.tfstate"
+  -ignore-remote-version  A rare option used for the remote backend only. See
+                          the remote backend documentation for more information.
 
-  -state-out=PATH         Path to the destination state file to write to. If
-                          this isn't specified, the source state file will be
-                          used. This can be a new or existing path.
-
-  -ignore-remote-version  Continue even if remote and local Terraform versions
-                          are incompatible. This may result in an unusable
-                          workspace, and should be used with extreme caution.
+  -state, state-out, and -backup are legacy options supported for the local
+  backend only. For more information, see the local backend's documentation.
 
 `
 	return strings.TrimSpace(helpText)

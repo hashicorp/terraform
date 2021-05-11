@@ -41,20 +41,19 @@ This command requires one or more addresses that point to a resources in the
 state. Addresses are
 in [resource addressing format](/docs/cli/state/resource-addressing.html).
 
-The command-line flags are all optional. The list of available flags are:
+This command doesn't normally accept any command line options, except in
+the special situations described in the following paragraphs.
 
-* `-backup=path` - Path where Terraform should write the backup state. This
-  can't be disabled. If not set, Terraform will write it to the same path as
-  the statefile with a backup extension.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform state rm`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
-* `-state=path` - Path to a Terraform state file to use to look up
-  Terraform-managed resources. By default it will use the configured backend,
-  or the default "terraform.tfstate" if it exists.
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `local` state rm](/docs/language/settings/backends/local.html) only,
+`terraform state rm` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Example: Remove a Resource
 
