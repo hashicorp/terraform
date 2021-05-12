@@ -146,9 +146,14 @@ func (s *Scope) Functions() map[string]function.Function {
 			"zipmap":           stdlib.ZipmapFunc,
 		}
 
-		s.funcs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
+		s.funcs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, true, func() map[string]function.Function {
 			// The templatefile function prevents recursive calls to itself
 			// by copying this map and overwriting the "templatefile" entry.
+			return s.funcs
+		})
+		s.funcs["templatestring"] = funcs.MakeTemplateFileFunc(s.BaseDir, false, func() map[string]function.Function {
+			// The templatestring function prevents recursive calls to itself
+			// by copying this map and overwriting the "templatestring" entry.
 			return s.funcs
 		})
 
