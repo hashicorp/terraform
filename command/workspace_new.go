@@ -185,14 +185,15 @@ Usage: terraform [global options] workspace new [OPTIONS] NAME
 
   Create a new Terraform workspace.
 
-
 Options:
 
-    -lock=true          Lock the state file when locking is supported.
+    -lock=false         Don't hold a state lock during the operation. This is
+                        dangerous if others might concurrently run commands
+                        against the same workspace.
 
     -lock-timeout=0s    Duration to retry a state lock.
 
-    -state=path    Copy an existing state file into the new workspace.
+    -state=path         Copy an existing state file into the new workspace.
 
 `
 	return strings.TrimSpace(helpText)
