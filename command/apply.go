@@ -343,7 +343,9 @@ Options:
                          accompanied by errors, show them in a more compact
                          form that includes only the summary messages.
 
-  -lock=true             Lock the state file when locking is supported.
+  -lock=false            Don't hold a state lock during the operation. This is
+                         dangerous if others might concurrently run commands
+                         against the same workspace.
 
   -lock-timeout=0s       Duration to retry a state lock.
 

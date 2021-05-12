@@ -246,8 +246,9 @@ The available options are:
   a value. This option is particular useful when running Terraform in
   non-interactive automation systems.
 
-* `-lock=false` - Disables Terraform's default behavior of attempting to take
-  a read/write lock on the state for the duration of the operation.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
   instructs Terraform to retry acquiring a lock for a period of time before

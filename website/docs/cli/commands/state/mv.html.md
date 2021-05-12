@@ -53,10 +53,19 @@ makes any other changes between your configuration change and your
 a plan that will destroy the old object and create a new object at the new
 address.
 
-This command also accepts the following option:
+This command also accepts the following options:
 
 * `-dry-run` - Report all of the resource instances that match the given
   address without actually "forgetting" any of them.
+
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
+
+* `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
 
 For configurations using
 [the `remote` backend](/docs/language/settings/backends/remote.html)

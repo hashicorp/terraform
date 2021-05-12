@@ -27,7 +27,9 @@ This command also accepts the following options:
 
 * `-auto-approve` - Skip interactive approval.
 
-* `-lock=true`- Lock the state files when locking is supported.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 

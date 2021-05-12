@@ -477,7 +477,9 @@ Options:
   -dry-run                If set, prints out what would've been moved but doesn't
                           actually move anything.
 
-  -lock                   Lock the state files when locking is supported.
+  -lock=false             Don't hold a state lock during the operation. This is
+                          dangerous if others might concurrently run commands
+                          against the same workspace.
 
   -lock-timeout=0s        Duration to retry a state lock.
 
