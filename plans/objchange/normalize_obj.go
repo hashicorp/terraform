@@ -19,6 +19,12 @@ import (
 // okay because type consistency is enforced when deserializing the value
 // returned from the provider over the RPC wire protocol anyway.
 func NormalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty.Value {
+	val, valMarks := val.UnmarkDeepWithPaths()
+	val = normalizeObjectFromLegacySDK(val, schema)
+	return val.MarkWithPaths(valMarks)
+}
+
+func normalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty.Value {
 	if val == cty.NilVal || val.IsNull() {
 		// This should never happen in reasonable use, but we'll allow it
 		// and normalize to a null of the expected type rather than panicking
@@ -50,7 +56,7 @@ func NormalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty
 				if lv.IsNull() && blockS.Nesting == configschema.NestingGroup {
 					vals[name] = blockS.EmptyValue()
 				} else {
-					vals[name] = NormalizeObjectFromLegacySDK(lv, &blockS.Block)
+					vals[name] = normalizeObjectFromLegacySDK(lv, &blockS.Block)
 				}
 			} else {
 				vals[name] = unknownBlockStub(&blockS.Block)
@@ -65,7 +71,7 @@ func NormalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty
 				subVals := make([]cty.Value, 0, lv.LengthInt())
 				for it := lv.ElementIterator(); it.Next(); {
 					_, subVal := it.Element()
-					subVals = append(subVals, NormalizeObjectFromLegacySDK(subVal, &blockS.Block))
+					subVals = append(subVals, normalizeObjectFromLegacySDK(subVal, &blockS.Block))
 				}
 				vals[name] = cty.ListVal(subVals)
 			}
@@ -79,7 +85,7 @@ func NormalizeObjectFromLegacySDK(val cty.Value, schema *configschema.Block) cty
 				subVals := make([]cty.Value, 0, lv.LengthInt())
 				for it := lv.ElementIterator(); it.Next(); {
 					_, subVal := it.Element()
-					subVals = append(subVals, NormalizeObjectFromLegacySDK(subVal, &blockS.Block))
+					subVals = append(subVals, normalizeObjectFromLegacySDK(subVal, &blockS.Block))
 				}
 				vals[name] = cty.SetVal(subVals)
 			}
