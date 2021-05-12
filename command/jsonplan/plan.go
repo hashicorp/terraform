@@ -212,10 +212,15 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		if err != nil {
 			return err
 		}
+		// We drop the marks from the change, as decoding is only an
+		// intermediate step to re-encode the values as json
+		changeV.Before, _ = changeV.Before.UnmarkDeep()
+		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		var before, after []byte
 		var beforeSensitive, afterSensitive []byte
 		var afterUnknown cty.Value
+
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -338,6 +343,10 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		if err != nil {
 			return err
 		}
+		// We drop the marks from the change, as decoding is only an
+		// intermediate step to re-encode the values as json
+		changeV.Before, _ = changeV.Before.UnmarkDeep()
+		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		var before, after []byte
 		afterUnknown := cty.False
