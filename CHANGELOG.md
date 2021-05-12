@@ -1,9 +1,13 @@
 ## 0.15.4 (Unreleased)
 
+ENHANCEMENTS:
+
+* config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
+
 BUG FIXES:
 
 * core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
-* functions: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
+* config: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
 
 ## 0.15.3 (May 06, 2021)
 
@@ -30,7 +34,7 @@ BUG FIXES:
 * core: Fix JSON plan output to add sensitivity data for provider-specified sensitive attribute values ([#28523](https://github.com/hashicorp/terraform/issues/28523))
 * cli: Fix missing "forces replacement" UI for attribute changes which are marked as sensitive by the provider ([#28583](https://github.com/hashicorp/terraform/issues/28583))
 * cli: Fix crash when rendering diagnostic caused by missing trailing quote ([#28598](https://github.com/hashicorp/terraform/issues/28598))
-* functions: Fix crash when calling `setproduct` with one or more empty collections ([#28607](https://github.com/hashicorp/terraform/issues/28607))
+* config: Fix crash when calling `setproduct` with one or more empty collections ([#28607](https://github.com/hashicorp/terraform/issues/28607))
 
 ## 0.15.1 (April 26, 2021)
 
