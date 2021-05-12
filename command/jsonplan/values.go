@@ -60,13 +60,15 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 		if err != nil {
 			return ret, err
 		}
+		// The values may be marked, but we must rely on the Sensitive flag
+		// as the decoded value is only an intermediate step in transcoding
+		// this to a json format.
+		changeV.After, _ = changeV.After.UnmarkDeep()
 
-		if changeV.After != cty.NilVal {
-			if changeV.After.IsWhollyKnown() {
-				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
-				if err != nil {
-					return ret, err
-				}
+		if changeV.After != cty.NilVal && changeV.After.IsWhollyKnown() {
+			after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
+			if err != nil {
+				return ret, err
 			}
 		}
 
@@ -193,6 +195,11 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		if err != nil {
 			return nil, err
 		}
+		// The values may be marked, but we must rely on the Sensitive flag
+		// as the decoded value is only an intermediate step in transcoding
+		// this to a json format.
+		changeV.Before, _ = changeV.Before.UnmarkDeep()
+		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
