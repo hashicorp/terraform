@@ -427,6 +427,7 @@ Terraform will perform the following actions:
     }
 
   # test_instance.foo (deposed object 00000000) will be destroyed
+  # (left over from a partially-failed replacement of this instance)
   - resource "test_instance" "foo" {
       - ami = "bar" -> null
 

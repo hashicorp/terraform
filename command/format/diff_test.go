@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -85,6 +86,27 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			},
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {
+      - id = "i-02ae66f368e8518a9" -> null
+    }
+`,
+		},
+		"deletion of deposed object": {
+			Action:     plans.Delete,
+			Mode:       addrs.ManagedResourceMode,
+			DeposedKey: states.DeposedKey("byebye"),
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+			}),
+			After: cty.NullVal(cty.EmptyObject),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example (deposed object byebye) will be destroyed
+  # (left over from a partially-failed replacement of this instance)
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
     }
@@ -4081,6 +4103,7 @@ type testCase struct {
 	Action          plans.Action
 	ActionReason    plans.ResourceInstanceChangeActionReason
 	Mode            addrs.ResourceMode
+	DeposedKey      states.DeposedKey
 	Before          cty.Value
 	BeforeValMarks  []cty.PathValueMarks
 	AfterValMarks   []cty.PathValueMarks
@@ -4127,6 +4150,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Type: "test_instance",
 					Name: "example",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				DeposedKey: tc.DeposedKey,
 				ProviderAddr: addrs.AbsProviderConfig{
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
@@ -4143,9 +4167,8 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			output := ResourceChange(change, tc.Schema, color)
-			if output != tc.ExpectedOutput {
-				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.ExpectedOutput)
-				t.Errorf("%s", cmp.Diff(output, tc.ExpectedOutput))
+			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
+				t.Errorf("wrong output\n%s", diff)
 			}
 		})
 	}
