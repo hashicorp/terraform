@@ -321,15 +321,16 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
-			err = fmt.Errorf("organization %s does not exist", b.organization)
+			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
+				"Please ensure that the organization and hostname are correct "+
+				"and that your API token for %s is valid.",
+				b.organization, b.hostname, b.hostname)
 		}
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			"Failed to read organization entitlements",
-			fmt.Sprintf(
-				`The "remote" backend encountered an unexpected error while reading the `+
-					`organization settings: %s.`, err,
-			),
+			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.hostname),
+			fmt.Sprintf("The \"remote\" backend encountered an unexpected error while reading the "+
+				"organization settings: %s", err),
 			cty.Path{cty.GetAttrStep{Name: "organization"}},
 		))
 		return diags
