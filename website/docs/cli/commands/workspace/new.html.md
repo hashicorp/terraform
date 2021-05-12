@@ -22,8 +22,10 @@ will be copied to initialize the state for this new workspace.
 
 The command-line flags are all optional. The supported flags are:
 
-* `-lock`         - Lock the state file when locking is supported. Defaults to true.
-* `-lock-timeout` - Duration to retry a state lock. Default 0s.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
+* `-lock-timeout=DURATION` - Duration to retry a state lock. Default 0s.
 * `-state=path`   - Path to an existing state file to initialize the state of this environment.
 
 ## Example: Create
