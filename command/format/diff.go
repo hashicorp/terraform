@@ -67,6 +67,10 @@ func ResourceChange(
 		}
 	case plans.Delete:
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
+		if change.DeposedKey != states.NotDeposed {
+			// Some extra context about this unusual situation.
+			buf.WriteString(color.Color(fmt.Sprint("\n  # (left over from a partially-failed replacement of this instance)")))
+		}
 	default:
 		// should never happen, since the above is exhaustive
 		buf.WriteString(fmt.Sprintf("%s has an action the plan renderer doesn't support (this is a bug)", dispAddr))
