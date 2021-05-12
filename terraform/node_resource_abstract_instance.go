@@ -271,10 +271,34 @@ const (
 // targetState determines which context state we're writing to during plan. The
 // default is the global working state.
 func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState) error {
+	return n.writeResourceInstanceStateImpl(ctx, states.NotDeposed, obj, targetState)
+}
+
+func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
+	if deposedKey == states.NotDeposed {
+		// Bail out to avoid silently doing something other than what the
+		// caller seems to have intended.
+		panic("trying to write current state object using writeResourceInstanceStateDeposed")
+	}
+	return n.writeResourceInstanceStateImpl(ctx, deposedKey, obj, targetState)
+}
+
+// (this is the private common body of both writeResourceInstanceState and
+// writeResourceInstanceStateDeposed. Don't call it directly; instead, use
+// one of the two wrappers to be explicit about which of the instance's
+// objects you are intending to write.
+func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
 	absAddr := n.Addr
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return err
+	}
+	logFuncName := "NodeAbstractResouceInstance.writeResourceInstanceState"
+	if deposedKey == states.NotDeposed {
+		log.Printf("[TRACE] %s to %s for %s", logFuncName, targetState, absAddr)
+	} else {
+		logFuncName = "NodeAbstractResouceInstance.writeResourceInstanceStateDeposed"
+		log.Printf("[TRACE] %s to %s for %s (deposed key %s)", logFuncName, targetState, absAddr, deposedKey)
 	}
 
 	var state *states.SyncState
@@ -282,7 +306,6 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 	case workingState:
 		state = ctx.State()
 	case refreshState:
-		log.Printf("[TRACE] writeResourceInstanceState: using RefreshState for %s", absAddr)
 		state = ctx.RefreshState()
 	case prevRunState:
 		state = ctx.PrevRunState()
@@ -298,22 +321,36 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 		return fmt.Errorf("state of type %s is not applicable to the current operation; this is a bug in Terraform", targetState)
 	}
 
+	// In spite of the name, this function also handles the non-deposed case
+	// via the writeResourceInstanceState wrapper, by setting deposedKey to
+	// the NotDeposed value (the zero value of DeposedKey).
+	var write func(src *states.ResourceInstanceObjectSrc)
+	if deposedKey == states.NotDeposed {
+		write = func(src *states.ResourceInstanceObjectSrc) {
+			state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
+		}
+	} else {
+		write = func(src *states.ResourceInstanceObjectSrc) {
+			state.SetResourceInstanceDeposed(absAddr, deposedKey, src, n.ResolvedProvider)
+		}
+	}
+
 	if obj == nil || obj.Value.IsNull() {
 		// No need to encode anything: we'll just write it directly.
-		state.SetResourceInstanceCurrent(absAddr, nil, n.ResolvedProvider)
-		log.Printf("[TRACE] writeResourceInstanceState: removing state object for %s", absAddr)
+		write(nil)
+		log.Printf("[TRACE] %s: removing state object for %s", logFuncName, absAddr)
 		return nil
 	}
 
 	if providerSchema == nil {
 		// Should never happen, unless our state object is nil
-		panic("writeResourceInstanceState used with nil ProviderSchema")
+		panic("writeResourceInstanceStateImpl used with nil ProviderSchema")
 	}
 
 	if obj != nil {
-		log.Printf("[TRACE] writeResourceInstanceState: writing current state object for %s", absAddr)
+		log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 	} else {
-		log.Printf("[TRACE] writeResourceInstanceState: removing current state object for %s", absAddr)
+		log.Printf("[TRACE] %s: removing state object for %s", logFuncName, absAddr)
 	}
 
 	schema, currentVersion := (*providerSchema).SchemaForResourceAddr(absAddr.ContainingResource().Resource)
@@ -329,7 +366,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContex
 		return fmt.Errorf("failed to encode %s in state: %s", absAddr, err)
 	}
 
-	state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
+	write(src)
 	return nil
 }
 
@@ -457,10 +494,14 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 }
 
 // refresh does a refresh for a resource
-func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey states.DeposedKey, state *states.ResourceInstanceObject) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := n.Addr
-	log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s", absAddr)
+	if deposedKey == states.NotDeposed {
+		log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s", absAddr)
+	} else {
+		log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s (deposed object %s)", absAddr, deposedKey)
+	}
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return state, diags.Append(err)
@@ -484,9 +525,14 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.Re
 		return state, diags
 	}
 
+	hookGen := states.CurrentGen
+	if deposedKey != states.NotDeposed {
+		hookGen = deposedKey
+	}
+
 	// Call pre-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreRefresh(absAddr, states.CurrentGen, state.Value)
+		return h.PreRefresh(absAddr, hookGen, state.Value)
 	}))
 	if diags.HasErrors() {
 		return state, diags
@@ -558,7 +604,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, state *states.Re
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostRefresh(absAddr, states.CurrentGen, priorVal, ret.Value)
+		return h.PostRefresh(absAddr, hookGen, priorVal, ret.Value)
 	}))
 	if diags.HasErrors() {
 		return ret, diags

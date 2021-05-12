@@ -30,6 +30,13 @@ type GraphNodeDeposedResourceInstanceObject interface {
 type NodePlanDeposedResourceInstanceObject struct {
 	*NodeAbstractResourceInstance
 	DeposedKey states.DeposedKey
+
+	// skipRefresh indicates that we should skip refreshing individual instances
+	skipRefresh bool
+
+	// skipPlanChanges indicates we should skip trying to plan change actions
+	// for any instances.
+	skipPlanChanges bool
 }
 
 var (
@@ -66,6 +73,8 @@ func (n *NodePlanDeposedResourceInstanceObject) References() []*addrs.Reference 
 
 // GraphNodeEvalable impl.
 func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	log.Printf("[TRACE] NodePlanDeposedResourceInstanceObject: planning %s deposed object %s", n.Addr, n.DeposedKey)
+
 	// Read the state for the deposed resource instance
 	state, err := n.readResourceInstanceStateDeposed(ctx, n.Addr, n.DeposedKey)
 	diags = diags.Append(err)
@@ -73,13 +82,71 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
-	diags = diags.Append(destroyPlanDiags)
+	// Note any upgrades that readResourceInstanceState might've done in the
+	// prevRunState, so that it'll conform to current schema.
+	diags = diags.Append(n.writeResourceInstanceStateDeposed(ctx, n.DeposedKey, state, prevRunState))
+	if diags.HasErrors() {
+		return diags
+	}
+	// Also the refreshState, because that should still reflect schema upgrades
+	// even if not refreshing.
+	diags = diags.Append(n.writeResourceInstanceStateDeposed(ctx, n.DeposedKey, state, refreshState))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.writeChange(ctx, change, n.DeposedKey))
+	if !n.skipRefresh {
+		// Refresh this object even though it is going to be destroyed, in
+		// case it's already been deleted outside of Terraform. If this is a
+		// normal plan, providers expect a Read request to remove missing
+		// resources from the plan before apply, and may not handle a missing
+		// resource during Delete correctly. If this is a simple refresh,
+		// Terraform is expected to remove the missing resource from the state
+		// entirely
+		refreshedState, refreshDiags := n.refresh(ctx, n.DeposedKey, state)
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeResourceInstanceStateDeposed(ctx, n.DeposedKey, refreshedState, refreshState))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// If we refreshed then our subsequent planning should be in terms of
+		// the new object, not the original object.
+		state = refreshedState
+	}
+
+	if !n.skipPlanChanges {
+		var change *plans.ResourceInstanceChange
+		change, destroyPlanDiags := n.planDestroy(ctx, state, n.DeposedKey)
+		diags = diags.Append(destroyPlanDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// NOTE: We don't check prevent_destroy for deposed objects, even
+		// though we would do so here for a "current" object, because
+		// if we've reached a point where an object is already deposed then
+		// we've already planned and partially-executed a create_before_destroy
+		// replace and we would've checked prevent_destroy at that point. We're
+		// now just need to get the deposed object destroyed, because there
+		// should be a new object already serving as its replacement.
+
+		diags = diags.Append(n.writeChange(ctx, change, n.DeposedKey))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		diags = diags.Append(n.writeResourceInstanceStateDeposed(ctx, n.DeposedKey, nil, workingState))
+	} else {
+		// The working state should at least be updated with the result
+		// of upgrading and refreshing from above.
+		diags = diags.Append(n.writeResourceInstanceStateDeposed(ctx, n.DeposedKey, state, workingState))
+	}
+
 	return diags
 }
 

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -275,7 +276,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	state, refreshDiags := riNode.refresh(ctx, state)
+	state, refreshDiags := riNode.refresh(ctx, states.NotDeposed, state)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return diags

@@ -861,6 +861,143 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_refreshOnlyMode_deposed(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	deposedKey := states.DeposedKey("byebye")
+
+	// The configuration, the prior state, and the refresh result intentionally
+	// have different values for "test_string" so we can observe that the
+	// refresh took effect but the configuration change wasn't considered.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "a" {
+				arg = "after"
+			}
+
+			output "out" {
+				value = test_object.a.arg
+			}
+		`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		// Note that we're intentionally recording a _deposed_ object here,
+		// and not including a current object, so a normal (non-refresh)
+		// plan would normally plan to create a new object _and_ destroy
+		// the deposed one, but refresh-only mode should prevent that.
+		s.SetResourceInstanceDeposed(addr, deposedKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"arg":"before"}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{Block: simpleTestSchema()},
+		ResourceTypes: map[string]providers.Schema{
+			"test_object": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"arg": {Type: cty.String, Optional: true},
+					},
+				},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
+				return cty.StringVal("current"), nil
+			}
+			return v, nil
+		})
+		if err != nil {
+			// shouldn't get here
+			t.Fatalf("ReadResourceFn transform failed")
+			return providers.ReadResourceResponse{}
+		}
+		return providers.ReadResourceResponse{
+			NewState: newVal,
+		}
+	}
+	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		// We should've been given the prior state JSON as our input to upgrade.
+		if !bytes.Contains(req.RawStateJSON, []byte("before")) {
+			t.Fatalf("UpgradeResourceState request doesn't contain the 'before' object\n%s", req.RawStateJSON)
+		}
+
+		// We'll put something different in "arg" as part of upgrading, just
+		// so that we can verify below that PrevRunState contains the upgraded
+		// (but NOT refreshed) version of the object.
+		resp.UpgradedState = cty.ObjectVal(map[string]cty.Value{
+			"arg": cty.StringVal("upgraded"),
+		})
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		State:  state,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+		PlanMode: plans.RefreshOnlyMode,
+	})
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
+	}
+	if !p.ReadResourceCalled {
+		t.Errorf("Provider's ReadResource wasn't called; should've been")
+	}
+
+	if got, want := len(plan.Changes.Resources), 0; got != want {
+		t.Errorf("plan contains resource changes; want none\n%s", spew.Sdump(plan.Changes.Resources))
+	}
+
+	if instState := plan.PriorState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no prior state at all after plan", addr)
+	} else {
+		if obj := instState.Deposed[deposedKey]; obj == nil {
+			t.Errorf("%s has no deposed object after plan", addr)
+		} else if got, want := obj.AttrsJSON, `"current"`; !bytes.Contains(got, []byte(want)) {
+			// Should've saved the result of refreshing
+			t.Errorf("%s has wrong prior state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+	if instState := plan.PrevRunState.ResourceInstance(addr); instState == nil {
+		t.Errorf("%s has no previous run state at all after plan", addr)
+	} else {
+		if obj := instState.Deposed[deposedKey]; obj == nil {
+			t.Errorf("%s has no deposed object in the previous run state", addr)
+		} else if got, want := obj.AttrsJSON, `"upgraded"`; !bytes.Contains(got, []byte(want)) {
+			// Should've saved the result of upgrading
+			t.Errorf("%s has wrong previous run state after plan\ngot:\n%s\n\nwant substring: %s", addr, got, want)
+		}
+	}
+
+	// The output value should also have updated. If not, it's likely that we
+	// skipped updating the working state to match the refreshed state when we
+	// were evaluating the resource.
+	if outChangeSrc := plan.Changes.OutputValue(addrs.RootModuleInstance.OutputValue("out")); outChangeSrc == nil {
+		t.Errorf("no change planned for output value 'out'")
+	} else {
+		outChange, err := outChangeSrc.Decode()
+		if err != nil {
+			t.Fatalf("failed to decode output value 'out': %s", err)
+		}
+		got := outChange.After
+		want := cty.UnknownVal(cty.String)
+		if !want.RawEquals(got) {
+			t.Errorf("wrong value for output value 'out'\ngot:  %#v\nwant: %#v", got, want)
+		}
+	}
+}
+
 func TestContext2Plan_invalidSensitiveModuleOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"child/main.tf": `

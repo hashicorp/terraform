@@ -168,7 +168,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Refresh, maybe
 	if !n.skipRefresh {
-		s, refreshDiags := n.refresh(ctx, instanceRefreshState)
+		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags

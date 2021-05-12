@@ -383,8 +383,8 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 	if run.Result != backend.OperationSuccess {
 		t.Fatalf("plan operation failed")
 	}
-	if p.ReadResourceCalled {
-		t.Fatal("ReadResource should not be called")
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should've been called to refresh the deposed object")
 	}
 	if run.PlanEmpty {
 		t.Fatal("plan should not be empty")
