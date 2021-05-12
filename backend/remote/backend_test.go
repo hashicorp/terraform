@@ -55,7 +55,7 @@ func TestRemote_config(t *testing.T) {
 					"prefix": cty.NullVal(cty.String),
 				}),
 			}),
-			confErr: "organization nonexisting does not exist",
+			confErr: "organization \"nonexisting\" at host app.terraform.io not found",
 		},
 		"with_an_unknown_host": {
 			config: cty.ObjectVal(map[string]cty.Value{
