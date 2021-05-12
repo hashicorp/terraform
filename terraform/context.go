@@ -776,6 +776,15 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	// We'll safety-check that here so we can return a clear message about it,
 	// rather than probably just generating confusing output at the UI layer.
 	if len(plan.Changes.Resources) != 0 {
+		// Some extra context in the logs in case the user reports this message
+		// as a bug, as a starting point for debugging.
+		for _, rc := range plan.Changes.Resources {
+			if depKey := rc.DeposedKey; depKey == states.NotDeposed {
+				log.Printf("[DEBUG] Refresh-only plan includes %s change for %s", rc.Action, rc.Addr)
+			} else {
+				log.Printf("[DEBUG] Refresh-only plan includes %s change for %s deposed object %s", rc.Action, rc.Addr, depKey)
+			}
+		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid refresh-only plan",

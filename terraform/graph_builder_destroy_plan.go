@@ -64,6 +64,7 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		return &NodePlanDeposedResourceInstanceObject{
 			NodeAbstractResourceInstance: a,
 			DeposedKey:                   key,
+			skipRefresh:                  b.skipRefresh,
 		}
 	}
 

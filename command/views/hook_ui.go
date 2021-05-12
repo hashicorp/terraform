@@ -70,7 +70,7 @@ const (
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
 	dispAddr := addr.String()
 	if gen != states.CurrentGen {
-		dispAddr = fmt.Sprintf("%s (%s)", dispAddr, gen)
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, gen)
 	}
 
 	var operation string
@@ -210,9 +210,14 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		return terraform.HookActionContinue, nil
 	}
 
+	addrStr := addr.String()
+	if depKey, ok := gen.(states.DeposedKey); ok {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	}
+
 	colorized := fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold]%s: %s after %s%s"),
-		addr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix)
+		addrStr, msg, time.Now().Round(time.Second).Sub(state.Start), stateIdSuffix)
 
 	h.println(colorized)
 
@@ -252,9 +257,14 @@ func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generatio
 		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
 	}
 
+	addrStr := addr.String()
+	if depKey, ok := gen.(states.DeposedKey); ok {
+		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	}
+
 	h.println(fmt.Sprintf(
 		h.view.colorize.Color("[reset][bold]%s: Refreshing state...%s"),
-		addr, stateIdSuffix))
+		addrStr, stateIdSuffix))
 	return terraform.HookActionContinue, nil
 }
 
