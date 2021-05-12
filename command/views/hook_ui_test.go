@@ -184,7 +184,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	<-uiState.done
 
 	result := done(t)
-	expectedOutput := fmt.Sprintf("test_instance.foo (%s): Destroying... [id=abc123]\n", key)
+	expectedOutput := fmt.Sprintf("test_instance.foo (deposed object %s): Destroying... [id=abc123]\n", key)
 	output := result.Stdout()
 	if output != expectedOutput {
 		t.Fatalf("Output didn't match.\nExpected: %q\nGiven: %q", expectedOutput, output)

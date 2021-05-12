@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
@@ -104,7 +105,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		// plan before apply, and may not handle a missing resource during
 		// Delete correctly.  If this is a simple refresh, Terraform is
 		// expected to remove the missing resource from the state entirely
-		refreshedState, refreshDiags := n.refresh(ctx, oldState)
+		refreshedState, refreshDiags := n.refresh(ctx, states.NotDeposed, oldState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
 			return diags
@@ -139,6 +140,10 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		}
 
 		diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
+	} else {
+		// The working state should at least be updated with the result
+		// of upgrading and refreshing from above.
+		diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 
 	return diags

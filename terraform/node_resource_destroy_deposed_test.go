@@ -32,8 +32,10 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		}),
 	}
 	ctx := &MockEvalContext{
-		StateState:       state.SyncWrapper(),
-		ProviderProvider: p,
+		StateState:        state.SyncWrapper(),
+		PrevRunStateState: state.DeepCopy().SyncWrapper(),
+		RefreshStateState: state.DeepCopy().SyncWrapper(),
+		ProviderProvider:  p,
 		ProviderSchemaSchema: &ProviderSchema{
 			ResourceTypes: map[string]*configschema.Block{
 				"test_instance": {
@@ -59,16 +61,21 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		DeposedKey: deposedKey,
 	}
 	err := node.Execute(ctx, walkPlan)
-
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	change := ctx.Changes().GetResourceInstanceChange(absResource, deposedKey)
-	if change.ChangeSrc.Action != plans.Delete {
-		t.Fatalf("delete change not planned")
+	if !p.UpgradeResourceStateCalled {
+		t.Errorf("UpgradeResourceState wasn't called; should've been called to upgrade the previous run's object")
+	}
+	if !p.ReadResourceCalled {
+		t.Errorf("ReadResource wasn't called; should've been called to refresh the deposed object")
 	}
 
+	change := ctx.Changes().GetResourceInstanceChange(absResource, deposedKey)
+	if got, want := change.ChangeSrc.Action, plans.Delete; got != want {
+		t.Fatalf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+	}
 }
 
 func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
