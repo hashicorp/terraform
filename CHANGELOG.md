@@ -2,7 +2,7 @@
 
 NEW FEATURES:
 
-* **Reporting changes made outside of Terraform:** Terraform has always, by default, made a point during the planning operation of reading the current state of remote objects in order to detect any changes made outside of Terraform, to make sure the plan will take those into account.
+* **Noting changes made outside of Terraform:** Terraform has always, by default, made a point during the planning operation of reading the current state of remote objects in order to detect any changes made outside of Terraform, to make sure the plan will take those into account.
 
     Terraform will now report those detected changes as part of the plan result, in order to give additional context about the planned changes. We've often heard that people find it confusing when a plan includes a change that doesn't seem to be prompted by any recent change in the _configuration_, and so this feature is aiming to provide the previously-missing explanation for situations where Terraform is planning to undo a change.
     
