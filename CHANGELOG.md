@@ -1,12 +1,25 @@
 ## 0.15.4 (Unreleased)
 
+NEW FEATURES:
+
+* **Reporting changes made outside of Terraform:** Terraform has always, by default, made a point during the planning operation of reading the current state of remote objects in order to detect any changes made outside of Terraform, to make sure the plan will take those into account.
+
+    Terraform will now report those detected changes as part of the plan result, in order to give additional context about the planned changes. We've often heard that people find it confusing when a plan includes a change that doesn't seem to be prompted by any recent change in the _configuration_, and so this feature is aiming to provide the previously-missing explanation for situations where Terraform is planning to undo a change.
+    
+    It can also be useful just as general information when the change _won't_ be undone by Terraform: if you've intentionally made a change outside of Terraform and mirrored that change in your configuration then Terraform will now confirm that it noticed the change you made and took it into account when planning.
+    
+    By default this new output is for information only and doesn't change any behavior. If Terraform detects a change you were _expecting_ then you don't need to take any additional action to respond to it. However, we've also added a new planning mode `-refresh-only` which allows you to explicitly plan and apply the action of writing those detected changes to the Terraform state, which serves as a plannable replacement for `terraform refresh`. We don't have any plans to remove the long-standing `terraform refresh` command, but we do recommend using `terraform apply -refresh-only` instead in most cases, because it will provide an opportunity to review what Terraform detected before updating the Terraform state.
+
 ENHANCEMENTS:
 
 * config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
+* `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
+* `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
 
 BUG FIXES:
 
 * core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
+* core: Terraform will now upgrade and refresh (unless disabled) deposed objects during planning, in a similar manner as for objects that have been removed from the configuration. "Deposed" is how Terraform represents the situation where a `create_before_destroy` replacement failed to destroy the old object, in which case Terraform needs to track both the new and old objects until the old object is successfully deleted. Refreshing these during planning means that you can, if you wish, delete a "deposed" object manually outside of Terraform and then have Terraform detect that you've done so. [GH-28634]
 * config: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
 
 ## 0.15.3 (May 06, 2021)
