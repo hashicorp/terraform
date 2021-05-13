@@ -459,7 +459,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 				continue
 			}
 
-			instance[cfg.Name] = change.After.MarkWithPaths(changeSrc.AfterValMarks)
+			instance[cfg.Name] = change.After
 
 			if change.Sensitive && !change.After.HasMark("sensitive") {
 				instance[cfg.Name] = change.After.Mark("sensitive")
