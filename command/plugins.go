@@ -163,6 +163,8 @@ func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
 			Logger:           logging.NewLogger("provisioner"),
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			AutoMTLS:         enableProviderAutoMTLS,
+			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", meta.Name)),
+			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", meta.Name)),
 		}
 		client := plugin.NewClient(cfg)
 		return newProvisionerClient(client)
