@@ -446,3 +446,64 @@ resource "test_resource" "b" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Apply_sensitiveOutputPassthrough(t *testing.T) {
+	// Ensure we're not trying to double-mark values decoded from state
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+
+resource "test_object" "a" {
+  test_string = module.mod.out
+}
+`,
+
+		"mod/main.tf": `
+variable "in" {
+  sensitive = true
+  default = "foo"
+}
+output "out" {
+  value = var.in
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	obj := state.ResourceInstance(mustResourceInstanceAddr("test_object.a"))
+	if len(obj.Current.AttrSensitivePaths) != 1 {
+		t.Fatalf("Expected 1 sensitive mark for test_object.a, got %#v\n", obj.Current.AttrSensitivePaths)
+	}
+
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// make sure the same marks are compared in the next plan as well
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Errorf("Unexpcetd %s change for %s", c.Action, c.Addr)
+		}
+	}
+}

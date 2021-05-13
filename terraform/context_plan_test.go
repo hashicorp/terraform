@@ -4793,7 +4793,7 @@ func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234"),
+		"ami":  cty.StringVal("ami-abcd1234").Mark("sensitive"),
 		"type": cty.StringVal("aws_instance"),
 	}), ric.After)
 }
@@ -5627,7 +5627,7 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.StringVal("foo"),
+				"foo": cty.StringVal("foo").Mark("sensitive"),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
@@ -5694,8 +5694,8 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo":   cty.StringVal("foo"),
-				"value": cty.StringVal("boop"),
+				"foo":   cty.StringVal("foo").Mark("sensitive"),
+				"value": cty.StringVal("boop").Mark("sensitive"),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
@@ -5729,6 +5729,13 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 
 func checkVals(t *testing.T, expected, got cty.Value) {
 	t.Helper()
+	// The GoStringer format seems to result in the closest thing to a useful
+	// diff for values with marks.
+	// TODO: if we want to continue using cmp.Diff on cty.Values, we should
+	// make a transformer that creates a more comparable structure.
+	valueTrans := cmp.Transformer("gostring", func(v cty.Value) string {
+		return fmt.Sprintf("%#v\n", v)
+	})
 	if !cmp.Equal(expected, got, valueComparer, typeComparer, equateEmpty) {
 		t.Fatal(cmp.Diff(expected, got, valueTrans, equateEmpty))
 	}
