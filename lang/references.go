@@ -30,6 +30,16 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 	refs := make([]*addrs.Reference, 0, len(traversals))
 
 	for _, traversal := range traversals {
+		if traversal.RootName() == "template" {
+			// "template" traversals don't create references. Instead, they
+			// are just part of the template values syntax within the
+			// special "maketemplate" function. We'll ignore references
+			// here to allow maketemplate calls to work, although any use
+			// of these outside of maketemplate will ultimately fail during
+			// evaluation, because we don't define this symbol there.
+			continue
+		}
+
 		ref, refDiags := addrs.ParseRef(traversal)
 		diags = diags.Append(refDiags)
 		if ref == nil {

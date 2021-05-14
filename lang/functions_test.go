@@ -325,6 +325,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"evaltemplate": {
+			{
+				`evaltemplate(maketemplate("Hello ${template.a}!"), {a = "world"})`,
+				cty.StringVal("Hello world!"),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -547,6 +554,13 @@ func TestFunctions(t *testing.T) {
 			{
 				`lower("HELLO")`,
 				cty.StringVal("hello"),
+			},
+		},
+
+		"maketemplate": {
+			{
+				`evaltemplate(maketemplate("Hello ${template.a}!"), {a = "world"})`,
+				cty.StringVal("Hello world!"),
 			},
 		},
 

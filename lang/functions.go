@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/experiments"
 	"github.com/hashicorp/terraform/lang/funcs"
+	"github.com/hashicorp/terraform/lang/templatevals"
 )
 
 var impureFunctions = []string{
@@ -60,6 +61,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
+			"evaltemplate":     templatevals.EvalTemplateFunc,
 			"chunklist":        stdlib.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),
 			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
@@ -87,6 +89,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"log":              stdlib.LogFunc,
 			"lookup":           funcs.LookupFunc,
 			"lower":            stdlib.LowerFunc,
+			"maketemplate":     templatevals.MakeTemplateFunc,
 			"map":              funcs.MapFunc,
 			"matchkeys":        funcs.MatchkeysFunc,
 			"max":              stdlib.MaxFunc,

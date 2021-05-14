@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/lang/templatevals"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -44,6 +45,13 @@ func getType(expr hcl.Expression, constraint bool) (cty.Type, hcl.Diagnostics) {
 			Severity: hcl.DiagError,
 			Summary:  invalidTypeSummary,
 			Detail:   "The object type constructor requires one argument specifying the attribute types and values as a map.",
+			Subject:  expr.Range().Ptr(),
+		}}
+	case "template":
+		return cty.DynamicPseudoType, hcl.Diagnostics{{
+			Severity: hcl.DiagError,
+			Summary:  invalidTypeSummary,
+			Detail:   "The template type constructor requires one argument specifying the argument names and types as a map.",
 			Subject:  expr.Range().Ptr(),
 		}}
 	case "tuple":
@@ -110,6 +118,14 @@ func getType(expr hcl.Expression, constraint bool) (cty.Type, hcl.Diagnostics) {
 				Severity: hcl.DiagError,
 				Summary:  invalidTypeSummary,
 				Detail:   "The object type constructor requires one argument specifying the attribute types and values as a map.",
+				Subject:  &subjectRange,
+				Context:  &contextRange,
+			}}
+		case "template":
+			return cty.DynamicPseudoType, hcl.Diagnostics{{
+				Severity: hcl.DiagError,
+				Summary:  invalidTypeSummary,
+				Detail:   "The template type constructor requires one argument specifying the argument names and types as a map.",
 				Subject:  &subjectRange,
 				Context:  &contextRange,
 			}}
@@ -212,6 +228,38 @@ func getType(expr hcl.Expression, constraint bool) (cty.Type, hcl.Diagnostics) {
 		// minor versions of cty. We're accepting that because Terraform
 		// itself is considering optional attributes as experimental right now.
 		return cty.ObjectWithOptionalAttrs(atys, optAttrs), diags
+	case "template":
+		attrDefs, diags := hcl.ExprMap(call.Arguments[0])
+		if diags.HasErrors() {
+			return cty.DynamicPseudoType, hcl.Diagnostics{{
+				Severity: hcl.DiagError,
+				Summary:  invalidTypeSummary,
+				Detail:   "Template type constructor requires a map whose keys are argument names and whose values are the corresponding argument types.",
+				Subject:  call.Arguments[0].Range().Ptr(),
+				Context:  expr.Range().Ptr(),
+			}}
+		}
+
+		atys := make(map[string]cty.Type)
+		for _, attrDef := range attrDefs {
+			attrName := hcl.ExprAsKeyword(attrDef.Key)
+			if attrName == "" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  invalidTypeSummary,
+					Detail:   "Template type constructor map keys must be argument names.",
+					Subject:  attrDef.Key.Range().Ptr(),
+					Context:  expr.Range().Ptr(),
+				})
+				continue
+			}
+			atyExpr := attrDef.Value
+
+			aty, attrDiags := getType(atyExpr, constraint)
+			diags = append(diags, attrDiags...)
+			atys[attrName] = aty
+		}
+		return templatevals.Type(atys), diags
 	case "tuple":
 		elemDefs, diags := hcl.ExprList(call.Arguments[0])
 		if diags.HasErrors() {

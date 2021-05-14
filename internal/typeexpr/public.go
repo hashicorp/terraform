@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/lang/templatevals"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -121,6 +122,40 @@ func TypeString(ty cty.Type) string {
 			first = false
 		}
 		buf.WriteString("])")
+		return buf.String()
+	}
+
+	if templatevals.IsTemplateType(ty) {
+		var buf bytes.Buffer
+		buf.WriteString("template({")
+		atys := templatevals.TypeArgs(ty)
+		names := make([]string, 0, len(atys))
+		for name := range atys {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		first := true
+		for _, name := range names {
+			aty := atys[name]
+			if !first {
+				buf.WriteByte(',')
+			}
+			if !hclsyntax.ValidIdentifier(name) {
+				// Should never happen for any type produced by this package,
+				// but we'll do something reasonable here just so we don't
+				// produce garbage if someone gives us a hand-assembled object
+				// type that has weird attribute names.
+				// Using Go-style quoting here isn't perfect, since it doesn't
+				// exactly match HCL syntax, but it's fine for an edge-case.
+				buf.WriteString(fmt.Sprintf("%q", name))
+			} else {
+				buf.WriteString(name)
+			}
+			buf.WriteByte('=')
+			buf.WriteString(TypeString(aty))
+			first = false
+		}
+		buf.WriteString("})")
 		return buf.String()
 	}
 
