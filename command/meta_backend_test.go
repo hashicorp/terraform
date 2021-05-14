@@ -314,6 +314,10 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 
+	// This combination should not require the extra -migrate-state flag, since
+	// there is no existing backend config
+	m.migrateState = false
+
 	// Get the backend
 	b, diags := m.Backend(&BackendOpts{Init: true})
 	if diags.HasErrors() {
@@ -1883,6 +1887,9 @@ func testMetaBackend(t *testing.T, args []string) *Meta {
 	if err := f.Parse(args); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
+
+	// metaBackend tests are verifying migrate actions
+	m.migrateState = true
 
 	return &m
 }

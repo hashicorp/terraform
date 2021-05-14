@@ -400,7 +400,7 @@ func TestStateRm_needsInit(t *testing.T) {
 		t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
 	}
 
-	if !strings.Contains(ui.ErrorWriter.String(), "Initialization") {
+	if !strings.Contains(ui.ErrorWriter.String(), "Backend initialization") {
 		t.Fatalf("expected initialization error, got:\n%s", ui.ErrorWriter.String())
 	}
 }
