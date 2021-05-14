@@ -144,6 +144,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 
 	var seenLifecycle *hcl.Block
 	var seenConnection *hcl.Block
+	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "lifecycle":
@@ -260,6 +261,26 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				r.Managed.Provisioners = append(r.Managed.Provisioners, pv)
 			}
 
+		case "_":
+			if seenEscapeBlock != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate escaping block",
+					Detail: fmt.Sprintf(
+						"The special block type \"_\" can be used to force particular arguments to be interpreted as resource-type-specific rather than as meta-arguments, but each resource block can have only one such block. The first escaping block was at %s.",
+						seenEscapeBlock.DefRange,
+					),
+					Subject: &block.DefRange,
+				})
+				continue
+			}
+			seenEscapeBlock = block
+
+			// When there's an escaping block its content merges with the
+			// existing config we extracted earlier, so later decoding
+			// will see a blend of both.
+			r.Config = hcl.MergeBodies([]hcl.Body{r.Config, block.Body})
+
 		default:
 			// Any other block types are ones we've reserved for future use,
 			// so they get a generic message.
@@ -346,9 +367,31 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 		r.DependsOn = append(r.DependsOn, deps...)
 	}
 
+	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
-		// All of the block types we accept are just reserved for future use, but some get a specialized error message.
 		switch block.Type {
+
+		case "_":
+			if seenEscapeBlock != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate escaping block",
+					Detail: fmt.Sprintf(
+						"The special block type \"_\" can be used to force particular arguments to be interpreted as resource-type-specific rather than as meta-arguments, but each data block can have only one such block. The first escaping block was at %s.",
+						seenEscapeBlock.DefRange,
+					),
+					Subject: &block.DefRange,
+				})
+				continue
+			}
+			seenEscapeBlock = block
+
+			// When there's an escaping block its content merges with the
+			// existing config we extracted earlier, so later decoding
+			// will see a blend of both.
+			r.Config = hcl.MergeBodies([]hcl.Body{r.Config, block.Body})
+
+		// The rest of these are just here to reserve block type names for future use.
 		case "lifecycle":
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -356,6 +399,7 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
 				Subject:  &block.DefRange,
 			})
+
 		default:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -500,6 +544,7 @@ var resourceBlockSchema = &hcl.BodySchema{
 		{Type: "lifecycle"},
 		{Type: "connection"},
 		{Type: "provisioner", LabelNames: []string{"type"}},
+		{Type: "_"}, // meta-argument escaping block
 	},
 }
 
@@ -508,6 +553,7 @@ var dataBlockSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "lifecycle"}, // reserved for future use
 		{Type: "locals"},    // reserved for future use
+		{Type: "_"},         // meta-argument escaping block
 	},
 }
 
