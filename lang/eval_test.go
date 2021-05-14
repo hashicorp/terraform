@@ -120,6 +120,13 @@ func TestScopeEvalContext(t *testing.T) {
 						"attr": cty.StringVal("bar"),
 					}),
 				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("bar"),
+						}),
+					}),
+				}),
 			},
 		},
 		{
@@ -128,6 +135,13 @@ func TestScopeEvalContext(t *testing.T) {
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("bar"),
+					}),
+				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ObjectVal(map[string]cty.Value{
+							"attr": cty.StringVal("bar"),
+						}),
 					}),
 				}),
 			},
@@ -142,6 +156,18 @@ func TestScopeEvalContext(t *testing.T) {
 						}),
 						cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("multi1"),
+						}),
+					}),
+				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"multi": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi0"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi1"),
+							}),
 						}),
 					}),
 				}),
@@ -161,6 +187,18 @@ func TestScopeEvalContext(t *testing.T) {
 						}),
 					}),
 				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"multi": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi0"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi1"),
+							}),
+						}),
+					}),
+				}),
 			},
 		},
 		{
@@ -174,6 +212,18 @@ func TestScopeEvalContext(t *testing.T) {
 						}),
 						"each1": cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("each1"),
+						}),
+					}),
+				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"each": cty.ObjectVal(map[string]cty.Value{
+							"each0": cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("each0"),
+							}),
+							"each1": cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("each1"),
+							}),
 						}),
 					}),
 				}),
@@ -193,6 +243,18 @@ func TestScopeEvalContext(t *testing.T) {
 						}),
 					}),
 				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"each": cty.ObjectVal(map[string]cty.Value{
+							"each0": cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("each0"),
+							}),
+							"each1": cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("each1"),
+							}),
+						}),
+					}),
+				}),
 			},
 		},
 		{
@@ -205,6 +267,18 @@ func TestScopeEvalContext(t *testing.T) {
 						}),
 						cty.ObjectVal(map[string]cty.Value{
 							"attr": cty.StringVal("multi1"),
+						}),
+					}),
+				}),
+				"resource": cty.ObjectVal(map[string]cty.Value{
+					"null_resource": cty.ObjectVal(map[string]cty.Value{
+						"multi": cty.TupleVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi0"),
+							}),
+							cty.ObjectVal(map[string]cty.Value{
+								"attr": cty.StringVal("multi1"),
+							}),
 						}),
 					}),
 				}),

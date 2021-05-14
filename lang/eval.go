@@ -407,9 +407,16 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		}
 	}
 
+	// Managed resources are exposed in two different locations. The primary
+	// is at the top level where the resource type name is the root of the
+	// traversal, but we also expose them under "resource" as an escaping
+	// technique if we add a reserved name in a future language edition which
+	// conflicts with someone's existing provider.
 	for k, v := range buildResourceObjects(managedResources) {
 		vals[k] = v
 	}
+	vals["resource"] = cty.ObjectVal(buildResourceObjects(managedResources))
+
 	vals["data"] = cty.ObjectVal(buildResourceObjects(dataResources))
 	vals["module"] = cty.ObjectVal(wholeModules)
 	vals["var"] = cty.ObjectVal(inputVariables)
