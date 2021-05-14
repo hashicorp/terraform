@@ -8,20 +8,20 @@ description: |-
 
 # `sensitive` Function
 
--> **Note:** This function is only available in Terraform v0.14 and later.
+-> **Note:** This function is only available in Terraform v0.15 and later.
 
 `sensitive` takes any value and returns a copy of it marked so that Terraform
 will treat it as sensitive, with the same meaning and behavior as for
 [sensitive input variables](/docs/language/values/variables.html#suppressing-values-in-cli-output).
 
-Whereever possible we recommend marking your input variable and/or output value
-declarations as sensitive directly, instead of using this function, because
-in that case you can be sure that there is no way to refer to those values
-without Terraform automatically considering them as sensitive.
+Wherever possible we recommend marking your input variable and/or output value
+declarations as sensitive directly, instead of using this function, because in
+that case you can be sure that there is no way to refer to those values without
+Terraform automatically considering them as sensitive.
 
 The `sensitive` function might be useful in some less-common situations where a
-sensitive value arises from a definition _within_ your module, such as if
-you've loaded sensitive data from a file on disk as part of your configuration:
+sensitive value arises from a definition _within_ your module, such as if you've
+loaded sensitive data from a file on disk as part of your configuration:
 
 ```
 locals {
