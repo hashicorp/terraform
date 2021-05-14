@@ -239,6 +239,18 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 			Remaining:   remain,
 		}, diags
 
+	case "template", "lazy", "arg":
+		// These names are all pre-emptively reserved in the hope of landing
+		// some version of "template values" or "lazy expressions" feature
+		// before the next opt-in language edition, but don't yet do anything.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Reserved symbol name",
+			Detail:   fmt.Sprintf("The symbol name %q is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix \"resource.\" to force interpretation as a resource type name.", root),
+			Subject:  rootRange.Ptr(),
+		})
+		return nil, diags
+
 	default:
 		return parseResourceRef(ManagedResourceMode, rootRange, traversal)
 	}
