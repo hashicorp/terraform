@@ -279,6 +279,45 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
+	defer done(t)
+
+	op.PlanRefresh = false
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// We should find a run inside the mock client that has refresh set
+	// to false.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff(false, run.Refresh); diff != "" {
+			t.Errorf("wrong Refresh setting in the created run\n%s", diff)
+		}
+	}
+}
+
+func TestRemote_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+
+	b.client.SetFakeRemoteAPIVersion("2.3")
 
 	op.PlanRefresh = false
 	op.Workspace = backend.DefaultStateName
@@ -293,10 +332,82 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 	if run.Result == backend.OperationSuccess {
 		t.Fatal("expected apply operation to fail")
 	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
 
 	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "refresh is currently not supported") {
-		t.Fatalf("expected a refresh error, got: %v", errOutput)
+	if !strings.Contains(errOutput, "Planning without refresh is not supported") {
+		t.Fatalf("expected a not supported error, got: %v", errOutput)
+	}
+}
+
+func TestRemote_applyWithRefreshOnly(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	op.PlanMode = plans.RefreshOnlyMode
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// We should find a run inside the mock client that has refresh-only set
+	// to true.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff(true, run.RefreshOnly); diff != "" {
+			t.Errorf("wrong RefreshOnly setting in the created run\n%s", diff)
+		}
+	}
+}
+
+func TestRemote_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+
+	b.client.SetFakeRemoteAPIVersion("2.3")
+
+	op.PlanMode = plans.RefreshOnlyMode
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := done(t)
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	errOutput := output.Stderr()
+	if !strings.Contains(errOutput, "Refresh-only mode is not supported") {
+		t.Fatalf("expected a not supported error, got: %v", errOutput)
 	}
 }
 
@@ -372,6 +483,79 @@ func TestRemote_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 	errOutput := output.Stderr()
 	if !strings.Contains(errOutput, "Resource targeting is not supported") {
 		t.Fatalf("expected a targeting error, got: %v", errOutput)
+	}
+}
+
+func TestRemote_applyWithReplace(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+	defer done(t)
+
+	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
+
+	op.ForceReplace = []addrs.AbsResourceInstance{addr}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to be non-empty")
+	}
+
+	// We should find a run inside the mock client that has the same
+	// refresh address we requested above.
+	runsAPI := b.client.Runs.(*mockRuns)
+	if got, want := len(runsAPI.runs), 1; got != want {
+		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
+	}
+	for _, run := range runsAPI.runs {
+		if diff := cmp.Diff([]string{"null_resource.foo"}, run.ReplaceAddrs); diff != "" {
+			t.Errorf("wrong ReplaceAddrs in the created run\n%s", diff)
+		}
+	}
+}
+
+func TestRemote_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
+	b, bCleanup := testBackendDefault(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	defer configCleanup()
+
+	b.client.SetFakeRemoteAPIVersion("2.3")
+
+	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
+
+	op.ForceReplace = []addrs.AbsResourceInstance{addr}
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := done(t)
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+	if !run.PlanEmpty {
+		t.Fatalf("expected plan to be empty")
+	}
+
+	errOutput := output.Stderr()
+	if !strings.Contains(errOutput, "Planning resource replacements is not supported") {
+		t.Fatalf("expected a not supported error, got: %v", errOutput)
 	}
 }
 

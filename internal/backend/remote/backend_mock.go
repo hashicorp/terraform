@@ -788,6 +788,7 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		HasChanges:   false,
 		Permissions:  &tfe.RunPermissions{},
 		Plan:         p,
+		ReplaceAddrs: options.ReplaceAddrs,
 		Status:       tfe.RunPending,
 		TargetAddrs:  options.TargetAddrs,
 	}
@@ -802,6 +803,14 @@ func (m *mockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	if options.IsDestroy != nil {
 		r.IsDestroy = *options.IsDestroy
+	}
+
+	if options.Refresh != nil {
+		r.Refresh = *options.Refresh
+	}
+
+	if options.RefreshOnly != nil {
+		r.RefreshOnly = *options.RefreshOnly
 	}
 
 	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]
