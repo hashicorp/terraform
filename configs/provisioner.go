@@ -86,8 +86,28 @@ func decodeProvisionerBlock(block *hcl.Block) (*Provisioner, hcl.Diagnostics) {
 	}
 
 	var seenConnection *hcl.Block
+	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
+		case "_":
+			if seenEscapeBlock != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate escaping block",
+					Detail: fmt.Sprintf(
+						"The special block type \"_\" can be used to force particular arguments to be interpreted as provisioner-typpe-specific rather than as meta-arguments, but each provisioner block can have only one such block. The first escaping block was at %s.",
+						seenEscapeBlock.DefRange,
+					),
+					Subject: &block.DefRange,
+				})
+				continue
+			}
+			seenEscapeBlock = block
+
+			// When there's an escaping block its content merges with the
+			// existing config we extracted earlier, so later decoding
+			// will see a blend of both.
+			pv.Config = hcl.MergeBodies([]hcl.Body{pv.Config, block.Body})
 
 		case "connection":
 			if seenConnection != nil {
@@ -209,6 +229,8 @@ var provisionerBlockSchema = &hcl.BodySchema{
 		{Name: "on_failure"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "_"}, // meta-argument escaping block
+
 		{Type: "connection"},
 		{Type: "lifecycle"}, // reserved for future use
 	},

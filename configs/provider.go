@@ -92,14 +92,39 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 		}
 	}
 
-	// Reserved block types (all of them)
+	var seenEscapeBlock *hcl.Block
 	for _, block := range content.Blocks {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Reserved block type name in provider block",
-			Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
-			Subject:  &block.TypeRange,
-		})
+		switch block.Type {
+		case "_":
+			if seenEscapeBlock != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate escaping block",
+					Detail: fmt.Sprintf(
+						"The special block type \"_\" can be used to force particular arguments to be interpreted as provider-specific rather than as meta-arguments, but each provider block can have only one such block. The first escaping block was at %s.",
+						seenEscapeBlock.DefRange,
+					),
+					Subject: &block.DefRange,
+				})
+				continue
+			}
+			seenEscapeBlock = block
+
+			// When there's an escaping block its content merges with the
+			// existing config we extracted earlier, so later decoding
+			// will see a blend of both.
+			provider.Config = hcl.MergeBodies([]hcl.Body{provider.Config, block.Body})
+
+		default:
+			// All of the other block types in our schema are reserved for
+			// future expansion.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reserved block type name in provider block",
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Subject:  &block.TypeRange,
+			})
+		}
 	}
 
 	return provider, diags
@@ -215,7 +240,9 @@ var providerBlockSchema = &hcl.BodySchema{
 		{Name: "source"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
-		// _All_ of these are reserved for future expansion.
+		{Type: "_"}, // meta-argument escaping block
+
+		// The rest of these are reserved for future expansion.
 		{Type: "lifecycle"},
 		{Type: "locals"},
 	},
