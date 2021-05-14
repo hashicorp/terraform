@@ -8,7 +8,7 @@ description: |-
 
 # `sensitive` Function
 
--> **Note:** This function is only available in Terraform v0.14 and later.
+-> **Note:** This function is only available in Terraform v0.15 and later.
 
 `sensitive` takes any value and returns a copy of it marked so that Terraform
 will treat it as sensitive, with the same meaning and behavior as for
