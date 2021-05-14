@@ -412,7 +412,7 @@ func TestInit_backendConfigFile(t *testing.T) {
 				View:             view,
 			},
 		}
-		args := []string{"-backend-config="}
+		args := []string{"-backend-config=", "-migrate-state"}
 		if code := c.Run(args); code != 0 {
 			t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 		}
@@ -555,7 +555,7 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 		},
 	}
 
-	args := []string{"-backend-config", "input.config"}
+	args := []string{"-backend-config", "input.config", "-migrate-state"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
@@ -644,7 +644,7 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 	}
 
 	// override the -backend-config options by settings
-	args = []string{"-input=false", "-backend-config", ""}
+	args = []string{"-input=false", "-backend-config", "", "-migrate-state"}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
@@ -906,7 +906,7 @@ func TestInit_inputFalse(t *testing.T) {
 		},
 	}
 
-	args = []string{"-input=false", "-backend-config=path=bar"}
+	args = []string{"-input=false", "-backend-config=path=bar", "-migrate-state"}
 	if code := c.Run(args); code == 0 {
 		t.Fatal("init should have failed", ui.OutputWriter)
 	}
