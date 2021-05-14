@@ -219,7 +219,7 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		// has changed since the plan was created. (All of the "real-world"
 		// state manager implementations support this, but simpler test backends
 		// may not.)
-		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
+		if currentStateMeta.Lineage != "" || priorStateFile.Lineage != "" {
 			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
