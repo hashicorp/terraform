@@ -108,6 +108,38 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		}
 	}
 
+	if op.PlanMode == plans.RefreshOnlyMode {
+		desiredAPIVersion, _ := version.NewVersion("2.4")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Refresh-only mode is not supported",
+				fmt.Sprintf(
+					`The host %s does not support -refresh-only mode for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
+	}
+
+	if len(op.ForceReplace) != 0 {
+		desiredAPIVersion, _ := version.NewVersion("2.4")
+
+		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Planning resource replacements is not supported",
+				fmt.Sprintf(
+					`The host %s does not support the -replace option for `+
+						`remote plans.`,
+					b.hostname,
+				),
+			))
+		}
+	}
+
 	if len(op.Targets) != 0 {
 		desiredAPIVersion, _ := version.NewVersion("2.3")
 
