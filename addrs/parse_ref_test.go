@@ -605,6 +605,25 @@ func TestParseRef(t *testing.T) {
 			``,
 		},
 
+		// We have some names reserved which might be used by a
+		// still-under-discussion proposal for template values or lazy
+		// expressions.
+		{
+			`template.foo`,
+			nil,
+			`The symbol name "template" is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix "resource." to force interpretation as a resource type name.`,
+		},
+		{
+			`lazy.foo`,
+			nil,
+			`The symbol name "lazy" is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix "resource." to force interpretation as a resource type name.`,
+		},
+		{
+			`arg.foo`,
+			nil,
+			`The symbol name "arg" is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix "resource." to force interpretation as a resource type name.`,
+		},
+
 		// anything else, interpreted as a managed resource reference
 		{
 			`boop_instance.foo`,
