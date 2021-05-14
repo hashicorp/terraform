@@ -37,7 +37,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.2
+	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
 	github.com/gophercloud/gophercloud v0.10.1-0.20200424014253-c3bfe50899e5
 	github.com/gophercloud/utils v0.0.0-20200423144003-7c72efc7435d
@@ -69,6 +69,7 @@ require (
 	github.com/hashicorp/memberlist v0.1.0 // indirect
 	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
+	github.com/hashicorp/terraform-registry-address v0.0.0-20210412075316-9b2996cce896
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/jmespath/go-jmespath v0.4.0
