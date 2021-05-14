@@ -203,10 +203,21 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 
 	cfg := modCfg.Module.ResourceByAddr(addr)
 	if cfg == nil {
+		var suggestion string
+		// A common mistake is omitting the data. prefix when trying to refer
+		// to a data resource, so we'll add a special hint for that.
+		if addr.Mode == addrs.ManagedResourceMode {
+			candidateAddr := addr // not a pointer, so this is a copy
+			candidateAddr.Mode = addrs.DataResourceMode
+			if candidateCfg := modCfg.Module.ResourceByAddr(candidateAddr); candidateCfg != nil {
+				suggestion = fmt.Sprintf("\n\nDid you mean the data resource %s?", candidateAddr)
+			}
+		}
+
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s.`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path)),
+			Detail:   fmt.Sprintf(`A %s resource %q %q has not been declared in %s.%s`, modeAdjective, addr.Type, addr.Name, moduleConfigDisplayAddr(modCfg.Path), suggestion),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags
