@@ -584,6 +584,27 @@ func TestParseRef(t *testing.T) {
 			`The "var" object does not support this operation.`,
 		},
 
+		// the "resource" prefix forces interpreting the next name as a
+		// resource type name. This is an alias for just using a resource
+		// type name at the top level, to be used only if a later edition
+		// of the Terraform language introduces a new reserved word that
+		// overlaps with a resource type name.
+		{
+			`resource.boop_instance.foo`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "boop_instance",
+					Name: "foo",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 27, Byte: 26},
+				},
+			},
+			``,
+		},
+
 		// anything else, interpreted as a managed resource reference
 		{
 			`boop_instance.foo`,

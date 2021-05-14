@@ -106,6 +106,27 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		remain := traversal[1:] // trim off "data" so we can use our shared resource reference parser
 		return parseResourceRef(DataResourceMode, rootRange, remain)
 
+	case "resource":
+		// This is an alias for the normal case of just using a managed resource
+		// type as a top-level symbol, which will serve as an escape mechanism
+		// if a later edition of the Terraform language introduces a new
+		// reference prefix that conflicts with a resource type name in an
+		// existing provider. In that case, the edition upgrade tool can
+		// rewrite foo.bar into resource.foo.bar to ensure that "foo" remains
+		// interpreted as a resource type name rather than as the new reserved
+		// word.
+		if len(traversal) < 3 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   `The "resource" object must be followed by two attribute names: the resource type and the resource name.`,
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		remain := traversal[1:] // trim off "resource" so we can use our shared resource reference parser
+		return parseResourceRef(ManagedResourceMode, rootRange, remain)
+
 	case "local":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{
