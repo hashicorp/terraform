@@ -33,6 +33,12 @@ func TestStaticValidateReferences(t *testing.T) {
 			`Reference to undeclared resource: A managed resource "aws_instance" "nonexist" has not been declared in the root module.`,
 		},
 		{
+			"beep.boop",
+			`Reference to undeclared resource: A managed resource "beep" "boop" has not been declared in the root module.
+
+Did you mean the data resource data.beep.boop?`,
+		},
+		{
 			"aws_instance.no_count[0]",
 			`Unexpected resource instance key: Because aws_instance.no_count does not have "count" or "for_each" set, references to it must not include an index key. Remove the bracketed index to refer to the single instance of this resource.`,
 		},
