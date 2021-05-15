@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
+	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/go-autorest/autorest"
 	sasStorage "github.com/hashicorp/go-azure-helpers/storage"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
@@ -156,10 +156,7 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 		Location: &names.location,
 	}
 	if names.useAzureADAuth {
-		allowSharedKeyAccess := false
-		storageProps.AccountPropertiesCreateParameters = &armStorage.AccountPropertiesCreateParameters{
-			AllowSharedKeyAccess: &allowSharedKeyAccess,
-		}
+		storageProps.AccountPropertiesCreateParameters = &armStorage.AccountPropertiesCreateParameters{}
 	}
 	future, err := c.storageAccountsClient.Create(ctx, names.resourceGroup, names.storageAccountName, storageProps)
 	if err != nil {
@@ -176,7 +173,7 @@ func (c *ArmClient) buildTestResources(ctx context.Context, names *resourceNames
 		containersClient.Client.Authorizer = *c.azureAdStorageAuth
 	} else {
 		log.Printf("fetching access key for storage account")
-		resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName, "")
+		resp, err := c.storageAccountsClient.ListKeys(ctx, names.resourceGroup, names.storageAccountName)
 		if err != nil {
 			return fmt.Errorf("failed to list storage account keys %s:", err)
 		}

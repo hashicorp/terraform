@@ -11,7 +11,7 @@ import (
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
-	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
+	armStorage "github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/storage/mgmt/storage"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
@@ -37,7 +37,7 @@ type ArmClient struct {
 }
 
 func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, error) {
-	env, err := authentication.AzureEnvironmentByNameFromEndpoint(ctx, config.MetadataHost, config.Environment)
+	env, err := buildArmEnvironment(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -120,16 +120,14 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	return &client, nil
 }
 
-func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
-	// TODO: can we remove this?
-	// https://github.com/hashicorp/terraform/issues/27156
+func buildArmEnvironment(ctx context.Context, config BackendConfig) (*azure.Environment, error) {
 	if config.CustomResourceManagerEndpoint != "" {
 		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
 		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
 	}
 
 	log.Printf("[DEBUG] Loading Environment %q", config.Environment)
-	return authentication.DetermineEnvironment(config.Environment)
+	return authentication.AzureEnvironmentByNameFromEndpoint(ctx, config.MetadataHost, config.Environment)
 }
 
 func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
@@ -154,7 +152,7 @@ func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Blob Client from an Access Token (using user credentials)")
-		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName, "")
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 		if err != nil {
 			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
 		}
@@ -199,7 +197,7 @@ func (c ArmClient) getContainersClient(ctx context.Context) (*containers.Client,
 	accessKey := c.accessKey
 	if accessKey == "" {
 		log.Printf("[DEBUG] Building the Container Client from an Access Token (using user credentials)")
-		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName, "")
+		keys, err := c.storageAccountsClient.ListKeys(ctx, c.resourceGroupName, c.storageAccountName)
 		if err != nil {
 			return nil, fmt.Errorf("Error retrieving keys for Storage Account %q: %s", c.storageAccountName, err)
 		}
