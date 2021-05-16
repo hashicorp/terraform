@@ -63,7 +63,7 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 // As a special exception, a referenced template file may not recursively call
 // the templatefile function, since that would risk the same file being
 // included into itself indefinitely.
-func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Function) function.Function {
+func MakeTemplateFileFunc(baseDir string, templateFile bool, funcsCb func() map[string]function.Function) function.Function {
 
 	params := []function.Parameter{
 		{
@@ -79,9 +79,15 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 	loadTmpl := func(fn string) (hcl.Expression, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
-		tmplVal, err := File(baseDir, cty.StringVal(fn))
-		if err != nil {
-			return nil, err
+		var tmplVal cty.Value
+		if templateFile {
+			var err error
+			tmplVal, err = File(baseDir, cty.StringVal(fn))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			tmplVal = cty.StringVal(fn)
 		}
 
 		expr, diags := hclsyntax.ParseTemplate([]byte(tmplVal.AsString()), fn, hcl.Pos{Line: 1, Column: 1})
@@ -128,7 +134,7 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems
 		funcs := make(map[string]function.Function, len(givenFuncs))
 		for name, fn := range givenFuncs {
-			if name == "templatefile" {
+			if name == "templatefile" || name == "templatestring" {
 				// We stub this one out to prevent recursive calls.
 				funcs[name] = function.New(&function.Spec{
 					Params: params,

@@ -157,7 +157,7 @@ func TestTemplateFile(t *testing.T) {
 		},
 	}
 
-	templateFileFn := MakeTemplateFileFunc(".", func() map[string]function.Function {
+	templateFileFn := MakeTemplateFileFunc(".", true, func() map[string]function.Function {
 		return map[string]function.Function{
 			"join":         stdlib.JoinFunc,
 			"templatefile": MakeFileFunc(".", false), // just a placeholder, since templatefile itself overrides this
