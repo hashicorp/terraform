@@ -677,7 +677,7 @@ func TestApply_plan(t *testing.T) {
 	defaultInputReader = new(bytes.Buffer)
 	defaultInputWriter = new(bytes.Buffer)
 
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFile(t, "")
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
@@ -710,7 +710,6 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -724,10 +723,14 @@ func TestApply_plan_backup(t *testing.T) {
 	}
 
 	// create a state file that needs to be backed up
-	err := statemgr.NewFilesystem(statePath).WriteState(states.NewState())
+	fs := statemgr.NewFilesystem(statePath)
+	err := fs.WriteState(states.NewState())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// create plan using existing state lineage
+	planPath := applyFixturePlanFile(t, fs.StateSnapshotMeta().Lineage)
 
 	args := []string{
 		"-state", statePath,
@@ -745,7 +748,7 @@ func TestApply_plan_backup(t *testing.T) {
 }
 
 func TestApply_plan_noBackup(t *testing.T) {
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFile(t, "")
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
@@ -826,7 +829,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 			Config: backendConfigRaw,
 		},
 		Changes: plans.NewChanges(),
-	})
+	}, "")
 
 	p := testProvider()
 	view, done := testView(t)
@@ -865,7 +868,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFile(t, "")
 	statePath := testTempFile(t)
 
 	cwd, err := os.Getwd()
@@ -907,7 +910,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 }
 
 func TestApply_planVars(t *testing.T) {
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFile(t, "")
 	statePath := testTempFile(t)
 
 	p := applyFixtureProvider()
@@ -940,7 +943,7 @@ func TestApply_planNoModuleFiles(t *testing.T) {
 	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()
-	planPath := applyFixturePlanFile(t)
+	planPath := applyFixturePlanFile(t, "")
 	view, done := testView(t)
 	apply := &ApplyCommand{
 		Meta: Meta{
@@ -2277,7 +2280,7 @@ func applyFixtureProvider() *terraform.MockProvider {
 // applyFixturePlanFile creates a plan file at a temporary location containing
 // a single change to create the test_instance.foo that is included in the
 // "apply" test fixture, returning the location of that plan file.
-func applyFixturePlanFile(t *testing.T) string {
+func applyFixturePlanFile(t *testing.T, lineage string) string {
 	_, snap := testModuleWithSnapshot(t, "apply")
 	plannedVal := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.UnknownVal(cty.String),
@@ -2313,6 +2316,7 @@ func applyFixturePlanFile(t *testing.T) string {
 		snap,
 		states.NewState(),
 		plan,
+		lineage,
 	)
 }
 

@@ -237,6 +237,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 		snap,
 		states.NewState(),
 		plan,
+		"",
 	)
 
 	ui := cli.NewMockUi()
@@ -746,6 +747,7 @@ func showFixturePlanFile(t *testing.T, action plans.Action) string {
 		snap,
 		states.NewState(),
 		plan,
+		"",
 	)
 }
 

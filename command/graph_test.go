@@ -139,7 +139,7 @@ func TestGraph_plan(t *testing.T) {
 	}
 	_, configSnap := testModuleWithSnapshot(t, "graph")
 
-	planPath := testPlanFile(t, configSnap, states.NewState(), plan)
+	planPath := testPlanFile(t, configSnap, states.NewState(), plan, "")
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{

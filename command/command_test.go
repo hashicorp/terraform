@@ -174,16 +174,18 @@ func testPlan(t *testing.T) *plans.Plan {
 	}
 }
 
-func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
+func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, lineage string) string {
 	t.Helper()
 
 	stateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          lineage,
+		Serial:           1,
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
 	prevStateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          lineage,
+		Serial:           1,
 		State:            state, // we just assume no changes detected during refresh
 		TerraformVersion: version.SemVer,
 	}
@@ -213,7 +215,7 @@ func testPlanFileNoop(t *testing.T) string {
 	}
 	state := states.NewState()
 	plan := testPlan(t)
-	return testPlanFile(t, snap, state, plan)
+	return testPlanFile(t, snap, state, plan, "")
 }
 
 func testReadPlan(t *testing.T, path string) *plans.Plan {
