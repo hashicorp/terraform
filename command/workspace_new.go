@@ -27,6 +27,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	var stateLock bool
 	var stateLockTimeout time.Duration
 	var statePath string
+	var createMessage string
 	cmdFlags := c.Meta.defaultFlagSet("workspace new")
 	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -109,8 +110,15 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 		return 1
 	}
 
+	// select the message to indicate an empty or populated state
+	if statePath == "" {
+		createMessage = envCreatedEmpty
+	} else {
+		createMessage = envCreatedFromState
+	}
+
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		strings.TrimSpace(envCreated), workspace)))
+		strings.TrimSpace(createMessage), workspace)))
 
 	if statePath == "" {
 		// if we're not loading a state, then we're done
