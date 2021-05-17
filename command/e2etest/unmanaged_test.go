@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/grpcwrap"
 	simple "github.com/hashicorp/terraform/internal/provider-simple"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
