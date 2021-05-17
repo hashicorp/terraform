@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/terraform"

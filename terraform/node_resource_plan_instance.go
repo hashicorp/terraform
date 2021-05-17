@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )

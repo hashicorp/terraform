@@ -13,8 +13,8 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	tag "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag/v20180813"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )

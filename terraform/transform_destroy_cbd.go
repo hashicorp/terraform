@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // GraphNodeDestroyerCBD must be implemented by nodes that might be

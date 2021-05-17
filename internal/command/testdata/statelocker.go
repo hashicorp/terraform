@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func main() {

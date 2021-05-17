@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 type remoteClient struct {

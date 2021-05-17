@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 )

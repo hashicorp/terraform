@@ -10,7 +10,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/states/remote"
+	"github.com/hashicorp/terraform/internal/states/remote"
 )
 
 const (

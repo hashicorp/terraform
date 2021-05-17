@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestContext2Input_provider(t *testing.T) {

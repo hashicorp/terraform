@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/states"
 )
 
 func upgradeStateV3ToV4(old *stateV3) (*stateV4, error) {

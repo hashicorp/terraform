@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/mitchellh/cli"
 )
 

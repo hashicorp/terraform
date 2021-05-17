@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statemgr"
 )
 
 // TestBackendConfig validates and configures the backend with the

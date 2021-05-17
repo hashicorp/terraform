@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/likexian/gokit/assert"
 )
 

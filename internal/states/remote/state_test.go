@@ -8,9 +8,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/version"
 )
 

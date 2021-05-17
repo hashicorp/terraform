@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 func TestApply_destroy(t *testing.T) {

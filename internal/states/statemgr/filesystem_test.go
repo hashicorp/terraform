@@ -14,8 +14,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
