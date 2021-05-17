@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/e2e"
 	"github.com/hashicorp/terraform/internal/grpcwrap"
+	tfplugin "github.com/hashicorp/terraform/internal/plugin"
 	simple "github.com/hashicorp/terraform/internal/provider-simple"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
-	tfplugin "github.com/hashicorp/terraform/plugin"
 )
 
 // The tests in this file are for the "unmanaged provider workflow", which

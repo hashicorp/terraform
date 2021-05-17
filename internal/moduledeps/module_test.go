@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/plugin/discovery"
 )
 
 func TestModuleWalkTree(t *testing.T) {

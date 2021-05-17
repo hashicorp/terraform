@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/plugin6"
+	"github.com/hashicorp/terraform/internal/plugin6"
 )
 
 // VersionedPlugins includes both protocol 5 and 6 because this is the function

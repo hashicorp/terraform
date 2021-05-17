@@ -19,9 +19,9 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	discovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	discovery "github.com/hashicorp/terraform/plugin/discovery"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 )
