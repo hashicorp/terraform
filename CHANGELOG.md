@@ -12,12 +12,14 @@ NEW FEATURES:
 
 ENHANCEMENTS:
 
+* backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. [GH-28296]
 * config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
 * `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
 * `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
 
 BUG FIXES:
 
+* backend/gcs: Fixed a bug where service account impersonation didn't work if the original identity was another service account [GH-28139]
 * core: Fix sensitivity handling with plan values, which could cause the sensitive marks to be lost during apply leading to a perpetual diff [GH-28687]
 * core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
 * core: Terraform will now upgrade and refresh (unless disabled) deposed objects during planning, in a similar manner as for objects that have been removed from the configuration. "Deposed" is how Terraform represents the situation where a `create_before_destroy` replacement failed to destroy the old object, in which case Terraform needs to track both the new and old objects until the old object is successfully deleted. Refreshing these during planning means that you can, if you wish, delete a "deposed" object manually outside of Terraform and then have Terraform detect that you've done so. [GH-28634]
