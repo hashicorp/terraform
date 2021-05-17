@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/xlab/treeprint"
 )
 

@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the

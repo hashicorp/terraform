@@ -11,8 +11,8 @@ import (
 	hcljson "github.com/hashicorp/hcl/v2/json"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // VarEnvPrefix is the prefix for environment variables that represent values

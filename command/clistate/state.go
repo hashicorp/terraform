@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/helper/slowmessage"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 const (

@@ -8,10 +8,10 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/internal/planproto"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )

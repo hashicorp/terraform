@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/tfdiags"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )

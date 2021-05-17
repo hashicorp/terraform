@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // PlanCommand is a Command implementation that compares a Terraform
