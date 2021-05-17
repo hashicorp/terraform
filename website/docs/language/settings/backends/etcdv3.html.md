@@ -10,7 +10,7 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state in the [etcd](https://coreos.com/etcd/) KV store with a given prefix.
+Stores the state in the [etcd](https://etcd.io/) KV store with a given prefix.
 
 This backend supports [state locking](/docs/language/state/locking.html).
 
@@ -54,3 +54,4 @@ The following configuration options / environment variables are supported:
  * `cacert_path` - (Optional) The path to a PEM-encoded CA bundle with which to verify certificates of TLS-enabled etcd servers.
  * `cert_path` - (Optional) The path to a PEM-encoded certificate to provide to etcd for secure client identification.
  * `key_path` - (Optional) The path to a PEM-encoded key to provide to etcd for secure client identification.
+ * `max_request_bytes` - (Optional) The max request size to send to etcd. This can be increased to enable storage of larger state. You must set the corresponding server-side flag [--max-request-bytes](https://etcd.io/docs/current/dev-guide/limit/#request-size-limit) as well and the value should be less than the client setting. Defaults to `2097152` (2.0 MiB). **Please Note:** Increasing etcd's request size limit may negatively impact overall latency.
