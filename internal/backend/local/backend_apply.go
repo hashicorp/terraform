@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
