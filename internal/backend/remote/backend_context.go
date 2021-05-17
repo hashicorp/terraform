@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/zclconf/go-cty/cty"
 )
 

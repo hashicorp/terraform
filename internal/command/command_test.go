@@ -40,7 +40,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )

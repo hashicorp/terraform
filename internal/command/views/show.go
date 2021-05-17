@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // FIXME: this is a temporary partial definition of the view for the show
