@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/internal/experiments"
 )
 
 // Module is a container for a set of configuration constructs that are
