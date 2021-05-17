@@ -204,6 +204,9 @@ type Meta struct {
 	//
 	// reconfigure forces init to ignore any stored configuration.
 	//
+	// migrateState confirms the user wishes to migrate from the prior backend
+	// configuration to a new configuration.
+	//
 	// compactWarnings (-compact-warnings) selects a more compact presentation
 	// of warnings in the output when they are not accompanied by errors.
 	statePath        string
@@ -214,6 +217,7 @@ type Meta struct {
 	stateLockTimeout time.Duration
 	forceInitCopy    bool
 	reconfigure      bool
+	migrateState     bool
 	compactWarnings  bool
 
 	// Used with the import command to allow import of state when no matching config exists.

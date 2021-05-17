@@ -45,12 +45,24 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
+	cmdFlags.BoolVar(&c.migrateState, "migrate-state", false, "migrate state")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	if c.migrateState && c.reconfigure {
+		c.Ui.Error("The -migrate-state and -reconfigure options are mutually-exclusive")
+		return 1
+	}
+
+	// Copying the state only happens during backend migration, so setting
+	// -force-copy implies -migrate-state
+	if c.forceInitCopy {
+		c.migrateState = true
 	}
 
 	var diags tfdiags.Diagnostics
@@ -926,6 +938,7 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-no-color":       complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
+		"-migrate-state":  complete.PredictNothing,
 		"-upgrade":        completePredictBoolean,
 	}
 }
@@ -979,6 +992,9 @@ Options:
 
   -reconfigure         Reconfigure the backend, ignoring any saved
                        configuration.
+
+  -migrate-state       Reconfigure the backend, and attempt to migrate any
+                       existing state.
 
   -upgrade=false       If installing modules (-get) or plugins, ignore
                        previously-downloaded objects and install the
