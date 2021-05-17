@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
