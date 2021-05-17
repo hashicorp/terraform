@@ -1002,6 +1002,25 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"urlparse": {
+			{
+				`urlparse("http://hostname/path/")`,
+				cty.ObjectVal(map[string]cty.Value{
+					"scheme": cty.StringVal("http"),
+					"user": cty.ObjectVal(map[string]cty.Value{
+						"username":     cty.StringVal(""),
+						"password":     cty.StringVal(""),
+						"password_set": cty.BoolVal(false),
+					}),
+					"host":     cty.StringVal("hostname"),
+					"hostname": cty.StringVal("hostname"),
+					"port":     cty.StringVal(""),
+					"path":     cty.StringVal("/path/"),
+					"fragment": cty.StringVal(""),
+				}),
+			},
+		},
+
 		"urlencode": {
 			{
 				`urlencode("foo:bar@localhost?foo=bar&bar=baz")`,

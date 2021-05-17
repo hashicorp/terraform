@@ -36,16 +36,17 @@ func (s *Scope) Functions() map[string]function.Function {
 			"abspath":          funcs.AbsPathFunc,
 			"alltrue":          funcs.AllTrueFunc,
 			"anytrue":          funcs.AnyTrueFunc,
-			"basename":         funcs.BasenameFunc,
 			"base64decode":     funcs.Base64DecodeFunc,
 			"base64encode":     funcs.Base64EncodeFunc,
 			"base64gzip":       funcs.Base64GzipFunc,
 			"base64sha256":     funcs.Base64Sha256Func,
 			"base64sha512":     funcs.Base64Sha512Func,
+			"basename":         funcs.BasenameFunc,
 			"bcrypt":           funcs.BcryptFunc,
 			"can":              tryfunc.CanFunc,
 			"ceil":             stdlib.CeilFunc,
 			"chomp":            stdlib.ChompFunc,
+			"chunklist":        stdlib.ChunklistFunc,
 			"cidrhost":         funcs.CidrHostFunc,
 			"cidrnetmask":      funcs.CidrNetmaskFunc,
 			"cidrsubnet":       funcs.CidrSubnetFunc,
@@ -60,14 +61,13 @@ func (s *Scope) Functions() map[string]function.Function {
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
-			"chunklist":        stdlib.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),
-			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
-			"fileset":          funcs.MakeFileSetFunc(s.BaseDir),
 			"filebase64":       funcs.MakeFileFunc(s.BaseDir, true),
 			"filebase64sha256": funcs.MakeFileBase64Sha256Func(s.BaseDir),
 			"filebase64sha512": funcs.MakeFileBase64Sha512Func(s.BaseDir),
+			"fileexists":       funcs.MakeFileExistsFunc(s.BaseDir),
 			"filemd5":          funcs.MakeFileMd5Func(s.BaseDir),
+			"fileset":          funcs.MakeFileSetFunc(s.BaseDir),
 			"filesha1":         funcs.MakeFileSha1Func(s.BaseDir),
 			"filesha256":       funcs.MakeFileSha256Func(s.BaseDir),
 			"filesha512":       funcs.MakeFileSha512Func(s.BaseDir),
@@ -121,15 +121,15 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sum":              funcs.SumFunc,
 			"textdecodebase64": funcs.TextDecodeBase64Func,
 			"textencodebase64": funcs.TextEncodeBase64Func,
-			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
+			"timestamp":        funcs.TimestampFunc,
 			"title":            stdlib.TitleFunc,
-			"tostring":         funcs.MakeToFunc(cty.String),
-			"tonumber":         funcs.MakeToFunc(cty.Number),
 			"tobool":           funcs.MakeToFunc(cty.Bool),
-			"toset":            funcs.MakeToFunc(cty.Set(cty.DynamicPseudoType)),
 			"tolist":           funcs.MakeToFunc(cty.List(cty.DynamicPseudoType)),
 			"tomap":            funcs.MakeToFunc(cty.Map(cty.DynamicPseudoType)),
+			"tonumber":         funcs.MakeToFunc(cty.Number),
+			"toset":            funcs.MakeToFunc(cty.Set(cty.DynamicPseudoType)),
+			"tostring":         funcs.MakeToFunc(cty.String),
 			"transpose":        funcs.TransposeFunc,
 			"trim":             stdlib.TrimFunc,
 			"trimprefix":       stdlib.TrimPrefixFunc,
@@ -138,6 +138,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"try":              tryfunc.TryFunc,
 			"upper":            stdlib.UpperFunc,
 			"urlencode":        funcs.URLEncodeFunc,
+			"urlparse":         funcs.URLParseFunc,
 			"uuid":             funcs.UUIDFunc,
 			"uuidv5":           funcs.UUIDV5Func,
 			"values":           stdlib.ValuesFunc,
@@ -169,6 +170,15 @@ func (s *Scope) Functions() map[string]function.Function {
 
 	return s.funcs
 }
+
+var unimplFunc = function.New(&function.Spec{
+	Type: func([]cty.Value) (cty.Type, error) {
+		return cty.DynamicPseudoType, fmt.Errorf("function not yet implemented")
+	},
+	Impl: func([]cty.Value, cty.Type) (cty.Value, error) {
+		return cty.DynamicVal, fmt.Errorf("function not yet implemented")
+	},
+})
 
 // experimentalFunction checks whether the given experiment is enabled for
 // the recieving scope. If so, it will return the given function verbatim.
