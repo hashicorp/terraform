@@ -1,4 +1,4 @@
-package plugin
+package plugin6
 
 import (
 	"bytes"
@@ -7,23 +7,30 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
-	mockproto "github.com/hashicorp/terraform/plugin/mock_proto"
+	mockproto "github.com/hashicorp/terraform/internal/plugin6/mock_proto"
+	proto "github.com/hashicorp/terraform/internal/tfplugin6"
 )
 
 var _ providers.Interface = (*GRPCProvider)(nil)
+
+var (
+	equateEmpty   = cmpopts.EquateEmpty()
+	typeComparer  = cmp.Comparer(cty.Type.Equals)
+	valueComparer = cmp.Comparer(cty.Value.RawEquals)
+)
 
 func mockProviderClient(t *testing.T) *mockproto.MockProviderClient {
 	ctrl := gomock.NewController(t)
 	client := mockproto.NewMockProviderClient(ctrl)
 
 	// we always need a GetSchema method
-	client.EXPECT().GetSchema(
+	client.EXPECT().GetProviderSchema(
 		gomock.Any(),
 		gomock.Any(),
 		gomock.Any(),
@@ -53,7 +60,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		ResourceSchemas: map[string]*proto.Schema{
-			"resource": &proto.Schema{
+			"resource": {
 				Version: 1,
 				Block: &proto.Schema_Block{
 					Attributes: []*proto.Schema_Attribute{
@@ -67,7 +74,7 @@ func providerProtoSchema() *proto.GetProviderSchema_Response {
 			},
 		},
 		DataSourceSchemas: map[string]*proto.Schema{
-			"data": &proto.Schema{
+			"data": {
 				Version: 1,
 				Block: &proto.Schema_Block{
 					Attributes: []*proto.Schema_Attribute{
@@ -98,10 +105,10 @@ func TestGRPCProvider_PrepareProviderConfig(t *testing.T) {
 		client: client,
 	}
 
-	client.EXPECT().PrepareProviderConfig(
+	client.EXPECT().ValidateProviderConfig(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.PrepareProviderConfig_Response{}, nil)
+	).Return(&proto.ValidateProviderConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
 	resp := p.ValidateProviderConfig(providers.ValidateProviderConfigRequest{Config: cfg})
@@ -114,10 +121,10 @@ func TestGRPCProvider_ValidateResourceConfig(t *testing.T) {
 		client: client,
 	}
 
-	client.EXPECT().ValidateResourceTypeConfig(
+	client.EXPECT().ValidateResourceConfig(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.ValidateResourceTypeConfig_Response{}, nil)
+	).Return(&proto.ValidateResourceConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
 	resp := p.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
@@ -127,16 +134,16 @@ func TestGRPCProvider_ValidateResourceConfig(t *testing.T) {
 	checkDiags(t, resp.Diagnostics)
 }
 
-func TestGRPCProvider_ValidateDataSourceConfig(t *testing.T) {
+func TestGRPCProvider_ValidateDataResourceConfig(t *testing.T) {
 	client := mockProviderClient(t)
 	p := &GRPCProvider{
 		client: client,
 	}
 
-	client.EXPECT().ValidateDataSourceConfig(
+	client.EXPECT().ValidateDataResourceConfig(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.ValidateDataSourceConfig_Response{}, nil)
+	).Return(&proto.ValidateDataResourceConfig_Response{}, nil)
 
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{"attr": "value"})
 	resp := p.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
@@ -214,10 +221,10 @@ func TestGRPCProvider_Configure(t *testing.T) {
 		client: client,
 	}
 
-	client.EXPECT().Configure(
+	client.EXPECT().ConfigureProvider(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.Configure_Response{}, nil)
+	).Return(&proto.ConfigureProvider_Response{}, nil)
 
 	resp := p.ConfigureProvider(providers.ConfigureProviderRequest{
 		Config: cty.ObjectVal(map[string]cty.Value{
@@ -233,10 +240,10 @@ func TestGRPCProvider_Stop(t *testing.T) {
 		client: client,
 	}
 
-	client.EXPECT().Stop(
+	client.EXPECT().StopProvider(
 		gomock.Any(),
 		gomock.Any(),
-	).Return(&proto.Stop_Response{}, nil)
+	).Return(&proto.StopProvider_Response{}, nil)
 
 	err := p.Stop()
 	if err != nil {
