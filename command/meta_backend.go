@@ -1114,11 +1114,6 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	return b, configVal, diags
 }
 
-func (m *Meta) backendInitRequired(reason string) {
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset]"+strings.TrimSpace(errBackendInit)+"\n", reason)))
-}
-
 // Helper method to ignore remote backend version conflicts. Only call this
 // for commands which cannot accidentally upgrade remote state files.
 func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
