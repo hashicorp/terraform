@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/states/remote"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/hashicorp/terraform/tfdiags"
@@ -52,6 +53,9 @@ type InitFn func() Backend
 
 // Backend is the minimal interface that must be implemented to enable Terraform.
 type Backend interface {
+	// Can later pull the methods out directly in this interface, and potentially remove these interfaces.
+	// Support basic implementation of write, put, lock, get, delete.
+	remote.ClientLocker
 	// ConfigSchema returns a description of the expected configuration
 	// structure for the receiving backend.
 	//
@@ -93,26 +97,7 @@ type Backend interface {
 	// is undefined and no other methods may be called.
 	Configure(cty.Value) tfdiags.Diagnostics
 
-	// StateMgr returns the state manager for the given workspace name.
-	//
-	// If the returned state manager also implements statemgr.Locker then
-	// it's the caller's responsibility to call Lock and Unlock as appropriate.
-	//
-	// If the named workspace doesn't exist, or if it has no state, it will
-	// be created either immediately on this call or the first time
-	// PersistState is called, depending on the state manager implementation.
-	StateMgr(workspace string) (statemgr.Full, error)
-
-	// DeleteWorkspace removes the workspace with the given name if it exists.
-	//
-	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
-	// the responsibility of the caller to hold a Lock for the state manager
-	// belonging to this workspace before calling this method.
-	DeleteWorkspace(name string) error
-
-	// States returns a list of the names of all of the workspaces that exist
-	// in this backend.
-	Workspaces() ([]string, error)
+	// Remove statemgr.. make workspaces a first class citizen
 }
 
 // Enhanced implements additional behavior on top of a normal backend.
