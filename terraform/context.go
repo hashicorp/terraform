@@ -10,7 +10,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/lang"
 	"github.com/hashicorp/terraform/plans"
