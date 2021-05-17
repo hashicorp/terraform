@@ -212,10 +212,14 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	defer cleanup()
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
-	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
-		"id":  cty.StringVal("yes"),
-		"ami": cty.StringVal("bar"),
-	})}
+
+	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("yes"),
+			"ami": cty.StringVal("bar"),
+		}),
+		Diagnostics: tfdiags.Diagnostics.Append(nil, errors.New("error before backend failure")),
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -245,14 +249,19 @@ func TestLocal_applyBackendFail(t *testing.T) {
 	}
 
 	diagErr := output.Stderr()
+
 	if !strings.Contains(diagErr, "Error saving state: fake failure") {
 		t.Fatalf("missing \"fake failure\" message in diags:\n%s", diagErr)
+	}
+
+	if !strings.Contains(diagErr, "error before backend failure") {
+		t.Fatalf("missing 'error before backend failure' diagnostic from apply")
 	}
 
 	// The fallback behavior should've created a file errored.tfstate in the
 	// current working directory.
 	checkState(t, "errored.tfstate", `
-test_instance.foo:
+test_instance.foo: (tainted)
   ID = yes
   provider = provider["registry.terraform.io/hashicorp/test"]
   ami = bar
