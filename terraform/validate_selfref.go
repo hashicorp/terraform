@@ -7,8 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/lang"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // validateSelfRef checks to ensure that expressions within a particular

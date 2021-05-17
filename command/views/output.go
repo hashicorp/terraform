@@ -13,8 +13,8 @@ import (
 
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/internal/repl"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // The Output view renders either one or all outputs, depending on whether or

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	viewsjson "github.com/hashicorp/terraform/command/views/json"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/mitchellh/colorstring"
 	wordwrap "github.com/mitchellh/go-wordwrap"

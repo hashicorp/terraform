@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/internal/backend"
 	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans/planfile"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ApplyCommand is a Command implementation that applies a Terraform

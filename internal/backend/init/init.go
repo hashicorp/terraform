@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"

@@ -5,9 +5,9 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 )

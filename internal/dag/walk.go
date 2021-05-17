@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Walker is used to walk every vertex of a graph in parallel.
