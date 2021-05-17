@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // FormatVersion represents the version of the json format and will be

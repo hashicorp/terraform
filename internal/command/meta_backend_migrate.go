@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 type backendMigrateOpts struct {

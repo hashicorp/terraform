@@ -22,8 +22,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestPlan(t *testing.T) {

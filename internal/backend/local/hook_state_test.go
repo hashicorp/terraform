@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 func TestStateHook_impl(t *testing.T) {

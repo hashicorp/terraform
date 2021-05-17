@@ -15,8 +15,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // ImportCommand is a cli.Command implementation that imports resources

@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and

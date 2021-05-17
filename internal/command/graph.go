@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
