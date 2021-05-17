@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 func TestBasicGraphBuilder_impl(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // ResourceCountTransformer is a GraphTransformer that expands the count

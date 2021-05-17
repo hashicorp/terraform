@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // GraphNodeAttachResourceSchema is an interface implemented by node types
