@@ -154,7 +154,7 @@ func TestParseApply_tooManyArguments(t *testing.T) {
 	if len(diags) == 0 {
 		t.Fatal("expected diags but got none")
 	}
-	if got, want := diags.Err().Error(), "Too many command line arguments"; !strings.Contains(got, want) {
+	if got, want := diags.Err().Error(), "Too many command-line arguments"; !strings.Contains(got, want) {
 		t.Fatalf("wrong diags\n got: %s\nwant: %s", got, want)
 	}
 	if got.ViewType != ViewHuman {

@@ -63,7 +63,7 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 	if len(args) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Too many command line arguments",
+			"Too many command-line arguments",
 			"Expected at most one positional argument.",
 		))
 	}
