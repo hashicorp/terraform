@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/errwrap"
-	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
