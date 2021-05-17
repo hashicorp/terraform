@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 )

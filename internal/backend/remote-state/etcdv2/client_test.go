@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/states/remote"
 	"github.com/zclconf/go-cty/cty"
 )

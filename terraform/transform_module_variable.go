@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/configs"
 )
 
 // ModuleVariableTransformer is a GraphTransformer that adds all the variables

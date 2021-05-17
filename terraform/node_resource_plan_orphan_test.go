@@ -3,8 +3,8 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/plans"

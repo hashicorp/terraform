@@ -14,7 +14,7 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/replacefile"
 	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )

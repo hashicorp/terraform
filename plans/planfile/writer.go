@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statefile"
 )

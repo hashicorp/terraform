@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
-	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/configs"
 
 	tfversion "github.com/hashicorp/terraform/version"
 )

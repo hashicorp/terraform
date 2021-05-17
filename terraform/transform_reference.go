@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/lang"
 )
