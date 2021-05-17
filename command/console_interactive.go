@@ -10,7 +10,7 @@ import (
 	"io"
 
 	"github.com/hashicorp/terraform/internal/helper/wrappedreadline"
-	"github.com/hashicorp/terraform/repl"
+	"github.com/hashicorp/terraform/internal/repl"
 
 	"github.com/chzyer/readline"
 	"github.com/mitchellh/cli"

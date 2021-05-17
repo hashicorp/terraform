@@ -12,7 +12,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/command/arguments"
-	"github.com/hashicorp/terraform/repl"
+	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/tfdiags"
 )
