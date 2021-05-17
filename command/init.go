@@ -54,6 +54,11 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	if c.migrateState && c.reconfigure {
+		c.Ui.Error("The -migrate-state and -reconfigure options are mutually-exclusive")
+		return 1
+	}
+
 	// Copying the state only happens during backend migration, so setting
 	// -force-copy implies -migrate-state
 	if c.forceInitCopy {
