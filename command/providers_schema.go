@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 

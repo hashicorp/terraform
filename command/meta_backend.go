@@ -15,12 +15,12 @@ import (
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
-	"github.com/hashicorp/terraform/backend"
-	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/views"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/backend"
+	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,8 +28,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	backendLocal "github.com/hashicorp/terraform/backend/local"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 

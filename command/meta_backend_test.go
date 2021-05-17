@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
@@ -19,9 +19,9 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	backendLocal "github.com/hashicorp/terraform/backend/local"
-	backendInmem "github.com/hashicorp/terraform/backend/remote-state/inmem"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 )
 
 // Test empty directory with no config/state creates a local state.
