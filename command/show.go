@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/jsonplan"
 	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states/statefile"

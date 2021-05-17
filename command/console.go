@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/repl"
 	"github.com/hashicorp/terraform/tfdiags"

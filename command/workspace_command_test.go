@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend"
-	"github.com/hashicorp/terraform/backend/local"
-	"github.com/hashicorp/terraform/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/mitchellh/cli"

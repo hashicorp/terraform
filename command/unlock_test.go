@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/backend/remote-state/inmem"
+	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	"github.com/mitchellh/cli"
 
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"

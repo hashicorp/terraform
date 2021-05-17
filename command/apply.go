@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
-	remoteBackend "github.com/hashicorp/terraform/backend/remote"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/backend"
+	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/tfdiags"
 )
