@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/addrs"
 

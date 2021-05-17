@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestWalker_basic(t *testing.T) {

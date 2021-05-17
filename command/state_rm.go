@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/views"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/cli"
 )
 

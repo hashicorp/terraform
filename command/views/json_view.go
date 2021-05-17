@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/terraform/command/views/json"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 

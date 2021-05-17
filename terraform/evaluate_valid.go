@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/didyoumean"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // StaticValidateReferences checks the given references against schemas and

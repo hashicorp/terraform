@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Provider represents a "provider" block in a module or file. A provider

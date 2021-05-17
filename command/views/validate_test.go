@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestValidateHuman(t *testing.T) {

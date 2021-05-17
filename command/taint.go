@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // TaintCommand is a cli.Command implementation that manually taints

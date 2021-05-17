@@ -1,7 +1,7 @@
 package arguments
 
 import (
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Validate represents the command-line arguments for the validate command.

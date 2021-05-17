@@ -21,10 +21,10 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/backend"
 	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 

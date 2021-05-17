@@ -2,7 +2,7 @@ package lang
 
 import (
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 

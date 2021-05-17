@@ -8,9 +8,9 @@ import (
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func (b *Local) opRefresh(

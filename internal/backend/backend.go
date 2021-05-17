@@ -17,12 +17,12 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )

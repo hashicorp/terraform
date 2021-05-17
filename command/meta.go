@@ -28,10 +28,10 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 

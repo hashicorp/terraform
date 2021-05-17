@@ -11,8 +11,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 func readStateV4(src []byte) (*File, tfdiags.Diagnostics) {

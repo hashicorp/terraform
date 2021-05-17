@@ -6,9 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 // ConcreteResourceInstanceDeposedNodeFunc is a callback type used to convert

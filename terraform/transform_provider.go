@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TransformProviders(providers []string, concrete ConcreteProviderNodeFunc, config *configs.Config) GraphTransformer {

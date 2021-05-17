@@ -9,10 +9,10 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/views/json"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type Operation interface {

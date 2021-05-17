@@ -5,7 +5,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

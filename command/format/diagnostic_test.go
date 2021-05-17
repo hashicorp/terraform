@@ -12,7 +12,7 @@ import (
 
 	viewsjson "github.com/hashicorp/terraform/command/views/json"
 
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestDiagnostic(t *testing.T) {

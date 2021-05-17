@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/colorstring"
 )
 

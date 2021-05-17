@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/lang"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 type ConcreteModuleNodeFunc func(n *nodeExpandModule) dag.Vertex

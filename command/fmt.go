@@ -17,7 +17,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const (

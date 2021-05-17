@@ -18,11 +18,11 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	"github.com/hashicorp/terraform/states/statemgr"
-	"github.com/hashicorp/terraform/tfdiags"
 )
 
 var equateEmpty = cmpopts.EquateEmpty()

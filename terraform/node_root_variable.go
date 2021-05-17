@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // NodeRootVariable represents a root variable input.
