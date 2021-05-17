@@ -40,8 +40,8 @@ import (
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
-	backendLocal "github.com/hashicorp/terraform/backend/local"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	_ "github.com/hashicorp/terraform/internal/logging"
 )

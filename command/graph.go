@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform/plans/planfile"
 	"github.com/hashicorp/terraform/tfdiags"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/terraform"
 )
 

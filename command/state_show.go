@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/format"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/states"
 	"github.com/mitchellh/cli"
 )

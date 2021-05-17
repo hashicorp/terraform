@@ -11,10 +11,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/clistate"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"

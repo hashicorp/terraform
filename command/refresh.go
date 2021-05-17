@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/backend"
 	"github.com/hashicorp/terraform/command/arguments"
 	"github.com/hashicorp/terraform/command/views"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 

@@ -26,7 +26,7 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
 
 const (
