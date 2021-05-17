@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/lang"
+	"github.com/hashicorp/terraform/internal/lang"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
