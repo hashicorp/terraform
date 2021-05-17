@@ -12,9 +12,9 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/registry/regsrc"
-	"github.com/hashicorp/terraform/registry/response"
+	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/registry/regsrc"
+	"github.com/hashicorp/terraform/internal/registry/response"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
