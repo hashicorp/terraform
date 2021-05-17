@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // GraphNodeAttachResourceState is an interface that can be implemented

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/terraform"
 
 	_ "github.com/hashicorp/terraform/internal/logging"

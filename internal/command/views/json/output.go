@@ -6,8 +6,8 @@ import (
 
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/states"
 )
 
 type Output struct {

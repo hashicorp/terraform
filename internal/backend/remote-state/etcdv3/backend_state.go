@@ -9,9 +9,9 @@ import (
 	etcdv3 "github.com/coreos/etcd/clientv3"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {

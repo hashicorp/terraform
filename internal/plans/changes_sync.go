@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // ChangesSync is a wrapper around a Changes that provides a concurrency-safe

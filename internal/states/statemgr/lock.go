@@ -1,6 +1,6 @@
 package statemgr
 
-import "github.com/hashicorp/terraform/states"
+import "github.com/hashicorp/terraform/internal/states"
 
 // LockDisabled implements State and Locker but disables state locking.
 // If State doesn't support locking, this is a no-op. This is useful for

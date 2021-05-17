@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
 )
 

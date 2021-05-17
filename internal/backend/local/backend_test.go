@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/states/statefile"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func TestLocal_impl(t *testing.T) {

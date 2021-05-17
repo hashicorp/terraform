@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
 // Create creates a new plan file with the given filename, overwriting any
