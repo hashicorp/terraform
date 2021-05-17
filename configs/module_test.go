@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // TestNewModule_provider_fqns exercises module.gatherProviderLocalNames()

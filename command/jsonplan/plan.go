@@ -8,10 +8,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/jsonconfig"
 	"github.com/hashicorp/terraform/command/jsonstate"
 	"github.com/hashicorp/terraform/configs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"

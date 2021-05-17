@@ -11,7 +11,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/states"
 )
 

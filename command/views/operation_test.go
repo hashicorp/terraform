@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/arguments"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
