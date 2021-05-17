@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/bmatcuk/doublestar"
@@ -118,11 +119,28 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		// We'll pre-check references in the template here so we can give a
 		// more specialized error message than HCL would by default, so it's
 		// clearer that this problem is coming from a templatefile call.
+
+		// Tracker used to ensure that a variable does not get included
+		// more than once.
+		missingVarsTracker := make(map[string]struct{})
+		missingVars := []string{}
 		for _, traversal := range expr.Variables() {
 			root := traversal.RootName()
 			if _, ok := ctx.Variables[root]; !ok {
-				return cty.DynamicVal, function.NewArgErrorf(1, "vars map does not contain key %q, referenced at %s", root, traversal[0].SourceRange())
+				if _, ok := missingVarsTracker[root]; !ok {
+					missingVarsTracker[root] = struct{}{}
+					missingVars = append(missingVars, fmt.Sprintf(" key %q, referenced at %s", root, traversal[0].SourceRange()))
+				}
 			}
+		}
+
+		// If the length of missingVars is greater than 0, create an error
+		// message and return an error.
+		if len(missingVars) > 0 {
+			var sb strings.Builder
+			sb.WriteString("vars map does not contain")
+			sb.WriteString(strings.Join(missingVars, ","))
+			return cty.DynamicVal, function.NewArgErrorf(1, sb.String())
 		}
 
 		givenFuncs := funcsCb() // this callback indirection is to avoid chicken/egg problems

@@ -110,6 +110,12 @@ func TestTemplateFile(t *testing.T) {
 			`vars map does not contain key "name", referenced at testdata/hello.tmpl:1,10-14`,
 		},
 		{
+			cty.StringVal("testdata/multivar.tmpl"),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			`vars map does not contain key "yourname", referenced at testdata/multivar.tmpl:1,10-18, key "myname", referenced at testdata/multivar.tmpl:1,34-40`,
+		},
+		{
 			cty.StringVal("testdata/func.tmpl"),
 			cty.ObjectVal(map[string]cty.Value{
 				"list": cty.ListVal([]cty.Value{
