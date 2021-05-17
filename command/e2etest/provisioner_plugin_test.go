@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/e2e"
+	"github.com/hashicorp/terraform/internal/e2e"
 )
 
 // TestProvisionerPlugin is a test that terraform can execute a 3rd party
