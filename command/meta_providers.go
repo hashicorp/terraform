@@ -351,6 +351,8 @@ func providerFactory(meta *providercache.CachedProvider) providers.Factory {
 			Cmd:              exec.Command(execFile),
 			AutoMTLS:         enableProviderAutoMTLS,
 			VersionedPlugins: tfplugin.VersionedPlugins,
+			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", meta.Provider)),
+			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", meta.Provider)),
 		}
 
 		client := plugin.NewClient(config)
@@ -406,6 +408,8 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 			Managed:          false,
 			Reattach:         reattach,
+			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", provider)),
+			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", provider)),
 		}
 		// TODO: we probably shouldn't hardcode the protocol version
 		// here, but it'll do for now, because only one protocol
