@@ -10,20 +10,25 @@ NEW FEATURES:
     
     By default this new output is for information only and doesn't change any behavior. If Terraform detects a change you were _expecting_ then you don't need to take any additional action to respond to it. However, we've also added a new planning mode `-refresh-only` which allows you to explicitly plan and apply the action of writing those detected changes to the Terraform state, which serves as a plannable replacement for `terraform refresh`. We don't have any plans to remove the long-standing `terraform refresh` command, but we do recommend using `terraform apply -refresh-only` instead in most cases, because it will provide an opportunity to review what Terraform detected before updating the Terraform state.
 
+UPGRADE NOTES:
+
+* This release adds some new reserved reference prefixes to make them available for later work. These are `resource.`, `template.`, `arg.`, and `lazy.`. We don't expect these additions to cause problems for most existing configurations, but could cause a conflict if you are using a custom provider which has a resource type named exactly "resource", "template", "arg", or "lazy". In that unlikely event, you can escape references to resources of those types by adding a `resource.` prefix; for example, if you have a `resource "template" "foo"` then you can change references to it from `template.foo` to `resource.template.foo` in order to escape the new meaning.
+
 ENHANCEMENTS:
 
-* backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. [GH-28296]
 * config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
+* config: Some new escaping syntax which is not yet useful but will be part of the backward-compatibility story for certain future language editions. [GH-28709]
 * `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
 * `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
+* backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. [GH-28296]
 
 BUG FIXES:
 
-* backend/gcs: Fixed a bug where service account impersonation didn't work if the original identity was another service account [GH-28139]
 * core: Fix sensitivity handling with plan values, which could cause the sensitive marks to be lost during apply leading to a perpetual diff [GH-28687]
 * core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
 * core: Terraform will now upgrade and refresh (unless disabled) deposed objects during planning, in a similar manner as for objects that have been removed from the configuration. "Deposed" is how Terraform represents the situation where a `create_before_destroy` replacement failed to destroy the old object, in which case Terraform needs to track both the new and old objects until the old object is successfully deleted. Refreshing these during planning means that you can, if you wish, delete a "deposed" object manually outside of Terraform and then have Terraform detect that you've done so. [GH-28634]
 * config: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
+* backend/gcs: Fixed a bug where service account impersonation didn't work if the original identity was another service account [GH-28139]
 
 ## 0.15.3 (May 06, 2021)
 
