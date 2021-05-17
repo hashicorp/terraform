@@ -7,9 +7,9 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/version"
 
 	"github.com/hashicorp/terraform/states"
