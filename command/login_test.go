@@ -17,7 +17,7 @@ import (
 	oauthserver "github.com/hashicorp/terraform/command/testdata/login-oauth-server"
 	tfeserver "github.com/hashicorp/terraform/command/testdata/login-tfe-server"
 	"github.com/hashicorp/terraform/command/webbrowser"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/version"
 )
 

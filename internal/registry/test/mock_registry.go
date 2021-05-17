@@ -13,7 +13,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/registry/regsrc"
 	"github.com/hashicorp/terraform/internal/registry/response"
 	tfversion "github.com/hashicorp/terraform/version"
