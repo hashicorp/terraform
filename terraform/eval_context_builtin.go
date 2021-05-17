@@ -6,7 +6,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/hashicorp/terraform/instances"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
 	"github.com/hashicorp/terraform/provisioners"
