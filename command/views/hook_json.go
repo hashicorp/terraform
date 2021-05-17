@@ -7,9 +7,9 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/command/format"
 	"github.com/hashicorp/terraform/command/views/json"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/terraform"
