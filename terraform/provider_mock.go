@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/configs/hcl2shim"
-	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 var _ providers.Interface = (*MockProvider)(nil)

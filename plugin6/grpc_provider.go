@@ -9,9 +9,9 @@ import (
 
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/providers"
 	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
 	"github.com/hashicorp/terraform/plugin6/convert"
-	"github.com/hashicorp/terraform/providers"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
