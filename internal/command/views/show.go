@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/terraform"
 )
 

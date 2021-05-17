@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 // The tests in this file run through different scenarios recommended in our

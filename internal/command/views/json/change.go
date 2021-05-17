@@ -3,7 +3,7 @@ package json
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *ResourceInstanceChange {

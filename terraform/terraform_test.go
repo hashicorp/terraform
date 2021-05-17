@@ -17,10 +17,10 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/states"
 
 	_ "github.com/hashicorp/terraform/internal/logging"

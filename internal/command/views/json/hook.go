@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 type Hook interface {
