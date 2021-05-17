@@ -174,22 +174,6 @@ func splitAddrSubdir(addr string) (packageAddr, subDir string) {
 	return getter.SourceDirSubdir(addr)
 }
 
-var localSourcePrefixes = []string{
-	"./",
-	"../",
-	".\\",
-	"..\\",
-}
-
-func isLocalSourceAddr(addr string) bool {
-	for _, prefix := range localSourcePrefixes {
-		if strings.HasPrefix(addr, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
 func isRegistrySourceAddr(addr string) bool {
 	_, err := regsrc.ParseModuleSource(addr)
 	return err == nil

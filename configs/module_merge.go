@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/earlyconfig"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -152,6 +153,11 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 		mc.SourceAddr = omc.SourceAddr
 		mc.SourceAddrRange = omc.SourceAddrRange
 		mc.SourceSet = omc.SourceSet
+		// The Version attribute needs to be empty if overriding SourceAddr to a local addr
+		// If omc.Version isn't empty, that's user error
+		if earlyconfig.IsLocalSourceAddr(omc.SourceAddr) {
+			mc.Version = omc.Version
+		}
 	}
 
 	if omc.Count != nil {
