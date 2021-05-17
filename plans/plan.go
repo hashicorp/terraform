@@ -3,8 +3,8 @@ package plans
 import (
 	"sort"
 
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/states"
 	"github.com/zclconf/go-cty/cty"
 )

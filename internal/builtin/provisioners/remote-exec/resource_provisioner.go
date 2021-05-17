@@ -11,9 +11,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/mitchellh/go-linereader"
 	"github.com/zclconf/go-cty/cty"

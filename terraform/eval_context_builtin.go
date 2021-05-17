@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/terraform/states"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/lang"
 
