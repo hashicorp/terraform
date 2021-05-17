@@ -88,7 +88,7 @@ func (c *httpClient) Lock(info *statemgr.LockInfo) (string, error) {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case http.StatusOK:
+	case http.StatusOK, http.StatusCreated, http.StatusNoContent:
 		c.lockID = info.ID
 		c.jsonLockInfo = jsonLockInfo
 		return info.ID, nil
@@ -125,7 +125,7 @@ func (c *httpClient) Unlock(id string) error {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case http.StatusOK:
+	case http.StatusOK, http.StatusNoContent:
 		return nil
 	default:
 		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
@@ -239,7 +239,7 @@ func (c *httpClient) Delete() error {
 
 	// Handle the error codes
 	switch resp.StatusCode {
-	case http.StatusOK:
+	case http.StatusOK, http.StatusNoContent:
 		return nil
 	default:
 		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
