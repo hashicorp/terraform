@@ -18,7 +18,7 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
