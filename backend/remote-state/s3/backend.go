@@ -37,6 +37,11 @@ func New() backend.Backend {
 					if strings.HasPrefix(v.(string), "/") {
 						return nil, []error{errors.New("key must not start with '/'")}
 					}
+					// s3 will recognize objects with a trailing slash as a directory
+					// so they should not be valid keys
+					if strings.HasSuffix(v.(string), "/") {
+						return nil, []error{errors.New("key must not end with '/'")}
+					}
 					return nil, nil
 				},
 			},
