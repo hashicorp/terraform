@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/zclconf/go-cty/cty"
@@ -186,6 +188,76 @@ var CidrSubnetsFunc = function.New(&function.Spec{
 	},
 })
 
+// CidrNetFunc constructs a cidr notation for a subnet provided a network address
+// in "subnet" "netmask" notation
+var CidrNetFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "subnet",
+			Type: cty.String,
+		},
+		{
+			Name: "netmask",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		netmask := args[1].AsString()
+		if net.ParseIP(netmask) == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("invalid Netmask expression: %s", netmask)
+		}
+		netmaskslice := strings.Split(netmask, ".")
+		var netmaskBytes []byte
+
+		for _, s := range netmaskslice {
+			i, _ := strconv.ParseInt(s, 10, 16)
+			netmaskBytes = append(netmaskBytes, byte(i))
+		}
+
+		ipmask := net.IPv4Mask(netmaskBytes[0], netmaskBytes[1], netmaskBytes[2], netmaskBytes[3])
+
+		cidrmask, _ := ipmask.Size()
+		cidrsubnet := fmt.Sprintf("%s/%v", args[0].AsString(), cidrmask)
+		_, network, err := net.ParseCIDR(cidrsubnet)
+		if err != nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("invalid Subnet expression: %s", err)
+		}
+
+		return cty.StringVal(network.String()), nil
+	},
+})
+
+// CidrBitmaskFunc returns the bitmask size given a octet notation
+var CidrBitmaskFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "netmask",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Number),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		netmask := args[0].AsString()
+		if net.ParseIP(netmask) == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("invalid Netmask expression: %s", err)
+		}
+		netmaskslice := strings.Split(netmask, ".")
+		var netmaskBytes []byte
+
+		for _, s := range netmaskslice {
+			i, _ := strconv.ParseInt(s, 10, 16)
+			netmaskBytes = append(netmaskBytes, byte(i))
+		}
+
+		ipmask := net.IPv4Mask(netmaskBytes[0], netmaskBytes[1], netmaskBytes[2], netmaskBytes[3])
+
+		cidrmask, _ := ipmask.Size()
+
+		return cty.NumberIntVal(int64(cidrmask)), nil
+	},
+})
+
 // CidrHost calculates a full host IP address within a given IP network address prefix.
 func CidrHost(prefix, hostnum cty.Value) (cty.Value, error) {
 	return CidrHostFunc.Call([]cty.Value{prefix, hostnum})
@@ -208,4 +280,14 @@ func CidrSubnets(prefix cty.Value, newbits ...cty.Value) (cty.Value, error) {
 	args[0] = prefix
 	copy(args[1:], newbits)
 	return CidrSubnetsFunc.Call(args)
+}
+
+// CidrNet converts legacy "Subnet" "Netmask" notation into CIDR notation
+func CidrNet(subnet, netmask cty.Value) (cty.Value, error) {
+	return CidrNetFunc.Call([]cty.Value{subnet, netmask})
+}
+
+// CidrNet converts legacy "Subnet" "Netmask" notation into CIDR notation
+func CidrBitmask(netmask cty.Value) (cty.Value, error) {
+	return CidrBitmaskFunc.Call([]cty.Value{netmask})
 }
