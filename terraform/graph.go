@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/addrs"
 
-	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/internal/dag"
 )
 
 // Graph represents the graph that Terraform uses to represent resources
