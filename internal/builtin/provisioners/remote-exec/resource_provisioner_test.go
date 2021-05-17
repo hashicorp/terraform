@@ -13,7 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
-	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )

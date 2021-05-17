@@ -10,7 +10,7 @@ import (
 
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/mitchellh/go-linereader"
 	"github.com/zclconf/go-cty/cty"
 )

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/provisioners"
+	"github.com/hashicorp/terraform/internal/provisioners"
 )
 
 // simpleMockComponentFactory returns a component factory pre-configured with
