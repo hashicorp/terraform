@@ -8,9 +8,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/communicator/shared"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plugin/convert"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin/convert"
 )
 
 // New wraps a provisioners.Interface to implement a grpc ProviderServer.

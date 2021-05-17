@@ -12,7 +12,7 @@ import (
 	proto "github.com/hashicorp/terraform/internal/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
 
-	mockproto "github.com/hashicorp/terraform/plugin/mock_proto"
+	mockproto "github.com/hashicorp/terraform/internal/plugin/mock_proto"
 )
 
 var _ provisioners.Interface = (*GRPCProvisioner)(nil)

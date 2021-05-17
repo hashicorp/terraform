@@ -15,8 +15,8 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/replacefile"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // credentialsConfigFile returns the path for the special configuration file

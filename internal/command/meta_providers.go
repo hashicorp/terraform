@@ -16,11 +16,11 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	tfplugin "github.com/hashicorp/terraform/internal/plugin"
+	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfplugin "github.com/hashicorp/terraform/plugin"
-	tfplugin6 "github.com/hashicorp/terraform/plugin6"
 )
 
 // The TF_DISABLE_PLUGIN_TLS environment variable is intended only for use by

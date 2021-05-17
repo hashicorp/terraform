@@ -16,8 +16,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/terminal"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
