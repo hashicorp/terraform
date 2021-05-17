@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"cloud.google.com/go/storage"
-	"github.com/hashicorp/terraform/httpclient"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/impersonate"
