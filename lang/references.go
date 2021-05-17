@@ -48,7 +48,7 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 // A block schema must be provided so that this function can determine where in
 // the body variables are expected.
 func ReferencesInBlock(body hcl.Body, schema *configschema.Block) ([]*addrs.Reference, tfdiags.Diagnostics) {
-	if body == nil {
+	if body == nil || schema == nil {
 		return nil, nil
 	}
 
