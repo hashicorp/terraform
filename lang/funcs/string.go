@@ -46,8 +46,35 @@ var ReplaceFunc = function.New(&function.Spec{
 	},
 })
 
+// IncludesFunc constructs a function that determines whether a given string may be found within another string.
+var IncludesFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "substr",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		str := args[0].AsString()
+		substr := args[1].AsString()
+
+		return cty.BoolVal(strings.Contains(str, substr)), nil
+	},
+})
+
 // Replace searches a given string for another given substring,
 // and replaces all occurences with a given replacement string.
 func Replace(str, substr, replace cty.Value) (cty.Value, error) {
 	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
+}
+
+// Includes searches a given string for another given substring,
+// and replaces all occurences with a given replacement string.
+func Includes(str, substr cty.Value) (cty.Value, error) {
+	return IncludesFunc.Call([]cty.Value{str, substr})
 }
