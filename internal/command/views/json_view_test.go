@@ -10,9 +10,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/plans"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 

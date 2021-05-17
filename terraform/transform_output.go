@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 // OutputTransformer is a GraphTransformer that adds all the outputs

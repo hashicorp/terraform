@@ -8,7 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/plans"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/states"
 	"github.com/hashicorp/terraform/states/statefile"
 	tfversion "github.com/hashicorp/terraform/version"
