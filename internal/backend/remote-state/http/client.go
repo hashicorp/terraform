@@ -12,8 +12,8 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 // httpClient is a remote client that stores data in Consul or HTTP REST.

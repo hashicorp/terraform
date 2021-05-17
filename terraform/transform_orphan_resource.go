@@ -5,7 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 // OrphanResourceInstanceTransformer is a GraphTransformer that adds orphaned

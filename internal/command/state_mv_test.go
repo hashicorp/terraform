@@ -12,7 +12,7 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 var disabledColorize = &colorstring.Colorize{

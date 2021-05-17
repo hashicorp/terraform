@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *states.State) *Graph {

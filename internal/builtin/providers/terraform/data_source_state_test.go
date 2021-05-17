@@ -8,8 +8,8 @@ import (
 	"github.com/apparentlymart/go-dump/dump"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/states/statemgr"
 	"github.com/zclconf/go-cty/cty"
 )
 

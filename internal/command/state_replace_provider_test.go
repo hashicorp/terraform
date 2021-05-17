@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/states"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestStateReplaceProvider(t *testing.T) {

@@ -3,7 +3,7 @@ package local
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/terraform"
 )
 
