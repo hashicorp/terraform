@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/registry"
+	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/tfdiags"
 )
 
