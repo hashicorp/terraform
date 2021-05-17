@@ -933,6 +933,7 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-no-color":       complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
+		"-migrate-state":  complete.PredictNothing,
 		"-upgrade":        completePredictBoolean,
 	}
 }
@@ -986,6 +987,9 @@ Options:
 
   -reconfigure         Reconfigure the backend, ignoring any saved
                        configuration.
+
+  -migrate-state       Reconfigure the backend, and attempt to migrate any
+                       existing state.
 
   -upgrade=false       If installing modules (-get) or plugins, ignore
                        previously-downloaded objects and install the
