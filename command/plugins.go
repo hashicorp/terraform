@@ -13,9 +13,9 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
-	fileprovisioner "github.com/hashicorp/terraform/builtin/provisioners/file"
-	localexec "github.com/hashicorp/terraform/builtin/provisioners/local-exec"
-	remoteexec "github.com/hashicorp/terraform/builtin/provisioners/remote-exec"
+	fileprovisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
+	localexec "github.com/hashicorp/terraform/internal/builtin/provisioners/local-exec"
+	remoteexec "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/logging"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"

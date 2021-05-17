@@ -12,7 +12,7 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/addrs"
-	terraformProvider "github.com/hashicorp/terraform/builtin/providers/terraform"
+	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
