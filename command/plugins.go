@@ -17,9 +17,9 @@ import (
 	localexec "github.com/hashicorp/terraform/internal/builtin/provisioners/local-exec"
 	remoteexec "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/provisioners"
 	tfplugin "github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/provisioners"
 )
 
 // NOTE WELL: The logic in this file is primarily about plugin types OTHER THAN
