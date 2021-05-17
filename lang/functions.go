@@ -9,7 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/function/stdlib"
 
-	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/lang/funcs"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/experiments"
+	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
