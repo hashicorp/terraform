@@ -1722,11 +1722,21 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 		diffType = "block"
 	}
 
+	// If only attribute sensitivity is changing, clarify that the value is unchanged
+	var valueUnchangedSuffix string
+	if !isBlock {
+		oldUnmarked, _ := old.UnmarkDeep()
+		newUnmarked, _ := new.UnmarkDeep()
+		if oldUnmarked.RawEquals(newUnmarked) {
+			valueUnchangedSuffix = " The value is unchanged."
+		}
+	}
+
 	if new.IsMarked() && !old.IsMarked() {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will\n", diffType)))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("# not display in UI output after applying this change\n"))
+		p.buf.WriteString(fmt.Sprintf("# display in UI output after applying this change.%s\n", valueUnchangedSuffix))
 	}
 
 	// Note if changing this attribute will change its sensitivity
@@ -1734,7 +1744,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color("# after applying this change\n"))
+		p.buf.WriteString(fmt.Sprintf("# after applying this change.%s\n", valueUnchangedSuffix))
 	}
 }
 
