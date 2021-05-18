@@ -10,7 +10,7 @@ description: |-
 
 **Kind: Standard (with locking)**
 
-Stores the state in a [Postgres database](https://www.postgresql.org) version 9.5 or newer.
+Stores the state in a [Postgres database](https://www.postgresql.org) version 10 or newer.
 
 This backend supports [state locking](/docs/language/state/locking.html).
 
@@ -30,7 +30,7 @@ Before initializing the backend with `terraform init`, the database must already
 createdb terraform_backend
 ```
 
-This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/9.5/reference-client.html) which are installed along with the database server.
+This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/10/reference-client.html) which are installed along with the database server.
 
 We recommend using a
 [partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration)
@@ -78,8 +78,6 @@ The following configuration options or environment variables are supported:
  * `skip_index_creation` - If set to `true`, the Postgres index must already exist. Terraform won't try to create the index. Useful when the Postgres user does not have "create index" permission on the database.
 
 ## Technical Design
-
-Postgres version 9.5 or newer is required to support advisory locks and the "ON CONFLICT" upsert syntax.
 
 This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
 
