@@ -241,7 +241,7 @@ will, for each suite:
 * Destroy all of the objects recorded in the temporary test state, as if running
   `terraform destroy` against the test configuration.
 
-```shell-session
+```shellsession
 $ terraform test
 ─── Failed: defaults.api_url.scheme (default scheme is https) ───────────────
 wrong value
