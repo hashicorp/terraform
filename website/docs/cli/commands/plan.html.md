@@ -41,7 +41,7 @@ is primarily intended for when
 [running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 If you run `terraform plan` without the `-out=FILE` option then it will create
-a _speculative plan_, which is a description of a the effect of the plan but
+a _speculative plan_, which is a description of the effect of the plan but
 without any intent to actually apply it.
 
 In teams that use a version control and code review workflow for making changes
@@ -252,7 +252,7 @@ The available options are:
 
 * `-input=false` - Disables Terraform's default behavior of prompting for
   input for root module input variables that have not otherwise been assigned
-  a value. This option is particular useful when running Terraform in
+  a value. This option is particularly useful when running Terraform in
   non-interactive automation systems.
 
 * `-lock=false` - Don't hold a state lock during the operation. This is
@@ -287,7 +287,7 @@ The available options are:
     be saved in cleartext in the plan file. You should therefore treat any
     saved plan files as potentially-sensitive artifacts.
 
-* `-parallelism=n` - Limit the number of concurrent operation as Terraform
+* `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
 
