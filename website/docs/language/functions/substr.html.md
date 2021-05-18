@@ -29,3 +29,12 @@ bytes:
 > substr("🤔🤷", 0, 1)
 🤔
 ```
+
+The offset index may be negative, in which case it is relative to the end of
+the given string.  The length may be -1, in which case the remainder of the
+string after the given offset will be returned.
+
+```
+> substr("hello world", -5, -1)
+world
+```
