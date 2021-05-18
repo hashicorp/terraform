@@ -165,6 +165,7 @@ func (b *Local) opApply(
 	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
 		return
 	}
+	diags = diags.Append(applyDiags)
 
 	// Store the final state
 	runningOp.State = applyState
@@ -183,7 +184,6 @@ func (b *Local) opApply(
 		return
 	}
 
-	diags = diags.Append(applyDiags)
 	if applyDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
 		return
