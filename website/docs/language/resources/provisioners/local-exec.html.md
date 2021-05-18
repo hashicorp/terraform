@@ -44,7 +44,7 @@ The following arguments are supported:
   variables.
 
 * `working_dir` - (Optional) If provided, specifies the working directory where
-  `command` will be executed. It can be provided as as a relative path to the
+  `command` will be executed. It can be provided as a relative path to the
    current working directory or as an absolute path. The directory must exist.
 
 * `interpreter` - (Optional) If provided, this is a list of interpreter
