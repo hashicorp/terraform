@@ -3402,7 +3402,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ ami         = (sensitive)
         id          = "i-02ae66f368e8518a9"
       ~ list_field  = [
@@ -3413,29 +3413,29 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
-          # after applying this change
+          # after applying this change.
           ~ "dinner"    = (sensitive)
             # (1 unchanged element hidden)
         }
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ map_whole   = (sensitive)
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ some_number = (sensitive)
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ special     = (sensitive)
 
       # Warning: this block will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ nested_block {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
 
       # Warning: this block will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ nested_block_set {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
@@ -3533,16 +3533,16 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         ]
       ~ map_key    = {
           ~ "breakfast" = 800 -> 700
-          # Warning: this attribute value will be marked as sensitive and will
-          # not display in UI output after applying this change
+          # Warning: this attribute value will be marked as sensitive and will not
+          # display in UI output after applying this change.
           ~ "dinner"    = (sensitive)
         }
-      # Warning: this attribute value will be marked as sensitive and will
-      # not display in UI output after applying this change
+      # Warning: this attribute value will be marked as sensitive and will not
+      # display in UI output after applying this change.
       ~ map_whole  = (sensitive)
 
-      # Warning: this block will be marked as sensitive and will
-      # not display in UI output after applying this change
+      # Warning: this block will be marked as sensitive and will not
+      # display in UI output after applying this change.
       ~ nested_block_single {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
@@ -3809,7 +3809,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change. The value is unchanged.
       ~ ami         = (sensitive)
         id          = "i-02ae66f368e8518a9"
       ~ list_field  = [
@@ -3820,29 +3820,29 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
-          # after applying this change
+          # after applying this change. The value is unchanged.
           ~ "dinner"    = (sensitive)
             # (1 unchanged element hidden)
         }
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change. The value is unchanged.
       ~ map_whole   = (sensitive)
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change. The value is unchanged.
       ~ some_number = (sensitive)
       # Warning: this attribute value will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change. The value is unchanged.
       ~ special     = (sensitive)
 
       # Warning: this block will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ nested_block {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
 
       # Warning: this block will no longer be marked as sensitive
-      # after applying this change
+      # after applying this change.
       ~ nested_block_set {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
