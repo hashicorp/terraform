@@ -128,8 +128,8 @@ func (c *ProvidersLockCommand) Run(args []string) int {
 				// current configuration.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Invalid network mirror URL",
-					"The -net-mirror option requires a valid https: URL as the mirror base URL.",
+					"Invalid provider argument",
+					fmt.Sprintf("The provider %s is not required by the current configuration.", addr.String()),
 				))
 			}
 		}

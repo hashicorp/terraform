@@ -142,12 +142,7 @@ func ParsePlatform(str string) (Platform, error) {
 		return Platform{}, fmt.Errorf("must be two words separated by an underscore")
 	}
 
-	underPos := strings.Index(str, "_")
-	if underPos < 1 || underPos >= len(str)-2 {
-		return Platform{}, fmt.Errorf("must be two words separated by an underscore")
-	}
-
-	os, arch := str[:underPos], str[underPos+1:]
+	os, arch := parts[0], parts[1]
 	if strings.ContainsAny(os, " \t\n\r") {
 		return Platform{}, fmt.Errorf("OS portion must not contain whitespace")
 	}
