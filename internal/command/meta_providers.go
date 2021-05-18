@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -401,7 +402,6 @@ func devOverrideProviderFactory(provider addrs.Provider, localDir getproviders.P
 // running, and implements providers.Interface against it.
 func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.ReattachConfig) providers.Factory {
 	return func() (providers.Interface, error) {
-
 		config := &plugin.ClientConfig{
 			HandshakeConfig:  tfplugin.Handshake,
 			Logger:           logging.NewProviderLogger("unmanaged."),
@@ -411,12 +411,20 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", provider)),
 			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", provider)),
 		}
-		// TODO: we probably shouldn't hardcode the protocol version
-		// here, but it'll do for now, because only one protocol
-		// version is supported. Eventually, we'll probably want to
-		// sneak it into the JSON ReattachConfigs.
-		if plugins, ok := tfplugin.VersionedPlugins[5]; !ok {
-			return nil, fmt.Errorf("no supported plugins for protocol 5")
+
+		if reattach.ProtocolVersion == 0 {
+			// As of the 0.15 release, sdk.v2 doesn't include the protocol
+			// version in the ReattachConfig (only recently added to
+			// go-plugin), so client.NegotiatedVersion() always returns 0. We
+			// assume that an unmanaged provider reporting protocol version 0 is
+			// actually using proto v5 for backwards compatibility.
+			if defaultPlugins, ok := tfplugin.VersionedPlugins[5]; ok {
+				config.Plugins = defaultPlugins
+			} else {
+				return nil, errors.New("no supported plugins for protocol 0")
+			}
+		} else if plugins, ok := tfplugin.VersionedPlugins[reattach.ProtocolVersion]; !ok {
+			return nil, fmt.Errorf("no supported plugins for protocol %d", reattach.ProtocolVersion)
 		} else {
 			config.Plugins = plugins
 		}
@@ -432,8 +440,25 @@ func unmanagedProviderFactory(provider addrs.Provider, reattach *plugin.Reattach
 			return nil, err
 		}
 
-		p := raw.(*tfplugin.GRPCProvider)
-		return p, nil
+		// store the client so that the plugin can kill the child process
+		protoVer := client.NegotiatedVersion()
+		switch protoVer {
+		case 0, 5:
+			// As of the 0.15 release, sdk.v2 doesn't include the protocol
+			// version in the ReattachConfig (only recently added to
+			// go-plugin), so client.NegotiatedVersion() always returns 0. We
+			// assume that an unmanaged provider reporting protocol version 0 is
+			// actually using proto v5 for backwards compatibility.
+			p := raw.(*tfplugin.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		case 6:
+			p := raw.(*tfplugin6.GRPCProvider)
+			p.PluginClient = client
+			return p, nil
+		default:
+			return nil, fmt.Errorf("unsupported protocol version %d", protoVer)
+		}
 	}
 }
 

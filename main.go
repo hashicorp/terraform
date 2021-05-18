@@ -450,8 +450,9 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
 	if in != "" {
 		type reattachConfig struct {
-			Protocol string
-			Addr     struct {
+			Protocol        string
+			ProtocolVersion int
+			Addr            struct {
 				Network string
 				String  string
 			}
@@ -484,10 +485,11 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
 			}
 			unmanagedProviders[a] = &plugin.ReattachConfig{
-				Protocol: plugin.Protocol(c.Protocol),
-				Pid:      c.Pid,
-				Test:     c.Test,
-				Addr:     addr,
+				Protocol:        plugin.Protocol(c.Protocol),
+				ProtocolVersion: c.ProtocolVersion,
+				Pid:             c.Pid,
+				Test:            c.Test,
+				Addr:            addr,
 			}
 		}
 	}
