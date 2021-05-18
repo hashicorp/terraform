@@ -2,20 +2,20 @@
 # More on CODEOWNERS files: https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
 
 # Remote-state backend                  # Maintainer
-/backend/remote-state/artifactory       Unmaintained
-/backend/remote-state/azure             @hashicorp/terraform-azure
-/backend/remote-state/consul            @hashicorp/consul @remilapeyre
-/backend/remote-state/cos               @likexian
-/backend/remote-state/etcdv2            Unmaintained
-/backend/remote-state/etcdv3            @bmcustodio
-/backend/remote-state/gcs               @hashicorp/terraform-google
-/backend/remote-state/http              @hashicorp/terraform-core
-/backend/remote-state/manta             Unmaintained
-/backend/remote-state/oss               @xiaozhu36
-/backend/remote-state/pg                @remilapeyre
-/backend/remote-state/s3                @hashicorp/terraform-aws
-/backend/remote-state/swift             Unmaintained
-/backend/remote-state/kubernetes        @jrhouston @alexsomesan 
+/internal/backend/remote-state/artifactory       Unmaintained
+/internal/backend/remote-state/azure             @hashicorp/terraform-azure
+/internal/backend/remote-state/consul            @hashicorp/consul @remilapeyre
+/internal/backend/remote-state/cos               @likexian
+/internal/backend/remote-state/etcdv2            Unmaintained
+/internal/backend/remote-state/etcdv3            @bmcustodio
+/internal/backend/remote-state/gcs               @hashicorp/terraform-google
+/internal/backend/remote-state/http              @hashicorp/terraform-core
+/internal/backend/remote-state/manta             Unmaintained
+/internal/backend/remote-state/oss               @xiaozhu36
+/internal/backend/remote-state/pg                @remilapeyre
+/internal/backend/remote-state/s3                @hashicorp/terraform-aws
+/internal/backend/remote-state/swift             Unmaintained
+/internal/backend/remote-state/kubernetes        @jrhouston @alexsomesan
 
 # Provisioners
 builtin/provisioners/chef               Deprecated
@@ -25,4 +25,3 @@ builtin/provisioners/local-exec         @hashicorp/terraform-core
 builtin/provisioners/puppet             Deprecated
 builtin/provisioners/remote-exec        @hashicorp/terraform-core
 builtin/provisioners/salt-masterless    Deprecated
-
