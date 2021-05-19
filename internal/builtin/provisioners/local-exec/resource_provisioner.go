@@ -11,6 +11,7 @@ import (
 	"github.com/armon/circbuf"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/go-linereader"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -65,7 +66,11 @@ func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 
 func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
 	if _, err := p.GetSchema().Provisioner.CoerceValue(req.Config); err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid local-exec provisioner configuration",
+			err.Error(),
+		))
 	}
 	return resp
 }
@@ -73,7 +78,11 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 	command := req.Config.GetAttr("command").AsString()
 	if command == "" {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("local-exec provisioner command must be a non-empty string"))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid local-exec provisioner command",
+			"The command must be a non-empty string.",
+		))
 		return resp
 	}
 
@@ -120,7 +129,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	// See golang.org/issue/18874
 	pr, pw, err := os.Pipe()
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("failed to initialize pipe for output: %s", err))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"local-exec provisioner error",
+			fmt.Sprintf("Failed to initialize pipe for output: %s", err),
+		))
 		return resp
 	}
 
@@ -171,8 +184,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	}
 
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Error running command '%s': %v. Output: %s",
-			command, err, output.Bytes()))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"local-exec provisioner error",
+			fmt.Sprintf("Error running command '%s': %v. Output: %s", command, err, output.Bytes()),
+		))
 		return resp
 	}
 

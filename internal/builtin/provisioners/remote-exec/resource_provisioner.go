@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/go-linereader"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -59,7 +60,11 @@ func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisionerConfigRequest) (resp provisioners.ValidateProvisionerConfigResponse) {
 	cfg, err := p.GetSchema().Provisioner.CoerceValue(req.Config)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid remote-exec provisioner configuration",
+			err.Error(),
+		))
 		return resp
 	}
 
@@ -78,28 +83,43 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 		set++
 	}
 	if set != 1 {
-		resp.Diagnostics = resp.Diagnostics.Append(errors.New(
-			`only one of "inline", "script", or "scripts" must be set`))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid remote-exec provisioner configuration",
+			`Only one of "inline", "script", or "scripts" must be set`,
+		))
 	}
 	return resp
 }
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 	if req.Connection.IsNull() {
-		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing connection configuration for provisioner"))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"remote-exec provisioner error",
+			"Missing connection configuration for provisioner.",
+		))
 		return resp
 	}
 
 	comm, err := communicator.New(req.Connection)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"remote-exec provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 
 	// Collect the scripts
 	scripts, err := collectScripts(req.Config)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"remote-exec provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 	for _, s := range scripts {
@@ -108,7 +128,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 
 	// Copy and execute each script
 	if err := runScripts(p.ctx, req.UIOutput, comm, scripts); err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"remote-exec provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 
