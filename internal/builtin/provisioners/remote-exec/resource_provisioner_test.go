@@ -271,8 +271,8 @@ func TestResourceProvisioner_connectionRequired(t *testing.T) {
 	}
 
 	got := resp.Diagnostics.Err().Error()
-	if !strings.Contains(got, "missing connection") {
-		t.Fatalf("expected 'missing connection' error: got %q", got)
+	if !strings.Contains(got, "Missing connection") {
+		t.Fatalf("expected 'Missing connection' error: got %q", got)
 	}
 }
 
