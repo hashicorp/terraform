@@ -116,7 +116,7 @@ locals {
 ## Element Ordering
 
 Because `for` expressions can convert from unordered types (maps, objects, sets)
-to unordered types (lists, tuples), Terraform must choose an implied ordering
+to ordered types (lists, tuples), Terraform must choose an implied ordering
 for the elements of an unordered collection.
 
 For maps and objects, Terraform sorts the elements by key or attribute name,
