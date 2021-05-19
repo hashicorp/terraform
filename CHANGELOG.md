@@ -18,6 +18,8 @@ ENHANCEMENTS:
 
 * config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
 * config: Some new escaping syntax which is not yet useful but will be part of the backward-compatibility story for certain future language editions. [GH-28709]
+* core: Rsource diagnostics are no longer lost on remote state storage fails [GH-28724]
+* core: Diagnostics from provisioner failures are now shown in CLI output [GH-28753]
 * `terraform init`: add a new `-migrate-state` flag instead of automatic state migration, to prevent failing when old backend config is not usable [GH-28718]
 * `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
 * `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
