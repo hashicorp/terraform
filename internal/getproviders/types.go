@@ -137,12 +137,12 @@ func (p Platform) LessThan(other Platform) bool {
 // ParsePlatform parses a string representation of a platform, like
 // "linux_amd64", or returns an error if the string is not valid.
 func ParsePlatform(str string) (Platform, error) {
-	underPos := strings.Index(str, "_")
-	if underPos < 1 || underPos >= len(str)-2 {
+	parts := strings.Split(str, "_")
+	if len(parts) != 2 {
 		return Platform{}, fmt.Errorf("must be two words separated by an underscore")
 	}
 
-	os, arch := str[:underPos], str[underPos+1:]
+	os, arch := parts[0], parts[1]
 	if strings.ContainsAny(os, " \t\n\r") {
 		return Platform{}, fmt.Errorf("OS portion must not contain whitespace")
 	}
