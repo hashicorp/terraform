@@ -1,4 +1,4 @@
-## 0.15.4 (Unreleased)
+## 0.15.4 (May 19, 2021)
 
 NEW FEATURES:
 
@@ -16,23 +16,23 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. [GH-28681]
-* config: Some new escaping syntax which is not yet useful but will be part of the backward-compatibility story for certain future language editions. [GH-28709]
-* core: Rsource diagnostics are no longer lost on remote state storage fails [GH-28724]
-* core: Diagnostics from provisioner failures are now shown in CLI output [GH-28753]
-* `terraform init`: add a new `-migrate-state` flag instead of automatic state migration, to prevent failing when old backend config is not usable [GH-28718]
-* `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
-* `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
-* backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. [GH-28296]
-* backend/remote: supports several new CLI options when running plans and applies with Terraform Cloud: `-refresh=false`, `-replace`, and `-refresh-only`. [GH-28746]
+* config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. ([#28681](https://github.com/hashicorp/terraform/issues/28681))
+* config: Some new escaping syntax which is not yet useful but will be part of the backward-compatibility story for certain future language editions. ([#28709](https://github.com/hashicorp/terraform/issues/28709))
+* core: Rsource diagnostics are no longer lost on remote state storage fails ([#28724](https://github.com/hashicorp/terraform/issues/28724))
+* core: Diagnostics from provisioner failures are now shown in CLI output ([#28753](https://github.com/hashicorp/terraform/issues/28753))
+* `terraform init`: add a new `-migrate-state` flag instead of automatic state migration, to prevent failing when old backend config is not usable ([#28718](https://github.com/hashicorp/terraform/issues/28718))
+* `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. ([#28634](https://github.com/hashicorp/terraform/issues/28634))
+* `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. ([#28634](https://github.com/hashicorp/terraform/issues/28634))
+* backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. ([#28296](https://github.com/hashicorp/terraform/issues/28296))
+* backend/remote: supports several new CLI options when running plans and applies with Terraform Cloud: `-refresh=false`, `-replace`, and `-refresh-only`. ([#28746](https://github.com/hashicorp/terraform/issues/28746))
 
 BUG FIXES:
 
-* core: Fix sensitivity handling with plan values, which could cause the sensitive marks to be lost during apply leading to a perpetual diff [GH-28687]
-* core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block [GH-28665]
-* core: Terraform will now upgrade and refresh (unless disabled) deposed objects during planning, in a similar manner as for objects that have been removed from the configuration. "Deposed" is how Terraform represents the situation where a `create_before_destroy` replacement failed to destroy the old object, in which case Terraform needs to track both the new and old objects until the old object is successfully deleted. Refreshing these during planning means that you can, if you wish, delete a "deposed" object manually outside of Terraform and then have Terraform detect that you've done so. [GH-28634]
-* config: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 [GH-28509]
-* backend/gcs: Fixed a bug where service account impersonation didn't work if the original identity was another service account [GH-28139]
+* core: Fix sensitivity handling with plan values, which could cause the sensitive marks to be lost during apply leading to a perpetual diff ([#28687](https://github.com/hashicorp/terraform/issues/28687))
+* core: Fix crash when specifying SSH `bastion_port` in a resource `connection` block ([#28665](https://github.com/hashicorp/terraform/issues/28665))
+* core: Terraform will now upgrade and refresh (unless disabled) deposed objects during planning, in a similar manner as for objects that have been removed from the configuration. "Deposed" is how Terraform represents the situation where a `create_before_destroy` replacement failed to destroy the old object, in which case Terraform needs to track both the new and old objects until the old object is successfully deleted. Refreshing these during planning means that you can, if you wish, delete a "deposed" object manually outside of Terraform and then have Terraform detect that you've done so. ([#28634](https://github.com/hashicorp/terraform/issues/28634))
+* config: Improve the sensitivity support for `lookup` and `length` functions, which were accidentally omitted from the larger update in 0.15.1 ([#28509](https://github.com/hashicorp/terraform/issues/28509))
+* backend/gcs: Fixed a bug where service account impersonation didn't work if the original identity was another service account ([#28139](https://github.com/hashicorp/terraform/issues/28139))
 
 ## 0.15.3 (May 06, 2021)
 
