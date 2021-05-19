@@ -22,6 +22,7 @@ ENHANCEMENTS:
 * `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. [GH-28634]
 * `terraform plan` and `terraform apply`: now have a new option `-refresh-only` to activate the "refresh only" planning mode, which causes Terraform to ignore any changes suggested by the configuration but still detect any changes made outside of Terraform since the latest `terraform apply`. [GH-28634]
 * backend/gcs: Terraform Core now supports [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation). The federated JSON credentials must be loaded through the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. This is also available in the Google Provider in versions newer than v3.61. [GH-28296]
+* backend/remote: supports several new CLI options when running plans and applies with Terraform Cloud: `-refresh=false`, `-replace`, and `-refresh-only`. [GH-28746]
 
 BUG FIXES:
 
