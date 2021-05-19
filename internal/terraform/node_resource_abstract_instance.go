@@ -1701,9 +1701,8 @@ func (n *NodeAbstractResourceInstance) evalApplyProvisioners(ctx EvalContext, st
 
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
-	err := n.applyProvisioners(ctx, state, when, provs)
-	if err != nil {
-		diags = diags.Append(err)
+	diags = diags.Append(n.applyProvisioners(ctx, state, when, provs))
+	if diags.HasErrors() {
 		log.Printf("[TRACE] evalApplyProvisioners: %s provisioning failed, but we will continue anyway at the caller's request", n.Addr)
 		return diags
 	}
@@ -1737,7 +1736,7 @@ func filterProvisioners(config *configs.Resource, when configs.ProvisionerWhen) 
 }
 
 // applyProvisioners executes the provisioners for a resource.
-func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, when configs.ProvisionerWhen, provs []*configs.Provisioner) error {
+func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state *states.ResourceInstanceObject, when configs.ProvisionerWhen, provs []*configs.Provisioner) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// this self is only used for destroy provisioner evaluation, and must
@@ -1766,8 +1765,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		// Get the provisioner
 		provisioner, err := ctx.Provisioner(prov.Type)
 		if err != nil {
-			diags = diags.Append(err)
-			return diags.Err()
+			return diags.Append(err)
 		}
 
 		schema := ctx.ProvisionerSchema(prov.Type)
@@ -1775,7 +1773,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 		config, configDiags := evalScope(ctx, prov.Config, self, schema)
 		diags = diags.Append(configDiags)
 		if diags.HasErrors() {
-			return diags.Err()
+			return diags
 		}
 
 		// If the provisioner block contains a connection block of its own then
@@ -1807,7 +1805,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 			connInfo, connInfoDiags = evalScope(ctx, connBody, self, connectionBlockSupersetSchema)
 			diags = diags.Append(connInfoDiags)
 			if diags.HasErrors() {
-				return diags.Err()
+				return diags
 			}
 		}
 
@@ -1817,7 +1815,7 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 				return h.PreProvisionInstanceStep(n.Addr, prov.Type)
 			})
 			if err != nil {
-				return err
+				return diags.Append(err)
 			}
 		}
 
@@ -1874,27 +1872,17 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 			diags = diags.Append(applyDiags)
 			if applyDiags.HasErrors() {
 				log.Printf("[WARN] Errors while provisioning %s with %q, so aborting", n.Addr, prov.Type)
-				return diags.Err()
+				return diags
 			}
 		}
 
 		// Deal with the hook
 		if hookErr != nil {
-			return hookErr
+			return diags.Append(hookErr)
 		}
 	}
 
-	// we have to drop warning-only diagnostics for now
-	if diags.HasErrors() {
-		return diags.ErrWithWarnings()
-	}
-
-	// log any warnings since we can't return them
-	if e := diags.ErrWithWarnings(); e != nil {
-		log.Printf("[WARN] applyProvisioners %s: %v", n.Addr, e)
-	}
-
-	return nil
+	return diags
 }
 
 func (n *NodeAbstractResourceInstance) evalProvisionerConfig(ctx EvalContext, body hcl.Body, self cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {

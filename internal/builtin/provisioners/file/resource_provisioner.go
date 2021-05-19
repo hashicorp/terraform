@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -75,20 +76,32 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 
 func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceRequest) (resp provisioners.ProvisionResourceResponse) {
 	if req.Connection.IsNull() {
-		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing connection configuration for provisioner"))
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"file provisioner error",
+			"Missing connection configuration for provisioner.",
+		))
 		return resp
 	}
 
 	comm, err := communicator.New(req.Connection)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"file provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 
 	// Get the source
 	src, deleteSource, err := getSrc(req.Config)
 	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"file provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 	if deleteSource {
@@ -98,7 +111,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	// Begin the file copy
 	dst := req.Config.GetAttr("destination").AsString()
 	if err := copyFiles(p.ctx, comm, src, dst); err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"file provisioner error",
+			err.Error(),
+		))
 		return resp
 	}
 
