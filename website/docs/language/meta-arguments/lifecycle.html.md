@@ -5,6 +5,8 @@ page_title: "The lifecycle Meta-Argument - Configuration Language"
 
 # The `lifecycle` Meta-Argument
 
+> **Hands-on:** Try the [Lifecycle Management](https://learn.hashicorp.com/tutorials/terraform/resource-lifecycle?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 The general lifecycle for resources is described in the
 [Resource Behavior](/docs/language/resources/behavior.html) page. Some details of
 that behavior can be customized using the special nested `lifecycle` block

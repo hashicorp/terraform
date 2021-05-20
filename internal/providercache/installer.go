@@ -8,7 +8,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	copydir "github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"

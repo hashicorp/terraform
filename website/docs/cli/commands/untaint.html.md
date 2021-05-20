@@ -28,6 +28,14 @@ you can use `terraform untaint` to remove the taint marker from that object.
 This command _will not_ modify any real remote objects, but will modify the
 state in order to remove the tainted status.
 
+If you remove the taint marker from an object but then later discover that it
+was degraded after all, you can create and apply a plan to replace it without
+first re-tainting the object, by using a command like the following:
+
+```
+terraform apply -replace="aws_instance.example[0]"
+```
+
 ## Usage
 
 Usage: `terraform untaint [options] address`
@@ -42,8 +50,9 @@ This command also accepts the following options:
   for other situations, such as if there is a problem reading or writing
   the state.
 
-* `-lock=false` - Disables Terraform's default behavior of attempting to take
-  a read/write lock on the state for the duration of the operation.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
   instructs Terraform to retry acquiring a lock for a period of time before
@@ -54,12 +63,13 @@ This command also accepts the following options:
   if you are running Terraform in a context where its output will be
   rendered by a system that cannot interpret terminal formatting.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform untaint`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
 For configurations using
 [the `local` backend](/docs/language/settings/backends/local.html) only,
-`terraform taint` also accepts the legacy options
+`terraform untaint` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).

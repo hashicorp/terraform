@@ -3,130 +3,184 @@ layout: "docs"
 page_title: "Command: state mv"
 sidebar_current: "docs-commands-state-sub-mv"
 description: |-
-  The `terraform state mv` command moves items in the Terraform state.
+  The `terraform state mv` command changes bindings in Terraform state, associating existing remote objects with new resource instances.
 ---
 
 # Command: state mv
 
-The `terraform state mv` command is used to move items in a
-[Terraform state](/docs/language/state/index.html). This command can move
-single resources, single instances of a resource, entire modules, and more.
-This command can also move items to a completely different state file,
-enabling efficient refactoring.
+The main function of [Terraform state](/docs/language/state/index.html) is
+to track the bindings between resource instance addresses in your configuration
+and the remote objects they represent. Normally Terraform automatically
+updates the state in response to actions taken when applying a plan, such as
+removing a binding for an remote object that has now been deleted.
+
+You can use `terraform state mv` in the less common situation where you wish
+to retain an existing remote object but track it as a different resource
+instance address in Terraform, such as if you have renamed a resource block
+or you have moved it into a different module in your configuration.
 
 ## Usage
 
 Usage: `terraform state mv [options] SOURCE DESTINATION`
 
-This command will move an item matched by the address given to the
-destination address. This command can also move to a destination address
-in a completely different state file.
+Terraform will look in the current state for a resource instance, resource,
+or module that matches the given address, and if successful it will move the
+remote objects currently associated with the source to be tracked instead
+by the destination.
 
-This can be used for simple resource renaming, moving items to and from
-a module, moving entire modules, and more. And because this command can also
-move data to a completely new state, it can also be used for refactoring
-one configuration into multiple separately managed Terraform configurations.
+Both the source and destination addresses must use
+[resource address syntax](/docs/cli/state/resource-addressing.html), and
+they must both refer to the same kind of object: you can only move a resource
+instance to another resource instance, a whole module instance to another
+whole module instance, etc. Furthermore, if you are moving a resource or
+a resource instance then you can only move it to a new address with the
+same resource type.
 
-This command will output a backup copy of the state prior to saving any
-changes. The backup cannot be disabled. Due to the destructive nature
-of this command, backups are required.
+The most common uses for `terraform state mv` are when you have renamed a
+resource block in your configuration or you've moved a resource block into
+a child module, in both cases with the intention of retaining the existing
+object but tracking it under a new name. By default Terraform will understand
+moving or renaming a resource configuration as a request to delete the old
+object and create a new object at the new address, and so `terraform state mv`
+allows you to override that interpretation by pre-emptively attaching the
+existing object to the new address in Terraform.
 
-If you're moving an item to a different state file, a backup will be created
-for each state file.
+~> *Warning:* If you are using Terraform in a collaborative environment, you
+must ensure that when you are using `terraform state mv` for a code refactoring
+purpose you communicate carefully with your coworkers to ensure that nobody
+makes any other changes between your configuration change and your
+`terraform state mv` command, because otherwise they might inadvertently create
+a plan that will destroy the old object and create a new object at the new
+address.
 
-This command requires a source and destination address of the item to move.
-Addresses are
-in [resource addressing format](/docs/cli/state/resource-addressing.html).
+This command also accepts the following options:
 
-The command-line flags are all optional. The list of available flags are:
+* `-dry-run` - Report all of the resource instances that match the given
+  address without actually "forgetting" any of them.
 
-* `-backup=path` - Path where Terraform should write the backup for the
-  original state. This can't be disabled. If not set, Terraform will write it
-  to the same path as the statefile with a ".backup" extension.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
-* `-backup-out=path` - Path where Terraform should write the backup for the
-  destination state. This can't be disabled. If not set, Terraform will write
-  it to the same path as the destination state file with a backup extension.
-  This only needs to be specified if -state-out is set to a different path than
-  -state.
+* `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
 
-* `-state=path` - Path to the source state file to read from. Defaults to the
-  configured backend, or "terraform.tfstate".
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform state mv`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
-* `-state-out=path` - Path to the destination state file to write to. If this
-  isn't specified the source state file will be used. This can be a new or
-  existing path.
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `local` state mv](/docs/language/settings/backends/local.html) only,
+`terraform taint` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Example: Rename a Resource
 
-The example below renames the `packet_device` resource named `worker` to `helper`:
+Renaming a resource means making a configuration change like the following:
+
+```diff
+-resource "packet_device" "worker" {
++resource "packet_device" "helper" {
+   # ...
+ }
+```
+
+To tell Terraform that it should treat the new "helper" resource as a rename
+of the old "worker" resource, you can pair the above configuration change
+with the following command:
 
 ```shell
-$ terraform state mv 'packet_device.worker' 'packet_device.helper'
+terraform state mv packet_device.worker packet_device.helper
 ```
 
 ## Example: Move a Resource Into a Module
 
-The example below moves the `packet_device` resource named `worker` into a module
-named `app`. The module will be created if it doesn't exist.
+If you originally wrote a resource in your root module but now wish to refactor
+it into a child module, you can move the `resource` block into the child
+module configuration, removing the original in the root module, and then
+run the following command to tell Terraform to treat it as a move:
 
 ```shell
-$ terraform state mv 'packet_device.worker' 'module.app.packet_device.worker'
+terraform state mv packet_device.worker module.worker.packet_device.worker
+```
+
+In the above example the new resource has the same name but a different module
+address. You could also change the resource name at the same time, if the new
+module organization suggests a different naming scheme:
+
+```shell
+terraform state mv packet_device.worker module.worker.packet_device.main
 ```
 
 ## Example: Move a Module Into a Module
 
-The example below moves the module named `app` under the module named `parent`.
+You can also refactor an entire module into a child module. In the
+configuration, move the `module` block representing the module into a different
+module and then pair that change with a command like the following:
 
 ```shell
-$ terraform state mv 'module.app' 'module.parent.module.app'
+terraform state mv module.app module.parent.module.app
 ```
 
-## Example: Move a Module to Another State
+## Example: Move a Particular Instance of a Resource using `count`
 
-The example below moves the module named `app` into another state file. This removes
-the module from the original state file and adds it to the destination.
-The source and destination are the same meaning we're keeping the same name.
-
-```shell
-$ terraform state mv -state-out=other.tfstate 'module.app' 'module.app'
-```
-
-## Example: Move a Resource configured with count
-
-The example below moves the first instance of a `packet_device` resource named `worker` configured with
-[`count`](/docs/language/meta-arguments/count.html) to
-the first instance of a resource named `helper` also configured with `count`:
+A resource defined with [the `count` meta-argument](/docs/language/meta-arguments/count.html)
+has multiple instances that are each identified by an integer. You can
+select a particular instance by including an explicit index in your given
+address:
 
 ```shell
 $ terraform state mv 'packet_device.worker[0]' 'packet_device.helper[0]'
 ```
 
-## Example: Move a Resource configured with for_each
-
-The example below moves the `"example123"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/docs/language/meta-arguments/for_each.html)
-to the `"example456"` instance of a resource named `helper` also configuring `for_each`:
-
-Linux, Mac OS, and UNIX:
+A resource that doesn't use `count` or `for_each` has only a single resource
+instance whose address is the same as the resource itself, and so you can
+move from an address not containing an index to an address containing an index,
+or the opposite, as long as the address type you use matches whether and how
+each resource is configured:
 
 ```shell
-$ terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
+$ terraform state mv 'packet_device.main' 'packet_device.all[0]'
+```
+
+Brackets (`[`, `]`) have a special meaning in some shells, so you may need to
+quote or escape the address in order to pass it literally to Terraform.
+The above examples show the typical quoting syntax for Unix-style shells.
+
+## Example: Move a Resource configured with for_each
+
+A resource defined with [the `for_each` meta-argument](/docs/language/meta-arguments/for_each.html)
+has multiple instances that are each identified by an string. You can
+select a particular instance by including an explicit key in your given
+address.
+
+However, the syntax for strings includes quotes and the quote symbol often
+has special meaning in command shells, so you'll need to use the appropriate
+quoting and/or escaping syntax for the shell you are using. For example:
+
+Unix-style shells, such as on Linux or macOS:
+
+```shell
+terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
+```
+
+Windows Command Prompt (`cmd.exe`):
+
+```shell
+terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
 ```
 
 PowerShell:
 
 ```shell
-$ terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
+terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
 ```
 
-Windows `cmd.exe`:
-
-```shell
-$ terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
-```
+Aside from the use of strings instead of integers for instance keys, the
+treatment of `for_each` resources is similar to `count` resources and so
+the same combinations of addresses with and without index components is
+valid as described in the previous section.

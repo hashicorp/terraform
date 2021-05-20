@@ -13,11 +13,11 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/command/cliconfig"
-	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
@@ -26,7 +26,7 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
 
 const (
@@ -450,8 +450,9 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
 	if in != "" {
 		type reattachConfig struct {
-			Protocol string
-			Addr     struct {
+			Protocol        string
+			ProtocolVersion int
+			Addr            struct {
 				Network string
 				String  string
 			}
@@ -484,10 +485,11 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
 			}
 			unmanagedProviders[a] = &plugin.ReattachConfig{
-				Protocol: plugin.Protocol(c.Protocol),
-				Pid:      c.Pid,
-				Test:     c.Test,
-				Addr:     addr,
+				Protocol:        plugin.Protocol(c.Protocol),
+				ProtocolVersion: c.ProtocolVersion,
+				Pid:             c.Pid,
+				Test:            c.Test,
+				Addr:            addr,
 			}
 		}
 	}

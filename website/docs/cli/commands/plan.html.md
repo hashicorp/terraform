@@ -41,7 +41,7 @@ is primarily intended for when
 [running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
 If you run `terraform plan` without the `-out=FILE` option then it will create
-a _speculative plan_, which is a description of a the effect of the plan but
+a _speculative plan_, which is a description of the effect of the plan but
 without any intent to actually apply it.
 
 In teams that use a version control and code review workflow for making changes
@@ -86,7 +86,7 @@ The section above described Terraform's default planning behavior, which is
 intended for changing the remote system to match with changes you've made to
 your configuration.
 
-Terraform has one alternative planning mode, which creates a plan with
+Terraform has two alternative planning modes, each of which creates a plan with
 a different intended outcome:
 
 * **Destroy mode:** creates a plan whose goal is to destroy all remote objects
@@ -95,6 +95,15 @@ a different intended outcome:
   objects cease to be useful once the development task is complete.
 
     Activate destroy mode using the `-destroy` command line option.
+
+* **Refresh-only mode:** creates a plan whose goal is only to update the
+  Terraform state and any root module output values to match changes made to
+  remote objects outside of Terraform. This can be useful if you've
+  intentionally changed one or more remote objects outside of the usual
+  workflow (e.g. while responding to an incident) and you now need to reconcile
+  Terraform's records with those changes.
+
+    Activate refresh-only mode using the `-refresh-only` command line option.
 
 In situations where we need to discuss the default planning mode that Terraform
 uses when none of the alternative modes are selected, we refer to it as
@@ -134,6 +143,23 @@ the previous section, are also available with the same meanings on
     This option is not available in the "refresh only" planning mode, because
     it would effectively disable the entirety of the planning operation in that
     case.
+
+* `-replace=ADDRESS` - Instructs Terraform to plan to replace the single
+  resource instance with the given address. If the given instance would
+  normally have caused only an "update" action, or no action at all, then
+  Terraform will choose a "replace" action instead.
+
+    You can use this option if you have learned that a particular remote object
+    has become degraded in some way. If you are using immutable infrastructure
+    patterns then you may wish to respond to that by replacing the
+    malfunctioning object with a new object that has the same configuration.
+
+    This option is allowed only in the normal planning mode, so this option
+    is incompatible with the `-destroy` option.
+
+    The `-replace=...` option is available only from Terraform v1.0 onwards.
+    For earlier versions, you can achieve a similar effect (with some caveats)
+    using [`terraform taint`](./taint.html).
 
 * `-target=ADDRESS` - Instructs Terraform to focus its planning efforts only
   on resource instances which match the given address and on any objects that
@@ -226,11 +252,12 @@ The available options are:
 
 * `-input=false` - Disables Terraform's default behavior of prompting for
   input for root module input variables that have not otherwise been assigned
-  a value. This option is particular useful when running Terraform in
+  a value. This option is particularly useful when running Terraform in
   non-interactive automation systems.
 
-* `-lock=false` - Disables Terraform's default behavior of attempting to take
-  a read/write lock on the state for the duration of the operation.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
   instructs Terraform to retry acquiring a lock for a period of time before
@@ -260,7 +287,7 @@ The available options are:
     be saved in cleartext in the plan file. You should therefore treat any
     saved plan files as potentially-sensitive artifacts.
 
-* `-parallelism=n` - Limit the number of concurrent operation as Terraform
+* `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/docs/internals/graph.html#walking-the-graph). Defaults
   to 10.
 

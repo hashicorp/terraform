@@ -23,25 +23,27 @@ This command will output a backup copy of the state prior to saving any
 changes. The backup cannot be disabled. Due to the destructive nature
 of this command, backups are required.
 
-The command-line flags are all optional. The list of available flags are:
+This command also accepts the following options:
 
 * `-auto-approve` - Skip interactive approval.
 
-* `-backup=path` - Path where Terraform should write the backup for the
-  original state. This can't be disabled. If not set, Terraform will write it
-  to the same path as the statefile with a ".backup" extension.
-
-* `-lock=true`- Lock the state files when locking is supported.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
-* `-state=path` - Path to the source state file to read from. Defaults to the
-  configured backend, or "terraform.tfstate".
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform state replace-provider`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `local` state rm](/docs/language/settings/backends/local.html) only,
+`terraform state replace-provider` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
+
 
 ## Example
 
