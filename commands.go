@@ -110,6 +110,12 @@ func initCommands(
 	// that to match.
 
 	Commands = map[string]cli.CommandFactory{
+		"add": func() (cli.Command, error) {
+			return &command.AddCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
 				Meta: meta,
