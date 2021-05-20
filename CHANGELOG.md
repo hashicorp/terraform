@@ -1,5 +1,9 @@
 ## 0.15.5 (Unreleased)
 
+BUG FIXES:
+
+* core: Prevent crash during plan when encountering a deposed instance that has been removed from the configuration [GH-28766]
+
 ## 0.15.4 (May 19, 2021)
 
 NEW FEATURES:
@@ -20,7 +24,7 @@ ENHANCEMENTS:
 
 * config: The various functions that compute hashs of files on disk, like `filesha256`, will now stream the contents of the given file into the hash function in smaller chunks. Previously they would always read the entire file into memory before hashing it, due to following a similar implementation strategy as the `file` function. ([#28681](https://github.com/hashicorp/terraform/issues/28681))
 * config: Some new escaping syntax which is not yet useful but will be part of the backward-compatibility story for certain future language editions. ([#28709](https://github.com/hashicorp/terraform/issues/28709))
-* core: Rsource diagnostics are no longer lost on remote state storage fails ([#28724](https://github.com/hashicorp/terraform/issues/28724))
+* core: Resource diagnostics are no longer lost on remote state storage failures ([#28724](https://github.com/hashicorp/terraform/issues/28724))
 * core: Diagnostics from provisioner failures are now shown in CLI output ([#28753](https://github.com/hashicorp/terraform/issues/28753))
 * `terraform init`: add a new `-migrate-state` flag instead of automatic state migration, to prevent failing when old backend config is not usable ([#28718](https://github.com/hashicorp/terraform/issues/28718))
 * `terraform plan` and `terraform apply`: will now report any changes Terraform detects during the "refresh" phase for each managed object, providing confirmation that Terraform has seen those changes and, where appropriate, extra context to help understand the planned change actions that follow. ([#28634](https://github.com/hashicorp/terraform/issues/28634))
