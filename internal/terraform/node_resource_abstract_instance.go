@@ -399,7 +399,6 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 				Before: cty.NullVal(cty.DynamicPseudoType),
 				After:  cty.NullVal(cty.DynamicPseudoType),
 			},
-			Private:      currentState.Private,
 			ProviderAddr: n.ResolvedProvider,
 		}
 		return noop, nil
