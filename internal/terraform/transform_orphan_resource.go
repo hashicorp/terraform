@@ -79,7 +79,12 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 			}
 		}
 
-		for key := range rs.Instances {
+		for key, inst := range rs.Instances {
+			// deposed instances will be taken care of separately
+			if inst.Current == nil {
+				continue
+			}
+
 			addr := rs.Addr.Instance(key)
 			abstract := NewNodeAbstractResourceInstance(addr)
 			var node dag.Vertex = abstract

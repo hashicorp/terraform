@@ -50,6 +50,26 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				Module:   addrs.RootModule,
 			},
 		)
+
+		// A deposed orphan should not be handled by this transformer
+		s.SetResourceInstanceDeposed(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "deposed",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			states.NewDeposedKey(),
+			&states.ResourceInstanceObjectSrc{
+				AttrsFlat: map[string]string{
+					"id": "foo",
+				},
+				Status: states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
 	})
 
 	g := Graph{Path: addrs.RootModuleInstance}
