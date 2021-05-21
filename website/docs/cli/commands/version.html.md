@@ -50,6 +50,7 @@ $ terraform version -json
   "provider_selections": {
     "registry.terraform.io/hashicorp/null": "3.0.0"
   },
-  "terraform_outdated": true
+  "terraform_outdated": true,
+  "terraform_latest_version": "X.Y.Z"
 }
 ```
