@@ -1,6 +1,7 @@
 package initwd
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -101,6 +102,74 @@ func TestModuleInstaller_error(t *testing.T) {
 		t.Fatal("expected error")
 	} else {
 		assertDiagnosticSummary(t, diags, "Module not found")
+	}
+}
+
+func TestModuleInstaller_packageEscapeError(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/load-module-package-escape")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	// For this particular test we need an absolute path in the root module
+	// that must actually resolve to our temporary directory in "dir", so
+	// we need to do a little rewriting. We replace the arbitrary placeholder
+	// %%BASE%% with the temporary directory path.
+	{
+		rootFilename := filepath.Join(dir, "package-escape.tf")
+		template, err := ioutil.ReadFile(rootFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
+		err = ioutil.WriteFile(rootFilename, final, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Local module path escapes module package")
+	}
+}
+
+func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/load-module-package-prefix")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	// For this particular test we need an absolute path in the root module
+	// that must actually resolve to our temporary directory in "dir", so
+	// we need to do a little rewriting. We replace the arbitrary placeholder
+	// %%BASE%% with the temporary directory path.
+	{
+		rootFilename := filepath.Join(dir, "package-prefix.tf")
+		template, err := ioutil.ReadFile(rootFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
+		err = ioutil.WriteFile(rootFilename, final, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 }
 

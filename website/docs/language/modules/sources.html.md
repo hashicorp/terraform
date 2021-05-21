@@ -74,6 +74,15 @@ that other sources are: the files are already present on local disk (possibly
 as a result of installing a parent module) and so can just be used directly.
 Their source code is automatically updated if the parent module is upgraded.
 
+Note that Terraform does not consider an _absolute_ filesystem path (starting
+with a slash, a drive letter, or similar) to be a local path. Instead,
+Terraform will treat that in a similar way as a remote module and copy it into
+the local module cache. An absolute path is a "package" in the sense described
+in [Modules in Package Sub-directories](#modules-in-package-sub-directories).
+We don't recommend using absolute filesystem paths to refer to Terraform
+modules, because it will tend to couple your configuration to the filesystem
+layout of a particular computer.
+
 ## Terraform Registry
 
 A module registry is the native way of distributing Terraform modules for use
