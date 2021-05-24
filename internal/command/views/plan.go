@@ -374,6 +374,10 @@ func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraf
 			}
 
 			for key, bis := range brs.Instances {
+				if bis.Current == nil {
+					// No current instance to render here
+					continue
+				}
 				var pis *states.ResourceInstance
 				if prs != nil {
 					pis = prs.Instance(key)
