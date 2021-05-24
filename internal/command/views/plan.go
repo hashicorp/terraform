@@ -339,17 +339,16 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
 func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraform.Schemas, view *View) bool {
+	// ManagedResourceEqual checks that the state es exactly equal for all
+	// managed resources; but semantically equivalent states, or changes to
+	// deposed instances may not actually represent changes we need to present
+	// to the user, so for now this only serves as a short-circuit to skip
+	// attempting to render the diffs below.
 	if after.ManagedResourcesEqual(before) {
 		return false
 	}
 
-	view.streams.Print(
-		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
-	)
-	view.streams.Print(format.WordWrap(
-		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
-		view.outputColumns(),
-	))
+	var diffs []string
 
 	for _, bms := range before.Modules {
 		for _, brs := range bms.Resources {
@@ -390,13 +389,31 @@ func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraf
 					view.colorize,
 				)
 				if diff != "" {
-					view.streams.Print(diff)
+					diffs = append(diffs, diff)
 				}
 			}
 		}
 	}
 
-	return true
+	// If we only have changes regarding deposed instances, or the diff
+	// renderer is suppressing irrelevant changes from the legacy SDK, there
+	// may not have been anything to display to the user.
+	if len(diffs) > 0 {
+		view.streams.Print(
+			view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
+		)
+		view.streams.Print(format.WordWrap(
+			"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
+			view.outputColumns(),
+		))
+
+		for _, diff := range diffs {
+			view.streams.Print(diff)
+		}
+		return true
+	}
+
+	return false
 }
 
 const planHeaderIntro = `

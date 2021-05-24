@@ -112,6 +112,33 @@ func TestOperation_planNoChanges(t *testing.T) {
 			},
 			"No objects need to be destroyed.",
 		},
+		"no drift to display with only deposed instances": {
+			// changes in deposed instances will cause a change in state, but
+			// have nothing to display to the user
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo": "ok", "bars":[]}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"no differences, so no changes are needed.",
+		},
 		"drift detected in normal mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
