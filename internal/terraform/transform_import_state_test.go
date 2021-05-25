@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -111,4 +112,56 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad state after import: \n%s", actual)
 	}
+}
+
+func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
+	state := states.NewState()
+	provider := testProvider("aws")
+	provider.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		// return null indicating that the requested resource does not exist
+		resp.NewState = cty.NullVal(cty.Object(map[string]cty.Type{
+			"id": cty.String,
+		}))
+		return resp
+	}
+
+	ctx := &MockEvalContext{
+		StateState:       state.SyncWrapper(),
+		ProviderProvider: provider,
+		ProviderSchemaSchema: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"aws_instance": {
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	importedResource := providers.ImportedResource{
+		TypeName: "aws_instance",
+		State:    cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("bar")}),
+	}
+
+	node := graphNodeImportStateSub{
+		TargetAddr: addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "aws_instance",
+			Name: "foo",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		State: importedResource,
+		ResolvedProvider: addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("aws"),
+			Module:   addrs.RootModule,
+		},
+	}
+	diags := node.Execute(ctx, walkImport)
+	if !diags.HasErrors() {
+		t.Fatal("expected error for non-existent resource")
+	}
+	fmt.Println(diags.ErrWithWarnings())
 }
