@@ -112,6 +112,33 @@ func TestOperation_planNoChanges(t *testing.T) {
 			},
 			"No objects need to be destroyed.",
 		},
+		"no drift to display with only deposed instances": {
+			// changes in deposed instances will cause a change in state, but
+			// have nothing to display to the user
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo": "ok", "bars":[]}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"no differences, so no changes are needed.",
+		},
 		"drift detected in normal mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
@@ -121,17 +148,80 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),
+				}
+			},
+			"to update the Terraform state to match, create and apply a refresh-only plan",
+		},
+		"drift detected with deposed": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "changes",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"b"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "broken",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"c"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
+					PriorState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "changed",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"b"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "broken",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"d"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
 				}
 			},
 			"to update the Terraform state to match, create and apply a refresh-only plan",
@@ -145,14 +235,14 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),
@@ -169,14 +259,14 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),

@@ -172,6 +172,12 @@ func ResourceInstanceDrift(
 	action := plans.Update
 
 	switch {
+	case before == nil || before.Current == nil:
+		// before should never be nil, but before.Current can be if the
+		// instance was deposed. There is nothing to render for a deposed
+		// instance, since we intend to remove it.
+		return ""
+
 	case after == nil || after.Current == nil:
 		// The object was deleted
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been deleted", dispAddr)))
