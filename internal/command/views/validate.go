@@ -60,9 +60,9 @@ func (v *ValidateHuman) Results(diags tfdiags.Diagnostics) int {
 	return 0
 }
 
-const validateSuccess = "[green][bold]Success![reset] The configuration is valid.\n"
+const validateSuccess = "[green][bold]Success![reset] The configuration is valid."
 
-const validateWarnings = "[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above.\n"
+const validateWarnings = "[green][bold]Success![reset] The configuration is valid, but there were some validation warnings as shown above."
 
 func (v *ValidateHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.view.Diagnostics(diags)
