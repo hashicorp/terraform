@@ -339,7 +339,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
 func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraform.Schemas, view *View) bool {
-	// ManagedResourceEqual checks that the state es exactly equal for all
+	// ManagedResourceEqual checks that the state is exactly equal for all
 	// managed resources; but semantically equivalent states, or changes to
 	// deposed instances may not actually represent changes we need to present
 	// to the user, so for now this only serves as a short-circuit to skip
