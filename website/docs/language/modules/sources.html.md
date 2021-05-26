@@ -32,6 +32,8 @@ types, as listed below.
   * [S3 buckets](#s3-bucket)
 
   * [GCS buckets](#gcs-bucket)
+  
+  * [Modules in Package Sub-directories](#modules-in-package-sub-directories)
 
 Each of these is described in the following sections. Module source addresses
 use a _URL-like_ syntax, but with extensions to support unambiguous selection
@@ -318,7 +320,7 @@ using one of the forms documented elsewhere on this page.
 
 If an HTTP/HTTPS URL requires authentication credentials, use a `.netrc`
 file in your home directory to configure these. For information on this format,
-see [the documentation for using it in `curl`](https://ec.haxx.se/usingcurl-netrc.html).
+see [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
 
 ### Fetching archives over HTTP
 
@@ -358,7 +360,7 @@ information.
 
 You can use archives stored in S3 as module sources using the special `s3::`
 prefix, followed by
-[an S3 bucket object URL](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro).
+[an S3 bucket object URL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html).
 
 ```hcl
 module "consul" {
@@ -405,7 +407,7 @@ module "consul" {
 The module installer uses Google Cloud SDK to authenticate with GCS. To set credentials you can:
 
 * Enter the path of your service account key file in the GOOGLE_APPLICATION_CREDENTIALS environment variable, or;
-* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/authentication) for Instances for more details
+* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances) for Instances for more details
 * On your computer, you can make your Google identity available by running `gcloud auth application-default login`.
 
 

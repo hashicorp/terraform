@@ -114,7 +114,7 @@ want to try experimental features in a shared module, we recommend enabling the
 experiment only in alpha or beta releases of the module.
 
 The introduction and completion of experiments is reported in
-[Terraform's changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md),
+[Terraform's changelog](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md),
 so you can watch the release notes there to discover which experiment keywords,
 if any, are available in a particular Terraform release.
 

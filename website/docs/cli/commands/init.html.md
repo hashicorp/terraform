@@ -79,11 +79,17 @@ During init, the root configuration directory is consulted for
 is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
-directory to use the new backend settings. Depending on what changed, this
-may result in interactive prompts to confirm migration of workspace states.
-The `-force-copy` option suppresses these prompts and answers "yes" to the
-migration questions. The `-reconfigure` option disregards any existing
-configuration, preventing migration of any existing state.
+directory to use the new backend settings. Either `-reconfigure` or
+`-migrate-state` must be supplied to update the backend configuration. 
+
+The `-migrate-state` option will attempt to copy existing state to the new
+backend, and depending on what changed, may result in interactive prompts to
+confirm migration of workspace states.  The `-force-copy` option suppresses
+these prompts and answers "yes" to the migration questions. This implies
+`-migrate-state`.
+
+The `-reconfigure` option disregards any existing configuration, preventing
+migration of any existing state.
 
 To skip backend configuration, use `-backend=false`. Note that some other init
 steps require an initialized backend, so it is recommended to use this flag only
@@ -157,6 +163,14 @@ You can modify `terraform init`'s plugin behavior with the following options:
   You can use `-plugin-dir` as a one-time override for exceptional situations,
   such as if you are testing a local build of a provider plugin you are
   currently developing.
+- `-lockfile=MODE` Set a dependency lockfile mode.
+
+The valid values for the lockfile mode are as follows:
+
+- readonly: suppress the lockfile changes, but verify checksums against the
+  information already recorded. It conflicts with the `-upgrade` flag. If you
+  update the lockfile with third-party dependency management tools, it would be
+  useful to control when it changes explicitly.
 
 ## Running `terraform init` in automation
 
@@ -181,7 +195,7 @@ plan to remove it in Terraform v0.15. If your workflow relies on overriding
 the root module directory, use
 [the `-chdir` global option](./#switching-working-directory-with-chdir)
 instead, which works across all commands and makes Terraform consistently look
-in the given directory for all files it would normaly read or write in the
+in the given directory for all files it would normally read or write in the
 current working directory.
 
 If your previous use of this legacy pattern was also relying on Terraform

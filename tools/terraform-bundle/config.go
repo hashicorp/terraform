@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/plugin/discovery"
 )
 
 var zeroThirteen = discovery.ConstraintStr(">= 0.13.0").MustParse()
@@ -72,10 +72,14 @@ func (c *Config) validate() error {
 				return fmt.Errorf("providers.%s: %s", k, diags.Err().Error())
 			}
 		}
-		for _, c := range cs.Versions {
-			if _, err := getproviders.ParseVersionConstraints(c); err != nil {
-				return fmt.Errorf("providers.%s: %s", k, err)
+		if len(cs.Versions) > 0 {
+			for _, c := range cs.Versions {
+				if _, err := getproviders.ParseVersionConstraints(c); err != nil {
+					return fmt.Errorf("providers.%s: %s", k, err)
+				}
 			}
+		} else {
+			return fmt.Errorf("provider.%s: required \"versions\" argument not found", k)
 		}
 	}
 

@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // MissingProviderSuggestion takes a provider address that failed installation
@@ -39,9 +39,18 @@ import (
 // If the given context is cancelled then this function might not return a
 // renaming suggestion even if one would've been available for a completed
 // request.
-func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source Source) addrs.Provider {
+func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source Source, reqs Requirements) addrs.Provider {
 	if !addr.IsDefault() {
 		return addr
+	}
+
+	// Before possibly looking up legacy naming, see if the user has another provider
+	// named in their requirements that is of the same type, and offer that
+	// as a suggestion
+	for req := range reqs {
+		if req != addr && req.Type == addr.Type {
+			return req
+		}
 	}
 
 	// Our strategy here, for a default provider, is to use the default
@@ -49,7 +58,7 @@ func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source 
 	// for a legacy provider whose type name matches the type of the given
 	// provider. This should then find a suitable answer for any provider
 	// that was originally auto-installable in v0.12 and earlier but moved
-	// into a non-default namespace as part of introducing the heirarchical
+	// into a non-default namespace as part of introducing the hierarchical
 	// provider namespace.
 	//
 	// To achieve that, we need to find the direct registry client in

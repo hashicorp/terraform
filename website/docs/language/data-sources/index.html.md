@@ -8,6 +8,8 @@ description: |-
 
 # Data Sources
 
+> **Hands-on:** Try the [Query data sources](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
 _Data sources_ allow data to be fetched or computed for use elsewhere
 in Terraform configuration. Use of data sources allows a Terraform
 configuration to make use of information defined outside of Terraform,

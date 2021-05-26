@@ -20,18 +20,18 @@ Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/co
 terraform {
   backend "kubernetes" {
     secret_suffix    = "state"
-    load_config_file = true
+    config_path      = "~/.kube/config"
   }
 }
 ```
 
 This assumes the user/service account running terraform has [permissions](https://kubernetes.io/docs/reference/access-authn-authz/authorization/) to read/write secrets in the [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) used to store the secret.
 
-If the `load_config_file` flag is set the backend will attempt to use a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) to gain access to the cluster.  
+If the `config_path` or `config_paths` attribute is set the backend will attempt to use a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) to gain access to the cluster.  
 
 If the `in_cluster_config` flag is set the backend will attempt to use a [service account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) to access the cluster. This can be used if Terraform is being run from within a pod running in the Kubernetes cluster. 
 
-For most use cases either `in_cluster_config` or `load_config_file` will need to be set to `true`. If both flags are set the configuration from `load_config_file` will be used.
+For most use cases either `in_cluster_config`, `config_path`, or `config_paths` will need to be set. If all flags are set the configuration at `config_path` will be used.
 
 Note that for the access credentials we recommend using a [partial configuration](/docs/language/settings/backends/configuration.html#partial-configuration).
 
@@ -56,7 +56,6 @@ The following configuration options are supported:
 * `labels` - (Optional) Map of additional labels to be applied to the secret and lease.
 * `namespace` - (Optional) Namespace to store the secret and lease in. Can be sourced from `KUBE_NAMESPACE`.
 * `in_cluster_config` - (Optional) Used to authenticate to the cluster from inside a pod. Can be sourced from `KUBE_IN_CLUSTER_CONFIG`.
-* `load_config_file` - (Optional) Use a kubeconfig file to access the cluster. Can be sourced from `KUBE_LOAD_CONFIG_FILE`.
 * `host` - (Optional) The hostname (in form of URI) of Kubernetes master. Can be sourced from `KUBE_HOST`. Defaults to `https://localhost`.
 * `username` - (Optional) The username to use for HTTP basic authentication when accessing the Kubernetes master endpoint. Can be sourced from `KUBE_USER`.
 * `password` - (Optional) The password to use for HTTP basic authentication when accessing the Kubernetes master endpoint. Can be sourced from `KUBE_PASSWORD`.
@@ -64,7 +63,8 @@ The following configuration options are supported:
 * `client_certificate` - (Optional) PEM-encoded client certificate for TLS authentication. Can be sourced from `KUBE_CLIENT_CERT_DATA`.
 * `client_key` - (Optional) PEM-encoded client certificate key for TLS authentication. Can be sourced from `KUBE_CLIENT_KEY_DATA`.
 * `cluster_ca_certificate` - (Optional) PEM-encoded root certificates bundle for TLS authentication. Can be sourced from `KUBE_CLUSTER_CA_CERT_DATA`.
-* `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG` or `KUBECONFIG`. Defaults to `~/.kube/config`.
+* `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG_PATH`.
+* `config_paths` - (Optional) List of paths to kube config files. Can be sourced from `KUBE_CONFIG_PATHS`.
 * `config_context` - (Optional) Context to choose from the config file. Can be sourced from `KUBE_CTX`.
 * `config_context_auth_info` - (Optional) Authentication info context of the kube config (name of the kubeconfig user, `--user` flag in `kubectl`). Can be sourced from `KUBE_CTX_AUTH_INFO`.
 * `config_context_cluster` - (Optional) Cluster context of the kube config (name of the kubeconfig cluster, `--cluster` flag in `kubectl`). Can be sourced from `KUBE_CTX_CLUSTER`.

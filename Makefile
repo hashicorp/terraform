@@ -16,7 +16,7 @@ generate:
 protobuf:
 	bash scripts/protobuf-check.sh
 	bash internal/tfplugin5/generate.sh
-	bash plans/internal/planproto/generate.sh
+	bash internal/plans/internal/planproto/generate.sh
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"

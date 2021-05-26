@@ -73,7 +73,7 @@ of the pattern must be escaped as `\\`.
 | `\PN`          | The opposite of `\pN`                                                            |
 | `\P{Greek}`    | The opposite of `\p{Greek}`                                                      |
 | `xy`           | `x` followed immediately by `y`                                                  |
-| `x|y`          | either `x` or `y`, preferring `x`                                                |
+| <code>x&#124;y</code> | either `x` or `y`, preferring `x`                                         |
 | `x*`           | zero or more `x`, preferring more                                                |
 | `x*?`          | zero or more `x`, preferring fewer                                               |
 | `x+`           | one or more `x`, preferring more                                                 |

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -199,6 +199,23 @@ func (l *Locks) Equal(other *Locks) bool {
 	}
 	// We don't need to worry about providers that are in "other" but not
 	// in the receiver, because we tested the lengths being equal above.
+
+	return true
+}
+
+// EqualProviderAddress returns true if the given Locks have the same provider
+// address as the receiver. This doesn't check version and hashes.
+func (l *Locks) EqualProviderAddress(other *Locks) bool {
+	if len(l.providers) != len(other.providers) {
+		return false
+	}
+
+	for addr := range l.providers {
+		_, ok := other.providers[addr]
+		if !ok {
+			return false
+		}
+	}
 
 	return true
 }

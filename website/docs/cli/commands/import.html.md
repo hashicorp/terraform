@@ -41,10 +41,6 @@ behavior. For more information on this assumption, see
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-backup=path` - Path to backup the existing state file. Defaults to
-  the `-state-out` path with the ".backup" extension. Set to "-" to disable
-  backups.
-
 * `-config=path` - Path to directory of Terraform configuration files that
   configure the provider for import. This defaults to your working directory.
   If this directory contains no Terraform configuration files, the provider
@@ -52,7 +48,9 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-input=true` - Whether to ask for input for provider configuration.
 
-* `-lock=true` - Lock the state file when locking is supported.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
 
 * `-lock-timeout=0s` - Duration to retry a state lock.
 
@@ -65,13 +63,6 @@ The command-line flags are all optional. The list of available flags are:
 * `-provider=provider` - **Deprecated** Override the provider configuration to
 use when importing the object. By default, Terraform uses the provider specified
 in the configuration for the target resource, and that is the best behavior in most cases.
-
-* `-state=path` - Path to the source state file to read from. Defaults to the
-  configured backend, or "terraform.tfstate".
-
-* `-state-out=path` - Path to the destination state file to write to. If this
-  isn't specified the source state file will be used. This can be a new or
-  existing path.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This flag
   can be set multiple times. Variable values are interpreted as
@@ -88,10 +79,16 @@ in the configuration for the target resource, and that is the best behavior in m
   the working directory. This flag can be used multiple times. This is only
   useful with the `-config` flag.
 
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform import`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
+
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform import` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Provider Configuration
 

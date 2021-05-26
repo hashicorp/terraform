@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/states"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Schemas is a container for various kinds of schema that Terraform needs
@@ -114,7 +114,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			provider.Close()
 		}()
 
-		resp := provider.GetSchema()
+		resp := provider.GetProviderSchema()
 		if resp.Diagnostics.HasErrors() {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.

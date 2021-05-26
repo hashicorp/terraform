@@ -12,7 +12,7 @@ The `terraform workspace new` command is used to create a new workspace.
 
 ## Usage
 
-Usage: `terraform workspace new [NAME]`
+Usage: `terraform workspace new [OPTIONS] NAME [DIR]`
 
 This command will create a new workspace with the given name. A workspace with
 this name must not already exist.
@@ -20,9 +20,13 @@ this name must not already exist.
 If the `-state` flag is given, the state specified by the given path
 will be copied to initialize the state for this new workspace.
 
-The command-line flags are all optional. The only supported flag is:
+The command-line flags are all optional. The supported flags are:
 
-* `-state=path` - Path to a state file to initialize the state of this environment.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
+* `-lock-timeout=DURATION` - Duration to retry a state lock. Default 0s.
+* `-state=path`   - Path to an existing state file to initialize the state of this environment.
 
 ## Example: Create
 

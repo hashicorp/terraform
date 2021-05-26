@@ -3,9 +3,9 @@ package grpcwrap
 import (
 	"context"
 
+	"github.com/hashicorp/terraform/internal/plugin/convert"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin/convert"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -17,13 +17,13 @@ import (
 func Provider(p providers.Interface) tfplugin5.ProviderServer {
 	return &provider{
 		provider: p,
-		schema:   p.GetSchema(),
+		schema:   p.GetProviderSchema(),
 	}
 }
 
 type provider struct {
 	provider providers.Interface
-	schema   providers.GetSchemaResponse
+	schema   providers.GetProviderSchemaResponse
 }
 
 func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
@@ -75,7 +75,7 @@ func (p *provider) PrepareProviderConfig(_ context.Context, req *tfplugin5.Prepa
 		return resp, nil
 	}
 
-	prepareResp := p.provider.PrepareProviderConfig(providers.PrepareProviderConfigRequest{
+	prepareResp := p.provider.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
 		Config: configVal,
 	})
 
@@ -94,7 +94,7 @@ func (p *provider) ValidateResourceTypeConfig(_ context.Context, req *tfplugin5.
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateResourceTypeConfig(providers.ValidateResourceTypeConfigRequest{
+	validateResp := p.provider.ValidateResourceConfig(providers.ValidateResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -113,7 +113,7 @@ func (p *provider) ValidateDataSourceConfig(_ context.Context, req *tfplugin5.Va
 		return resp, nil
 	}
 
-	validateResp := p.provider.ValidateDataSourceConfig(providers.ValidateDataSourceConfigRequest{
+	validateResp := p.provider.ValidateDataResourceConfig(providers.ValidateDataResourceConfigRequest{
 		TypeName: req.TypeName,
 		Config:   configVal,
 	})
@@ -158,7 +158,7 @@ func (p *provider) Configure(_ context.Context, req *tfplugin5.Configure_Request
 		return resp, nil
 	}
 
-	configureResp := p.provider.Configure(providers.ConfigureRequest{
+	configureResp := p.provider.ConfigureProvider(providers.ConfigureProviderRequest{
 		TerraformVersion: req.TerraformVersion,
 		Config:           configVal,
 	})

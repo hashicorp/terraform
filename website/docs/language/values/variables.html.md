@@ -211,13 +211,16 @@ using a sentence structure similar to the above examples.
 
 > **Hands-on:** Try the [Protect Sensitive Input Variables](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
-Setting a variable as `sensitive` prevents Terraform from showing its value in the `plan` or `apply` output, when that variable is used within a configuration.
+Setting a variable as `sensitive` prevents Terraform from showing its value in
+the `plan` or `apply` output, when you use that variable elsewhere in your
+configuration.
 
-Sensitive values are still recorded in the [state](/docs/language/state/index.html), and so will be visible to anyone who is able to access the state data. For more information, see [_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
+Terraform will still record sensitive values in the [state](/docs/language/state/index.html),
+and so anyone who can access the state data will have access to the sensitive
+values in cleartext. For more information, see
+[_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
 
-A provider can define [an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag), which prevents the value of that attribute from being displayed in logs or regular output. The `sensitive` argument on variables allows users to replicate this behavior for values in their configuration, by defining a variable as `sensitive`.
-
-Define a variable as sensitive by setting the `sensitive` argument to `true`:
+Declare a variable as sensitive by setting the `sensitive` argument to `true`:
 
 ```
 variable "user_information" {
@@ -234,7 +237,9 @@ resource "some_resource" "a" {
 }
 ```
 
-Using this variable throughout your configuration will obfuscate the value from display in `plan` or `apply` output:
+Any expressions whose result depends on the sensitive variable will be treated
+as sensitive themselves, and so in the above example the two arguments of
+`resource "some_resource" "a"` will also be hidden in the plan output:
 
 ```
 Terraform will perform the following actions:
@@ -248,22 +253,12 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-In some cases where a sensitive variable is used in a nested block, the whole block can be redacted. This happens with resources which can have multiple blocks of the same type, where the values must be unique. This looks like:
+In some cases where you use a sensitive variable inside a nested block, Terraform
+may treat the entire block as redacted. This happens for resource types where
+all of the blocks of a particular type are required to be unique, and so
+disclosing the content of one block might imply the content of a sibling block.
 
 ```
-# main.tf
-
-resource "some_resource" "a" {
-  nested_block {
-    user_information  = var.user_information # a sensitive variable
-    other_information = "not sensitive data"
-  }
-}
-
-# CLI output
-
-Terraform will perform the following actions:
-
   # some_resource.a will be updated in-place
   ~ resource "some_resource" "a" {
       ~ nested_block {
@@ -271,8 +266,18 @@ Terraform will perform the following actions:
           # so its contents will not be displayed.
         }
     }
-
 ```
+
+A provider can also
+[declare an attribute as sensitive](/docs/extend/best-practices/sensitive-state.html#using-the-sensitive-flag),
+which will cause Terraform to hide it from regular output regardless of how
+you assign it a value. For more information, see
+[Sensitive Resource Attributes](/docs/language/expressions/references.html#sensitive-resource-attributes).
+
+If you use a sensitive value from as part of an
+[output value](/docs/language/values/outputs.html) then Terraform will require
+you to also mark the output value itself as sensitive, to confirm that you
+intended to export it.
 
 #### Cases where Terraform may disclose a sensitive variable
 
@@ -436,6 +441,44 @@ $ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 
 For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
+
+### Values for Undeclared Variables
+
+If you have defined a variable value, but not its corresponding `variable {}`
+definition, you may get an error or warning depending on how you have provided
+that value.
+
+If you provide values for undeclared variables defined as [environment variables](#environment-variables)
+you will not get an error or warning. This is because environment variables may
+be declared but not used in all configurations that might be run.
+
+If you provide values for undeclared variables defined [in a file](#variable-definitions-tfvars-files)
+you will get a warning. This is to help in cases where you have provided a variable
+value _meant_ for a variable declaration, but perhaps there is a mistake in the
+value definition. For example, the following configuration:
+
+```terraform
+variable "moose" {
+  type = string
+}
+```
+
+And the following `.tfvars` file:
+
+```hcl
+mosse = "Moose"
+```
+
+Will cause Terraform to warn you that there is no variable declared `"mosse"`, which can help
+you spot this mistake.
+
+If you use `.tfvars` files across multiple configurations and expect to continue to see this warning,
+you can use the [`-compact-warnings`](https://www.terraform.io/docs/cli/commands/plan.html#compact-warnings)
+option to simplify your output.
+
+If you provide values for undeclared variables on the [command line](#variables-on-the-command-line),
+Terraform will error. To avoid this error, either declare a variable block for the value, or remove
+the variable value from your Terraform call.
 
 ### Variable Definition Precedence
 

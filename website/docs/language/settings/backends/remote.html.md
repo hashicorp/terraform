@@ -195,6 +195,26 @@ The following configuration options are supported:
 data source that retrieves state from another Terraform Cloud workspace. The `prefix` key is only
 intended for use when configuring an instance of the remote backend.
 
+## Command Line Arguments
+
+For configurations that include a `backend "remote"` block, commands that
+make local modifications to Terraform state and then push them back up to
+the remote workspace accept the following option to modify that behavior:
+
+* `-ignore-remote-version` - Override checking that the local and remote
+  Terraform versions agree, making an operation proceed even when there is
+  a mismatch.
+
+    Normally state-modification operations require using a local version of
+    Terraform CLI which is compatible with the Terraform version selected
+    for the remote workspace as part of its settings. This is to avoid the
+    local operation creating a new state snapshot which the workspace's
+    remote execution environment would then be unable to decode.
+
+    Overriding this check can result in a Terraform Cloud workspace that is
+    no longer able to complete remote operations, so we recommend against
+    using this option.
+
 ## Excluding Files from Upload with .terraformignore
 
 -> **Version note:** `.terraformignore` support was added in Terraform 0.12.11.
@@ -207,7 +227,7 @@ paths to ignore from upload via a `.terraformignore` file at the root of your co
 * .terraform/ directories (exclusive of .terraform/modules)
 
 The `.terraformignore` file can include rules as one would include in a
-[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#Ignoring-Files)
+[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring)
 
 
 * Comments (starting with `#`) or blank lines are ignored

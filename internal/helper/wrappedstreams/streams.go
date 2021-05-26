@@ -35,7 +35,7 @@ func fds() (stdin, stdout, stderr *os.File) {
 	return
 }
 
-// These are the wrapped standard streams. These are setup by the
+// These are the wrapped standard streams. These are set up by the
 // platform specific code in initPlatform.
 var (
 	wrappedStdin  *os.File

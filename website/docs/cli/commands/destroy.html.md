@@ -3,29 +3,46 @@ layout: "docs"
 page_title: "Command: destroy"
 sidebar_current: "docs-commands-destroy"
 description: |-
-  The `terraform destroy` command is used to destroy the Terraform-managed infrastructure.
+  The `terraform destroy` command is a convenient way to destroy all objects
+  managed by a particular Terraform configuration.
 ---
 
 # Command: destroy
 
-The `terraform destroy` command is used to destroy the Terraform-managed
-infrastructure.
+The `terraform destroy` command is a convenient way to destroy all remote
+objects managed by a particular Terraform configuration.
+
+While you will typically not want to destroy long-lived objects in a production
+environment, Terraform is sometimes used to manage ephemeral infrastructure
+for development purposes, in which case you can use `terraform destroy` to
+conveniently clean up all of those temporary objects once you are finished
+with your work.
 
 ## Usage
 
 Usage: `terraform destroy [options]`
 
-Infrastructure managed by Terraform will be destroyed. This will ask for
-confirmation before destroying.
+This command is just a convenience alias for the following command:
 
-This command accepts all the arguments and options that the [apply
-command](/docs/cli/commands/apply.html) accepts, with the exception of a plan file
-argument.
+```
+terraform apply -destroy
+```
 
-If `-auto-approve` is set, then the destroy confirmation will not be shown.
+For that reason, this command accepts most of the options that
+[`terraform apply`](./apply.html) accepts, although it does
+not accept a plan file argument and forces the selection of the "destroy"
+planning mode.
 
-The `-target` flag, instead of affecting "dependencies" will instead also
-destroy any resources that _depend on_ the target(s) specified. For more information, see [the targeting docs from `terraform plan`](/docs/cli/commands/plan.html#resource-targeting).
+You can also create a speculative destroy plan, to see what the effect of
+destroying would be, by running the following command:
 
-The behavior of any `terraform destroy` command can be previewed at any time
-with an equivalent `terraform plan -destroy` command.
+```
+terraform plan -destroy
+```
+
+This will run [`terraform plan`](./plan.html) in _destroy_ mode, showing
+you the proposed destroy changes without executing them.
+
+-> **Note:** The `-destroy` option to `terraform apply` exists only in
+Terraform v1.0 and later. For earlier versions, you _must_ use
+`terraform destroy` to get the effect of `terraform apply -destroy`.

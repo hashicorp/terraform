@@ -102,9 +102,10 @@ output "db_password" {
 }
 ```
 
-Setting an output value as sensitive prevents Terraform from showing its value
-in `plan` and `apply`. In the following scenario, our root module has an output declared as sensitive
-and a module call with a sensitive output, which we then use in a resource attribute.
+Terraform will hide values marked as sensitive in the messages from
+`terraform plan` and `terraform apply`. In the following scenario, our root
+module has an output declared as sensitive and a module call with a
+sensitive output, which we then use in a resource attribute.
 
 ```hcl
 # main.tf
@@ -130,11 +131,9 @@ output "a" {
 }
 ```
 
-When we run a `plan` or `apply`, the sensitive value is redacted from output:
+When we run a plan or apply, the sensitive value is redacted from output:
 
 ```
-# CLI output
-
 Terraform will perform the following actions:
 
   # test_instance.x will be created
@@ -148,11 +147,15 @@ Changes to Outputs:
   + out = (sensitive value)
 ```
 
--> **Note:** In Terraform versions prior to Terraform 0.14, setting an output value in the root module as sensitive would prevent Terraform from showing its value in the list of outputs at the end of `terraform apply`. However, the value could still display in the CLI output for other reasons, like if the value is referenced in an expression for a resource argument.
+-> **Note:** In Terraform versions prior to Terraform 0.14, setting an output
+value in the root module as sensitive would prevent Terraform from showing its
+value in the list of outputs at the end of `terraform apply`. However, the
+value could still display in the CLI output for other reasons, like if the
+value is referenced in an expression for a resource argument.
 
-Sensitive output values are still recorded in the
-[state](/docs/language/state/index.html), and so will be visible to anyone who is able
-to access the state data. For more information, see
+Terraform will still record sensitive values in the [state](/docs/language/state/index.html),
+and so anyone who can access the state data will have access to the sensitive
+values in cleartext. For more information, see
 [_Sensitive Data in State_](/docs/language/state/sensitive-data.html).
 
 <a id="depends_on"></a>
