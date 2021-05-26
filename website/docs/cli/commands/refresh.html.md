@@ -61,7 +61,7 @@ This alternative command will present an interactive prompt for you to confirm
 the detected changes.
 
 The `-refresh-only` option for `terraform plan` and `terraform apply` was
-introduced in Terraform v1.0. For prior versions you must use
+introduced in Terraform v0.15.4. For prior versions you must use
 `terraform refresh` directly if you need this behavior, while taking into
 account the warnings above. Wherever possible, avoid using `terraform refresh`
 explicitly and instead rely on Terraform's behavior of automatically refreshing
