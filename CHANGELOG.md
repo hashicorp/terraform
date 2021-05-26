@@ -2,10 +2,10 @@
 
 BUG FIXES:
 
-* cli: Suppress "Objects have changed" notification when no useful changes can be presented [GH-28796]
-* core: Prevent crash during plan when encountering a deposed instance that has been removed from the configuration [GH-28766]
-* core: Fix crash when rendering external changes to deposed instances [GH-28796]
-* core: Restore missing error when attempting to import a non-existent resource [GH-28808]
+* `terraform plan` and `terraform apply`: Don't show "Objects have changed" notification when the detected changes are only internal details related to legacy SDK quirks. [GH-28796]
+* core: Prevent crash during planning when encountering a deposed instance that has been removed from the configuration. [GH-28766]
+* core: Fix crash when rendering changes to deposed instances outside of Terraform. [GH-28796]
+* core: Restore a missing error when attempting to import a non-existent remote object. [GH-28808]
 
 ## 0.15.4 (May 19, 2021)
 
