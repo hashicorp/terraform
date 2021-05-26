@@ -11,7 +11,6 @@ const (
 	// Operation results
 	MessagePlannedChange MessageType = "planned_change"
 	MessageChangeSummary MessageType = "change_summary"
-	MessageDriftSummary  MessageType = "drift_summary"
 	MessageOutputs       MessageType = "outputs"
 
 	// Hook-driven messages
