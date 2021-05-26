@@ -91,6 +91,13 @@ _in addition to_ the planning modes and planning options described for
   [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) for some
   different approaches.
 
+* `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
+  This implies `-input=false`, so the configuration must have no unassigned
+  variable values to continue. To enable this flag, you must also either enable
+  the `-auto-approve` flag or specify a previously-saved plan.
+
+  [machine-readable-ui]: /docs/internals/machine-readable-ui.html
+
 * `-lock=false` - Don't hold a state lock during the operation. This is
    dangerous if others might concurrently run commands against the same
    workspace.

@@ -255,6 +255,12 @@ The available options are:
   a value. This option is particularly useful when running Terraform in
   non-interactive automation systems.
 
+* `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
+  This implies `-input=false`, so the configuration must have no unassigned
+  variable values to continue.
+
+  [machine-readable-ui]: /docs/internals/machine-readable-ui.html
+
 * `-lock=false` - Don't hold a state lock during the operation. This is
    dangerous if others might concurrently run commands against the same
    workspace.
