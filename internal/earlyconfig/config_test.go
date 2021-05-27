@@ -18,19 +18,19 @@ func TestConfigProviderRequirements(t *testing.T) {
 	cfg := testConfig(t, "testdata/provider-reqs")
 
 	impliedProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "implied",
 	)
 	nullProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "null",
 	)
 	randomProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "random",
 	)
 	tlsProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
 	happycloudProvider := addrs.NewProvider(

@@ -25,20 +25,20 @@ func TestDirReading(t *testing.T) {
 	}
 
 	nullProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "hashicorp", "null",
+		addrs.DefaultProviderRegistryHost, "hashicorp", "null",
 	)
 	randomProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "hashicorp", "random",
+		addrs.DefaultProviderRegistryHost, "hashicorp", "random",
 	)
 	randomBetaProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "hashicorp", "random-beta",
+		addrs.DefaultProviderRegistryHost, "hashicorp", "random-beta",
 	)
 	nonExistProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "bloop", "nonexist",
+		addrs.DefaultProviderRegistryHost, "bloop", "nonexist",
 	)
 	legacyProvider := addrs.NewLegacyProvider("legacy")
 	missingExecutableProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "missing", "executable",
+		addrs.DefaultProviderRegistryHost, "missing", "executable",
 	)
 
 	t.Run("ProviderLatestVersion", func(t *testing.T) {

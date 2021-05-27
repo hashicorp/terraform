@@ -19,9 +19,9 @@ type Provider struct {
 	Hostname  svchost.Hostname
 }
 
-// DefaultRegistryHost is the hostname used for provider addresses that do
+// DefaultProviderRegistryHost is the hostname used for provider addresses that do
 // not have an explicit hostname.
-const DefaultRegistryHost = svchost.Hostname("registry.terraform.io")
+const DefaultProviderRegistryHost = svchost.Hostname("registry.terraform.io")
 
 // BuiltInProviderHost is the pseudo-hostname used for the "built-in" provider
 // namespace. Built-in provider addresses must also have their namespace set
@@ -59,7 +59,7 @@ func (pt Provider) ForDisplay() string {
 		panic("called ForDisplay on zero-value addrs.Provider")
 	}
 
-	if pt.Hostname == DefaultRegistryHost {
+	if pt.Hostname == DefaultProviderRegistryHost {
 		return pt.Namespace + "/" + pt.Type
 	}
 	return pt.Hostname.ForDisplay() + "/" + pt.Namespace + "/" + pt.Type
@@ -121,7 +121,7 @@ func NewDefaultProvider(name string) Provider {
 	return Provider{
 		Type:      MustParseProviderPart(name),
 		Namespace: "hashicorp",
-		Hostname:  DefaultRegistryHost,
+		Hostname:  DefaultProviderRegistryHost,
 	}
 }
 
@@ -144,7 +144,7 @@ func NewLegacyProvider(name string) Provider {
 		// verbatim, even if not compliant with our new naming rules.
 		Type:      name,
 		Namespace: LegacyProviderNamespace,
-		Hostname:  DefaultRegistryHost,
+		Hostname:  DefaultProviderRegistryHost,
 	}
 }
 
@@ -204,7 +204,7 @@ func (pt Provider) IsLegacy() bool {
 		panic("called IsLegacy() on zero-value addrs.Provider")
 	}
 
-	return pt.Hostname == DefaultRegistryHost && pt.Namespace == LegacyProviderNamespace
+	return pt.Hostname == DefaultProviderRegistryHost && pt.Namespace == LegacyProviderNamespace
 
 }
 
@@ -214,7 +214,7 @@ func (pt Provider) IsDefault() bool {
 		panic("called IsDefault() on zero-value addrs.Provider")
 	}
 
-	return pt.Hostname == DefaultRegistryHost && pt.Namespace == "hashicorp"
+	return pt.Hostname == DefaultProviderRegistryHost && pt.Namespace == "hashicorp"
 }
 
 // Equals returns true if the receiver and other provider have the same attributes.
@@ -269,7 +269,7 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		return ret, diags
 	}
 	ret.Type = name
-	ret.Hostname = DefaultRegistryHost
+	ret.Hostname = DefaultProviderRegistryHost
 
 	if len(parts) == 1 {
 		return NewDefaultProvider(parts[0]), diags
@@ -312,14 +312,14 @@ func ParseProviderSourceString(str string) (Provider, tfdiags.Diagnostics) {
 		ret.Hostname = hn
 	}
 
-	if ret.Namespace == LegacyProviderNamespace && ret.Hostname != DefaultRegistryHost {
+	if ret.Namespace == LegacyProviderNamespace && ret.Hostname != DefaultProviderRegistryHost {
 		// Legacy provider addresses must always be on the default registry
 		// host, because the default registry host decides what actual FQN
 		// each one maps to.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid provider namespace",
-			Detail:   "The legacy provider namespace \"-\" can be used only with hostname " + DefaultRegistryHost.ForDisplay() + ".",
+			Detail:   "The legacy provider namespace \"-\" can be used only with hostname " + DefaultProviderRegistryHost.ForDisplay() + ".",
 		})
 		return Provider{}, diags
 	}
