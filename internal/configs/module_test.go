@@ -14,7 +14,7 @@ func TestNewModule_provider_local_name(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 
-	p := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	p := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
 		t.Fatal("provider FQN foo/test not found")
 	} else {
@@ -38,7 +38,7 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	// can also look up the "terraform" provider and see that it sources is
 	// allowed to be overridden, even though there is a builtin provider
 	// called "terraform".
-	p = addrs.NewProvider(addrs.DefaultRegistryHost, "not-builtin", "not-terraform")
+	p = addrs.NewProvider(addrs.DefaultProviderRegistryHost, "not-builtin", "not-terraform")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
 		t.Fatal("provider FQN not-builtin/not-terraform not found")
 	} else {
@@ -59,8 +59,8 @@ func TestNewModule_resource_providers(t *testing.T) {
 	// the default implied provider and one explicitly using a provider set in
 	// required_providers
 	wantImplicit := addrs.NewDefaultProvider("test")
-	wantFoo := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
-	wantBar := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
+	wantFoo := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
+	wantBar := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
 
 	// root module
 	if !cfg.Module.ManagedResources["test_instance.explicit"].Provider.Equals(wantFoo) {
@@ -107,7 +107,7 @@ func TestProviderForLocalConfig(t *testing.T) {
 	}
 	lc := addrs.LocalProviderConfig{LocalName: "foo-test"}
 	got := mod.ProviderForLocalConfig(lc)
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	if !got.Equals(want) {
 		t.Fatalf("wrong result! got %#v, want %#v\n", got, want)
 	}
@@ -135,7 +135,7 @@ func TestModule_required_providers_after_resource(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 
 	req, exists := mod.ProviderRequirements.RequiredProviders["test"]
 	if !exists {
@@ -165,7 +165,7 @@ func TestModule_required_provider_overrides(t *testing.T) {
 	}
 
 	// The foo provider and resource should be unaffected
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "acme", "foo")
+	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "foo")
 	req, exists := mod.ProviderRequirements.RequiredProviders["foo"]
 	if !exists {
 		t.Fatal("no provider requirements found for \"foo\"")
@@ -182,7 +182,7 @@ func TestModule_required_provider_overrides(t *testing.T) {
 	}
 
 	// The bar provider and resource should be using the override config
-	want = addrs.NewProvider(addrs.DefaultRegistryHost, "blorp", "bar")
+	want = addrs.NewProvider(addrs.DefaultProviderRegistryHost, "blorp", "bar")
 	req, exists = mod.ProviderRequirements.RequiredProviders["bar"]
 	if !exists {
 		t.Fatal("no provider requirements found for \"bar\"")
@@ -223,7 +223,7 @@ func TestModule_implied_provider(t *testing.T) {
 
 	// The three providers used in the config resources
 	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
-	whatever := addrs.NewProvider(addrs.DefaultRegistryHost, "acme", "something")
+	whatever := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something")
 	bar := addrs.NewDefaultProvider("bar")
 
 	// Verify that the registry.acme.corp/acme/foo provider is defined in the
@@ -289,7 +289,7 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	}
 
 	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
-	whatever := addrs.NewProvider(addrs.DefaultRegistryHost, "acme", "something")
+	whatever := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something")
 	bar := addrs.NewDefaultProvider("bar")
 	tf := addrs.NewBuiltInProvider("terraform")
 

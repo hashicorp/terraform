@@ -173,7 +173,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			"id": cty.StringVal("foo"),
 		}),
 		Provider: addrs.Provider{
-			Hostname:  addrs.DefaultRegistryHost,
+			Hostname:  addrs.DefaultProviderRegistryHost,
 			Namespace: "hashicorp",
 			Type:      "test",
 		},
@@ -420,7 +420,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 						Type: "test_resource",
 						Name: "foo",
 						Provider: addrs.Provider{
-							Hostname:  addrs.DefaultRegistryHost,
+							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
 						},

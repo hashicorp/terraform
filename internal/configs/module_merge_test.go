@@ -288,7 +288,7 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	got := mod.ManagedResources["test_instance.explicit"]
-	wantProvider := addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test")
+	wantProvider := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
 	wantProviderCfg := &ProviderConfigRef{
 		Name: "bar-test",
 		NameRange: hcl.Range{

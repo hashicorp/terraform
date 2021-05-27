@@ -15,7 +15,7 @@ func TestProviderString(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			NewDefaultProvider("test").String(),
@@ -23,7 +23,7 @@ func TestProviderString(t *testing.T) {
 		{
 			Provider{
 				Type:      "test-beta",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			NewDefaultProvider("test-beta").String(),
@@ -39,10 +39,10 @@ func TestProviderString(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "othercorp",
 			},
-			DefaultRegistryHost.ForDisplay() + "/othercorp/test",
+			DefaultProviderRegistryHost.ForDisplay() + "/othercorp/test",
 		},
 	}
 
@@ -62,7 +62,7 @@ func TestProviderLegacyString(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: LegacyProviderNamespace,
 			},
 			"test",
@@ -93,7 +93,7 @@ func TestProviderDisplay(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			"hashicorp/test",
@@ -109,7 +109,7 @@ func TestProviderDisplay(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "othercorp",
 			},
 			"othercorp/test",
@@ -132,7 +132,7 @@ func TestProviderIsDefault(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			true,
@@ -148,7 +148,7 @@ func TestProviderIsDefault(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "othercorp",
 			},
 			false,
@@ -195,7 +195,7 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: BuiltInProviderNamespace,
 			},
 			false,
@@ -203,7 +203,7 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			false,
@@ -219,7 +219,7 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "othercorp",
 			},
 			false,
@@ -242,7 +242,7 @@ func TestProviderIsLegacy(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: LegacyProviderNamespace,
 			},
 			true,
@@ -258,7 +258,7 @@ func TestProviderIsLegacy(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
 			false,
@@ -282,7 +282,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -290,7 +290,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -298,7 +298,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -306,7 +306,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -314,7 +314,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -322,7 +322,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -338,7 +338,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			Provider{
 				Type:      "baz-boop",
 				Namespace: "foo-bar",
-				Hostname:  DefaultRegistryHost,
+				Hostname:  DefaultProviderRegistryHost,
 			},
 			false,
 		},
@@ -529,22 +529,22 @@ func TestProviderEquals(t *testing.T) {
 		Want   bool
 	}{
 		{
-			NewProvider(DefaultRegistryHost, "foo", "test"),
-			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "test"),
 			true,
 		},
 		{
-			NewProvider(DefaultRegistryHost, "foo", "test"),
-			NewProvider(DefaultRegistryHost, "bar", "test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "test"),
+			NewProvider(DefaultProviderRegistryHost, "bar", "test"),
 			false,
 		},
 		{
-			NewProvider(DefaultRegistryHost, "foo", "test"),
-			NewProvider(DefaultRegistryHost, "foo", "my-test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "my-test"),
 			false,
 		},
 		{
-			NewProvider(DefaultRegistryHost, "foo", "test"),
+			NewProvider(DefaultProviderRegistryHost, "foo", "test"),
 			NewProvider("example.com", "foo", "test"),
 			false,
 		},
