@@ -6,6 +6,7 @@ BUG FIXES:
 * core: Prevent crash during planning when encountering a deposed instance that has been removed from the configuration. [GH-28766]
 * core: Fix crash when rendering changes to deposed instances outside of Terraform. [GH-28796]
 * core: Restore a missing error when attempting to import a non-existent remote object. [GH-28808]
+* core: Fix bug where Terraform failed to release the state lock when applying a stale saved plan failed. [GH-28819]
 
 ## 0.15.4 (May 19, 2021)
 
