@@ -97,7 +97,8 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		log.Printf("[TRACE] backend/local: building context from plan file")
 		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts, stateMeta)
 		if ctxDiags.HasErrors() {
-			return nil, nil, nil, ctxDiags
+			diags = diags.Append(ctxDiags)
+			return nil, nil, nil, diags
 		}
 
 		// Write sources into the cache of the main loader so that they are
