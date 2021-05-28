@@ -56,10 +56,22 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			}
 		}
 
+		sourceAddr, err := addrs.ParseModuleSource(call.Source)
+		if err != nil {
+			diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+				Severity: tfconfig.DiagError,
+				Summary:  "Invalid module source address",
+				Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid source address %q: %s.", callName, call.Pos.Filename, call.Pos.Line, call.Source, err),
+			}))
+			// If we didn't have a valid source address then we can't continue
+			// down the module tree with this one.
+			continue
+		}
+
 		req := ModuleRequest{
 			Name:               call.Name,
 			Path:               path,
-			SourceAddr:         call.Source,
+			SourceAddr:         sourceAddr,
 			VersionConstraints: vc,
 			Parent:             parent,
 			CallPos:            call.Pos,
@@ -80,7 +92,7 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			Path:       path,
 			Module:     mod,
 			CallPos:    call.Pos,
-			SourceAddr: call.Source,
+			SourceAddr: sourceAddr,
 			Version:    ver,
 		}
 
@@ -111,7 +123,7 @@ type ModuleRequest struct {
 
 	// SourceAddr is the source address string provided by the user in
 	// configuration.
-	SourceAddr string
+	SourceAddr addrs.ModuleSource
 
 	// VersionConstraint is the version constraint applied to the module in
 	// configuration.

@@ -10,7 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -101,7 +103,7 @@ func TestModuleInstaller_error(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	} else {
-		assertDiagnosticSummary(t, diags, "Module not found")
+		assertDiagnosticSummary(t, diags, "Invalid module source address")
 	}
 }
 
@@ -322,7 +324,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
-			PackageAddr: "hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
 			Version:     v,
 		},
 		{
@@ -344,7 +346,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
-			PackageAddr: "hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
 			Version:     v,
 		},
 		{
@@ -358,7 +360,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
-			PackageAddr: "hashicorp/module-installer-acctest/aws",
+			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws",
 			Version:     v,
 		},
 		{
@@ -385,16 +387,16 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		},
 	}
 
-	if assertResultDeepEqual(t, hooks.Calls, wantCalls) {
-		return
+	if diff := cmp.Diff(wantCalls, hooks.Calls); diff != "" {
+		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
 	//check that the registry reponses were cached
-	if _, ok := inst.moduleVersions["hashicorp/module-installer-acctest/aws"]; !ok {
-		t.Fatal("module versions cache was not populated")
+	if _, ok := inst.moduleVersions["registry.terraform.io/hashicorp/module-installer-acctest/aws"]; !ok {
+		t.Errorf("module versions cache was not populated\ngot: %s\nwant: key hashicorp/module-installer-acctest/aws", spew.Sdump(inst.moduleVersions))
 	}
-	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
-		t.Fatal("module download url cache was not populated")
+	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "registry.terraform.io/hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
+		t.Errorf("module download url cache was not populated\ngot: %s", spew.Sdump(inst.moduleVersionsUrl))
 	}
 
 	loader, err := configload.NewLoader(&configload.Config{
@@ -463,7 +465,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
-			PackageAddr: "github.com/hashicorp/terraform-aws-module-installer-acctest?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole repo here
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole repo here
 		},
 		{
 			Name:       "Install",
@@ -483,7 +485,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
-			PackageAddr: "github.com/hashicorp/terraform-aws-module-installer-acctest?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole package here
 		},
 		{
 			Name:       "Install",
@@ -495,7 +497,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
-			PackageAddr: "github.com/hashicorp/terraform-aws-module-installer-acctest?ref=v0.0.1",
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1",
 		},
 		{
 			Name:       "Install",
@@ -520,8 +522,8 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		},
 	}
 
-	if assertResultDeepEqual(t, hooks.Calls, wantCalls) {
-		return
+	if diff := cmp.Diff(wantCalls, hooks.Calls); diff != "" {
+		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
 	loader, err := configload.NewLoader(&configload.Config{
@@ -649,7 +651,7 @@ func assertDiagnosticCount(t *testing.T, diags tfdiags.Diagnostics, want int) bo
 	if len(diags) != 0 {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
 		for _, diag := range diags {
-			t.Logf("- %s", diag)
+			t.Logf("- %#v", diag)
 		}
 		return true
 	}
@@ -667,7 +669,7 @@ func assertDiagnosticSummary(t *testing.T, diags tfdiags.Diagnostics, want strin
 
 	t.Errorf("missing diagnostic summary %q", want)
 	for _, diag := range diags {
-		t.Logf("- %s", diag)
+		t.Logf("- %#v", diag)
 	}
 	return true
 }

@@ -81,8 +81,9 @@ func TestModuleOverrideModule(t *testing.T) {
 
 	got := mod.ModuleCalls["example"]
 	want := &ModuleCall{
-		Name:       "example",
-		SourceAddr: "./example2-a_override",
+		Name:          "example",
+		SourceAddr:    addrs.ModuleSourceLocal("./example2-a_override"),
+		SourceAddrRaw: "./example2-a_override",
 		SourceAddrRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-module/a_override.tf",
 			Start: hcl.Pos{

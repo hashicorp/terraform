@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -57,7 +58,7 @@ func TestDirFromModule_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "root",
-			PackageAddr: "hashicorp/module-installer-acctest/aws",
+			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws",
 			Version:     v,
 		},
 		{
@@ -78,8 +79,8 @@ func TestDirFromModule_registry(t *testing.T) {
 		},
 	}
 
-	if assertResultDeepEqual(t, hooks.Calls, wantCalls) {
-		return
+	if diff := cmp.Diff(wantCalls, hooks.Calls); diff != "" {
+		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
 	loader, err := configload.NewLoader(&configload.Config{

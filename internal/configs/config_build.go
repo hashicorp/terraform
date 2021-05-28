@@ -145,7 +145,7 @@ type ModuleRequest struct {
 
 	// SourceAddr is the source address string provided by the user in
 	// configuration.
-	SourceAddr string
+	SourceAddr addrs.ModuleSource
 
 	// SourceAddrRange is the source range for the SourceAddr value as it
 	// was provided in configuration. This can and should be used to generate

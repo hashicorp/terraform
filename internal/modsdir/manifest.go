@@ -26,6 +26,9 @@ type Record struct {
 	// This is used only to detect if the source was changed in configuration
 	// since the module was last installed, which means that the installer
 	// must re-install it.
+	//
+	// This should always be the result of calling method String on an
+	// addrs.ModuleSource value, to get a suitably-normalized result.
 	SourceAddr string `json:"Source"`
 
 	// Version is the exact version of the module, which results from parsing
@@ -86,6 +89,20 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 			record.Version, err = version.NewVersion(record.VersionStr)
 			if err != nil {
 				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
+			}
+		}
+
+		// Historically we didn't normalize the module source addresses when
+		// writing them into the manifest, and so we'll make a best effort
+		// to normalize them back in on read so that we can just gracefully
+		// upgrade on the next "terraform init".
+		if record.SourceAddr != "" {
+			if addr, err := addrs.ParseModuleSource(record.SourceAddr); err == nil {
+				// This is a best effort sort of thing. If the source
+				// address isn't valid then we'll just leave it as-is
+				// and let another component detect that downstream,
+				// to preserve the old behavior in that case.
+				record.SourceAddr = addr.String()
 			}
 		}
 

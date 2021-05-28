@@ -30,7 +30,7 @@ func TestBuildConfig(t *testing.T) {
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join("testdata/config-build", req.SourceAddr)
+			sourcePath := filepath.Join("testdata/config-build", req.SourceAddr.String())
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
@@ -86,7 +86,7 @@ func TestBuildConfigDiags(t *testing.T) {
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join("testdata/nested-errors", req.SourceAddr)
+			sourcePath := filepath.Join("testdata/nested-errors", req.SourceAddr.String())
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion(fmt.Sprintf("1.0.%d", versionI))
@@ -130,7 +130,7 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 			// SourceAddr as a path relative to our fixture directory.
 			// A "real" implementation of ModuleWalker should accept the
 			// various different source address syntaxes Terraform supports.
-			sourcePath := filepath.Join("testdata/nested-backend-warning", req.SourceAddr)
+			sourcePath := filepath.Join("testdata/nested-backend-warning", req.SourceAddr.String())
 
 			mod, diags := parser.LoadConfigDir(sourcePath)
 			version, _ := version.NewVersion("1.0.0")
@@ -206,7 +206,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 					// for simplicity, these tests will treat all source
 					// addresses as relative to the root module
-					sourcePath := filepath.Join(path, req.SourceAddr)
+					sourcePath := filepath.Join(path, req.SourceAddr.String())
 					mod, diags := parser.LoadConfigDir(sourcePath)
 					version, _ := version.NewVersion("1.0.0")
 					return mod, version, diags

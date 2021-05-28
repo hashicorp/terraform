@@ -55,7 +55,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	var diags hcl.Diagnostics
 
 	// Check for inconsistencies between manifest and config
-	if req.SourceAddr != record.SourceAddr {
+	if req.SourceAddr.String() != record.SourceAddr {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module source has changed",

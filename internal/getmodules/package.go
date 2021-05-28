@@ -35,6 +35,14 @@ import (
 // detect whether to use Git or Mercurial, because earlier versions of
 // BitBucket used to support both.
 func NormalizePackageAddress(given string) (packageAddr, subDir string, err error) {
+	// Because we're passing go-getter no base directory here, the file
+	// detector will return an error if the user entered a relative filesystem
+	// path without a "../" or "./" prefix and thus ended up in here.
+	//
+	// go-getter's error message for that case is very poor, and so we'll
+	// try to heuristically detect that situation and return a better error
+	// message.
+
 	// NOTE: We're passing an empty string to the "current working directory"
 	// here because that's only relevant for relative filesystem paths,
 	// but Terraform handles relative filesystem paths itself outside of

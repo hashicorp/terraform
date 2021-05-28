@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/getmodules"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
@@ -142,8 +143,8 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
-	getter := reusingGetter{}
-	_, instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, getter)
+	fetcher := getmodules.NewPackageFetcher()
+	_, instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
 	diags = append(diags, instDiags...)
 	if instDiags.HasErrors() {
 		return diags
@@ -193,7 +194,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
 					if pathTraversesUp(mc.Source) {
-						packageAddr, givenSubdir := splitAddrSubdir(sourceAddr)
+						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddr)
 						newSubdir := filepath.Join(givenSubdir, mc.Source)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable
