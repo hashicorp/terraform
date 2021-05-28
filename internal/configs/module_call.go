@@ -6,13 +6,16 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules"
 )
 
 // ModuleCall represents a "module" block in a module or file.
 type ModuleCall struct {
 	Name string
 
-	SourceAddr      string
+	SourceAddr      addrs.ModuleSource
+	SourceAddrRaw   string
 	SourceAddrRange hcl.Range
 	SourceSet       bool
 
@@ -57,10 +60,41 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["source"]; exists {
-		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.SourceAddr)
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.SourceAddrRaw)
 		diags = append(diags, valDiags...)
 		mc.SourceAddrRange = attr.Expr.Range()
 		mc.SourceSet = true
+
+		addr, err := addrs.ParseModuleSource(mc.SourceAddrRaw)
+		mc.SourceAddr = addr
+		if err != nil {
+			// NOTE: In practice it's actually very unlikely to end up here,
+			// because our source address parser can turn just about any string
+			// into some sort of remote package address, and so for most errors
+			// we'll detect them only during module installation. There are
+			// still a _few_ purely-syntax errors we can catch at parsing time,
+			// though, mostly related to remote package sub-paths and local
+			// paths.
+			switch err := err.(type) {
+			case *getmodules.MaybeRelativePathErr:
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source address",
+					Detail: fmt.Sprintf(
+						"Terraform failed to determine your intended installation method for remote module package %q.\n\nIf you intended this as a path relative to the current module, use \"./%s\" instead. The \"./\" prefix indicates that the address is a relative filesystem path.",
+						err.Addr, err.Addr,
+					),
+					Subject: mc.SourceAddrRange.Ptr(),
+				})
+			default:
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source address",
+					Detail:   fmt.Sprintf("Failed to parse module source address: %s.", err),
+					Subject:  mc.SourceAddrRange.Ptr(),
+				})
+			}
+		}
 	}
 
 	if attr, exists := content.Attributes["version"]; exists {

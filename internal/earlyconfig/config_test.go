@@ -75,7 +75,7 @@ func testConfig(t *testing.T, baseDir string) *Config {
 // location information from the call.
 func testModuleWalkerFunc(req *ModuleRequest) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	callFilename := req.CallPos.Filename
-	sourcePath := req.SourceAddr
+	sourcePath := req.SourceAddr.String()
 	finalPath := filepath.Join(filepath.Dir(callFilename), sourcePath)
 	log.Printf("[TRACE] %s in %s -> %s", sourcePath, callFilename, finalPath)
 

@@ -17,6 +17,12 @@ type PackageFetcher struct {
 	getter reusingGetter
 }
 
+func NewPackageFetcher() *PackageFetcher {
+	return &PackageFetcher{
+		getter: reusingGetter{},
+	}
+}
+
 // FetchPackage downloads or otherwise retrieves the filesystem inside the
 // package at the given address into the given local installation directory.
 //

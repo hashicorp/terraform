@@ -221,7 +221,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 	want := &ModuleRequirements{
 		Name:       "",
-		SourceAddr: "",
+		SourceAddr: nil,
 		SourceDir:  "testdata/provider-reqs",
 		Requirements: getproviders.Requirements{
 			// Only the root module's version is present here
@@ -235,7 +235,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 		Children: map[string]*ModuleRequirements{
 			"kinder": {
 				Name:       "kinder",
-				SourceAddr: "./child",
+				SourceAddr: addrs.ModuleSourceLocal("./child"),
 				SourceDir:  "testdata/provider-reqs/child",
 				Requirements: getproviders.Requirements{
 					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
@@ -244,7 +244,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 				Children: map[string]*ModuleRequirements{
 					"nested": {
 						Name:       "nested",
-						SourceAddr: "./grandchild",
+						SourceAddr: addrs.ModuleSourceLocal("./grandchild"),
 						SourceDir:  "testdata/provider-reqs/child/grandchild",
 						Requirements: getproviders.Requirements{
 							grandchildProvider: nil,

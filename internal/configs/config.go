@@ -55,10 +55,12 @@ type Config struct {
 	CallRange hcl.Range
 
 	// SourceAddr is the source address that the referenced module was requested
-	// from, as specified in configuration.
+	// from, as specified in configuration. SourceAddrRaw is the same
+	// information, but as the raw string the user originally entered.
 	//
-	// This field is meaningless for the root module, where its contents are undefined.
-	SourceAddr string
+	// These fields are meaningless for the root module, where their contents are undefined.
+	SourceAddr    addrs.ModuleSource
+	SourceAddrRaw string
 
 	// SourceAddrRange is the location in the configuration source where the
 	// SourceAddr value was set, for use in diagnostic messages.
@@ -82,7 +84,7 @@ type Config struct {
 // determine which modules require which providers.
 type ModuleRequirements struct {
 	Name         string
-	SourceAddr   string
+	SourceAddr   addrs.ModuleSource
 	SourceDir    string
 	Requirements getproviders.Requirements
 	Children     map[string]*ModuleRequirements

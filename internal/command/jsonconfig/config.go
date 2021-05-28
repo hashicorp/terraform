@@ -291,7 +291,13 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	}
 
 	ret := moduleCall{
-		Source:            mc.SourceAddr,
+		// We're intentionally echoing back exactly what the user entered
+		// here, rather than the normalized version in SourceAddr, because
+		// historically we only _had_ the raw address and thus it would be
+		// a (admittedly minor) breaking change to start normalizing them
+		// now, in case consumers of this data are expecting a particular
+		// non-normalized syntax.
+		Source:            mc.SourceAddrRaw,
 		VersionConstraint: mc.Version.Required.String(),
 	}
 	cExp := marshalExpression(mc.Count)

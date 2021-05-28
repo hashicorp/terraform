@@ -150,6 +150,7 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	if omc.SourceSet {
 		mc.SourceAddr = omc.SourceAddr
+		mc.SourceAddrRaw = omc.SourceAddrRaw
 		mc.SourceAddrRange = omc.SourceAddrRange
 		mc.SourceSet = omc.SourceSet
 	}

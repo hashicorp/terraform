@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestLoadModuleCall(t *testing.T) {
@@ -26,9 +27,10 @@ func TestLoadModuleCall(t *testing.T) {
 	gotModules := file.ModuleCalls
 	wantModules := []*ModuleCall{
 		{
-			Name:       "foo",
-			SourceAddr: "./foo",
-			SourceSet:  true,
+			Name:          "foo",
+			SourceAddr:    addrs.ModuleSourceLocal("./foo"),
+			SourceAddrRaw: "./foo",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 3, Column: 12, Byte: 27},
@@ -41,9 +43,15 @@ func TestLoadModuleCall(t *testing.T) {
 			},
 		},
 		{
-			Name:       "bar",
-			SourceAddr: "hashicorp/bar/aws",
-			SourceSet:  true,
+			Name: "bar",
+			SourceAddr: addrs.ModuleSourceRegistry{
+				Host:         addrs.DefaultModuleRegistryHost,
+				Namespace:    "hashicorp",
+				Name:         "bar",
+				TargetSystem: "aws",
+			},
+			SourceAddrRaw: "hashicorp/bar/aws",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 8, Column: 12, Byte: 113},
@@ -56,9 +64,12 @@ func TestLoadModuleCall(t *testing.T) {
 			},
 		},
 		{
-			Name:       "baz",
-			SourceAddr: "git::https://example.com/",
-			SourceSet:  true,
+			Name: "baz",
+			SourceAddr: addrs.ModuleSourceRemote{
+				PackageAddr: addrs.ModulePackage("git::https://example.com/"),
+			},
+			SourceAddrRaw: "git::https://example.com/",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 15, Column: 12, Byte: 193},

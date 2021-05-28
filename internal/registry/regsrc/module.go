@@ -6,7 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 var (
@@ -87,6 +88,30 @@ func NewModule(host, namespace, name, provider, submodule string) (*Module, erro
 		m.RawHost = h
 	}
 	return m, nil
+}
+
+// ModuleFromModuleSourceAddr is an adapter to automatically transform the
+// modern representation of registry module addresses,
+// addrs.ModuleSourceRegistry, into the legacy representation regsrc.Module.
+//
+// Note that the new-style model always does normalization during parsing and
+// does not preserve the raw user input at all, and so although the fields
+// of regsrc.Module are all called "Raw...", initializing a Module indirectly
+// through an addrs.ModuleSourceRegistry will cause those values to be the
+// normalized ones, not the raw user input.
+//
+// Use this only for temporary shims to call into existing code that still
+// uses regsrc.Module. Eventually all other subsystems should be updated to
+// use addrs.ModuleSourceRegistry instead, and then package regsrc can be
+// removed altogether.
+func ModuleFromModuleSourceAddr(addr addrs.ModuleSourceRegistry) *Module {
+	return &Module{
+		RawHost:      NewFriendlyHost(addr.Host.String()),
+		RawNamespace: addr.Namespace,
+		RawName:      addr.Name,
+		RawProvider:  addr.TargetSystem, // this field was never actually enforced to be a provider address, so now has a more general name
+		RawSubmodule: addr.Subdir,
+	}
 }
 
 // ParseModuleSource attempts to parse source as a Terraform registry module

@@ -282,13 +282,26 @@ func TestParseModuleSource(t *testing.T) {
 			wantErr: `subdirectory path "../invalid" leads outside of the module package`,
 		},
 
+		"relative path without the needed prefix": {
+			input: "boop/bloop",
+			// For this case we return a generic error message from the addrs
+			// layer, but using a specialized error type which our module
+			// installer checks for and produces an extra hint for users who
+			// were intending to write a local path which then got
+			// misinterpreted as a remote source due to the missing prefix.
+			// However, the main message is generic here because this is really
+			// just a general "this string doesn't match any of our source
+			// address patterns" situation, not _necessarily_ about relative
+			// local paths.
+			wantErr: `Terraform cannot detect a supported external module source type for boop/bloop`,
+		},
+
 		"go-getter will accept all sorts of garbage": {
 			input: "dfgdfgsd:dgfhdfghdfghdfg/dfghdfghdfg",
 			want: ModuleSourceRemote{
 				// Unfortunately go-getter doesn't actually reject a totally
-				// invalid address like this until getting time, so it's
-				// pretty difficult to make remote address parsing actually
-				// return an error in practice.
+				// invalid address like this until getting time, as long as
+				// it looks somewhat like a URL.
 				PackageAddr: ModulePackage("dfgdfgsd:dgfhdfghdfghdfg/dfghdfghdfg"),
 			},
 		},

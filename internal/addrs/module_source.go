@@ -49,7 +49,14 @@ var moduleSourceLocalPrefixes = []string{
 func ParseModuleSource(raw string) (ModuleSource, error) {
 	for _, prefix := range moduleSourceLocalPrefixes {
 		if strings.HasPrefix(raw, prefix) {
-			return parseModuleSourceLocal(raw)
+			localAddr, err := parseModuleSourceLocal(raw)
+			if err != nil {
+				// This is to make sure we really return a nil ModuleSource in
+				// this case, rather than an interface containing the zero
+				// value of ModuleSourceLocal.
+				return nil, err
+			}
+			return localAddr, nil
 		}
 	}
 
@@ -74,7 +81,14 @@ func ParseModuleSource(raw string) (ModuleSource, error) {
 	// nonsense will probably interpreted as _something_ here
 	// and then fail during installation instead. We can't
 	// really improve this situation for historical reasons.
-	return parseModuleSourceRemote(raw)
+	remoteAddr, err := parseModuleSourceRemote(raw)
+	if err != nil {
+		// This is to make sure we really return a nil ModuleSource in
+		// this case, rather than an interface containing the zero
+		// value of ModuleSourceRemote.
+		return nil, err
+	}
+	return remoteAddr, nil
 }
 
 // ModuleSourceLocal is a ModuleSource representing a local path reference
@@ -145,7 +159,7 @@ func (s ModuleSourceLocal) String() string {
 }
 
 func (s ModuleSourceLocal) ForDisplay() string {
-	return s.String() // the two string representations are identical for this address type
+	return string(s)
 }
 
 // ModuleSourceRegistry is a ModuleSource representing a module listed in a
@@ -387,6 +401,10 @@ func parseModuleSourceRemote(raw string) (ModuleSourceRemote, error) {
 	// aim to remove the network requests over time, if possible.
 	norm, moreSubDir, err := getmodules.NormalizePackageAddress(raw)
 	if err != nil {
+		// We must pass through the returned error directly here because
+		// the getmodules package has some special error types it uses
+		// for certain cases where the UI layer might want to include a
+		// more helpful error message.
 		return ModuleSourceRemote{}, err
 	}
 

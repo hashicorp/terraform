@@ -48,7 +48,7 @@ var goGetterDetectors = []getter.Detector{
 
 	new(getter.GCSDetector),
 	new(getter.S3Detector),
-	new(getter.FileDetector),
+	new(fileDetector),
 }
 
 var goGetterNoDetectors = []getter.Detector{}
