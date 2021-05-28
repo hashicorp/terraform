@@ -3,21 +3,23 @@ layout: "language"
 page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
 description: |-
-  Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
+  Learn how to configure provider settings and alias providers to use multiple
+  different provider configurations in the same Terraform project.
 ---
 
 # Provider Configuration
 
-Terraform relies on plugins called "providers" to interact with remote systems.
+Providers alow Terraform to interact with cloud providers, SaaS providers, and
+other APIs.
 
-Terraform configurations must declare which providers they require, so that
-Terraform can install and use them. Additionally, some providers require
-configuration (like endpoint URLs or cloud regions) before they can be used.
+Some providers require you to configure them with endpoint URLs, cloud regions,
+or other settings before Terraform can ues them. This page documents how to
+configure settings for providers.
 
-- This page documents how to configure settings for providers.
-
-- The [Provider Requirements](/docs/language/providers/requirements.html) page documents how
-  to declare providers so Terraform can install them.
+Additionally, all Terraform configurations must declare which providers they
+require so that Terraform can install and use them. The
+[Provider Requirements](/docs/language/providers/requirements.html)
+page documents how to declare providers so Terraform can install them.
 
 ## Provider Configuration
 
