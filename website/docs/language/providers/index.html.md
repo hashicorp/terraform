@@ -1,6 +1,10 @@
 ---
 layout: "language"
 page_title: "Providers - Configuration Language"
+description: |-
+  Terraform providers are plugins that allow Terraform to create resources and
+  use data sources from services, cloud providers, and other APIs. Read about
+  how to discover, install, and use providers.
 ---
 
 # Providers
