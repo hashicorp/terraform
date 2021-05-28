@@ -198,72 +198,92 @@ func (c *RemoteClient) Put(data []byte) error {
 		verb = consulapi.KVSet
 	}
 
-	// If the payload is too large we first write the chunks and replace it
-	// 524288 is the default value, we just hope the user did not set a smaller
-	// one but there is really no reason for them to do so, if they changed it
-	// it is certainly to set a larger value.
-	limit := 524288
-	if len(payload) > limit {
-		md5 := md5.Sum(data)
-		chunks := split(payload, limit)
-		chunkPaths := make([]string, 0)
+	// The payload may be too large to store in a single KV entry in Consul. We
+	// could try to determine whether it will fit or not before sending the
+	// request but since we are using the Transaction API and not the KV API,
+	// it grows by about a 1/3 when it is base64 encoded plus the overhead of
+	// the fields specific to the Transaction API.
+	// Rather than trying to calculate the overhead (which could change from
+	// one version of Consul to another, and between Consul Community Edition
+	// and Consul Enterprise), we try to send the whole state in one request, if
+	// it fails because it is too big we then split it in chunks and send each
+	// chunk separately.
+	// When splitting in chunks, we make each chunk 524288 bits, which is the
+	// default max size for raft. If the user changed it, we still may send
+	// chunks too big and fail but this is not a setting that should be fiddled
+	// with anyway.
 
-		// First we write the new chunks
-		for i, p := range chunks {
-			path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%x/%d", md5, i)
-			chunkPaths = append(chunkPaths, path)
-			_, err := kv.Put(&consulapi.KVPair{
-				Key:   path,
-				Value: p,
-			}, nil)
-
-			if err != nil {
-				return err
-			}
+	store := func(payload []byte) error {
+		// KV.Put doesn't return the new index, so we use a single operation
+		// transaction to get the new index with a single request.
+		txOps := consulapi.KVTxnOps{
+			&consulapi.KVTxnOp{
+				Verb:  verb,
+				Key:   c.Path,
+				Value: payload,
+				Index: c.modifyIndex,
+			},
 		}
 
-		// We update the link to point to the new chunks
-		payload, err = json.Marshal(map[string]interface{}{
-			"current-hash": fmt.Sprintf("%x", md5),
-			"chunks":       chunkPaths,
-		})
+		ok, resp, _, err := kv.Txn(txOps, nil)
+		if err != nil {
+			return err
+		}
+		// transaction was rolled back
+		if !ok {
+			return fmt.Errorf("consul CAS failed with transaction errors: %v", resp.Errors)
+		}
+
+		if len(resp.Results) != 1 {
+			// this probably shouldn't happen
+			return fmt.Errorf("expected on 1 response value, got: %d", len(resp.Results))
+		}
+
+		c.modifyIndex = resp.Results[0].ModifyIndex
+
+		// We remove all the old chunks
+		cleanupOldChunks()
+
+		return nil
+	}
+
+	if err = store(payload); err == nil {
+		// The payload was small enough to be stored
+		return nil
+	} else if !strings.Contains(err.Error(), "too large") {
+		// We failed for some other reason, report this to the user
+		return err
+	}
+
+	// The payload was too large so we split it in multiple chunks
+
+	md5 := md5.Sum(data)
+	chunks := split(payload, 524288)
+	chunkPaths := make([]string, 0)
+
+	// First we write the new chunks
+	for i, p := range chunks {
+		path := strings.TrimRight(c.Path, "/") + fmt.Sprintf("/tfstate.%x/%d", md5, i)
+		chunkPaths = append(chunkPaths, path)
+		_, err := kv.Put(&consulapi.KVPair{
+			Key:   path,
+			Value: p,
+		}, nil)
+
 		if err != nil {
 			return err
 		}
 	}
 
-	var txOps consulapi.KVTxnOps
-	// KV.Put doesn't return the new index, so we use a single operation
-	// transaction to get the new index with a single request.
-	txOps = consulapi.KVTxnOps{
-		&consulapi.KVTxnOp{
-			Verb:  verb,
-			Key:   c.Path,
-			Value: payload,
-			Index: c.modifyIndex,
-		},
-	}
-
-	ok, resp, _, err := kv.Txn(txOps, nil)
+	// Then we update the link to point to the new chunks
+	payload, err = json.Marshal(map[string]interface{}{
+		"current-hash": fmt.Sprintf("%x", md5),
+		"chunks":       chunkPaths,
+	})
 	if err != nil {
 		return err
 	}
-	// transaction was rolled back
-	if !ok {
-		return fmt.Errorf("consul CAS failed with transaction errors: %v", resp.Errors)
-	}
-
-	if len(resp.Results) != 1 {
-		// this probably shouldn't happen
-		return fmt.Errorf("expected on 1 response value, got: %d", len(resp.Results))
-	}
-
-	c.modifyIndex = resp.Results[0].ModifyIndex
-
-	// We remove all the old chunks
-	cleanupOldChunks()
-
-	return nil
+	return store(payload)
 }
 
 func (c *RemoteClient) Delete() error {
