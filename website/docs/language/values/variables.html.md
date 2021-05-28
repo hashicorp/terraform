@@ -3,8 +3,9 @@ layout: "language"
 page_title: "Input Variables - Configuration Language"
 sidebar_current: "docs-config-variables"
 description: |-
-  Input variables are parameters for Terraform modules.
-  This page covers configuration syntax for variables.
+  Input variables allow you to customize Terraform configuration according to 
+  set parameters. Learn about input variable syntax, including how to declare,
+  define, and reference variables in root and child modules.
 ---
 
 # Input Variables
