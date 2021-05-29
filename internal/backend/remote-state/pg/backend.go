@@ -23,6 +23,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Postgres connection string; a `postgres://` URL",
+				DefaultFunc: schema.EnvDefaultFunc("PGCONNSTR", nil),
 			},
 
 			"schema_name": {
