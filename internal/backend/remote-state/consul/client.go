@@ -5,10 +5,12 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +19,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (
@@ -31,6 +34,13 @@ const (
 	lockDelay = 5 * time.Second
 	// interval between attempts to reacquire a lost lock
 	lockReacquireInterval = 2 * time.Second
+
+
+	errVaultNotConfigured = `
+The remote state has been encrypted but no Vault configuration has been found.
+Please configure the Vault client to interact with this state.
+`
+
 )
 
 var lostLockErr = errors.New("consul lock was lost")
@@ -38,6 +48,7 @@ var lostLockErr = errors.New("consul lock was lost")
 // RemoteClient is a remote client that stores data in Consul.
 type RemoteClient struct {
 	Client *consulapi.Client
+	Transit *TransitClient
 	Path   string
 	GZip   bool
 
@@ -98,6 +109,13 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		}
 	} else {
 		payload = pair.Value
+	}
+
+	if bytes.HasPrefix(payload, []byte("vault:")) {
+		payload, err = c.Transit.decrypt(payload)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// If the payload starts with 0x1f, it's gzip, not json
@@ -185,6 +203,14 @@ func (c *RemoteClient) Put(data []byte) error {
 		if compressedState, err := compressState(data); err == nil {
 			payload = compressedState
 		} else {
+			return err
+		}
+	}
+
+	// We encrypt the payload if the user configured the Vault client
+	if c.Transit != nil {
+		payload, err = c.Transit.encrypt(payload)
+		if err != nil {
 			return err
 		}
 	}
@@ -679,4 +705,41 @@ func (c *RemoteClient) chunkedMode() (bool, string, []string, *consulapi.KVPair,
 		}
 	}
 	return false, "", nil, pair, nil
+}
+
+type TransitClient struct {
+	client *vaultapi.Client
+	mountPath string
+	keyName string
+	context string
+}
+
+func (t *TransitClient) decrypt(payload []byte) ([]byte, error) {
+	// If the payload is encrypted the user should have configure the vault
+	// stanza and a client should have been configured
+	if t == nil {
+		return nil, fmt.Errorf(errVaultNotConfigured)
+	}
+	path := path.Join(t.mountPath, "decrypt", t.keyName)
+	secret, err := t.client.Logical().Write(path, map[string]interface{}{
+		"ciphertext": string(payload),
+		"context": t.context,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return base64.StdEncoding.DecodeString(secret.Data["plaintext"].(string))
+}
+
+func (t *TransitClient) encrypt(data []byte) ([]byte, error) {
+	encPlaintext := base64.StdEncoding.EncodeToString(data)
+	path := path.Join(t.mountPath, "encrypt", t.keyName)
+	secret, err := t.client.Logical().Write(path, map[string]interface{}{
+		"plaintext": encPlaintext,
+		"context": t.context,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return []byte(secret.Data["ciphertext"].(string)), nil
 }

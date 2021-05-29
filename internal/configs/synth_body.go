@@ -48,6 +48,7 @@ func (b synthBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl
 	var diags hcl.Diagnostics
 	content := &hcl.BodyContent{
 		Attributes:       make(hcl.Attributes),
+		Blocks:      	  []*hcl.Block{},
 		MissingItemRange: b.synthRange(),
 	}
 
@@ -73,8 +74,30 @@ func (b synthBody) PartialContent(schema *hcl.BodySchema) (*hcl.BodyContent, hcl
 		content.Attributes[attrS.Name] = b.synthAttribute(attrS.Name, val)
 	}
 
-	// We just ignore blocks altogether, because this body type never has
-	// nested blocks.
+	for _, blockS := range schema.Blocks {
+		delete(remainValues, blockS.Type)
+		val, defined := b.Values[blockS.Type]
+		if !defined {
+			continue
+		}
+
+		if !val.CanIterateElements() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary: "Wrong value",
+				Detail: fmt.Sprintf("Expected iterable for %q but it was not", blockS.Type),
+				Subject: b.synthRange().Ptr(),
+			})
+		}
+
+		for i, elem := range val.AsValueSlice() {
+			filename := fmt.Sprintf("<%s-%d>", blockS.Type, i)
+			content.Blocks = append(content.Blocks, &hcl.Block{
+				Type: blockS.Type,
+				Body: SynthBody(filename, elem.AsValueMap()),
+			})
+		}
+	}
 
 	remain := synthBody{
 		Filename: b.Filename,

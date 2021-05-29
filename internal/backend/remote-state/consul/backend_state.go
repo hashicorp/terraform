@@ -74,6 +74,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	var stateMgr = &remote.State{
 		Client: &RemoteClient{
 			Client:    b.client,
+			Transit: b.transit,
 			Path:      path,
 			GZip:      gzip,
 			lockState: b.lock,

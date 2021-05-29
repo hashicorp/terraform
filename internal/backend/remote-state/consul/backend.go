@@ -2,6 +2,7 @@ package consul
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -9,86 +10,151 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 // New creates a new backend for Consul remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"path": &schema.Schema{
+			"path": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "Path to store state in Consul",
 			},
 
-			"access_token": &schema.Schema{
+			"access_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Access token for a Consul ACL",
 				Default:     "", // To prevent input
 			},
 
-			"address": &schema.Schema{
+			"address": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Address to the Consul Cluster",
 				Default:     "", // To prevent input
 			},
 
-			"scheme": &schema.Schema{
+			"scheme": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Scheme to communicate to Consul with",
 				Default:     "", // To prevent input
 			},
 
-			"datacenter": &schema.Schema{
+			"datacenter": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Datacenter to communicate with",
 				Default:     "", // To prevent input
 			},
 
-			"http_auth": &schema.Schema{
+			"http_auth": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "HTTP Auth in the format of 'username:password'",
 				Default:     "", // To prevent input
 			},
 
-			"gzip": &schema.Schema{
+			"gzip": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Compress the state data using gzip",
 				Default:     false,
 			},
 
-			"lock": &schema.Schema{
+			"lock": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Lock state access",
 				Default:     true,
 			},
 
-			"ca_file": &schema.Schema{
+			"ca_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded certificate authority used to verify the remote agent's certificate.",
 				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CACERT", ""),
 			},
 
-			"cert_file": &schema.Schema{
+			"cert_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded certificate provided to the remote agent; requires use of key_file.",
 				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_CERT", ""),
 			},
 
-			"key_file": &schema.Schema{
+			"key_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "A path to a PEM-encoded private key, required if cert_file is specified.",
 				DefaultFunc: schema.EnvDefaultFunc("CONSUL_CLIENT_KEY", ""),
+			},
+
+			"vault": {
+				Type: schema.TypeList,
+				Optional: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"address": {
+							Type: schema.TypeString,
+							Required: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_ADDR", nil),
+						},
+						"token": {
+							Type: schema.TypeString,
+							Required: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_TOKEN", nil),
+						},
+						"key_name": {
+							Type: schema.TypeString,
+							Required: true,
+							DefaultFunc: schema.EnvDefaultFunc("TRANSIT_KEY_NAME", nil),
+						},
+						"context": {
+							Type: schema.TypeString,
+							Optional: true,
+						},
+						"mount_path": {
+							Type: schema.TypeString,
+							Optional: true,
+							Default: "transit/",
+						},
+						"namespace": {
+							Type:schema.TypeString,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_NAMESPACE", nil),
+						},
+						"tls_ca_cert": {
+							Type: schema.TypeString,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_CA_CERT", nil),
+						},
+						"tls_client_cert": {
+							Type: schema.TypeString,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_CERT", nil),
+						},
+						"tls_client_key": {
+							Type: schema.TypeString,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_CLIENT_KEY", nil),
+						},
+						"tls_server_name": {
+							Type: schema.TypeString,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_TLS_SERVER_NAME", nil),
+						},
+						"tls_skip_verify": {
+							Type: schema.TypeBool,
+							Optional: true,
+							DefaultFunc: schema.EnvDefaultFunc("VAULT_SKIP_VERIFY", nil),
+						},
+					},
+				},
 			},
 		},
 	}
@@ -105,6 +171,7 @@ type Backend struct {
 	client     *consulapi.Client
 	configData *schema.ResourceData
 	lock       bool
+	transit *TransitClient
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -169,6 +236,51 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	b.client = client
+
+	vault := b.configData.Get("vault").([]interface{})
+	if len(vault) == 0 {
+		return nil
+	}
+
+	vData := vault[0].(map[string]interface{})
+
+	vConfig := vaultapi.DefaultConfig()
+	if vConfig == nil {
+		return fmt.Errorf("failed to configure Vault client: %s", err)
+	}
+	if addr := vData["address"].(string); addr != "" {
+		vConfig.Address = addr
+	}
+
+	tls := &vaultapi.TLSConfig{
+		CACert: vData["tls_ca_cert"].(string),
+		ClientCert: vData["tls_client_cert"].(string),
+		ClientKey: vData["tls_client_key"].(string),
+		TLSServerName: vData["tls_server_name"].(string),
+		Insecure: vData["tls_skip_verify"].(bool),
+	}
+	if err := vConfig.ConfigureTLS(tls); err != nil {
+		return fmt.Errorf("failed to configure Vault client: %s", err)
+	}
+
+	vaultClient, err := vaultapi.NewClient(vConfig)
+	if err != nil {
+		return fmt.Errorf("failed to get Vault client: %s", err)
+	}
+
+	if token := vData["token"].(string); token != "" {
+		vaultClient.SetToken(token)
+	}
+	if namespace := vData["namespace"].(string); namespace != "" {
+		vaultClient.SetNamespace(namespace)
+	}
+	b.transit = &TransitClient{
+		client: vaultClient,
+		mountPath: vData["mount_path"].(string),
+		keyName: vData["key_name"].(string),
+		context: vData["context"].(string),
+	}
+
 	return nil
 }
 

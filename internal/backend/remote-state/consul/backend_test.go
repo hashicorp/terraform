@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -102,5 +103,51 @@ func TestBackend_gzip(t *testing.T) {
 	}))
 
 	// Test
+	backend.TestBackendStates(t, b)
+}
+
+func TestBackend_encryption(t *testing.T) {
+	path, err := exec.LookPath("vault")
+	if err != nil {
+		t.Skip("Install vault to run this test")
+	}
+
+	command := func(args []string) *exec.Cmd {
+		return &exec.Cmd{
+			Path: path,
+			Args: args,
+			Stdout: os.Stdout,
+			Stderr: os.Stderr,
+		}
+	}
+
+	cmd := command([]string{"vault", "server", "-dev", "-dev-root-token-id=root-token"})
+	if err = cmd.Start(); err != nil {
+		t.Fatalf("failed to start vault server: %s", err)
+	}
+	defer cmd.Process.Kill()
+
+	time.Sleep(1*time.Second)
+
+	cmd = command([]string{"vault", "secrets", "enable", "-address=http://127.0.0.1:8200", "transit"})
+	if err = cmd.Run(); err != nil {
+		t.Fatalf("failed to mount transit secret engine: %s", err)
+	}
+
+	cmd = command([]string{"vault", "write", "-address=http://127.0.0.1:8200", "-f", "transit/keys/terraform"})
+	if err = cmd.Run(); err != nil {
+		t.Fatalf("failed to create transit key: %s", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"address": srv.HTTPAddr,
+		"path": fmt.Sprintf("tf-unit/%s", time.Now().String()),
+		"vault": []interface{}{map[string]interface{}{
+				"address":  "http://localhost:8200",
+				"token": "root-token",
+				"key_name": "terraform",
+			},},
+	}))
+
 	backend.TestBackendStates(t, b)
 }
