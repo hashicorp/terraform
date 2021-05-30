@@ -14,7 +14,7 @@ When Terraform plans to make changes, it prints a human-readable summary to the 
 
 Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/commands/show.html) for more details.
+Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/cli/commands/show.html) for more details.
 
 -> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
@@ -56,7 +56,7 @@ The extra wrapping object here will allow for any extension we may need to add i
 
 A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes Terraform plans to make to achieve that.
 
-For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#value-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
+For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#values-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
 
 ```javascript
 {
@@ -66,9 +66,9 @@ For ease of consumption by callers, the plan representation includes a partial r
   // being applied to, using the state representation described above.
   "prior_state": <state-representation>,
 
-  // "config" is a representation of the configuration being applied to the
+  // "configuration" is a representation of the configuration being applied to the
   // prior state, using the configuration representation described above.
-  "config": <config-representation>,
+  "configuration": <configuration-representation>,
 
   // "planned_values" is a description of what is known so far of the outcome in
   // the standard value representation, with any as-yet-unknown values omitted.
@@ -122,7 +122,31 @@ For ease of consumption by callers, the plan representation includes a partial r
 
       // "change" describes the change that will be made to the indicated
       // object. The <change-representation> is detailed in a section below.
-      "change": <change-representation>
+      "change": <change-representation>,
+
+      // "action_reason" is some optional extra context about why the
+      // actions given inside "change" were selected. This is the JSON
+      // equivalent of annotations shown in the normal plan output like
+      // "is tainted, so must be replaced" as opposed to just "must be
+      // replaced".
+      //
+      // These reason codes are display hints only and the set of possible
+      // hints may change over time. Users of this must be prepared to
+      // encounter unrecognized reasons and treat them as unspecified reasons.
+      //
+      // The current set of possible values is:
+      // - "replace_because_tainted": the object in question is marked as
+      //   "tainted" in the prior state, so Terraform planned to replace it.
+      // - "replace_because_cannot_update": the provider indicated that one
+      //   of the requested changes isn't possible without replacing the
+      //   existing object with a new object.
+      // - "replace_by_request": the user explicitly called for this object
+      //   to be replaced as an option when creating the plan, which therefore
+      //   overrode what would have been a "no-op" or "update" action otherwise.
+      //
+      // If there is no special reason to note, Terraform will omit this
+      // property altogether.
+      action_reason: "replace_because_tainted"
     }
   ],
 
@@ -206,7 +230,7 @@ The following example illustrates the structure of a `<values-representation>`:
         // resource, whose structure depends on the resource type schema. Any
         // unknown values are omitted or set to null, making them
         // indistinguishable from absent values; callers which need to distinguish
-        // unknown from unset must use the plan-specific or config-specific
+        // unknown from unset must use the plan-specific or configuration-specific
         // structures described in later sections.
         "values": {
           "id": "i-abc123",
@@ -244,7 +268,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/docs/configuration/functions/jsonencode.html) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/docs/language/functions/jsonencode.html) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Only the "current" object for each resource instance is described. "Deposed" objects are not reflected in this structure at all; in plan representations, you can refer to the change representations for further details.
 
@@ -379,7 +403,7 @@ Because the configuration models are produced at a stage prior to expression eva
         // "module" is a representation of the configuration of the child module
         // itself, using the same structure as the "root_module" object,
         // recursively describing the full module tree.
-        "module": <module-config-representation>,
+        "module": <module-configuration-representation>,
       }
     }
   }
@@ -466,7 +490,7 @@ A `<change-representation>` describes the change that will be made to the indica
   // e.g. just scan the list for "delete" to recognize all three situations
   // where the object will be deleted, allowing for any new deletion
   // combinations that might be added in future.
-  "actions": ["update"]
+  "actions": ["update"],
 
   // "before" and "after" are representations of the object value both before
   // and after the action. For ["create"] and ["delete"] actions, either
@@ -474,6 +498,35 @@ A `<change-representation>` describes the change that will be made to the indica
   // after values are identical. The "after" value will be incomplete if there
   // are values within it that won't be known until after apply.
   "before": <value-representation>,
-  "after": <value-representation>
+  "after": <value-representation>,
+
+  // "after_unknown" is an object value with similar structure to "after", but
+  // with all unknown leaf values replaced with "true", and all known leaf
+  // values omitted. This can be combined with "after" to reconstruct a full
+  // value after the action, including values which will only be known after
+  // apply.
+  "after_unknown": {
+    "id": true
+  },
+
+  // "before_sensitive" and "after_sensitive" are object values with similar
+  // structure to "before" and "after", but with all sensitive leaf values
+  // replaced with true, and all non-sensitive leaf values omitted. These
+  // objects should be combined with "before" and "after" to prevent accidental
+  // display of sensitive values in user interfaces.
+  "before_sensitive": {},
+  "after_sensitive": {
+    "triggers": {
+      "boop": true
+    }
+  },
+
+  // "replace_paths" is an array of arrays representing a set of paths into the
+  // object value which resulted in the action being "replace". This will be
+  // omitted if the action is not replace, or if no paths caused the
+  // replacement (for example, if the resource was tainted). Each path
+  // consists of one or more steps, each of which will be a number or a
+  // string.
+  "replace_paths": [["triggers"]]
 }
 ```

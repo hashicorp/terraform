@@ -1,0 +1,418 @@
+---
+layout: "language"
+page_title: "Upgrading to Terraform v0.14"
+sidebar_current: "upgrade-guides-0-14"
+description: |-
+  Upgrading to Terraform v0.14
+---
+
+# Upgrading to Terraform v0.14
+
+Terraform v0.14 is a major release and so it includes some small changes in
+behavior that you may need to consider when upgrading. This guide is intended
+to help with that process.
+
+The goal of this guide is to cover the most common upgrade concerns and
+issues that would benefit from more explanation and background. The exhaustive
+list of changes will always be
+[the Terraform Changelog](https://github.com/hashicorp/terraform/blob/v0.14/CHANGELOG.md).
+After reviewing this guide, we recommend reviewing the Changelog to check for
+specific notes about less-commonly-used features. This guide is also not
+intended as an overview of the new features in Terraform v0.14. This release
+includes other enhancements that don't need any special attention during
+upgrade, but those are described in the changelog and elsewhere in the
+Terraform documentation.
+
+This guide focuses on changes from v0.13 to v0.14. Terraform supports upgrade
+tools and features only for one major release upgrade at a time, so if you are
+currently using a version of Terraform prior to v0.13 please upgrade through
+the latest minor releases of all of the intermediate versions first, reviewing
+the previous upgrade guides for any considerations that may be relevant to you.
+
+In particular, Terraform v0.14 no longer includes the `terraform 0.13upgrade`
+command for automatically inserting
+[provider requirements](/docs/language/providers/requirements.html)
+into existing modules, and the automatic mechanisms to upgrade legacy provider
+references in the Terraform state. You will need to successfully complete a
+`terraform apply` at least once under Terraform v0.13 before upgrading an
+existing configuration to Terraform v0.14.
+
+-> If you run into any problems during upgrading that are not addressed by the
+information in this guide, please feel free to start a topic in
+[The Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),
+describing the problem you've encountered in enough detail that other readers
+may be able to reproduce it and offer advice.
+
+Upgrade guide sections:
+
+* [Before You Upgrade](#before-you-upgrade)
+* [Provider Dependency Lock File](#provider-dependency-lock-file)
+* [Concise Terraform Plan Output](#concise-terraform-plan-output)
+* [Sensitive Values in Plan Output](#sensitive-values-in-plan-output)
+* [Other important workflow changes](#other-important-workflow-changes)
+
+## Before You Upgrade
+
+Terraform v0.14 does not support legacy Terraform state snapshot formats from
+prior to Terraform v0.13, so before upgrading to Terraform v0.14 you _must_
+have successfully run `terraform apply` at least once with Terraform v0.13
+so that it can complete its state format upgrades.
+
+When upgrading between major releases, we always recommend ensuring that you
+can run `terraform plan` and see no proposed changes on the previous version
+first, because otherwise pending changes can add additional unknowns into the
+upgrade process. Terraform v0.14 has the additional requirement of running
+`terraform apply`, as described above, because that allows Terraform v0.13 to
+commit the result of its automatic state format upgrades.
+
+## Provider Dependency Lock File
+
+In Terraform v0.13 and earlier, the `terraform init` command would always
+install the newest version of any provider in the configuration that would
+meet the configured version constraints.
+
+That meant that unless the configuration author manually entered _exact_
+version constraints (for a particular version alone), a later provider release
+could potentially cause a change in behavior for an existing configuration even
+though the configuration itself had not changed.
+
+We believe that, as far as possible, the behavior of a configuration that has
+already been written and tested should remain consistent unless it is
+intentionally changed by its author, and that intentional changes should be
+represented in files that can be included in a version control system and
+code review process.
+
+To better meet that goal, Terraform v0.14 introduces a new
+[dependency lock file](/docs/language/dependency-lock.html),
+which Terraform will generate automatically after running `terraform init`
+in the same directory as your configuration's root module. This file includes
+the specific version numbers selected for each provider, and also includes
+the package checksums for the selected version to help ensure that the
+provider packages you depend on are not changed in-place upstream,
+whether accidentally or maliciously.
+
+This new behavior is designed so that for most users it will not require
+a significant change in workflow. After running `terraform init` for the
+first time after upgrading you will find a new file `.terraform.lock.hcl`
+in your root module directory, and `terraform init` will automatically read
+and respect the entries in that file on future runs with no additional action
+on your part. We strongly recommend that you commit this file to your version
+control system, but if you do not then Terraform's behavior will be very similar to
+the old v0.13 behavior.
+
+There are some situations that require some further consideration though,
+and those are discussed in the following sections.
+
+### Opting out of dependency locking
+
+We understand that not all teams share our belief that upgrades should always
+be represented as changes to the code in a version control repository. Those
+teams may have previously intentionally used a non-exact version constraint
+for one or more providers in order to automatically adopt any future provider
+releases and then make any necessary configuration changes in retrospect.
+
+You can continue with a model similar to the v0.13 behavior after upgrading
+to v0.14 by placing `.terraform.lock.hcl` in your version control system's
+"ignore" file, such as `.gitignore` for Git. In that case, Terraform will
+see the lock file in the same way as the internal index that Terraform v0.13
+would generate under the `.terraform` directory, preserving the selections
+only with in a particular working directory until you delete the file.
+
+With that said, we do recommend that teams consider carefully the benefits
+of a persistent lock file, and make a considered decision about which path
+to take. We believe that a lock file under version control will be the best
+choice for most teams, because we've seen this pattern used successfully in
+many other programming language ecosystems.
+
+### In-house providers and internal mirrors
+
+Terraform v0.13 introduced a new hierarchical namespace for providers, which
+was an important pre-requisite for introducing a dependency lock file in
+v0.14 which can support a mixture of official, partner, community and in-house
+providers in a single configuration.
+
+If you followed the advice from the Terraform v0.13 upgrade guide about
+[assigning your in-house providers their own unique source addresses](0-13.html#in-house-providers),
+and you're distributing your in-house providers to Terraform through one of
+the documented mechanisms, Terraform should handle selecting a version and
+recording its checksums in the same way for all of the providers you use.
+
+However, the full functionality of the lock file does depend on some
+information only available from a real provider registry, so there are some
+special considerations for providers installed from either filesystem or
+network mirrors:
+
+* Mirror sources don't provide package checksums that are signed by the original
+  provider distributor, so by default `terraform init` will record only the
+  checksum for the provider package on the platform you are currently using.
+
+  For example, if you run `terraform init` on a macOS system and then commit
+  the lock file, a collegue running `terraform init` on a Linux system may
+  encounter a checksum error, because the mirror-based installation was only
+  able to safely record the checksum for the package it actually installed.
+
+  This problem doesn't arise for installation from a provider registry because
+  the registry can provide signed checksums for all packages for a particular
+  provider version, across all supported platforms.
+
+  If you use mirrors exclusively in your environment and you use Terraform
+  across a mixture of platforms then, in addition to making sure that your
+  mirrors include packages for all of the necessary platforms, you may choose
+  to use
+  [the new `terraform providers lock` command](/docs/cli/commands/providers/lock.html)
+  to pre-enter the required lock file entries for all of the platforms you
+  intend to use.
+
+* Terraform expects a particular version of a provider to have identical
+  package checksums across all installation methods you work with in your
+  team.
+
+  For example, if you use direct installation from Terraform registries in
+  your development environment but you use a mirror in your production
+  automation, you must ensure that the packages available for a particular
+  provider version in your mirror are identical to the official packages
+  in the origin registry.
+
+  If your internal mirrors intentionally have different packages than are
+  available upstream, you must either use your internal mirrors consistently
+  (so Terraform never uses or verifies an official package) or you must
+  publish your own builds so that Terraform can understand your intent for
+  them to be distinct.
+
+  If you are only making minor or temporary changes to a provider, such as
+  building for a platform that Terraform doesn't official support or including
+  a bugfix patch that isn't yet in an upstream release, the simplest answer
+  is to number your local build with semantic versioning _build metadata_,
+  such as `v2.1.0+companyname.1` where `v2.1.0` is the upstream release you
+  derived yours from, `companyname` is a short mnemonic for your organization,
+  and `.1` is an internal build id that you can potentially increment if
+  you need to make ongoing new builds from the same upstream version.
+
+  If you are making more substantial changes to a provider, such as adding
+  entirely new features that your modules depend on, it may be better to
+  instead publish the provider under a separate namespace you control, such
+  as publishing a fork of `hashicorp/aws` as `companyname/aws` in the public
+  registry or `tf.example.com/companyname/aws` for in-house distribution only.
+  This is a more drastic approach in that Terraform will understand your
+  release as an entirely separate provider, but it also allows your modules
+  to clearly indicate that they depend on the features of your fork rather
+  than the features of the upstream release.
+
+  In both cases the dependency lock file will see your releases as distinct
+  from the upstream ones and thus expect the two to have a different set of
+  checksums each.
+
+### External module dependencies are not locked
+
+Although we do hope to eventually include a means to lock version selections
+for external modules in addition to providers, this new capability is limited
+only to providers in Terraform v0.14.
+
+Terraform modules have a different approach to distribution and versioning than
+Terraform providers, with many different supported installation methods that
+each require careful consideration in designing a dependency locking mechanism.
+
+If you wish to lock your module dependencies then for now you must continue
+to use the same strategy as for v0.13 and earlier: specify exact version
+constraints for modules distributed via a module registry, or use the
+source-type-specific mechanisms to lock to a particular version of module
+packages retrieved directly using other protocols.
+
+Note that Terraform also does not currently track checksums for external
+module dependencies. If you are concerned about the possibility of external
+modules being altered in-place without your knowledge, we recommend using
+modules only from sources directly under your control, such as a private
+Terraform module registry.
+
+### The local provider cache directory
+
+As an implementation detail of automatic provider installation, Terraform
+has historically unpacked auto-installed plugins under the local cache
+directory in `.terraform/plugins`. That directory was only intended for
+Terraform's internal use, but unfortunately due to a miscommunication within
+our team it was inadvertently documented as if it were a "filesystem mirror"
+directory that you could place local providers in to upload them to
+Terraform Cloud.
+
+Unfortunately the implementation details have changed in Terraform v0.14 in
+order to move the authority for provider version selection to the new dependency
+lock file, and so manually placing extra plugins into that local cache directory
+is no longer effective in Terraform v0.14.
+
+We've included a heuristic in `terraform init` for Terraform v0.14 which should
+detect situations where you're relying on an unofficial provider manually
+installed into the cache directory and generate a warning like the following:
+
+```
+Warning: Missing provider is in legacy cache directory
+
+Terraform supports a number of local directories that can serve as automatic
+local filesystem mirrors, but .terraform/plugins is not one of them because
+Terraform v0.13 and earlier used this directory to cache copies of provider
+plugins retrieved from elsewhere.
+
+If you intended to use this directory as a filesystem mirror for
+tf.example.com/awesomecorp/happycloud, place it instead in the following
+directory:
+  terraform.d/plugins/tf.example.com/awesomecorp/happycloud/1.1.0/linux_amd64
+```
+
+The error message suggests using the `terraform.d` directory, which is a
+local search directory originally introduced in Terraform v0.10 in order to
+allow sending bundled providers along with your configuration up to Terraform
+Cloud. The error message assumes that use-case because it was for Terraform
+Cloud in particular that this approach was previously mis-documented.
+
+If you aren't intending to upload the provider plugin to Terraform Cloud as
+part of your configuration, we recommend instead installing to one of
+[the other implied mirror directories](/docs/cli/config/config-file.html#implied-local-mirror-directories),
+or you can explicitly configure some
+[custom provider installation methods](/docs/cli/config/config-file.html#provider-installation)
+if your needs are more complicated.
+
+## Concise Terraform Plan Output
+
+In Terraform v0.11 and earlier, the output from `terraform plan` was designed
+to show only the subset of resource instance attributes that had actually
+changed compared to the prior state.
+
+Although that made the output very concise, we heard from several users that
+the lack of context in the output had led to some misunderstandings that in
+turn caused production outages. We know that reviewing a Terraform plan can
+be a point of anxiety for those working on production infrastructure, so we
+responded to that feedback in Terraform v0.12 by having the plan output
+instead show the full context of each resource instance that has a planned
+action, and then use extra annotations (`+`, `-`, `~`) to mark the specific
+attributes that will change.
+
+Based on further feedback since the v0.12 release, we understand that the
+new detailed output has been very overwhelming for resource types that have
+a large number of attributes or deeply nested block structures. Terraform v0.14
+introduces a new compromise that aims to still address the concern about
+context while allowing better focus on the parts of each object that are
+changing.
+
+For this initial release, Terraform will omit from the plan output any
+attribute that has not changed, with the exception of a number of attribute
+names whose values often contain human-recognizable identifying information.
+When attributes or blocks are omitted, Terraform will always include a summary
+of what isn't included, to avoid ambiguity with an argument merely being unset.
+
+This is intended as an incremental step to improve the worst cases of verbose
+output in Terraform v0.12 and v0.13, but the compromises we made here may not
+be suitable for all situations. If you'd like to retain the fully-verbose
+output from Terraform v0.13, you can temporarily re-enable it by setting the
+environment variable `TF_X_CONCISE_DIFF=0` when you run Terraform.
+
+If you choose to opt out of the new concise mode, please
+[open a feature request issue](https://github.com/hashicorp/terraform/issues/new?labels=enhancement%2C+new&template=feature_request.md)
+to let us know what you found lacking in the new output. We intend to continue
+iterating on the design tradeoffs here to find the best compromise to suit
+the needs of most users. We expect to remove the opt-out environment variable
+in Terraform v0.15.
+
+## Sensitive Values in Plan Output
+
+In Terraform v0.13 and earlier, Terraform allowed provider authors to mark
+certain resource type attributes as being "sensitive", and similarly allowed
+module authors to mark certain output values as "sensitive". Terraform would
+then show the placeholder string `(sensitive value)` in the plan output,
+instead of the actual value.
+
+Terraform v0.14 introduces a more extensive version of that behavior where
+Terraform will track when you write an expression whose result is derived
+from a
+[sensitive input variable](/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output) or
+[sensitive output value](/docs/language/values/variables.html#suppressing-values-in-cli-output),
+and so after upgrading to Terraform v0.14 you may find that more values are
+obscured in the Terraform plan output than would have been in Terraform v0.13.
+
+If a sensitive value (either derived from a sensitive input variable or a sensitive output variable) is used in another module output, that output must be marked `sensitive` as well to be explicit about this data being passed through Terraform:
+
+```terraform
+variable "foo" {
+  sensitive = true
+}
+
+output "bar" {
+  value     = var.foo
+  # sensitive must be true when referencing a sensitive input variable
+  sensitive = true
+}
+```
+
+There is also experimental behavior that will extend this sensitivity-awareness to attributes providers define as sensitive. You can enable this feature by activating the experiment in the `terraform` block:
+
+```
+terraform {
+  experiments = [provider_sensitive_attrs]
+}
+```
+
+If you enable this experiment, attributes that are defined by a given _provider_ as sensitive will have the same sensitivity-tracking behavior as sensitive input values and outputs. For example, the [`vault_generic_secret`](https://registry.terraform.io/providers/hashicorp/vault/latest/docs/data-sources/generic_secret) data source has an attribute `data` that is sensitive according to this provider's schema.
+
+```
+# mod/main.tf
+
+terraform {
+  experiments = [provider_sensitive_attrs]
+}
+
+data "vault_generic_secret" "foobar" {
+  path = "secret/foobar"
+}
+
+output "token" {
+  value = vault_generic_secret.foobar.data["token"]
+  # a error will display if sensitive = true is not here
+}
+```
+
+If you do not add `sensitive = true` to the output referencing that sensitive attribute, you will get an error:
+
+```
+Error: Output refers to sensitive values
+
+  on mod/main.tf line 6:
+   6: output "token" {
+
+Expressions used in outputs can only refer to sensitive values if the
+sensitive attribute is true.
+```
+
+For this feature we've taken the approach that it's better to be conservative
+and obscure _potentially-sensitive_ values at the expense of potentially also
+obscuring some values that aren't sensitive. Unfortunately this means that
+if you've written a module in a generic or dynamic way then Terraform may
+over-generalize which values are sensitive, leading to less helpful plan output.
+
+Due to the security implications of this feature, Terraform offers no direct
+way to opt out of this change. However, the obscuring of these values is done
+at the UI layer only and so you can still access the raw values, if needed,
+by saving your plan to an plan file and then asking Terraform to present it
+in machine-readable JSON format:
+
+```
+terraform plan -out=tfplan
+terraform show -json tfplan
+```
+
+Please note that the binary file `tfplan` and the JSON output produced from it
+can both include cleartext representations of sensitive values, so writing
+these to disk on a multi-user system or viewing the JSON output on-screen
+may cause those values to become visible to others.
+
+Sensitive values are also still saved in state snapshots stored in your
+configured backend. Use the access control and audit mechanisms offered by
+the remote system to control who can access that data.
+
+
+## Other Important Workflow Changes
+
+### Terraform Output Formatting
+
+We've modified the formatting of `terraform output` to match the formatting of `terraform show`. 
+
+We consider the console output of Terraform human readable; specifically designed and optimized for operators and practitioners to review themselves. As a result we occasionally (maybe even regularly) intend to tweak that output to help improve consistency, clarity, actionability and more.
+
+If you rely on `terraform output` in automation, please use `terraform output -json`. 

@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "intro"
 page_title: "Guides"
 sidebar_current: "guides-home"
 description: |-

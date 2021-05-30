@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Syntax - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-syntax"
 description: |-
@@ -14,7 +14,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language: Syntax](../configuration/syntax.html).
+[Configuration Language: Syntax](/docs/language/syntax/configuration.html).
 
 The syntax of Terraform configurations is called [HashiCorp Configuration
 Language (HCL)](https://github.com/hashicorp/hcl). It is meant to strike a

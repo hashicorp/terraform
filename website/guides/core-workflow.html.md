@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "intro"
 page_title: "The Core Terraform Workflow - Guides"
 sidebar_current: "guides-core-workflow"
 description: |-
@@ -76,7 +76,7 @@ it's time to commit your work and review the final plan.
 $ git add main.tf
 $ git commit -m 'Managing infrastructure as code!'
 
-[master (root-commit) f735520] Managing infrastructure as code!
+[main (root-commit) f735520] Managing infrastructure as code!
  1 file changed, 1 insertion(+)
 ```
 
@@ -113,7 +113,7 @@ location for safekeeping.
 
 ```sh
 $ git remote add origin https://github.com/*user*/*repo*.git
-$ git push origin master
+$ git push origin main
 ```
 
 This core workflow is a loop; the next time you want to make changes, you start
@@ -157,7 +157,7 @@ Terraform operations are executed in a shared Continuous Integration (CI)
 environment. The work needed to create such a CI environment is nontrivial, and
 is outside the scope of this core workflow overview, but a full deep dive on
 this topic can be found in our
-[Running Terraform in Automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation)
+[Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 guide.
 
 This longer iteration cycle of committing changes to version control and then
@@ -235,7 +235,7 @@ for a better experience at each step.
 Terraform Cloud provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
 speculative plans for config authors. Terraform configuration interacts with
-Terraform Cloud via the ["remote" backend](/docs/backends/types/remote.html).
+Terraform Cloud via the ["remote" backend](/docs/language/settings/backends/remote.html).
 
 ```
 terraform {

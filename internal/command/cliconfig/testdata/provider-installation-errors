@@ -1,0 +1,11 @@
+provider_installation {
+  not_a_thing {} # unknown source type
+  filesystem_mirror {} # missing "path" argument
+  network_mirror {} # missing "host" argument
+  direct = {} # should be a block, not an argument
+  direct "what" {} # should not have a label
+}
+
+provider_installation "what" {} # should not have a label
+
+provider_installation = {} # should be a block, not an argument

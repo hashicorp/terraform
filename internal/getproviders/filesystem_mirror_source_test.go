@@ -1,13 +1,14 @@
 package getproviders
 
 import (
+	"context"
 	"testing"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
 
 	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
@@ -48,6 +49,15 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64"),
 			},
 		},
+		randomBetaProvider: {
+			{
+				Provider:       randomBetaProvider,
+				Version:        versions.MustParseVersion("1.2.0"),
+				TargetPlatform: Platform{"linux", "amd64"},
+				Filename:       "terraform-provider-random-beta_1.2.0_linux_amd64.zip",
+				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random-beta/1.2.0/linux_amd64"),
+			},
+		},
 		randomProvider: {
 			{
 				Provider:       randomProvider,
@@ -57,6 +67,7 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 				Location:       PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/random/1.2.0/linux_amd64"),
 			},
 		},
+
 		happycloudProvider: {
 			{
 				Provider:       happycloudProvider,
@@ -82,9 +93,19 @@ func TestFilesystemMirrorSourceAllAvailablePackages(t *testing.T) {
 	}
 }
 
+// In this test the directory layout is invalid (missing the hostname
+// subdirectory). The provider installer should ignore the invalid directory.
+func TestFilesystemMirrorSourceAllAvailablePackages_invalid(t *testing.T) {
+	source := NewFilesystemMirrorSource("testdata/filesystem-mirror-invalid")
+	_, err := source.AllAvailablePackages()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFilesystemMirrorSourceAvailableVersions(t *testing.T) {
 	source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
-	got, err := source.AvailableVersions(nullProvider)
+	got, _, err := source.AvailableVersions(context.Background(), nullProvider)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +124,10 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 	t.Run("available platform", func(t *testing.T) {
 		source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 		got, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"linux", "amd64"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"linux", "amd64"},
 		)
 		if err != nil {
 			t.Fatal(err)
@@ -120,13 +144,20 @@ func TestFilesystemMirrorSourcePackageMeta(t *testing.T) {
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("incorrect result\n%s", diff)
 		}
+
+		if gotHashes := got.AcceptableHashes(); len(gotHashes) != 0 {
+			t.Errorf("wrong acceptable hashes\ngot:  %#v\nwant: none", gotHashes)
+		}
 	})
 	t.Run("unavailable platform", func(t *testing.T) {
 		source := NewFilesystemMirrorSource("testdata/filesystem-mirror")
 		// We'll request a version that does exist in the fixture directory,
 		// but for a platform that isn't supported.
 		_, err := source.PackageMeta(
-			nullProvider, versions.MustParseVersion("2.0.0"), Platform{"nonexist", "nonexist"},
+			context.Background(),
+			nullProvider,
+			versions.MustParseVersion("2.0.0"),
+			Platform{"nonexist", "nonexist"},
 		)
 
 		if err == nil {
@@ -157,6 +188,11 @@ var randomProvider = addrs.Provider{
 	Hostname:  svchost.Hostname("registry.terraform.io"),
 	Namespace: "hashicorp",
 	Type:      "random",
+}
+var randomBetaProvider = addrs.Provider{
+	Hostname:  svchost.Hostname("registry.terraform.io"),
+	Namespace: "hashicorp",
+	Type:      "random-beta",
 }
 var happycloudProvider = addrs.Provider{
 	Hostname:  svchost.Hostname("tfe.example.com"),

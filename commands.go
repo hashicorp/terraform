@@ -6,14 +6,18 @@ import (
 
 	"github.com/mitchellh/cli"
 
+	"github.com/hashicorp/go-plugin"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/command"
-	"github.com/hashicorp/terraform/command/cliconfig"
-	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -23,22 +27,36 @@ const runningInAutomationEnvName = "TF_IN_AUTOMATION"
 
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
-var PlumbingCommands map[string]struct{}
+
+// PrimaryCommands is an ordered sequence of the top-level commands (not
+// subcommands) that we emphasize at the top of our help output. This is
+// ordered so that we can show them in the typical workflow order, rather
+// than in alphabetical order. Anything not in this sequence or in the
+// HiddenCommands set appears under "all other commands".
+var PrimaryCommands []string
+
+// HiddenCommands is a set of top-level commands (not subcommands) that are
+// not advertised in the top-level help at all. This is typically because
+// they are either just stubs that return an error message about something
+// no longer being supported or backward-compatibility aliases for other
+// commands.
+//
+// No commands in the PrimaryCommands sequence should also appear in the
+// HiddenCommands set, because that would be rather silly.
+var HiddenCommands map[string]struct{}
 
 // Ui is the cli.Ui used for communicating to the outside world.
 var Ui cli.Ui
 
-// PluginOverrides is set from wrappedMain during configuration processing
-// and then eventually passed to the "command" package to specify alternative
-// plugin locations via the legacy configuration file mechanism.
-var PluginOverrides command.PluginOverrides
-
-const (
-	ErrorPrefix  = "e:"
-	OutputPrefix = "o:"
-)
-
-func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc getproviders.Source) {
+func initCommands(
+	originalWorkingDir string,
+	streams *terminal.Streams,
+	config *cliconfig.Config,
+	services *disco.Disco,
+	providerSrc getproviders.Source,
+	providerDevOverrides map[addrs.Provider]getproviders.PackageLocalDir,
+	unmanagedProviders map[addrs.Provider]*plugin.ReattachConfig,
+) {
 	var inAutomation bool
 	if v := os.Getenv(runningInAutomationEnvName); v != "" {
 		inAutomation = true
@@ -62,13 +80,15 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 	dataDir := os.Getenv("TF_DATA_DIR")
 
 	meta := command.Meta{
+		OriginalWorkingDir: originalWorkingDir,
+		Streams:            streams,
+		View:               views.NewView(streams).SetRunningInAutomation(inAutomation),
+
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
-		PluginOverrides:  &PluginOverrides,
 		Ui:               Ui,
 
 		Services:        services,
-		ProviderSource:  providerSrc,
 		BrowserLauncher: webbrowser.NewNativeLauncher(),
 
 		RunningInAutomation: inAutomation,
@@ -77,22 +97,17 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		OverrideDataDir:     dataDir,
 
 		ShutdownCh: makeShutdownCh(),
+
+		ProviderSource:       providerSrc,
+		ProviderDevOverrides: providerDevOverrides,
+		UnmanagedProviders:   unmanagedProviders,
 	}
 
 	// The command list is included in the terraform -help
 	// output, which is in turn included in the docs at
-	// website/source/docs/commands/index.html.markdown; if you
+	// website/docs/cli/commands/index.html.markdown; if you
 	// add, remove or reclassify commands then consider updating
 	// that to match.
-
-	PlumbingCommands = map[string]struct{}{
-		"state":        struct{}{}, // includes all subcommands
-		"debug":        struct{}{}, // includes all subcommands
-		"force-unlock": struct{}{},
-		"push":         struct{}{},
-		"0.12upgrade":  struct{}{},
-		"0.13upgrade":  struct{}{},
-	}
 
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
@@ -179,12 +194,6 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
-		"internal-plugin": func() (cli.Command, error) {
-			return &command.InternalPluginCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"login": func() (cli.Command, error) {
 			return &command.LoginCommand{
 				Meta: meta,
@@ -211,6 +220,18 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 
 		"providers": func() (cli.Command, error) {
 			return &command.ProvidersCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers lock": func() (cli.Command, error) {
+			return &command.ProvidersLockCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"providers mirror": func() (cli.Command, error) {
+			return &command.ProvidersMirrorCommand{
 				Meta: meta,
 			}, nil
 		},
@@ -245,6 +266,12 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 			}, nil
 		},
 
+		"test": func() (cli.Command, error) {
+			return &command.TestCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"validate": func() (cli.Command, error) {
 			return &command.ValidateCommand{
 				Meta: meta,
@@ -254,9 +281,9 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Meta:              meta,
-				Revision:          GitCommit,
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
+				Platform:          getproviders.CurrentPlatform,
 				CheckFunc:         commandVersionCheck,
 			}, nil
 		},
@@ -307,24 +334,6 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 		// Plumbing
 		//-----------------------------------------------------------
 
-		"0.12upgrade": func() (cli.Command, error) {
-			return &command.ZeroThirteenUpgradeCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"0.13upgrade": func() (cli.Command, error) {
-			return &command.ZeroThirteenUpgradeCommand{
-				Meta: meta,
-			}, nil
-		},
-
-		"debug": func() (cli.Command, error) {
-			return &command.DebugCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"force-unlock": func() (cli.Command, error) {
 			return &command.UnlockCommand{
 				Meta: meta,
@@ -374,7 +383,30 @@ func initCommands(config *cliconfig.Config, services *disco.Disco, providerSrc g
 				Meta: meta,
 			}, nil
 		},
+
+		"state replace-provider": func() (cli.Command, error) {
+			return &command.StateReplaceProviderCommand{
+				StateMeta: command.StateMeta{
+					Meta: meta,
+				},
+			}, nil
+		},
 	}
+
+	PrimaryCommands = []string{
+		"init",
+		"validate",
+		"plan",
+		"apply",
+		"destroy",
+	}
+
+	HiddenCommands = map[string]struct{}{
+		"env":             struct{}{},
+		"internal-plugin": struct{}{},
+		"push":            struct{}{},
+	}
+
 }
 
 // makeShutdownCh creates an interrupt listener and returns a channel.

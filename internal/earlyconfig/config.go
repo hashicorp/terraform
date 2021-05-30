@@ -6,11 +6,11 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/moduledeps"
-	"github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/moduledeps"
+	"github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -105,7 +105,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) tfdiags
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.NewDefaultProvider(localName)
+			fqn = addrs.ImpliedProviderForUnqualifiedType(localName)
 		}
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
@@ -158,8 +158,8 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 	for name, reqs := range c.Module.RequiredProviders {
 		var fqn addrs.Provider
 		if source := reqs.Source; source != "" {
-			addr, diags := addrs.ParseProviderSourceString(source)
-			if diags.HasErrors() {
+			addr, parseDiags := addrs.ParseProviderSourceString(source)
+			if parseDiags.HasErrors() {
 				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 					Severity: tfconfig.DiagError,
 					Summary:  "Invalid provider source",
@@ -170,7 +170,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.NewLegacyProvider(name)
+			fqn = addrs.NewDefaultProvider(name)
 		}
 		var constraints version.Constraints
 		for _, reqStr := range reqs.VersionConstraints {
@@ -180,7 +180,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 					diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
 						Severity: tfconfig.DiagError,
 						Summary:  "Invalid provider version constraint",
-						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.LegacyString()),
+						Detail:   fmt.Sprintf("Invalid version constraint %q for provider %s.", reqStr, fqn.String()),
 					}))
 					continue
 				}

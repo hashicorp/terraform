@@ -1,0 +1,4 @@
+empty-configs/mod/main.tf:10,1-15: Empty provider configuration blocks are not required; Remove the foo provider block from module.mod
+empty-configs/mod/main.tf:13,1-15: Empty provider configuration blocks are not required; Remove the foo.bar provider block from module.mod
+empty-configs/mod/main.tf:17,1-15: Empty provider configuration blocks are not required; Remove the baz provider block from module.mod.\nTo ensure the correct provider configuration is used, add baz to the required_providers configuration
+empty-configs/mod/main.tf:20,1-15: Empty provider configuration blocks are not required; Remove the baz.bing provider block from module.mod. Add baz.bing to the list of configuration_aliases for baz in required_providers to define the provider configuration name

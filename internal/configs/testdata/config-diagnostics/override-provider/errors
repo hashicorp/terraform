@@ -1,0 +1,1 @@
+override-provider/main.tf:17,5-8: Cannot override provider configuration; Provider bar is configured within the module module.mod and cannot be overridden.

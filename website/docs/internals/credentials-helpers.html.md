@@ -12,7 +12,7 @@ For Terraform-specific features that interact with remote network services,
 such as [module registries](/docs/registry/) and
 [remote operations](/docs/cloud/run/cli.html), Terraform by default looks for
 API credentials to use in these calls in
-[the CLI configuration](/docs/commands/cli-config.html).
+[the CLI configuration](/docs/cli/config/config-file.html).
 
 Credentials helpers offer an alternative approach that allows you to customize
 how Terraform obtains credentials using an external program, which can then
@@ -20,7 +20,7 @@ directly access an existing secrets management system in your organization.
 
 This page is about how to write and install a credentials helper. To learn
 how to configure a credentials helper that was already installed, see
-[the CLI config Credentials Helpers section](/docs/commands/cli-config.html#credentials-helpers).
+[the CLI config Credentials Helpers section](/docs/cli/config/config-file.html#credentials-helpers).
 
 ## How Terraform finds Credentials Helpers
 
@@ -57,7 +57,7 @@ The current set of verbs are:
 
 To represent credentials, the credentials helper protocol uses a JSON object
 whose contents correspond with the contents of
-[`credentials` blocks in the CLI configuration](/docs/commands/cli-config.html#credentials).
+[`credentials` blocks in the CLI configuration](/docs/cli/config/config-file.html#credentials).
 To represent an API token, the object contains a property called "token" whose
 value is the token string:
 
@@ -83,9 +83,12 @@ If the credentials helper is able to provide credentials for the given host
 then it must print a JSON credentials object to its stdout stream and then
 exit with status code zero to indicate success.
 
-If it is unable to provide the requested credentials for any reason, it must
-print an end-user-oriented plain text error message to its stderr stream and
-then exit with a _non-zero_ status code.
+If the credentials helper definitively has no credentials for the given host,
+then it must print an empty JSON object to stdout and exit with status zero.
+
+If the credentials helper is unable to provide the requested credentials for
+any other reason, it must print an end-user-oriented plain text error message
+to its stderr stream and then exit with a _non-zero_ status code.
 
 ## `store`: store new credentials for the given hostname
 

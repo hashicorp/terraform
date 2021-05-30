@@ -1,5 +1,5 @@
 ---
-layout: "docs"
+layout: "language"
 page_title: "Load Order and Semantics - 0.11 Configuration Language"
 sidebar_current: "docs-conf-old-load"
 description: |-
@@ -10,7 +10,7 @@ description: |-
 
 -> **Note:** This page is about Terraform 0.11 and earlier. For Terraform 0.12
 and later, see
-[Configuration Language](../configuration/index.html).
+[Configuration Language](/docs/language/index.html).
 
 When invoking any command that loads the Terraform configuration,
 Terraform loads all configuration files within the directory

@@ -1,0 +1,32 @@
+---
+layout: "language"
+page_title: anytrue - Functions - Configuration Language
+sidebar_current: docs-funcs-collection-anytrue
+description: |-
+  The anytrue function determines whether any element of a collection
+  is true or "true". If the collection is empty, it returns false.
+---
+
+# `anytrue` Function
+
+-> **Note:** This function is available in Terraform 0.14 and later.
+
+`anytrue` returns `true` if any element in a given collection is `true`
+or `"true"`. It also returns `false` if the collection is empty.
+
+```hcl
+anytrue(list)
+```
+
+## Examples
+
+```command
+> anytrue(["true"])
+true
+> anytrue([true])
+true
+> anytrue([true, false])
+true
+> anytrue([])
+false
+```

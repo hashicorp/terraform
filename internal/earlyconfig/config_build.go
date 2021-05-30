@@ -7,8 +7,8 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // BuildConfig constructs a Config from a root module by loading all of its

@@ -1,5 +1,5 @@
 ---
-layout: "guides"
+layout: "language"
 page_title: "Upgrading to Terraform 0.11"
 sidebar_current: "upgrade-guides-0-11"
 description: |-
@@ -15,7 +15,7 @@ that process.
 The goal of this guide is to cover the most common upgrade concerns and
 issues that would benefit from more explanation and background. The exhaustive
 list of changes will always be the
-[Terraform Changelog](https://github.com/hashicorp/terraform/blob/master/CHANGELOG.md).
+[Terraform Changelog](https://github.com/hashicorp/terraform/blob/main/CHANGELOG.md).
 After reviewing this guide, we recommend reviewing the Changelog to check on
 specific notes about the resources and providers you use.
 
@@ -40,7 +40,7 @@ of `terraform apply` will not invalidate the execution plan.
 
 A consequence of this change is that `terraform apply` is now interactive by
 default unless a plan file is provided on the command line. When
-[running Terraform in automation](https://learn.hashicorp.com/terraform/development/running-terraform-in-automation)
+[running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 it is always recommended to separate plan from apply, but if existing automation
 was running `terraform apply` with no arguments it may now be necessary to
 update it to either generate an explicit plan using `terraform plan -out=...`
@@ -68,7 +68,7 @@ explicitly by beginning the string with either `./` (for a module in a child
 directory) or `../` (for a module in the parent directory).
 
 **Action:** Update existing module `source` values containing relative paths
-to start eith either `./` or `../` to prevent misinterpretation of the source
+to start with either `./` or `../` to prevent misinterpretation of the source
 as a Terraform Registry module.
 
 ## Interactions Between Providers and Modules
@@ -260,7 +260,7 @@ resource "aws_vpc" "example" {
 ```
 
 After the above refactoring, run `terraform apply` to re-synchoronize
-Terraform's record (in [the Terraform state](/docs/state/index.html)) of the
+Terraform's record (in [the Terraform state](/docs/language/state/index.html)) of the
 location of each resource's provider configuration. This should make no changes
 to actual infrastructure, since no resource configurations were changed.
 

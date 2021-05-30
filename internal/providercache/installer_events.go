@@ -3,7 +3,7 @@ package providercache
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -40,6 +40,19 @@ type InstallerEvents struct {
 	// available version.
 	ProviderAlreadyInstalled func(provider addrs.Provider, selectedVersion getproviders.Version)
 
+	// The BuiltInProvider... family of events describe the outcome for any
+	// requested providers that are built in to Terraform. Only one of these
+	// methods will be called for each such provider, and no other method
+	// will be called for them except that they are included in the
+	// aggregate PendingProviders map.
+	//
+	// The "Available" event reports that the requested builtin provider is
+	// available in this release of Terraform. The "Failure" event reports
+	// either that the provider is unavailable or that the request for it
+	// is invalid somehow.
+	BuiltInProviderAvailable func(provider addrs.Provider)
+	BuiltInProviderFailure   func(provider addrs.Provider, err error)
+
 	// The QueryPackages... family of events delimit the operation of querying
 	// a provider source for information about available packages matching
 	// a particular version constraint, prior to selecting a single version
@@ -50,12 +63,13 @@ type InstallerEvents struct {
 	// identifier to correlate between successive events.
 	//
 	// The Begin, Success, and Failure events will each occur only once per
-	// distinct provider. The Retry event can occur zero or more times, and
-	// signals a failure that the installer is considering transient.
-	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints)
+	// distinct provider.
+	//
+	// The Warning event is unique to the registry source
+	QueryPackagesBegin   func(provider addrs.Provider, versionConstraints getproviders.VersionConstraints, locked bool)
 	QueryPackagesSuccess func(provider addrs.Provider, selectedVersion getproviders.Version)
-	QueryPackagesRetry   func(provider addrs.Provider, err error)
 	QueryPackagesFailure func(provider addrs.Provider, err error)
+	QueryPackagesWarning func(provider addrs.Provider, warn []string)
 
 	// The LinkFromCache... family of events delimit the operation of linking
 	// a selected provider package from the system-wide shared cache into the
@@ -86,13 +100,21 @@ type InstallerEvents struct {
 	// or the FetchPackage... events, never both in the same install operation.
 	//
 	// The Query, Begin, Success, and Failure events will each occur only once
-	// per distinct provider. The Retry event can occur zero or more times, and
-	// signals a failure that the installer is considering transient.
+	// per distinct provider.
 	FetchPackageMeta    func(provider addrs.Provider, version getproviders.Version) // fetching metadata prior to real download
 	FetchPackageBegin   func(provider addrs.Provider, version getproviders.Version, location getproviders.PackageLocation)
-	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string)
-	FetchPackageRetry   func(provider addrs.Provider, version getproviders.Version, err error)
+	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
+
+	// The ProvidersFetched event is called after all fetch operations if at
+	// least one provider was fetched successfully.
+	ProvidersFetched func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult)
+
+	// HashPackageFailure is called if the installer is unable to determine
+	// the hash of the contents of an installed package after installation.
+	// In that case, the selection will not be recorded in the target cache
+	// directory's lock file.
+	HashPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 }
 
 // OnContext produces a context with all of the same behaviors as the given

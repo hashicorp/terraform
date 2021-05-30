@@ -1,0 +1,18 @@
+{
+  "severity": "error",
+  "summary": "Bad news",
+  "detail": "It went wrong",
+  "range": {
+    "filename": "modules/oops/missing.tf",
+    "start": {
+      "line": 1,
+      "column": 6,
+      "byte": 5
+    },
+    "end": {
+      "line": 2,
+      "column": 12,
+      "byte": 33
+    }
+  }
+}

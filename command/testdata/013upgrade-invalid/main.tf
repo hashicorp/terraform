@@ -1,3 +1,0 @@
-provider "invalid" {
-	version = "invalid"
-}

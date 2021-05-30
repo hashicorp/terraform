@@ -1,0 +1,28 @@
+{
+  "variable": {
+    "foo": {},
+    "bar": {
+      "default": "hello"
+    },
+    "baz": {
+      "type": "list"
+    },
+    "bar-baz": {
+      "default": [],
+      "type": "list"
+    },
+    "cheese_pizza": {
+      "description": "Nothing special"
+    },
+    "π": {
+      "default": 3.14159265359
+    },
+    "sensitive_value": {
+      "default": {
+        "a": 1,
+        "b": 2
+      },
+      "sensitive": true
+    }
+  }
+}

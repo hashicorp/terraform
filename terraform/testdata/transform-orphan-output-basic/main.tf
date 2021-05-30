@@ -1,1 +1,0 @@
-output "foo" { value = "bar" }

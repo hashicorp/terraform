@@ -1,3 +1,0 @@
-variable "a" {
-  a = "b"
-}

@@ -12,7 +12,7 @@ import (
 
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // Record represents some metadata about an installed module, as part
@@ -77,7 +77,9 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
-
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling snapshot: %v", err)
+	}
 	new := make(Manifest)
 	for _, record := range read.Records {
 		if record.VersionStr != "" {

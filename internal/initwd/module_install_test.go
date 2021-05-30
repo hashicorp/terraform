@@ -1,10 +1,10 @@
 package initwd
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,24 +12,17 @@ import (
 
 	"github.com/go-test/deep"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/helper/logging"
-	"github.com/hashicorp/terraform/internal/copydir"
-	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-	if testing.Verbose() {
-		// if we're verbose, use the logging requested by TF_LOG
-		logging.SetOutput()
-	} else {
-		// otherwise silence all logs
-		log.SetOutput(ioutil.Discard)
-	}
-
 	os.Exit(m.Run())
 }
 
@@ -109,6 +102,74 @@ func TestModuleInstaller_error(t *testing.T) {
 		t.Fatal("expected error")
 	} else {
 		assertDiagnosticSummary(t, diags, "Module not found")
+	}
+}
+
+func TestModuleInstaller_packageEscapeError(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/load-module-package-escape")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	// For this particular test we need an absolute path in the root module
+	// that must actually resolve to our temporary directory in "dir", so
+	// we need to do a little rewriting. We replace the arbitrary placeholder
+	// %%BASE%% with the temporary directory path.
+	{
+		rootFilename := filepath.Join(dir, "package-escape.tf")
+		template, err := ioutil.ReadFile(rootFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
+		err = ioutil.WriteFile(rootFilename, final, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Local module path escapes module package")
+	}
+}
+
+func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/load-module-package-prefix")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	// For this particular test we need an absolute path in the root module
+	// that must actually resolve to our temporary directory in "dir", so
+	// we need to do a little rewriting. We replace the arbitrary placeholder
+	// %%BASE%% with the temporary directory path.
+	{
+		rootFilename := filepath.Join(dir, "package-prefix.tf")
+		template, err := ioutil.ReadFile(rootFilename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
+		err = ioutil.WriteFile(rootFilename, final, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, nil)
+	_, diags := inst.InstallModules(".", false, hooks)
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
 }
 
@@ -268,7 +329,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/terraform-aws-module-installer-acctest-0.0.1/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -276,7 +337,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
@@ -290,7 +351,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
 		},
 
 		// acctest_root
@@ -304,7 +365,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1"),
 		},
 
 		// acctest_root.child_a
@@ -312,7 +373,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -320,7 +381,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/hashicorp-terraform-aws-module-installer-acctest-853d038/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
 		},
 	}
 
@@ -544,7 +605,7 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 		return "", nil
 	}
 
-	if err := copydir.CopyDir(tmpDir, sourceDir); err != nil {
+	if err := copy.CopyDir(tmpDir, sourceDir); err != nil {
 		t.Fatalf("failed to copy fixture to temporary directory: %s", err)
 		return "", nil
 	}

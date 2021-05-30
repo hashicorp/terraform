@@ -1,0 +1,138 @@
+---
+layout: "docs"
+page_title: "Internals: Resource Address"
+sidebar_current: "docs-internals-resource-addressing"
+description: |-
+  A resource address is a string that identifies zero or more resource
+  instances in your overall configuration.
+---
+
+# Resource Addressing
+
+A _resource address_ is a string that identifies zero or more resource
+instances in your overall configuration.
+
+An address is made up of two parts:
+
+```
+[module path][resource spec]
+```
+
+In some contexts Terraform might allow for an incomplete resource address that
+only refers to a module as a whole, or that omits the index for a
+multi-instance resource. In those cases, the meaning depends on the context,
+so you'll need to refer to the documentation for the specific feature you
+are using which parses resource addresses.
+
+## Module path
+
+A module path addresses a module within the tree of modules. It takes the form:
+
+```
+module.module_name[module index]
+```
+
+ * `module` - Module keyword indicating a child module (non-root). Multiple `module`
+   keywords in a path indicate nesting.
+ * `module_name` - User-defined name of the module.
+ * `[module index]` - (Optional) [Index](#index-values-for-modules-and-resources)
+   to select an instance from a module call that has multiple instances,
+   surrounded by square bracket characters (`[` and `]`).
+
+An address without a resource spec, i.e. `module.foo` applies to every resource within
+the module if a single module, or all instances of a module if a module has multiple instances.
+To address all resources of a particular module instance, include the module index in the address,
+such as `module.foo[0]`.
+
+If the module path is omitted, the address applies to the root module.
+
+An example of the `module` keyword delineating between two modules that have multiple instances:
+
+```
+module.foo[0].module.bar["a"]
+```
+
+-> Module index only applies to modules in Terraform v0.13 or later. In earlier
+versions of Terraform, a module could not have multiple instances.
+
+## Resource spec
+
+A resource spec addresses a specific resource instance in the selected module.
+It has the following syntax:
+
+```
+resource_type.resource_name[instance index]
+```
+
+ * `resource_type` - Type of the resource being addressed.
+ * `resource_name` - User-defined name of the resource.
+ * `[instance index]` - (Optional) [Index](#index-values-for-modules-and-resources)
+   to select an instance from a resource that has multiple instances,
+   surrounded by square bracket characters (`[` and `]`).
+
+-> In Terraform v0.12 and later, a resource spec without a module path prefix
+matches only resources in the root module. In earlier versions, a resource spec
+without a module path prefix would match resources with the same type and name
+in any descendent module.
+
+## Index values for Modules and Resources
+
+The following specifications apply to index values on modules and resources with multiple instances:
+
+ * `[N]` where `N` is a `0`-based numerical index into a resource with multiple
+   instances specified by the `count` meta-argument. Omitting an index when
+   addressing a resource where `count > 1` means that the address references
+   all instances.
+ * `["INDEX"]` where `INDEX` is a alphanumerical key index into a resource with
+   multiple instances specified by the `for_each` meta-argument.
+
+## Examples
+
+### count Example
+
+Given a Terraform config that includes:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+  count = 4
+}
+```
+
+An address like this:
+
+```
+aws_instance.web[3]
+```
+
+Refers to only the last instance in the config, and an address like this:
+
+```
+aws_instance.web
+```
+
+Refers to all four "web" instances.
+
+### for_each Example
+
+Given a Terraform config that includes:
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+  for_each = {
+    "terraform": "value1",
+    "resource":  "value2",
+    "indexing":  "value3",
+    "example":   "value4",
+  }
+}
+```
+
+An address like this:
+
+```
+aws_instance.web["example"]
+```
+
+Refers to only the "example" instance in the config.

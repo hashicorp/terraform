@@ -22,7 +22,7 @@ From Terraform v0.12.0 onwards, Terraform's plugin protocol is built on
 different versions of Terraform's protocol.
 
 Only `.proto` files published as part of Terraform release tags are actually
-official protocol versions. If you are reading this directory on the `master`
+official protocol versions. If you are reading this directory on the `main`
 branch or any other development branch then it may contain protocol definitions
 that are not yet finalized and that may change before final release.
 

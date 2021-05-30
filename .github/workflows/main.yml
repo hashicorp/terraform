@@ -1,0 +1,21 @@
+---
+name: Backport Assistant Runner
+    
+on:
+  pull_request_target:
+    types:
+      - closed
+    
+jobs:
+  backport:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    container: hashicorpdev/backport-assistant:0.2.1
+    steps:
+      - name: Run Backport Assistant
+        run: |
+          backport-assistant backport
+        env:
+          BACKPORT_LABEL_REGEXP: "(?P<target>\\d+\\.\\d+)-backport"
+          BACKPORT_TARGET_TEMPLATE: "v{{.target}}"
+          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}

@@ -108,8 +108,8 @@ The amount of parallelism is limited using a semaphore to prevent too many
 concurrent operations from overwhelming the resources of the machine running
 Terraform. By default, up to 10 nodes in the graph will be processed
 concurrently. This number can be set using the `-parallelism` flag on the
-[plan](/docs/commands/plan.html), [apply](/docs/commands/apply.html), and
-[destroy](/docs/commands/destroy.html) commands.
+[plan](/docs/cli/commands/plan.html), [apply](/docs/cli/commands/apply.html), and
+[destroy](/docs/cli/commands/destroy.html) commands.
 
 Setting `-parallelism` is considered an advanced operation and should not be
 necessary for normal usage of Terraform. It may be helpful in certain special
