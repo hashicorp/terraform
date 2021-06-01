@@ -142,3 +142,49 @@ func TestLoadModuleCall(t *testing.T) {
 		t.Error(problem)
 	}
 }
+
+func TestModuleSourceAddrEntersNewPackage(t *testing.T) {
+	tests := []struct {
+		Addr string
+		Want bool
+	}{
+		{
+			"./",
+			false,
+		},
+		{
+			"../bork",
+			false,
+		},
+		{
+			"/absolute/path",
+			true,
+		},
+		{
+			"github.com/example/foo",
+			true,
+		},
+		{
+			"hashicorp/subnets/cidr", // registry module
+			true,
+		},
+		{
+			"registry.terraform.io/hashicorp/subnets/cidr", // registry module
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Addr, func(t *testing.T) {
+			addr, err := addrs.ParseModuleSource(test.Addr)
+			if err != nil {
+				t.Fatalf("parsing failed for %q: %s", test.Addr, err)
+			}
+
+			got := moduleSourceAddrEntersNewPackage(addr)
+			if got != test.Want {
+				t.Errorf("wrong result for %q\ngot:  %#v\nwant:  %#v", addr, got, test.Want)
+			}
+		})
+	}
+}
