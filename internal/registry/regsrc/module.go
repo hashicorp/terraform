@@ -105,12 +105,27 @@ func NewModule(host, namespace, name, provider, submodule string) (*Module, erro
 // use addrs.ModuleSourceRegistry instead, and then package regsrc can be
 // removed altogether.
 func ModuleFromModuleSourceAddr(addr addrs.ModuleSourceRegistry) *Module {
+	ret := ModuleFromRegistryPackageAddr(addr.PackageAddr)
+	ret.RawSubmodule = addr.Subdir
+	return ret
+}
+
+// ModuleFromRegistryPackageAddr is similar to ModuleFromModuleSourceAddr, but
+// it works with just the isolated registry package address, and not the
+// full source address.
+//
+// The practical implication of that is that RawSubmodule will always be
+// the empty string in results from this function, because "Submodule" maps
+// to "Subdir" and that's a module source address concept, not a module
+// package concept. In practice this typically doesn't matter because the
+// registry client ignores the RawSubmodule field anyway; that's a concern
+// for the higher-level module installer to deal with.
+func ModuleFromRegistryPackageAddr(addr addrs.ModuleRegistryPackage) *Module {
 	return &Module{
 		RawHost:      NewFriendlyHost(addr.Host.String()),
 		RawNamespace: addr.Namespace,
 		RawName:      addr.Name,
 		RawProvider:  addr.TargetSystem, // this field was never actually enforced to be a provider address, so now has a more general name
-		RawSubmodule: addr.Subdir,
 	}
 }
 

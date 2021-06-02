@@ -59,21 +59,25 @@ func TestParseModuleSource(t *testing.T) {
 		"main registry implied": {
 			input: "hashicorp/subnets/cidr",
 			want: ModuleSourceRegistry{
-				Host:         svchost.Hostname("registry.terraform.io"),
-				Namespace:    "hashicorp",
-				Name:         "subnets",
-				TargetSystem: "cidr",
-				Subdir:       "",
+				PackageAddr: ModuleRegistryPackage{
+					Host:         svchost.Hostname("registry.terraform.io"),
+					Namespace:    "hashicorp",
+					Name:         "subnets",
+					TargetSystem: "cidr",
+				},
+				Subdir: "",
 			},
 		},
 		"main registry implied, subdir": {
 			input: "hashicorp/subnets/cidr//examples/foo",
 			want: ModuleSourceRegistry{
-				Host:         svchost.Hostname("registry.terraform.io"),
-				Namespace:    "hashicorp",
-				Name:         "subnets",
-				TargetSystem: "cidr",
-				Subdir:       "examples/foo",
+				PackageAddr: ModuleRegistryPackage{
+					Host:         svchost.Hostname("registry.terraform.io"),
+					Namespace:    "hashicorp",
+					Name:         "subnets",
+					TargetSystem: "cidr",
+				},
+				Subdir: "examples/foo",
 			},
 		},
 		"main registry implied, escaping subdir": {
@@ -88,21 +92,25 @@ func TestParseModuleSource(t *testing.T) {
 		"custom registry": {
 			input: "example.com/awesomecorp/network/happycloud",
 			want: ModuleSourceRegistry{
-				Host:         svchost.Hostname("example.com"),
-				Namespace:    "awesomecorp",
-				Name:         "network",
-				TargetSystem: "happycloud",
-				Subdir:       "",
+				PackageAddr: ModuleRegistryPackage{
+					Host:         svchost.Hostname("example.com"),
+					Namespace:    "awesomecorp",
+					Name:         "network",
+					TargetSystem: "happycloud",
+				},
+				Subdir: "",
 			},
 		},
 		"custom registry, subdir": {
 			input: "example.com/awesomecorp/network/happycloud//examples/foo",
 			want: ModuleSourceRegistry{
-				Host:         svchost.Hostname("example.com"),
-				Namespace:    "awesomecorp",
-				Name:         "network",
-				TargetSystem: "happycloud",
-				Subdir:       "examples/foo",
+				PackageAddr: ModuleRegistryPackage{
+					Host:         svchost.Hostname("example.com"),
+					Namespace:    "awesomecorp",
+					Name:         "network",
+					TargetSystem: "happycloud",
+				},
+				Subdir: "examples/foo",
 			},
 		},
 
@@ -536,7 +544,7 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 			if got, want := addr.ForDisplay(), test.wantForDisplay; got != want {
 				t.Errorf("wrong ForDisplay() result\ngot:  %s\nwant: %s", got, want)
 			}
-			if got, want := addr.ForRegistryProtocol(), test.wantForProtocol; got != want {
+			if got, want := addr.PackageAddr.ForRegistryProtocol(), test.wantForProtocol; got != want {
 				t.Errorf("wrong ForRegistryProtocol() result\ngot:  %s\nwant: %s", got, want)
 			}
 		})

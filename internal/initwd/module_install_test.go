@@ -14,6 +14,8 @@ import (
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
@@ -403,11 +405,17 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	}
 
 	//check that the registry reponses were cached
-	if _, ok := inst.moduleVersions["registry.terraform.io/hashicorp/module-installer-acctest/aws"]; !ok {
-		t.Errorf("module versions cache was not populated\ngot: %s\nwant: key hashicorp/module-installer-acctest/aws", spew.Sdump(inst.moduleVersions))
+	packageAddr := addrs.ModuleRegistryPackage{
+		Host:         svchost.Hostname("registry.terraform.io"),
+		Namespace:    "hashicorp",
+		Name:         "module-installer-acctest",
+		TargetSystem: "aws",
 	}
-	if _, ok := inst.moduleVersionsUrl[moduleVersion{module: "registry.terraform.io/hashicorp/module-installer-acctest/aws", version: "0.0.1"}]; !ok {
-		t.Errorf("module download url cache was not populated\ngot: %s", spew.Sdump(inst.moduleVersionsUrl))
+	if _, ok := inst.registryPackageVersions[packageAddr]; !ok {
+		t.Errorf("module versions cache was not populated\ngot: %s\nwant: key hashicorp/module-installer-acctest/aws", spew.Sdump(inst.registryPackageVersions))
+	}
+	if _, ok := inst.registryPackageSources[moduleVersion{module: packageAddr, version: "0.0.1"}]; !ok {
+		t.Errorf("module download url cache was not populated\ngot: %s", spew.Sdump(inst.registryPackageSources))
 	}
 
 	loader, err := configload.NewLoader(&configload.Config{

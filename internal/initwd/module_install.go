@@ -26,24 +26,24 @@ type ModuleInstaller struct {
 
 	// The keys in moduleVersions are resolved and trimmed registry source
 	// addresses and the values are the registry response.
-	moduleVersions map[string]*response.ModuleVersions
+	registryPackageVersions map[addrs.ModuleRegistryPackage]*response.ModuleVersions
 
 	// The keys in moduleVersionsUrl are the moduleVersion struct below and
 	// addresses and the values are underlying remote source addresses.
-	moduleVersionsUrl map[moduleVersion]addrs.ModuleSourceRemote
+	registryPackageSources map[moduleVersion]addrs.ModuleSourceRemote
 }
 
 type moduleVersion struct {
-	module  string
+	module  addrs.ModuleRegistryPackage
 	version string
 }
 
 func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 	return &ModuleInstaller{
-		modsDir:           modsDir,
-		reg:               reg,
-		moduleVersions:    make(map[string]*response.ModuleVersions),
-		moduleVersionsUrl: make(map[moduleVersion]addrs.ModuleSourceRemote),
+		modsDir:                 modsDir,
+		reg:                     reg,
+		registryPackageVersions: make(map[addrs.ModuleRegistryPackage]*response.ModuleVersions),
+		registryPackageSources:  make(map[moduleVersion]addrs.ModuleSourceRemote),
 	}
 }
 
@@ -304,7 +304,7 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	hostname := addr.Host
+	hostname := addr.PackageAddr.Host
 	reg := i.reg
 	var resp *response.ModuleVersions
 	var exists bool
@@ -312,15 +312,14 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	// A registry entry isn't _really_ a module package, but we'll pretend it's
 	// one for the sake of this reporting by just trimming off any source
 	// directory.
-	packageAddr := addr // shallow copy
-	packageAddr.Subdir = ""
+	packageAddr := addr.PackageAddr
 
 	// Our registry client is still using the legacy model of addresses, so
 	// we'll shim it here for now.
-	regsrcAddr := regsrc.ModuleFromModuleSourceAddr(packageAddr)
+	regsrcAddr := regsrc.ModuleFromRegistryPackageAddr(packageAddr)
 
 	// check if we've already looked up this module from the registry
-	if resp, exists = i.moduleVersions[packageAddr.String()]; exists {
+	if resp, exists = i.registryPackageVersions[packageAddr]; exists {
 		log.Printf("[TRACE] %s using already found available versions of %s at %s", key, addr, hostname)
 	} else {
 		var err error
@@ -342,7 +341,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 			}
 			return nil, nil, diags
 		}
-		i.moduleVersions[packageAddr.String()] = resp
+		i.registryPackageVersions[packageAddr] = resp
 	}
 
 	// The response might contain information about dependencies to allow us
@@ -422,8 +421,8 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	// The response to this is a go-getter-style address string.
 
 	// first check the cache for the download URL
-	moduleAddr := moduleVersion{module: packageAddr.String(), version: latestMatch.String()}
-	if _, exists := i.moduleVersionsUrl[moduleAddr]; !exists {
+	moduleAddr := moduleVersion{module: packageAddr, version: latestMatch.String()}
+	if _, exists := i.registryPackageSources[moduleAddr]; !exists {
 		realAddrRaw, err := reg.ModuleLocation(regsrcAddr, latestMatch.String())
 		if err != nil {
 			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
@@ -449,7 +448,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		// its being called from) and we also don't allow recursively pointing
 		// at another registry source for simplicity's sake.
 		case addrs.ModuleSourceRemote:
-			i.moduleVersionsUrl[moduleAddr] = realAddr
+			i.registryPackageSources[moduleAddr] = realAddr
 		default:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -460,7 +459,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 		}
 	}
 
-	dlAddr := i.moduleVersionsUrl[moduleAddr]
+	dlAddr := i.registryPackageSources[moduleAddr]
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.PackageAddr)
 
