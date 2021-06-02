@@ -26,19 +26,19 @@ type Add struct {
 	// Provider specifies the provider for the target.
 	Provider addrs.Provider
 
-	// State from the common extended flags
+	// State from the common extended flags.
 	State *State
 
-	// ViewType specifies which output format to use
+	// ViewType specifies which output format to use. ViewHuman is currently the
+	// only supported view type.
 	ViewType ViewType
 }
 
 func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
 	add := &Add{State: &State{}, ViewType: ViewHuman}
 
-	var provider string
-	var fromAddr string
+	var diags tfdiags.Diagnostics
+	var provider, fromAddr string
 
 	cmdFlags := extendedFlagSet("add", add.State, nil, nil)
 	cmdFlags.StringVar(&fromAddr, "from-state", "", "fill attribute values from a resource already managed by terraform")
@@ -72,7 +72,6 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 	}
 
 	args = cmdFlags.Args()
-
 	if len(args) == 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -108,7 +107,7 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 		if addrDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				fmt.Sprintf("Error parsing resource address: %s", stateAddr),
+				"Invalid resource addrses",
 				fmt.Sprintf("Error parsing -from-state resource address: %s", addrDiags.Err().Error()),
 			))
 			return add, diags

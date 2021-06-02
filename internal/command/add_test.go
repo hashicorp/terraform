@@ -323,9 +323,9 @@ func TestAdd(t *testing.T) {
     mount_point = null # REQUIRED string
     size        = null # OPTIONAL string
   }]
-  id    = null # OPTIONAL string
-  value = null # REQUIRED string
-  network_interface {
+  id    = null          # OPTIONAL string
+  value = null          # REQUIRED string
+  network_interface {   # REQUIRED block
     description  = null # OPTIONAL string
     device_index = null # OPTIONAL string
   }
@@ -355,8 +355,8 @@ func TestAdd(t *testing.T) {
 		}
 
 		expected := `resource "test_instance" "new" {
-  value = null # REQUIRED string
-  network_interface {
+  value = null        # REQUIRED string
+  network_interface { # REQUIRED block
   }
 }
 `
@@ -503,7 +503,7 @@ func TestAdd_from_state(t *testing.T) {
 		},
 	}
 
-	args := []string{"-from-state=test_instance.old", "-optional", "test_instance.new"}
+	args := []string{"-from-state=test_instance.old", "test_instance.new"}
 	code := c.Run(args)
 	output := done(t)
 	if code != 0 {

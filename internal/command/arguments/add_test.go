@@ -56,6 +56,15 @@ func TestParseAdd(t *testing.T) {
 			},
 			``,
 		},
+		"state options from extended flag set": {
+			[]string{"-state=local.tfstate", "test_foo.bar"},
+			&Add{
+				Addr:     mustResourceInstanceAddr("test_foo.bar"),
+				State:    &State{Lock: true, StatePath: "local.tfstate"},
+				ViewType: ViewHuman,
+			},
+			``,
+		},
 
 		// Error cases
 		"missing required argument": {

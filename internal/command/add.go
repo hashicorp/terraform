@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -25,6 +24,7 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
+
 	args, diags := arguments.ParseAdd(rawArgs)
 	view := views.NewAdd(args.ViewType, c.View, args)
 	if diags.HasErrors() {
@@ -137,7 +137,9 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	schemas := ctx.Schemas()
 	rs := args.Addr.Resource.Resource
 
-	// If the provider was set on the command line, find the local name for that provider.
+	// Determine the correct provider for the target address. The
+	// providerLocalName is used later, in the call to view.Resource, to print a
+	// provider attribute if the local name doesn't match the resource type.
 	var providerLocalName string
 	var absProvider addrs.Provider
 	if !args.Provider.IsZero() {
@@ -148,7 +150,7 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		if module != nil {
 			absProvider = module.ImpliedProviderForUnqualifiedType(provider)
 		} else {
-			// lacking any indication otherwise, we'll go with a default provider.
+			// lacking any configuration to query, we'll go with a default provider.
 			absProvider = addrs.NewDefaultProvider(provider)
 		}
 	}
@@ -174,7 +176,8 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	var rio *states.ResourceInstanceObject
+	// If the -from-state flag was set, get the state value for that resource.
+	stateVal := cty.NilVal
 	if args.FromResourceAddr != nil {
 		// Get the state
 		env, err := c.Workspace()
@@ -182,11 +185,13 @@ func (c *AddCommand) Run(rawArgs []string) int {
 			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
 			return 1
 		}
+
 		stateMgr, err := b.StateMgr(env)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
 			return 1
 		}
+
 		if err := stateMgr.RefreshState(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
 			return 1
@@ -202,6 +207,7 @@ func (c *AddCommand) Run(rawArgs []string) int {
 			c.View.Diagnostics(diags)
 			return 1
 		}
+
 		ri := state.ResourceInstance(*args.FromResourceAddr)
 		if ri.Current == nil {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -212,7 +218,8 @@ func (c *AddCommand) Run(rawArgs []string) int {
 			c.View.Diagnostics(diags)
 			return 1
 		}
-		rio, err = ri.Current.Decode(schema.ImpliedType())
+
+		rio, err := ri.Current.Decode(schema.ImpliedType())
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -232,16 +239,11 @@ func (c *AddCommand) Run(rawArgs []string) int {
 			c.View.Diagnostics(diags)
 			return 1
 		}
+
+		stateVal = rio.Value
 	}
 
-	var val cty.Value
-	if rio != nil {
-		val = rio.Value
-	} else {
-		val = cty.NilVal
-	}
-
-	diags = diags.Append(view.Resource(args.Addr, schema, providerLocalName, val))
+	diags = diags.Append(view.Resource(args.Addr, schema, providerLocalName, stateVal))
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
 		return 1
@@ -261,10 +263,10 @@ Options:
 
 -from-state=ADDRESS		Fill the template with values from an existing resource.
                         The resource must be the same type as the target address
-						and exist in state.
+                        and exist in state.
 
 -out=string 			Write the template to a file. If the file already
-						exists, the template will be appended to the file.
+                        exists, the template will be appended to the file.
 
 -optional=false			Include optional attributes. Defaults to false.
 

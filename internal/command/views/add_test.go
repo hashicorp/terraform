@@ -1,7 +1,6 @@
 package views
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -12,26 +11,74 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// The output is tested in detail in other tests; this is a minimal test of the entrypoint.
+// The output is tested in greater detail in other tests; this suite focuses on
+// details specific to the Resource function.
 func TestAddResource(t *testing.T) {
-	streams, done := terminal.StreamsForTesting(t)
-	defer done(t)
-	v := addHuman{view: NewView(streams), optional: true}
-	val := cty.ObjectVal(map[string]cty.Value{
-		"disks": cty.ObjectVal(map[string]cty.Value{
-			"mount_point": cty.StringVal("/mnt/foo"),
-			"size":        cty.StringVal("50GB"),
-		}),
-	})
-	err := v.Resource(
-		mustResourceInstanceAddr("test_instance.foo"),
-		addTestSchemaSensitive(configschema.NestingSingle),
-		"", val,
-	)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+	t.Run("config only", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := addHuman{view: NewView(streams), optional: true}
+		err := v.Resource(
+			mustResourceInstanceAddr("test_instance.foo"),
+			addTestSchemaSensitive(configschema.NestingSingle),
+			"mytest", cty.NilVal,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		expected := `resource "test_instance" "foo" {
+  provider = mytest
+  ami      = null      # OPTIONAL string
+  disks = {            # OPTIONAL object
+    mount_point = null # OPTIONAL string
+    size        = null # OPTIONAL string
+  }
+  id = null            # OPTIONAL string
+  root_block_device {  # OPTIONAL block
+    volume_type = null # OPTIONAL string
+  }
 }
+`
+		output := done(t)
+		if output.Stdout() != expected {
+			t.Errorf("wrong result: %s", cmp.Diff(expected, output.Stdout()))
+		}
+	})
+
+	t.Run("from state", func(t *testing.T) {
+		streams, done := terminal.StreamsForTesting(t)
+		v := addHuman{view: NewView(streams), optional: true}
+		val := cty.ObjectVal(map[string]cty.Value{
+			"ami": cty.StringVal("ami-123456789"),
+			"disks": cty.ObjectVal(map[string]cty.Value{
+				"mount_point": cty.StringVal("/mnt/foo"),
+				"size":        cty.StringVal("50GB"),
+			}),
+		})
+		err := v.Resource(
+			mustResourceInstanceAddr("test_instance.foo"),
+			addTestSchemaSensitive(configschema.NestingSingle),
+			"mytest", val,
+		)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
+
+		expected := `resource "test_instance" "foo" {
+  provider = mytest
+  ami      = "ami-123456789"
+  disks    = {} # sensitive
+  id       = null
+}
+`
+		output := done(t)
+		if output.Stdout() != expected {
+			t.Errorf("wrong result: %s", cmp.Diff(expected, output.Stdout()))
+		}
+	})
+
+}
+
 func TestAdd_writeConfigAttributes(t *testing.T) {
 	tests := map[string]struct {
 		attrs    map[string]*configschema.Attribute
@@ -103,7 +150,6 @@ disks = { # OPTIONAL object
 				t.Errorf("unexpected error")
 			}
 			if buf.String() != test.expected {
-				fmt.Println(buf.String())
 				t.Errorf("wrong result: %s", cmp.Diff(test.expected, buf.String()))
 			}
 		})
@@ -188,6 +234,84 @@ password = null # sensitive
 			}
 		})
 	}
+}
+
+func TestAdd_writeConfigBlocks(t *testing.T) {
+	t.Run("NestingSingle", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingSingle)
+		var buf strings.Builder
+		v.writeConfigBlocks(&buf, schema.BlockTypes, 0)
+
+		expected := `network_rules { # REQUIRED block
+  ip_address = null # OPTIONAL string
+}
+root_block_device { # OPTIONAL block
+  volume_type = null # OPTIONAL string
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Errorf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingList", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingList)
+		var buf strings.Builder
+		v.writeConfigBlocks(&buf, schema.BlockTypes, 0)
+
+		expected := `network_rules { # REQUIRED block
+  ip_address = null # OPTIONAL string
+}
+root_block_device { # OPTIONAL block
+  volume_type = null # OPTIONAL string
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingSet", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingSet)
+		var buf strings.Builder
+		v.writeConfigBlocks(&buf, schema.BlockTypes, 0)
+
+		expected := `network_rules { # REQUIRED block
+  ip_address = null # OPTIONAL string
+}
+root_block_device { # OPTIONAL block
+  volume_type = null # OPTIONAL string
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingMap", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingMap)
+		var buf strings.Builder
+		v.writeConfigBlocks(&buf, schema.BlockTypes, 0)
+
+		expected := `network_rules "key" { # REQUIRED block
+  ip_address = null # OPTIONAL string
+}
+root_block_device "key" { # OPTIONAL block
+  volume_type = null # OPTIONAL string
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
 }
 
 func TestAdd_writeConfigBlocksFromExisting(t *testing.T) {
@@ -500,6 +624,78 @@ root_block_device "2" {} # sensitive
 	})
 }
 
+func TestAdd_writeConfigNestedTypeAttribute(t *testing.T) {
+	t.Run("NestingSingle", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingSingle)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttribute(&buf, "disks", schema.Attributes["disks"], 0)
+
+		expected := `disks = { # OPTIONAL object
+  mount_point = null # OPTIONAL string
+  size = null # OPTIONAL string
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingList", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingList)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttribute(&buf, "disks", schema.Attributes["disks"], 0)
+
+		expected := `disks = [{ # OPTIONAL list of object
+  mount_point = null # OPTIONAL string
+  size = null # OPTIONAL string
+}]
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingSet", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingSet)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttribute(&buf, "disks", schema.Attributes["disks"], 0)
+
+		expected := `disks = [{ # OPTIONAL set of object
+  mount_point = null # OPTIONAL string
+  size = null # OPTIONAL string
+}]
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingMap", func(t *testing.T) {
+		v := addHuman{optional: true}
+		schema := addTestSchema(configschema.NestingMap)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttribute(&buf, "disks", schema.Attributes["disks"], 0)
+
+		expected := `disks = { # OPTIONAL map of object
+  key = {
+    mount_point = null # OPTIONAL string
+    size = null # OPTIONAL string
+  }
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+}
+
 func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 	t.Run("NestingSingle", func(t *testing.T) {
 		v := addHuman{optional: true}
@@ -576,7 +772,6 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 `
 
 		if !cmp.Equal(buf.String(), expected) {
-			fmt.Println(buf.String())
 			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
 		}
 	})
@@ -589,10 +784,11 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 					"mount_point": cty.StringVal("/mnt/foo"),
 					"size":        cty.StringVal("50GB").Mark("hi"),
 				}),
+				// This is an odd example, where the entire element is marked.
 				cty.ObjectVal(map[string]cty.Value{
 					"mount_point": cty.StringVal("/mnt/bar"),
-					"size":        cty.StringVal("250GB").Mark("bye"),
-				}),
+					"size":        cty.StringVal("250GB"),
+				}).Mark("bye"),
 			}),
 		})
 
@@ -605,15 +801,39 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
     mount_point = "/mnt/foo"
     size = null # sensitive
   },
-  {
-    mount_point = "/mnt/bar"
-    size = null # sensitive
-  },
+  {}, # sensitive
 ]
 `
 
 		if !cmp.Equal(buf.String(), expected) {
-			fmt.Println(buf.String())
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingList - entirely marked", func(t *testing.T) {
+		v := addHuman{optional: true}
+		val := cty.ObjectVal(map[string]cty.Value{
+			"disks": cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"mount_point": cty.StringVal("/mnt/foo"),
+					"size":        cty.StringVal("50GB"),
+				}),
+				// This is an odd example, where the entire element is marked.
+				cty.ObjectVal(map[string]cty.Value{
+					"mount_point": cty.StringVal("/mnt/bar"),
+					"size":        cty.StringVal("250GB"),
+				}),
+			}),
+		}).Mark("sensitive")
+
+		schema := addTestSchema(configschema.NestingList)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttributeFromExisting(&buf, "disks", schema.Attributes["disks"], val, 0)
+
+		expected := `disks = [] # sensitive
+`
+
+		if !cmp.Equal(buf.String(), expected) {
 			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
 		}
 	})
@@ -640,16 +860,47 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
   bar = {
     mount_point = "/mnt/bar"
     size = "250GB"
-  },
+  }
   foo = {
     mount_point = "/mnt/foo"
     size = "50GB"
-  },
+  }
 }
 `
 
 		if !cmp.Equal(buf.String(), expected) {
-			fmt.Println(buf.String())
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
+		}
+	})
+
+	t.Run("NestingMap - marked", func(t *testing.T) {
+		v := addHuman{optional: true}
+		val := cty.ObjectVal(map[string]cty.Value{
+			"disks": cty.MapVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"mount_point": cty.StringVal("/mnt/foo"),
+					"size":        cty.StringVal("50GB").Mark("sensitive"),
+				}),
+				"bar": cty.ObjectVal(map[string]cty.Value{
+					"mount_point": cty.StringVal("/mnt/bar"),
+					"size":        cty.StringVal("250GB"),
+				}).Mark("sensitive"),
+			}),
+		})
+		schema := addTestSchema(configschema.NestingMap)
+		var buf strings.Builder
+		v.writeConfigNestedTypeAttributeFromExisting(&buf, "disks", schema.Attributes["disks"], val, 0)
+
+		expected := `disks = {
+  bar = {} # sensitive
+  foo = {
+    mount_point = "/mnt/foo"
+    size = null # sensitive
+  }
+}
+`
+
+		if !cmp.Equal(buf.String(), expected) {
 			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, buf.String()))
 		}
 	})
@@ -682,6 +933,19 @@ func addTestSchema(nesting configschema.NestingMode) *configschema.Block {
 					},
 				},
 				Nesting: nesting,
+			},
+			"network_rules": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ip_address": {
+							Type:     cty.String,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+				Nesting:  nesting,
+				MinItems: 1,
 			},
 		},
 	}
