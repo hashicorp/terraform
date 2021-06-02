@@ -45,10 +45,12 @@ func TestLoadModuleCall(t *testing.T) {
 		{
 			Name: "bar",
 			SourceAddr: addrs.ModuleSourceRegistry{
-				Host:         addrs.DefaultModuleRegistryHost,
-				Namespace:    "hashicorp",
-				Name:         "bar",
-				TargetSystem: "aws",
+				PackageAddr: addrs.ModuleRegistryPackage{
+					Host:         addrs.DefaultModuleRegistryHost,
+					Namespace:    "hashicorp",
+					Name:         "bar",
+					TargetSystem: "aws",
+				},
 			},
 			SourceAddrRaw: "hashicorp/bar/aws",
 			SourceSet:     true,

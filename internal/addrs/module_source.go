@@ -171,10 +171,11 @@ func (s ModuleSourceLocal) ForDisplay() string {
 // a concrete ModuleSourceRemote that Terraform will then download and
 // install.
 type ModuleSourceRegistry struct {
-	Host         svchost.Hostname
-	Namespace    string
-	Name         string
-	TargetSystem string
+	// PackageAddr is the registry package that the target module belongs to.
+	// The module installer must translate this into a ModuleSourceRemote
+	// using the registry API and then take that underlying address's
+	// PackageAddr in order to find the actual package location.
+	PackageAddr ModuleRegistryPackage
 
 	// If Subdir is non-empty then it represents a sub-directory within the
 	// remote package that the registry address eventually resolves to.
@@ -233,7 +234,9 @@ func parseModuleSourceRegistry(raw string) (ModuleSourceRegistry, error) {
 	}
 
 	ret := ModuleSourceRegistry{
-		Host: host,
+		PackageAddr: ModuleRegistryPackage{
+			Host: host,
+		},
 
 		Subdir: subDir,
 	}
@@ -242,7 +245,7 @@ func parseModuleSourceRegistry(raw string) (ModuleSourceRegistry, error) {
 		return ret, fmt.Errorf("can't use %q as a module registry host, because it's reserved for installing directly from version control repositories", host)
 	}
 
-	if ret.Namespace, err = parseModuleRegistryName(parts[0]); err != nil {
+	if ret.PackageAddr.Namespace, err = parseModuleRegistryName(parts[0]); err != nil {
 		if strings.Contains(parts[0], ".") {
 			// Seems like the user omitted one of the latter components in
 			// an address with an explicit hostname.
@@ -250,10 +253,10 @@ func parseModuleSourceRegistry(raw string) (ModuleSourceRegistry, error) {
 		}
 		return ret, fmt.Errorf("invalid namespace %q: %s", parts[0], err)
 	}
-	if ret.Name, err = parseModuleRegistryName(parts[1]); err != nil {
+	if ret.PackageAddr.Name, err = parseModuleRegistryName(parts[1]); err != nil {
 		return ret, fmt.Errorf("invalid module name %q: %s", parts[1], err)
 	}
-	if ret.TargetSystem, err = parseModuleRegistryTargetSystem(parts[2]); err != nil {
+	if ret.PackageAddr.TargetSystem, err = parseModuleRegistryTargetSystem(parts[2]); err != nil {
 		if strings.Contains(parts[2], "?") {
 			// The user was trying to include a query string, probably?
 			return ret, fmt.Errorf("module registry addresses may not include a query string portion")
@@ -314,52 +317,17 @@ func parseModuleRegistryTargetSystem(given string) (string, error) {
 func (s ModuleSourceRegistry) moduleSource() {}
 
 func (s ModuleSourceRegistry) String() string {
-	var buf strings.Builder
-	// Note: we're using the "display" form of the hostname here because
-	// for our service hostnames "for display" means something different:
-	// it means to render non-ASCII characters directly as Unicode
-	// characters, rather than using the "punycode" representation we
-	// use for internal processing, and so the "display" representation
-	// is actually what users would write in their configurations.
-	buf.WriteString(s.Host.ForDisplay())
-	buf.WriteByte('/')
-	buf.WriteString(s.ForRegistryProtocol())
 	if s.Subdir != "" {
-		buf.WriteString("//")
-		buf.WriteString(s.Subdir)
+		return s.PackageAddr.String() + "//" + s.Subdir
 	}
-	return buf.String()
+	return s.PackageAddr.String()
 }
 
 func (s ModuleSourceRegistry) ForDisplay() string {
-	var buf strings.Builder
-	if s.Host != DefaultModuleRegistryHost {
-		buf.WriteString(s.Host.ForDisplay())
-		buf.WriteByte('/')
-	}
-	buf.WriteString(s.ForRegistryProtocol())
 	if s.Subdir != "" {
-		buf.WriteString("//")
-		buf.WriteString(s.Subdir)
+		return s.PackageAddr.ForDisplay() + "//" + s.Subdir
 	}
-	return buf.String()
-}
-
-// ForRegistryProtocol returns a string representation of just the namespace,
-// name, and target system portions of the address, always omitting the
-// registry hostname and the subdirectory portion, if any.
-//
-// This is primarily intended for generating addresses to send to the
-// registry in question via the registry protocol, since the protocol
-// skips sending the registry its own hostname as part of identifiers.
-func (s ModuleSourceRegistry) ForRegistryProtocol() string {
-	var buf strings.Builder
-	buf.WriteString(s.Namespace)
-	buf.WriteByte('/')
-	buf.WriteString(s.Name)
-	buf.WriteByte('/')
-	buf.WriteString(s.TargetSystem)
-	return buf.String()
+	return s.PackageAddr.ForDisplay()
 }
 
 // ModuleSourceRemote is a ModuleSource representing a remote location from
