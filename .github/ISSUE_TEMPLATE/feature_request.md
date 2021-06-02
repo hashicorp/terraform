@@ -10,7 +10,9 @@ Hi there,
 
 Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
 
-If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers .
+For feature requests concerning Terraform Cloud/Enterprise, please contact tf-cloud@hashicorp.support
+
+If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers.
 -->
 
 ### Current Terraform Version
