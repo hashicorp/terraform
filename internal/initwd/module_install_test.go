@@ -331,7 +331,18 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/terraform-aws-module-installer-acctest-0.0.1/modules/child_a"),
+			// NOTE: This local path and the other paths derived from it below
+			// can vary depending on how the registry is implemented. At the
+			// time of writing this test, registry.terraform.io returns
+			// git repository source addresses and so this path refers to the
+			// root of the git clone, but historically the registry referred
+			// to GitHub-provided tar archives which meant that there was an
+			// extra level of subdirectory here for the typical directory
+			// nesting in tar archives, which would've been reflected as
+			// an extra segment on this path. If this test fails due to an
+			// additional path segment in future, then a change to the upstream
+			// registry might be the root cause.
+			LocalPath: filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -339,7 +350,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
@@ -353,7 +364,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/modules/child_b"),
 		},
 
 		// acctest_root
@@ -367,7 +378,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root"),
 		},
 
 		// acctest_root.child_a
@@ -375,7 +386,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -383,7 +394,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/terraform-aws-module-installer-acctest-0.0.1/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_b"),
 		},
 	}
 
