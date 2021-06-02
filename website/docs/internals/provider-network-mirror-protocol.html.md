@@ -257,7 +257,7 @@ seen in response to [List Available Versions](#list-available-versions).
 
 ## Provider Mirror as a Static Website
 
-The provider mirror protocol is designed so that it can potentially implemented
+The provider mirror protocol is designed so that it can potentially be implemented
 by placing files on typical static website hosting services. When using this
 strategy, implement the JSON index responses described above as `.json` files
 in the appropriate nested subdirectories, and ensure that your system is
