@@ -21,7 +21,7 @@ This command requires an address that points to a resource which does not
 already exist in the configuration. Addresses are in 
 [resource addressing format](/docs/cli/state/resource-addressing.html).
 
-The command-line flags are all optional. The list of available flags are:
+This command accepts the following options:
 
 `-from-state=ADDRESS` - populate the template with values from a resource
 already in state. Sensitive values are redacted.
