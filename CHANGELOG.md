@@ -4,6 +4,10 @@ NEW FEATURES:
 
 * lang/funcs: add a new `type()` function, only available in `terraform console` [GH-28501]
 
+ENHANCEMENTS:
+
+* configs: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. [GH-28854]
+
 ## Previous Releases
 
 For information on prior major releases, see their changelogs:
