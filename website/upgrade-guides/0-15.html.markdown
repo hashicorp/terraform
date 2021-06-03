@@ -46,11 +46,134 @@ may be able to reproduce it and offer advice.
 
 Upgrade guide sections:
 
+* [Sensitive Output Values](#sensitive-output-values)
 * [Legacy Configuration Language Features](#legacy-configuration-language-features)
 * [Alternative (Aliased) Provider Configurations Within Modules](#alternative-provider-configurations-within-modules)
 * [Commands Accepting a Configuration Directory Argument](#commands-accepting-a-configuration-directory-argument)
 * [Microsoft Windows Terminal Support](#microsoft-windows-terminal-support)
 * [Other Minor Command Line Behavior Changes](#other-minor-command-line-behavior-changes)
+* [Azure Backend `arm_`-prefixed Arguments](#azure-backend-removed-arguments)
+
+## Sensitive Output Values
+
+Terraform v0.14 previously introduced the ability for Terraform to track and
+propagate the "sensitivity" of values through expressions that include
+references to sensitive input variables and output values. For example:
+
+```hcl
+variable "example" {
+  type      = string
+  sensitive = true
+}
+
+resource "example" "example" {
+  # The following value is also treated as sensitive, because it's derived
+  # from var.example.
+  name = "foo-${var.example}"
+}
+```
+
+As part of that feature, Terraform also began requiring you to mark an output
+value as sensitive if its definition includes any sensitive values itself:
+
+```hcl
+output "example" {
+  value = "foo-${var.example}"
+
+  # Must mark this output value as sensitive, because it's derived from
+  # var.example that is declared as sensitive.
+  sensitive = true
+}
+```
+
+Terraform v0.15 extends this mechanism to also work for values derived from
+resource attributes that the provider has declared as being sensitive.
+Provider developers will typically mark an attribute as sensitive if the
+remote system has documented the corresponding field as being sensitive, such
+as if the attribute always contains a password or a private key.
+
+As a result of that, after upgrading to Terraform v0.15 you may find that
+Terraform now reports some of your output values as invalid, if they were
+derived from sensitive attributes without also being marked as sensitive:
+
+```
+╷
+│ Error: Output refers to sensitive values
+│ 
+│   on sensitive-resource-attr.tf line 5:
+│    5: output "private_key" {
+│ 
+│ Expressions used in outputs can only refer to sensitive values if the
+│ sensitive attribute is true.
+╵
+```
+
+If you were intentionally exporting a sensitive value, you can address the
+error by adding an explicit declaration `sensitive = true` to the output
+value declaration:
+
+```hcl
+output "private_key" {
+  value     = tls_private_key.example.private_key_pem
+  sensitive = true
+}
+```
+
+With that addition, if this output value was a root module output value then
+Terraform will hide its value in the `terraform plan` and `terraform apply`
+output:
+
+```
+Changes to Outputs:
+  + private_key = (sensitive value)
+```
+
+-> **Note:** The declaration of an output value as sensitive must be made
+within the module that declares the output, so if you depend on a third-party
+module that has a sensitive output value that is lacking this declaration then
+you will need to wait for a new version of that module before you can upgrade
+to Terraform v0.15.
+
+The value is only hidden in the main UI, and so the sensitive value
+will still be recorded in the state. If you declared this output value in order
+to use it as part of integration with other software, you can still retrieve
+the cleartext value using commands intended for machine rather than human
+consumption, such as `terraform output -json` or `terraform output -raw`:
+
+```shellsession
+$ terraform output -raw private_key
+-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAoahsvJ1rIxTIOOmJZ7yErs5eOq/Kv9+5l3h0LbxW78K8//Kb
+OMU3v8F3h8jp+AB/1zGr5UBYfnYp5ncJm/OTCXLFAHxGibEbRnf1m2A3o0hEaWsw
+# (etc...)
+```
+
+If you consider Terraform's treatment of a sensitive value to be too
+conservative and you'd like to force Terraform to treat a sensitive value as
+non-sensitive, you can use
+[the `nonsensitive` function](/docs/language/functions/nonsensitive.html) to
+override Terraform's automatic detection:
+
+```hcl
+output "private_key" {
+  # WARNING: Terraform will display this result as cleartext
+  value = nonsensitive(tls_private_key.example.private_key_pem)
+}
+```
+
+For more information on the various situations where sensitive values can
+originate in Terraform, refer to the following sections:
+
+* [Sensitive Input Variables](/docs/language/values/variables.html#suppressing-values-in-cli-output)
+* [Sensitive Resource Attributes](/docs/language/expressions/references.html#sensitive-resource-attributes)
+* [Sensitive Output Values](/docs/language/values/outputs.html#sensitive)
+
+-> **Note:** The new behavior described in this section was previously
+available in Terraform v0.14 as the
+[language experiment](/docs/language/settings/#experimental-language-features)
+`provider_sensitive_attrs`. That experiment has now concluded, so if you were
+participating in that experiment then you'll now need to remove the experiment
+opt-in from your module as part of upgrading to Terraform v0.15.
 
 ## Legacy Configuration Language Features
 
@@ -80,7 +203,7 @@ upgrading to Terraform v0.15:
     ```
 
     If you need to update a module which was using the `map` function, you
-    can get the same result by replacing `map(...)` with `tomap([...])`.
+    can get the same result by replacing `map(...)` with `tomap({...})`.
     For example:
 
     ```diff
@@ -371,3 +494,44 @@ cleanup of obsolete features and improved consistency:
 
     If you are using `-force` in an automated call to `terraform destroy`,
     change to using `-auto-approve` instead.
+
+## Azure Backend Removed Arguments
+
+In an earlier release the `azure` backend changed to remove the `arm_` prefix
+from a number of the configuration arguments:
+
+| Old Name              | New Name          |
+|-----------------------|-------------------|
+| `arm_client_id`       | `client_id`       |
+| `arm_client_secret`   | `client_secret`   |
+| `arm_subscription_id` | `subscription_id` |
+| `arm_tenant_id`       | `tenant_id`       |
+
+The old names were previously deprecated, but we've removed them altogether
+in Terraform v0.15 in order to conclude that deprecation cycle.
+
+If you have a backend configuration using the old names then you may see
+errors like the following when upgrading to Terraform v0.15:
+
+```
+╷
+│ Error: Invalid backend configuration argument
+│
+│ The backend configuration argument "arm_client_id" given on
+│ the command line is not expected for the selected backend type.
+╵
+```
+
+If you see errors like this, rename the arguments in your backend configuration
+as shown in the table above and then run the following to re-initialize your
+backend configuration:
+
+```
+terraform init -reconfigure
+```
+
+The `-reconfigure` argument instructs Terraform to just replace the old
+configuration with the new configuration directly, rather than offering to
+migrate the latest state snapshots from the old to the new configuration.
+Migration would not be appropriate in this case because the old and new
+configurations are equivalent and refer to the same remote objects.

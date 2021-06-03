@@ -30,8 +30,10 @@ from getting into this situation.
 The command-line flags are all optional. The only supported flag is:
 
 * `-force` - Delete the workspace even if its state is not empty. Defaults to false.
-* `-lock`  - Lock the state file when locking is supported. Defaults to true.
-* `-lock-timeout`   - Duration to retry a state lock. Default 0s.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+   dangerous if others might concurrently run commands against the same
+   workspace.
+* `-lock-timeout=DURATION` - Duration to retry a state lock. Default 0s.
 
 ## Example
 

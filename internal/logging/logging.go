@@ -81,7 +81,7 @@ func HCLogger() hclog.Logger {
 // newHCLogger returns a new hclog.Logger instance with the given name
 func newHCLogger(name string) hclog.Logger {
 	logOutput := io.Writer(os.Stderr)
-	logLevel := globalLogLevel()
+	logLevel, json := globalLogLevel()
 
 	if logPath := os.Getenv(envLogFile); logPath != "" {
 		f, err := os.OpenFile(logPath, syscall.O_CREAT|syscall.O_RDWR|syscall.O_APPEND, 0666)
@@ -97,6 +97,7 @@ func newHCLogger(name string) hclog.Logger {
 		Level:             logLevel,
 		Output:            logOutput,
 		IndependentLevels: true,
+		JSONFormat:        json,
 	})
 }
 
@@ -127,7 +128,8 @@ func NewProviderLogger(prefix string) hclog.Logger {
 
 // CurrentLogLevel returns the current log level string based the environment vars
 func CurrentLogLevel() string {
-	return strings.ToUpper(globalLogLevel().String())
+	ll, _ := globalLogLevel()
+	return strings.ToUpper(ll.String())
 }
 
 func providerLogLevel() hclog.Level {
@@ -139,18 +141,24 @@ func providerLogLevel() hclog.Level {
 	return parseLogLevel(providerEnvLevel)
 }
 
-func globalLogLevel() hclog.Level {
+func globalLogLevel() (hclog.Level, bool) {
+	var json bool
 	envLevel := strings.ToUpper(os.Getenv(envLog))
 	if envLevel == "" {
 		envLevel = strings.ToUpper(os.Getenv(envLogCore))
-
 	}
-	return parseLogLevel(envLevel)
+	if envLevel == "JSON" {
+		json = true
+	}
+	return parseLogLevel(envLevel), json
 }
 
 func parseLogLevel(envLevel string) hclog.Level {
 	if envLevel == "" {
 		return hclog.Off
+	}
+	if envLevel == "JSON" {
+		envLevel = "TRACE"
 	}
 
 	logLevel := hclog.Trace
@@ -166,7 +174,7 @@ func parseLogLevel(envLevel string) hclog.Level {
 
 // IsDebugOrHigher returns whether or not the current log level is debug or trace
 func IsDebugOrHigher() bool {
-	level := globalLogLevel()
+	level, _ := globalLogLevel()
 	return level == hclog.Debug || level == hclog.Trace
 }
 
@@ -178,4 +186,36 @@ func isValidLogLevel(level string) bool {
 	}
 
 	return false
+}
+
+// PluginOutputMonitor creates an io.Writer that will warn about any writes in
+// the default logger. This is used to catch unexpected output from plugins,
+// notifying them about the problem as well as surfacing the lost data for
+// context.
+func PluginOutputMonitor(source string) io.Writer {
+	return pluginOutputMonitor{
+		source: source,
+		log:    logger,
+	}
+}
+
+// pluginOutputMonitor is an io.Writer that logs all writes as
+// "unexpected data" with the source name.
+type pluginOutputMonitor struct {
+	source string
+	log    hclog.Logger
+}
+
+func (w pluginOutputMonitor) Write(d []byte) (int, error) {
+	// Limit the write size to 1024 bytes We're not expecting any data to come
+	// through this channel, so accidental writes will usually be stray fmt
+	// debugging statements and the like, but we want to provide context to the
+	// provider to indicate what the unexpected data might be.
+	n := len(d)
+	if n > 1024 {
+		d = append(d[:1024], '.', '.', '.')
+	}
+
+	w.log.Warn("unexpected data", w.source, strings.TrimSpace(string(d)))
+	return n, nil
 }

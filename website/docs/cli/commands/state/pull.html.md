@@ -17,8 +17,8 @@ works with local state.
 Usage: `terraform state pull`
 
 This command will download the state from its current location, upgrade the
-local copy to the latest state file version, and output the raw format to
-stdout.
+local copy to the latest state file version that is compatible with
+locally-installed Terraform, and output the raw format to stdout.
 
 This is useful for reading values out of state (potentially pairing this
 command with something like [jq](https://stedolan.github.io/jq/)). It is

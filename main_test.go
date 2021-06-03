@@ -253,6 +253,34 @@ func TestMain_cliArgsFromEnvAdvanced(t *testing.T) {
 	}
 }
 
+// verify that we output valid autocomplete results
+func TestMain_autoComplete(t *testing.T) {
+	// Restore original CLI args
+	oldArgs := os.Args
+	defer func() { os.Args = oldArgs }()
+
+	// Set up test command and restore that
+	Commands = make(map[string]cli.CommandFactory)
+	defer func() {
+		Commands = nil
+	}()
+
+	// Set up test command and restore that
+	Commands["foo"] = func() (cli.Command, error) {
+		return &testCommandCLI{}, nil
+	}
+
+	os.Setenv("COMP_LINE", "terraform versio")
+	defer os.Unsetenv("COMP_LINE")
+
+	// Run it!
+	os.Args = []string{"terraform", "terraform", "versio"}
+	exit := wrappedMain()
+	if exit != 0 {
+		t.Fatalf("unexpected exit status %d; want 0", exit)
+	}
+}
+
 type testCommandCLI struct {
 	Args []string
 }

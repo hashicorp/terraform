@@ -3,33 +3,40 @@ layout: "docs"
 page_title: "Command: taint"
 sidebar_current: "docs-commands-taint"
 description: |-
-  The `terraform taint` command manually marks a Terraform-managed resource as tainted, forcing it to be destroyed and recreated on the next apply.
+  The `terraform taint` command informs Terraform that a particular object
+  is damaged or degraded.
 ---
 
 # Command: taint
 
-The `terraform taint` command manually marks a Terraform-managed resource
-as tainted, forcing it to be destroyed and recreated on the next apply.
+The `terraform taint` command informs Terraform that a particular object has
+become degraded or damaged. Terraform represents this by marking the
+object as "tainted" in the Terraform state, in which case Terraform will
+propose to replace it in the next plan you create.
 
-This command _will not_ modify infrastructure, but does modify the
-state file in order to mark a resource as tainted. Once a resource is
-marked as tainted, the next
-[plan](/docs/cli/commands/plan.html) will show that the resource will
-be destroyed and recreated and the next
-[apply](/docs/cli/commands/apply.html) will implement this change.
+~> *Warning:* This command is deprecated, because there are better alternatives
+available in Terraform v0.15.2 and later. See below for more details.
 
-Forcing the recreation of a resource is useful when you want a certain
-side effect of recreation that is not visible in the attributes of a resource.
-For example: re-running provisioners will cause the node to be different
-or rebooting the machine from a base image will cause new startup scripts
-to run.
+If your intent is to force replacement of a particular object even though
+there are no configuration changes that would require it, we recommend instead
+to use the `-replace` option with [`terraform apply`](./apply.html).
+For example:
 
-Note that tainting a resource for recreation may affect resources that
-depend on the newly tainted resource. For example, a DNS resource that
-uses the IP address of a server may need to be modified to reflect
-the potentially new IP address of a tainted server. The
-[plan command](/docs/cli/commands/plan.html) will show this if this is
-the case.
+```
+terraform apply -replace="aws_instance.example[0]"
+```
+
+Creating a plan with the "replace" option is superior to using `terraform taint`
+because it will allow you to see the full effect of that change before you take
+any externally-visible action. When you use `terraform taint` to get a similar
+effect, you risk someone else on your team creating a new plan against your
+tainted object before you've had a chance to review the consequences of that
+change yourself.
+
+The `-replace=...` option to `terraform apply` is only available from
+Terraform v0.15.2 onwards, so if you are using an earlier version you will need
+to use `terraform taint` to force object replacement, while considering the
+caveats described above.
 
 ## Usage
 
@@ -42,74 +49,31 @@ as shown in the output from other commands, such as:
 
  * `aws_instance.foo`
  * `aws_instance.bar[1]`
- * `aws_instance.baz``[\"key\"]` (quotes in resource addresses must be escaped on the command line, so that they are not interpreted by your shell)
+ * `aws_instance.baz[\"key\"]` (quotes in resource addresses must be escaped on the command line, so that they will not be interpreted by your shell)
  * `module.foo.module.bar.aws_instance.qux`
 
-The command-line flags are all optional. The list of available flags are:
+This command accepts the following options:
 
 * `-allow-missing` - If specified, the command will succeed (exit code 0)
-    even if the resource is missing. The command can still error, but only
-    in critically erroneous cases.
+  even if the resource is missing. The command might still return an error
+  for other situations, such as if there is a problem reading or writing
+  the state.
 
-* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extension. Disabled by setting to "-".
+* `-lock=false` - Disables Terraform's default behavior of attempting to take
+  a read/write lock on the state for the duration of the operation.
 
-* `-lock=true` - Lock the state file when locking is supported.
+* `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
 
-* `-lock-timeout=0s` - Duration to retry a state lock.
+For configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html)
+only, `terraform taint`
+also accepts the option
+[`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
-* `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/docs/language/state/remote.html) is used.
-
-* `-state-out=path` - Path to write updated state file. By default, the
-  `-state` path will be used. Ignored when
-  [remote state](/docs/language/state/remote.html) is used.
-
-* `-ignore-remote-version` - When using the enhanced remote backend with
-  Terraform Cloud, continue even if remote and local Terraform versions differ.
-  This may result in an unusable Terraform Cloud workspace, and should be used
-  with extreme caution.
-
-## Example: Tainting a Single Resource
-
-This example will taint a single resource:
-
-```
-$ terraform taint aws_security_group.allow_all
-The resource aws_security_group.allow_all in the module root has been marked as tainted.
-```
-
-## Example: Tainting a single resource created with for_each
-
-This example will taint a single resource created with for_each:
-
-```
-$ terraform taint 'module.route_tables.azurerm_route_table.rt["DefaultSubnet"]'
-The resource module.route_tables.azurerm_route_table.rt["DefaultSubnet"] in the module root has been marked as tainted.
-```
-
-~> Note: In most `sh` compatible shells, double quotes and spaces can be
-escaped by wrapping the argument in single quotes. This however varies between
-other shells and operating systems, and users should use the appropriate escape
-characters based on the applicable quoting rules for their shell to pass the
-address string, including quotes, to Terraform.
-
-## Example: Tainting a Resource within a Module
-
-This example will only taint a resource within a module:
-
-```
-$ terraform taint "module.couchbase.aws_instance.cb_node[9]"
-Resource instance module.couchbase.aws_instance.cb_node[9] has been marked as tainted.
-```
-
-Although we recommend that most configurations use only one level of nesting
-and employ [module composition](/docs/language/modules/develop/composition.html), it's possible
-to have multiple levels of nested modules. In that case the resource instance
-address must include all of the steps to the target instance, as in the
-following example:
-
-```
-$ terraform taint "module.child.module.grandchild.aws_instance.example[2]"
-Resource instance module.child.module.grandchild.aws_instance.example[2] has been marked as tainted.
-```
+For configurations using
+[the `local` backend](/docs/language/settings/backends/local.html) only,
+`terraform taint` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).

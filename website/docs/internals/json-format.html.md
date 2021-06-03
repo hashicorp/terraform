@@ -122,7 +122,31 @@ For ease of consumption by callers, the plan representation includes a partial r
 
       // "change" describes the change that will be made to the indicated
       // object. The <change-representation> is detailed in a section below.
-      "change": <change-representation>
+      "change": <change-representation>,
+
+      // "action_reason" is some optional extra context about why the
+      // actions given inside "change" were selected. This is the JSON
+      // equivalent of annotations shown in the normal plan output like
+      // "is tainted, so must be replaced" as opposed to just "must be
+      // replaced".
+      //
+      // These reason codes are display hints only and the set of possible
+      // hints may change over time. Users of this must be prepared to
+      // encounter unrecognized reasons and treat them as unspecified reasons.
+      //
+      // The current set of possible values is:
+      // - "replace_because_tainted": the object in question is marked as
+      //   "tainted" in the prior state, so Terraform planned to replace it.
+      // - "replace_because_cannot_update": the provider indicated that one
+      //   of the requested changes isn't possible without replacing the
+      //   existing object with a new object.
+      // - "replace_by_request": the user explicitly called for this object
+      //   to be replaced as an option when creating the plan, which therefore
+      //   overrode what would have been a "no-op" or "update" action otherwise.
+      //
+      // If there is no special reason to note, Terraform will omit this
+      // property altogether.
+      action_reason: "replace_because_tainted"
     }
   ],
 
@@ -466,7 +490,7 @@ A `<change-representation>` describes the change that will be made to the indica
   // e.g. just scan the list for "delete" to recognize all three situations
   // where the object will be deleted, allowing for any new deletion
   // combinations that might be added in future.
-  "actions": ["update"]
+  "actions": ["update"],
 
   // "before" and "after" are representations of the object value both before
   // and after the action. For ["create"] and ["delete"] actions, either
@@ -474,6 +498,35 @@ A `<change-representation>` describes the change that will be made to the indica
   // after values are identical. The "after" value will be incomplete if there
   // are values within it that won't be known until after apply.
   "before": <value-representation>,
-  "after": <value-representation>
+  "after": <value-representation>,
+
+  // "after_unknown" is an object value with similar structure to "after", but
+  // with all unknown leaf values replaced with "true", and all known leaf
+  // values omitted. This can be combined with "after" to reconstruct a full
+  // value after the action, including values which will only be known after
+  // apply.
+  "after_unknown": {
+    "id": true
+  },
+
+  // "before_sensitive" and "after_sensitive" are object values with similar
+  // structure to "before" and "after", but with all sensitive leaf values
+  // replaced with true, and all non-sensitive leaf values omitted. These
+  // objects should be combined with "before" and "after" to prevent accidental
+  // display of sensitive values in user interfaces.
+  "before_sensitive": {},
+  "after_sensitive": {
+    "triggers": {
+      "boop": true
+    }
+  },
+
+  // "replace_paths" is an array of arrays representing a set of paths into the
+  // object value which resulted in the action being "replace". This will be
+  // omitted if the action is not replace, or if no paths caused the
+  // replacement (for example, if the resource was tainted). Each path
+  // consists of one or more steps, each of which will be a number or a
+  // string.
+  "replace_paths": [["triggers"]]
 }
 ```

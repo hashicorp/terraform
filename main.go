@@ -13,11 +13,11 @@ import (
 
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/command/cliconfig"
-	"github.com/hashicorp/terraform/command/format"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
@@ -26,7 +26,7 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/mitchellh/panicwrap"
 
-	backendInit "github.com/hashicorp/terraform/backend/init"
+	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
 
 const (
@@ -357,7 +357,12 @@ func wrappedMain() int {
 	// where a command isn't found, because it's likely more helpful to
 	// mention what specifically went wrong, rather than just printing out
 	// a big block of usage information.)
-	if cmd := cliRunner.Subcommand(); cmd != "" {
+
+	// Check if this is being run via shell auto-complete, which uses the
+	// binary name as the first argument and won't be listed as a subcommand.
+	autoComplete := os.Getenv("COMP_LINE") != ""
+
+	if cmd := cliRunner.Subcommand(); cmd != "" && !autoComplete {
 		// Due to the design of cli.CLI, this special error message only works
 		// for typos of top-level commands. For a subcommand typo, like
 		// "terraform state posh", cmd would be "state" here and thus would
@@ -445,8 +450,9 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 	unmanagedProviders := map[addrs.Provider]*plugin.ReattachConfig{}
 	if in != "" {
 		type reattachConfig struct {
-			Protocol string
-			Addr     struct {
+			Protocol        string
+			ProtocolVersion int
+			Addr            struct {
 				Network string
 				String  string
 			}
@@ -479,10 +485,11 @@ func parseReattachProviders(in string) (map[addrs.Provider]*plugin.ReattachConfi
 				return unmanagedProviders, fmt.Errorf("Unknown address type %q for %q", c.Addr.Network, p)
 			}
 			unmanagedProviders[a] = &plugin.ReattachConfig{
-				Protocol: plugin.Protocol(c.Protocol),
-				Pid:      c.Pid,
-				Test:     c.Test,
-				Addr:     addr,
+				Protocol:        plugin.Protocol(c.Protocol),
+				ProtocolVersion: c.ProtocolVersion,
+				Pid:             c.Pid,
+				Test:            c.Test,
+				Addr:            addr,
 			}
 		}
 	}

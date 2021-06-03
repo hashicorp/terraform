@@ -10,7 +10,7 @@ references:
 executors:
   go:
     docker:
-      - image: docker.mirror.hashicorp.services/circleci/golang:1.16
+      - image: docker.mirror.hashicorp.services/cimg/go:1.16
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
@@ -93,7 +93,7 @@ jobs:
       - run:
           name: Run Go E2E Tests
           command: |
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./command/e2etest ./tools/terraform-bundle/e2etest
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./internal/command/e2etest ./tools/terraform-bundle/e2etest
 
       # save coverage report parts
       - persist_to_workspace:
@@ -110,27 +110,6 @@ jobs:
           fail_only: true
           only_for_branches: main
 
-  # combine code coverage results from the parallel circleci executors
-  coverage-merge:
-    executor:
-      name: go
-    steps:
-      - checkout
-      - attach_workspace:
-          at: .
-      - run: mkdir -p $TEST_RESULTS_DIR
-      - run:
-          name: merge coverage reports
-          command: |
-            echo "mode: set" > coverage.out
-            grep -h -v "mode: set" cov_*.part >> coverage.out
-            go tool cover -html=coverage.out -o $TEST_RESULTS_DIR/coverage.html
-      - run:
-          name: codecov upload
-          command: bash <(curl -s https://codecov.io/bash) -v -C $CIRCLE_SHA1
-      - store_artifacts:
-          path: *TEST_RESULTS_DIR
-
   # build all distros
   build-distros: &build-distros
     executor: go
@@ -146,20 +125,12 @@ jobs:
       - store_artifacts:
           path: *ARTIFACTS_DIR
 
-  # build all 386 architecture supported OS binaries
-  build-386:
-    <<: *build-distros
-    environment:
-      <<: *build-env
-      XC_OS: "freebsd linux openbsd windows"
-      XC_ARCH: "386"
-
   # build all amd64 architecture supported OS binaries
   build-amd64:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "darwin freebsd linux solaris windows"
+      XC_OS: "darwin linux windows"
       XC_ARCH: "amd64"
 
   # build all arm architecture supported OS binaries
@@ -167,7 +138,7 @@ jobs:
     <<: *build-distros
     environment:
       <<: *build-env
-      XC_OS: "freebsd linux"
+      XC_OS: "linux"
       XC_ARCH: "arm"
 
   test-docker-full:
@@ -282,10 +253,6 @@ workflows:
       - go-test-e2e:
           requires:
             - go-checks
-      - coverage-merge:
-          requires:
-            - go-test
-            - go-test-e2e
       - test-docker-full:
           filters:
             branches:
@@ -295,7 +262,6 @@ workflows:
 
   build-distros:
     jobs:
-      - build-386
       - build-amd64
       - build-arm
 
