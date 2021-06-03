@@ -93,7 +93,7 @@ jobs:
       - run:
           name: Run Go E2E Tests
           command: |
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./internal/command/e2etest ./tools/terraform-bundle/e2etest
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./internal/command/e2etest 
 
       # save coverage report parts
       - persist_to_workspace:
