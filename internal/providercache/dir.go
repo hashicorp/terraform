@@ -58,7 +58,7 @@ func NewDir(baseDir string) *Dir {
 // running.
 //
 // This is primarily intended for portable unit testing and not particularly
-// useful in "real" callers, with the exception of terraform-bundle.
+// useful in "real" callers.
 func NewDirWithPlatform(baseDir string, platform getproviders.Platform) *Dir {
 	return &Dir{
 		baseDir:        baseDir,
