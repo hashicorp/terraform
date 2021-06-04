@@ -83,6 +83,7 @@
                 "test": {
                     "expression": {
                         "references": [
+                            "test_instance.test.ami",
                             "test_instance.test"
                         ]
                     },
