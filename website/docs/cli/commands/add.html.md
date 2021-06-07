@@ -13,6 +13,10 @@ The `terraform add` command generates a resource configuration template with
 used. By default, the template only includes required resource attributes; the
 `-optional` flag tells Terraform to also include any optional attributes. 
 
+When `terraform add` used with the `-from-state` will _not_ print sensitive
+values. You can use `terraform show ADDRESS` to see all values, including
+sensitive values, recorded in state for the given resource address.
+
 ## Usage
 
 Usage: `terraform add [options] ADDRESS`
