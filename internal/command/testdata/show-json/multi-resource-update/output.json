@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "terraform_version": "0.13.0",
     "variables": {
         "test_var": {
@@ -104,7 +104,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "terraform_version": "0.13.0",
         "values": {
             "outputs": {

@@ -17,7 +17,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "0.1"
+const FormatVersion = "0.2"
 
 // state is the top-level representation of the json format of a terraform
 // state.
@@ -83,6 +83,10 @@ type resource struct {
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// SensitiveValues is similar to AttributeValues, but with all sensitive
+	// values replaced with true, and all non-sensitive leaf values omitted.
+	SensitiveValues map[string]bool `json:"sensitive_values,omitempty"`
 
 	// DependsOn contains a list of the resource's dependencies. The entries are
 	// addresses relative to the containing module.
@@ -193,10 +197,11 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, err
 	var err error
 
 	ret.Address = ""
-	ret.Resources, err = marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
+	rs, err := marshalResources(s.RootModule().Resources, addrs.RootModuleInstance, schemas)
 	if err != nil {
 		return ret, err
 	}
+	ret.Resources = rs
 
 	// build a map of module -> set[child module addresses]
 	moduleChildSet := make(map[string]map[string]struct{})
@@ -324,6 +329,10 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
+				// Mark the resource instance value with any marks stored in AttrSensitivePaths so we can build the SensitiveValues object
+				markedVal := riObj.Value.MarkWithPaths(ri.Current.AttrSensitivePaths)
+				current.SensitiveValues = marshalSensitiveValues(markedVal)
+
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
 					for i, v := range riObj.Dependencies {
@@ -378,4 +387,101 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	})
 
 	return ret, nil
+}
+
+// marshalSensitiveValues returns a map of sensitive attributes, with the value
+// set to true. It returns nil if the value is nil or if there are no sensitive
+// vals.
+func marshalSensitiveValues(value cty.Value) map[string]bool {
+	if value == cty.NilVal || value.IsNull() {
+		return nil
+	}
+
+	ret := make(map[string]bool)
+
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		s := SensitiveAsBool(v)
+		if !s.RawEquals(cty.False) {
+			ret[k.AsString()] = true
+		}
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
+}
+
+func SensitiveAsBool(val cty.Value) cty.Value {
+	if val.HasMark("sensitive") {
+		return cty.True
+	}
+
+	ty := val.Type()
+	switch {
+	case val.IsNull(), ty.IsPrimitiveType(), ty.Equals(cty.DynamicPseudoType):
+		return cty.False
+	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
+		if !val.IsKnown() {
+			// If the collection is unknown we can't say anything about the
+			// sensitivity of its contents
+			return cty.EmptyTupleVal
+		}
+		length := val.LengthInt()
+		if length == 0 {
+			// If there are no elements then we can't have sensitive values
+			return cty.EmptyTupleVal
+		}
+		vals := make([]cty.Value, 0, length)
+		it := val.ElementIterator()
+		for it.Next() {
+			_, v := it.Element()
+			vals = append(vals, SensitiveAsBool(v))
+		}
+		// The above transform may have changed the types of some of the
+		// elements, so we'll always use a tuple here in case we've now made
+		// different elements have different types. Our ultimate goal is to
+		// marshal to JSON anyway, and all of these sequence types are
+		// indistinguishable in JSON.
+		return cty.TupleVal(vals)
+	case ty.IsMapType() || ty.IsObjectType():
+		if !val.IsKnown() {
+			// If the map/object is unknown we can't say anything about the
+			// sensitivity of its attributes
+			return cty.EmptyObjectVal
+		}
+		var length int
+		switch {
+		case ty.IsMapType():
+			length = val.LengthInt()
+		default:
+			length = len(val.Type().AttributeTypes())
+		}
+		if length == 0 {
+			// If there are no elements then we can't have sensitive values
+			return cty.EmptyObjectVal
+		}
+		vals := make(map[string]cty.Value)
+		it := val.ElementIterator()
+		for it.Next() {
+			k, v := it.Element()
+			s := SensitiveAsBool(v)
+			// Omit all of the "false"s for non-sensitive values for more
+			// compact serialization
+			if !s.RawEquals(cty.False) {
+				vals[k.AsString()] = s
+			}
+		}
+		// The above transform may have changed the types of some of the
+		// elements, so we'll always use an object here in case we've now made
+		// different elements have different types. Our ultimate goal is to
+		// marshal to JSON anyway, and all of these mapping types are
+		// indistinguishable in JSON.
+		return cty.ObjectVal(vals)
+	default:
+		// Should never happen, since the above should cover all types
+		panic(fmt.Sprintf("sensitiveAsBool cannot handle %#v", val))
+	}
 }

@@ -515,7 +515,7 @@ func TestShow_json_output_state(t *testing.T) {
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": []string{"1.2.3"},
+				"test": {"1.2.3"},
 			})
 			defer close()
 
@@ -552,6 +552,7 @@ func TestShow_json_output_state(t *testing.T) {
 				FormatVersion    string                 `json:"format_version,omitempty"`
 				TerraformVersion string                 `json:"terraform_version"`
 				Values           map[string]interface{} `json:"values,omitempty"`
+				SensitiveValues  map[string]bool        `json:"sensitive_values,omitempty"`
 			}
 			var got, want state
 
@@ -764,6 +765,7 @@ type plan struct {
 }
 
 type priorState struct {
-	FormatVersion string                 `json:"format_version,omitempty"`
-	Values        map[string]interface{} `json:"values,omitempty"`
+	FormatVersion   string                 `json:"format_version,omitempty"`
+	Values          map[string]interface{} `json:"values,omitempty"`
+	SensitiveValues map[string]bool        `json:"sensitive_values,omitempty"`
 }
