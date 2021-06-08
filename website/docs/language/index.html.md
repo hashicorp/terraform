@@ -10,7 +10,7 @@ to users of [Terraform CLI](/docs/cli/index.html),
 [Terraform Cloud](/docs/cloud/index.html), and
 [Terraform Enterprise](/docs/enterprise/index.html).
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+> **Hands-on:** Try the [Write Terraform Configuration](https://learn.hashicorp.com/collections/terraform/configuration-language) tutorials on HashiCorp Learn.
 
 _The Terraform language is Terraform's primary user interface._ In every edition
 of Terraform, a configuration written in the Terraform language is always at the
