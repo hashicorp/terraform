@@ -10,7 +10,7 @@ ENHANCEMENTS:
 
 ## Previous Releases
 
-For information on prior major releases, see their changelogs:
+For information on prior major and minor releases, see their changelogs:
 
 * [v1.0](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md)
 * [v0.15](https://github.com/hashicorp/terraform/blob/v0.15/CHANGELOG.md)
