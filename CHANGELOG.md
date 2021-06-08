@@ -1,4 +1,4 @@
-## 0.15.6 (Unreleased)
+Development of the Terraform v0.15 series continued as [the Terraform v1.0 series](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md). We don't intend to publish any new Terraform v0.15 releases and we recommend that everyone should upgrade from Terraform v0.15.5 to the latest available release in the v1.0 series.
 
 ## 0.15.5 (June 02, 2021)
 
