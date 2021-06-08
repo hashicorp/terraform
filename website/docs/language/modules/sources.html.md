@@ -14,6 +14,10 @@ Terraform uses this during the module installation step of `terraform init`
 to download the source code to a directory on local disk so that it can be
 used by other Terraform commands.
 
+> **Hands-on:** Try our HashiCorp Learn tutorials to use modules from [the
+> registry](https://learn.hashicorp.com/tutorials/terraform/module-use)
+>or [locally](https://learn.hashicorp.com/tutorials/terraform/module-create).
+
 The module installer supports installation from a number of different source
 types, as listed below.
 
