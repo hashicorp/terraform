@@ -8,13 +8,14 @@ page_title: "Overview - Configuration Language"
 This is the documentation for Terraform's configuration language. It is relevant
 to users of [Terraform CLI](/docs/cli/index.html),
 [Terraform Cloud](/docs/cloud/index.html), and
-[Terraform Enterprise](/docs/enterprise/index.html).
+[Terraform Enterprise](/docs/enterprise/index.html). Its language is
+Terraform's primary user interface. Configuration files you write in Terraform
+language tell Terraform what plugins to install, what infrastructure to create,
+and what data to fetch. Terraform language also lets you define dependencies
+between resources and create multiple similar resources from a single
+configuration block.
 
 > **Hands-on:** Try the [Write Terraform Configuration](https://learn.hashicorp.com/collections/terraform/configuration-language) tutorials on HashiCorp Learn.
-
-_The Terraform language is Terraform's primary user interface._ In every edition
-of Terraform, a configuration written in the Terraform language is always at the
-heart of the workflow.
 
 ## About the Terraform Language
 
