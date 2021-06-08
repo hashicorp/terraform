@@ -8,8 +8,8 @@ page_title: "Overview - Configuration Language"
 This is the documentation for Terraform's configuration language. It is relevant
 to users of [Terraform CLI](/docs/cli/index.html),
 [Terraform Cloud](/docs/cloud/index.html), and
-[Terraform Enterprise](/docs/enterprise/index.html). Its language is
-Terraform's primary user interface. Configuration files you write in Terraform
+[Terraform Enterprise](/docs/enterprise/index.html). Terraform's language is
+its primary user interface. Configuration files you write in Terraform
 language tell Terraform what plugins to install, what infrastructure to create,
 and what data to fetch. Terraform language also lets you define dependencies
 between resources and create multiple similar resources from a single
@@ -116,4 +116,3 @@ resource "aws_subnet" "az" {
   cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index+1)
 }
 ```
-

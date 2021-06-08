@@ -13,7 +13,7 @@ Providers alow Terraform to interact with cloud providers, SaaS providers, and
 other APIs.
 
 Some providers require you to configure them with endpoint URLs, cloud regions,
-or other settings before Terraform can ues them. This page documents how to
+or other settings before Terraform can use them. This page documents how to
 configure settings for providers.
 
 Additionally, all Terraform configurations must declare which providers they

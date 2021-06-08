@@ -14,7 +14,7 @@ description: |-
 
 Input variables let you customize aspects of Terraform modules without altering
 the module's own source code. This allows you to share modules across different
-Terraform configurations, making your code composable and reusable.
+Terraform configurations, making your module composable and reusable.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.

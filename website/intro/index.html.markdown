@@ -73,10 +73,9 @@ possible human errors.
 
 ## Next Steps
 
-- Learn about common [Terraform use cases](/intro/use-cases.html) to see the
-multiple ways Terraform can be used. 
-- Learn [how Terraform compares to other software](/intro/vs/index.html) to
-  compare Terraform to other infrastructure tools. 
+- Learn about common [Terraform use cases](/intro/use-cases.html) to find multiple
+ways you can use Terraform.
+- Learn [how Terraform compares to other infrastructure tools](/intro/vs/index.html). 
 - Try the [Terraform: Get
   Started](https://learn.hashicorp.com/collections/terraform/aws-get-started)
   tutorials on HashiCorp Learn to use Terraform to manage real infrastructure.
