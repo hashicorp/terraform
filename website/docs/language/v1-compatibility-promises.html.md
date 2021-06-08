@@ -101,6 +101,7 @@ whose behavior may change as part of future changes to the workspace model.
 
 We intend to retain broad compatibility with Terraform language features, with
 a few specific caveats:
+
 * We consider a configuration to be valid if Terraform can create and apply
   a plan for it without reporting any errors.
   
