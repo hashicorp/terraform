@@ -8,17 +8,18 @@ description: |-
 
 # Command: plan
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+The `terraform plan` command creates an execution plan, which lets you preview
+the changes that Terraform plans to make to your infrastructure. By default,
+when Terraform creates a plan it:
 
-The `terraform plan` command creates an execution plan. By default, creating
-a plan consists of:
-
-* Reading the current state of any already-existing remote objects to make sure
+* Reads the current state of any already-existing remote objects to make sure
   that the Terraform state is up-to-date.
-* Comparing the current configuration to the prior state and noting any
+* Compares the current configuration to the prior state and noting any
   differences.
-* Proposing a set of change actions that should, if applied, make the remote
+* Proposes a set of change actions that should, if applied, make the remote
   objects match the configuration.
+
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 The plan command alone will not actually carry out the proposed changes, and
 so you can use this command to check whether the proposed changes match what
