@@ -1,3 +1,5 @@
+## 1.0.1 (Unreleased)
+
 ## 1.0.0 (June 08, 2021)
 
 Terraform v1.0 is an unusual release in that its primary focus is on stability, and it represents the culmination of several years of work in previous major releases to make sure that the Terraform language and internal architecture will be a suitable foundation for forthcoming additions that will remain backward compatible.
