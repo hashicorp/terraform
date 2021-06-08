@@ -8,7 +8,7 @@ description: |-
 
 # Data Sources
 
-_Data sources_ allow Terraform to fetched or compute data to use elsewhere
+_Data sources_ allow Terraform to fetch or compute data to use elsewhere
 in Terraform configuration. Data sources allows a Terraform
 configuration to use information defined outside of Terraform,
 or defined by another separate Terraform configuration.
