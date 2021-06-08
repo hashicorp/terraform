@@ -1,4 +1,4 @@
-## Next Major Release (Unreleased)
+## 1.1.0 (Unreleased)
 
 NEW FEATURES:
 
@@ -12,6 +12,7 @@ ENHANCEMENTS:
 
 For information on prior major releases, see their changelogs:
 
+* [v1.0](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md)
 * [v0.15](https://github.com/hashicorp/terraform/blob/v0.15/CHANGELOG.md)
 * [v0.14](https://github.com/hashicorp/terraform/blob/v0.14/CHANGELOG.md)
 * [v0.13](https://github.com/hashicorp/terraform/blob/v0.13/CHANGELOG.md)
