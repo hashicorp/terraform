@@ -8,12 +8,12 @@ description: |-
 
 # Data Sources
 
-> **Hands-on:** Try the [Query data sources](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
-
-_Data sources_ allow data to be fetched or computed for use elsewhere
-in Terraform configuration. Use of data sources allows a Terraform
-configuration to make use of information defined outside of Terraform,
+_Data sources_ allow Terraform to fetched or compute data to use elsewhere
+in Terraform configuration. Data sources allows a Terraform
+configuration to use information defined outside of Terraform,
 or defined by another separate Terraform configuration.
+
+> **Hands-on:** Try the [Query Data Sources](https://learn.hashicorp.com/tutorials/terraform/data-sources) tutorial on HashiCorp Learn.
 
 Each [provider](/docs/language/providers/index.html) may offer data sources
 alongside its set of [resource](/docs/language/resources/index.html)
