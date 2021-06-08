@@ -17,6 +17,8 @@ If you are already familiar with the basics of Terraform, the
 [documentation](/docs/index.html) provides a better reference
 guide for all available features as well as internals.
 
+> **Hands-on:** Try the [Get Started](https://learn.hashicorp.com/tutorials/terraform/infrastructure-as-code) tutorials on HashiCorp Learn.
+
 ## What is Terraform?
 
 Terraform is a tool for building, changing, and versioning infrastructure
@@ -71,9 +73,9 @@ possible human errors.
 
 ## Next Steps
 
-See the page on [Terraform use cases](/intro/use-cases.html) to see the
-multiple ways Terraform can be used. Then see
-[how Terraform compares to other software](/intro/vs/index.html)
-to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn to use
-Terraform to manage real infrastructure and to see how it works.
+- Learn about common [Terraform use cases](/intro/use-cases.html) to find multiple
+ways you can use Terraform.
+- Learn [how Terraform compares to other infrastructure tools](/intro/vs/index.html). 
+- Try the [Terraform: Get
+  Started](https://learn.hashicorp.com/collections/terraform/aws-get-started)
+  tutorials on HashiCorp Learn to use Terraform to manage real infrastructure.

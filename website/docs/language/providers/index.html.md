@@ -1,11 +1,18 @@
 ---
 layout: "language"
 page_title: "Providers - Configuration Language"
+description: |-
+  Terraform providers are plugins that allow Terraform to create resources and
+  use data sources from services, cloud providers, and other APIs. Read about
+  how to discover, install, and use providers.
 ---
 
 # Providers
 
-Terraform relies on plugins called "providers" to interact with remote systems.
+> **Hands-on:** Try the [Perform CRUD Operations with Providers](https://learn.hashicorp.com/tutorials/terraform/provider-use?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
+Terraform relies on plugins called "providers" to interact with cloud providers,
+SaaS providers, and other APIs. 
 
 Terraform configurations must declare which providers they require so that
 Terraform can install and use them. Additionally, some providers require
