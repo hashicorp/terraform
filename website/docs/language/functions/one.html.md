@@ -49,7 +49,7 @@ no instances were created.
 ## Relationship to the "Splat" Operator
 
 The Terraform language has a built-in operator `[*]`, known as
-[the _splat_ operator](../expressions/splat.html), and one if its functions
+[the _splat_ operator](../expressions/splat.html), and one of its functions
 is to translate a primitive value that might be null into a list of either
 zero or one elements:
 
