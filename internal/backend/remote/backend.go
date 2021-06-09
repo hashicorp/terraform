@@ -721,6 +721,10 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		f = b.opPlan
 	case backend.OperationTypeApply:
 		f = b.opApply
+	case backend.OperationTypeRefresh:
+		return nil, fmt.Errorf(
+			"\n\nThe \"refresh\" operation is not supported when using the \"remote\" backend. " +
+				"Use \"terraform apply -refresh-only\" instead.")
 	default:
 		return nil, fmt.Errorf(
 			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
