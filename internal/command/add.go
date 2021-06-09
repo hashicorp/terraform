@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -135,37 +136,69 @@ func (c *AddCommand) Run(rawArgs []string) int {
 
 	// Get the schemas from the context
 	schemas := ctx.Schemas()
+
+	// Determine the correct provider config address. The provider-related
+	// variables may get updated below
+	absProviderConfig := args.Provider
+	var providerLocalName string
 	rs := args.Addr.Resource.Resource
 
-	// Determine the correct provider for the target address. The
-	// providerLocalName is used later, in the call to view.Resource, to print a
-	// provider attribute if the local name doesn't match the resource type.
-	var providerLocalName string
-	var absProvider addrs.Provider
-	if !args.Provider.IsZero() {
-		absProvider = args.Provider
-		providerLocalName = module.LocalNameForProvider(absProvider)
-	} else {
-		provider := rs.ImpliedProvider()
+	// If there is a FromResourceAddr, get the AbsProviderConfig directly from
+	// state.
+	var resource *states.Resource
+	var moreDiags tfdiags.Diagnostics
+	if args.FromResourceAddr != nil {
+		resource, moreDiags = c.getResource(b, args.FromResourceAddr.ContainingResource())
+		if moreDiags.HasErrors() {
+			diags = diags.Append(moreDiags)
+			c.View.Diagnostics(diags)
+			return 1
+		}
+		absProviderConfig = &resource.ProviderConfig
+	}
+
+	if absProviderConfig == nil {
+		ip := rs.ImpliedProvider()
 		if module != nil {
-			absProvider = module.ImpliedProviderForUnqualifiedType(provider)
+			provider := module.ImpliedProviderForUnqualifiedType(ip)
+			providerLocalName = module.LocalNameForProvider(provider)
+			absProviderConfig = &addrs.AbsProviderConfig{
+				Provider: provider,
+				Module:   args.Addr.Module.Module(),
+			}
 		} else {
 			// lacking any configuration to query, we'll go with a default provider.
-			absProvider = addrs.NewDefaultProvider(provider)
+			absProviderConfig = &addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider(ip),
+			}
+			providerLocalName = ip
+		}
+	} else {
+		if module != nil {
+			providerLocalName = module.LocalNameForProvider(absProviderConfig.Provider)
+		} else {
+			providerLocalName = absProviderConfig.Provider.Type
 		}
 	}
 
-	if _, exists := schemas.Providers[absProvider]; !exists {
+	localProviderConfig := addrs.LocalProviderConfig{
+		LocalName: providerLocalName,
+		Alias:     absProviderConfig.Alias,
+	}
+
+	// Get the schemas from the context
+	if _, exists := schemas.Providers[absProviderConfig.Provider]; !exists {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Missing schema for provider",
-			fmt.Sprintf("No schema found for provider %s. Please verify that this provider exists in the configuration.", absProvider.String()),
+			fmt.Sprintf("No schema found for provider %s. Please verify that this provider exists in the configuration.", absProviderConfig.Provider.String()),
 		))
 		c.View.Diagnostics(diags)
 		return 1
 	}
 
-	schema, schemaVersion := schemas.ResourceTypeConfig(absProvider, rs.Mode, rs.Type)
+	// Get the schema for the resource
+	schema, schemaVersion := schemas.ResourceTypeConfig(absProviderConfig.Provider, rs.Mode, rs.Type)
 	if schema == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -176,39 +209,10 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
-	// If the -from-state flag was set, get the state value for that resource.
 	stateVal := cty.NilVal
+	// Now that we have the schema, we can decode the previously-acquired resource state
 	if args.FromResourceAddr != nil {
-		// Get the state
-		env, err := c.Workspace()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
-			return 1
-		}
-
-		stateMgr, err := b.StateMgr(env)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
-			return 1
-		}
-
-		if err := stateMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
-			return 1
-		}
-
-		state := stateMgr.State()
-		if state == nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"No state",
-				"There is no state found for the current configuration, so add cannot populate values.",
-			))
-			c.View.Diagnostics(diags)
-			return 1
-		}
-
-		ri := state.ResourceInstance(*args.FromResourceAddr)
+		ri := resource.Instance(args.FromResourceAddr.Resource.Key)
 		if ri.Current == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -243,7 +247,7 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		stateVal = rio.Value
 	}
 
-	diags = diags.Append(view.Resource(args.Addr, schema, providerLocalName, stateVal))
+	diags = diags.Append(view.Resource(args.Addr, schema, localProviderConfig, stateVal))
 	if diags.HasErrors() {
 		c.View.Diagnostics(diags)
 		return 1
@@ -270,11 +274,57 @@ Options:
 
 -optional=false			Include optional attributes. Defaults to false.
 
--provider=provider		Override the configured provider for the resource.
+-provider=provider		Override the configured provider for the resource. Conflicts
+                        with -from-state
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *AddCommand) Synopsis() string {
 	return "Generate a blank resource configuration template"
+}
+
+func (c *AddCommand) getResource(b backend.Enhanced, addr addrs.AbsResource) (*states.Resource, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	// Get the state
+	env, err := c.Workspace()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error selecting workspace",
+			err.Error(),
+		))
+		return nil, diags
+	}
+
+	stateMgr, err := b.StateMgr(env)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error loading state",
+			fmt.Sprintf(errStateLoadingState, err),
+		))
+		return nil, diags
+	}
+
+	if err := stateMgr.RefreshState(); err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Error refreshing state",
+			err.Error(),
+		))
+		return nil, diags
+	}
+
+	state := stateMgr.State()
+	if state == nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"No state",
+			"There is no state found for the current workspace, so add cannot populate values.",
+		))
+		return nil, diags
+	}
+
+	return state.Resource(addr), nil
 }

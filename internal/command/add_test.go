@@ -137,16 +137,16 @@ func TestAdd_basic(t *testing.T) {
 				View:             view,
 			},
 		}
-		args := []string{"-provider=happycorp/test", "test_instance.new"}
+		args := []string{"-provider=provider[\"registry.terraform.io/happycorp/test\"].alias", "test_instance.new"}
 		code := c.Run(args)
+		output := done(t)
 		if code != 0 {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
-		output := done(t)
 
 		// The provider happycorp/test has a localname "othertest" in the provider configuration.
 		expected := `resource "test_instance" "new" {
-  provider = othertest
+  provider = othertest.alias
   value    = null # REQUIRED string
 }
 `

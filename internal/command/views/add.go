@@ -16,7 +16,7 @@ import (
 
 // Add is the view interface for the "terraform add" command.
 type Add interface {
-	Resource(addrs.AbsResourceInstance, *configschema.Block, string, cty.Value) error
+	Resource(addrs.AbsResourceInstance, *configschema.Block, addrs.LocalProviderConfig, cty.Value) error
 	Diagnostics(tfdiags.Diagnostics)
 }
 
@@ -36,12 +36,13 @@ type addHuman struct {
 	outPath  string
 }
 
-func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema.Block, providerLocalName string, stateVal cty.Value) error {
+func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema.Block, pc addrs.LocalProviderConfig, stateVal cty.Value) error {
 	var buf strings.Builder
 	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
-	if providerLocalName != "" {
+
+	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
 		buf.WriteString(strings.Repeat(" ", 2))
-		buf.WriteString(fmt.Sprintf("provider = %s\n", providerLocalName))
+		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
 	if stateVal.RawEquals(cty.NilVal) {
@@ -143,25 +144,29 @@ func (v *addHuman) writeConfigAttributesFromExisting(buf *strings.Builder, state
 			}
 			continue
 		}
-		buf.WriteString(strings.Repeat(" ", indent))
-		buf.WriteString(fmt.Sprintf("%s = ", name))
 
-		var val cty.Value
-		if stateVal.Type().HasAttribute(name) {
-			val = stateVal.GetAttr(name)
-		} else {
-			val = attrS.EmptyValue()
-		}
-		if attrS.Sensitive || val.IsMarked() {
-			buf.WriteString("null # sensitive")
-		} else {
-			tok := hclwrite.TokensForValue(val)
-			if _, err := tok.WriteTo(buf); err != nil {
-				return err
+		// Exclude computed-only attributes
+		if attrS.Required || attrS.Optional {
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = ", name))
+
+			var val cty.Value
+			if stateVal.Type().HasAttribute(name) {
+				val = stateVal.GetAttr(name)
+			} else {
+				val = attrS.EmptyValue()
 			}
-		}
+			if attrS.Sensitive || val.IsMarked() {
+				buf.WriteString("null # sensitive")
+			} else {
+				tok := hclwrite.TokensForValue(val)
+				if _, err := tok.WriteTo(buf); err != nil {
+					return err
+				}
+			}
 
-		buf.WriteString("\n")
+			buf.WriteString("\n")
+		}
 	}
 	return nil
 }

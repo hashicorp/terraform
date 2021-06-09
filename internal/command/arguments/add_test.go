@@ -47,12 +47,14 @@ func TestParseAdd(t *testing.T) {
 			``,
 		},
 		"-provider": {
-			[]string{"-provider=example.com/happycorp/test", "test_foo.bar"},
+			[]string{"-provider=provider[\"example.com/happycorp/test\"]", "test_foo.bar"},
 			&Add{
 				Addr:     mustResourceInstanceAddr("test_foo.bar"),
 				State:    &State{Lock: true},
 				ViewType: ViewHuman,
-				Provider: addrs.NewProvider("example.com", "happycorp", "test"),
+				Provider: &addrs.AbsProviderConfig{
+					Provider: addrs.NewProvider("example.com", "happycorp", "test"),
+				},
 			},
 			``,
 		},
@@ -107,6 +109,18 @@ func TestParseAdd(t *testing.T) {
 				FromResourceAddr: &fromResource,
 			},
 			`Resource type mismatch`,
+		},
+		"conflicting -provider and -from-state flags": {
+			[]string{"-from-state=test_foo.bar", "-provider=provider[\"example.com/happycorp/test\"]", "test_compute.bar"},
+			&Add{ViewType: ViewHuman,
+				Addr:             mustResourceInstanceAddr("test_compute.bar"),
+				State:            &State{Lock: true},
+				FromResourceAddr: nil,
+				Provider: &addrs.AbsProviderConfig{
+					Provider: addrs.NewProvider("example.com", "happycorp", "test"),
+				},
+			},
+			`Conflicting command flags`,
 		},
 	}
 

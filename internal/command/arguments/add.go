@@ -24,7 +24,7 @@ type Add struct {
 	Optional bool
 
 	// Provider specifies the provider for the target.
-	Provider addrs.Provider
+	Provider *addrs.AbsProviderConfig
 
 	// State from the common extended flags.
 	State *State
@@ -56,19 +56,19 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 	}
 
 	if provider != "" {
-		absProvider, providerDiags := addrs.ParseProviderSourceString(provider)
+		absProvider, providerDiags := addrs.ParseAbsProviderConfigStr(provider)
+
 		if providerDiags.HasErrors() {
-			// The diagnostics returned from ParseProviderSourceString are
-			// specific to the "source" attribute and not suitable for this use
-			// case.
+			// The diagnostics returned from ParseAbsProviderConfigStr are
+			// not always clear, so we wrap them in a single customized diagnostic.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Invalid provider string: %s", provider),
-				`The "provider" argument must be in the format "[hostname/][namespace/]name"`,
+				providerDiags.Err().Error(),
 			))
 			return add, diags
 		}
-		add.Provider = absProvider
+		add.Provider = &absProvider
 	}
 
 	args = cmdFlags.Args()
@@ -103,11 +103,20 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 	add.Addr = addr
 
 	if fromAddr != "" {
+		if add.Provider != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Conflicting command flags",
+				"Cannot use both -from-resource and -provider. The provider will be determined from the resource's state.",
+			))
+			return add, diags
+		}
+
 		stateAddr, addrDiags := addrs.ParseAbsResourceInstanceStr(fromAddr)
 		if addrDiags.HasErrors() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid resource addrses",
+				"Invalid resource address",
 				fmt.Sprintf("Error parsing -from-state resource address: %s", addrDiags.Err().Error()),
 			))
 			return add, diags

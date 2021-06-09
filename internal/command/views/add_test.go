@@ -20,7 +20,7 @@ func TestAddResource(t *testing.T) {
 		err := v.Resource(
 			mustResourceInstanceAddr("test_instance.foo"),
 			addTestSchemaSensitive(configschema.NestingSingle),
-			"mytest", cty.NilVal,
+			addrs.NewDefaultLocalProviderConfig("mytest"), cty.NilVal,
 		)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -55,10 +55,11 @@ func TestAddResource(t *testing.T) {
 				"size":        cty.StringVal("50GB"),
 			}),
 		})
+
 		err := v.Resource(
 			mustResourceInstanceAddr("test_instance.foo"),
 			addTestSchemaSensitive(configschema.NestingSingle),
-			"mytest", val,
+			addrs.NewDefaultLocalProviderConfig("mytest"), val,
 		)
 		if err != nil {
 			t.Fatal(err.Error())
@@ -909,8 +910,10 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 func addTestSchema(nesting configschema.NestingMode) *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"id":  {Type: cty.String, Optional: true, Computed: true},
-			"ami": {Type: cty.String, Optional: true},
+			"id": {Type: cty.String, Optional: true, Computed: true},
+			// Attributes which are neither optional nor required should not print.
+			"uuid": {Type: cty.String, Computed: true},
+			"ami":  {Type: cty.String, Optional: true},
 			"disks": {
 				NestedType: &configschema.Object{
 					Attributes: map[string]*configschema.Attribute{
@@ -956,8 +959,10 @@ func addTestSchema(nesting configschema.NestingMode) *configschema.Block {
 func addTestSchemaSensitive(nesting configschema.NestingMode) *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
-			"id":  {Type: cty.String, Optional: true, Computed: true},
-			"ami": {Type: cty.String, Optional: true},
+			"id": {Type: cty.String, Optional: true, Computed: true},
+			// Attributes which are neither optional nor required should not print.
+			"uuid": {Type: cty.String, Computed: true},
+			"ami":  {Type: cty.String, Optional: true},
 			"disks": {
 				NestedType: &configschema.Object{
 					Attributes: map[string]*configschema.Attribute{
