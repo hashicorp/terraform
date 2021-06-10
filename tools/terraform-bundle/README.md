@@ -49,3 +49,12 @@ compatible with Terraform v0.12 by using `--branch=v0.12` instead of
 `--branch=v0.15` in the command above. Terraform CLI versions prior to
 v0.13 have different expectations for plugin packaging due to them predating
 Terraform v0.13's introduction of automatic third-party provider installation.
+
+## Terraform Enterprise Users
+
+If you use Terraform Enterprise, the self-hosted distribution of
+Terraform Cloud, you can use `terraform-bundle` as described above to build
+custom Terraform packages with bundled provider plugins.
+
+For more information, see
+[Installing a Bundle in Terraform Enterprise](https://github.com/hashicorp/terraform/blob/v0.15/tools/terraform-bundle/README.md#installing-a-bundle-in-terraform-enterprise).
