@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -93,8 +94,10 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	seenModules := make(map[string]bool)
 
 	for _, resource := range changes.Resources {
-		// if the resource is being deleted, skip over it.
-		if resource.Action != plans.Delete {
+		// If the resource is being deleted, skip over it.
+		// Deposed instances are always conceptually a destroy, but if they
+		// were gone during refresh then the change becomes a noop.
+		if resource.Action != plans.Delete && resource.DeposedKey == states.NotDeposed {
 			containingModule := resource.Addr.Module.String()
 			moduleResourceMap[containingModule] = append(moduleResourceMap[containingModule], resource.Addr)
 
