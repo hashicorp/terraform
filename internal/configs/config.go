@@ -470,3 +470,17 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }
+
+func (c *Config) MovedActionByFrom(addr addrs.AbsResourceInstance) *MovedAction {
+	if ma := c.Module.MovedActionByFrom(addr); ma != nil {
+		return ma
+	}
+
+	for _, m := range c.Children {
+		if ma := m.MovedActionByFrom(addr); ma != nil {
+			return ma
+		}
+	}
+
+	return nil
+}

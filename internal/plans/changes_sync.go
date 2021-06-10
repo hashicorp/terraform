@@ -200,3 +200,17 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 		return
 	}
 }
+
+func (cs *ChangesSync) AppendMovedAction(from, to addrs.Targetable) {
+	if cs == nil {
+		panic("AppendMovedAction on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	cs.changes.Actions = append(cs.changes.Actions, &ActionChange{
+		Type: MovedAction,
+		From: from,
+		To:   to,
+	})
+}

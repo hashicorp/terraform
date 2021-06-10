@@ -24,6 +24,8 @@ type Changes struct {
 	// can be easily re-calculated during the apply phase. Therefore only root
 	// module outputs will survive a round-trip through a plan file.
 	Outputs []*OutputChangeSrc
+
+	Actions []*ActionChange
 }
 
 // NewChanges returns a valid Changes object that describes no changes.
@@ -42,6 +44,10 @@ func (c *Changes) Empty() bool {
 		if out.Addr.Module.IsRoot() && out.Action != NoOp {
 			return false
 		}
+	}
+
+	if len(c.Actions) > 0 {
+		return false
 	}
 
 	return true
@@ -362,6 +368,18 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 		ChangeSrc: *cs,
 		Sensitive: oc.Sensitive,
 	}, err
+}
+
+type ActionType rune
+
+const (
+	MovedAction ActionType = 'm'
+)
+
+type ActionChange struct {
+	Type ActionType
+	From addrs.Targetable
+	To   addrs.Targetable
 }
 
 // Change describes a single change with a given action.

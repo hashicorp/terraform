@@ -138,7 +138,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
 	}
 
-	if len(counts) == 0 && len(changedRootModuleOutputs) == 0 {
+	if len(counts) == 0 && len(changedRootModuleOutputs) == 0 && len(plan.Changes.Actions) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -223,6 +223,21 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	if haveRefreshChanges {
 		view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
 		view.streams.Println("")
+	}
+
+	if len(plan.Changes.Actions) != 0 {
+		view.streams.Println("\nTerraform will make the following changes to state:\n")
+		for _, action := range plan.Changes.Actions {
+			switch action.Type {
+			case plans.MovedAction:
+				view.streams.Printf(
+					view.colorize.Color("  [reset]Move [bold]%s[reset] to [bold]%s[reset]"),
+					action.From,
+					action.To,
+				)
+			}
+		}
+		view.streams.Println()
 	}
 
 	if len(counts) != 0 {

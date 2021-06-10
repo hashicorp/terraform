@@ -42,6 +42,8 @@ type Module struct {
 
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
+
+	MovedActions []*MovedAction
 }
 
 // File describes the contents of a single configuration file.
@@ -73,6 +75,8 @@ type File struct {
 
 	ManagedResources []*Resource
 	DataResources    []*Resource
+
+	MovedActions []*MovedAction
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -95,6 +99,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		MovedActions:       []*MovedAction{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -162,6 +167,15 @@ func (m *Module) ResourceByAddr(addr addrs.Resource) *Resource {
 	default:
 		return nil
 	}
+}
+
+func (m *Module) MovedActionByFrom(addr addrs.AbsResourceInstance) *MovedAction {
+	for _, ma := range m.MovedActions {
+		if ma.From.Subject.TargetContains(addr) {
+			return ma
+		}
+	}
+	return nil
 }
 
 func (m *Module) appendFile(file *File) hcl.Diagnostics {
@@ -327,6 +341,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			// will already have been caught.
 		}
 	}
+
+	m.MovedActions = append(m.MovedActions, file.MovedActions...)
 
 	return diags
 }

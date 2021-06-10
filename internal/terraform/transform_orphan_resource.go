@@ -86,6 +86,14 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 			}
 
 			addr := rs.Addr.Instance(key)
+
+			// If there's a moved action targeting this resource, it is not
+			// really orphaned.
+			if ma := t.Config.MovedActionByFrom(addr); ma != nil {
+				// FIXME: what do
+				continue
+			}
+
 			abstract := NewNodeAbstractResourceInstance(addr)
 			var node dag.Vertex = abstract
 			if f := t.Concrete; f != nil {

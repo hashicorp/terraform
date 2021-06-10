@@ -98,6 +98,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:   b.Config,
 		},
 
+		// Add actions from the config
+		&ActionTransformer{Config: b.Config},
+
 		// Add dynamic values
 		&RootVariableTransformer{Config: b.Config},
 		&ModuleVariableTransformer{Config: b.Config},

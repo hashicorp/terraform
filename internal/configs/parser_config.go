@@ -148,6 +148,13 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
+		case "moved":
+			cfg, cfgDiags := decodeMovedBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.MovedActions = append(file.MovedActions, cfg)
+			}
+
 		default:
 			// Should never happen because the above cases should be exhaustive
 			// for all block type names in our schema.
@@ -234,6 +241,10 @@ var configFileSchema = &hcl.BodySchema{
 		{
 			Type:       "data",
 			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "moved",
+			LabelNames: []string{},
 		},
 	},
 }
