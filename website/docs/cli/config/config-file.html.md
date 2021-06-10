@@ -13,10 +13,10 @@ The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
 [your infrastructure configuration](/docs/language/index.html).
 
-## Location
+## Locations
 
-The configuration is placed in a single file whose location depends on the
-host operating system:
+The configuration can be placed in a single file whose location depends
+on the host operating system:
 
 * On Windows, the file must be named `terraform.rc` and placed
   in the relevant user's `%APPDATA%` directory. The physical location
@@ -34,6 +34,7 @@ confirm the filename.
 
 The location of the Terraform CLI configuration file can also be specified
 using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/cli/config/environment-variables.html).
+Such file should follow a naming pattern `*.tfrc`.
 
 ## Configuration File Syntax
 

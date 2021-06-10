@@ -39,11 +39,16 @@ beginning of a Terraform run. Functions do not participate in the dependency
 graph, so this function cannot be used with files that are generated
 dynamically during a Terraform operation.
 
+`*.tftpl` is the recommended naming pattern to use for your template files.
+Terraform will not prevent you from using other names but following this
+convention will help your editor understand the content and likely provide
+better editing experience as a result.
+
 ## Examples
 
 ### Lists
 
-Given a template file `backends.tpl` with the following content:
+Given a template file `backends.tftpl` with the following content:
 
 ```
 %{ for addr in ip_addrs ~}
@@ -54,7 +59,7 @@ backend ${addr}:${port}
 The `templatefile` function renders the template:
 
 ```
-> templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
+> templatefile("${path.module}/backends.tftpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })
 backend 10.0.0.1:8080
 backend 10.0.0.2:8080
 
@@ -62,7 +67,7 @@ backend 10.0.0.2:8080
 
 ### Maps
 
-Given a template file `config.tmpl` with the following content:
+Given a template file `config.tftpl` with the following content:
 
 ```
 %{ for config_key, config_value in config }
@@ -74,7 +79,7 @@ The `templatefile` function renders the template:
 
 ```
 > templatefile(
-               "${path.module}/config.tmpl",
+               "${path.module}/config.tftpl",
                {
                  config = {
                    "x"   = "y"
@@ -113,7 +118,7 @@ ${yamlencode({
 })}
 ```
 
-Given the same input as the `backends.tmpl` example in the previous section,
+Given the same input as the `backends.tftpl` example in the previous section,
 this will produce a valid JSON or YAML representation of the given data
 structure, without the need to manually handle escaping or delimiters.
 In the latest examples above, the repetition based on elements of `ip_addrs` is
