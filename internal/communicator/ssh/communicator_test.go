@@ -642,7 +642,7 @@ func TestAccHugeUploadFile(t *testing.T) {
 		return scpUploadFile(targetFile, source, w, stdoutR, size)
 	}
 
-	err = c.scpSession("scp -vt "+ QuoteShell(targetDir), scpFunc)
+	err = c.scpSession("scp -vt "+QuoteShell(targetDir), scpFunc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -749,19 +749,19 @@ func TestQuoteShell(t *testing.T) {
 		t.Fatalf("Expected empty quotes, got: %s", q)
 	}
 
-	if q:= QuoteShell("test/some/file"); q != "'test/some/file'" {
+	if q := QuoteShell("test/some/file"); q != "'test/some/file'" {
 		t.Fatalf("Improperly quoted result: %s", q)
 	}
 
-	if q:= QuoteShell("`subprocess call`"); q != "'`subprocess call`'" {
+	if q := QuoteShell("`subprocess call`"); q != "'`subprocess call`'" {
 		t.Fatalf("Improperly quoted result: %s", q)
 	}
 
-	if q:= QuoteShell(`$(cat /etc/passwd)`); q != "'$(cat /etc/passwd)'" {
+	if q := QuoteShell(`$(cat /etc/passwd)`); q != "'$(cat /etc/passwd)'" {
 		t.Fatalf("Improperly quoted result: %s", q)
 	}
 
-	if q:= QuoteShell(` '$(echo quote escape) && echo ' `); q != `' '"'"'$(echo quote escape) && echo '"'"' '` {
+	if q := QuoteShell(` '$(echo quote escape) && echo ' `); q != `' '"'"'$(echo quote escape) && echo '"'"' '` {
 		t.Fatalf("Improperly quoted result: %s", q)
 	}
 }

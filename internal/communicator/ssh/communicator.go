@@ -420,7 +420,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	return c.scpSession("scp -vt "+ QuoteShell(targetDir), scpFunc)
+	return c.scpSession("scp -vt "+QuoteShell(targetDir), scpFunc)
 }
 
 // UploadScript implementation of communicator.Communicator interface
@@ -489,7 +489,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		return uploadEntries()
 	}
 
-	return c.scpSession("scp -rvt " + QuoteShell(dst), scpFunc)
+	return c.scpSession("scp -rvt "+QuoteShell(dst), scpFunc)
 }
 
 func (c *Communicator) newSession() (session *ssh.Session, err error) {
@@ -826,7 +826,7 @@ func QuoteShell(arg string) string {
 		return "''"
 	}
 
-	if m, _ := regexp.MatchString(`[\w@%+=:,./-]`,arg); m == false {
+	if m, _ := regexp.MatchString(`[\w@%+=:,./-]`, arg); m == false {
 		return arg
 	}
 
