@@ -76,7 +76,7 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Too few command line arguments",
-			"Expected exactly one positional argument.",
+			"Expected exactly one positional argument, giving the address of the resource configuration to generate.",
 		))
 		return add, diags
 	}
@@ -96,7 +96,7 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("Error parsing resource address: %s", args[0]),
-			"This command requires that the address argument references one specific resource instance.",
+			"This command requires that the address argument specifies one resource instance.",
 		))
 		return add, diags
 	}
@@ -106,8 +106,8 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 		if add.Provider != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Conflicting command flags",
-				"Cannot use both -from-resource and -provider. The provider will be determined from the resource's state.",
+				"Incompatible command-line options",
+				"Cannot use both -from-state and -provider. The provider will be determined from the resource's state.",
 			))
 			return add, diags
 		}

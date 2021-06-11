@@ -110,7 +110,7 @@ func TestParseAdd(t *testing.T) {
 			},
 			`Resource type mismatch`,
 		},
-		"conflicting -provider and -from-state flags": {
+		"incompatible options": {
 			[]string{"-from-state=test_foo.bar", "-provider=provider[\"example.com/happycorp/test\"]", "test_compute.bar"},
 			&Add{ViewType: ViewHuman,
 				Addr:             mustResourceInstanceAddr("test_compute.bar"),
@@ -120,7 +120,7 @@ func TestParseAdd(t *testing.T) {
 					Provider: addrs.NewProvider("example.com", "happycorp", "test"),
 				},
 			},
-			`Conflicting command flags`,
+			`Incompatible command-line options`,
 		},
 	}
 

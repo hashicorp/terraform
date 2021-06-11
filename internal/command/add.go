@@ -260,7 +260,7 @@ func (c *AddCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] add [options] ADDRESS
 
-  Generates a blank resource template. With no additional flags,
+  Generates a blank resource template. With no additional options,
   the template will be displayed in the terminal. 
 
 Options:
@@ -272,7 +272,7 @@ Options:
 -out=string 			Write the template to a file. If the file already
                         exists, the template will be appended to the file.
 
--optional=false			Include optional attributes. Defaults to false.
+-optional=true          Include optional attributes. Defaults to false.
 
 -provider=provider		Override the configured provider for the resource. Conflicts
                         with -from-state
