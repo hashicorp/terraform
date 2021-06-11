@@ -12,10 +12,16 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// ProviderSchema is an alias for providers.Schemas, which is the new location
+// for what we originally called terraform.ProviderSchema but which has
+// moved out as part of ongoing refactoring to shrink down the main "terraform"
+// package.
+type ProviderSchema = providers.Schemas
+
 // Schemas is a container for various kinds of schema that Terraform needs
 // during processing.
 type Schemas struct {
-	Providers    map[addrs.Provider]*ProviderSchema
+	Providers    map[addrs.Provider]*providers.Schemas
 	Provisioners map[string]*configschema.Block
 }
 
@@ -24,7 +30,7 @@ type Schemas struct {
 //
 // It's usually better to go use the more precise methods offered by type
 // Schemas to handle this detail automatically.
-func (ss *Schemas) ProviderSchema(provider addrs.Provider) *ProviderSchema {
+func (ss *Schemas) ProviderSchema(provider addrs.Provider) *providers.Schemas {
 	if ss.Providers == nil {
 		return nil
 	}
@@ -76,7 +82,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // still valid but may be incomplete.
 func loadSchemas(config *configs.Config, state *states.State, plugins *contextPlugins) (*Schemas, error) {
 	schemas := &Schemas{
-		Providers:    map[addrs.Provider]*ProviderSchema{},
+		Providers:    map[addrs.Provider]*providers.Schemas{},
 		Provisioners: map[string]*configschema.Block{},
 	}
 	var diags tfdiags.Diagnostics
@@ -89,7 +95,7 @@ func loadSchemas(config *configs.Config, state *states.State, plugins *contextPl
 	return schemas, diags.Err()
 }
 
-func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *configs.Config, state *states.State, plugins *contextPlugins) tfdiags.Diagnostics {
+func loadProviderSchemas(schemas map[addrs.Provider]*providers.Schemas, config *configs.Config, state *states.State, plugins *contextPlugins) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	ensure := func(fqn addrs.Provider) {
@@ -105,7 +111,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls, which would then repeat the same error message
 			// multiple times.
-			schemas[fqn] = &ProviderSchema{}
+			schemas[fqn] = &providers.Schemas{}
 			diags = diags.Append(
 				tfdiags.Sourceless(
 					tfdiags.Error,
@@ -178,40 +184,4 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 	}
 
 	return diags
-}
-
-// ProviderSchema represents the schema for a provider's own configuration
-// and the configuration for some or all of its resources and data sources.
-//
-// The completeness of this structure depends on how it was constructed.
-// When constructed for a configuration, it will generally include only
-// resource types and data sources used by that configuration.
-type ProviderSchema struct {
-	Provider      *configschema.Block
-	ProviderMeta  *configschema.Block
-	ResourceTypes map[string]*configschema.Block
-	DataSources   map[string]*configschema.Block
-
-	ResourceTypeSchemaVersions map[string]uint64
-}
-
-// SchemaForResourceType attempts to find a schema for the given mode and type.
-// Returns nil if no such schema is available.
-func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
-	switch mode {
-	case addrs.ManagedResourceMode:
-		return ps.ResourceTypes[typeName], ps.ResourceTypeSchemaVersions[typeName]
-	case addrs.DataResourceMode:
-		// Data resources don't have schema versions right now, since state is discarded for each refresh
-		return ps.DataSources[typeName], 0
-	default:
-		// Shouldn't happen, because the above cases are comprehensive.
-		return nil, 0
-	}
-}
-
-// SchemaForResourceAddr attempts to find a schema for the mode and type from
-// the given resource address. Returns nil if no such schema is available.
-func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
-	return ps.SchemaForResourceType(addr.Mode, addr.Type)
 }
