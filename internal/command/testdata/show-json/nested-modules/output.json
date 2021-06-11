@@ -17,7 +17,8 @@
                   "schema_version": 0,
                   "values": {
                     "ami": "bar-var"
-                  }
+                  },
+                  "sensitive_values": {}
                 }
               ],
               "address": "module.my_module.module.more"

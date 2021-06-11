@@ -12,7 +12,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "force-replace"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
@@ -61,7 +62,8 @@
                         "values": {
                             "ami": "bar",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     }
                 ]
             }

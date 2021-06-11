@@ -24,7 +24,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.test[1]",
@@ -36,7 +37,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.test[2]",
@@ -48,7 +50,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }

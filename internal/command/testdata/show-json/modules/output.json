@@ -20,7 +20,8 @@
                             "schema_version": 0,
                             "values": {
                                 "ami": "bar-var"
-                            }
+                            },
+                            "sensitive_values": {}
                         }
                     ],
                     "address": "module.module_test_bar"
@@ -37,7 +38,8 @@
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
-                            }
+                            },
+                            "sensitive_values": {}
                         },
                         {
                             "address": "module.module_test_foo.test_instance.test[1]",
@@ -49,7 +51,8 @@
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
-                            }
+                            },
+                            "sensitive_values": {}
                         },
                         {
                             "address": "module.module_test_foo.test_instance.test[2]",
@@ -61,7 +64,8 @@
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
-                            }
+                            },
+                            "sensitive_values": {}
                         }
                     ],
                     "address": "module.module_test_foo"

@@ -13,7 +13,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "foo-bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }

@@ -215,7 +215,12 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			}
 		}
 
-		resource.SensitiveValues = marshalSensitiveValues(markedAfter)
+		s := jsonstate.SensitiveAsBool(markedAfter)
+		v, err := ctyjson.Marshal(s, s.Type())
+		if err != nil {
+			return nil, err
+		}
+		resource.SensitiveValues = v
 
 		ret = append(ret, resource)
 	}

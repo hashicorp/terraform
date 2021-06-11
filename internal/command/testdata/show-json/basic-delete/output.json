@@ -24,7 +24,8 @@
                     "values": {
                         "ami": "bar",
                         "id": "placeholder"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
@@ -107,7 +108,8 @@
                         "values": {
                             "ami": "foo",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     },
                     {
                         "address": "test_instance.test-delete",
@@ -119,7 +121,8 @@
                         "values": {
                             "ami": "foo",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     }
                 ]
             }

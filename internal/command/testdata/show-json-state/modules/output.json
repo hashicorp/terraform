@@ -22,7 +22,8 @@
                             "values": {
                                 "ami": "bar-var",
                                 "id": null
-                            }
+                            },
+                            "sensitive_values": {}
                         }
                     ],
                     "address": "module.module_test_bar"
@@ -40,7 +41,8 @@
                             "values": {
                                 "ami": "foo-var",
                                 "id": null
-                            }
+                            },
+                            "sensitive_values": {}
                         }
                     ],
                     "address": "module.module_test_foo"

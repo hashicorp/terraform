@@ -15,7 +15,8 @@
                     "values": {
                         "ami": null,
                         "id": "621124146446964903"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.example[1]",
@@ -28,7 +29,8 @@
                     "values": {
                         "ami": null,
                         "id": "4330206298367988603"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }

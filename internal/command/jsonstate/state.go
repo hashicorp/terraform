@@ -86,7 +86,7 @@ type resource struct {
 
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
-	SensitiveValues map[string]bool `json:"sensitive_values,omitempty"`
+	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
 
 	// DependsOn contains a list of the resource's dependencies. The entries are
 	// addresses relative to the containing module.
@@ -331,7 +331,12 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				// Mark the resource instance value with any marks stored in AttrSensitivePaths so we can build the SensitiveValues object
 				markedVal := riObj.Value.MarkWithPaths(ri.Current.AttrSensitivePaths)
-				current.SensitiveValues = marshalSensitiveValues(markedVal)
+				s := SensitiveAsBool(markedVal)
+				v, err := ctyjson.Marshal(s, s.Type())
+				if err != nil {
+					return nil, err
+				}
+				current.SensitiveValues = v
 
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
@@ -365,6 +370,15 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
+				// Mark the resource instance value with any marks stored in AttrSensitivePaths so we can build the SensitiveValues object
+				markedVal := riObj.Value.MarkWithPaths(rios.AttrSensitivePaths)
+				s := SensitiveAsBool(markedVal)
+				v, err := ctyjson.Marshal(s, s.Type())
+				if err != nil {
+					return nil, err
+				}
+				deposed.SensitiveValues = v
+
 				if len(riObj.Dependencies) > 0 {
 					dependencies := make([]string, len(riObj.Dependencies))
 					for i, v := range riObj.Dependencies {
@@ -387,31 +401,6 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 	})
 
 	return ret, nil
-}
-
-// marshalSensitiveValues returns a map of sensitive attributes, with the value
-// set to true. It returns nil if the value is nil or if there are no sensitive
-// vals.
-func marshalSensitiveValues(value cty.Value) map[string]bool {
-	if value == cty.NilVal || value.IsNull() {
-		return nil
-	}
-
-	ret := make(map[string]bool)
-
-	it := value.ElementIterator()
-	for it.Next() {
-		k, v := it.Element()
-		s := SensitiveAsBool(v)
-		if !s.RawEquals(cty.False) {
-			ret[k.AsString()] = true
-		}
-	}
-
-	if len(ret) == 0 {
-		return nil
-	}
-	return ret
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
