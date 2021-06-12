@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -684,6 +685,7 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	// to Apply work as expected.
 	c.state = refreshedState
 
+	plan.RelevantResources = c.relevantResourcesForPlan(plan)
 	return plan, diags
 }
 
@@ -746,6 +748,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 
 	destroyPlan.UIMode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
+	destroyPlan.RelevantResources = c.relevantResourcesForPlan(destroyPlan)
 	return destroyPlan, diags
 }
 
@@ -802,7 +805,55 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	// mutate
 	c.state = refreshedState
 
+	// We don't populate RelevantResources for a refresh-only plan, because
+	// they never have any planned actions and so no resource can ever be
+	// "relevant" per the intended meaning of that field.
+
 	return plan, diags
+}
+
+// relevantResourcesForPlan implements the heuristic we use to populate the
+// RelevantResources field of returned plans.
+func (c *Context) relevantResourcesForPlan(plan *plans.Plan) []addrs.AbsResource {
+	azr := c.ReferenceAnalyzer()
+
+	// Our current strategy is that a resource is relevant if it either has
+	// a proposed change action directly, or if its attributes are used as
+	// any part of a resource that has a proposed change action. We don't
+	// consider individual changed attributes for now, because we can't
+	// really reason about any rules that providers might have about changes
+	// to one attribute implying a change to another.
+
+	// We'll use the string representation of a resource address as a unique
+	// key so we can dedupe our results.
+	relevant := make(map[string]addrs.AbsResource)
+
+	var refs []globalref.Reference
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.NoOp {
+			continue
+		}
+		instAddr := change.Addr
+		addr := instAddr.ContainingResource()
+		relevant[addr.String()] = addr
+
+		moreRefs := azr.ReferencesFromResourceInstance(instAddr)
+		refs = append(refs, moreRefs...)
+	}
+
+	contributors := azr.ContributingResources(refs...)
+	for _, addr := range contributors {
+		relevant[addr.String()] = addr
+	}
+
+	if len(relevant) == 0 {
+		return nil
+	}
+	ret := make([]addrs.AbsResource, 0, len(relevant))
+	for _, addr := range relevant {
+		ret = append(ret, addr)
+	}
+	return ret
 }
 
 // Refresh goes through all the resources in the state and refreshes them
@@ -904,6 +955,13 @@ func (c *Context) SetVariable(k string, v cty.Value) {
 		Value:      v,
 		SourceType: ValueFromCaller,
 	}
+}
+
+// ReferenceAnalyzer returns a globalref.Analyzer object to help with
+// global analysis of references within the configuration that's attached
+// to the receiving context.
+func (c *Context) ReferenceAnalyzer() *globalref.Analyzer {
+	return globalref.NewAnalyzer(c.Config(), c.Schemas().Providers)
 }
 
 func (c *Context) acquireRun(phase string) func() {

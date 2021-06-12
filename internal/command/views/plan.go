@@ -97,21 +97,7 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
-	haveRefreshChanges := renderChangesDetectedByRefresh(plan.PrevRunState, plan.PriorState, schemas, view)
-	if haveRefreshChanges {
-		switch plan.UIMode {
-		case plans.RefreshOnlyMode:
-			view.streams.Println(format.WordWrap(
-				"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
-				view.outputColumns(),
-			))
-		default:
-			view.streams.Println(format.WordWrap(
-				"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
-				view.outputColumns(),
-			))
-		}
-	}
+	haveRefreshChanges := renderChangesDetectedByRefresh(plan.UIMode, plan.PrevRunState, plan.PriorState, plan.RelevantResources, schemas, view)
 
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
@@ -338,7 +324,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // renderChangesDetectedByRefresh returns true if it produced at least one
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
-func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraform.Schemas, view *View) bool {
+func renderChangesDetectedByRefresh(mode plans.Mode, before, after *states.State, relevant []addrs.AbsResource, schemas *terraform.Schemas, view *View) bool {
 	// ManagedResourceEqual checks that the state is exactly equal for all
 	// managed resources; but semantically equivalent states, or changes to
 	// deposed instances may not actually represent changes we need to present
@@ -349,6 +335,7 @@ func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraf
 	}
 
 	var diffs []string
+	var summaries []string
 
 	for _, bms := range before.Modules {
 		for _, brs := range bms.Resources {
@@ -382,14 +369,41 @@ func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraf
 					pis = prs.Instance(key)
 				}
 
-				diff := format.ResourceInstanceDrift(
-					addr.Instance(key),
-					bis, pis,
-					rSchema,
-					view.colorize,
-				)
-				if diff != "" {
-					diffs = append(diffs, diff)
+				isRelevant := false
+				switch mode {
+				case plans.RefreshOnlyMode:
+					// All changes are "relevant" in refresh-only mode, because
+					// detecting changes is the point of that mode.
+					isRelevant = true
+				default:
+					for _, candidate := range relevant {
+						if addr.Equal(candidate) {
+							isRelevant = true
+							break
+						}
+					}
+				}
+
+				if isRelevant {
+					diff := format.ResourceInstanceDrift(
+						addr.Instance(key),
+						bis, pis,
+						rSchema,
+						view.colorize,
+					)
+					if diff != "" {
+						diffs = append(diffs, diff)
+					}
+				} else {
+					summary := format.ResourceInstanceDriftSummary(
+						addr.Instance(key),
+						bis, pis,
+						rSchema,
+						view.colorize,
+					)
+					if summary != "" {
+						summaries = append(summaries, summary)
+					}
 				}
 			}
 		}
@@ -398,18 +412,62 @@ func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraf
 	// If we only have changes regarding deposed instances, or the diff
 	// renderer is suppressing irrelevant changes from the legacy SDK, there
 	// may not have been anything to display to the user.
-	if len(diffs) > 0 {
+	if len(diffs) > 0 || len(summaries) > 0 {
 		view.streams.Print(
 			view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
 		)
-		view.streams.Print(format.WordWrap(
-			"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
-			view.outputColumns(),
-		))
+		if len(diffs) > 0 {
+			if len(summaries) > 0 {
+				view.streams.Print(format.WordWrap(
+					"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\", which may have caused proposed changes below:\n\n",
+					view.outputColumns(),
+				))
+			} else {
+				view.streams.Print(format.WordWrap(
+					"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
+					view.outputColumns(),
+				))
+			}
+			for _, diff := range diffs {
+				view.streams.Print(diff)
+			}
+			switch mode {
+			case plans.RefreshOnlyMode:
+				view.streams.Println(format.WordWrap(
+					"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+					view.outputColumns(),
+				))
+			default:
+				view.streams.Println(format.WordWrap(
+					"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+					view.outputColumns(),
+				))
+			}
 
-		for _, diff := range diffs {
-			view.streams.Print(diff)
 		}
+		if len(summaries) > 0 {
+			if len(diffs) > 0 {
+				view.streams.Print(format.WordWrap(
+					"\nTerraform also changes to some other resource instances which don't seem to affect the plan:\n",
+					view.outputColumns(),
+				))
+			} else {
+				view.streams.Print(format.WordWrap(
+					"Terraform detected changes to the following resource instances made outside of Terraform, but they don't require Terraform to take any corrective action:\n",
+					view.outputColumns(),
+				))
+			}
+			for _, summary := range summaries {
+				view.streams.Print(summary)
+			}
+			if len(diffs) == 0 {
+				view.streams.Print(format.WordWrap(
+					"\nFor more detail on these detected changes, create a refresh-only plan.\n",
+					view.outputColumns(),
+				))
+			}
+		}
+
 		return true
 	}
 

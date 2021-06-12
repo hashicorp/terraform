@@ -280,6 +280,53 @@ func ResourceInstanceDrift(
 	return buf.String()
 }
 
+// ResourceInstanceDriftSummary is similar to ResourceInstanceDrift but it
+// reduces the reported information only to a single-line report containing
+// only the change type icon and the resource instance address.
+//
+// This is intended for concisely reporting changes we've detected but which
+// don't seem to have contributed to any proposed changes in the plan.
+func ResourceInstanceDriftSummary(
+	addr addrs.AbsResourceInstance,
+	before, after *states.ResourceInstance,
+	schema *configschema.Block,
+	color *colorstring.Colorize,
+) string {
+	// HACK: ResourceInstanceDrift includes some logic to deal with legacy
+	// SDK misbehavior, some of which it only detects while actually
+	// _rendering_ the diff, and so we'll actually render a full diff
+	// here and throw away the result just to make sure that we always
+	// make the same decision in the summary case. Gross!
+	if diff := ResourceInstanceDrift(addr, before, after, schema, nil); diff == "" {
+		return ""
+	}
+
+	if color == nil {
+		color = &colorstring.Colorize{
+			Colors:  colorstring.DefaultColors,
+			Disable: true,
+			Reset:   false,
+		}
+	}
+
+	dispAddr := addr.String()
+	action := plans.Update
+
+	switch {
+	case before == nil || before.Current == nil:
+		// before should never be nil, but before.Current can be if the
+		// instance was deposed. There is nothing to render for a deposed
+		// instance, since we intend to remove it.
+		return ""
+
+	case after == nil || after.Current == nil:
+		action = plans.Delete
+	}
+
+	symbol := color.Color(DiffActionSymbol(action))
+	return fmt.Sprintf("%s %s\n", symbol, dispAddr)
+}
+
 // OutputChanges returns a string representation of a set of changes to output
 // values for inclusion in user-facing plan output.
 //
