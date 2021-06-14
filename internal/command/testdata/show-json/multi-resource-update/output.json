@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "terraform_version": "0.13.0",
     "variables": {
         "test_var": {
@@ -26,7 +26,8 @@
                     "values": {
                         "ami": "bar",
                         "id": "placeholder"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.test[1]",
@@ -38,7 +39,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
@@ -104,7 +106,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "terraform_version": "0.13.0",
         "values": {
             "outputs": {
@@ -126,7 +128,8 @@
                         "values": {
                             "ami": "bar",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     }
                 ]
             }

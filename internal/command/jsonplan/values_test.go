@@ -192,7 +192,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.UnknownVal(cty.String),
 				"foozles": cty.UnknownVal(cty.String),
 			}),
-			Want: []resource{resource{
+			Want: []resource{{
 				Address:         "test_thing.example",
 				Mode:            "managed",
 				Type:            "test_thing",
@@ -201,6 +201,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
 				AttributeValues: attributeValues{},
+				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
 		},
@@ -234,7 +235,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.StringVal("baz"),
 				"foozles": cty.StringVal("bat"),
 			}),
-			Want: []resource{resource{
+			Want: []resource{{
 				Address:       "test_thing.example",
 				Mode:          "managed",
 				Type:          "test_thing",
@@ -243,10 +244,10 @@ func TestMarshalPlanResources(t *testing.T) {
 				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
-
 					"woozles": json.RawMessage(`"baz"`),
 					"foozles": json.RawMessage(`"bat"`),
 				},
+				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
 		},

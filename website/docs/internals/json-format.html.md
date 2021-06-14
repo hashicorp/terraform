@@ -60,11 +60,11 @@ For ease of consumption by callers, the plan representation includes a partial r
 
 ```javascript
 {
-  "format_version": "0.1",
+  "format_version": "0.2",
 
   // "prior_state" is a representation of the state that the configuration is
   // being applied to, using the state representation described above.
-  "prior_state": <state-representation>,
+  "prior_state":  <state-representation>,
 
   // "configuration" is a representation of the configuration being applied to the
   // prior state, using the configuration representation described above.
@@ -236,6 +236,13 @@ The following example illustrates the structure of a `<values-representation>`:
           "id": "i-abc123",
           "instance_type": "t2.micro",
           // etc, etc
+        },
+
+        // "sensitive_values" is the JSON representation of the sensitivity of
+        // the resource's attribute values. Only attributes which are sensitive
+        // are included in this structure.
+        "values": {
+          "id": true,
         }
       }
     ]
