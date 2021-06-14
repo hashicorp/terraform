@@ -40,6 +40,7 @@ Main commands:
   destroy       Destroy previously-created infrastructure
 
 All other commands:
+  add           Generate a resource configuration template
   console       Try Terraform expressions at an interactive command prompt
   fmt           Reformat your configuration in the standard style
   force-unlock  Release a stuck lock on the current workspace

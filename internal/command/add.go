@@ -280,7 +280,7 @@ Options:
 }
 
 func (c *AddCommand) Synopsis() string {
-	return "Generate a blank resource configuration template"
+	return "Generate a resource configuration template"
 }
 
 func (c *AddCommand) getResource(b backend.Enhanced, addr addrs.AbsResource) (*states.Resource, tfdiags.Diagnostics) {
