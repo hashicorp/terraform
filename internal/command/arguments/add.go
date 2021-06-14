@@ -12,9 +12,9 @@ type Add struct {
 	// Addr specifies which resource to generate configuration for.
 	Addr addrs.AbsResourceInstance
 
-	// FromResourceAddr specifies the address of an existing resource in state
-	// which should be used to populate the template.
-	FromResourceAddr *addrs.AbsResourceInstance
+	// FromState specifies that the configuration should be populated with
+	// values from state.
+	FromState bool
 
 	// OutPath contains an optional path to store the generated configuration.
 	OutPath string
@@ -38,10 +38,10 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 	add := &Add{State: &State{}, ViewType: ViewHuman}
 
 	var diags tfdiags.Diagnostics
-	var provider, fromAddr string
+	var provider string
 
 	cmdFlags := extendedFlagSet("add", add.State, nil, nil)
-	cmdFlags.StringVar(&fromAddr, "from-state", "", "fill attribute values from a resource already managed by terraform")
+	cmdFlags.BoolVar(&add.FromState, "from-state", false, "fill attribute values from a resource already managed by terraform")
 	cmdFlags.BoolVar(&add.Optional, "optional", false, "include optional attributes")
 	cmdFlags.StringVar(&add.OutPath, "out", "", "out")
 	cmdFlags.StringVar(&provider, "provider", "", "provider")
@@ -55,37 +55,17 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 		return add, diags
 	}
 
-	if provider != "" {
-		absProvider, providerDiags := addrs.ParseAbsProviderConfigStr(provider)
-
-		if providerDiags.HasErrors() {
-			// The diagnostics returned from ParseAbsProviderConfigStr are
-			// not always clear, so we wrap them in a single customized diagnostic.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid provider string: %s", provider),
-				providerDiags.Err().Error(),
-			))
-			return add, diags
-		}
-		add.Provider = &absProvider
-	}
-
 	args = cmdFlags.Args()
-	if len(args) == 0 {
+	if len(args) != 1 {
+		//var adj string
+		adj := "few"
+		if len(args) > 1 {
+			adj = "many"
+		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Too few command line arguments",
-			"Expected exactly one positional argument, giving the address of the resource configuration to generate.",
-		))
-		return add, diags
-	}
-
-	if len(args) > 1 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Too many command line arguments",
-			"Expected exactly one positional argument.",
+			fmt.Sprintf("Too %s command line arguments", adj),
+			"Expected exactly one positional argument, giving the address of the resource to generate configuration for.",
 		))
 		return add, diags
 	}
@@ -102,8 +82,8 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 	}
 	add.Addr = addr
 
-	if fromAddr != "" {
-		if add.Provider != nil {
+	if provider != "" {
+		if add.FromState {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible command-line options",
@@ -112,25 +92,18 @@ func ParseAdd(args []string) (*Add, tfdiags.Diagnostics) {
 			return add, diags
 		}
 
-		stateAddr, addrDiags := addrs.ParseAbsResourceInstanceStr(fromAddr)
-		if addrDiags.HasErrors() {
+		absProvider, providerDiags := addrs.ParseAbsProviderConfigStr(provider)
+		if providerDiags.HasErrors() {
+			// The diagnostics returned from ParseAbsProviderConfigStr are
+			// not always clear, so we wrap them in a single customized diagnostic.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid resource address",
-				fmt.Sprintf("Error parsing -from-state resource address: %s", addrDiags.Err().Error()),
+				fmt.Sprintf("Invalid provider string: %s", provider),
+				providerDiags.Err().Error(),
 			))
 			return add, diags
 		}
-		add.FromResourceAddr = &stateAddr
-
-		if stateAddr.Resource.Resource.Type != addr.Resource.Resource.Type {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Resource type mismatch",
-				"The target address and -from-state address must have the same resource type.",
-			))
-			return add, diags
-		}
+		add.Provider = &absProvider
 	}
 
 	return add, diags

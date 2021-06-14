@@ -143,12 +143,12 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	var providerLocalName string
 	rs := args.Addr.Resource.Resource
 
-	// If there is a FromResourceAddr, get the AbsProviderConfig directly from
-	// state.
+	// If we are getting the values from state, get the AbsProviderConfig
+	// directly from state as well.
 	var resource *states.Resource
 	var moreDiags tfdiags.Diagnostics
-	if args.FromResourceAddr != nil {
-		resource, moreDiags = c.getResource(b, args.FromResourceAddr.ContainingResource())
+	if args.FromState {
+		resource, moreDiags = c.getResource(b, args.Addr.ContainingResource())
 		if moreDiags.HasErrors() {
 			diags = diags.Append(moreDiags)
 			c.View.Diagnostics(diags)
@@ -211,8 +211,8 @@ func (c *AddCommand) Run(rawArgs []string) int {
 
 	stateVal := cty.NilVal
 	// Now that we have the schema, we can decode the previously-acquired resource state
-	if args.FromResourceAddr != nil {
-		ri := resource.Instance(args.FromResourceAddr.Resource.Key)
+	if args.FromState {
+		ri := resource.Instance(args.Addr.Resource.Key)
 		if ri.Current == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -265,9 +265,8 @@ Usage: terraform [global options] add [options] ADDRESS
 
 Options:
 
--from-state=ADDRESS		Fill the template with values from an existing resource.
-                        The resource must be the same type as the target address
-                        and exist in state.
+-from-state=true		Fill the template with values from an existing resource.
+                        Defaults to false.
 
 -out=string 			Write the template to a file. If the file already
                         exists, the template will be appended to the file.

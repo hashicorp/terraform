@@ -27,7 +27,7 @@ already exist in the configuration. Addresses are in
 
 This command accepts the following options:
 
-`-from-state=ADDRESS` - populate the template with values from a resource
+`-from-state` - populate the template with values from a resource
 already in state. Sensitive values are redacted.
 
 `-optional` - include optional attributes in the template.

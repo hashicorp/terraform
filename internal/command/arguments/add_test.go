@@ -9,9 +9,6 @@ import (
 )
 
 func TestParseAdd(t *testing.T) {
-	// need a pointer value for the -from-resource-addr tests
-	fromResource := mustResourceInstanceAddr("test_foo.bar")
-
 	tests := map[string]struct {
 		args      []string
 		want      *Add
@@ -37,12 +34,12 @@ func TestParseAdd(t *testing.T) {
 			``,
 		},
 		"-from-state": {
-			[]string{"-from-state=test_foo.bar", "module.foo.test_foo.baz"},
+			[]string{"-from-state", "module.foo.test_foo.baz"},
 			&Add{
-				Addr:             mustResourceInstanceAddr("module.foo.test_foo.baz"),
-				State:            &State{Lock: true},
-				ViewType:         ViewHuman,
-				FromResourceAddr: &fromResource,
+				Addr:      mustResourceInstanceAddr("module.foo.test_foo.baz"),
+				State:     &State{Lock: true},
+				ViewType:  ViewHuman,
+				FromState: true,
 			},
 			``,
 		},
@@ -78,10 +75,11 @@ func TestParseAdd(t *testing.T) {
 			`Too few command line arguments`,
 		},
 		"too many arguments": {
-			[]string{"-from-state=resource_foo.baz", "resource_foo.bar", "module.foo.resource_foo.baz"},
+			[]string{"-from-state", "resource_foo.bar", "module.foo.resource_foo.baz"},
 			&Add{
-				ViewType: ViewHuman,
-				State:    &State{Lock: true},
+				ViewType:  ViewHuman,
+				State:     &State{Lock: true},
+				FromState: true,
 			},
 			`Too many command line arguments`,
 		},
@@ -96,29 +94,18 @@ func TestParseAdd(t *testing.T) {
 		"invalid provider flag": {
 			[]string{"-provider=/this/isn't/quite/correct", "resource_foo.bar"},
 			&Add{
+				Addr:     mustResourceInstanceAddr("resource_foo.bar"),
 				ViewType: ViewHuman,
 				State:    &State{Lock: true},
 			},
 			`Invalid provider string: /this/isn't/quite/correct`,
 		},
-		"resource type mismatch": {
-			[]string{"-from-state=test_foo.bar", "test_compute.bar"},
-			&Add{ViewType: ViewHuman,
-				Addr:             mustResourceInstanceAddr("test_compute.bar"),
-				State:            &State{Lock: true},
-				FromResourceAddr: &fromResource,
-			},
-			`Resource type mismatch`,
-		},
 		"incompatible options": {
-			[]string{"-from-state=test_foo.bar", "-provider=provider[\"example.com/happycorp/test\"]", "test_compute.bar"},
+			[]string{"-from-state", "-provider=provider[\"example.com/happycorp/test\"]", "test_compute.bar"},
 			&Add{ViewType: ViewHuman,
-				Addr:             mustResourceInstanceAddr("test_compute.bar"),
-				State:            &State{Lock: true},
-				FromResourceAddr: nil,
-				Provider: &addrs.AbsProviderConfig{
-					Provider: addrs.NewProvider("example.com", "happycorp", "test"),
-				},
+				Addr:      mustResourceInstanceAddr("test_compute.bar"),
+				State:     &State{Lock: true},
+				FromState: true,
 			},
 			`Incompatible command-line options`,
 		},

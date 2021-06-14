@@ -433,7 +433,7 @@ func TestAdd_from_state(t *testing.T) {
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_instance",
-				Name: "old",
+				Name: "new",
 			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 			&states.ResourceInstanceObjectSrc{
 				AttrsJSON:    []byte("{\"id\":\"bar\",\"ami\":\"ami-123456\",\"disks\":[{\"mount_point\":\"diska\",\"size\":null}],\"value\":\"bloop\"}"),
@@ -503,7 +503,7 @@ func TestAdd_from_state(t *testing.T) {
 		},
 	}
 
-	args := []string{"-from-state=test_instance.old", "test_instance.new"}
+	args := []string{"-from-state", "test_instance.new"}
 	code := c.Run(args)
 	output := done(t)
 	if code != 0 {
