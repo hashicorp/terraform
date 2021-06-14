@@ -1,10 +1,13 @@
 package jsonconfig
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/zclconf/go-cty/cty"
@@ -30,22 +33,49 @@ type expression struct {
 
 func marshalExpression(ex hcl.Expression) expression {
 	var ret expression
-	if ex != nil {
-		val, _ := ex.Value(nil)
-		if val != cty.NilVal {
-			valJSON, _ := ctyjson.Marshal(val, val.Type())
-			ret.ConstantValue = valJSON
-		}
-		vars, _ := lang.ReferencesInExpr(ex)
-		var varString []string
-		if len(vars) > 0 {
-			for _, v := range vars {
-				varString = append(varString, v.Subject.String())
-			}
-			ret.References = varString
-		}
+	if ex == nil {
 		return ret
 	}
+
+	val, _ := ex.Value(nil)
+	if val != cty.NilVal {
+		valJSON, _ := ctyjson.Marshal(val, val.Type())
+		ret.ConstantValue = valJSON
+	}
+
+	refs, _ := lang.ReferencesInExpr(ex)
+	if len(refs) > 0 {
+		var varString []string
+		for _, ref := range refs {
+			// We work backwards here, starting with the full reference +
+			// reamining traversal, and then unwrapping the remaining traversals
+			// into parts until we end up at the smallest referencable address.
+			remains := ref.Remaining
+			for len(remains) > 0 {
+				varString = append(varString, fmt.Sprintf("%s%s", ref.Subject, traversalStr(remains)))
+				remains = remains[:(len(remains) - 1)]
+			}
+			varString = append(varString, ref.Subject.String())
+
+			switch ref.Subject.(type) {
+			case addrs.ModuleCallInstance:
+				if ref.Subject.(addrs.ModuleCallInstance).Key != addrs.NoKey {
+					// Include the module call, without the key
+					varString = append(varString, ref.Subject.(addrs.ModuleCallInstance).Call.String())
+				}
+			case addrs.ResourceInstance:
+				if ref.Subject.(addrs.ResourceInstance).Key != addrs.NoKey {
+					// Include the resource, without the key
+					varString = append(varString, ref.Subject.(addrs.ResourceInstance).Resource.String())
+				}
+			case addrs.AbsModuleCallOutput:
+				// Include the module name, without the output name
+				varString = append(varString, ref.Subject.(addrs.AbsModuleCallOutput).Call.String())
+			}
+		}
+		ret.References = varString
+	}
+
 	return ret
 }
 
@@ -116,4 +146,32 @@ func marshalExpressions(body hcl.Body, schema *configschema.Block) expressions {
 	}
 
 	return ret
+}
+
+// traversalStr produces a representation of an HCL traversal that is compact,
+// resembles HCL native syntax, and is suitable for display in the UI.
+//
+// This was copied (and simplified) from internal/command/views/json/diagnostic.go.
+func traversalStr(traversal hcl.Traversal) string {
+	var buf bytes.Buffer
+	for _, step := range traversal {
+		switch tStep := step.(type) {
+		case hcl.TraverseRoot:
+			buf.WriteString(tStep.Name)
+		case hcl.TraverseAttr:
+			buf.WriteByte('.')
+			buf.WriteString(tStep.Name)
+		case hcl.TraverseIndex:
+			buf.WriteByte('[')
+			switch tStep.Key.Type() {
+			case cty.String:
+				buf.WriteString(fmt.Sprintf("%q", tStep.Key.AsString()))
+			case cty.Number:
+				bf := tStep.Key.AsBigFloat()
+				buf.WriteString(bf.Text('g', 10))
+			}
+			buf.WriteByte(']')
+		}
+	}
+	return buf.String()
 }

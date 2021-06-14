@@ -337,7 +337,7 @@ func TestShow_json_output(t *testing.T) {
 			expectError := strings.Contains(entry.Name(), "error")
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": []string{"1.2.3"},
+				"test": {"1.2.3"},
 			})
 			defer close()
 
