@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "variables": {
         "test_var": {
             "value": "boop"
@@ -23,6 +23,9 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "boop"
+                    },
+                    "sensitive_values": {
+                        "ami": true
                     }
                 }
             ]
@@ -66,7 +69,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "values": {
             "outputs": {
                 "test": {

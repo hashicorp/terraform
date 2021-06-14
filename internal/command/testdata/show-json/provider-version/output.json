@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -24,7 +24,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.test[1]",
@@ -36,7 +37,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 },
                 {
                     "address": "test_instance.test[2]",
@@ -48,13 +50,14 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "values": {
             "outputs": {
                 "test": {
