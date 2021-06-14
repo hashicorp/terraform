@@ -69,7 +69,20 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 			// Easy path: nothing has changed at all
 			continue
 		}
+
+		if !configV.IsKnown() {
+			// An unknown config block represents a dynamic block where the
+			// for_each value is unknown, and therefor cannot be altered by the
+			// provider.
+			errs = append(errs, path.NewErrorf("planned value %#v for unknown dynamic block", plannedV))
+			continue
+		}
+
 		if !plannedV.IsKnown() {
+			// Only dynamic configuration can set blocks to unknown, so this is
+			// not allowed from the provider. This means that either the config
+			// and plan should match, or we have an error where the plan
+			// changed the config value, both of which have been checked.
 			errs = append(errs, path.NewErrorf("attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
 			continue
 		}
@@ -94,6 +107,7 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				errs = append(errs, path.NewErrorf("block count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
 				continue
 			}
+
 			for it := plannedV.ElementIterator(); it.Next(); {
 				idx, plannedEV := it.Element()
 				path := append(path, cty.IndexStep{Key: idx})

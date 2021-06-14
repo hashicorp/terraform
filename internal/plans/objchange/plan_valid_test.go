@@ -388,6 +388,110 @@ func TestAssertPlanValid(t *testing.T) {
 				`.b: attribute representing a list of nested blocks must be empty to indicate no blocks, not null`,
 			},
 		},
+
+		// blocks can be unknown when using dynamic
+		"nested list, unknown nested dynamic": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"a": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"b": {
+									Nesting: configschema.NestingList,
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"c": {
+												Type:     cty.String,
+												Optional: true,
+											},
+											"computed": {
+												Type:     cty.String,
+												Computed: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"computed": cty.NullVal(cty.String),
+					"b": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+						"c": cty.StringVal("x"),
+					})}),
+				})}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"b": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+						"c":        cty.String,
+						"computed": cty.String,
+					}))),
+				})}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"b": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+						"c":        cty.String,
+						"computed": cty.String,
+					}))),
+				})}),
+			}),
+			[]string{},
+		},
+
+		"nested set, unknown dynamic cannot be planned": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"computed": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+
+			cty.ObjectVal(map[string]cty.Value{
+				"computed": cty.NullVal(cty.String),
+				"b": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"c": cty.StringVal("x"),
+				})}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"computed": cty.NullVal(cty.String),
+				"b": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"computed": cty.StringVal("default"),
+				"b": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+					"c": cty.StringVal("oops"),
+				})}),
+			}),
+
+			[]string{
+				`.b: planned value cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"c":cty.StringVal("oops")})}) for unknown dynamic block`,
+			},
+		},
+
 		"nested set, null in plan": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
