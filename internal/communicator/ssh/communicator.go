@@ -13,12 +13,12 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/apparentlymart/go-shquot/shquot"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -420,7 +420,11 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	return c.scpSession("scp -vt "+QuoteShell(targetDir), scpFunc)
+	cmd, err := QuoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	if err != nil {
+		return err
+	}
+	return c.scpSession(cmd, scpFunc)
 }
 
 // UploadScript implementation of communicator.Communicator interface
@@ -489,7 +493,11 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		return uploadEntries()
 	}
 
-	return c.scpSession("scp -rvt "+QuoteShell(dst), scpFunc)
+	cmd, err := QuoteShell([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
+	if err != nil {
+		return err
+	}
+	return c.scpSession(cmd, scpFunc)
 }
 
 func (c *Communicator) newSession() (session *ssh.Session, err error) {
@@ -818,18 +826,14 @@ func (c *bastionConn) Close() error {
 	return c.Bastion.Close()
 }
 
-func QuoteShell(arg string) string {
-	// This is an implementation of python's shlex.quote function
-	// QuoteShell returns a shell-escaped version of the string s. The returned value is a string that can safely be
-	//used as one token in a shell command line
-	if arg == "" {
-		return "''"
+func QuoteShell(args []string, targetPlatform string) (string, error) {
+	if targetPlatform == TargetPlatformUnix {
+		return shquot.POSIXShell(args), nil
+	}
+	if targetPlatform == TargetPlatformWindows {
+		return shquot.WindowsArgv(args), nil
 	}
 
-	if m, _ := regexp.MatchString(`[\w@%+=:,./-]`, arg); m == false {
-		return arg
-	}
+	return "", fmt.Errorf("Cannot quote shell command, target platform unknown: %s", targetPlatform)
 
-	replacedQuotes := strings.ReplaceAll(arg, "'", "'\"'\"'")
-	return fmt.Sprintf("'%s'", replacedQuotes)
 }
