@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apparentlymart/go-shquot/shquot"
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -419,7 +420,11 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	return c.scpSession("scp -vt "+targetDir, scpFunc)
+	cmd, err := quoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	if err != nil {
+		return err
+	}
+	return c.scpSession(cmd, scpFunc)
 }
 
 // UploadScript implementation of communicator.Communicator interface
@@ -488,7 +493,11 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		return uploadEntries()
 	}
 
-	return c.scpSession("scp -rvt "+dst, scpFunc)
+	cmd, err := quoteShell([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
+	if err != nil {
+		return err
+	}
+	return c.scpSession(cmd, scpFunc)
 }
 
 func (c *Communicator) newSession() (session *ssh.Session, err error) {
@@ -815,4 +824,16 @@ type bastionConn struct {
 func (c *bastionConn) Close() error {
 	c.Conn.Close()
 	return c.Bastion.Close()
+}
+
+func quoteShell(args []string, targetPlatform string) (string, error) {
+	if targetPlatform == TargetPlatformUnix {
+		return shquot.POSIXShell(args), nil
+	}
+	if targetPlatform == TargetPlatformWindows {
+		return shquot.WindowsArgv(args), nil
+	}
+
+	return "", fmt.Errorf("Cannot quote shell command, target platform unknown: %s", targetPlatform)
+
 }
