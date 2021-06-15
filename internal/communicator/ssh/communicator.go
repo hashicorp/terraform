@@ -420,7 +420,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR, size)
 	}
 
-	cmd, err := QuoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
+	cmd, err := quoteShell([]string{"scp", "-vt", targetDir}, c.connInfo.TargetPlatform)
 	if err != nil {
 		return err
 	}
@@ -493,7 +493,7 @@ func (c *Communicator) UploadDir(dst string, src string) error {
 		return uploadEntries()
 	}
 
-	cmd, err := QuoteShell([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
+	cmd, err := quoteShell([]string{"scp", "-rvt", dst}, c.connInfo.TargetPlatform)
 	if err != nil {
 		return err
 	}
@@ -826,7 +826,7 @@ func (c *bastionConn) Close() error {
 	return c.Bastion.Close()
 }
 
-func QuoteShell(args []string, targetPlatform string) (string, error) {
+func quoteShell(args []string, targetPlatform string) (string, error) {
 	if targetPlatform == TargetPlatformUnix {
 		return shquot.POSIXShell(args), nil
 	}
