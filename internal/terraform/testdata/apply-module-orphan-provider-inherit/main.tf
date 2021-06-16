@@ -1,3 +1,0 @@
-provider "aws" {
-    value = "foo"
-}

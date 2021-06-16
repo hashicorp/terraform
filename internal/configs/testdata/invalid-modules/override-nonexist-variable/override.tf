@@ -1,3 +1,0 @@
-variable "foo" {
-  description = "overridden"
-}

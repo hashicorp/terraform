@@ -1,3 +1,0 @@
-resource "test" "foo" {
-  locals {}
-}

@@ -1,3 +1,0 @@
-terraform {
-    backend "local" {}
-}

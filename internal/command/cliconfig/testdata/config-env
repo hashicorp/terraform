@@ -1,8 +1,0 @@
-providers {
-  aws = "$TFTEST"
-  google = "bar"
-}
-
-provisioners {
-  local = "$TFTEST"
-}

@@ -1,3 +1,0 @@
-output "foo" {
-  sensitive = true
-}

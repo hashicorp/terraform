@@ -1,3 +1,0 @@
-provider "test" {
-  alias = "foo"
-}

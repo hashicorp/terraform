@@ -1,3 +1,0 @@
-module "sub" {
-    source = "./sub"
-}

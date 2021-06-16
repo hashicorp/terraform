@@ -1,3 +1,0 @@
-data "test" "foo" {
-  locals {}
-}

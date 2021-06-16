@@ -1,4 +1,0 @@
-providers {
-  aws = "foo"
-  do = "bar"
-}

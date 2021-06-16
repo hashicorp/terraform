@@ -1,3 +1,0 @@
-output "changed" {
-  value = "after"
-}

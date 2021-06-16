@@ -1,9 +1,0 @@
-{
-  "provider_installation": {
-    "filesystem_mirror": [
-      {
-        "path": "./fs-mirror"
-      }
-    ]
-  }
-}
