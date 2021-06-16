@@ -151,7 +151,7 @@ or some other value if not:
 module "example" {
   # ...
 
-  name_prefix = "app-${terraform-workspace}"
+  name_prefix = "app-${terraform.workspace}"
 }
 ```
 
