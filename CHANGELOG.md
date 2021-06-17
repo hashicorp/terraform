@@ -2,6 +2,7 @@
 
 NEW FEATURES:
 
+* command/add: `terraform add` generates resource configuration templates [GH-28874]
 * lang/funcs: add a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
