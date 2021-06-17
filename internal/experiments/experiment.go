@@ -16,6 +16,7 @@ const (
 	VariableValidation             = Experiment("variable_validation")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
+	EverythingIsAPlan              = Experiment("everything_is_a_plan")
 )
 
 func init() {

@@ -73,6 +73,8 @@ type File struct {
 
 	ManagedResources []*Resource
 	DataResources    []*Resource
+
+	Moved []*Moved
 }
 
 // NewModule takes a list of primary files and a list of override files and
