@@ -639,6 +639,20 @@ func showFixtureSensitiveSchema() *providers.GetProviderSchemaResponse {
 func showFixtureProvider() *terraform.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = showFixtureSchema()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		idVal := req.PriorState.GetAttr("id")
+		amiVal := req.PriorState.GetAttr("ami")
+		if amiVal.RawEquals(cty.StringVal("refresh-me")) {
+			amiVal = cty.StringVal("refreshed")
+		}
+		return providers.ReadResourceResponse{
+			NewState: cty.ObjectVal(map[string]cty.Value{
+				"id":  idVal,
+				"ami": amiVal,
+			}),
+			Private: req.Private,
+		}
+	}
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		idVal := req.ProposedNewState.GetAttr("id")
 		amiVal := req.ProposedNewState.GetAttr("ami")
@@ -761,6 +775,7 @@ type plan struct {
 	FormatVersion   string                 `json:"format_version,omitempty"`
 	Variables       map[string]interface{} `json:"variables,omitempty"`
 	PlannedValues   map[string]interface{} `json:"planned_values,omitempty"`
+	ResourceDrift   []interface{}          `json:"resource_drift,omitempty"`
 	ResourceChanges []interface{}          `json:"resource_changes,omitempty"`
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
 	PriorState      priorState             `json:"prior_state,omitempty"`
