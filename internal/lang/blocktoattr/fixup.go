@@ -137,6 +137,8 @@ func (b *fixupBody) fixupContent(content *hcl.BodyContent) *hcl.BodyContent {
 			NameRange: blocks[0].TypeRange,
 		}
 	}
+
+	ret.MissingItemRange = b.MissingItemRange()
 	return &ret
 }
 

@@ -360,6 +360,46 @@ container {
 				}),
 			}),
 		},
+
+		"missing nested block items": {
+			src: `
+container {
+  foo {
+    bar = "one"
+  }
+}
+`,
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"container": {
+						Nesting:  configschema.NestingList,
+						MinItems: 2,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type: cty.List(cty.Object(map[string]cty.Type{
+										"bar": cty.String,
+									})),
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"container": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"foo": cty.ListVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"bar": cty.StringVal("baz"),
+							}),
+						}),
+					}),
+				}),
+			}),
+			wantErrs: true,
+		},
 	}
 
 	ctx := &hcl.EvalContext{
@@ -397,6 +437,14 @@ container {
 			if test.wantErrs {
 				if !diags.HasErrors() {
 					t.Errorf("succeeded, but want error\ngot: %#v", got)
+				}
+
+				// check that our wrapped body returns the correct context by
+				// verifying the Subject is valid.
+				for _, d := range diags {
+					if d.Subject.Filename == "" {
+						t.Errorf("empty diagnostic subject: %#v", d.Subject)
+					}
 				}
 				return
 			}
