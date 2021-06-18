@@ -34,7 +34,7 @@ confirm the filename.
 
 The location of the Terraform CLI configuration file can also be specified
 using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/cli/config/environment-variables.html).
-Such file should follow a naming pattern `*.tfrc`.
+Any such file should follow the naming pattern `*.tfrc`.
 
 ## Configuration File Syntax
 
