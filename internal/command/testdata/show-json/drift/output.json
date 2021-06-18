@@ -1,26 +1,13 @@
 {
     "format_version": "0.2",
-    "terraform_version": "0.13.0",
-    "variables": {
-        "test_var": {
-            "value": "bar"
-        }
-    },
     "planned_values": {
-        "outputs": {
-            "test": {
-                "sensitive": false,
-                "value": "bar"
-            }
-        },
         "root_module": {
             "resources": [
                 {
-                    "address": "test_instance.test[0]",
+                    "address": "test_instance.no_refresh",
                     "mode": "managed",
                     "type": "test_instance",
-                    "name": "test",
-                    "index": 0,
+                    "name": "no_refresh",
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
@@ -30,15 +17,15 @@
                     "sensitive_values": {}
                 },
                 {
-                    "address": "test_instance.test[1]",
+                    "address": "test_instance.should_refresh",
                     "mode": "managed",
                     "type": "test_instance",
-                    "name": "test",
-                    "index": 1,
+                    "name": "should_refresh",
                     "provider_name": "registry.terraform.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
-                        "ami": "bar"
+                        "ami": "baz",
+                        "id": "placeholder"
                     },
                     "sensitive_values": {}
                 }
@@ -47,39 +34,41 @@
     },
     "resource_drift": [
         {
-            "address": "test_instance.test",
+            "address": "test_instance.should_refresh",
             "mode": "managed",
             "type": "test_instance",
             "provider_name": "registry.terraform.io/hashicorp/test",
-            "name": "test",
+            "name": "should_refresh",
             "change": {
                 "actions": [
-                    "delete"
+                    "update"
                 ],
                 "before": {
-                    "ami": "bar",
+                    "ami": "refresh-me",
                     "id": "placeholder"
                 },
-                "after": null,
-                "before_sensitive": {},
-                "after_sensitive": false
+                "after": {
+                    "ami": "refreshed",
+                    "id": "placeholder"
+                },
+                "after_sensitive": {},
+                "before_sensitive": {}
             }
         }
     ],
     "resource_changes": [
         {
-            "address": "test_instance.test[0]",
+            "address": "test_instance.no_refresh",
             "mode": "managed",
             "type": "test_instance",
-            "name": "test",
-            "index": 0,
             "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "no_refresh",
             "change": {
                 "actions": [
-                    "no-op"
+                    "update"
                 ],
                 "before": {
-                    "ami": "bar",
+                    "ami": "foo",
                     "id": "placeholder"
                 },
                 "after": {
@@ -92,62 +81,56 @@
             }
         },
         {
-            "address": "test_instance.test[1]",
+            "address": "test_instance.should_refresh",
             "mode": "managed",
             "type": "test_instance",
-            "name": "test",
-            "index": 1,
             "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "should_refresh",
             "change": {
                 "actions": [
-                    "create"
+                    "update"
                 ],
-                "before": null,
+                "before": {
+                    "ami": "refreshed",
+                    "id": "placeholder"
+                },
                 "after": {
-                    "ami": "bar"
+                    "ami": "baz",
+                    "id": "placeholder"
                 },
-                "after_unknown": {
-                    "id": true
-                },
+                "after_unknown": {},
                 "after_sensitive": {},
-                "before_sensitive": false
+                "before_sensitive": {}
             }
         }
     ],
-    "output_changes": {
-        "test": {
-            "actions": [
-                "no-op"
-            ],
-            "before": "bar",
-            "after": "bar",
-            "after_unknown": false,
-            "before_sensitive": false,
-            "after_sensitive": false
-        }
-    },
     "prior_state": {
         "format_version": "0.2",
-        "terraform_version": "0.13.0",
         "values": {
-            "outputs": {
-                "test": {
-                    "sensitive": false,
-                    "value": "bar"
-                }
-            },
             "root_module": {
                 "resources": [
                     {
-                        "address": "test_instance.test[0]",
+                        "address": "test_instance.no_refresh",
                         "mode": "managed",
                         "type": "test_instance",
-                        "name": "test",
-                        "index": 0,
-                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "name": "no_refresh",
                         "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
                         "values": {
-                            "ami": "bar",
+                            "ami": "foo",
+                            "id": "placeholder"
+                        },
+                        "sensitive_values": {}
+                    },
+                    {
+                        "address": "test_instance.should_refresh",
+                        "mode": "managed",
+                        "type": "test_instance",
+                        "name": "should_refresh",
+                        "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "values": {
+                            "ami": "refreshed",
                             "id": "placeholder"
                         },
                         "sensitive_values": {}
@@ -158,40 +141,34 @@
     },
     "configuration": {
         "root_module": {
-            "outputs": {
-                "test": {
-                    "expression": {
-                        "references": [
-                            "var.test_var"
-                        ]
-                    }
-                }
-            },
             "resources": [
                 {
-                    "address": "test_instance.test",
+                    "address": "test_instance.no_refresh",
                     "mode": "managed",
                     "type": "test_instance",
-                    "name": "test",
+                    "name": "no_refresh",
                     "provider_config_key": "test",
+                    "schema_version": 0,
                     "expressions": {
                         "ami": {
-                            "references": [
-                                "var.test_var"
-                            ]
+                            "constant_value": "bar"
                         }
-                    },
+                    }
+                },
+                {
+                    "address": "test_instance.should_refresh",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "should_refresh",
+                    "provider_config_key": "test",
                     "schema_version": 0,
-                    "count_expression": {
-                        "constant_value": 2
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "baz"
+                        }
                     }
                 }
-            ],
-            "variables": {
-                "test_var": {
-                    "default": "bar"
-                }
-            }
+            ]
         }
     }
 }

@@ -259,6 +259,12 @@ func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *t
 				} else {
 					newVal = cty.NullVal(ty)
 				}
+
+				if oldVal.RawEquals(newVal) {
+					// No drift if the two values are semantically equivalent
+					continue
+				}
+
 				oldSensitive := jsonstate.SensitiveAsBool(oldVal)
 				newSensitive := jsonstate.SensitiveAsBool(newVal)
 				oldVal, _ = oldVal.UnmarkDeep()
@@ -290,6 +296,7 @@ func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *t
 				}
 
 				change := resourceChange{
+					Address:       addr.String(),
 					ModuleAddress: addr.Module.String(),
 					Mode:          "managed", // drift reporting is only for managed resources
 					Name:          addr.Resource.Resource.Name,
