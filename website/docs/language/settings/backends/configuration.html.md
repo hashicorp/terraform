@@ -70,16 +70,15 @@ automatically by an automation script running Terraform. When some or all of
 the arguments are omitted, we call this a _partial configuration_.
 
 With a partial configuration, the remaining configuration arguments must be
-provided as part of
-[the initialization process](/docs/cli/init/index.html).
+provided as part of [the initialization process](/docs/cli/init/index.html).
+
 There are several ways to supply the remaining arguments:
 
   * **File**: A configuration file may be specified via the `init` command line.
     To specify a file, use the `-backend-config=PATH` option when running
     `terraform init`. If the file contains secrets it may be kept in
-    a secure data store, such as
-    [Vault](https://www.vaultproject.io/), in which case it must be downloaded
-    to the local disk before running Terraform.
+    a secure data store, such as [Vault](https://www.vaultproject.io/),
+    in which case it must be downloaded to the local disk before running Terraform.
 
   * **Command-line key/value pairs**: Key/value pairs can be specified via the
     `init` command line. Note that many shells retain command-line flags in a
@@ -111,6 +110,8 @@ terraform {
 }
 ```
 
+### File
+
 A backend configuration file has the contents of the `backend` block as
 top-level attributes, without the need to wrap it in another `terraform`
 or `backend` block:
@@ -120,6 +121,13 @@ address = "demo.consul.io"
 path    = "example_app/terraform_state"
 scheme  = "https"
 ```
+
+`*.backendname.tfbackend` (e.g. `config.consul.tfbackend`) is the recommended
+naming pattern. Terraform will not prevent you from using other names but following
+this convention will help your editor understand the content and likely provide
+better editing experience as a result.
+
+### Command-line key/value pairs
 
 The same settings can alternatively be specified on the command line as
 follows:
