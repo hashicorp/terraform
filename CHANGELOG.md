@@ -8,11 +8,9 @@ NEW FEATURES:
 ENHANCEMENTS:
 
 * configs: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. ([#28854](https://github.com/hashicorp/terraform/issues/28854))
-* command/show: The -json output now indicates which state values are sensitive. ([#28889](https://github.com/hashicorp/terraform/issues/28889))
 
 BUG FIXES:
 
-* command/show: Fix an issue where the json configuration representation was missing fully-unwrapped references. ([#28884](https://github.com/hashicorp/terraform/issues/28884))
 
 ## Previous Releases
 
