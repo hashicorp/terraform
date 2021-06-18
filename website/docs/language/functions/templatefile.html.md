@@ -40,7 +40,7 @@ graph, so this function cannot be used with files that are generated
 dynamically during a Terraform operation.
 
 `*.tftpl` is the recommended naming pattern to use for your template files.
-Terraform will not prevent you from using other names but following this
+Terraform will not prevent you from using other names, but following this
 convention will help your editor understand the content and likely provide
 better editing experience as a result.
 
