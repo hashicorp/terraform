@@ -1,11 +1,17 @@
 ## 1.0.1 (Unreleased)
 
+ENHANCEMENTS:
+
+* json-output: The JSON plan output now indicates which state values are sensitive. [GH-28889]
+
 BUG FIXES:
 
 * backend/remote: Fix faulty Terraform Cloud version check when migrating state to the remote backend with multiple local workspaces [GH-28864]
 * cli: Fix crash with deposed instances in json plan output [GH-28922]
 * core: Fix crash when provider modifies and unknown block during plan [GH-28941]
 * core: Diagnostic context was missing for some errors when validating blocks [GH-28979]
+* json-output: Fix an issue where the JSON configuration representation was missing fully-unwrapped references. [GH-8884]
+* json-output: Fix JSON plan resource drift to remove unchanged resources. [GH-28975]
 
 ## 1.0.0 (June 08, 2021)
 
