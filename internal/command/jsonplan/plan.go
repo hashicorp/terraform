@@ -22,7 +22,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "0.1"
+const FormatVersion = "0.2"
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
@@ -259,8 +259,14 @@ func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *t
 				} else {
 					newVal = cty.NullVal(ty)
 				}
-				oldSensitive := sensitiveAsBool(oldVal)
-				newSensitive := sensitiveAsBool(newVal)
+
+				if oldVal.RawEquals(newVal) {
+					// No drift if the two values are semantically equivalent
+					continue
+				}
+
+				oldSensitive := jsonstate.SensitiveAsBool(oldVal)
+				newSensitive := jsonstate.SensitiveAsBool(newVal)
 				oldVal, _ = oldVal.UnmarkDeep()
 				newVal, _ = newVal.UnmarkDeep()
 
@@ -290,6 +296,7 @@ func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *t
 				}
 
 				change := resourceChange{
+					Address:       addr.String(),
 					ModuleAddress: addr.Module.String(),
 					Mode:          "managed", // drift reporting is only for managed resources
 					Name:          addr.Resource.Resource.Name,
@@ -367,7 +374,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			if schema.ContainsSensitive() {
 				marks = append(marks, schema.ValueMarks(changeV.Before, nil)...)
 			}
-			bs := sensitiveAsBool(changeV.Before.MarkWithPaths(marks))
+			bs := jsonstate.SensitiveAsBool(changeV.Before.MarkWithPaths(marks))
 			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 			if err != nil {
 				return err
@@ -396,7 +403,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			if schema.ContainsSensitive() {
 				marks = append(marks, schema.ValueMarks(changeV.After, nil)...)
 			}
-			as := sensitiveAsBool(changeV.After.MarkWithPaths(marks))
+			as := jsonstate.SensitiveAsBool(changeV.After.MarkWithPaths(marks))
 			afterSensitive, err = ctyjson.Marshal(as, as.Type())
 			if err != nil {
 				return err
@@ -679,88 +686,6 @@ func unknownAsBool(val cty.Value) cty.Value {
 	default:
 		// Should never happen, since the above should cover all types
 		panic(fmt.Sprintf("unknownAsBool cannot handle %#v", val))
-	}
-}
-
-// recursively iterate through a marked cty.Value, replacing sensitive values
-// with cty.True and non-sensitive values with cty.False.
-//
-// The result also normalizes some types: all sequence types are turned into
-// tuple types and all mapping types are converted to object types, since we
-// assume the result of this is just going to be serialized as JSON (and thus
-// lose those distinctions) anyway.
-//
-// For map/object values, all non-sensitive attribute values will be omitted
-// instead of returning false, as this results in a more compact serialization.
-func sensitiveAsBool(val cty.Value) cty.Value {
-	if val.HasMark("sensitive") {
-		return cty.True
-	}
-
-	ty := val.Type()
-	switch {
-	case val.IsNull(), ty.IsPrimitiveType(), ty.Equals(cty.DynamicPseudoType):
-		return cty.False
-	case ty.IsListType() || ty.IsTupleType() || ty.IsSetType():
-		if !val.IsKnown() {
-			// If the collection is unknown we can't say anything about the
-			// sensitivity of its contents
-			return cty.EmptyTupleVal
-		}
-		length := val.LengthInt()
-		if length == 0 {
-			// If there are no elements then we can't have sensitive values
-			return cty.EmptyTupleVal
-		}
-		vals := make([]cty.Value, 0, length)
-		it := val.ElementIterator()
-		for it.Next() {
-			_, v := it.Element()
-			vals = append(vals, sensitiveAsBool(v))
-		}
-		// The above transform may have changed the types of some of the
-		// elements, so we'll always use a tuple here in case we've now made
-		// different elements have different types. Our ultimate goal is to
-		// marshal to JSON anyway, and all of these sequence types are
-		// indistinguishable in JSON.
-		return cty.TupleVal(vals)
-	case ty.IsMapType() || ty.IsObjectType():
-		if !val.IsKnown() {
-			// If the map/object is unknown we can't say anything about the
-			// sensitivity of its attributes
-			return cty.EmptyObjectVal
-		}
-		var length int
-		switch {
-		case ty.IsMapType():
-			length = val.LengthInt()
-		default:
-			length = len(val.Type().AttributeTypes())
-		}
-		if length == 0 {
-			// If there are no elements then we can't have sensitive values
-			return cty.EmptyObjectVal
-		}
-		vals := make(map[string]cty.Value)
-		it := val.ElementIterator()
-		for it.Next() {
-			k, v := it.Element()
-			s := sensitiveAsBool(v)
-			// Omit all of the "false"s for non-sensitive values for more
-			// compact serialization
-			if !s.RawEquals(cty.False) {
-				vals[k.AsString()] = s
-			}
-		}
-		// The above transform may have changed the types of some of the
-		// elements, so we'll always use an object here in case we've now made
-		// different elements have different types. Our ultimate goal is to
-		// marshal to JSON anyway, and all of these mapping types are
-		// indistinguishable in JSON.
-		return cty.ObjectVal(vals)
-	default:
-		// Should never happen, since the above should cover all types
-		panic(fmt.Sprintf("sensitiveAsBool cannot handle %#v", val))
 	}
 }
 

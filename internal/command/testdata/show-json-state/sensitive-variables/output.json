@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "terraform_version": "0.14.0",
     "values": {
         "root_module": {
@@ -14,6 +14,9 @@
                     "values": {
                         "id": "621124146446964903",
                         "ami": "abc"
+                    },
+                    "sensitive_values": {
+                        "ami": true
                     }
                 }
             ]
