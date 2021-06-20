@@ -76,12 +76,24 @@ func realMain() int {
 		}
 		// Now that we have the file, close it and leave it for the wrapped
 		// process to write to.
-		logTempFile.Close()
-		defer os.Remove(logTempFile.Name())
+		err = logTempFile.Close()
+		if err != nil {
+			fmt.Printf("Failed to close temporary file: %s", err)
+		}
+		// Delete temporary file
+		defer func() {
+			err = os.Remove(logTempFile.Name())
+			if err != nil {
+				fmt.Printf("Failed to delete temporary file: %s", err)
+			}
+		}()
 
 		// store the path in the environment for the wrapped executable
-		os.Setenv(envTmpLogPath, logTempFile.Name())
-
+		err = os.Setenv(envTmpLogPath, logTempFile.Name())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to store temporary file path as environment variable for wrapped executable: %s", err)
+			return 1
+		}
 		// We also need to do our terminal initialization before we fork,
 		// because the child process doesn't necessarily have access to
 		// the true stderr in order to initialize it.
@@ -96,8 +108,10 @@ func realMain() int {
 		// so we'll smuggle the true stderr information in an environment
 		// varible.
 		streamState := streams.StateForAfterPanicWrap()
-		os.Setenv(envTerminalPanicwrapWorkaround, fmt.Sprintf("%t:%d", streamState.StderrIsTerminal, streamState.StderrWidth))
-
+		err = os.Setenv(envTerminalPanicwrapWorkaround, fmt.Sprintf("%t:%d", streamState.StderrIsTerminal, streamState.StderrWidth))
+		if err != nil {
+			fmt.Printf("Failed to connect wrapped application to stderr: %s", err)
+		}
 		// Create the configuration for panicwrap and wrap our executable
 		wrapConfig.Handler = logging.PanicHandler(logTempFile.Name())
 		wrapConfig.IgnoreSignals = ignoreSignals
