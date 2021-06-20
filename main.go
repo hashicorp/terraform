@@ -94,7 +94,7 @@ func realMain() int {
 		// We need the child process to behave _as if_ connected to the real
 		// stderr, even though panicwrap is about to add a pipe in the way,
 		// so we'll smuggle the true stderr information in an environment
-		// varible.
+		// variable.
 		streamState := streams.StateForAfterPanicWrap()
 		os.Setenv(envTerminalPanicwrapWorkaround, fmt.Sprintf("%t:%d", streamState.StderrIsTerminal, streamState.StderrWidth))
 
