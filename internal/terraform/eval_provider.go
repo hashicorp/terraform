@@ -26,13 +26,7 @@ func buildProviderConfig(ctx EvalContext, addr addrs.AbsProviderConfig, config *
 	switch {
 	case configBody != nil && inputBody != nil:
 		log.Printf("[TRACE] buildProviderConfig for %s: merging explicit config and input", addr)
-		// Note that the inputBody is the _base_ here, because configs.MergeBodies
-		// expects the base have all of the required fields, while these are
-		// forced to be optional for the override. The input process should
-		// guarantee that we have a value for each of the required arguments and
-		// that in practice the sets of attributes in each body will be
-		// disjoint.
-		return configs.MergeBodies(inputBody, configBody)
+		return hcl.MergeBodies([]hcl.Body{inputBody, configBody})
 	case configBody != nil:
 		log.Printf("[TRACE] buildProviderConfig for %s: using explicit config only", addr)
 		return configBody
