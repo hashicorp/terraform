@@ -348,7 +348,13 @@ terraform apply -var='image_id_list=["ami-abc123","ami-def456"]' -var="instance_
 terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-def456"}'
 ```
 
-The `-var` option can be used any number of times in a single command.
+The above examples show appropriate syntax for Unix-style shells, such as on
+Linux or macOS. For more information on shell quoting, including additional
+examples for Windows Command Prompt, see
+[Input Variables on the Command Line](/docs/cli/commands/plan.html#input-variables-on-the-command-line).
+
+You can use the `-var` option multiple times in a single command to set several
+different variables.
 
 <a id="variable-files"></a>
 
@@ -423,10 +429,11 @@ to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment
 variables. For convenience, Terraform defaults to interpreting `-var` and
-environment variable values as literal strings, which do not need to be quoted:
+environment variable values as literal strings, which need only shell quoting,
+and no special quoting for Terraform. For example, in a Unix-style shell:
 
 ```
-$ export TF_VAR_image_id=ami-abc123
+$ export TF_VAR_image_id='ami-abc123'
 ```
 
 However, if a root module variable uses a [type constraint](#type-constraints)
@@ -441,6 +448,9 @@ $ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 
 For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
+For more information on quoting and escaping for `-var` arguments,
+see
+[Input Variables on the Command Line](/docs/cli/commands/plan.html#input-variables-on-the-command-line).
 
 ### Values for Undeclared Variables
 
