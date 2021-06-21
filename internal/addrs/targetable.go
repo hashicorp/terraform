@@ -13,6 +13,10 @@ type Targetable interface {
 	// A targetable address always contains at least itself.
 	TargetContains(other Targetable) bool
 
+	// AddrType returns the address type for comparison with other Targetable
+	// addresses.
+	AddrType() TargetableAddrType
+
 	// String produces a string representation of the address that could be
 	// parsed as a HCL traversal and passed to ParseTarget to produce an
 	// identical result.
@@ -24,3 +28,13 @@ type targetable struct {
 
 func (r targetable) targetableSigil() {
 }
+
+type TargetableAddrType int
+
+const (
+	ConfigResourceAddrType TargetableAddrType = iota
+	AbsResourceInstanceAddrType
+	AbsResourceAddrType
+	ModuleAddrType
+	ModuleInstanceAddrType
+)

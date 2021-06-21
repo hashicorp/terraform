@@ -163,6 +163,10 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 	}
 }
 
+func (r AbsResource) AddrType() TargetableAddrType {
+	return AbsResourceAddrType
+}
+
 func (r AbsResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -226,6 +230,10 @@ func (r AbsResourceInstance) TargetContains(other Targetable) bool {
 		return false
 
 	}
+}
+
+func (r AbsResourceInstance) AddrType() TargetableAddrType {
+	return AbsResourceInstanceAddrType
 }
 
 func (r AbsResourceInstance) String() string {
@@ -310,6 +318,10 @@ func (r ConfigResource) TargetContains(other Targetable) bool {
 	default:
 		return false
 	}
+}
+
+func (r ConfigResource) AddrType() TargetableAddrType {
+	return ConfigResourceAddrType
 }
 
 func (r ConfigResource) String() string {

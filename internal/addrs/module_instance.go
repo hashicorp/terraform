@@ -484,6 +484,10 @@ func (m ModuleInstance) Module() Module {
 	return ret
 }
 
+func (m ModuleInstance) AddrType() TargetableAddrType {
+	return ModuleInstanceAddrType
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
 }
