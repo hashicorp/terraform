@@ -336,6 +336,26 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
+	// Correct the capitalization of the organization's name, if necessary.
+	organization, err := b.client.Organizations.Read(context.Background(), b.organization)
+	if err != nil {
+		if err == tfe.ErrResourceNotFound {
+			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
+				"Please ensure that the organization and hostname are correct "+
+				"and that your API token for %s is valid.",
+				b.organization, b.hostname, b.hostname)
+		}
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.hostname),
+			fmt.Sprintf("The \"remote\" backend encountered an unexpected error while reading the "+
+				"organization settings: %s", err),
+			cty.Path{cty.GetAttrStep{Name: "organization"}},
+		))
+		return diags
+	}
+	b.organization = organization.Name
+
 	// Configure a local backend for when we need to run operations locally.
 	b.local = backendLocal.NewWithBackend(b)
 	b.forceLocal = b.forceLocal || !entitlements.Operations
