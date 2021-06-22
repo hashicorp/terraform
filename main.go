@@ -78,10 +78,10 @@ func realMain() int {
 		// process to write to.
 		err = logTempFile.Close()
 		if err != nil {
-			fmt.Printf("Failed to close temprary file: %s", err)
+			fmt.Printf("Failed to close temporary file: %s", err)
 		}
 		// Delete temporary file
-		defer func (){
+		defer func() {
 			err = os.Remove(logTempFile.Name())
 			if err != nil {
 				fmt.Printf("Failed to delete temporary file: %s", err)
