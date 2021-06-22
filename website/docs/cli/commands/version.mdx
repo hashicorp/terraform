@@ -1,9 +1,8 @@
 ---
-layout: "docs"
-page_title: "Command: version"
-sidebar_current: "docs-commands-version"
-description: |-
-  The `terraform version` command displays the version of Terraform and all installed plugins.
+page_title: 'Command: version'
+description: >-
+  The `terraform version` command displays the version of Terraform and all
+  installed plugins.
 ---
 
 # Command: version
@@ -17,14 +16,14 @@ Usage: `terraform version [options]`
 
 With no additional arguments, `version` will display the version of Terraform,
 the platform it's installed on, installed providers, and the results of upgrade
-and security checks [unless disabled](/docs/cli/commands/index.html#upgrade-and-security-bulletin-checks).
+and security checks [unless disabled](/cli/commands#upgrade-and-security-bulletin-checks).
 
 This command has one optional flag:
 
-* `-json` - If specified, the version information is formatted as a JSON object, 
-    and no upgrade or security information is included.
+- `-json` - If specified, the version information is formatted as a JSON object,
+  and no upgrade or security information is included.
 
--> **Note:** Platform information was added to the `version` command in Terraform 0.15. 
+-> **Note:** Platform information was added to the `version` command in Terraform 0.15.
 
 ## Example
 
@@ -37,7 +36,7 @@ on darwin_amd64
 + provider registry.terraform.io/hashicorp/null v3.0.0
 
 Your version of Terraform is out of date! The latest version
-is X.Y.Z. You can update by downloading from https://www.terraform.io/downloads.html
+is X.Y.Z. You can update by downloading from https://www.terraform.io/downloads
 ```
 
 As JSON:

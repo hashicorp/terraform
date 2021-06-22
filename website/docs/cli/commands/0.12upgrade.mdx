@@ -1,9 +1,8 @@
 ---
-layout: "docs"
-page_title: "Command: 0.12upgrade"
-sidebar_current: "docs-commands-012upgrade"
-description: |-
-  The 0.12upgrade subcommand automatically rewrites existing configurations for Terraform 0.12 compatibility.
+page_title: 'Command: 0.12upgrade'
+description: >-
+  The 0.12upgrade subcommand automatically rewrites existing configurations for
+  Terraform 0.12 compatibility.
 ---
 
 # Command: 0.12upgrade
@@ -12,7 +11,7 @@ The `terraform 0.12upgrade` command applies several automatic upgrade rules to
 help prepare a module that was written for Terraform v0.11 to be used
 with Terraform v0.12.
 
--> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](https://www.terraform.io/upgrade-guides/0-12.html).
+-> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/language/upgrade-guides/0-12).
 
 ## Usage
 
@@ -71,21 +70,21 @@ the change.
 Once upgraded the configuration will no longer be compatible with Terraform
 v0.11 and earlier. When upgrading a shared module that is called from multiple
 configurations, you may need to
-[fix existing configurations to a previous version](/docs/language/modules/syntax.html#version)
+[fix existing configurations to a previous version](/language/modules/syntax#version)
 to allow for a gradual upgrade. If the module is published via
-[a Terraform registry](/docs/registry/), assign a new _major_ version number
+[a Terraform registry](/registry/), assign a new _major_ version number
 to the upgraded module source to represent the fact that this is a breaking
 change for v0.11 callers. If a module is installed directly from a version
 control system such as Git,
-[use specific revisions](https://www.terraform.io/docs/language/modules/sources.html#selecting-a-revision)
+[use specific revisions](/language/modules/sources#selecting-a-revision)
 to control which version is used by which caller.
 
 The command-line options are all optional. The available options are:
 
-* `-yes` - Skip the initial introduction messages and interactive confirmation.
+- `-yes` - Skip the initial introduction messages and interactive confirmation.
   Use this when running the command in batch from a script.
 
-* `-force` - Override the heuristic that attempts to detect if a configuration
+- `-force` - Override the heuristic that attempts to detect if a configuration
   is already written for v0.12 or later. Some of the transformations made by
   this command are not idempotent, so re-running against the same module may
   change the meanings of some expressions in the module.
@@ -107,8 +106,8 @@ On Mac OS X, the `find` included with the system does not support the `-printf` 
 ```
 brew install findutils
 ```
-Once installed, run the above command line using `gfind` instead of `find`.
 
+Once installed, run the above command line using `gfind` instead of `find`.
 
 Note that the above includes the `-yes` option to override the interactive
 prompt, so be sure you have a clean work tree before running it.

@@ -1,10 +1,10 @@
 ---
-layout: "docs"
-page_title: "Command: refresh"
-sidebar_current: "docs-commands-refresh"
-description: |-
-  The `terraform refresh` command reads the current settings from all managed
-  remote objects and updates the Terraform state to match.
+page_title: 'Command: refresh'
+description: >-
+  The `terraform refresh` command is used to reconcile the state Terraform knows
+  about (via its state file) with the real-world infrastructure. This can be
+  used to detect any drift from the last-known state, and to update the state
+  file.
 ---
 
 # Command: refresh
@@ -12,19 +12,19 @@ description: |-
 The `terraform refresh` command reads the current settings from all managed
 remote objects and updates the Terraform state to match.
 
-~> *Warning:* This command is deprecated, because its default behavior is
+~> _Warning:_ This command is deprecated, because its default behavior is
 unsafe if you have misconfigured credentials for any of your providers.
 See below for more information and recommended alternatives.
 
 This won't modify your real remote objects, but it will modify the
-[the Terraform state](/docs/language/state/).
+[the Terraform state](/language/state/).
 
 You shouldn't typically need to use this command, because Terraform
 automatically performs the same refreshing actions as a part of creating
 a plan in both the
-[`terraform plan`](./plan.html)
+[`terraform plan`](plan)
 and
-[`terraform apply`](./apply.html)
+[`terraform apply`](apply)
 commands. This command is here primarily for backward compatibility, but
 we don't recommend using it because it provides no opportunity to review
 the effects of the operation before updating the state.
@@ -40,7 +40,7 @@ terraform apply -refresh-only -auto-approve
 ```
 
 Consequently, it supports all of the same options as
-[`terraform apply`](./apply.html) except that it does not accept a saved
+[`terraform apply`](apply) except that it does not accept a saved
 plan file, it doesn't allow selecting a planning mode other than "refresh only",
 and `-auto-approve` is always enabled.
 

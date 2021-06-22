@@ -1,9 +1,8 @@
 ---
-layout: "docs"
-page_title: "Command: 0.13upgrade"
-sidebar_current: "docs-commands-013upgrade"
-description: |-
-  The 0.13upgrade subcommand updates existing configurations to use the new provider source features from Terraform 0.13.
+page_title: 'Command: 0.13upgrade'
+description: >-
+  The 0.13upgrade subcommand updates existing configurations to use the new
+  provider source features from Terraform 0.13.
 ---
 
 # Command: 0.13upgrade
@@ -12,7 +11,7 @@ The `terraform 0.13upgrade` command updates existing configuration to add an
 explicit `source` attribute for each provider used in a given module. The
 provider source settings are stored in a `required_providers` block.
 
--> **This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](https://www.terraform.io/upgrade-guides/0-13.html).
+-> **This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](/language/upgrade-guides/0-13).
 
 ## Usage
 
@@ -23,7 +22,7 @@ providers are in use for a module, detect the source address for those
 providers where possible, and record this information in a
 [`required_providers` block][required-providers].
 
-[required-providers]: /docs/language/providers/requirements.html
+[required-providers]: /language/providers/requirements
 
 ~> Note: the command ignores `.tf.json` files and override files in the module.
 
@@ -64,7 +63,7 @@ the change.
 
 There is one command-line option:
 
-* `-yes` - Skip the initial introduction messages and interactive confirmation.
+- `-yes` - Skip the initial introduction messages and interactive confirmation.
   Use this when running the command in batch from a script.
 
 ## Batch Usage

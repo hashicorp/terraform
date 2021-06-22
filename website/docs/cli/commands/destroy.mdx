@@ -1,10 +1,9 @@
 ---
-layout: "docs"
-page_title: "Command: destroy"
+page_title: 'Command: destroy'
 sidebar_current: "docs-commands-destroy"
-description: |-
-  The `terraform destroy` command is a convenient way to destroy all objects
-  managed by a particular Terraform configuration.
+description: >-
+  The `terraform destroy` command is used to destroy the Terraform-managed
+  infrastructure.
 ---
 
 # Command: destroy
@@ -29,7 +28,7 @@ terraform apply -destroy
 ```
 
 For that reason, this command accepts most of the options that
-[`terraform apply`](./apply.html) accepts, although it does
+[`terraform apply`](/cli/commands/apply) accepts, although it does
 not accept a plan file argument and forces the selection of the "destroy"
 planning mode.
 
@@ -40,7 +39,7 @@ destroying would be, by running the following command:
 terraform plan -destroy
 ```
 
-This will run [`terraform plan`](./plan.html) in _destroy_ mode, showing
+This will run [`terraform plan`](plan) in _destroy_ mode, showing
 you the proposed destroy changes without executing them.
 
 -> **Note:** The `-destroy` option to `terraform apply` exists only in

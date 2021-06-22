@@ -1,9 +1,9 @@
 ---
-layout: "docs"
-page_title: "Command: init"
-sidebar_current: "docs-commands-init"
-description: |-
-  The `terraform init` command is used to initialize a Terraform configuration. This is the first command that should be run for any new or existing Terraform configuration. It is safe to run this command multiple times.
+page_title: 'Command: init'
+description: >-
+  The `terraform init` command is used to initialize a Terraform configuration.
+  This is the first command that should be run for any new or existing Terraform
+  configuration. It is safe to run this command multiple times.
 ---
 
 # Command: init
@@ -33,18 +33,18 @@ state.
 
 The following options apply to all of (or several of) the initialization steps:
 
-* `-input=true` Ask for input if necessary. If false, will error if
+- `-input=true` Ask for input if necessary. If false, will error if
   input was required.
 
-* `-lock=false` Disable locking of state files during state-related operations.
+- `-lock=false` Disable locking of state files during state-related operations.
 
-* `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
+- `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
   a state lock. The default is `0s` (zero seconds), which causes immediate
   failure if the lock is already held by another process.
 
-* `-no-color` Disable color codes in the command output.
+- `-no-color` Disable color codes in the command output.
 
-* `-upgrade` Opt to upgrade modules and plugins as part of their respective
+- `-upgrade` Opt to upgrade modules and plugins as part of their respective
   installation steps. See the sections below for more details.
 
 ## Copy a Source Module
@@ -59,11 +59,11 @@ run.
 
 This special mode of operation supports two use-cases:
 
-* Given a version control source, it can serve as a shorthand for checking out
+- Given a version control source, it can serve as a shorthand for checking out
   a configuration from version control and then initializing the working directory
   for it.
 
-* If the source refers to an _example_ configuration, it can be copied into
+- If the source refers to an _example_ configuration, it can be copied into
   a local directory to be used as a basis for a new configuration.
 
 For routine use it is recommended to check out configuration from version
@@ -75,7 +75,7 @@ activating credentials) before running `terraform init`.
 ## Backend Initialization
 
 During init, the root configuration directory is consulted for
-[backend configuration](/docs/language/settings/backends/configuration.html) and the chosen backend
+[backend configuration](/language/settings/backends/configuration) and the chosen backend
 is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
@@ -97,14 +97,14 @@ when the working directory was already previously initialized for a particular
 backend.
 
 The `-backend-config=...` option can be used for
-[partial backend configuration](/docs/language/settings/backends/configuration.html#partial-configuration),
+[partial backend configuration](/language/settings/backends/configuration#partial-configuration),
 in situations where the backend settings are dynamic or sensitive and so cannot
 be statically specified in the configuration file.
 
 ## Child Module Installation
 
 During init, the configuration is searched for `module` blocks, and the source
-code for referenced [modules](/docs/language/modules/develop/index.html) is retrieved from the locations
+code for referenced [modules](/language/modules/develop) is retrieved from the locations
 given in their `source` arguments.
 
 Re-running init with modules already installed will install the sources for
@@ -129,13 +129,13 @@ third-party provider registry, `terraform init` will automatically find,
 download, and install the necessary provider plugins. If you cannot or do not
 wish to install providers from their origin registries, you can customize how
 Terraform installs providers using
-[the provider installation settings in the CLI configuration](/docs/cli/config/config-file.html#provider-installation).
+[the provider installation settings in the CLI configuration](/cli/config/config-file#provider-installation).
 
 For more information about specifying which providers are required for each
-of your modules, see [Provider Requirements](/docs/language/providers/requirements.html).
+of your modules, see [Provider Requirements](/language/providers/requirements).
 
 After successful installation, Terraform writes information about the selected
-providers to [the dependency lock file](/docs/language/dependency-lock.html).
+providers to [the dependency lock file](/language/files/dependency-lock).
 You should commit this file to your version control system to ensure that
 when you run `terraform init` again in future Terraform will select exactly
 the same provider versions. Use the `-upgrade` option if you want Terraform
@@ -150,16 +150,17 @@ You can modify `terraform init`'s plugin behavior with the following options:
   version constraints.
 - `-get-plugins=false` — Skip plugin installation.
 
-    -> Note: Since Terraform 0.13, this option has been superseded by the
-    [`provider_installation`](/docs/cli/config/config-file.html#provider-installation) and
-    [`plugin_cache_dir`](/docs/cli/config/config-file.html#plugin_cache_dir) settings.
-    It should not be used in Terraform versions 0.13+, and this option
-    was removed in Terraform 0.15.
+  -> Note: Since Terraform 0.13, this option has been superseded by the
+  [`provider_installation`](/cli/config/config-file#provider-installation) and
+  [`plugin_cache_dir`](/cli/config/config-file#plugin_cache_dir) settings.
+  It should not be used in Terraform versions 0.13+, and this option
+  was removed in Terraform 0.15.
+
 - `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
   filesystem mirror then we recommend
-  [configuring Terraform's installation methods globally](/docs/cli/config/config-file.html#provider-installation).
+  [configuring Terraform's installation methods globally](/cli/config/config-file#provider-installation).
   You can use `-plugin-dir` as a one-time override for exceptional situations,
   such as if you are testing a local build of a provider plugin you are
   currently developing.
@@ -193,7 +194,7 @@ that directory as the root module instead of the current working directory.
 That usage is still supported in Terraform v0.14, but is now deprecated and we
 plan to remove it in Terraform v0.15. If your workflow relies on overriding
 the root module directory, use
-[the `-chdir` global option](./#switching-working-directory-with-chdir)
+[the `-chdir` global option](/cli/commands/#switching-working-directory-with-chdir)
 instead, which works across all commands and makes Terraform consistently look
 in the given directory for all files it would normally read or write in the
 current working directory.
@@ -201,6 +202,6 @@ current working directory.
 If your previous use of this legacy pattern was also relying on Terraform
 writing the `.terraform` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](/docs/cli/config/environment-variables.html#tf_data_dir)
+[the `TF_DATA_DIR` environment variable](/cli/config/environment-variables#tf_data_dir)
 to direct Terraform to write the `.terraform` directory to a location other
 than the current working directory.

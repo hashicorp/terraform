@@ -1,7 +1,7 @@
 ---
-layout: "docs"
-page_title: "Command: add"
-sidebar_current: "docs-commands-add"
+layout: 'docs'
+page_title: 'Command: add'
+sidebar_current: 'docs-commands-add'
 description: |-
   The `terraform add` command generates resource configuration templates.
 ---
@@ -11,7 +11,7 @@ description: |-
 The `terraform add` command generates a resource configuration template with
 `null` placeholder values for all attributes, unless the `-from-state` flag is
 used. By default, the template only includes required resource attributes; the
-`-optional` flag tells Terraform to also include any optional attributes. 
+`-optional` flag tells Terraform to also include any optional attributes.
 
 When `terraform add` used with the `-from-state` will _not_ print sensitive
 values. You can use `terraform show ADDRESS` to see all values, including
@@ -22,8 +22,8 @@ sensitive values, recorded in state for the given resource address.
 Usage: `terraform add [options] ADDRESS`
 
 This command requires an address that points to a resource which does not
-already exist in the configuration. Addresses are in 
-[resource addressing format](/docs/cli/state/resource-addressing.html).
+already exist in the configuration. Addresses are in
+[resource addressing format](/cli/state/resource-addressing).
 
 This command accepts the following options:
 
