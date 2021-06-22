@@ -173,7 +173,7 @@ the previous section, are also available with the same meanings on
     [Resource Targeting](#resource-targeting)
     below for more information.
 
-* `-var 'NAME=VALUE` - Sets a value for a single
+* `-var 'NAME=VALUE'` - Sets a value for a single
   [input variable](/docs/language/values/variables.html) declared in the
   root module of the configuration. Use this option multiple times to set
   more than one variable.
