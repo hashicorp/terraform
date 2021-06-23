@@ -26,6 +26,10 @@ Supported pattern matches:
 - `[CLASS]` - matches any single non-separator character inside a class of characters (see below)
 - `[^CLASS]` - matches any single non-separator character outside a class of characters (see below)
 
+Note that the doublestar (`**`) must appear as a path component by itself. A
+pattern such as /path** is invalid and will be treated the same as /path*, but
+/path*/** should achieve the desired result.
+
 Character classes support the following:
 
 - `[abc]` - matches any single character within the set
