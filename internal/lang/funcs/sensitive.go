@@ -1,6 +1,7 @@
 package funcs
 
 import (
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
@@ -25,7 +26,7 @@ var SensitiveFunc = function.New(&function.Spec{
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		val, _ := args[0].Unmark()
-		return val.Mark("sensitive"), nil
+		return val.Mark(marks.Sensitive), nil
 	},
 })
 
@@ -48,12 +49,12 @@ var NonsensitiveFunc = function.New(&function.Spec{
 		return args[0].Type(), nil
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		if args[0].IsKnown() && !args[0].HasMark("sensitive") {
+		if args[0].IsKnown() && !args[0].HasMark(marks.Sensitive) {
 			return cty.DynamicVal, function.NewArgErrorf(0, "the given value is not sensitive, so this call is redundant")
 		}
-		v, marks := args[0].Unmark()
-		delete(marks, "sensitive") // remove the sensitive marking
-		return v.WithMarks(marks), nil
+		v, m := args[0].Unmark()
+		delete(m, marks.Sensitive) // remove the sensitive marking
+		return v.WithMarks(m), nil
 	},
 })
 
