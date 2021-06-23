@@ -1,0 +1,30 @@
+---
+page_title: trimprefix - Functions - Configuration Language
+description: |-
+  The trimprefix function removes the specified prefix from the start of a
+  given string.
+sidebar_title: trimprefix
+---
+
+# `trimprefix` Function
+
+`trimprefix` removes the specified prefix from the start of the given string. If the string does not start with the prefix, the string is returned unchanged.
+
+## Examples
+
+```
+> trimprefix("helloworld", "hello")
+world
+```
+
+```
+> trimprefix("helloworld", "cat")
+helloworld
+```
+
+## Related Functions
+
+- [`trim`](/language/functions/trim) removes characters at the start and end of a string.
+- [`trimsuffix`](/language/functions/trimsuffix) removes a word from the end of a string.
+- [`trimspace`](/language/functions/trimspace) removes all types of whitespace from
+  both the start and the end of a string.
