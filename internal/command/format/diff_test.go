@@ -13,6 +13,105 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func TestResourceChange_awsInstance(t *testing.T) {
+	testCases := map[string]testCase{
+		"mixed": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"arn": cty.StringVal("arn-2"),
+				"credit_specification": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"cpu_credits": cty.StringVal("unlimited"),
+					}),
+				}),
+				"get_password_data": cty.BoolVal(false),
+				"set_attr": cty.SetVal([]cty.Value{
+					cty.StringVal("the dragon will come"),
+					cty.StringVal("when he hears the drum"),
+					cty.StringVal("at a minute or two to two today"),
+				}),
+				"tags":             cty.MapValEmpty(cty.String),
+				"tags_all":         cty.MapValEmpty(cty.String),
+				"vpc_secgroup_ids": cty.SetVal([]cty.Value{cty.StringVal("sg-11")}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"arn": cty.StringVal("arn-2"),
+				"credit_specification": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"cpu_credits": cty.StringVal("unlimited"),
+					}),
+				}),
+				"get_password_data": cty.BoolVal(false),
+				"set_attr": cty.SetVal([]cty.Value{
+					cty.StringVal("the dragon will come"),
+					cty.StringVal("when he hears the drum"),
+					cty.StringVal("at a minute or two to two today"),
+				}),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"env": cty.StringVal("prd"), // yolo test in prd
+				}),
+				"tags_all": cty.MapVal(map[string]cty.Value{
+					"env": cty.StringVal("prd"),
+				}),
+				"vpc_secgroup_ids": cty.SetVal([]cty.Value{cty.StringVal("sg-11")}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			Schema:          testSchemaMixedNestingMultiBlocks(),
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id                = "i-02ae66f368e8518a9"
+      ~ tags              = {
+          + "env" = "prd"
+        }
+      ~ tags_all          = {
+          + "env" = "prd"
+        }
+        # (5 unchanged attributes hidden)
+
+        # (4 unchanged blocks hidden)
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
 func TestResourceChange_primitiveTypes(t *testing.T) {
 	testCases := map[string]testCase{
 		"creation": {
@@ -2384,6 +2483,61 @@ func TestResourceChange_nestedList(t *testing.T) {
     }
 `,
 		},
+		"in-place update - multiple unchanged blocks": {
+			// https://github.com/hashicorp/terraform/issues/28217
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaMultiBlocks(configschema.NestingList),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+
+        # (3 unchanged blocks hidden)
+    }
+`,
+		},
 		"force-new update (inside blocks)": {
 			Action:       plans.DeleteThenCreate,
 			ActionReason: plans.ResourceInstanceReplaceBecauseCannotUpdate,
@@ -2748,6 +2902,61 @@ func TestResourceChange_nestedSet(t *testing.T) {
     }
 `,
 		},
+		"in-place update - multiple unchanged blocks": {
+			// https://github.com/hashicorp/terraform/issues/28217
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaMultiBlocks(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+
+        # (3 unchanged blocks hidden)
+    }
+`,
+		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
 			ActionReason: plans.ResourceInstanceReplaceBecauseCannotUpdate,
@@ -3032,6 +3241,61 @@ func TestResourceChange_nestedMap(t *testing.T) {
           + volume_type = "gp2"
         }
         # (1 unchanged block hidden)
+    }
+`,
+		},
+		"in-place update - multiple unchanged blocks": {
+			// https://github.com/hashicorp/terraform/issues/28217
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-123456789"),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"nested_block_device": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+				"timeouts": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"create": cty.StringVal("60m"),
+						"delete": cty.StringVal("60m"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaMultiBlocks(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id  = "i-02ae66f368e8518a9"
+        # (1 unchanged attribute hidden)
+
+        # (3 unchanged blocks hidden)
     }
 `,
 		},
@@ -4371,6 +4635,109 @@ func testSchemaPlus(nesting configschema.NestingMode) *configschema.Block {
 					},
 				},
 				Nesting: nesting,
+			},
+		},
+	}
+}
+
+func testSchemaMultiBlocks(nesting configschema.NestingMode) *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":  {Type: cty.String, Optional: true, Computed: true},
+			"ami": {Type: cty.String, Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"root_block_device": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"volume_type": {
+							Type:     cty.String,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+				Nesting: nesting,
+			},
+			"nested_block_device": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"volume_type": {
+							Type:     cty.String,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+				Nesting: nesting,
+			},
+			"timeouts": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"create": {
+							Type:     cty.String,
+							Optional: true,
+							Computed: true,
+						},
+						"delete": {
+							Type:     cty.String,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+				Nesting: nesting,
+			},
+		},
+	}
+}
+
+func testSchemaMixedNestingMultiBlocks() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id":                {Type: cty.String, Optional: true, Computed: true},
+			"ami":               {Type: cty.String, Optional: true},
+			"arn":               {Type: cty.String, Computed: true},
+			"get_password_data": {Type: cty.Bool, Optional: true},
+			"set_attr":          {Type: cty.Set(cty.String), Optional: true},
+			"tags":              {Type: cty.Map(cty.String), Optional: true},
+			"tags_all":          {Type: cty.Map(cty.String), Optional: true},
+			"vpc_secgroup_ids":  {Type: cty.Set(cty.String), Computed: true, Optional: true},
+		},
+		BlockTypes: map[string]*configschema.NestedBlock{
+			"root_block_device": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"volume_type": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+				Nesting: configschema.NestingList,
+			},
+			"nested_block_device": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"volume_type": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+				Nesting: configschema.NestingSet,
+			},
+			"timeouts": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"create": {Type: cty.String, Optional: true, Computed: true},
+						"delete": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+				Nesting: configschema.NestingMap,
+			},
+			"credit_specification": {
+				Block: configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"cpu_credits": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+				Nesting:  configschema.NestingList,
+				MaxItems: 1,
 			},
 		},
 	}

@@ -358,36 +358,43 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 	blankBeforeBlocks := p.writeAttrsDiff(schema.Attributes, old, new, indent, path, &result)
 	p.writeSkippedAttr(result.skippedAttributes, indent+2)
 
-	{
-		blockTypeNames := make([]string, 0, len(schema.BlockTypes))
-		for name := range schema.BlockTypes {
-			blockTypeNames = append(blockTypeNames, name)
-		}
-		sort.Strings(blockTypeNames)
+	blockTypeNames := make([]string, 0, len(schema.BlockTypes))
+	for name := range schema.BlockTypes {
+		blockTypeNames = append(blockTypeNames, name)
+	}
+	sort.Strings(blockTypeNames)
 
-		for _, name := range blockTypeNames {
-			blockS := schema.BlockTypes[name]
-			oldVal := ctyGetAttrMaybeNull(old, name)
-			newVal := ctyGetAttrMaybeNull(new, name)
+	previouslySkipped := false
+	for _, name := range blockTypeNames {
+		blockS := schema.BlockTypes[name]
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
 
+		skippedBlocks := p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
+		if skippedBlocks > 0 {
+			result.skippedBlocks += skippedBlocks
+		} else {
 			result.bodyWritten = true
-			skippedBlocks := p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
-			if skippedBlocks > 0 {
-				result.skippedBlocks += skippedBlocks
-			}
+		}
 
-			// Always include a blank for any subsequent block types.
-			blankBeforeBlocks = true
+		// Include a blank for any subsequent block types iff we did not skip the previous block.
+		if previouslySkipped {
+			blankBeforeBlocks = false
 		}
-		if result.skippedBlocks > 0 {
-			noun := "blocks"
-			if result.skippedBlocks == 1 {
-				noun = "block"
-			}
+
+		// reset previouslySkipped
+		previouslySkipped = skippedBlocks > 0
+	}
+	if result.skippedBlocks > 0 {
+		noun := "blocks"
+		if result.skippedBlocks == 1 {
+			noun = "block"
+		}
+		if blankBeforeBlocks {
 			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+2))
-			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedBlocks, noun)))
 		}
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
+		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedBlocks, noun)))
 	}
 
 	return result
@@ -421,19 +428,18 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		}
 	}
 	sort.Strings(attrNames)
-	if len(attrNames) > 0 {
-		blankBeforeBlocks = true
-	}
 
 	for _, name := range attrNames {
 		attrS := attrsS[name]
 		oldVal := ctyGetAttrMaybeNull(old, name)
 		newVal := ctyGetAttrMaybeNull(new, name)
 
-		result.bodyWritten = true
 		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
 		if skipped {
 			result.skippedAttributes++
+		} else {
+			result.bodyWritten = true
+			blankBeforeBlocks = true
 		}
 	}
 
@@ -718,8 +724,6 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 	}
-
-	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
