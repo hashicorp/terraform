@@ -14,7 +14,7 @@ BUG FIXES:
 * core: Fix crash when provider modifies and unknown block during plan ([#28941](https://github.com/hashicorp/terraform/issues/28941))
 * core: Diagnostic context was missing for some errors when validating blocks ([#28979](https://github.com/hashicorp/terraform/issues/28979))
 * core: Fix crash when calling `setproduct` with unknown values ([#28984](https://github.com/hashicorp/terraform/issues/28984))
-* json-output: Fix an issue where the JSON configuration representation was missing fully-unwrapped references. ([#8884](https://github.com/hashicorp/terraform/issues/8884))
+* json-output: Fix an issue where the JSON configuration representation was missing fully-unwrapped references. ([#28884](https://github.com/hashicorp/terraform/issues/28884))
 * json-output: Fix JSON plan resource drift to remove unchanged resources. ([#28975](https://github.com/hashicorp/terraform/issues/28975))
 
 ## 1.0.0 (June 08, 2021)
