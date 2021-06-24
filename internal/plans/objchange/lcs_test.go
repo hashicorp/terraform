@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -89,16 +90,16 @@ func TestLongestCommonSubsequence(t *testing.T) {
 		},
 		{
 			[]cty.Value{
-				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark(marks.Sensitive)}),
 				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
 			},
 			[]cty.Value{
-				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark(marks.Sensitive)}),
 				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
 				cty.MapVal(map[string]cty.Value{"c": cty.StringVal("z")}),
 			},
 			[]cty.Value{
-				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark("sensitive")}),
+				cty.MapVal(map[string]cty.Value{"a": cty.StringVal("x").Mark(marks.Sensitive)}),
 				cty.MapVal(map[string]cty.Value{"b": cty.StringVal("y")}),
 			},
 		},

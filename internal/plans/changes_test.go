@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
 func TestChangeEncodeSensitive(t *testing.T) {
 	testVals := []cty.Value{
 		cty.ObjectVal(map[string]cty.Value{
-			"ding": cty.StringVal("dong").Mark("sensitive"),
+			"ding": cty.StringVal("dong").Mark(marks.Sensitive),
 		}),
 		cty.StringVal("bleep").Mark("bloop"),
 		cty.ListVal([]cty.Value{cty.UnknownVal(cty.String).Mark("sup?")}),

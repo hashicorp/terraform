@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -4793,7 +4794,7 @@ func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234").Mark("sensitive"),
+		"ami":  cty.StringVal("ami-abcd1234").Mark(marks.Sensitive),
 		"type": cty.StringVal("aws_instance"),
 	}), ric.After)
 }
@@ -5627,7 +5628,7 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo": cty.StringVal("foo").Mark("sensitive"),
+				"foo": cty.StringVal("foo").Mark(marks.Sensitive),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
@@ -5640,7 +5641,7 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 			if got, want := pvm.Path, cty.GetAttrPath("foo"); !got.Equals(want) {
 				t.Errorf("unexpected path for mark\n got: %#v\nwant: %#v", got, want)
 			}
-			if got, want := pvm.Marks, cty.NewValueMarks("sensitive"); !got.Equal(want) {
+			if got, want := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !got.Equal(want) {
 				t.Errorf("unexpected value for mark\n got: %#v\nwant: %#v", got, want)
 			}
 		default:
@@ -5694,8 +5695,8 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 		switch i := ric.Addr.String(); i {
 		case "module.child.aws_instance.foo":
 			checkVals(t, objectVal(t, schema, map[string]cty.Value{
-				"foo":   cty.StringVal("foo").Mark("sensitive"),
-				"value": cty.StringVal("boop").Mark("sensitive"),
+				"foo":   cty.StringVal("foo").Mark(marks.Sensitive),
+				"value": cty.StringVal("boop").Mark(marks.Sensitive),
 			}), ric.After)
 			if len(res.ChangeSrc.BeforeValMarks) != 0 {
 				t.Errorf("unexpected BeforeValMarks: %#v", res.ChangeSrc.BeforeValMarks)
@@ -5708,7 +5709,7 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 			contains := func(pvmSlice []cty.PathValueMarks, stepName string) bool {
 				for _, pvm := range pvmSlice {
 					if pvm.Path.Equals(cty.GetAttrPath(stepName)) {
-						if pvm.Marks.Equal(cty.NewValueMarks("sensitive")) {
+						if pvm.Marks.Equal(cty.NewValueMarks(marks.Sensitive)) {
 							return true
 						}
 					}
@@ -6753,8 +6754,8 @@ resource "test_resource" "foo" {
 					Status:    states.ObjectReady,
 					AttrsJSON: []byte(`{"id":"foo", "value":"hello", "sensitive_value":"hello"}`),
 					AttrSensitivePaths: []cty.PathValueMarks{
-						{Path: cty.Path{cty.GetAttrStep{Name: "value"}}, Marks: cty.NewValueMarks("sensitive")},
-						{Path: cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}, Marks: cty.NewValueMarks("sensitive")},
+						{Path: cty.Path{cty.GetAttrStep{Name: "value"}}, Marks: cty.NewValueMarks(marks.Sensitive)},
+						{Path: cty.Path{cty.GetAttrStep{Name: "sensitive_value"}}, Marks: cty.NewValueMarks(marks.Sensitive)},
 					},
 				},
 				addrs.AbsProviderConfig{

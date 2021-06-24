@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -163,5 +162,4 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error for non-existent resource")
 	}
-	fmt.Println(diags.ErrWithWarnings())
 }

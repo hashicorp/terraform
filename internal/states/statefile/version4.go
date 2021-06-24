@@ -11,6 +11,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -164,7 +165,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				for _, path := range paths {
 					pvm = append(pvm, cty.PathValueMarks{
 						Path:  path,
-						Marks: cty.NewValueMarks("sensitive"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
 					})
 				}
 				obj.AttrSensitivePaths = pvm

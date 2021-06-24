@@ -262,7 +262,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	if d.Operation == walkValidate {
 		// Ensure variable sensitivity is captured in the validate walk
 		if config.Sensitive {
-			return marks.Sensitive(cty.UnknownVal(wantType)), diags
+			return cty.UnknownVal(wantType).Mark(marks.Sensitive), diags
 		}
 		return cty.UnknownVal(wantType), diags
 	}
@@ -299,7 +299,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 
 	// Mark if sensitive
 	if config.Sensitive {
-		val = marks.Sensitive(val)
+		val = val.Mark(marks.Sensitive)
 	}
 
 	return val, diags
@@ -434,7 +434,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			instance[cfg.Name] = outputState
 
 			if cfg.Sensitive {
-				instance[cfg.Name] = marks.Sensitive(outputState)
+				instance[cfg.Name] = outputState.Mark(marks.Sensitive)
 			}
 		}
 
@@ -463,7 +463,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			instance[cfg.Name] = change.After
 
 			if change.Sensitive {
-				instance[cfg.Name] = marks.Sensitive(change.After)
+				instance[cfg.Name] = change.After.Mark(marks.Sensitive)
 			}
 		}
 	}

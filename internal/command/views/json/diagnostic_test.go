@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -360,7 +361,7 @@ func TestNewDiagnostic(t *testing.T) {
 					Variables: map[string]cty.Value{
 						"var": cty.ObjectVal(map[string]cty.Value{
 							"boop": cty.MapVal(map[string]cty.Value{
-								"hello!": cty.StringVal("bleurgh").Mark("sensitive"),
+								"hello!": cty.StringVal("bleurgh").Mark(marks.Sensitive),
 							}),
 						}),
 					},
@@ -416,7 +417,7 @@ func TestNewDiagnostic(t *testing.T) {
 					Variables: map[string]cty.Value{
 						"var": cty.ObjectVal(map[string]cty.Value{
 							"boop": cty.MapVal(map[string]cty.Value{
-								"hello!": cty.StringVal("bleurgh").Mark("sensitive"),
+								"hello!": cty.StringVal("bleurgh").Mark(marks.Sensitive),
 							}),
 						}),
 					},
@@ -597,7 +598,7 @@ func TestNewDiagnostic(t *testing.T) {
 							"a": cty.True,
 							"b": cty.NumberFloatVal(123.45),
 							"c": cty.NullVal(cty.String),
-							"d": cty.StringVal("secret").Mark("sensitive"),
+							"d": cty.StringVal("secret").Mark(marks.Sensitive),
 							"e": cty.False,
 							"f": cty.ListValEmpty(cty.String),
 							"g": cty.MapVal(map[string]cty.Value{

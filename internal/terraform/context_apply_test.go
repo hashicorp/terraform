@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -11949,7 +11950,7 @@ resource "test_resource" "foo" {
 		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
 			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
 		}
-		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
 			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
 		}
 	}
@@ -12013,7 +12014,7 @@ resource "test_resource" "baz" {
 		if gotPath, wantPath := pvm.Path, cty.GetAttrPath("value"); !gotPath.Equals(wantPath) {
 			t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
 		}
-		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+		if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
 			t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
 		}
 	}
@@ -12098,7 +12099,7 @@ resource "test_resource" "foo" {
 	got := fooState.Current.AttrSensitivePaths[0]
 	want := cty.PathValueMarks{
 		Path:  cty.GetAttrPath("value"),
-		Marks: cty.NewValueMarks("sensitive"),
+		Marks: cty.NewValueMarks(marks.Sensitive),
 	}
 
 	if !got.Equal(want) {
@@ -12399,7 +12400,7 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 	if gotPath, wantPath := pvm.Path, cty.GetAttrPath("foo"); !gotPath.Equals(wantPath) {
 		t.Errorf("wrong path\n got: %#v\nwant: %#v", gotPath, wantPath)
 	}
-	if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks("sensitive"); !gotMarks.Equal(wantMarks) {
+	if gotMarks, wantMarks := pvm.Marks, cty.NewValueMarks(marks.Sensitive); !gotMarks.Equal(wantMarks) {
 		t.Errorf("wrong marks\n got: %#v\nwant: %#v", gotMarks, wantMarks)
 	}
 }

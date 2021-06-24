@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 )
 
 // AssertObjectCompatible checks whether the given "actual" value is a valid
@@ -57,11 +58,11 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 		// exposing a value through errors
 		unmarkedActualV, marksA := actualV.UnmarkDeep()
 		unmarkedPlannedV, marksP := plannedV.UnmarkDeep()
-		_, isMarkedActual := marksA["sensitive"]
-		_, isMarkedPlanned := marksP["sensitive"]
+		_, isSensitiveActual := marksA[marks.Sensitive]
+		_, isSensitivePlanned := marksP[marks.Sensitive]
 
 		moreErrs := assertValueCompatible(unmarkedPlannedV, unmarkedActualV, path)
-		if attrS.Sensitive || isMarkedActual || isMarkedPlanned {
+		if attrS.Sensitive || isSensitiveActual || isSensitivePlanned {
 			if len(moreErrs) > 0 {
 				// Use a vague placeholder message instead, to avoid disclosing
 				// sensitive information.

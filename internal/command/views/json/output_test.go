@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -17,7 +18,7 @@ func TestOutputsFromMap(t *testing.T) {
 		},
 		// Sensitive string output
 		"beep": {
-			Value:     cty.StringVal("horse-battery").Mark("sensitive"),
+			Value:     cty.StringVal("horse-battery").Mark(marks.Sensitive),
 			Sensitive: true,
 		},
 		// Sensitive object output which is marked at the leaf
@@ -25,7 +26,7 @@ func TestOutputsFromMap(t *testing.T) {
 			Value: cty.ObjectVal(map[string]cty.Value{
 				"a": cty.ObjectVal(map[string]cty.Value{
 					"b": cty.ObjectVal(map[string]cty.Value{
-						"c": cty.StringVal("oh, hi").Mark("sensitive"),
+						"c": cty.StringVal("oh, hi").Mark(marks.Sensitive),
 					}),
 				}),
 			}),

@@ -9,6 +9,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -404,7 +405,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 }
 
 func SensitiveAsBool(val cty.Value) cty.Value {
-	if val.HasMark("sensitive") {
+	if val.HasMark(marks.Sensitive) {
 		return cty.True
 	}
 
