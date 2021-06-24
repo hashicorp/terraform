@@ -3,6 +3,7 @@
 ENHANCEMENTS:
 
 * json-output: The JSON plan output now indicates which state values are sensitive. [GH-28889]
+* cli: The darwin builds can now make use of the host DNS resolver, which will fix many network related issues on MacOS.
 
 BUG FIXES:
 
