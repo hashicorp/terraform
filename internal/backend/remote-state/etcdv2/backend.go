@@ -6,11 +6,11 @@ import (
 	"context"
 	"strings"
 
-	etcdapi "github.com/coreos/etcd/client"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	etcdapi "go.etcd.io/etcd/client/v2"
 )
 
 func New() backend.Backend {

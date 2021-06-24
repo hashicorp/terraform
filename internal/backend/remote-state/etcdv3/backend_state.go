@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"

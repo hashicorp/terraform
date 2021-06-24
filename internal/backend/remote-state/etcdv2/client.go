@@ -5,8 +5,8 @@ import (
 	"crypto/md5"
 	"fmt"
 
-	etcdapi "github.com/coreos/etcd/client"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	etcdapi "go.etcd.io/etcd/client/v2"
 )
 
 // EtcdClient is a remote client that stores data in etcd.
