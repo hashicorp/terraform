@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
@@ -733,7 +734,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// If either the old or the new value is marked,
 	// Display a special diff because it is irrelevant
 	// to list all obfuscated attributes as (sensitive)
-	if old.IsMarked() || new.IsMarked() {
+	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
 		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore, path)
 		return 0
 	}
@@ -1012,7 +1013,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
 	// Could check specifically for the sensitivity marker
-	if val.IsMarked() {
+	if val.HasMark(marks.Sensitive) {
 		p.buf.WriteString("(sensitive)")
 		return
 	}
@@ -1177,7 +1178,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		if old.IsMarked() || new.IsMarked() {
+		if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
 			p.buf.WriteString("(sensitive)")
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
@@ -1548,7 +1549,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
-					if v.IsMarked() {
+					if v.HasMark(marks.Sensitive) {
 						p.buf.WriteString("(sensitive)")
 					} else {
 						p.writeValue(v, action, indent+4)
@@ -1558,7 +1559,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					newV := cty.NullVal(oldV.Type())
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
-					if oldV.IsMarked() || newV.IsMarked() {
+					if oldV.HasMark(marks.Sensitive) || newV.HasMark(marks.Sensitive) {
 						p.buf.WriteString("(sensitive)")
 					} else {
 						p.writeValueDiff(oldV, newV, indent+4, path)
@@ -1738,7 +1739,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 		}
 	}
 
-	if new.IsMarked() && !old.IsMarked() {
+	if new.HasMark(marks.Sensitive) && !old.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
@@ -1746,7 +1747,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 	}
 
 	// Note if changing this attribute will change its sensitivity
-	if old.IsMarked() && !new.IsMarked() {
+	if old.HasMark(marks.Sensitive) && !new.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))

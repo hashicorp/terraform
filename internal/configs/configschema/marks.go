@@ -3,6 +3,7 @@ package configschema
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -19,7 +20,7 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 			attrPath = append(path, cty.GetAttrStep{Name: name})
 			pvm = append(pvm, cty.PathValueMarks{
 				Path:  attrPath,
-				Marks: cty.NewValueMarks("sensitive"),
+				Marks: cty.NewValueMarks(marks.Sensitive),
 			})
 		}
 	}

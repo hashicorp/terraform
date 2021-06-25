@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -261,7 +262,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	if d.Operation == walkValidate {
 		// Ensure variable sensitivity is captured in the validate walk
 		if config.Sensitive {
-			return cty.UnknownVal(wantType).Mark("sensitive"), diags
+			return cty.UnknownVal(wantType).Mark(marks.Sensitive), diags
 		}
 		return cty.UnknownVal(wantType), diags
 	}
@@ -296,9 +297,9 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		val = cty.UnknownVal(wantType)
 	}
 
-	// Mark if sensitive, and avoid double-marking if this has already been marked
-	if config.Sensitive && !val.HasMark("sensitive") {
-		val = val.Mark("sensitive")
+	// Mark if sensitive
+	if config.Sensitive {
+		val = val.Mark(marks.Sensitive)
 	}
 
 	return val, diags
@@ -432,8 +433,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 			instance[cfg.Name] = outputState
 
-			if cfg.Sensitive && !outputState.HasMark("sensitive") {
-				instance[cfg.Name] = outputState.Mark("sensitive")
+			if cfg.Sensitive {
+				instance[cfg.Name] = outputState.Mark(marks.Sensitive)
 			}
 		}
 
@@ -461,8 +462,8 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 			instance[cfg.Name] = change.After
 
-			if change.Sensitive && !change.After.HasMark("sensitive") {
-				instance[cfg.Name] = change.After.Mark("sensitive")
+			if change.Sensitive {
+				instance[cfg.Name] = change.After.Mark(marks.Sensitive)
 			}
 		}
 	}

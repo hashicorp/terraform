@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -123,7 +124,7 @@ func TestDiagnostic(t *testing.T) {
 				EvalContext: &hcl.EvalContext{
 					Variables: map[string]cty.Value{
 						"boop": cty.ObjectVal(map[string]cty.Value{
-							"beep": cty.StringVal("blah").Mark("sensitive"),
+							"beep": cty.StringVal("blah").Mark(marks.Sensitive),
 						}),
 					},
 				},
@@ -336,7 +337,7 @@ Whatever shall we do?
 				EvalContext: &hcl.EvalContext{
 					Variables: map[string]cty.Value{
 						"boop": cty.ObjectVal(map[string]cty.Value{
-							"beep": cty.StringVal("blah").Mark("sensitive"),
+							"beep": cty.StringVal("blah").Mark(marks.Sensitive),
 						}),
 					},
 				},

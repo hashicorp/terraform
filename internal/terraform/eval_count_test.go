@@ -7,6 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -20,7 +21,7 @@ func TestEvaluateCountExpression(t *testing.T) {
 			0,
 		},
 		"expression with marked value": {
-			hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark("sensitive")),
+			hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Sensitive)),
 			8,
 		},
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -176,7 +177,7 @@ func TestNodeValidatableResource_ValidateResource_managedResource(t *testing.T) 
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("bar"),
-			"test_number": cty.NumberIntVal(2).Mark("sensitive"),
+			"test_number": cty.NumberIntVal(2).Mark(marks.Sensitive),
 		}),
 	}
 	node := NodeValidatableResource{
@@ -289,7 +290,7 @@ func TestNodeValidatableResource_ValidateResource_dataSource(t *testing.T) {
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"test_string": cty.StringVal("bar"),
-			"test_number": cty.NumberIntVal(2).Mark("sensitive"),
+			"test_number": cty.NumberIntVal(2).Mark(marks.Sensitive),
 		}),
 	}
 

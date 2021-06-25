@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/zclconf/go-cty/cty"
@@ -122,7 +123,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 				}),
 				"baz": cty.ListVal([]cty.Value{
 					cty.StringVal("goodnight"),
-					cty.StringVal("moon").Mark("sensitive"),
+					cty.StringVal("moon").Mark(marks.Sensitive),
 				}),
 			}),
 			attributeValues{
@@ -660,7 +661,6 @@ func testSchemas() *terraform.Schemas {
 }
 
 func TestSensitiveAsBool(t *testing.T) {
-	sensitive := "sensitive"
 	tests := []struct {
 		Input cty.Value
 		Want  cty.Value
@@ -674,16 +674,16 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.False,
 		},
 		{
-			cty.StringVal("hello").Mark(sensitive),
+			cty.StringVal("hello").Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
-			cty.NullVal(cty.String).Mark(sensitive),
+			cty.NullVal(cty.String).Mark(marks.Sensitive),
 			cty.True,
 		},
 
 		{
-			cty.NullVal(cty.DynamicPseudoType).Mark(sensitive),
+			cty.NullVal(cty.DynamicPseudoType).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -691,7 +691,7 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.False,
 		},
 		{
-			cty.NullVal(cty.Object(map[string]cty.Type{"test": cty.String})).Mark(sensitive),
+			cty.NullVal(cty.Object(map[string]cty.Type{"test": cty.String})).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -699,7 +699,7 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.False,
 		},
 		{
-			cty.DynamicVal.Mark(sensitive),
+			cty.DynamicVal.Mark(marks.Sensitive),
 			cty.True,
 		},
 
@@ -708,13 +708,13 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.EmptyTupleVal,
 		},
 		{
-			cty.ListValEmpty(cty.String).Mark(sensitive),
+			cty.ListValEmpty(cty.String).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
 			cty.ListVal([]cty.Value{
 				cty.StringVal("hello"),
-				cty.StringVal("friend").Mark(sensitive),
+				cty.StringVal("friend").Mark(marks.Sensitive),
 			}),
 			cty.TupleVal([]cty.Value{
 				cty.False,
@@ -726,7 +726,7 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.EmptyTupleVal,
 		},
 		{
-			cty.SetValEmpty(cty.String).Mark(sensitive),
+			cty.SetValEmpty(cty.String).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -734,17 +734,17 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.TupleVal([]cty.Value{cty.False}),
 		},
 		{
-			cty.SetVal([]cty.Value{cty.StringVal("hello").Mark(sensitive)}),
+			cty.SetVal([]cty.Value{cty.StringVal("hello").Mark(marks.Sensitive)}),
 			cty.True,
 		},
 		{
-			cty.EmptyTupleVal.Mark(sensitive),
+			cty.EmptyTupleVal.Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
 			cty.TupleVal([]cty.Value{
 				cty.StringVal("hello"),
-				cty.StringVal("friend").Mark(sensitive),
+				cty.StringVal("friend").Mark(marks.Sensitive),
 			}),
 			cty.TupleVal([]cty.Value{
 				cty.False,
@@ -756,7 +756,7 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.EmptyObjectVal,
 		},
 		{
-			cty.MapValEmpty(cty.String).Mark(sensitive),
+			cty.MapValEmpty(cty.String).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -769,7 +769,7 @@ func TestSensitiveAsBool(t *testing.T) {
 		{
 			cty.MapVal(map[string]cty.Value{
 				"greeting": cty.StringVal("hello"),
-				"animal":   cty.StringVal("horse").Mark(sensitive),
+				"animal":   cty.StringVal("horse").Mark(marks.Sensitive),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"animal": cty.True,
@@ -778,8 +778,8 @@ func TestSensitiveAsBool(t *testing.T) {
 		{
 			cty.MapVal(map[string]cty.Value{
 				"greeting": cty.StringVal("hello"),
-				"animal":   cty.StringVal("horse").Mark(sensitive),
-			}).Mark(sensitive),
+				"animal":   cty.StringVal("horse").Mark(marks.Sensitive),
+			}).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -796,7 +796,7 @@ func TestSensitiveAsBool(t *testing.T) {
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"greeting": cty.StringVal("hello"),
-				"animal":   cty.StringVal("horse").Mark(sensitive),
+				"animal":   cty.StringVal("horse").Mark(marks.Sensitive),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"animal": cty.True,
@@ -805,8 +805,8 @@ func TestSensitiveAsBool(t *testing.T) {
 		{
 			cty.ObjectVal(map[string]cty.Value{
 				"greeting": cty.StringVal("hello"),
-				"animal":   cty.StringVal("horse").Mark(sensitive),
-			}).Mark(sensitive),
+				"animal":   cty.StringVal("horse").Mark(marks.Sensitive),
+			}).Mark(marks.Sensitive),
 			cty.True,
 		},
 		{
@@ -815,7 +815,7 @@ func TestSensitiveAsBool(t *testing.T) {
 					"a": cty.UnknownVal(cty.String),
 				}),
 				cty.ObjectVal(map[string]cty.Value{
-					"a": cty.StringVal("known").Mark(sensitive),
+					"a": cty.StringVal("known").Mark(marks.Sensitive),
 				}),
 			}),
 			cty.TupleVal([]cty.Value{
@@ -829,7 +829,7 @@ func TestSensitiveAsBool(t *testing.T) {
 			cty.ListVal([]cty.Value{
 				cty.MapValEmpty(cty.String),
 				cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("known").Mark(sensitive),
+					"a": cty.StringVal("known").Mark(marks.Sensitive),
 				}),
 				cty.MapVal(map[string]cty.Value{
 					"a": cty.UnknownVal(cty.String),

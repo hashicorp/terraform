@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -58,7 +59,7 @@ func TestBlockValueMarks(t *testing.T) {
 				"list":        cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"sensitive":   cty.UnknownVal(cty.String).Mark("sensitive"),
+				"sensitive":   cty.UnknownVal(cty.String).Mark(marks.Sensitive),
 				"unsensitive": cty.UnknownVal(cty.String),
 				"list":        cty.UnknownVal(schema.BlockTypes["list"].ImpliedType()),
 			}),
@@ -79,15 +80,15 @@ func TestBlockValueMarks(t *testing.T) {
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"sensitive":   cty.NullVal(cty.String).Mark("sensitive"),
+				"sensitive":   cty.NullVal(cty.String).Mark(marks.Sensitive),
 				"unsensitive": cty.UnknownVal(cty.String),
 				"list": cty.ListVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
-						"sensitive":   cty.UnknownVal(cty.String).Mark("sensitive"),
+						"sensitive":   cty.UnknownVal(cty.String).Mark(marks.Sensitive),
 						"unsensitive": cty.UnknownVal(cty.String),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
-						"sensitive":   cty.NullVal(cty.String).Mark("sensitive"),
+						"sensitive":   cty.NullVal(cty.String).Mark(marks.Sensitive),
 						"unsensitive": cty.NullVal(cty.String),
 					}),
 				}),

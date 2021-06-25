@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -150,7 +151,7 @@ func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("hello").Mark("sensitive"),
+			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
 		}),
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
@@ -187,7 +188,7 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("hello").Mark("sensitive"),
+			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
 		}),
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())

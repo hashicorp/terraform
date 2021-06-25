@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/zclconf/go-cty/cty"
@@ -80,7 +81,7 @@ func TestRefreshJSON_outputs(t *testing.T) {
 
 	v.Outputs(map[string]*states.OutputValue{
 		"boop_count": {Value: cty.NumberIntVal(92)},
-		"password":   {Value: cty.StringVal("horse-battery").Mark("sensitive"), Sensitive: true},
+		"password":   {Value: cty.StringVal("horse-battery").Mark(marks.Sensitive), Sensitive: true},
 	})
 
 	want := []map[string]interface{}{

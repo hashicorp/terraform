@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -78,7 +79,7 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						AfterValMarks: []cty.PathValueMarks{
 							{
 								Path:  cty.GetAttrPath("boop").IndexInt(1),
-								Marks: cty.NewValueMarks("sensitive"),
+								Marks: cty.NewValueMarks(marks.Sensitive),
 							},
 						},
 					},

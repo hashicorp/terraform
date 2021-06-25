@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -342,7 +343,7 @@ func TestAdd_writeConfigBlocksFromExisting(t *testing.T) {
 		v := addHuman{optional: true}
 		val := cty.ObjectVal(map[string]cty.Value{
 			"root_block_device": cty.ObjectVal(map[string]cty.Value{
-				"volume_type": cty.StringVal("foo").Mark("bar"),
+				"volume_type": cty.StringVal("foo").Mark(marks.Sensitive),
 			}),
 		})
 		schema := addTestSchema(configschema.NestingSingle)
@@ -365,7 +366,7 @@ func TestAdd_writeConfigBlocksFromExisting(t *testing.T) {
 			"root_block_device": cty.ObjectVal(map[string]cty.Value{
 				"volume_type": cty.StringVal("foo"),
 			}),
-		}).Mark("bar")
+		}).Mark(marks.Sensitive)
 		schema := addTestSchema(configschema.NestingSingle)
 		var buf strings.Builder
 		v.writeConfigBlocksFromExisting(&buf, val, schema.BlockTypes, 0)
@@ -412,7 +413,7 @@ root_block_device {
 		val := cty.ObjectVal(map[string]cty.Value{
 			"root_block_device": cty.ListVal([]cty.Value{
 				cty.ObjectVal(map[string]cty.Value{
-					"volume_type": cty.StringVal("foo").Mark("sensitive"),
+					"volume_type": cty.StringVal("foo").Mark(marks.Sensitive),
 				}),
 				cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
@@ -446,7 +447,7 @@ root_block_device {
 				cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
 				}),
-			}).Mark("mark"),
+			}).Mark(marks.Sensitive),
 		})
 		schema := addTestSchema(configschema.NestingList)
 		var buf strings.Builder
@@ -500,7 +501,7 @@ root_block_device {
 				cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
 				}),
-			}).Mark("sensitive"),
+			}).Mark(marks.Sensitive),
 		})
 		schema := addTestSchema(configschema.NestingSet)
 		var buf strings.Builder
@@ -549,7 +550,7 @@ root_block_device "2" {
 		val := cty.ObjectVal(map[string]cty.Value{
 			"root_block_device": cty.MapVal(map[string]cty.Value{
 				"1": cty.ObjectVal(map[string]cty.Value{
-					"volume_type": cty.StringVal("foo").Mark("sensitive"),
+					"volume_type": cty.StringVal("foo").Mark(marks.Sensitive),
 				}),
 				"2": cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
@@ -583,7 +584,7 @@ root_block_device "2" {
 				"2": cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
 				}),
-			}).Mark("sensitive"),
+			}).Mark(marks.Sensitive),
 		})
 		schema := addTestSchema(configschema.NestingMap)
 		var buf strings.Builder
@@ -606,7 +607,7 @@ root_block_device "2" {
 				}),
 				"2": cty.ObjectVal(map[string]cty.Value{
 					"volume_type": cty.StringVal("bar"),
-				}).Mark("sensitive"),
+				}).Mark(marks.Sensitive),
 			}),
 		})
 		schema := addTestSchema(configschema.NestingMap)
@@ -783,13 +784,13 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 			"disks": cty.ListVal([]cty.Value{
 				cty.ObjectVal(map[string]cty.Value{
 					"mount_point": cty.StringVal("/mnt/foo"),
-					"size":        cty.StringVal("50GB").Mark("hi"),
+					"size":        cty.StringVal("50GB").Mark(marks.Sensitive),
 				}),
 				// This is an odd example, where the entire element is marked.
 				cty.ObjectVal(map[string]cty.Value{
 					"mount_point": cty.StringVal("/mnt/bar"),
 					"size":        cty.StringVal("250GB"),
-				}).Mark("bye"),
+				}).Mark(marks.Sensitive),
 			}),
 		})
 
@@ -825,7 +826,7 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 					"size":        cty.StringVal("250GB"),
 				}),
 			}),
-		}).Mark("sensitive")
+		}).Mark(marks.Sensitive)
 
 		schema := addTestSchema(configschema.NestingList)
 		var buf strings.Builder
@@ -880,12 +881,12 @@ func TestAdd_WriteConfigNestedTypeAttributeFromExisting(t *testing.T) {
 			"disks": cty.MapVal(map[string]cty.Value{
 				"foo": cty.ObjectVal(map[string]cty.Value{
 					"mount_point": cty.StringVal("/mnt/foo"),
-					"size":        cty.StringVal("50GB").Mark("sensitive"),
+					"size":        cty.StringVal("50GB").Mark(marks.Sensitive),
 				}),
 				"bar": cty.ObjectVal(map[string]cty.Value{
 					"mount_point": cty.StringVal("/mnt/bar"),
 					"size":        cty.StringVal("250GB"),
-				}).Mark("sensitive"),
+				}).Mark(marks.Sensitive),
 			}),
 		})
 		schema := addTestSchema(configschema.NestingMap)

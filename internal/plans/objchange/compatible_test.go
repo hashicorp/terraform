@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -155,7 +156,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 			},
 			cty.ObjectVal(map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
-				"name": cty.StringVal("wotsit").Mark("sensitive"),
+				"name": cty.StringVal("wotsit").Mark(marks.Sensitive),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
@@ -184,7 +185,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 			}),
 			cty.ObjectVal(map[string]cty.Value{
 				"id":   cty.UnknownVal(cty.String),
-				"name": cty.StringVal("thingy").Mark("sensitive"),
+				"name": cty.StringVal("thingy").Mark(marks.Sensitive),
 			}),
 			[]string{
 				`.name: inconsistent values for sensitive attribute`,
@@ -216,7 +217,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 							cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("secret"),
 							}),
-						}).Mark("sensitive"),
+						}).Mark(marks.Sensitive),
 					}),
 				}),
 			}),
@@ -227,7 +228,7 @@ func TestAssertObjectCompatible(t *testing.T) {
 							cty.ObjectVal(map[string]cty.Value{
 								"foo": cty.StringVal("secret"),
 							}),
-						}).Mark("sensitive"),
+						}).Mark(marks.Sensitive),
 					}),
 				}),
 			}),

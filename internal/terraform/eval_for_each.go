@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -61,7 +62,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 
 	// If a whole map is marked, or a set contains marked values (which means the set is then marked)
 	// give an error diagnostic as this value cannot be used in for_each
-	if forEachVal.IsMarked() {
+	if forEachVal.HasMark(marks.Sensitive) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    hcl.DiagError,
 			Summary:     "Invalid for_each argument",

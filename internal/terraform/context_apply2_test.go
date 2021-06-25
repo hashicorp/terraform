@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -420,7 +421,7 @@ resource "test_resource" "b" {
 				AttrSensitivePaths: []cty.PathValueMarks{
 					{
 						Path:  cty.GetAttrPath("sensitive_attr"),
-						Marks: cty.NewValueMarks("sensitive"),
+						Marks: cty.NewValueMarks(marks.Sensitive),
 					},
 				},
 				Status: states.ObjectReady,
