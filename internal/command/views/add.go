@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -156,9 +157,10 @@ func (v *addHuman) writeConfigAttributesFromExisting(buf *strings.Builder, state
 			} else {
 				val = attrS.EmptyValue()
 			}
-			if attrS.Sensitive || val.IsMarked() {
+			if attrS.Sensitive || val.HasMark(marks.Sensitive) {
 				buf.WriteString("null # sensitive")
 			} else {
+				val, _ = val.Unmark()
 				tok := hclwrite.TokensForValue(val)
 				if _, err := tok.WriteTo(buf); err != nil {
 					return err
@@ -322,7 +324,7 @@ func (v *addHuman) writeConfigBlocksFromExisting(buf *strings.Builder, stateVal 
 func (v *addHuman) writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) error {
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive || stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return nil
@@ -347,7 +349,7 @@ func (v *addHuman) writeConfigNestedTypeAttributeFromExisting(buf *strings.Build
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = [", name))
 
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive || stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString("] # sensitive\n")
 			return nil
 		}
@@ -359,7 +361,7 @@ func (v *addHuman) writeConfigNestedTypeAttributeFromExisting(buf *strings.Build
 			buf.WriteString(strings.Repeat(" ", indent+2))
 
 			// The entire element is marked.
-			if listVals[i].IsMarked() {
+			if listVals[i].HasMark(marks.Sensitive) {
 				buf.WriteString("{}, # sensitive\n")
 				continue
 			}
@@ -379,7 +381,7 @@ func (v *addHuman) writeConfigNestedTypeAttributeFromExisting(buf *strings.Build
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {", name))
 
-		if schema.Sensitive || stateVal.IsMarked() {
+		if schema.Sensitive || stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString(" } # sensitive\n")
 			return nil
 		}
@@ -397,7 +399,7 @@ func (v *addHuman) writeConfigNestedTypeAttributeFromExisting(buf *strings.Build
 			buf.WriteString(fmt.Sprintf("%s = {", key))
 
 			// This entire value is marked
-			if vals[key].IsMarked() {
+			if vals[key].HasMark(marks.Sensitive) {
 				buf.WriteString("} # sensitive\n")
 				continue
 			}
@@ -426,7 +428,7 @@ func (v *addHuman) writeConfigNestedBlockFromExisting(buf *strings.Builder, name
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
 		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
+		if stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString("} # sensitive\n")
 			return nil
 		}
@@ -440,7 +442,7 @@ func (v *addHuman) writeConfigNestedBlockFromExisting(buf *strings.Builder, name
 		buf.WriteString("}\n")
 		return nil
 	case configschema.NestingList, configschema.NestingSet:
-		if stateVal.IsMarked() {
+		if stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
 			return nil
@@ -460,7 +462,7 @@ func (v *addHuman) writeConfigNestedBlockFromExisting(buf *strings.Builder, name
 		return nil
 	case configschema.NestingMap:
 		// If the entire value is marked, don't print any nested attributes
-		if stateVal.IsMarked() {
+		if stateVal.HasMark(marks.Sensitive) {
 			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
 			return nil
 		}
@@ -475,7 +477,7 @@ func (v *addHuman) writeConfigNestedBlockFromExisting(buf *strings.Builder, name
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s %q {", name, key))
 			// This entire map element is marked
-			if vals[key].IsMarked() {
+			if vals[key].HasMark(marks.Sensitive) {
 				buf.WriteString("} # sensitive\n")
 				return nil
 			}

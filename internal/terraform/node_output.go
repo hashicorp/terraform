@@ -283,9 +283,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		// a sensitive result, to help avoid accidental exposure in the state
 		// of a sensitive value that the user doesn't want to include there.
 		if n.Addr.Module.IsRoot() {
-			_, m := val.UnmarkDeep()
-			_, hasSensitive := m[marks.Sensitive]
-			if !n.Config.Sensitive && hasSensitive {
+			if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Output refers to sensitive values",

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"
@@ -62,28 +63,29 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 			// to be known here but may still be null.
 			ret, err := convert.Convert(args[0], retType)
 			if err != nil {
+				val, _ := args[0].UnmarkDeep()
 				// Because we used GetConversionUnsafe above, conversion can
 				// still potentially fail in here. For example, if the user
 				// asks to convert the string "a" to bool then we'll
 				// optimistically permit it during type checking but fail here
 				// once we note that the value isn't either "true" or "false".
-				gotTy := args[0].Type()
+				gotTy := val.Type()
 				switch {
-				case args[0].ContainsMarked():
+				case marks.Contains(args[0], marks.Sensitive):
 					// Generic message so we won't inadvertently disclose
 					// information about sensitive values.
 					return cty.NilVal, function.NewArgErrorf(0, "cannot convert this sensitive %s to %s", gotTy.FriendlyName(), wantTy.FriendlyNameForConstraint())
 
 				case gotTy == cty.String && wantTy == cty.Bool:
 					what := "string"
-					if !args[0].IsNull() {
-						what = strconv.Quote(args[0].AsString())
+					if !val.IsNull() {
+						what = strconv.Quote(val.AsString())
 					}
 					return cty.NilVal, function.NewArgErrorf(0, `cannot convert %s to bool; only the strings "true" or "false" are allowed`, what)
 				case gotTy == cty.String && wantTy == cty.Number:
 					what := "string"
-					if !args[0].IsNull() {
-						what = strconv.Quote(args[0].AsString())
+					if !val.IsNull() {
+						what = strconv.Quote(val.AsString())
 					}
 					return cty.NilVal, function.NewArgErrorf(0, `cannot convert %s to number; given string must be a decimal representation of a number`, what)
 				default:

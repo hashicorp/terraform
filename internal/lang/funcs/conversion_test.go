@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -61,6 +62,12 @@ func TestTo(t *testing.T) {
 			cty.StringVal("a").Mark("boop"),
 			cty.Bool,
 			cty.DynamicVal,
+			`cannot convert "a" to bool; only the strings "true" or "false" are allowed`,
+		},
+		{
+			cty.StringVal("a").Mark(marks.Sensitive),
+			cty.Bool,
+			cty.DynamicVal,
 			`cannot convert this sensitive string to bool`,
 		},
 		{
@@ -71,6 +78,12 @@ func TestTo(t *testing.T) {
 		},
 		{
 			cty.StringVal("a").Mark("boop"),
+			cty.Number,
+			cty.DynamicVal,
+			`cannot convert "a" to number; given string must be a decimal representation of a number`,
+		},
+		{
+			cty.StringVal("a").Mark(marks.Sensitive),
 			cty.Number,
 			cty.DynamicVal,
 			`cannot convert this sensitive string to number`,
