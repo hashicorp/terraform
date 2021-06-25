@@ -1,7 +1,5 @@
 ---
-layout: "docs"
-page_title: "Module Registry Protocol"
-sidebar_current: "docs-internals-module-registry-protocol"
+page_title: Module Registry Protocol
 description: |-
   The module registry protocol is implemented by a host intending to be the
   host of one or more Terraform modules, specifying which modules are available
@@ -25,7 +23,7 @@ publishing them on the public Terraform Registry.
 The public Terraform Registry implements a superset of the API described on
 this page, in order to capture additional information used in the registry UI.
 For information on those extensions, see
-[Terraform Registry HTTP API](/docs/registry/api.html). Third-party registry
+[Terraform Registry HTTP API](/registry/api-docs). Third-party registry
 implementations may choose to implement those extensions if desired, but
 Terraform CLI itself does not use them.
 
@@ -34,14 +32,14 @@ Terraform CLI itself does not use them.
 Each Terraform module has an associated address. A module address has the
 syntax `hostname/namespace/name/system`, where:
 
-* `hostname` is the hostname of the module registry that serves this module.
-* `namespace` is the name of a namespace, unique on a particular hostname, that
+- `hostname` is the hostname of the module registry that serves this module.
+- `namespace` is the name of a namespace, unique on a particular hostname, that
   can contain one or more modules that are somehow related. On the public
   Terraform Registry the "namespace" represents the organization that is
   packaging and distributing the module.
-* `name` is the module name, which generally names the abstraction that the
+- `name` is the module name, which generally names the abstraction that the
   module is intending to create.
-* `system` is the name of a remote system that the module is primarily written
+- `system` is the name of a remote system that the module is primarily written
   to target. For multi-cloud abstractions, there can be multiple modules with
   addresses that differ only in "system" to reflect provider-specific
   implementations of the abstraction, like
@@ -57,10 +55,10 @@ is optional, and if omitted defaults to `registry.terraform.io/`.
 
 For example:
 
-* `hashicorp/consul/aws` is a shorthand for
+- `hashicorp/consul/aws` is a shorthand for
   `registry.terraform.io/hashicorp/consul/aws`, which is a module on the
   public registry for deploying Consul clusters in Amazon Web Services.
-* `example.com/awesomecorp/consul/happycloud` is a hypothetical module published
+- `example.com/awesomecorp/consul/happycloud` is a hypothetical module published
   on a third-party registry.
 
 If you intend to share a module you've developed for use by all Terraform
@@ -83,7 +81,7 @@ blocks have the same source address.
 ## Service Discovery
 
 The module registry protocol begins with Terraform CLI using
-[Terraform's remote service discovery protocol](./remote-service-discovery.html),
+[Terraform's remote service discovery protocol](/internals/remote-service-discovery),
 with the hostname in the module address acting as the "User-facing Hostname".
 
 The service identifier for the module registry protocol is `modules.v1`.
@@ -123,9 +121,9 @@ the string "versions".
 This is the primary endpoint for resolving module sources, returning the
 available versions for a given fully-qualified module.
 
-| Method | Path                                  | Produces                   |
-| ------ | ------------------------------------- | -------------------------- |
-| `GET`  | `:namespace/:name/:provider/versions`   | `application/json`         |
+| Method | Path                                  | Produces           |
+| ------ | ------------------------------------- | ------------------ |
+| `GET`  | `:namespace/:name/:provider/versions` | `application/json` |
 
 ### Parameters
 
@@ -158,15 +156,15 @@ matches against any version constraints given in configuration.
 
 ```json
 {
-   "modules": [
-      {
-         "versions": [
-            {"version": "1.0.0"},
-            {"version": "1.1.0"},
-            {"version": "2.0.0"}
-         ]
-      }
-   ]
+  "modules": [
+    {
+      "versions": [
+        { "version": "1.0.0" },
+        { "version": "1.1.0" },
+        { "version": "2.0.0" }
+      ]
+    }
+  ]
 }
 ```
 
@@ -177,9 +175,9 @@ requested namespace, name, and provider
 
 This endpoint downloads the specified version of a module for a single provider.
 
-| Method | Path                                                   | Produces                   |
-| ------ | ------------------------------------------------------ | -------------------------- |
-| `GET`  | `:namespace/:name/:system/:version/download`           | `application/json`         |
+| Method | Path                                         | Produces           |
+| ------ | -------------------------------------------- | ------------------ |
+| `GET`  | `:namespace/:name/:system/:version/download` | `application/json` |
 
 ### Parameters
 
@@ -213,10 +211,10 @@ A successful response has no body, and includes the location from which the
 module version's source can be downloaded in the `X-Terraform-Get` header.
 The value of this header accepts the same values as the `source` argument
 in a `module` block in Terraform configuration, as described in
-[Module Sources](https://www.terraform.io/docs/language/modules/sources.html),
+[Module Sources](/language/modules/sources),
 except that it may not recursively refer to another module registry address.
 
 The value of `X-Terraform-Get` may instead be a relative URL, indicated by
 beginning with `/`, `./` or `../`, in which case it is resolved relative to
 the full URL of the download endpoint to produce
-[an HTTP URL module source](/docs/language/modules/sources.html#http-urls).
+[an HTTP URL module source](/language/modules/sources#http-urls).

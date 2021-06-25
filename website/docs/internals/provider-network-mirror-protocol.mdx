@@ -1,7 +1,5 @@
 ---
-layout: "docs"
-page_title: "Provider Network Mirror Protocol"
-sidebar_current: "docs-internals-provider-network-mirror-protocol"
+page_title: Provider Network Mirror Protocol
 description: |-
   The provider network mirror protocol is implemented by a server intending
   to provide a mirror or read-through caching proxy for Terraform providers,
@@ -18,7 +16,7 @@ implement to provide an alternative installation source for Terraform providers,
 regardless of their origin registries.
 
 Terraform uses network mirrors only if you activate them explicitly in
-[the CLI configuration's `provider_installation` block](/docs/cli/config/config-file.html#provider-installation).
+[the CLI configuration's `provider_installation` block](/cli/config/config-file#provider-installation).
 When enabled, a network mirror can serve providers belonging to any registry
 hostname, which can allow an organization to serve all of the Terraform
 providers they intend to use from an internal server, rather than from each
@@ -28,7 +26,7 @@ This is _not_ the protocol that should be implemented by a host intending to
 serve as an origin registry for Terraform Providers. To provide an origin
 registry (whose hostname would then be included in the source addresses of the
 providers it hosts), implement
-[the provider registry protocol](./provider-registry-protocol.html)
+[the provider registry protocol](/internals/provider-registry-protocol)
 instead.
 
 ## Provider Addresses
@@ -36,7 +34,7 @@ instead.
 Each Terraform provider has an associated address which uniquely identifies it
 within Terraform. A provider address has the syntax `hostname/namespace/type`,
 which is described in more detail in
-[the Provider Requirements documentation](/docs/language/providers/requirements.html).
+[the Provider Requirements documentation](/language/providers/requirements).
 
 By default, the `hostname` portion of a provider address serves both as part
 of its unique identifier _and_ as the location of the registry to retrieve it
@@ -54,7 +52,7 @@ the hostname where the provider network mirror is deployed.
 ## Protocol Base URL
 
 Most Terraform-native services use
-[the remote service discovery protocol](./remote-service-discovery.html) so
+[the remote service discovery protocol](/internals/remote-service-discovery) so
 that the physical location of the endpoints can potentially be separated from
 the hostname used in identifiers. The Provider Network Mirror protocol does
 _not_ use the service discovery indirection, because a network mirror location
@@ -96,7 +94,7 @@ base URL from the above CLI configuration example.
 ### Authentication
 
 If the CLI configuration includes
-[credentials](/docs/cli/config/config-file.html#credentials) for the hostname
+[credentials](/cli/config/config-file#credentials) for the hostname
 given in the network mirror base URL, Terraform will include those credentials
 in its requests for operations described below.
 
@@ -117,16 +115,16 @@ This operation determines which versions are currently available for a
 particular provider.
 
 | Method | Path                                    | Produces           |
-|--------|-----------------------------------------|--------------------|
+| ------ | --------------------------------------- | ------------------ |
 | `GET`  | `:hostname/:namespace/:type/index.json` | `application/json` |
 
 ### Parameters
 
-* `hostname` (required): the hostname portion of the address of the requested
+- `hostname` (required): the hostname portion of the address of the requested
   provider.
-* `namespace` (required): the namespace portion of the address of the requested
+- `namespace` (required): the namespace portion of the address of the requested
   provider.
-* `type` (required): the type portion of the address of the requested provider.
+- `type` (required): the type portion of the address of the requested provider.
 
 ### Sample Request
 
@@ -175,17 +173,17 @@ version matching the configured version constraints, in order to find a zip
 archive containing the plugin itself.
 
 | Method | Path                                       | Produces           |
-|--------|--------------------------------------------|--------------------|
+| ------ | ------------------------------------------ | ------------------ |
 | `GET`  | `:hostname/:namespace/:type/:version.json` | `application/json` |
 
 ### Parameters
 
-* `hostname` (required): the hostname portion of the address of the requested
+- `hostname` (required): the hostname portion of the address of the requested
   provider.
-* `namespace` (required): the namespace portion of the address of the requested
+- `namespace` (required): the namespace portion of the address of the requested
   provider.
-* `type` (required): the type portion of the address of the requested provider.
-* `version` (required): the version selected to download. This will exactly
+- `type` (required): the type portion of the address of the requested provider.
+- `version` (required): the version selected to download. This will exactly
   match one of the version strings returned from a previous call to
   [List Available Versions](#list-available-versions).
 
@@ -228,29 +226,29 @@ with an underscore (`_`).
 Each property value in the `archives` object is itself a nested object with
 the following properties:
 
-* `url` (required): a string specifying the URL from which Terraform should
+- `url` (required): a string specifying the URL from which Terraform should
   download the `.zip` archive containing the requested provider plugin version.
 
-    Terraform resolves the URL relative to the URL from which the current
-    JSON document was returned, so the examples above containing only a
-    filename would cause Terraform to construct a URL like:
+  Terraform resolves the URL relative to the URL from which the current
+  JSON document was returned, so the examples above containing only a
+  filename would cause Terraform to construct a URL like:
 
-    ```
-    https://terraform.example.com/providers/registry.terraform.io/hashicorp/random/terraform-provider-random_2.0.0_darwin_amd64.zip
-    ```
+  ```
+  https://terraform.example.com/providers/registry.terraform.io/hashicorp/random/terraform-provider-random_2.0.0_darwin_amd64.zip
+  ```
 
-* `hashes` (optional): a JSON array of strings containing one or more hash
+- `hashes` (optional): a JSON array of strings containing one or more hash
   values for the indicated archive. These hashes use Terraform's provider
   package hashing algorithm. At present, the easiest way to populate these
   is to construct a mirror's JSON indices using the `terraform providers mirror`
   command, as described in a later section, which will include the calculated
   hashes of each provider.
 
-    If the response includes at least one hash, Terraform will select the hash
-    whose algorithm it considers to be strongest and verify that the downloaded
-    package matches that hash. If the response does not include a `hashes`
-    property then Terraform will install the indicated archive with no
-    verification.
+  If the response includes at least one hash, Terraform will select the hash
+  whose algorithm it considers to be strongest and verify that the downloaded
+  package matches that hash. If the response does not include a `hashes`
+  property then Terraform will install the indicated archive with no
+  verification.
 
 Terraform CLI will only attempt to download versions that it has previously
 seen in response to [List Available Versions](#list-available-versions).
@@ -264,7 +262,7 @@ in the appropriate nested subdirectories, and ensure that your system is
 configured to serve `.json` files with the `application/json` media type.
 
 As a convenience, Terraform CLI includes
-[the `terraform providers mirror` subcommand](https://www.terraform.io/docs/cli/commands/providers/mirror.html),
+[the `terraform providers mirror` subcommand](/cli/commands/providers/mirror),
 which will analyze the current configuration for the providers it requires,
 download the packages for those providers from their origin registries, and
 place them into a local directory suitable for use as a mirror.
