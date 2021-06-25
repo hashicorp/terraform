@@ -37,3 +37,7 @@ func Contains(val cty.Value, mark valueMark) bool {
 // Sensitive indicates that this value is marked as sensitive in the context of
 // Terraform.
 var Sensitive = valueMark("sensitive")
+
+// Raw is used to indicate to the repl that the value should be written without
+// any formatting.
+var Raw = valueMark("raw")
