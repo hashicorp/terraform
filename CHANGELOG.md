@@ -10,6 +10,7 @@ ENHANCEMENTS:
 * configs: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. ([#28854](https://github.com/hashicorp/terraform/issues/28854))
 
 BUG FIXES:
+* terraform: Fix an issue where provider configuration input variables were not properly merging with values in configuration [GH-29000]
 
 
 ## Previous Releases
