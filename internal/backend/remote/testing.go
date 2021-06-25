@@ -222,6 +222,25 @@ func testServer(t *testing.T) *httptest.Server {
 }`)
 	})
 
+	// Respond to the initial query to read the hashicorp org. Only checks for name, so omit most attrs.
+	mux.HandleFunc("/api/v2/organizations/hashicorp", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, `{
+  "data": {
+    "id": "hashicorp",
+    "type": "organizations",
+    "attributes": {
+      "external-id": "org-GExadygjSbKP8hsY",
+      "name": "hashicorp"
+    },
+    "relationships": {},
+    "links": {
+      "self": "/api/v2/organizations/hashicorp"
+    }
+  }
+}`)
+	})
+
 	// Respond to the initial query to read the no-operations org entitlements.
 	mux.HandleFunc("/api/v2/organizations/no-operations/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
@@ -236,6 +255,25 @@ func testServer(t *testing.T) *httptest.Server {
       "state-storage": true,
       "teams": true,
       "vcs-integrations": true
+    }
+  }
+}`)
+	})
+
+	// Respond to the initial query to read the no-operations org. Only checks for name, so omit most attrs.
+	mux.HandleFunc("/api/v2/organizations/no-operations", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, `{
+  "data": {
+    "id": "no-operations",
+    "type": "organizations",
+    "attributes": {
+      "external-id": "org-ufxa3y8jSbKP8hsT",
+      "name": "no-operations"
+    },
+    "relationships": {},
+    "links": {
+      "self": "/api/v2/organizations/no-operations"
     }
   }
 }`)
