@@ -90,6 +90,28 @@ func TestRemote_planBasic(t *testing.T) {
 	}
 }
 
+func TestRemote_planMisspelled(t *testing.T) {
+	b, bCleanup := testBackendMisspelled(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = backend.DefaultStateName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "https://app.terraform.io/app/hashicorp/prod/runs/") {
+		t.Fatalf("expected canonical capitalization of 'hashicorp' (not 'hashiCorp') in output: %s", output)
+	}
+}
+
 func TestRemote_planCanceled(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()

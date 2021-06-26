@@ -56,6 +56,19 @@ func testBackendDefault(t *testing.T) (*Remote, func()) {
 	return testBackend(t, obj)
 }
 
+func testBackendMisspelled(t *testing.T) (*Remote, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashiCorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.StringVal("prod"),
+			"prefix": cty.NullVal(cty.String),
+		}),
+	})
+	return testBackend(t, obj)
+}
+
 func testBackendNoDefault(t *testing.T) (*Remote, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
@@ -203,81 +216,17 @@ func testServer(t *testing.T) *httptest.Server {
 		w.Header().Set("TFP-API-Version", "2.4")
 	})
 
-	// Respond to the initial query to read the hashicorp org entitlements.
-	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/vnd.api+json")
-		io.WriteString(w, `{
-  "data": {
-    "id": "org-GExadygjSbKP8hsY",
-    "type": "entitlement-sets",
-    "attributes": {
-      "operations": true,
-      "private-module-registry": true,
-      "sentinel": true,
-      "state-storage": true,
-      "teams": true,
-      "vcs-integrations": true
-    }
-  }
-}`)
-	})
+	// Respond to the initial query to read the hashicorp org.
+	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", testEntitlementsHandler("org-GExadygjSbKP8hsY", true))
+	mux.HandleFunc("/api/v2/organizations/hashicorp", testOrganizationHandler("hashicorp", "org-GExadygjSbKP8hsY"))
 
-	// Respond to the initial query to read the hashicorp org. Only checks for name, so omit most attrs.
-	mux.HandleFunc("/api/v2/organizations/hashicorp", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/vnd.api+json")
-		io.WriteString(w, `{
-  "data": {
-    "id": "hashicorp",
-    "type": "organizations",
-    "attributes": {
-      "external-id": "org-GExadygjSbKP8hsY",
-      "name": "hashicorp"
-    },
-    "relationships": {},
-    "links": {
-      "self": "/api/v2/organizations/hashicorp"
-    }
-  }
-}`)
-	})
+	// Respond to the initial query to read the hashicorp org (mis-capitalized version).
+	mux.HandleFunc("/api/v2/organizations/hashiCorp/entitlement-set", testEntitlementsHandler("org-GExadygjSbKP8hsY", true))
+	mux.HandleFunc("/api/v2/organizations/hashiCorp", testOrganizationHandler("hashicorp", "org-GExadygjSbKP8hsY"))
 
-	// Respond to the initial query to read the no-operations org entitlements.
-	mux.HandleFunc("/api/v2/organizations/no-operations/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/vnd.api+json")
-		io.WriteString(w, `{
-  "data": {
-    "id": "org-ufxa3y8jSbKP8hsT",
-    "type": "entitlement-sets",
-    "attributes": {
-      "operations": false,
-      "private-module-registry": true,
-      "sentinel": true,
-      "state-storage": true,
-      "teams": true,
-      "vcs-integrations": true
-    }
-  }
-}`)
-	})
-
-	// Respond to the initial query to read the no-operations org. Only checks for name, so omit most attrs.
-	mux.HandleFunc("/api/v2/organizations/no-operations", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/vnd.api+json")
-		io.WriteString(w, `{
-  "data": {
-    "id": "no-operations",
-    "type": "organizations",
-    "attributes": {
-      "external-id": "org-ufxa3y8jSbKP8hsT",
-      "name": "no-operations"
-    },
-    "relationships": {},
-    "links": {
-      "self": "/api/v2/organizations/no-operations"
-    }
-  }
-}`)
-	})
+	// Respond to the initial query to read the no-operations org.
+	mux.HandleFunc("/api/v2/organizations/no-operations/entitlement-set", testEntitlementsHandler("org-ufxa3y8jSbKP8hsT", false))
+	mux.HandleFunc("/api/v2/organizations/no-operations", testOrganizationHandler("no-operations", "org-ufxa3y8jSbKP8hsT"))
 
 	// All tests that are assumed to pass will use the hashicorp organization,
 	// so for all other organization requests we will return a 404.
@@ -292,8 +241,49 @@ func testServer(t *testing.T) *httptest.Server {
   ]
 }`)
 	})
-
 	return httptest.NewServer(mux)
+}
+
+// Returns a function to handle an initial query to read an org's entitlements.
+func testEntitlementsHandler(externalId string, operations bool) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, fmt.Sprintf(`{
+  "data": {
+    "id": "%s",
+    "type": "entitlement-sets",
+    "attributes": {
+      "operations": %t,
+      "private-module-registry": true,
+      "sentinel": true,
+      "state-storage": true,
+      "teams": true,
+      "vcs-integrations": true
+    }
+  }
+}`, externalId, operations))
+	}
+}
+
+// Returns a function to handle an initial query to read an org. Configure only checks for name, so omit most attrs.
+func testOrganizationHandler(name string, externalId string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/vnd.api+json")
+		io.WriteString(w, fmt.Sprintf(`{
+  "data": {
+    "id": "%s",
+    "type": "organizations",
+    "attributes": {
+      "external-id": "%s",
+      "name": "%s"
+    },
+    "relationships": {},
+    "links": {
+      "self": "/api/v2/organizations/%s"
+    }
+  }
+}`, name, externalId, name, name))
+	}
 }
 
 // testDisco returns a *disco.Disco mapping app.terraform.io and
