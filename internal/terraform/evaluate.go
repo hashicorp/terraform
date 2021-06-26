@@ -97,6 +97,17 @@ type evaluationStateData struct {
 	// Operation records the type of walk the evaluationStateData is being used
 	// for.
 	Operation walkOperation
+
+	// TrackUnknownReferences activates a special mode, off by default, where
+	// unknown values returned as part of resource instances will be marked
+	// by which resource instance they originated at, as an aid to giving
+	// better feedback in error messages for situations where unknown values
+	// are not allowed.
+	//
+	// To interpret the result of this mode, use
+	// marks.ResourceInstancesDerivedFrom with an unknown value returned
+	// from an evaluation context where this mode was enabled.
+	TrackUnknownReferences bool
 }
 
 // InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
@@ -711,13 +722,16 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	instances := map[addrs.InstanceKey]cty.Value{}
 	pendingDestroy := d.Evaluator.Changes.IsFullDestroy()
 	for key, is := range rs.Instances {
+		instAddr := addr.Instance(key).Absolute(d.ModulePath)
+
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
 			instances[key] = cty.UnknownVal(ty)
+			if d.TrackUnknownReferences {
+				instances[key] = annotateUnknownValueResourceInstAddr(instances[key], instAddr)
+			}
 			continue
 		}
-
-		instAddr := addr.Instance(key).Absolute(d.ModulePath)
 
 		change := d.Evaluator.Changes.GetResourceInstanceChange(instAddr, states.CurrentGen)
 		if change != nil {
@@ -765,6 +779,14 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			}
 
 			instances[key] = val.MarkWithPaths(afterMarks)
+
+			if d.TrackUnknownReferences {
+				// In our reference-tracking mode we'll additionally transform
+				// the result so that any unknown values will be annotated
+				// as originating from this resource instance, if they did.
+				instances[key] = annotateUnknownValueResourceInstAddr(instances[key], instAddr)
+			}
+
 			continue
 		}
 
@@ -794,6 +816,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			val = val.MarkWithPaths(marks)
 		}
 		instances[key] = val
+		// We don't need to deal with d.TrackUnknownReferences here because
+		// the value in the state can never have unknown values anyway.
 	}
 
 	var ret cty.Value
@@ -895,6 +919,26 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	schemas := d.Evaluator.Schemas
 	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
 	return schema
+}
+
+func annotateUnknownValueResourceInstAddr(obj cty.Value, addr addrs.AbsResourceInstance) cty.Value {
+	v, _ := cty.Transform(
+		obj,
+		func(path cty.Path, v cty.Value) (cty.Value, error) {
+			if !v.IsKnown() {
+				// We'll tend to only report the 'closest' resource
+				// instance to the expression here, because the
+				// values we're marking are coming from state or
+				// plan which doesn't preserve indirect instance
+				// marks and thus we'll "lose" the markings from
+				// upstream when a resource argument's value is
+				// derived from some other resource attribute.
+				return marks.MarkAsResourceInstanceValue(v, addr), nil
+			}
+			return v, nil
+		},
+	)
+	return v
 }
 
 func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

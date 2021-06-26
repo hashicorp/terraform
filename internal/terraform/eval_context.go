@@ -120,6 +120,25 @@ type EvalContext interface {
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
+	// GetExprUnknownContributors takes the given HCL expression and, if it
+	// would return an unknown value when evaluated in the current context,
+	// returns a set of the resource instance addresses that the unknown value
+	// was derived from.
+	//
+	// This is a heuristic sort of function intended for returning additional
+	// context in error messages. Don't use it to control any main behavior.
+	//
+	// Callers must pass the same "self" and "keyData" they would've used to
+	// actually evaluate the expression, or the result may be incorrect.
+	//
+	// Don't use this function during a validation walk, because at that phase
+	// there can be unknown values for reasons other than pending resource
+	// instance changes, which this function cannot represent.
+	//
+	// If the given expression is not valid (that is, if it would've returned
+	// errors for normal evaluation) then the result may be incomplete.
+	GetExprUnknownContributors(expr hcl.Expression, self addrs.Referenceable, keyData InstanceKeyEvalData) []addrs.AbsResourceInstance
+
 	// SetModuleCallArguments defines values for the variables of a particular
 	// child module call.
 	//

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -279,6 +280,17 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
 	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
+}
+
+func (ctx *BuiltinEvalContext) GetExprUnknownContributors(expr hcl.Expression, self addrs.Referenceable, keyData InstanceKeyEvalData) []addrs.AbsResourceInstance {
+	scope := ctx.EvaluationScope(self, keyData)
+	// We need to turn on the unknown source tracking mode in the underlying
+	// data source, which will then cause our result to be marked with
+	// unknown value source information that we can extract using
+	// marks.ResourceInstancesDerivedFrom.
+	scope.Data.(*evaluationStateData).TrackUnknownReferences = true
+	markedV, _ := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	return marks.ResourceInstancesDerivedFrom(markedV)
 }
 
 func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {

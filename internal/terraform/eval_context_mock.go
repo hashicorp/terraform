@@ -100,6 +100,13 @@ type MockEvalContext struct {
 	EvaluateExprResult cty.Value
 	EvaluateExprDiags  tfdiags.Diagnostics
 
+	GetExprUnknownContributorsCalled     bool
+	GetExprUnknownContributorsExpr       hcl.Expression
+	GetExprUnknownContributorsSelf       addrs.Referenceable
+	GetExprUnknownContributorsKeyData    InstanceKeyEvalData
+	GetExprUnknownContributorsResultFunc func(hcl.Expression, addrs.Referenceable, InstanceKeyEvalData) []addrs.AbsResourceInstance
+	GetExprUnknownContributorsResult     []addrs.AbsResourceInstance
+
 	EvaluationScopeCalled  bool
 	EvaluationScopeSelf    addrs.Referenceable
 	EvaluationScopeKeyData InstanceKeyEvalData
@@ -242,6 +249,17 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 		return c.EvaluateExprResultFunc(expr, wantType, self)
 	}
 	return c.EvaluateExprResult, c.EvaluateExprDiags
+}
+
+func (c *MockEvalContext) GetExprUnknownContributors(expr hcl.Expression, self addrs.Referenceable, keyData InstanceKeyEvalData) []addrs.AbsResourceInstance {
+	c.GetExprUnknownContributorsCalled = true
+	c.GetExprUnknownContributorsExpr = expr
+	c.GetExprUnknownContributorsSelf = self
+	c.GetExprUnknownContributorsKeyData = keyData
+	if c.GetExprUnknownContributorsResultFunc != nil {
+		return c.GetExprUnknownContributorsResultFunc(expr, self, keyData)
+	}
+	return c.GetExprUnknownContributorsResult
 }
 
 // installSimpleEval is a helper to install a simple mock implementation of

@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
@@ -167,6 +168,7 @@ func (s *Scope) EvalExpr(expr hcl.Expression, wantType cty.Type) (cty.Value, tfd
 		// it's likely evaluation will produce redundant copies of the same errors.
 		return cty.UnknownVal(wantType), diags
 	}
+	fmt.Print(ctydebug.ValueString(cty.ObjectVal(ctx.Variables)))
 
 	val, evalDiags := expr.Value(ctx)
 	diags = diags.Append(evalDiags)

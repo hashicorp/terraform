@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -91,10 +92,12 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 		return nullMap, diags
 	case !forEachVal.IsKnown():
 		if !allowUnknown {
+			detailMsg := errInvalidForEachUnknownDetailWithSuggestions(ctx, expr)
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid for_each argument",
-				Detail:      errInvalidForEachUnknownDetail,
+				Detail:      detailMsg,
 				Subject:     expr.Range().Ptr(),
 				Expression:  expr,
 				EvalContext: hclCtx,
@@ -126,10 +129,12 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 		// entire set as unknown
 		if !forEachVal.IsWhollyKnown() {
 			if !allowUnknown {
+				detailMsg := errInvalidForEachUnknownDetailWithSuggestions(ctx, expr)
+
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity:    hcl.DiagError,
 					Summary:     "Invalid for_each argument",
-					Detail:      errInvalidForEachUnknownDetail,
+					Detail:      detailMsg,
 					Subject:     expr.Range().Ptr(),
 					Expression:  expr,
 					EvalContext: hclCtx,
@@ -173,6 +178,26 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 }
 
 const errInvalidForEachUnknownDetail = `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`
+
+func errInvalidForEachUnknownDetailWithSuggestions(ctx EvalContext, expr hcl.Expression) string {
+	// Hopefully we'll be able to give a hint about which resource
+	// instances we're deriving unknown values from here.
+	upstreamAddrs := ctx.GetExprUnknownContributors(expr, nil, EvalDataForNoInstanceKey)
+	switch {
+	case len(upstreamAddrs) == 1:
+		return fmt.Sprintf("%s\n\nThis expression seems to be derived from an attribute of %s.", errInvalidForEachUnknownDetail, upstreamAddrs[0])
+	case len(upstreamAddrs) != 0:
+		var msgBuf strings.Builder
+		msgBuf.WriteString(errInvalidForEachUnknownDetail)
+		msgBuf.WriteString("\n\nThis expression seems to be derived from attributes of some or all of the following resource instances:")
+		for _, addr := range upstreamAddrs {
+			fmt.Fprintf(&msgBuf, "\n  %s", addr)
+		}
+		return msgBuf.String()
+	default:
+		return errInvalidForEachUnknownDetail
+	}
+}
 
 // markSafeLengthInt allows calling LengthInt on marked values safely
 func markSafeLengthInt(val cty.Value) int {
