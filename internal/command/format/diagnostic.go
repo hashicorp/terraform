@@ -250,6 +250,21 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 			}
 		}
 
+		// If either start or end is out of range for the code buffer then
+		// we'll cap them at the bounds just to avoid a panic, although
+		// this would happen only if there's a bug in the code generating
+		// the snippet objects.
+		if start < 0 {
+			start = 0
+		} else if start > len(code) {
+			start = len(code)
+		}
+		if end < 0 {
+			end = 0
+		} else if end > len(code) {
+			end = len(code)
+		}
+
 		before, highlight, after := code[0:start], code[start:end], code[end:]
 		code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
 
