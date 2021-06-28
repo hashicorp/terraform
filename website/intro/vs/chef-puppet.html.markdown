@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Terraform vs. Chef, Puppet, etc."
 sidebar_current: "vs-other-chef"
 description: |-
-  Configuration management tools install and manage software on a machine that already exists. Terraform is not a configuration management tool, and it allows existing tooling to focus on their strengths: bootstrapping and initializing resources.
+  An overview of how Terraform is different from configuration management tools.
 ---
 
 # Terraform vs. Chef, Puppet, etc.
@@ -22,4 +22,3 @@ If you are using traditional configuration management within your compute
 instances, you can use Terraform to configure bootstrapping software like
 cloud-init to activate your configuration management software on first
 system boot.
-
