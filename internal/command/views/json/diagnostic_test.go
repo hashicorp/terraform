@@ -29,7 +29,8 @@ func TestNewDiagnostic(t *testing.T) {
   }
 }
 `),
-		"short.tf": []byte("bad source code"),
+		"short.tf":       []byte("bad source code"),
+		"odd-comment.tf": []byte("foo\n\n#\n"),
 		"values.tf": []byte(`[
   var.a,
   var.b,
@@ -282,6 +283,51 @@ func TestNewDiagnostic(t *testing.T) {
 					HighlightStartOffset: 15,
 					HighlightEndOffset:   16,
 					Values:               []DiagnosticExpressionValue{},
+				},
+			},
+		},
+		"error whose range starts at a newline": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid newline",
+				Detail:   "How awkward!",
+				Subject: &hcl.Range{
+					Filename: "odd-comment.tf",
+					Start:    hcl.Pos{Line: 2, Column: 5, Byte: 4},
+					End:      hcl.Pos{Line: 3, Column: 1, Byte: 6},
+				},
+			},
+			&Diagnostic{
+				Severity: "error",
+				Summary:  "Invalid newline",
+				Detail:   "How awkward!",
+				Range: &DiagnosticRange{
+					Filename: "odd-comment.tf",
+					Start: Pos{
+						Line:   2,
+						Column: 5,
+						Byte:   4,
+					},
+					End: Pos{
+						Line:   3,
+						Column: 1,
+						Byte:   6,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Code:      `#`,
+					StartLine: 2,
+					Values:    []DiagnosticExpressionValue{},
+
+					// Due to the range starting at a newline on a blank
+					// line, we end up stripping off the initial newline
+					// to produce only a one-line snippet. That would
+					// therefore cause the start offset to naturally be
+					// -1, just before the Code we returned, but then we
+					// force it to zero so that the result will still be
+					// in range for a byte-oriented slice of Code.
+					HighlightStartOffset: 0,
+					HighlightEndOffset:   1,
 				},
 			},
 		},

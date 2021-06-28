@@ -1,0 +1,26 @@
+{
+  "severity": "error",
+  "summary": "Invalid newline",
+  "detail": "How awkward!",
+  "range": {
+    "filename": "odd-comment.tf",
+    "start": {
+      "line": 2,
+      "column": 5,
+      "byte": 4
+    },
+    "end": {
+      "line": 3,
+      "column": 1,
+      "byte": 6
+    }
+  },
+  "snippet": {
+    "context": null,
+    "code": "#",
+    "start_line": 2,
+    "highlight_start_offset": 0,
+    "highlight_end_offset": 1,
+    "values": []
+  }
+}

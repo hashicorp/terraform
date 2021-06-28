@@ -221,12 +221,23 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 			// to the code snippet string.
 			start := highlightRange.Start.Byte - codeStartByte
 			end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
-			if start > len(codeStr) {
+
+			// We can end up with some quirky results here in edge cases like
+			// when a source range starts or ends at a newline character,
+			// so we'll cap the results at the bounds of the highlight range
+			// so that consumers of this data don't need to contend with
+			// out-of-bounds errors themselves.
+			if start < 0 {
+				start = 0
+			} else if start > len(codeStr) {
 				start = len(codeStr)
 			}
-			if end > len(codeStr) {
+			if end < 0 {
+				end = 0
+			} else if end > len(codeStr) {
 				end = len(codeStr)
 			}
+
 			diagnostic.Snippet.HighlightStartOffset = start
 			diagnostic.Snippet.HighlightEndOffset = end
 
