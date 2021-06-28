@@ -463,6 +463,51 @@ func TestMarshalResources(t *testing.T) {
 			},
 			false,
 		},
+		"resource with marked map attr": {
+			map[string]*states.Resource{
+				"test_map_attr.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_map_attr",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"data":{"woozles":"confuzles"}}`),
+								AttrSensitivePaths: []cty.PathValueMarks{{
+									Path:  cty.Path{cty.GetAttrStep{Name: "data"}},
+									Marks: cty.NewValueMarks(marks.Sensitive)},
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			[]resource{
+				{
+					Address:      "test_map_attr.bar",
+					Mode:         "managed",
+					Type:         "test_map_attr",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					AttributeValues: attributeValues{
+						"data": json.RawMessage(`{"woozles":"confuzles"}`),
+					},
+					SensitiveValues: json.RawMessage(`{"data":true}`),
+				},
+			},
+			false,
+		},
 	}
 
 	for name, test := range tests {
@@ -697,6 +742,11 @@ func testSchemas() *terraform.Schemas {
 							"id":  {Type: cty.String, Optional: true, Computed: true},
 							"foo": {Type: cty.String, Optional: true},
 							"bar": {Type: cty.String, Optional: true},
+						},
+					},
+					"test_map_attr": {
+						Attributes: map[string]*configschema.Attribute{
+							"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
 						},
 					},
 				},
