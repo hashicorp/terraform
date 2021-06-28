@@ -330,9 +330,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				// Mark the resource instance value with any marks stored in AttrSensitivePaths so we can build the SensitiveValues object
-				markedVal := riObj.Value.MarkWithPaths(ri.Current.AttrSensitivePaths)
-				s := SensitiveAsBool(markedVal)
+				s := SensitiveAsBool(riObj.Value)
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -371,9 +369,7 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				// Mark the resource instance value with any marks stored in AttrSensitivePaths so we can build the SensitiveValues object
-				markedVal := riObj.Value.MarkWithPaths(rios.AttrSensitivePaths)
-				s := SensitiveAsBool(markedVal)
+				s := SensitiveAsBool(riObj.Value)
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err

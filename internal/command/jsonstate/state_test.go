@@ -198,6 +198,52 @@ func TestMarshalResources(t *testing.T) {
 			},
 			false,
 		},
+		"resource with marks": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foozles":"confuzles"}`),
+								AttrSensitivePaths: []cty.PathValueMarks{{
+									Path:  cty.Path{cty.GetAttrStep{Name: "foozles"}},
+									Marks: cty.NewValueMarks(marks.Sensitive)},
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			[]resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					AttributeValues: attributeValues{
+						"foozles": json.RawMessage(`"confuzles"`),
+						"woozles": json.RawMessage(`null`),
+					},
+					SensitiveValues: json.RawMessage(`{"foozles":true}`),
+				},
+			},
+			false,
+		},
 		"single resource wrong schema": {
 			map[string]*states.Resource{
 				"test_thing.baz": {
