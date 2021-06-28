@@ -3,77 +3,48 @@ layout: "intro"
 page_title: "Introduction"
 sidebar_current: "what"
 description: |-
-  Welcome to the intro guide to Terraform! This guide is the best place to start with Terraform. We cover what Terraform is, what problems it can solve, how it compares to existing software, and contains a quick start for using Terraform.
+  This guide explains what Terraform is, what problems it can solve, and how it compares to existing software.
 ---
 
 # Introduction to Terraform
 
-Welcome to the intro guide to Terraform! This guide is the best
-place to start with Terraform. We cover what Terraform is, what
-problems it can solve, how it compares to existing software,
-and contains a quick start for using Terraform.
-
-If you are already familiar with the basics of Terraform, the
-[documentation](/docs/index.html) provides a better reference
-guide for all available features as well as internals.
-
 ## What is Terraform?
 
 Terraform is a tool for building, changing, and versioning infrastructure
-safely and efficiently. Terraform can manage existing and popular service
-providers as well as custom in-house solutions.
+safely and efficiently. Terraform can manage both low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc.
 
-Configuration files describe to Terraform the components needed to
-run a single application or your entire datacenter.
-Terraform generates an execution plan describing
-what it will do to reach the desired state, and then executes it to build the
-described infrastructure. As the configuration changes, Terraform is able
-to determine what changed and create incremental execution plans which
-can be applied.
+Terraform configuration files describe the components needed to run a single application or your entire datacenter. Terraform reads these configuration files, generates an execution plan describing what it will do to reach the desired state, and then executes that plan to build the described infrastructure. As the configuration changes, Terraform can determine what changed and implement changes in the right order to respect dependencies.
 
-The infrastructure Terraform can manage includes
-low-level components such as
-compute instances, storage, and networking, as well as high-level
-components such as DNS entries, SaaS features, etc.
+Below, HashiCorp co-founder and CTO Armon Dadgar describes Terraform and its uses in more depth.
 
 <iframe src="https://www.youtube.com/embed/h970ZBgKINg" frameborder="0" allowfullscreen="true"  width="560" height="315" ></iframe>
 
-Examples work best to showcase Terraform. Please see the
-[use cases](/intro/use-cases.html).
 
-The key features of Terraform are:
+
+## Key Features
 
 ### Infrastructure as Code
 
-Infrastructure is described using a high-level configuration syntax. This allows
-a blueprint of your datacenter to be versioned and treated as you would any
-other code. Additionally, infrastructure can be shared and re-used.
+Infrastructure is described using a high-level [configuration language](/docs/language/index.html). This allows a blueprint of your datacenter to be versioned and treated as you would any other code. Additionally, infrastructure can be shared and re-used.
 
 ### Execution Plans
 
-Terraform has a "planning" step where it generates an _execution plan_. The
-execution plan shows what Terraform will do when you call apply. This lets you
-avoid any surprises when Terraform manipulates infrastructure.
+Terraform generates an _execution plan_ and asks for your approval before creating or destroying infrastructure. This allows you to review changes  before they are applied.
 
 ### Resource Graph
 
-Terraform builds a graph of all your resources, and parallelizes the creation
-and modification of any non-dependent resources. Because of this, Terraform
-builds infrastructure as efficiently as possible, and operators get insight into
-dependencies in their infrastructure.
+Terraform builds a graph of all your resources and parallelizes the creation
+and modification of any non-dependent resources. This allows Terraform to
+build infrastructure as efficiently as possible and gives operators greater insight into their infrastructure.
 
 ### Change Automation
 
-Complex changesets can be applied to your infrastructure with minimal human
-interaction. With the previously mentioned execution plan and resource graph,
-you know exactly what Terraform will change and in what order, avoiding many
-possible human errors.
+Apply complex changesets to your infrastructure with minimal human interaction.
+
+
 
 ## Next Steps
 
-See the page on [Terraform use cases](/intro/use-cases.html) to see the
-multiple ways Terraform can be used. Then see
-[how Terraform compares to other software](/intro/vs/index.html)
-to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn to use
-Terraform to manage real infrastructure and to see how it works.
+- Learn about common [Terraform use cases](/intro/use-cases.html).
+- Learn [how Terraform compares to other infrastructure tools](/intro/vs/index.html).
+- Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started) tutorials on HashiCorp Learn to install Terraform and learn how to use Terraform to manage real infrastructure.
