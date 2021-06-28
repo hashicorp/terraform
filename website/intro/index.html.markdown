@@ -41,10 +41,10 @@ build infrastructure as efficiently as possible and gives operators greater insi
 
 Apply complex changesets to your infrastructure with minimal human interaction.
 
- 
+
 
 ## Next Steps
 
 - Learn about common [Terraform use cases](/intro/use-cases.html).
 - Learn [how Terraform compares to other infrastructure tools](/intro/vs/index.html).
-- Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started) tutorials on HashiCorp Learn to install Terraform and learn how to use Terraform to manage real infrastructure.
+- Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started) tutorials on HashiCorp Learn to learn how to use Terraform to manage real infrastructure.
