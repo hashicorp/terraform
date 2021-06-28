@@ -3,9 +3,7 @@ layout: "intro"
 page_title: "The Core Terraform Workflow - Guides"
 sidebar_current: "guides-core-workflow"
 description: |-
-  This guide provides an overview of the core Terraform workflow and how it
-  applies in individual, team, and organization contexts across Terraform open
-  source and Terraform Cloud.
+  An overview of how individuals, teams, and organizations can use Terraform. 
 ---
 
 # The Core Terraform Workflow
