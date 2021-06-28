@@ -2,16 +2,17 @@
 
 NEW FEATURES:
 
-* command/add: `terraform add` generates resource configuration templates [GH-28874]
-* lang/funcs: add a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
+* cli: `terraform add` generates resource configuration templates [GH-28874]
+* config: a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
 
-* configs: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. ([#28854](https://github.com/hashicorp/terraform/issues/28854))
+* config: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. ([#28854](https://github.com/hashicorp/terraform/issues/28854))
 
 BUG FIXES:
-* terraform: Fix an issue where provider configuration input variables were not properly merging with values in configuration [GH-29000]
 
+* core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration [GH-29000]
+* cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. [GH-29048]
 
 ## Previous Releases
 
