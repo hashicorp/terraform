@@ -191,7 +191,7 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		if attrTrav, ok := remain[0].(hcl.TraverseAttr); ok {
 			remain = remain[1:]
 			return &Reference{
-				Subject: AbsModuleCallOutput{
+				Subject: ModuleCallInstanceOutput{
 					Name: attrTrav.Name,
 					Call: callInstance,
 				},

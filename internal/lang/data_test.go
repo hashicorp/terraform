@@ -47,7 +47,7 @@ func (d *dataForTests) GetModule(addr addrs.ModuleCall, rng tfdiags.SourceRange)
 	return d.Modules[addr.String()], nil
 }
 
-func (d *dataForTests) GetModuleInstanceOutput(addr addrs.AbsModuleCallOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *dataForTests) GetModuleInstanceOutput(addr addrs.ModuleCallInstanceOutput, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	// This will panic if the module object does not have the requested attribute
 	obj := d.Modules[addr.Call.String()]
 	return obj.GetAttr(addr.Name), nil

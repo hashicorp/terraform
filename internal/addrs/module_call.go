@@ -72,9 +72,9 @@ func (m ModuleCallOutput) String() string {
 	return fmt.Sprintf("%s.%s", m.Call.String(), m.Name)
 }
 
-// AbsModuleCallOutput is the address of a particular named output produced by
+// ModuleCallInstanceOutput is the address of a particular named output produced by
 // an instance of a module call.
-type AbsModuleCallOutput struct {
+type ModuleCallInstanceOutput struct {
 	referenceable
 	Call ModuleCallInstance
 	Name string
@@ -82,21 +82,21 @@ type AbsModuleCallOutput struct {
 
 // ModuleCallOutput returns the referenceable ModuleCallOutput for this
 // particular instance.
-func (co AbsModuleCallOutput) ModuleCallOutput() ModuleCallOutput {
+func (co ModuleCallInstanceOutput) ModuleCallOutput() ModuleCallOutput {
 	return ModuleCallOutput{
 		Call: co.Call.Call,
 		Name: co.Name,
 	}
 }
 
-func (co AbsModuleCallOutput) String() string {
+func (co ModuleCallInstanceOutput) String() string {
 	return fmt.Sprintf("%s.%s", co.Call.String(), co.Name)
 }
 
 // AbsOutputValue returns the absolute output value address that corresponds
 // to the receving module call output address, once resolved in the given
 // calling module.
-func (co AbsModuleCallOutput) AbsOutputValue(caller ModuleInstance) AbsOutputValue {
+func (co ModuleCallInstanceOutput) AbsOutputValue(caller ModuleInstance) AbsOutputValue {
 	moduleAddr := co.Call.ModuleInstance(caller)
 	return moduleAddr.OutputValue(co.Name)
 }
