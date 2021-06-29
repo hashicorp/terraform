@@ -8,9 +8,7 @@ description: |-
 
 # Use Cases
 
-Before understanding use cases, it's useful to know [what Terraform is](/intro/index.html).
-This page lists some concrete use cases for Terraform, but the possible use cases are
-much broader than what we cover. Due to its extensible nature, providers and provisioners
+This page lists a subset of use cases for [Terraform](/intro/index.html). Due to its extensible nature, providers and provisioners
 can be added to further extend Terraform's ability to manipulate resources.
 
 ## Heroku App Setup
@@ -71,9 +69,9 @@ datacenter, as it provides more control to operators and developers and
 allows the network to better support the applications running on top. Most SDN
 implementations have a control layer and infrastructure layer.
 
-Terraform can be used to codify the configuration for software defined networks.
-This configuration can then be used by Terraform to automatically setup and modify settings by interfacing with the control layer. This allows configuration to be
-versioned and changes to be automated. As an example, [AWS VPC](https://aws.amazon.com/vpc/) is one of the most commonly used SDN implementations, and [can be configured by Terraform](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc).
+You can use Terraform to codify the configuration for software defined networks.
+Terraform can then use this configuration to automatically set up and modify settings by interfacing with the control layer. This allows the configuration to be
+versioned and changes to be automated. For example, you can [use Terraform to configure AWS VPC](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc).
 
 ## Resource Schedulers
 
@@ -90,7 +88,7 @@ running the schedulers as well as provisioning onto the scheduled grid.
 
 ## Multi-Cloud Deployment
 
-It's often attractive to spread infrastructure across multiple clouds to increase fault-tolerance. By using only a single region or cloud provider, fault tolerance is limited by the availability of that provider. Having a multi-cloud deployment allows for more graceful recovery of the loss of a region or entire provider.
+It's often attractive to spread infrastructure across multiple clouds to increase fault-tolerance. By using only a single region or cloud provider, fault tolerance is limited by the availability of that provider. Multi-cloud deployment allows for more graceful recovery of the loss of a region or entire provider.
 
 Realizing multi-cloud deployments can be very challenging as many existing tools
 for infrastructure management are cloud-specific. Terraform is cloud-agnostic
