@@ -38,7 +38,7 @@ operations team to manage a large and growing infrastructure. Instead it becomes
 more attractive to make "self-serve" infrastructure, allowing product teams to
 manage their own infrastructure using tooling provided by the central operations team.
 
-Using Terraform, the knowledge of how to build and scale a service can be codified in a configuration. Terraform configurations can be shared within an organization enabling customer teams to use the configuration as a black box and use Terraform as a tool to manage their services.
+You can use Terraform configuration to codify the knowledge of how to build and scale a service. You can then share these configurations throughout your organization, enabling customer teams to use Terraform to manage their services.
 
 ## Software Demos
 
