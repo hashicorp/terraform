@@ -141,6 +141,46 @@ func TestJSONView_PlannedChange(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
+func TestJSONView_ResourceDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	foo, diags := addrs.ParseModuleInstanceStr("module.foo")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Update,
+		},
+	}
+	jv.ResourceDrift(viewsjson.NewResourceInstanceChange(cs))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": `module.foo.test_instance.bar["boop"]: Drift detected (update)`,
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             `module.foo.test_instance.bar["boop"]`,
+					"implied_provider": "test",
+					"module":           "module.foo",
+					"resource":         `test_instance.bar["boop"]`,
+					"resource_key":     "boop",
+					"resource_name":    "bar",
+					"resource_type":    "test_instance",
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
 func TestJSONView_ChangeSummary(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	jv := NewJSONView(NewView(streams))

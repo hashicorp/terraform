@@ -483,8 +483,8 @@ func TestOperationJSON_plan(t *testing.T) {
 	if len(diags) > 0 {
 		t.Fatal(diags.Err())
 	}
-	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
-	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "beep"}
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
 	derp := addrs.Resource{Mode: addrs.DataResourceMode, Type: "test_source", Name: "derp"}
 
 	plan := &plans.Plan{
@@ -517,102 +517,195 @@ func TestOperationJSON_plan(t *testing.T) {
 				},
 			},
 		},
+		PrevRunState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.IntKey(0)).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.IntKey(1)).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
+		PriorState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.IntKey(0)).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"baz"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.IntKey(1)).Absolute(root),
+				nil,
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
 	}
-	v.Plan(plan, nil)
+	v.Plan(plan, testSchemas())
 
 	want := []map[string]interface{}{
+		// Drift detected: update
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop[0]: Drift detected (update)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop[0]",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop[0]",
+					"resource_key":     float64(0),
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: delete
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop[1]: Drift detected (delete)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "delete",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop[1]",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop[1]",
+					"resource_key":     float64(1),
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
 		// Create-then-delete should result in replace
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop[0]: Plan to replace",
+			"@message": "test_resource.boop[0]: Plan to replace",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "replace",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.boop[0]`,
+					"addr":             `test_resource.boop[0]`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.boop[0]`,
+					"resource":         `test_resource.boop[0]`,
 					"resource_key":     float64(0),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple create
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop[1]: Plan to create",
+			"@message": "test_resource.boop[1]: Plan to create",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "create",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.boop[1]`,
+					"addr":             `test_resource.boop[1]`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.boop[1]`,
+					"resource":         `test_resource.boop[1]`,
 					"resource_key":     float64(1),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple delete
 		{
 			"@level":   "info",
-			"@message": "module.vpc.test_instance.boop[0]: Plan to delete",
+			"@message": "module.vpc.test_resource.boop[0]: Plan to delete",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "delete",
 				"resource": map[string]interface{}{
-					"addr":             `module.vpc.test_instance.boop[0]`,
+					"addr":             `module.vpc.test_resource.boop[0]`,
 					"implied_provider": "test",
 					"module":           "module.vpc",
-					"resource":         `test_instance.boop[0]`,
+					"resource":         `test_resource.boop[0]`,
 					"resource_key":     float64(0),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Delete-then-create is also a replace
 		{
 			"@level":   "info",
-			"@message": "test_instance.beep: Plan to replace",
+			"@message": "test_resource.beep: Plan to replace",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "replace",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.beep`,
+					"addr":             `test_resource.beep`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.beep`,
+					"resource":         `test_resource.beep`,
 					"resource_key":     nil,
 					"resource_name":    "beep",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple update
 		{
 			"@level":   "info",
-			"@message": "module.vpc.test_instance.beep: Plan to update",
+			"@message": "module.vpc.test_resource.beep: Plan to update",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "update",
 				"resource": map[string]interface{}{
-					"addr":             `module.vpc.test_instance.beep`,
+					"addr":             `module.vpc.test_resource.beep`,
 					"implied_provider": "test",
 					"module":           "module.vpc",
-					"resource":         `test_instance.beep`,
+					"resource":         `test_resource.beep`,
 					"resource_key":     nil,
 					"resource_name":    "beep",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},

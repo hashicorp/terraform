@@ -9,6 +9,7 @@ const (
 	MessageDiagnostic MessageType = "diagnostic"
 
 	// Operation results
+	MessageResourceDrift MessageType = "resource_drift"
 	MessagePlannedChange MessageType = "planned_change"
 	MessageChangeSummary MessageType = "change_summary"
 	MessageOutputs       MessageType = "outputs"
