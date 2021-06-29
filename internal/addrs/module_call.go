@@ -6,9 +6,6 @@ import (
 
 // ModuleCall is the address of a call from the current module to a child
 // module.
-//
-// There is no "Abs" version of ModuleCall because an absolute module path
-// is represented by ModuleInstance.
 type ModuleCall struct {
 	referenceable
 	Name string
@@ -27,9 +24,40 @@ func (c ModuleCall) Instance(key InstanceKey) ModuleCallInstance {
 	}
 }
 
+func (c ModuleCall) Absolute(moduleAddr ModuleInstance) AbsModuleCall {
+	return AbsModuleCall{
+		Module: moduleAddr,
+		Call:   c,
+	}
+}
+
+// AbsModuleCall is the address of a "module" block relative to the root
+// of the configuration.
+//
+// This is similar to ModuleInstance alone, but specifically represents
+// the module block itself rather than any one of the instances that
+// module block declares.
+type AbsModuleCall struct {
+	Module ModuleInstance
+	Call   ModuleCall
+}
+
+func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {
+	ret := make(ModuleInstance, len(c.Module), len(c.Module)+1)
+	copy(ret, c.Module)
+	ret = append(ret, ModuleInstanceStep{
+		Name:        c.Call.Name,
+		InstanceKey: key,
+	})
+	return ret
+}
+
 // ModuleCallInstance is the address of one instance of a module created from
 // a module call, which might create multiple instances using "count" or
 // "for_each" arguments.
+//
+// There is no "Abs" version of ModuleCallInstance because an absolute module
+// path is represented by ModuleInstance.
 type ModuleCallInstance struct {
 	referenceable
 	Call ModuleCall
@@ -43,6 +71,16 @@ func (c ModuleCallInstance) String() string {
 	return fmt.Sprintf("module.%s%s", c.Call.Name, c.Key)
 }
 
+func (c ModuleCallInstance) Absolute(moduleAddr ModuleInstance) ModuleInstance {
+	ret := make(ModuleInstance, len(moduleAddr), len(moduleAddr)+1)
+	copy(ret, moduleAddr)
+	ret = append(ret, ModuleInstanceStep{
+		Name:        c.Call.Name,
+		InstanceKey: c.Key,
+	})
+	return ret
+}
+
 // ModuleInstance returns the address of the module instance that corresponds
 // to the receiving call instance when resolved in the given calling module.
 // In other words, it returns the child module instance that the receving
@@ -53,8 +91,8 @@ func (c ModuleCallInstance) ModuleInstance(caller ModuleInstance) ModuleInstance
 
 // Output returns the absolute address of an output of the receiver identified by its
 // name.
-func (c ModuleCallInstance) Output(name string) AbsModuleCallOutput {
-	return AbsModuleCallOutput{
+func (c ModuleCallInstance) Output(name string) ModuleCallInstanceOutput {
+	return ModuleCallInstanceOutput{
 		Call: c,
 		Name: name,
 	}
