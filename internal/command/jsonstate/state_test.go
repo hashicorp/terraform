@@ -214,7 +214,7 @@ func TestMarshalResources(t *testing.T) {
 								AttrsJSON: []byte(`{"foozles":"confuzles"}`),
 								AttrSensitivePaths: []cty.PathValueMarks{{
 									Path:  cty.Path{cty.GetAttrStep{Name: "foozles"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+									Marks: cty.NewValueMarks("sensitive")},
 								},
 							},
 						},
@@ -480,7 +480,7 @@ func TestMarshalResources(t *testing.T) {
 								AttrsJSON: []byte(`{"data":{"woozles":"confuzles"}}`),
 								AttrSensitivePaths: []cty.PathValueMarks{{
 									Path:  cty.Path{cty.GetAttrStep{Name: "data"}},
-									Marks: cty.NewValueMarks(marks.Sensitive)},
+									Marks: cty.NewValueMarks("sensitive")},
 								},
 							},
 						},
