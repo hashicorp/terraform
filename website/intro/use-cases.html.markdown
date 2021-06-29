@@ -28,7 +28,7 @@ a pool of web servers that use a database tier. Additional tiers get added for A
 caching servers, routing meshes, etc. This pattern is used because the tiers can be scaled
 independently and provide a separation of concerns.
 
-Terraform is an ideal tool for building and managing these infrastructures. Each tier can be described as a collection of resources, and the dependencies between each tier are handled automatically; Terraform will ensure the database tier is available before the web servers are started and that the load balancers are aware of the web nodes. Each tier can then be scaled easily using Terraform by modifying a single `count` configuration value. Because the creation and provisioning of a resource is codified and automated, elastically scaling
+Terraform is an ideal tool for building and managing these infrastructures. You can group resources in each tier together, and Terraform will automatically handle the dependencies between each tier. For example, Terraform will ensure the database tier is available before provisioning the web servers and that the load balancers are connected to the web nodes. You can then use Terraform to easily scale each tier by modifying the `count` configuration value. Because resource creation and provisioning is codified and automated, elastically scaling
 with load becomes trivial.
 
 ## Self-Service Clusters
