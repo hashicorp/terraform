@@ -68,9 +68,9 @@ func marshalExpression(ex hcl.Expression) expression {
 					// Include the resource, without the key
 					varString = append(varString, ref.Subject.(addrs.ResourceInstance).Resource.String())
 				}
-			case addrs.AbsModuleCallOutput:
+			case addrs.ModuleCallInstanceOutput:
 				// Include the module name, without the output name
-				varString = append(varString, ref.Subject.(addrs.AbsModuleCallOutput).Call.String())
+				varString = append(varString, ref.Subject.(addrs.ModuleCallInstanceOutput).Call.String())
 			}
 		}
 		ret.References = varString
