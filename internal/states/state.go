@@ -312,13 +312,13 @@ func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
 
 	ds := s.Resource(dst)
 	if ds != nil {
-		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
+		panic(fmt.Sprintf("dst resource %s already exists", dst.String()))
 	}
 
 	ms := s.Module(src.Module)
 	ms.RemoveResource(src.Resource)
 
-	// Remove the module if it module is empty (and not root) after removing the
+	// Remove the module if it is empty (and not root) after removing the
 	// resource.
 	if !ms.Addr.IsRoot() && ms.empty() {
 		s.RemoveModule(src.Module)
@@ -351,10 +351,7 @@ func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
 		// it's useful information for the caller.
 		return false
 	} else {
-		if rs == nil {
-			panic(fmt.Sprintf("no state for src address %s", src.String()))
-		}
-		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
+		panic("invalid move")
 	}
 }
 
@@ -371,7 +368,7 @@ func (s *State) MoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) {
 
 	dstInstanceState := s.ResourceInstance(dst)
 	if dstInstanceState != nil {
-		panic(fmt.Sprintf("resource already exists st %s", dst.String()))
+		panic(fmt.Sprintf("dst resource %s already exists", dst.String()))
 	}
 
 	srcResourceState := s.Resource(src.ContainingResource())
@@ -428,9 +425,61 @@ func (s *State) MaybeMoveAbsResourceInstance(src, dst addrs.AbsResourceInstance)
 		// it's useful information.
 		return false
 	} else {
-		if rs == nil {
-			panic(fmt.Sprintf("no state for src address %s", src.String()))
-		}
-		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
+		panic("invalid move")
+	}
+}
+
+// MoveModuleInstance moves the given src ModuleInstance's current state to the
+// new dst address. This will panic if the src ModuleInstance does not
+// exist in state, or if there is already a resource at the dst address. It is
+// the caller's responsibility to verify the validity of the move.
+func (s *State) MoveModuleInstance(src, dst addrs.ModuleInstance) {
+	if src.IsRoot() || dst.IsRoot() {
+		panic("cannot move to or from root module")
+	}
+
+	srcMod := s.Module(src)
+	if srcMod == nil {
+		panic(fmt.Sprintf("no state for src module %s", src.String()))
+	}
+
+	dstMod := s.Module(dst)
+	if dstMod != nil {
+		panic(fmt.Sprintf("dst module %s already exists in state", dst.String()))
+	}
+
+	s.RemoveModule(src)
+
+	srcMod.Addr = dst
+	s.EnsureModule(dst)
+	s.Modules[dst.String()] = srcMod
+}
+
+// MaybeMoveModuleInstance moves the given src ModuleInstance's current state to
+// the new dst address. This function will succeed if both the src address does
+// not exist in state and the dst address does; the return value indicates
+// whether or not the move occured. This function will panic if either the src
+// does not exist or the dst does exist (but not both).
+func (s *State) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
+	if src.IsRoot() || dst.IsRoot() {
+		panic("cannot move to or from root module")
+	}
+
+	srcMod := s.Module(src)
+	dstMod := s.Module(dst)
+
+	// Normal case: the src exists in state, dst does not
+	if srcMod != nil && dstMod == nil {
+		s.MoveModuleInstance(src, dst)
+		return true
+	}
+
+	if srcMod == nil || src.IsRoot() && dstMod != nil {
+		// The source is not in state, the destination is. This is not
+		// guaranteed to be idempotent since we aren't tracking exact moves, but
+		// it's useful information.
+		return false
+	} else {
+		panic("invalid move")
 	}
 }

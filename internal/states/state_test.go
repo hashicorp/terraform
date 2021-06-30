@@ -294,6 +294,7 @@ func TestStateDeepCopy(t *testing.T) {
 }
 
 func TestState_MoveAbsResource(t *testing.T) {
+	// Set up a starter state for the embedded tests, which should start from a copy of this state.
 	state := NewState()
 	rootModule := state.RootModule()
 	rootModule.SetResourceInstanceCurrent(
@@ -312,24 +313,163 @@ func TestState_MoveAbsResource(t *testing.T) {
 			Module:   addrs.RootModule,
 		},
 	)
-
 	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Absolute(addrs.RootModuleInstance)
-	dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Absolute(addrs.RootModuleInstance)
 
-	state.MoveAbsResource(src, dst)
+	t.Run("basic move", func(t *testing.T) {
+		s := state.DeepCopy()
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Absolute(addrs.RootModuleInstance)
 
-	if state.Empty() {
-		t.Fatal("unexpected empty state")
-	}
+		s.MoveAbsResource(src, dst)
 
-	if len(state.RootModule().Resources) != 1 {
-		t.Fatalf("wrong number of resources in state; expected 1, found %d", len(state.RootModule().Resources))
-	}
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
 
-	got := state.Resource(dst)
-	if got.Addr.Resource != dst.Resource {
-		t.Fatalf("dst resource not in state")
-	}
+		if len(s.RootModule().Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(state.RootModule().Resources))
+		}
+
+		got := s.Resource(dst)
+		if got.Addr.Resource != dst.Resource {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+
+	t.Run("move to new module", func(t *testing.T) {
+		s := state.DeepCopy()
+		dstModule := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("one"))
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Absolute(dstModule)
+
+		s.MoveAbsResource(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		if s.Module(dstModule) == nil {
+			t.Fatalf("child module %s not in state", dstModule.String())
+		}
+
+		if len(s.Module(dstModule).Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(s.Module(dstModule).Resources))
+		}
+
+		got := s.Resource(dst)
+		if got.Addr.Resource != dst.Resource {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+
+	t.Run("from a child module to root", func(t *testing.T) {
+		s := state.DeepCopy()
+		srcModule := addrs.RootModuleInstance.Child("kinder", addrs.NoKey)
+		cm := s.EnsureModule(srcModule)
+		cm.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "child",
+			}.Instance(addrs.IntKey(0)), // Moving the AbsResouce moves all instances
+			&ResourceInstanceObjectSrc{
+				Status:        ObjectReady,
+				SchemaVersion: 1,
+				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		cm.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "child",
+			}.Instance(addrs.IntKey(1)), // Moving the AbsResouce moves all instances
+			&ResourceInstanceObjectSrc{
+				Status:        ObjectReady,
+				SchemaVersion: 1,
+				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+
+		src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(srcModule)
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(addrs.RootModuleInstance)
+		s.MoveAbsResource(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		// The child module should have been removed after removing its only resource
+		if s.Module(srcModule) != nil {
+			t.Fatalf("child module %s was not removed from state after mv", srcModule.String())
+		}
+
+		if len(s.RootModule().Resources) != 2 {
+			t.Fatalf("wrong number of resources in state; expected 2, found %d", len(s.RootModule().Resources))
+		}
+
+		if len(s.Resource(dst).Instances) != 2 {
+			t.Fatalf("wrong number of resource instances for dst, got %d expected 2", len(s.Resource(dst).Instances))
+		}
+
+		got := s.Resource(dst)
+		if got.Addr.Resource != dst.Resource {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+
+	t.Run("module to new module", func(t *testing.T) {
+		s := NewState()
+		srcModule := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("exists"))
+		dstModule := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("new"))
+		cm := s.EnsureModule(srcModule)
+		cm.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "child",
+			}.Instance(addrs.NoKey),
+			&ResourceInstanceObjectSrc{
+				Status:        ObjectReady,
+				SchemaVersion: 1,
+				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+
+		src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(srcModule)
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(dstModule)
+		s.MoveAbsResource(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		// The child module should have been removed after removing its only resource
+		if s.Module(srcModule) != nil {
+			t.Fatalf("child module %s was not removed from state after mv", srcModule.String())
+		}
+
+		gotMod := s.Module(dstModule)
+		if len(gotMod.Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(gotMod.Resources))
+		}
+
+		got := s.Resource(dst)
+		if got.Addr.Resource != dst.Resource {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+
 }
 
 func TestState_MaybeMoveAbsResource(t *testing.T) {
@@ -462,7 +602,7 @@ func TestState_MaybeMoveAbsResourceInstance(t *testing.T) {
 		},
 	)
 
-	// For a little extra fun, let's go from a resource to a resource instance- test_thing.foo to test_thing.bar[1]
+	// For a little extra fun, let's go from a resource to a resource instance: test_thing.foo to test_thing.bar[1]
 	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 	dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance)
 
@@ -481,6 +621,81 @@ func TestState_MaybeMoveAbsResourceInstance(t *testing.T) {
 	// Moving a resource instance that doesn't exist in state to a resource which does exist should be a noop.
 	t.Run("noop", func(t *testing.T) {
 		moved := state.MaybeMoveAbsResourceInstance(src, dst)
+		if moved {
+			t.Fatal("wrong result")
+		}
+	})
+}
+
+func TestState_MoveModuleInstance(t *testing.T) {
+	state := NewState()
+	srcModule := addrs.RootModuleInstance.Child("kinder", addrs.NoKey)
+	m := state.EnsureModule(srcModule)
+	m.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	dstModule := addrs.RootModuleInstance.Child("child", addrs.IntKey(3))
+	state.MoveModuleInstance(srcModule, dstModule)
+
+	// srcModule should have been removed, dstModule should exist and have one resource
+	if len(state.Modules) != 2 { // kinder[3] and root
+		t.Fatalf("wrong number of modules in state. Expected 2, got %d", len(state.Modules))
+	}
+
+	got := state.Module(dstModule)
+	if got == nil {
+		t.Fatal("dstModule not found")
+	}
+}
+
+func TestState_MaybeMoveModuleInstance(t *testing.T) {
+	state := NewState()
+	src := addrs.RootModuleInstance.Child("child", addrs.NoKey)
+	cm := state.EnsureModule(src)
+	cm.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	dst := addrs.RootModuleInstance.Child("kinder", addrs.NoKey)
+
+	// First move, success
+	t.Run("first move", func(t *testing.T) {
+		moved := state.MaybeMoveModuleInstance(src, dst)
+		if !moved {
+			t.Fatal("wrong result")
+		}
+	})
+
+	// Second move, should be a noop
+	t.Run("noop", func(t *testing.T) {
+		moved := state.MaybeMoveModuleInstance(src, dst)
 		if moved {
 			t.Fatal("wrong result")
 		}

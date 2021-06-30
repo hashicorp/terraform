@@ -582,3 +582,17 @@ func (s *SyncState) MaybeMoveResourceInstance(src, dst addrs.AbsResourceInstance
 
 	return s.state.MaybeMoveAbsResourceInstance(src, dst)
 }
+
+func (s *SyncState) MoveModuleInstance(src, dst addrs.ModuleInstance) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.state.MoveModuleInstance(src, dst)
+}
+
+func (s *SyncState) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.state.MaybeMoveModuleInstance(src, dst)
+}
