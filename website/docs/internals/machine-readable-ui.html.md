@@ -54,6 +54,7 @@ The following message types are supported:
 
 ### Operation Results
 
+- `resource_drift`: describes a detected change to a single resource made outside of Terraform
 - `planned_change`: describes a planned change to a single resource
 - `change_summary`: summary of all planned or applied changes
 - `outputs`: list of all root module outputs
@@ -82,6 +83,39 @@ A machine-readable UI command output will always begin with a `version` message.
   "terraform": "0.15.4",
   "type": "version",
   "ui": "0.1.0"
+}
+```
+
+## Resource Drift
+
+If drift is detected during planning, Terraform will emit a `resource_drift` message for each resource which has changed outside of Terraform. This message has an embedded `change` object with the following keys:
+
+- `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
+- `action`: the action planned to be taken for the resource. Values: `update`, `delete`.
+
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](./json-format.html).
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "random_pet.animal: Drift detected (update)",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.705503-04:00",
+  "change": {
+    "resource": {
+      "addr": "random_pet.animal",
+      "module": "",
+      "resource": "random_pet.animal",
+      "implied_provider": "random",
+      "resource_type": "random_pet",
+      "resource_name": "animal",
+      "resource_key": null
+    },
+    "action": "update"
+  },
+  "type": "resource_drift"
 }
 ```
 
