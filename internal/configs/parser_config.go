@@ -2,7 +2,6 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/experiments"
 )
 
 // LoadConfigFile reads the file at the given path and parses it as a config
@@ -150,16 +149,10 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "moved":
-			// This is not quite the usual usage of the experiments package.
-			// EverythingIsAPlan is not registered as an active experiment, so
-			// this block will not be decoded until either the experiment is
-			// registered, or this check is dropped altogether.
-			if file.ActiveExperiments.Has(experiments.EverythingIsAPlan) {
-				cfg, cfgDiags := decodeMovedBlock(block)
-				diags = append(diags, cfgDiags...)
-				if cfg != nil {
-					file.Moved = append(file.Moved, cfg)
-				}
+			cfg, cfgDiags := decodeMovedBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Moved = append(file.Moved, cfg)
 			}
 
 		default:

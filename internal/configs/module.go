@@ -42,6 +42,8 @@ type Module struct {
 
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
+
+	Moved []*Moved
 }
 
 // File describes the contents of a single configuration file.
@@ -330,6 +332,11 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
+	// "Moved" blocks just append, because they are all independent
+	// of one another at this level. (We handle any references between
+	// them at runtime.)
+	m.Moved = append(m.Moved, file.Moved...)
+
 	return diags
 }
 
@@ -482,6 +489,15 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 		mergeDiags := existing.merge(r, m.ProviderRequirements.RequiredProviders)
 		diags = append(diags, mergeDiags...)
+	}
+
+	for _, m := range file.Moved {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot override 'moved' blocks",
+			Detail:   "Records of moved objects can appear only in normal files, not in override files.",
+			Subject:  m.DeclRange.Ptr(),
+		})
 	}
 
 	return diags
