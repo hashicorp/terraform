@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/hcl/v2"
 )
 
 // TestParseLoadConfigDirSuccess is a simple test that just verifies that
@@ -31,6 +33,33 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			path := filepath.Join("testdata/valid-modules", name)
 
 			mod, diags := parser.LoadConfigDir(path)
+			if len(diags) != 0 && len(mod.ActiveExperiments) != 0 {
+				// As a special case to reduce churn while we're working
+				// through experimental features, we'll ignore the warning
+				// that an experimental feature is active if the module
+				// intentionally opted in to that feature.
+				// If you want to explicitly test for the feature warning
+				// to be generated, consider using testdata/warning-files
+				// instead.
+				filterDiags := make(hcl.Diagnostics, 0, len(diags))
+				for _, diag := range diags {
+					if diag.Severity != hcl.DiagWarning {
+						continue
+					}
+					match := false
+					for exp := range mod.ActiveExperiments {
+						allowedSummary := fmt.Sprintf("Experimental feature %q is active", exp.Keyword())
+						if diag.Summary == allowedSummary {
+							match = true
+							break
+						}
+					}
+					if !match {
+						filterDiags = append(filterDiags, diag)
+					}
+				}
+				diags = filterDiags
+			}
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
