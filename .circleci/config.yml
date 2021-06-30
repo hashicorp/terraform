@@ -272,6 +272,7 @@ workflows:
     jobs:
       - build-amd64
       - build-arm
+      - build-arm64
 
   website-test:
     jobs:
