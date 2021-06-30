@@ -197,6 +197,17 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	}
 
+	if !m.ActiveExperiments.Has(experiments.ConfigDrivenMove) {
+		for _, mc := range m.Moved {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Config-driven move is experimental",
+				Detail:   "This feature is currently under development and is not yet fully-functional.\n\nIf you'd like to try the partial implementation that exists so far, add config_driven_move to the set of active experiments for this module.",
+				Subject:  mc.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 

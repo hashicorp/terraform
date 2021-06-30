@@ -169,6 +169,30 @@ func TestDecodeMovedBlock(t *testing.T) {
 	}
 }
 
+func TestMovedBlocksInModule(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDir("testdata/valid-modules/moved-blocks")
+	if diags.HasErrors() {
+		t.Errorf("unexpected error: %s", diags.Error())
+	}
+
+	var gotPairs [][2]string
+	for _, mc := range mod.Moved {
+		gotPairs = append(gotPairs, [2]string{mc.From.String(), mc.To.String()})
+	}
+	wantPairs := [][2]string{
+		{`test.foo`, `test.bar`},
+		{`test.foo`, `test.bar["bloop"]`},
+		{`module.a`, `module.b`},
+		{`module.a`, `module.a["foo"]`},
+		{`test.foo`, `module.a.test.foo`},
+		{`data.test.foo`, `data.test.bar`},
+	}
+	if diff := cmp.Diff(wantPairs, gotPairs); diff != "" {
+		t.Errorf("wrong addresses\n%s", diff)
+	}
+}
+
 func mustMoveEndpointFromExpr(expr hcl.Expression) *addrs.MoveEndpoint {
 	traversal, hcldiags := hcl.AbsTraversalForExpr(expr)
 	if hcldiags.HasErrors() {
