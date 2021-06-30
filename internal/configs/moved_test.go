@@ -48,8 +48,8 @@ func TestDecodeMovedBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Moved{
-				From:      mustTargetFromExpr(foo_expr),
-				To:        mustTargetFromExpr(bar_expr),
+				From:      mustMoveEndpointFromExpr(foo_expr),
+				To:        mustMoveEndpointFromExpr(bar_expr),
 				DeclRange: blockRange,
 			},
 			``,
@@ -72,8 +72,8 @@ func TestDecodeMovedBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Moved{
-				From:      mustTargetFromExpr(foo_index_expr),
-				To:        mustTargetFromExpr(bar_index_expr),
+				From:      mustMoveEndpointFromExpr(foo_index_expr),
+				To:        mustMoveEndpointFromExpr(bar_index_expr),
 				DeclRange: blockRange,
 			},
 			``,
@@ -96,8 +96,8 @@ func TestDecodeMovedBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Moved{
-				From:      mustTargetFromExpr(mod_foo_expr),
-				To:        mustTargetFromExpr(mod_bar_expr),
+				From:      mustMoveEndpointFromExpr(mod_foo_expr),
+				To:        mustMoveEndpointFromExpr(mod_bar_expr),
 				DeclRange: blockRange,
 			},
 			``,
@@ -116,7 +116,7 @@ func TestDecodeMovedBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Moved{
-				From:      mustTargetFromExpr(foo_expr),
+				From:      mustMoveEndpointFromExpr(foo_expr),
 				DeclRange: blockRange,
 			},
 			"Missing required argument",
@@ -139,11 +139,11 @@ func TestDecodeMovedBlock(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Moved{
-				To:        mustTargetFromExpr(foo_expr),
-				From:      mustTargetFromExpr(mod_foo_expr),
+				To:        mustMoveEndpointFromExpr(foo_expr),
+				From:      mustMoveEndpointFromExpr(mod_foo_expr),
 				DeclRange: blockRange,
 			},
-			"Invalid \"moved\" targets",
+			"Invalid \"moved\" addresses",
 		},
 	}
 
@@ -162,23 +162,23 @@ func TestDecodeMovedBlock(t *testing.T) {
 				t.Fatal("expected error")
 			}
 
-			if !cmp.Equal(got, test.want) {
+			if !cmp.Equal(got, test.want, cmp.AllowUnexported(addrs.MoveEndpoint{})) {
 				t.Fatalf("wrong result: %s", cmp.Diff(got, test.want))
 			}
 		})
 	}
 }
 
-func mustTargetFromExpr(expr hcl.Expression) *addrs.Target {
+func mustMoveEndpointFromExpr(expr hcl.Expression) *addrs.MoveEndpoint {
 	traversal, hcldiags := hcl.AbsTraversalForExpr(expr)
 	if hcldiags.HasErrors() {
 		panic(hcldiags.Errs())
 	}
 
-	target, diags := addrs.ParseTarget(traversal)
+	ep, diags := addrs.ParseMoveEndpoint(traversal)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
 
-	return target
+	return ep
 }

@@ -47,6 +47,36 @@ func (e *MoveEndpoint) String() string {
 	return e.relSubject.String()
 }
 
+func (e *MoveEndpoint) Equal(other *MoveEndpoint) bool {
+	switch {
+	case (e == nil) != (other == nil):
+		return false
+	case e == nil:
+		return true
+	default:
+		// Since we only use ModuleInstance and AbsResourceInstance in our
+		// string representation, we have no ambiguity between address types
+		// and can safely just compare the string representations to
+		// compare the relSubject values.
+		return e.String() == other.String() && e.SourceRange == other.SourceRange
+	}
+}
+
+// MightUnifyWith returns true if it is possible that a later call to
+// UnifyMoveEndpoints might succeed if given the reciever and the other
+// given endpoint.
+//
+// This is intended for early static validation of obviously-wrong situations,
+// although there are still various semantic errors that this cannot catch.
+func (e *MoveEndpoint) MightUnifyWith(other *MoveEndpoint) bool {
+	// For our purposes here we'll just do a unify without a base module
+	// address, because the rules for whether unify can succeed depend
+	// only on the relative part of the addresses, not on which module
+	// they were declared in.
+	from, to := UnifyMoveEndpoints(RootModuleInstance, e, other)
+	return from != nil && to != nil
+}
+
 // ConfigMovable transforms the reciever into a ConfigMovable by resolving it
 // relative to the given base module, which should be the module where
 // the MoveEndpoint expression was found.
