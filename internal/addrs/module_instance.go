@@ -492,6 +492,10 @@ func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
 }
 
+func (m ModuleInstance) absMoveableSigil() {
+	// ModuleInstance is moveable
+}
+
 func (s ModuleInstanceStep) String() string {
 	if s.InstanceKey != NoKey {
 		return s.Name + s.InstanceKey.String()

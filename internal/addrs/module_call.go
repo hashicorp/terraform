@@ -42,6 +42,14 @@ type AbsModuleCall struct {
 	Call   ModuleCall
 }
 
+func (c AbsModuleCall) absMoveableSigil() {
+	// AbsModuleCall is "moveable".
+}
+
+func (c AbsModuleCall) String() string {
+	return fmt.Sprintf("%s.%s", c.Module, c.Call.Name)
+}
+
 func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {
 	ret := make(ModuleInstance, len(c.Module), len(c.Module)+1)
 	copy(ret, c.Module)
