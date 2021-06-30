@@ -292,3 +292,197 @@ func TestStateDeepCopy(t *testing.T) {
 		t.Fatalf("\nexpected:\n%q\ngot:\n%q\n", state, stateCopy)
 	}
 }
+
+func TestState_MoveAbsResource(t *testing.T) {
+	state := NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.IntKey(0)),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Absolute(addrs.RootModuleInstance)
+	dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Absolute(addrs.RootModuleInstance)
+
+	state.MoveAbsResource(src, dst)
+
+	if state.Empty() {
+		t.Fatal("unexpected empty state")
+	}
+
+	if len(state.RootModule().Resources) != 1 {
+		t.Fatalf("wrong number of resources in state; expected 1, found %d", len(state.RootModule().Resources))
+	}
+
+	got := state.Resource(dst)
+	if got.Addr.Resource != dst.Resource {
+		t.Fatalf("dst resource not in state")
+	}
+}
+
+func TestState_MaybeMoveAbsResource(t *testing.T) {
+	state := NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.IntKey(0)),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Absolute(addrs.RootModuleInstance)
+	dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "bar"}.Absolute(addrs.RootModuleInstance)
+
+	// First move, success
+	t.Run("first move", func(t *testing.T) {
+		moved := state.MaybeMoveAbsResource(src, dst)
+		if !moved {
+			t.Fatal("wrong result")
+		}
+	})
+
+	// Trying to move a resource that doesn't exist in state to a resource which does exist should be a noop.
+	t.Run("noop", func(t *testing.T) {
+		moved := state.MaybeMoveAbsResource(src, dst)
+		if moved {
+			t.Fatal("wrong result")
+		}
+	})
+}
+
+func TestState_MoveAbsResourceInstance(t *testing.T) {
+	state := NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	// src resource from the state above
+	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	t.Run("resource to resource instance", func(t *testing.T) {
+		s := state.DeepCopy()
+		// For a little extra fun, move a resource to a resource instance: test_thing.foo to test_thing.foo[1]
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance)
+
+		s.MoveAbsResourceInstance(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		if len(s.RootModule().Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(state.RootModule().Resources))
+		}
+
+		got := s.ResourceInstance(dst)
+		if got == nil {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+
+	t.Run("move to new module", func(t *testing.T) {
+		s := state.DeepCopy()
+		// test_thing.foo to module.kinder.test_thing.foo["baz"]
+		dstModule := addrs.RootModuleInstance.Child("kinder", addrs.NoKey)
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.IntKey(1)).Absolute(dstModule)
+
+		s.MoveAbsResourceInstance(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		if s.Module(dstModule) == nil {
+			t.Fatalf("child module %s not in state", dstModule.String())
+		}
+
+		if len(s.Module(dstModule).Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(s.Module(dstModule).Resources))
+		}
+
+		got := s.ResourceInstance(dst)
+		if got == nil {
+			t.Fatalf("dst resource not in state")
+		}
+	})
+}
+
+func TestState_MaybeMoveAbsResourceInstance(t *testing.T) {
+	state := NewState()
+	rootModule := state.RootModule()
+	rootModule.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	// For a little extra fun, let's go from a resource to a resource instance- test_thing.foo to test_thing.bar[1]
+	src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "foo"}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance)
+
+	// First move, success
+	t.Run("first move", func(t *testing.T) {
+		moved := state.MaybeMoveAbsResourceInstance(src, dst)
+		if !moved {
+			t.Fatal("wrong result")
+		}
+		got := state.ResourceInstance(dst)
+		if got == nil {
+			t.Fatal("destination resource instance not in state")
+		}
+	})
+
+	// Moving a resource instance that doesn't exist in state to a resource which does exist should be a noop.
+	t.Run("noop", func(t *testing.T) {
+		moved := state.MaybeMoveAbsResourceInstance(src, dst)
+		if moved {
+			t.Fatal("wrong result")
+		}
+	})
+}

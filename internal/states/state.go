@@ -1,6 +1,7 @@
 package states
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
@@ -294,5 +295,142 @@ func (s *State) PruneResourceHusks() {
 func (s *State) SyncWrapper() *SyncState {
 	return &SyncState{
 		state: s,
+	}
+}
+
+// MoveAbsResource moves the given src AbsResource's current state to the new
+// dst address. This will panic if the src AbsResource does not exist in state,
+// or if there is already a resource at the dst address. It is the caller's
+// responsibility to verify the validity of the move (for example, that the src
+// and dst are compatible types).
+func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
+	// verify that the src address exists and the dst address does not
+	rs := s.Resource(src)
+	if rs == nil {
+		panic(fmt.Sprintf("no state for src address %s", src.String()))
+	}
+
+	ds := s.Resource(dst)
+	if ds != nil {
+		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
+	}
+
+	ms := s.Module(src.Module)
+	ms.RemoveResource(src.Resource)
+
+	// Remove the module if it module is empty (and not root) after removing the
+	// resource.
+	if !ms.Addr.IsRoot() && ms.empty() {
+		s.RemoveModule(src.Module)
+	}
+
+	// Update the address before adding it to the state
+	rs.Addr = dst
+	s.EnsureModule(dst.Module).Resources[dst.Resource.String()] = rs
+}
+
+// MaybeMoveAbsResource moves the given src AbsResource's current state to the
+// new dst address. This function will succeed if both the src address does not
+// exist in state and the dst address does; the return value indicates whether
+// or not the move occured. This function will panic if either the src does not
+// exist or the dst does exist (but not both).
+func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
+	// Get the source and destinatation addresses from state.
+	rs := s.Resource(src)
+	ds := s.Resource(dst)
+
+	// Normal case: the src exists in state, dst does not
+	if rs != nil && ds == nil {
+		s.MoveAbsResource(src, dst)
+		return true
+	}
+
+	if rs == nil && ds != nil {
+		// The source is not in state, the destination is. This is not
+		// guaranteed to be idempotent since we aren't tracking exact moves, but
+		// it's useful information for the caller.
+		return false
+	} else {
+		if rs == nil {
+			panic(fmt.Sprintf("no state for src address %s", src.String()))
+		}
+		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
+	}
+}
+
+// MoveAbsResourceInstance moves the given src AbsResourceInstance's current state to
+// the new dst address. This will panic if the src AbsResourceInstance does not
+// exist in state, or if there is already a resource at the dst address. It is
+// the caller's responsibility to verify the validity of the move (for example,
+// that the src and dst are compatible types).
+func (s *State) MoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) {
+	srcInstanceState := s.ResourceInstance(src)
+	if srcInstanceState == nil {
+		panic(fmt.Sprintf("no state for src address %s", src.String()))
+	}
+
+	dstInstanceState := s.ResourceInstance(dst)
+	if dstInstanceState != nil {
+		panic(fmt.Sprintf("resource already exists st %s", dst.String()))
+	}
+
+	srcResourceState := s.Resource(src.ContainingResource())
+	srcProviderAddr := srcResourceState.ProviderConfig
+	dstResourceAddr := dst.ContainingResource()
+
+	// Remove the source resource instance from the module's state, and then the
+	// module if empty.
+	ms := s.Module(src.Module)
+	ms.ForgetResourceInstanceAll(src.Resource)
+	if !ms.Addr.IsRoot() && ms.empty() {
+		s.RemoveModule(src.Module)
+	}
+
+	dstModule := s.EnsureModule(dst.Module)
+
+	// See if there is already a resource we can add this instance to.
+	dstResourceState := s.Resource(dstResourceAddr)
+	if dstResourceState == nil {
+		// If we're moving to an address without an index then that
+		// suggests the user's intent is to establish both the
+		// resource and the instance at the same time (since the
+		// address covers both). If there's an index in the
+		// target then allow creating the new instance here.
+		dstModule.SetResourceProvider(
+			dstResourceAddr.Resource,
+			srcProviderAddr, // in this case, we bring the provider along as if we were moving the whole resource
+		)
+		dstResourceState = dstModule.Resource(dstResourceAddr.Resource)
+	}
+
+	dstResourceState.Instances[dst.Resource.Key] = srcInstanceState
+}
+
+// MaybeMoveAbsResourceInstance moves the given src AbsResourceInstance's
+// current state to the new dst address. This function will succeed if both the
+// src address does not exist in state and the dst address does; the return
+// value indicates whether or not the move occured. This function will panic if
+// either the src does not exist or the dst does exist (but not both).
+func (s *State) MaybeMoveAbsResourceInstance(src, dst addrs.AbsResourceInstance) bool {
+	// get the src and dst resource instances from state
+	rs := s.ResourceInstance(src)
+	ds := s.ResourceInstance(dst)
+
+	// Normal case: the src exists in state, dst does not
+	if rs != nil && ds == nil {
+		s.MoveAbsResourceInstance(src, dst)
+		return true
+	}
+
+	if rs == nil && ds != nil {
+		// The source is not in state, the destination is. This is not
+		// guaranteed to be idempotent since we aren't tracking exact moves, but
+		// it's useful information.
+		return false
+	} else {
+		if rs == nil {
+			panic(fmt.Sprintf("no state for src address %s", src.String()))
+		}
+		panic(fmt.Sprintf("resource already exists at %s", dst.String()))
 	}
 }
