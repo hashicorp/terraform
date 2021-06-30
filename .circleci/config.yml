@@ -141,6 +141,14 @@ jobs:
       XC_OS: "linux"
       XC_ARCH: "arm"
 
+  # build all arm64 architecture supported OS binaries
+  build-arm64:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "darwin"
+      XC_ARCH: "arm64"
+
   test-docker-full:
     executor:
       name: go
