@@ -2,7 +2,7 @@
 
 NEW FEATURES:
 
-* cli: `terraform add` generates resource configuration templates [GH-28874]
+* cli: `terraform add` generates resource configuration templates ([#28874](https://github.com/hashicorp/terraform/issues/28874))
 * config: a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
@@ -11,8 +11,8 @@ ENHANCEMENTS:
 
 BUG FIXES:
 
-* core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration [GH-29000]
-* cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. [GH-29048]
+* core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
+* cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. ([#29048](https://github.com/hashicorp/terraform/issues/29048))
 
 ## Previous Releases
 
