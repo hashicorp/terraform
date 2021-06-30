@@ -6,8 +6,8 @@ import (
 )
 
 type Moved struct {
-	From *addrs.Target
-	To   *addrs.Target
+	From *addrs.MoveEndpoint
+	To   *addrs.MoveEndpoint
 
 	DeclRange hcl.Range
 }
@@ -25,7 +25,7 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 		from, traversalDiags := hcl.AbsTraversalForExpr(attr.Expr)
 		diags = append(diags, traversalDiags...)
 		if !traversalDiags.HasErrors() {
-			from, fromDiags := addrs.ParseTarget(from)
+			from, fromDiags := addrs.ParseMoveEndpoint(from)
 			diags = append(diags, fromDiags.ToHCL()...)
 			moved.From = from
 		}
@@ -35,7 +35,7 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 		to, traversalDiags := hcl.AbsTraversalForExpr(attr.Expr)
 		diags = append(diags, traversalDiags...)
 		if !traversalDiags.HasErrors() {
-			to, toDiags := addrs.ParseTarget(to)
+			to, toDiags := addrs.ParseMoveEndpoint(to)
 			diags = append(diags, toDiags.ToHCL()...)
 			moved.To = to
 		}
@@ -43,11 +43,13 @@ func decodeMovedBlock(block *hcl.Block) (*Moved, hcl.Diagnostics) {
 
 	// we can only move from a module to a module, resource to resource, etc.
 	if !diags.HasErrors() {
-		if moved.To.Subject.AddrType() != moved.From.Subject.AddrType() {
+		if !moved.From.MightUnifyWith(moved.To) {
+			// We can catch some obviously-wrong combinations early here,
+			// but we still have other dynamic validation to do at runtime.
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Invalid \"moved\" targets",
-				Detail:   "The \"from\" and \"to\" targets must be the same address type",
+				Summary:  "Invalid \"moved\" addresses",
+				Detail:   "The \"from\" and \"to\" addresses must either both refer to resources or both refer to modules.",
 				Subject:  &moved.DeclRange,
 			})
 		}
