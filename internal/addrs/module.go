@@ -150,3 +150,7 @@ func (m Module) Ancestors() []Module {
 	}
 	return ret
 }
+
+func (m Module) configMoveableSigil() {
+	// ModuleInstance is moveable
+}

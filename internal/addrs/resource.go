@@ -178,6 +178,10 @@ func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
+func (r AbsResource) absMoveableSigil() {
+	// AbsResource is moveable
+}
+
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
 type AbsResourceInstance struct {
@@ -276,6 +280,10 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+func (r AbsResourceInstance) absMoveableSigil() {
+	// AbsResourceInstance is moveable
+}
+
 // ConfigResource is an address for a resource within a configuration.
 type ConfigResource struct {
 	targetable
@@ -333,6 +341,10 @@ func (r ConfigResource) String() string {
 
 func (r ConfigResource) Equal(o ConfigResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
+}
+
+func (r ConfigResource) configMoveableSigil() {
+	// AbsResource is moveable
 }
 
 // ResourceMode defines which lifecycle applies to a given resource. Each
