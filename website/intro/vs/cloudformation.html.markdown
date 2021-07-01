@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Terraform vs. CloudFormation, Heat, etc."
 sidebar_current: "vs-other-cloudformation"
 description: |-
-  How Terraform compares to other infrastructure as code tools.
+  How Terraform compares to other infrastructure as code tools like CloudFormation and Heat. One advantage is that Terraform can simultaneously manage multiple cloud providers (AWS, OpenStack, etc.) and services (Cloudflare, DNSimple, etc.).
 ---
 
 # Terraform vs. CloudFormation, Heat, etc.

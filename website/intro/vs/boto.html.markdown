@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Terraform vs. Boto, Fog, etc."
 sidebar_current: "vs-other-boto"
 description: |-
-  How Terraform compares to cloud provider client libraries. 
+  How Terraform compares to cloud provider client libraries like Boto and Fog. 
 ---
 
 # Terraform vs. Boto, Fog, etc.
