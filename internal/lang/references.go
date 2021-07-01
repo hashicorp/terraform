@@ -3,6 +3,7 @@ package lang
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -78,4 +79,24 @@ func ReferencesInExpr(expr hcl.Expression) ([]*addrs.Reference, tfdiags.Diagnost
 	}
 	traversals := expr.Variables()
 	return References(traversals)
+}
+
+// ReferencesForExpansion is a helper wrapper around References that
+// first searches the Count or ForEach expression of the given multi-instance
+// configuration object for traversals, before converting those traversals to
+// references.
+func ReferencesForExpansion(cfg configs.MultiInstance) ([]*addrs.Reference, tfdiags.Diagnostics) {
+	var ret []*addrs.Reference
+	var diags tfdiags.Diagnostics
+	if countExpr := cfg.CountExpr(); countExpr != nil {
+		refs, moreDiags := ReferencesInExpr(countExpr)
+		ret = append(ret, refs...)
+		diags = diags.Append(moreDiags)
+	}
+	if forEachExpr := cfg.ForEachExpr(); forEachExpr != nil {
+		refs, moreDiags := ReferencesInExpr(forEachExpr)
+		ret = append(ret, refs...)
+		diags = diags.Append(moreDiags)
+	}
+	return ret, diags
 }

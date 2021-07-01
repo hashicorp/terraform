@@ -33,6 +33,8 @@ type ModuleCall struct {
 	DeclRange hcl.Range
 }
 
+var _ MultiInstance = (*ModuleCall)(nil)
+
 func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
@@ -212,6 +214,21 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 // variables, required provider configurations, and output values.
 func (mc *ModuleCall) EntersNewPackage() bool {
 	return moduleSourceAddrEntersNewPackage(mc.SourceAddr)
+}
+
+// ModuleCall implements interface MultiInstance.
+func (mc *ModuleCall) multiInstance() {}
+
+// CountExpr just returns the value of field Count in order to implement
+// interface MultiInstance.
+func (mc *ModuleCall) CountExpr() hcl.Expression {
+	return mc.Count
+}
+
+// ForEachExpr just returns the value of field ForEach in order to implement
+// interface MultiInstance.
+func (mc *ModuleCall) ForEachExpr() hcl.Expression {
+	return mc.ForEach
 }
 
 // PassedProviderConfig represents a provider config explicitly passed down to

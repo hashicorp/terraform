@@ -59,15 +59,9 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// our call, these references will be correctly interpreted as being
 	// in the calling module's namespace, not the namespaces of any of the
 	// child module instances we might expand to during our evaluation.
+	expansionRefs, _ := lang.ReferencesForExpansion(n.ModuleCall)
+	refs = append(refs, expansionRefs...)
 
-	if n.ModuleCall.Count != nil {
-		countRefs, _ := lang.ReferencesInExpr(n.ModuleCall.Count)
-		refs = append(refs, countRefs...)
-	}
-	if n.ModuleCall.ForEach != nil {
-		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
-		refs = append(refs, forEachRefs...)
-	}
 	return refs
 }
 

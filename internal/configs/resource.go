@@ -33,6 +33,8 @@ type Resource struct {
 	TypeRange hcl.Range
 }
 
+var _ MultiInstance = (*Resource)(nil)
+
 // ManagedResource represents a "resource" block in a module or file.
 type ManagedResource struct {
 	Connection   *Connection
@@ -79,6 +81,21 @@ func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 		LocalName: r.ProviderConfigRef.Name,
 		Alias:     r.ProviderConfigRef.Alias,
 	}
+}
+
+// Resource implements interface MultiInstance.
+func (r *Resource) multiInstance() {}
+
+// CountExpr just returns the value of field Count in order to implement
+// interface MultiInstance.
+func (r *Resource) CountExpr() hcl.Expression {
+	return r.Count
+}
+
+// ForEachExpr just returns the value of field ForEach in order to implement
+// interface MultiInstance.
+func (r *Resource) ForEachExpr() hcl.Expression {
+	return r.ForEach
 }
 
 func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {

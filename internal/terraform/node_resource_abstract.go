@@ -138,9 +138,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
 
-		refs, _ := lang.ReferencesInExpr(c.Count)
-		result = append(result, refs...)
-		refs, _ = lang.ReferencesInExpr(c.ForEach)
+		refs, _ := lang.ReferencesForExpansion(c)
 		result = append(result, refs...)
 
 		// ReferencesInBlock() requires a schema
