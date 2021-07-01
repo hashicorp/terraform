@@ -3,19 +3,16 @@ layout: "intro"
 page_title: "Use Cases"
 sidebar_current: "use-cases"
 description: |-
-  Learn common use cases for Terraform including managing Heroku apps, self-service clusters, and multi-cloud deployments. 
+  Learn common use cases for Terraform including managing Heroku apps, self-service clusters, and multi-cloud deployments.
 ---
 
 # Use Cases
 
-This page lists a subset of use cases for [Terraform](/intro/index.html). Due to its extensible nature, providers and provisioners
-can be added to further extend Terraform's ability to manipulate resources.
+This page lists a subset of use cases for [Terraform](/intro/index.html).
 
 ## Heroku App Setup
 
-Heroku is a popular PaaS for hosting web apps. Developers create an app, and then attach add-ons, such as a database, or email provider. One of the best features is
-the ability to elastically scale the number of dynos or workers. However, most
-non-trivial applications quickly need many add-ons and external services.
+Heroku is a popular PaaS for hosting web apps. Developers create an app, and then attach add-ons, such as a database, or email provider. One of the best features is the ability to elastically scale the number of dynos or workers. However, most non-trivial applications quickly need many add-ons and external services.
 
 You can use Terraform to codify the setup required for a Heroku application, ensuring that all the required add-ons are available, but it can go even further: configuring DNSimple to set a CNAME, or setting up Cloudflare as a CDN for the app. Best of all, Terraform can do all of this in under 30 seconds without using a web interface.
 
