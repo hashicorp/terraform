@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Terraform vs. Chef, Puppet, etc."
 sidebar_current: "vs-other-chef"
 description: |-
-    How Terraform compares to configuration management tools. 
+    How Terraform compares to configuration management tools like Chef and Puppet. 
 ---
 
 # Terraform vs. Chef, Puppet, etc.
