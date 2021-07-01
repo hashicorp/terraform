@@ -8,7 +8,7 @@ description: |-
 
 # Introduction to Terraform
 
-Terraform is an infrastructure as code (IaC) tool that allows you to build, change, and version infrastructure safely and efficiently. This includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc. Terraform can manage both existing service providers and custom in-house solutions. 
+Terraform is an infrastructure as code (IaC) tool that allows you to build, change, and version infrastructure safely and efficiently. This includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc. Terraform can manage both existing service providers and custom in-house solutions.
 
 Below, HashiCorp co-founder and CTO Armon Dadgar describes how Terraform can help solve common infrastructure challenges.
 
@@ -20,20 +20,19 @@ Below, HashiCorp co-founder and CTO Armon Dadgar describes how Terraform can hel
 
 ### Infrastructure as Code
 
-Infrastructure is described using a high-level [configuration language](/docs/language/index.html) in human-readable, declarative configuration files. This allows you to create a blueprint that can be versioned, shared, and reused.
+You describe your infrastructure using Terraform's high-level [configuration language](/docs/language/index.html) in human-readable, declarative configuration files. This allows you to create a blueprint that you can version, share, and reuse.
 
 ### Execution Plans
 
-Terraform generates an _execution plan_ describing what it will do and asks for your approval before creating, updating, or destroying infrastructure. This allows you to review changes before they are applied.
+Terraform generates an _execution plan_ describing what it will do and asks for your approval before making any infrastructure changes. This allows you to review changes before Terraform creates, updates, or destroys infrastructure.
 
 ### Resource Graph
 
-Terraform builds a resource graph and parallelizes the creation and modification of any non-dependent resources. This allows Terraform to
-build resources as efficiently as possible and gives operators greater insight into their infrastructure.
+Terraform builds a resource graph and creates or modifies non-dependent resources in parallel. This allows Terraform to build resources as efficiently as possible and gives you greater insight into your infrastructure.
 
 ### Change Automation
 
-Terraform can apply complex changesets to your infrastructure with minimal human interaction.
+Terraform can apply complex changesets to your infrastructure with minimal human interaction. When you update configuration files, Terraform determines what changed and creates incremental execution plans that respect dependencies.
 
 
 
