@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Use Cases"
 sidebar_current: "use-cases"
 description: |-
-  Learn common use cases for Terraform including Heroku apps, self-service clusters, and multi-cloud deployment. 
+  Learn common use cases for Terraform including managing Heroku apps, self-service clusters, and multi-cloud deployments. 
 ---
 
 # Use Cases
