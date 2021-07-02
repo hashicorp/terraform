@@ -18,9 +18,9 @@ You should preview all of your changes locally before creating a pull request. T
 2. Create a ~/go directory manually or by [installing Go](https://golang.org/doc/install).
 3. Set GOPATH as an environment variable:
 
- Bash: `export $GOPATH=~/go`(bash)
+    Bash: `export $GOPATH=~/go`(bash)
 
- Zsh: `echo -n 'export GOPATH=~/go' >> ~/.zshrc`
+    Zsh: `echo -n 'export GOPATH=~/go' >> ~/.zshrc`
 4. Restart your terminal or command line session.
 
 **Launch Site Locally**
