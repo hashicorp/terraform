@@ -96,6 +96,9 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 			}
 			payload = append(payload, pair.Value[:]...)
 		}
+		if err = json.Unmarshal(payload, &payload); err != nil {
+			return nil, err
+		}
 	} else {
 		payload = pair.Value
 	}
@@ -203,6 +206,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	// one but there is really no reason for them to do so, if they changed it
 	// it is certainly to set a larger value.
 	limit := 524288
+	// decode this to base64 as this will get us the correct size that will be sent.
+	if payload, err = json.Marshal(payload); err != nil {
+		return err
+	}
 	if len(payload) > limit {
 		md5 := md5.Sum(data)
 		chunks := split(payload, limit)
