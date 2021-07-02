@@ -1,9 +1,12 @@
 package terraform
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -247,6 +250,204 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	expected := strings.TrimSpace(testPlanGraphBuilderForEachStr)
 	if actual != expected {
 		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
+func TestPlanGraphBuilder_moved(t *testing.T) {
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-moved"),
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		moved:      newNodeExpandMoved,
+	}
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err().Error())
+	}
+
+	t.Logf("Graph:\n%s", g.String())
+
+	type MovedNode struct {
+		From, To string
+	}
+	gotNodes := make(map[MovedNode][]string) // from moved node to resources it depends on
+	for _, v := range g.Vertices() {
+		v, ok := v.(*nodeExpandMoved)
+		if !ok {
+			continue
+		}
+		k := MovedNode{
+			From: v.Config.From.String(),
+			To:   v.Config.To.String(),
+		}
+		if _, ok := gotNodes[k]; ok {
+			t.Errorf("duplicate graph node for %s -> %s", k.From, k.To)
+		}
+		deps := []string{}
+		for _, dv := range g.DownEdges(v) {
+			if dv, ok := dv.(GraphNodeConfigResource); ok {
+				deps = append(deps, dv.ResourceAddr().String())
+			}
+		}
+		sort.Strings(deps)
+		gotNodes[k] = deps
+	}
+
+	wantNodes := map[MovedNode][]string{
+		// resource "test_object" "b" is declared in config, so we need to
+		// evaluate that first to find out what instances it declares.
+		{`test_object.b["foo"]`, `test_object.b`}: {`test_object.b`},
+
+		// the other "from" addresses don't exist in the configuration,
+		// so there are no resource dependencies.
+		{`test_object.c`, `test_object.d`}: {},
+		{`test_object.e`, `test_object.f`}: {},
+	}
+
+	if diff := cmp.Diff(wantNodes, gotNodes); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestPlanGraphBuilder_movedTarget(t *testing.T) {
+	// This is a variant of TestPlanGraphBuilder_moved where we exclude
+	// all of the resources using a non-matching target. The moved block
+	// validation node has its own logic to deal with targets, so the
+	// graph builder should still include the moved block nodes in the
+	// graph but exclude all of the resource-related nodes.
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-moved"),
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		Targets:    []addrs.Targetable{addrs.RootModuleInstance.Child("nonexist", addrs.NoKey)},
+		moved:      newNodeExpandMoved,
+	}
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err().Error())
+	}
+
+	t.Logf("Graph:\n%s", g.String())
+
+	type MovedNode struct {
+		From, To string
+	}
+	gotNodes := make(map[MovedNode][]string) // from moved node to resources it depends on
+	for _, v := range g.Vertices() {
+		v, ok := v.(*nodeExpandMoved)
+		if !ok {
+			continue
+		}
+		k := MovedNode{
+			From: v.Config.From.String(),
+			To:   v.Config.To.String(),
+		}
+		if _, ok := gotNodes[k]; ok {
+			t.Errorf("duplicate graph node for %s -> %s", k.From, k.To)
+		}
+		deps := []string{}
+		for _, dv := range g.DownEdges(v) {
+			if dv, ok := dv.(GraphNodeConfigResource); ok {
+				deps = append(deps, dv.ResourceAddr().String())
+			}
+		}
+		sort.Strings(deps)
+		gotNodes[k] = deps
+	}
+
+	wantNodes := map[MovedNode][]string{
+		// In the normal case this one would depend on
+		// test_object.b, but that node was removed by targeting.
+		{`test_object.b["foo"]`, `test_object.b`}: {},
+
+		{`test_object.c`, `test_object.d`}: {},
+		{`test_object.e`, `test_object.f`}: {},
+	}
+
+	if diff := cmp.Diff(wantNodes, gotNodes); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestPlanGraphBuilder_movedModule(t *testing.T) {
+	b := &PlanGraphBuilder{
+		Config:     testModule(t, "graph-builder-plan-moved-module"),
+		Components: simpleMockComponentFactory(),
+		Schemas:    simpleTestSchemas(),
+		moved:      newNodeExpandMoved,
+	}
+
+	g, diags := b.Build(addrs.RootModuleInstance)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err().Error())
+	}
+
+	t.Logf("Graph:\n%s", g.String())
+
+	type MovedNode struct {
+		From, To string
+	}
+	addrDisplay := func(m addrs.Module, a *addrs.MoveEndpoint) string {
+		if m.IsRoot() {
+			return a.String()
+		}
+		return fmt.Sprintf("%s: %s", m.String(), a.String())
+	}
+	gotNodes := make(map[MovedNode][]string) // from moved node to resources it depends on
+	for _, v := range g.Vertices() {
+		v, ok := v.(*nodeExpandMoved)
+		if !ok {
+			continue
+		}
+		k := MovedNode{
+			From: addrDisplay(v.Module, v.Config.From),
+			To:   addrDisplay(v.Module, v.Config.To),
+		}
+		if _, ok := gotNodes[k]; ok {
+			t.Errorf("duplicate graph node for %s -> %s", k.From, k.To)
+		}
+		deps := []string{}
+		ancestors, err := g.Ancestors(v)
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		for _, dv := range ancestors {
+			if dv, ok := dv.(GraphNodeConfigResource); ok {
+				deps = append(deps, dv.ResourceAddr().String())
+			}
+			if dv, ok := dv.(*nodeExpandModule); ok {
+				deps = append(deps, dv.ModulePath().String())
+			}
+		}
+		sort.Strings(deps)
+		gotNodes[k] = deps
+	}
+
+	wantNodes := map[MovedNode][]string{
+		{`test_object.a`, `module.child[0].test_object.a`}: {`test_object.a`},
+		{`module.child[0].test_object.b`, `test_object.b`}: {
+			`module.child`, // only because it's an indirect dep via the resource
+			`module.child.test_object.b`,
+		},
+		{`module.child: test_object.c`, `module.child: test_object.d`}: {
+			`module.child`, // only because it's an indirect dep via the resource
+			`module.child.test_object.c`,
+		},
+		{`module.child`, `module.blessed_child`}: {
+			// This one depends on the module expansion itself and all of
+			// the resources inside.
+			`module.child`, // the module expansion, because count is set
+			`module.child.test_object.a`,
+			`module.child.test_object.b`,
+			`module.child.test_object.c`,
+			`module.child.test_object.d`,
+		},
+	}
+
+	if diff := cmp.Diff(wantNodes, gotNodes); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
 	}
 }
 

@@ -233,10 +233,6 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		config = configs.NewEmptyConfig()
 	}
 
-	// TODO: Also apply the moves to the state and changes.
-	_, movedDiags := decodeMoves(config, schemas)
-	diags = diags.Append(movedDiags)
-
 	// If we have a configuration and a set of locked dependencies, verify that
 	// the provider requirements from the configuration can be satisfied by the
 	// locked dependencies.
@@ -411,6 +407,7 @@ func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.
 			ForceReplace: c.forceReplace,
 			Validate:     opts.Validate,
 			skipRefresh:  c.skipRefresh,
+			moved:        newNodeExpandMoved,
 		}).Build(addrs.RootModuleInstance)
 
 	case GraphTypePlanDestroy:

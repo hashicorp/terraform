@@ -1,5 +1,7 @@
 package addrs
 
+import "fmt"
+
 // AbsMoveable is an interface implemented by address types that can be either
 // the source or destination of a "moved" statement in configuration, along
 // with any other similar cross-module state refactoring statements we might
@@ -35,6 +37,8 @@ var (
 // represents the relative form given directly in configuration.
 type ConfigMoveable interface {
 	configMoveableSigil()
+
+	String() string
 }
 
 // The following are all of the possible ConfigMovable address types:
@@ -42,3 +46,40 @@ var (
 	_ ConfigMoveable = ConfigResource{}
 	_ ConfigMoveable = Module(nil)
 )
+
+func (r ConfigResource) IncludedInMoveable(moveable ConfigMoveable) bool {
+	switch moveable := moveable.(type) {
+	case ConfigResource:
+		return r.Equal(moveable)
+	case Module:
+		// A resource is included in a module if the resource's module
+		// address is a prefix of the given module.
+		modAddr := r.Module
+		if len(modAddr) < len(moveable) {
+			return false // can't possibly be a prefix then
+		}
+		modAddr = modAddr[:len(moveable)]
+		return modAddr.Equal(moveable)
+	default:
+		// The above cases should include all implementations of ConfigMoveable
+		panic(fmt.Sprintf("unhandled ConfigMovable type %T", moveable))
+	}
+}
+
+func (r Module) IncludedInMoveable(moveable ConfigMoveable) bool {
+	switch moveable := moveable.(type) {
+	case ConfigResource:
+		// A whole module can never be selected by a resource address
+		return false
+	case Module:
+		// The receiver is included in moveable if moveable is a prefix of it.
+		if len(r) < len(moveable) {
+			return false // can't possibly be a prefix then
+		}
+		modAddr := r[:len(moveable)]
+		return modAddr.Equal(moveable)
+	default:
+		// The above cases should include all implementations of ConfigMoveable
+		panic(fmt.Sprintf("unhandled ConfigMovable type %T", moveable))
+	}
+}

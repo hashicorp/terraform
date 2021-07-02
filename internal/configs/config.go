@@ -177,6 +177,30 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 	return current
 }
 
+// Resource returns a pointer to the Resource object representing the
+// configuration for the resource with the given address, or nil if there
+// is no such resource in the configuration.
+func (c *Config) Resource(addr addrs.ConfigResource) *Resource {
+	mc := c.Descendent(addr.Module)
+	if mc == nil {
+		return nil
+	}
+	return mc.Module.ResourceByAddr(addr.Resource)
+}
+
+// ResourceInModuleInstance is like Resource except that it accepts a path to
+// a resource inside a particular module instance, returning the resource block
+// from the configuration that defined it.
+func (c *Config) ResourceInModuleInstance(addr addrs.AbsResource) *Resource {
+	return c.Resource(addr.Config())
+}
+
+// ResourceForInstance is like Resource except that it accepts a path to
+// a resource instance and returns the static resource it is an instance of.
+func (c *Config) ResourceForInstance(addr addrs.AbsResourceInstance) *Resource {
+	return c.Resource(addr.ContainingResource().Config())
+}
+
 // EntersNewPackage returns true if this call is to an external module, either
 // directly via a remote source address or indirectly via a registry source
 // address.

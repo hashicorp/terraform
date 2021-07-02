@@ -65,6 +65,12 @@ type PlanGraphBuilder struct {
 	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
 	ConcreteModule         ConcreteModuleNodeFunc
 
+	// Moved is an optional callback to specify how to handle "moved" blocks
+	// in the configuration. If left nil, PlanGraphBuilder will not generate
+	// any nodes for moved blocks. If set, PlanGraphBuilder will call the
+	// function to generate a suitable node to insert.
+	moved func(module addrs.Module, movedConfig *configs.Moved, allConfig *configs.Config) dag.Vertex
+
 	once sync.Once
 }
 
@@ -152,6 +158,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
 		&attachDataResourceDependsOnTransformer{},
+
+		// "Moved" nodes: if the caller set b.moved then this will add a
+		// node for each "moved" block in the configuration and will create
+		// dependency edges between it and any nodes that represent the "from"
+		// and "to" addresses.
+		// This must run before the TargetsTransformer because it is a
+		// GraphNodeTargetable implementer.
+		&movedTransformer{Config: b.Config, MakeNode: b.moved},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},

@@ -34,6 +34,9 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		for _, v := range g.Vertices() {
 			if !targetedNodes.Include(v) {
 				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+				if v, ok := v.(graphNodeExemptFromTarget); ok && v.NodeExemptFromTarget() {
+					continue // skip removing this one, then
+				}
 				g.Remove(v)
 			}
 		}
@@ -51,19 +54,31 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 	vertices := g.Vertices()
 
 	for _, v := range vertices {
-		if t.nodeIsTarget(v, addrs) {
-			targetedNodes.Add(v)
+		isTargeted := t.nodeIsTarget(v, addrs)
+		isExempt := false
+		if v, ok := v.(graphNodeExemptFromTarget); ok {
+			isExempt = v.NodeExemptFromTarget()
+		}
 
-			// We inform nodes that ask about the list of targets - helps for nodes
-			// that need to dynamically expand. Note that this only occurs for nodes
-			// that are already directly targeted.
-			if tn, ok := v.(GraphNodeTargetable); ok {
-				tn.SetTargets(addrs)
-			}
+		if isTargeted {
+			targetedNodes.Add(v)
 
 			deps, _ := g.Ancestors(v)
 			for _, d := range deps {
 				targetedNodes.Add(d)
+			}
+		}
+
+		// If the node is either directly targeted or exempt from targets
+		// then it might need to know the set of target addresses. This is
+		// important for nodes that use DynamicExpand, so that they can
+		// also apply the same filter to their dynamic subgraphs. It's
+		// also important for "target-exempt" nodes because they must
+		// handle the situation where some of their dependencies might
+		// get removed from the graph.
+		if isTargeted || isExempt {
+			if tn, ok := v.(GraphNodeTargetable); ok {
+				tn.SetTargets(addrs)
 			}
 		}
 	}
@@ -127,9 +142,9 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 		vertexAddr = r.ResourceInstanceAddr()
 	case GraphNodeConfigResource:
 		vertexAddr = r.ResourceAddr()
-
 	default:
-		// Only resource and resource instance nodes can be targeted.
+		// No other node types can be directly targeted, so they will
+		// be selected only indirectly by a targeted node depending on them.
 		return false
 	}
 
@@ -156,4 +171,23 @@ func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetab
 	}
 
 	return false
+}
+
+// graphNodeExemptFromTarget is an interface implemented by notes that might
+// exclude themselves from being removed by targeting even if they are not
+// identified as a target.
+//
+// Being exempt from targeting at all is a different idea than being selected
+// by the target: any dependencies of an exempt node are still subject to
+// being removed by targeting, and so the exempt node must check to see
+// whether each of its dependencies was actually included in the targets,
+// rather than assuming.
+type graphNodeExemptFromTarget interface {
+	NodeExemptFromTarget() bool
+
+	// A node which excludes itself should typically do something to handle
+	// targeting itself when executed or dynamically expanded, and so to remind
+	// about that any exempt nodes must also implement GraphNodeTargetable in
+	// order to obtain the targets during graph construction.
+	GraphNodeTargetable
 }
