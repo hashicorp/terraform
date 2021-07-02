@@ -25,4 +25,8 @@ You should preview all of your changes locally before creating a pull request. T
 
 **Launch Site Locally**
 
-Navigate into your local `terraform` top-level directory and run `make website`. Preview the site at http://localhost:4567.
+1. From terminal, navigate into your local `terraform` top-level directory and run `make website`.
+3. Open `http://localhost:4567` in your web browser.
+4. When you're done with the preview, press ctrl-C in your terminal to stop the server.
+
+While the preview is running, you can edit pages and Middleman will automatically rebuild them.
