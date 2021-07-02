@@ -10,7 +10,7 @@ a whole.
 
 ## Previewing Changes
 
-You should preview all of your changes locally before creating a pull request. The build includes content from this repository and the `terraform-website` repository, allowing you to preview the entire Terraform documentation site.
+You should preview all of your changes locally before creating a pull request. The build includes content from this repository and the [`terraform-website`](https://github.com/hashicorp/terraform-website/) repository, allowing you to preview the entire Terraform documentation site. If `terraform-website` isn't in your `GOPATH`, the preview command will clone it to your machine.
 
 **Set Up Local Environment**
 
