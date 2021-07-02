@@ -15,13 +15,13 @@ You should preview all of your changes locally before creating a pull request. T
 **Set Up Local Environment**
 
 1. [Install Docker](https://docs.docker.com/get-docker/).
-2. Create a ~/go directory manually or by [installing Go](https://golang.org/doc/install).
-3. Open terminal and set GOPATH as an environment variable:
+1. Create a `~/go` directory manually or by [installing Go](https://golang.org/doc/install).
+1. Open terminal and set `GOPATH` as an environment variable:
 
     Bash: `export $GOPATH=~/go`(bash)
 
     Zsh: `echo -n 'export GOPATH=~/go' >> ~/.zshrc`
-4. Restart your terminal or command line session.
+1. Restart your terminal or command line session.
 
 **Launch Site Locally**
 
