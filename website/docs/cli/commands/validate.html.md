@@ -71,7 +71,7 @@ stream. The top-level JSON object will have the following properties:
   `false` if it detected any errors.
 
 * `error_count` (number): A zero or positive whole number giving the count
-  of errors Terraform detected. If `valid` is `false` then `error_count` will
+  of errors Terraform detected. If `valid` is `true` then `error_count` will
   always be zero, because it is the presence of errors that indicates that
   a configuration is invalid.
 
