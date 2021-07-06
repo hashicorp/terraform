@@ -124,6 +124,8 @@ earlier versions you must run [`terraform destroy`](./destroy.html).
 -> **Note:** The `-refresh-only` option is available only in Terraform v0.15.4
 and later.
 
+> **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](https://learn.hashicorp.com/tutorials/terraform/refresh) tutorial on HashiCorp Learn.
+
 ## Planning Options
 
 In addition to the planning _modes_ described above, there are also several

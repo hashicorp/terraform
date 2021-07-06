@@ -9,6 +9,8 @@ description: |-
 
 # Command: refresh
 
+> **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](https://learn.hashicorp.com/tutorials/terraform/refresh) tutorial on HashiCorp Learn.
+
 The `terraform refresh` command reads the current settings from all managed
 remote objects and updates the Terraform state to match.
 
