@@ -1,5 +1,9 @@
 ## 1.0.2 (Unreleased)
 
+BUG FIXES:
+
+* json-output: Fix crash when rendering JSON plan with sensitive values in state ([#29049](https://github.com/hashicorp/terraform/issues/29049))
+
 ## 1.0.1 (June 24, 2021)
 
 ENHANCEMENTS:
