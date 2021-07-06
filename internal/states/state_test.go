@@ -470,6 +470,51 @@ func TestState_MoveAbsResource(t *testing.T) {
 		}
 	})
 
+	t.Run("module to new module", func(t *testing.T) {
+		s := NewState()
+		srcModule := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("exists"))
+		dstModule := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("new"))
+		cm := s.EnsureModule(srcModule)
+		cm.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "child",
+			}.Instance(addrs.NoKey),
+			&ResourceInstanceObjectSrc{
+				Status:        ObjectReady,
+				SchemaVersion: 1,
+				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+
+		src := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(srcModule)
+		dst := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_thing", Name: "child"}.Absolute(dstModule)
+		s.MoveAbsResource(src, dst)
+
+		if s.Empty() {
+			t.Fatal("unexpected empty state")
+		}
+
+		// The child module should have been removed after removing its only resource
+		if s.Module(srcModule) != nil {
+			t.Fatalf("child module %s was not removed from state after mv", srcModule.String())
+		}
+
+		gotMod := s.Module(dstModule)
+		if len(gotMod.Resources) != 1 {
+			t.Fatalf("wrong number of resources in state; expected 1, found %d", len(gotMod.Resources))
+		}
+
+		got := s.Resource(dst)
+		if got.Addr.Resource != dst.Resource {
+			t.Fatalf("dst resource not in state")
+		}
+	})
 }
 
 func TestState_MaybeMoveAbsResource(t *testing.T) {
@@ -660,11 +705,16 @@ func TestState_MoveModuleInstance(t *testing.T) {
 	if got == nil {
 		t.Fatal("dstModule not found")
 	}
+
+	gone := state.Module(srcModule)
+	if gone != nil {
+		t.Fatal("srcModule not removed from state")
+	}
 }
 
 func TestState_MaybeMoveModuleInstance(t *testing.T) {
 	state := NewState()
-	src := addrs.RootModuleInstance.Child("child", addrs.NoKey)
+	src := addrs.RootModuleInstance.Child("child", addrs.StringKey("a"))
 	cm := state.EnsureModule(src)
 	cm.SetResourceInstanceCurrent(
 		addrs.Resource{
@@ -683,7 +733,7 @@ func TestState_MaybeMoveModuleInstance(t *testing.T) {
 		},
 	)
 
-	dst := addrs.RootModuleInstance.Child("kinder", addrs.NoKey)
+	dst := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("b"))
 
 	// First move, success
 	t.Run("first move", func(t *testing.T) {
