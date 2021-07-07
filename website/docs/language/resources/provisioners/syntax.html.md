@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Provisioners"
 sidebar_current: "docs-provisioners"
 description: |-
-  How to use provisioners in Terraform to execute scripts on a local or remote machine as part of resource creation or destruction.
+  Using provisioners in Terraform to execute scripts on a local or remote machine as part of resource creation or destruction.
 ---
 
 # Provisioners
