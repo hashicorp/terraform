@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "The for_each Meta-Argument - Configuration Language"
+description: |-
+  Use the Terraform language `for_each` meta-argument to efficiently manage similar resources without writing a separate block for each one.
 ---
 
 # The `for_each` Meta-Argument
