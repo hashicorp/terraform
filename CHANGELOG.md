@@ -1,10 +1,10 @@
-## 1.0.2 (Unreleased)
+## 1.0.2 (July 07, 2021)
 
 BUG FIXES:
 
 * `terraform show`: Fix crash when rendering JSON plan with sensitive values in state ([#29049](https://github.com/hashicorp/terraform/issues/29049))
-* config: The `floor` and `ceil` functions no longer lower the precision of arguments to what would fit inside a 64-bit float, instead preserving precision in a similar way as most other arithmetic functions. [GH-29110]
-* config: The `flatten` function was incorrectly treating null values of an unknown type as if they were unknown values. Now it will treat them the same as any other non-list/non-tuple value, flattening them down into the result as-is. [GH-29110]
+* config: The `floor` and `ceil` functions no longer lower the precision of arguments to what would fit inside a 64-bit float, instead preserving precision in a similar way as most other arithmetic functions. ([#29110](https://github.com/hashicorp/terraform/issues/29110))
+* config: The `flatten` function was incorrectly treating null values of an unknown type as if they were unknown values. Now it will treat them the same as any other non-list/non-tuple value, flattening them down into the result as-is. ([#29110](https://github.com/hashicorp/terraform/issues/29110))
 
 ## 1.0.1 (June 24, 2021)
 
