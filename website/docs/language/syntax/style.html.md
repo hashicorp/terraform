@@ -3,9 +3,7 @@ layout: "language"
 page_title: "Style Conventions - Configuration Language"
 sidebar_current: "docs-config-style"
 description: |-
-  The Terraform language has some idiomatic style conventions, which we
-  recommend users always follow for consistency between files and modules
-  written by different teams.
+  Recommended formatting conventions for the Terraform language.
 ---
 
 # Style Conventions
