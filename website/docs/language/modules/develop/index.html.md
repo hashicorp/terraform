@@ -70,3 +70,10 @@ your module is not creating any new abstraction and so the module is
 adding unnecessary complexity. Just use the resource type directly in the
 calling module instead.
 
+## Refactoring module resources
+
+You can include [refactoring blocks](refactoring.html) to record how resource
+names and module structure have changed from previous module versions.
+Terraform uses that information during planning to reinterpret existing objects
+as if they had been created at the corresponding new addresses, eliminating a
+separate workflow step to replace or migrate existing objects.
