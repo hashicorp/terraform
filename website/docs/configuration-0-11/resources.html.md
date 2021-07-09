@@ -41,7 +41,8 @@ parameter) and `NAME` (second parameter). The combination of the type
 and name must be unique.
 
 Within the block (the `{ }`) is configuration for the resource. The
-configuration is dependent on the type; consult the provider's documentation for
+configuration is dependent on the type. Consult the [provider's documentation](https://registry.terraform.io/browse/providers) for details. 
+
 details.
 
 ### Meta-parameters

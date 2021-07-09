@@ -64,7 +64,7 @@ parameter) and `NAME` (second parameter). The combination of the type
 and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
-configuration is dependent on the type; consult the provider's documentation for
+configuration is dependent on the type; consult the [provider's documentation] (https://registry.terraform.io/browse/providers) for
 details.
 
 Each data instance will export one or more attributes, which can be

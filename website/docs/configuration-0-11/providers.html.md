@@ -48,7 +48,7 @@ header. For example, `provider "aws"` above is a configuration for the
 `aws` provider.
 
 Within the block body (between `{ }`) is configuration for the provider.
-The configuration is dependent on the type, and is described
+The configuration is dependent on the type. Consult the [provider's documentation](https://registry.terraform.io/browse/providers) for details. 
 in each provider's documentation.
 
 The arguments `alias` and `version`, if present, are special arguments
