@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Provider Requirements - Configuration Language"
+description: |-
+  Declaring providers in your module configuration so that Terraform can install them.
 ---
 
 # Provider Requirements
