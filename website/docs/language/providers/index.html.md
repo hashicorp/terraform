@@ -12,7 +12,7 @@ description: |-
 > **Hands-on:** Try the [Perform CRUD Operations with Providers](https://learn.hashicorp.com/tutorials/terraform/provider-use?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 Terraform relies on plugins called "providers" to interact with cloud providers,
-SaaS providers, and other APIs. 
+SaaS providers, and other APIs.
 
 Terraform configurations must declare which providers they require so that
 Terraform can install and use them. Additionally, some providers require
@@ -39,6 +39,21 @@ has its own release cadence and version numbers.
 The [Terraform Registry](https://registry.terraform.io/browse/providers)
 is the main directory of publicly available Terraform providers, and hosts
 providers for most major infrastructure platforms.
+
+## Provider Documentation
+
+Each provider has its own documentation, describing its resource
+types and their arguments.
+
+The [Terraform Registry](https://registry.terraform.io/browse/providers)
+includes documentation for all of the providers it hosts. Use the
+"Documentation" link in a provider's header to browse its documentation.
+
+Provider documentation in the Registry is versioned; you can use the version
+menu in the header to change which version you're viewing.
+
+For details about writing, generating, and previewing provider documentation,
+see the [provider publishing documentation](/docs/registry/providers/docs.html).
 
 ## How to Use Providers
 

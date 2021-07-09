@@ -48,8 +48,8 @@ header. For example, `provider "aws"` above is a configuration for the
 `aws` provider.
 
 Within the block body (between `{ }`) is configuration for the provider.
-The configuration is dependent on the type, and is documented
-[for each provider](/docs/providers/index.html).
+The configuration is dependent on the type, and is described
+in each provider's documentation.
 
 The arguments `alias` and `version`, if present, are special arguments
 handled by Terraform Core for their respective features described above. All
