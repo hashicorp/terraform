@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Syntax Overview - Configuration Language"
+description: |-
+  An introduction to Terraform language syntax for both the native and JSON variants as well as formatting conventions.
 ---
 
 # Syntax

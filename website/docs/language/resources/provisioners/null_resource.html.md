@@ -3,8 +3,7 @@ layout: "language"
 page_title: "Provisioners Without a Resource"
 sidebar_current: "docs-provisioners-null-resource"
 description: |-
-  The `null_resource` is a resource allows you to configure provisioners that
-  are not directly associated with a single existing resource.
+  Using 'null_resource' to configure Terraform provisioners that are not directly associated with a single existing resource.
 ---
 
 # Provisioners Without a Resource

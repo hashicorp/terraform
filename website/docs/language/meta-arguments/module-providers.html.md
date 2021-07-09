@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "The Module providers Meta-Argument - Configuration Language"
+description: |-
+  Using the Terraform language `providers` meta-argument to specify which provider configurations from a parent module are available inside a child module.
 ---
 
 # The Module `providers` Meta-Argument

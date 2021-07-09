@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Dynamic Blocks - Configuration Language"
+description: |-
+  Using dynamic blocks in Terraform configurations.
 ---
 
 

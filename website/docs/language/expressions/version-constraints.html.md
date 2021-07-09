@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Version Constraints - Configuration Language"
+description: |-
+  Using version constraints in Terraform configurations. 
 ---
 
 # Version Constraints

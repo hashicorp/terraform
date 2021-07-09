@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Strings and Templates - Configuration Language"
+description: |-
+  Using strings and templates in Terraform configurations.
 ---
 
 # Strings and Templates

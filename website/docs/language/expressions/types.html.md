@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Types and Values - Configuration Language"
+description: |-
+  An overview of values and their types in the Terraform language.
 ---
 
 # Types and Values

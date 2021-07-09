@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Provisioners"
 sidebar_current: "docs-provisioners"
 description: |-
-  Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction.
+  Using provisioners in Terraform to execute scripts on a local or remote machine as part of resource creation or destruction.
 ---
 
 # Provisioners
@@ -102,7 +102,7 @@ for launching specific configuration management products.
 
 We strongly recommend not using these, and instead running system configuration
 steps during a custom image build process. For example,
-[HashiCorp Packer](https://packer.io/) offers a similar complement of
+[HashiCorp Packer](https://www.packer.io/) offers a similar complement of
 configuration management provisioners and can run their installation steps
 during a separate build process, before creating a system disk image that you
 can deploy many times.

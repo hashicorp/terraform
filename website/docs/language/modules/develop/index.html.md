@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Creating Modules"
 sidebar_current: "docs-modules"
 description: |-
-  A module is a container for multiple resources that are used together.
+  An introduction to creating modules, containers for multiple resources that are used together in a Terraform configuration.
 ---
 
 # Creating Modules

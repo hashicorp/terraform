@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Splat Expressions - Configuration Language"
+description: |-
+  Using splat expressions in Terraform configurations.
 ---
 
 # Splat Expressions

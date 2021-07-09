@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Provisioners Overview - Configuration Language"
+description: |-
+  An introduction to Terraform provisioners that prepare infrastructure objects for service.
 ---
 
 # Provisioners

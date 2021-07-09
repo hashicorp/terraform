@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Operators - Configuration Language"
+description: |-
+  Using operators in Terraform configurations.
 ---
 
 # Arithmetic and Logical Operators

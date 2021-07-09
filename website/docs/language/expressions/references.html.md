@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "References to Values - Configuration Language"
+description: |-
+  Using references to values in Terraform configurations.
 ---
 
 # References to Named Values
