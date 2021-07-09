@@ -9,8 +9,7 @@ description: |-
 # Provider Documentation
 
 ## Find Provider Docs
-Every Terraform provider has its own documentation that describes its resource
-types and their arguments available on the [Terraform Registry](https://registry.terraform.io/browse/providers)
+Every Terraform provider has its own documentation on the [Terraform Registry](https://registry.terraform.io/browse/providers) that describes its resource types and their arguments.
 
 ## Write Provider Docs
 Learn more about writing, generating, and rendering provider documentation
