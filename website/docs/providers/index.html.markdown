@@ -3,8 +3,7 @@ layout: "language"
 page_title: "Provider Documentation"
 sidebar_current: "docs-providers"
 description: |-
-  Terraform's resources are implemented by provider plugins. The Terraform
-  Registry is the main directory of publicly available Terraform providers.
+  Pointers to documentation for Terraform provider plugins, including the Terraform Registry.
 ---
 
 # Provider Documentation
