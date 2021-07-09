@@ -496,6 +496,16 @@ func (m ModuleInstance) absMoveableSigil() {
 	// ModuleInstance is moveable
 }
 
+// IsCallInstance returns true if the receiver is an instance of the given
+// AbsModuleCall.
+func (m ModuleInstance) IsCallInstance(other AbsModuleCall) bool {
+	if len(m) == 0 {
+		return false
+	}
+	s := m[len(m)-1]
+	return s.Name == other.Call.Name
+}
+
 func (s ModuleInstanceStep) String() string {
 	if s.InstanceKey != NoKey {
 		return s.Name + s.InstanceKey.String()

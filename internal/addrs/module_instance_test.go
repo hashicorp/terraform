@@ -91,3 +91,53 @@ func BenchmarkStringLong(b *testing.B) {
 		addr.String()
 	}
 }
+
+func TestModuleInstance_IsCallInstance(t *testing.T) {
+	tests := []struct {
+		instance ModuleInstance
+		call     AbsModuleCall
+		want     bool
+	}{
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{
+				mustParseModuleInstanceStr(`module.child["a"]`),
+				ModuleCall{Name: "child"},
+			},
+			true,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{
+				mustParseModuleInstanceStr(`module.child`),
+				ModuleCall{Name: "child"},
+			},
+			true,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{
+				mustParseModuleInstanceStr(`module.kinder["a"]`),
+				ModuleCall{Name: "kinder"},
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s.IsCallInstance(%s)", test.instance, test.call.String()), func(t *testing.T) {
+			got := test.instance.IsCallInstance(test.call)
+			if got != test.want {
+				t.Fatal("wrong result")
+			}
+		})
+	}
+}
+
+func mustParseModuleInstanceStr(str string) ModuleInstance {
+	mi, err := ParseModuleInstanceStr(str)
+	if err != nil {
+		panic(err)
+	}
+	return mi
+}
