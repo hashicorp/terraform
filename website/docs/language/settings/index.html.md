@@ -3,8 +3,7 @@ layout: "language"
 page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
 description: |-
-  The "terraform" configuration section is used to configure some behaviors
-  of Terraform itself.
+  Using the `terraform` block type to configure Terraform behavior.
 ---
 
 # Terraform Settings
