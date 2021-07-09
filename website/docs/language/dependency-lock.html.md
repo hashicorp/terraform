@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Dependency Lock File (.terraform.lock.hcl) - Configuration Language"
+description: |-
+  Details about the dependency lock file `.teraform.lock.hcl` that Terraform uses to track and select provider versions. 
 ---
 
 # Dependency Lock File
