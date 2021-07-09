@@ -1,6 +1,7 @@
 package states
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -710,6 +711,13 @@ func TestState_MoveModuleInstance(t *testing.T) {
 	if gone != nil {
 		t.Fatal("srcModule not removed from state")
 	}
+
+	r := got.Resource(mustAbsResourceAddr("test_thing.foo").Resource)
+	if r.Addr.Module.String() != dstModule.String() {
+		fmt.Println(r.Addr.Module.String())
+		t.Fatal("resource address was not updated")
+	}
+
 }
 
 func TestState_MaybeMoveModuleInstance(t *testing.T) {
@@ -750,4 +758,132 @@ func TestState_MaybeMoveModuleInstance(t *testing.T) {
 			t.Fatal("wrong result")
 		}
 	})
+}
+
+func TestState_MoveModule(t *testing.T) {
+	// For this test, add two module instances (kinder and kinder["a"]).
+	// MoveModule(kinder) should move both instances.
+	state := NewState() // starter state, should be copied by the subtests.
+	srcModule := addrs.RootModule.Child("kinder")
+	m := state.EnsureModule(srcModule.UnkeyedInstanceShim())
+	m.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	moduleInstance := addrs.RootModuleInstance.Child("kinder", addrs.StringKey("a"))
+	mi := state.EnsureModule(moduleInstance)
+	mi.SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status:        ObjectReady,
+			SchemaVersion: 1,
+			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+
+	_, mc := srcModule.Call()
+	src := mc.Absolute(addrs.RootModuleInstance.Child("kinder", addrs.NoKey))
+
+	t.Run("basic", func(t *testing.T) {
+		s := state.DeepCopy()
+		_, dstMC := addrs.RootModule.Child("child").Call()
+		dst := dstMC.Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+		s.MoveModule(src, dst)
+
+		// srcModule should have been removed, dstModule should exist and have one resource
+		if len(s.Modules) != 3 { // child, child["a"] and root
+			t.Fatalf("wrong number of modules in state. Expected 3, got %d", len(s.Modules))
+		}
+
+		got := s.Module(dst.Module)
+		if got == nil {
+			t.Fatal("dstModule not found")
+		}
+
+		got = s.Module(addrs.RootModuleInstance.Child("child", addrs.StringKey("a")))
+		if got == nil {
+			t.Fatal("dstModule instance \"a\" not found")
+		}
+
+		gone := s.Module(srcModule.UnkeyedInstanceShim())
+		if gone != nil {
+			t.Fatal("srcModule not removed from state")
+		}
+	})
+
+	t.Run("nested modules", func(t *testing.T) {
+		s := state.DeepCopy()
+
+		// add a child module to module.kinder
+		mi := mustParseModuleInstanceStr(`module.kinder.module.grand[1]`)
+		m := s.EnsureModule(mi)
+		m.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_thing",
+				Name: "foo",
+			}.Instance(addrs.NoKey),
+			&ResourceInstanceObjectSrc{
+				Status:        ObjectReady,
+				SchemaVersion: 1,
+				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+
+		_, dstMC := addrs.RootModule.Child("child").Call()
+		dst := dstMC.Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey))
+		s.MoveModule(src, dst)
+
+		moved := s.Module(addrs.RootModuleInstance.Child("child", addrs.StringKey("a")))
+		if moved == nil {
+			t.Fatal("dstModule not found")
+		}
+
+		// The nested module's relative address should also have been updated
+		nested := s.Module(mustParseModuleInstanceStr(`module.child.module.grand[1]`))
+		if nested == nil {
+			t.Fatal("nested child module of src wasn't moved")
+		}
+	})
+}
+
+func mustParseModuleInstanceStr(str string) addrs.ModuleInstance {
+	addr, diags := addrs.ParseModuleInstanceStr(str)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
+}
+
+func mustAbsResourceAddr(s string) addrs.AbsResource {
+	addr, diags := addrs.ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr
 }

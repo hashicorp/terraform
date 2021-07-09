@@ -453,6 +453,20 @@ func (s *State) MoveModuleInstance(src, dst addrs.ModuleInstance) {
 	srcMod.Addr = dst
 	s.EnsureModule(dst)
 	s.Modules[dst.String()] = srcMod
+
+	// Update any Resource's addresses.
+	if srcMod.Resources != nil {
+		for _, r := range srcMod.Resources {
+			r.Addr.Module = dst
+		}
+	}
+
+	// Update any OutputValues's addresses.
+	if srcMod.OutputValues != nil {
+		for _, ov := range srcMod.OutputValues {
+			ov.Addr.Module = dst
+		}
+	}
 }
 
 // MaybeMoveModuleInstance moves the given src ModuleInstance's current state to
@@ -481,5 +495,47 @@ func (s *State) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
 		return false
 	} else {
 		panic("invalid move")
+	}
+}
+
+// MoveModule takes a source and destination addrs.Module address, and moves all
+// state Modules which are contained by the src address to the new address.
+func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
+	if src.Module.IsRoot() || dst.Module.IsRoot() {
+		panic("cannot move to or from root module")
+	}
+
+	// Modules only exist as ModuleInstances in state, so we need to check each
+	// state Module and see if it is contained by the src address to get a full
+	// list of modules to move.
+	var srcMIs []*Module
+	for _, module := range s.Modules {
+		if !module.Addr.IsRoot() {
+			if src.Module.TargetContains(module.Addr) {
+				srcMIs = append(srcMIs, module)
+			}
+		}
+	}
+
+	if len(srcMIs) == 0 {
+		panic(fmt.Sprintf("no matching module instances found for src module %s", src.String()))
+	}
+
+	for _, ms := range srcMIs {
+		newInst := make(addrs.ModuleInstance, len(ms.Addr))
+		copy(newInst, ms.Addr)
+		if ms.Addr.IsCallInstance(src) {
+			// Easy case: we just need to update the last step with the new name
+			newInst[len(newInst)-1].Name = dst.Call.Name
+		} else {
+			// Trickier: this Module is a submodule. we need to find and update
+			// only that appropriate step
+			for s := range newInst {
+				if newInst[s].Name == src.Call.Name {
+					newInst[s].Name = dst.Call.Name
+				}
+			}
+		}
+		s.MoveModuleInstance(ms.Addr, newInst)
 	}
 }
