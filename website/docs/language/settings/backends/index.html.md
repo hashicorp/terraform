@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Backend Overview - Configuration Language"
+description: |-
+  An introduction to Terraform configuration backends.
 ---
 
 # Backends

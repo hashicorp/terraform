@@ -3,7 +3,7 @@ layout: "language"
 page_title: "State"
 sidebar_current: "docs-state"
 description: |-
-  Terraform must store state about your managed infrastructure and configuration. This state is used by Terraform to map real world resources to your configuration, keep track of metadata, and to improve performance for large infrastructures.
+  An introduction to state, information that Terraform uses to map resources to a configuration, track metadata, and improve performance.
 ---
 
 # State
