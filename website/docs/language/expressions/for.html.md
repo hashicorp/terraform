@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "For Expressions - Configuration Language"
+description: |-
+  Using `for` expressions in Terraform configurations.
 ---
 
 # `for` Expressions

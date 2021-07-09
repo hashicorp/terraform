@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Expressions - Configuration Language"
+description: |-
+  An overview of expressions used to compute values in in Terraform configurations.
 ---
 
 # Expressions

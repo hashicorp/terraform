@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Function Calls - Configuration Language"
+description: |-
+  Using function calls in Terraform configurations.
 ---
 
 # Function Calls
