@@ -7,6 +7,82 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func TestBase32Decode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			false,
+		},
+		{ // Invalid base32 data decoding
+			cty.StringVal("this-is-an-invalid-base32-data"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+		{ // Invalid utf-8
+			cty.StringVal("\xc3\x28"),
+			cty.UnknownVal(cty.String),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("base32decode(%#v)", test.String), func(t *testing.T) {
+			got, err := Base32Decode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestBase32Encode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("base32encode(%#v)", test.String), func(t *testing.T) {
+			got, err := Base32Encode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestBase64Decode(t *testing.T) {
 	tests := []struct {
 		String cty.Value
@@ -151,6 +227,160 @@ func TestURLEncode(t *testing.T) {
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestBase32TextEncode(t *testing.T) {
+	tests := []struct {
+		String   cty.Value
+		Encoding cty.Value
+		Want     cty.Value
+		Err      string
+	}{
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("UTF-8"),
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("UTF-16LE"),
+			cty.StringVal("MEAGEADDAAYQAMQAGMACCAB7AASAAKQAEYACQABJAATQALIAHUAEAAD6AA======"),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("CP936"),
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			``,
+		},
+		{
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			cty.StringVal("NOT-EXISTS"),
+			cty.UnknownVal(cty.String),
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+		},
+		{
+			cty.StringVal("🤔"),
+			cty.StringVal("cp437"),
+			cty.UnknownVal(cty.String),
+			`the given string contains characters that cannot be represented in IBM437`,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.StringVal("windows-1250"),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+		{
+			cty.StringVal("hello world"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("textencodebase32(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextEncodeBase32(test.String, test.Encoding)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestBase32TextDecode(t *testing.T) {
+	tests := []struct {
+		String   cty.Value
+		Encoding cty.Value
+		Want     cty.Value
+		Err      string
+	}{
+		{
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			cty.StringVal("UTF-8"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("MEAGEADDAAYQAMQAGMACCAB7AASAAKQAEYACQABJAATQALIAHUAEAAD6AA======"),
+			cty.StringVal("UTF-16LE"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			cty.StringVal("CP936"),
+			cty.StringVal("abc123!?$*&()'-=@~"),
+			``,
+		},
+		{
+			cty.StringVal("doesn't matter"),
+			cty.StringVal("NOT-EXISTS"),
+			cty.UnknownVal(cty.String),
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+		},
+		{
+			cty.StringVal("<invalid base32>"),
+			cty.StringVal("cp437"),
+			cty.UnknownVal(cty.String),
+			`the given value is has an invalid base32 symbol at offset 0`,
+		},
+		{
+			cty.StringVal("QE======"), // this is 0x81, which is not defined in windows-1250
+			cty.StringVal("windows-1250"),
+			cty.StringVal("�"),
+			`the given string contains symbols that are not defined for windows-1250`,
+		},
+		{
+			cty.UnknownVal(cty.String),
+			cty.StringVal("windows-1250"),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+		{
+			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			``,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("textdecodebase32(%#v, %#v)", test.String, test.Encoding), func(t *testing.T) {
+			got, err := TextDecodeBase32(test.String, test.Encoding)
+
+			if test.Err != "" {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
