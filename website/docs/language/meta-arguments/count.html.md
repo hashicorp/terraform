@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "The count Meta-Argument - Configuration Language"
 description: |-
-  Use the Terraform language `count` meta-argument to efficiently manage nearly identical resources without writing a separate block for each one.
+  Using the Terraform language `count` meta-argument to efficiently manage nearly identical resources without writing a separate block for each one.
 ---
 
 # The `count` Meta-Argument

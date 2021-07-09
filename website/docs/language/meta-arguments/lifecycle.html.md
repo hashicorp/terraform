@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "The lifecycle Meta-Argument - Configuration Language"
 description: |-
-  Use the Terraform language `lifecycle` meta-argument to customize resource behavior. 
+  Using the Terraform language `lifecycle` meta-argument to customize resource behavior. 
 ---
 
 # The `lifecycle` Meta-Argument
