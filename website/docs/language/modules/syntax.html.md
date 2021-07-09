@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Modules - Configuration Language"
 sidebar_current: "docs-config-modules"
 description: |-
-  Modules allow multiple resources to be grouped together and encapsulated.
+  Calling one module from another in Terraform configurations.
 ---
 
 # Module Blocks
