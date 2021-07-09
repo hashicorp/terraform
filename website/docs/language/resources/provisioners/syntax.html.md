@@ -102,7 +102,7 @@ for launching specific configuration management products.
 
 We strongly recommend not using these, and instead running system configuration
 steps during a custom image build process. For example,
-[HashiCorp Packer](https://packer.io/) offers a similar complement of
+[HashiCorp Packer](https://www.packer.io/) offers a similar complement of
 configuration management provisioners and can run their installation steps
 during a separate build process, before creating a system disk image that you
 can deploy many times.
