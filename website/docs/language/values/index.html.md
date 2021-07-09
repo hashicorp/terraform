@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Variables and Outputs"
+description: |-
+  An overview of input variables, output values, and local values in Terraform language. 
 ---
 
 # Variables and Outputs
