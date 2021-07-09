@@ -8,12 +8,10 @@ description: |-
 
 # Data Sources
 
-> **Hands-on:** Try the [Query data sources](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+_Data sources_ allow Terraform use information defined outside of Terraform,
+defined by another separate Terraform configuration, or modified by functions.
 
-_Data sources_ allow data to be fetched or computed for use elsewhere
-in Terraform configuration. Use of data sources allows a Terraform
-configuration to make use of information defined outside of Terraform,
-or defined by another separate Terraform configuration.
+> **Hands-on:** Try the [Query data sources](https://learn.hashicorp.com/tutorials/terraform/data-sources?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 Each [provider](/docs/language/providers/index.html) may offer data sources
 alongside its set of [resource](/docs/language/resources/index.html)
@@ -175,8 +173,10 @@ block label) and _name_ (second block label). The combination of the type
 and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
-configuration is dependent on the type, and is documented for each
-data source in the [providers section](/docs/providers/index.html).
+configuration is dependent on the type; as with
+[resources](/docs/language/resources/index.html), each provider on the
+[Terraform Registry](https://registry.terraform.io/browse/providers) has its own
+documentation for configuring and using the data types it provides.
 
 Each data instance will export one or more attributes, which can be
 used in other resources as reference expressions of the form
