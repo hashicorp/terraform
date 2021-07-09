@@ -496,14 +496,26 @@ func (m ModuleInstance) absMoveableSigil() {
 	// ModuleInstance is moveable
 }
 
-// IsCallInstance returns true if the receiver is an instance of the given
+// IsDeclaredByCall returns true if the receiver is an instance of the given
 // AbsModuleCall.
-func (m ModuleInstance) IsCallInstance(other AbsModuleCall) bool {
-	if len(m) == 0 {
+func (m ModuleInstance) IsDeclaredByCall(other AbsModuleCall) bool {
+	// Compare len(m) to len(other.Module+1) because the final module instance
+	// step in other is stored in the AbsModuleCall.Call
+	if len(m) > len(other.Module)+1 || len(m) == 0 && len(other.Module) == 0 {
 		return false
 	}
-	s := m[len(m)-1]
-	return s.Name == other.Call.Name
+
+	// Verify that the other's ModuleInstance matches the receiver.
+	inst, lastStep := other.Module, other.Call
+	for i := range inst {
+		if inst[i] != m[i] {
+			return false
+		}
+	}
+
+	// Now compare the final step of the received with the other Call, where
+	// only the name needs to match.
+	return lastStep.Name == m[len(m)-1].Name
 }
 
 func (s ModuleInstanceStep) String() string {

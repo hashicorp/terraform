@@ -524,7 +524,7 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 	for _, ms := range srcMIs {
 		newInst := make(addrs.ModuleInstance, len(ms.Addr))
 		copy(newInst, ms.Addr)
-		if ms.Addr.IsCallInstance(src) {
+		if ms.Addr.IsDeclaredByCall(src) {
 			// Easy case: we just need to update the last step with the new name
 			newInst[len(newInst)-1].Name = dst.Call.Name
 		} else {

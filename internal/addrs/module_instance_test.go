@@ -99,20 +99,47 @@ func TestModuleInstance_IsCallInstance(t *testing.T) {
 		want     bool
 	}{
 		{
+			ModuleInstance{},
+			AbsModuleCall{},
+			false,
+		},
+		{
 			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{},
+			false,
+		},
+		{
+			ModuleInstance{},
 			AbsModuleCall{
-				mustParseModuleInstanceStr(`module.child["a"]`),
+				RootModuleInstance,
+				ModuleCall{Name: "child"},
+			},
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{ // module.child
+				RootModuleInstance,
 				ModuleCall{Name: "child"},
 			},
 			true,
 		},
 		{
-			mustParseModuleInstanceStr("module.child"),
-			AbsModuleCall{
-				mustParseModuleInstanceStr(`module.child`),
+			mustParseModuleInstanceStr(`module.child`),
+			AbsModuleCall{ // module.kinder.module.child
+				mustParseModuleInstanceStr("module.kinder"),
 				ModuleCall{Name: "child"},
 			},
-			true,
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.kinder"),
+			// module.kinder.module.child contains module.kinder, but is not itself an instance of module.kinder
+			AbsModuleCall{
+				mustParseModuleInstanceStr("module.kinder"),
+				ModuleCall{Name: "child"},
+			},
+			false,
 		},
 		{
 			mustParseModuleInstanceStr("module.child"),
@@ -125,8 +152,8 @@ func TestModuleInstance_IsCallInstance(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s.IsCallInstance(%s)", test.instance, test.call.String()), func(t *testing.T) {
-			got := test.instance.IsCallInstance(test.call)
+		t.Run(fmt.Sprintf("%q.IsCallInstance(%q)", test.instance, test.call.String()), func(t *testing.T) {
+			got := test.instance.IsDeclaredByCall(test.call)
 			if got != test.want {
 				t.Fatal("wrong result")
 			}
