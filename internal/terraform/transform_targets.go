@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -121,37 +122,76 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph, addrs []addrs.Targeta
 }
 
 func (t *TargetsTransformer) nodeIsTarget(v dag.Vertex, targets []addrs.Targetable) bool {
-	var vertexAddr addrs.Targetable
+	var vertexAddrs []addrs.Targetable
 	switch r := v.(type) {
 	case GraphNodeResourceInstance:
-		vertexAddr = r.ResourceInstanceAddr()
+		vertexAddrs = []addrs.Targetable{r.ResourceInstanceAddr()}
 	case GraphNodeConfigResource:
-		vertexAddr = r.ResourceAddr()
-
+		vertexAddrs = []addrs.Targetable{r.ResourceAddr()}
+	case graphNodeMovedModule:
+		// For targeting purposes, a whole-module moved node is targeted if
+		// any of its "from" addresses are targeted, because a moved block
+		// stands in for the former configurations at the old addresses.
+		fromAddrs := r.FromConfigAddrs()
+		vertexAddrs := make([]addrs.Targetable, len(fromAddrs))
+		for i, fromAddr := range fromAddrs {
+			switch fromAddr := fromAddr.(type) {
+			case addrs.ConfigResource:
+				vertexAddrs[i] = fromAddr
+			case addrs.Module:
+				vertexAddrs[i] = fromAddr
+			default:
+				// The above should be exhaustive for all implementations of addrs.ConfigMoveable
+				panic(fmt.Sprintf("unsupported addrs.ConfigMoveable type %T", fromAddr))
+			}
+		}
+	case graphNodeMovedSingle:
+		// For targeting purposes, a dynamic moved node is targeted if its
+		// "from" address is targeted, because a moved block stands in for
+		// the former configuration at the old address.
+		switch fromAddr := r.FromConfigAddr().(type) {
+		case addrs.AbsResource:
+			vertexAddrs = []addrs.Targetable{fromAddr}
+		case addrs.AbsResourceInstance:
+			vertexAddrs = []addrs.Targetable{fromAddr}
+		case addrs.AbsModuleCall:
+			// This one's a bit awkward because for targeting purposes we
+			// represent a module call as just a module instance without an
+			// instance key, which method TargetContains then handles as a
+			// special case.
+			vertexAddrs = []addrs.Targetable{fromAddr.Instance(addrs.NoKey)}
+		case addrs.ModuleInstance:
+			vertexAddrs = []addrs.Targetable{fromAddr}
+		default:
+			// The above should be exhaustive for all implementations of addrs.ConfigMoveable
+			panic(fmt.Sprintf("unsupported addrs.AbsMoveable type %T", fromAddr))
+		}
 	default:
 		// Only resource and resource instance nodes can be targeted.
 		return false
 	}
 
 	for _, targetAddr := range targets {
-		switch vertexAddr.(type) {
-		case addrs.ConfigResource:
-			// Before expansion happens, we only have nodes that know their
-			// ConfigResource address.  We need to take the more specific
-			// target addresses and generalize them in order to compare with a
-			// ConfigResource.
-			switch target := targetAddr.(type) {
-			case addrs.AbsResourceInstance:
-				targetAddr = target.ContainingResource().Config()
-			case addrs.AbsResource:
-				targetAddr = target.Config()
-			case addrs.ModuleInstance:
-				targetAddr = target.Module()
+		for _, vertexAddr := range vertexAddrs {
+			switch vertexAddr.(type) {
+			case addrs.ConfigResource:
+				// Before expansion happens, we only have nodes that know their
+				// ConfigResource address.  We need to take the more specific
+				// target addresses and generalize them in order to compare with a
+				// ConfigResource.
+				switch target := targetAddr.(type) {
+				case addrs.AbsResourceInstance:
+					targetAddr = target.ContainingResource().Config()
+				case addrs.AbsResource:
+					targetAddr = target.Config()
+				case addrs.ModuleInstance:
+					targetAddr = target.Module()
+				}
 			}
-		}
 
-		if targetAddr.TargetContains(vertexAddr) {
-			return true
+			if targetAddr.TargetContains(vertexAddr) {
+				return true
+			}
 		}
 	}
 
