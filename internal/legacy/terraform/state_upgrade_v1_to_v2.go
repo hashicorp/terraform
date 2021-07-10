@@ -15,14 +15,14 @@ func upgradeStateV1ToV2(old *stateV1) (*State, error) {
 
 	remote, err := old.Remote.upgradeToV2()
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading State V1: %v", err)
+		return nil, fmt.Errorf("error upgrading State V1: %v", err)
 	}
 
 	modules := make([]*ModuleState, len(old.Modules))
 	for i, module := range old.Modules {
 		upgraded, err := module.upgradeToV2()
 		if err != nil {
-			return nil, fmt.Errorf("Error upgrading State V1: %v", err)
+			return nil, fmt.Errorf("error upgrading State V1: %v", err)
 		}
 		modules[i] = upgraded
 	}
@@ -50,7 +50,7 @@ func (old *remoteStateV1) upgradeToV2() (*RemoteState, error) {
 
 	config, err := copystructure.Copy(old.Config)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading RemoteState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading RemoteState V1: %v", err)
 	}
 
 	return &RemoteState{
@@ -66,11 +66,11 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 
 	pathRaw, err := copystructure.Copy(old.Path)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading ModuleState V1: %v", err)
 	}
 	path, ok := pathRaw.([]string)
 	if !ok {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: path is not a list of strings")
+		return nil, fmt.Errorf("error upgrading ModuleState V1: path is not a list of strings")
 	}
 	if len(path) == 0 {
 		// We found some V1 states with a nil path. Assume root and catch
@@ -92,14 +92,14 @@ func (old *moduleStateV1) upgradeToV2() (*ModuleState, error) {
 	for key, oldResource := range old.Resources {
 		upgraded, err := oldResource.upgradeToV2()
 		if err != nil {
-			return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+			return nil, fmt.Errorf("error upgrading ModuleState V1: %v", err)
 		}
 		resources[key] = upgraded
 	}
 
 	dependencies, err := copystructure.Copy(old.Dependencies)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ModuleState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading ModuleState V1: %v", err)
 	}
 
 	return &ModuleState{
@@ -117,19 +117,19 @@ func (old *resourceStateV1) upgradeToV2() (*ResourceState, error) {
 
 	dependencies, err := copystructure.Copy(old.Dependencies)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading ResourceState V1: %v", err)
 	}
 
 	primary, err := old.Primary.upgradeToV2()
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading ResourceState V1: %v", err)
 	}
 
 	deposed := make([]*InstanceState, len(old.Deposed))
 	for i, v := range old.Deposed {
 		upgraded, err := v.upgradeToV2()
 		if err != nil {
-			return nil, fmt.Errorf("Error upgrading ResourceState V1: %v", err)
+			return nil, fmt.Errorf("error upgrading ResourceState V1: %v", err)
 		}
 		deposed[i] = upgraded
 	}
@@ -153,16 +153,16 @@ func (old *instanceStateV1) upgradeToV2() (*InstanceState, error) {
 
 	attributes, err := copystructure.Copy(old.Attributes)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading InstanceState V1: %v", err)
 	}
 	ephemeral, err := old.Ephemeral.upgradeToV2()
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading InstanceState V1: %v", err)
 	}
 
 	meta, err := copystructure.Copy(old.Meta)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading InstanceState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading InstanceState V1: %v", err)
 	}
 
 	newMeta := make(map[string]interface{})
@@ -181,7 +181,7 @@ func (old *instanceStateV1) upgradeToV2() (*InstanceState, error) {
 func (old *ephemeralStateV1) upgradeToV2() (*EphemeralState, error) {
 	connInfo, err := copystructure.Copy(old.ConnInfo)
 	if err != nil {
-		return nil, fmt.Errorf("Error upgrading EphemeralState V1: %v", err)
+		return nil, fmt.Errorf("error upgrading EphemeralState V1: %v", err)
 	}
 	return &EphemeralState{
 		ConnInfo: connInfo.(map[string]string),

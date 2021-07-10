@@ -179,7 +179,7 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 	// elements (type and name).
 	parts := strings.Split(s, ".")
 	if len(parts) < 2 || len(parts) > 4 {
-		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+		return nil, fmt.Errorf("invalid internal resource address format: %s", s)
 	}
 
 	// Data resource if we have at least 3 parts and the first one is data
@@ -191,7 +191,7 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 
 	// If we're not a data resource and we have more than 3, then it is an error
 	if len(parts) > 3 && mode != DataResourceMode {
-		return nil, fmt.Errorf("Invalid internal resource address format: %s", s)
+		return nil, fmt.Errorf("invalid internal resource address format: %s", s)
 	}
 
 	// Build the parts of the resource address that are guaranteed to exist
@@ -207,7 +207,7 @@ func parseResourceAddressInternal(s string) (*ResourceAddress, error) {
 	if len(parts) > 2 {
 		idx, err := strconv.ParseInt(parts[2], 0, 0)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing resource address %q: %s", s, err)
+			return nil, fmt.Errorf("error parsing resource address %q: %s", s, err)
 		}
 
 		addr.Index = int(idx)
@@ -583,7 +583,7 @@ func ParseInstanceType(s string) (InstanceType, error) {
 	case "tainted":
 		return TypeTainted, nil
 	default:
-		return TypeInvalid, fmt.Errorf("Unexpected value for InstanceType field: %q", s)
+		return TypeInvalid, fmt.Errorf("unexpected value for InstanceType field: %q", s)
 	}
 }
 

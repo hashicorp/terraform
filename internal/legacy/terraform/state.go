@@ -669,7 +669,7 @@ func (s *State) ensureHasLineage() {
 	if s.Lineage == "" {
 		lineage, err := uuid.GenerateUUID()
 		if err != nil {
-			panic(fmt.Errorf("Failed to generate lineage: %v", err))
+			panic(fmt.Errorf("failed to generate lineage: %v", err))
 		}
 		s.Lineage = lineage
 		log.Printf("[DEBUG] New state was assigned lineage %q\n", s.Lineage)
@@ -951,7 +951,7 @@ func (s *OutputState) deepcopy() *OutputState {
 
 	stateCopy, err := copystructure.Config{Lock: true}.Copy(s)
 	if err != nil {
-		panic(fmt.Errorf("Error copying output value: %s", err))
+		panic(fmt.Errorf("error copying output value: %s", err))
 	}
 
 	return stateCopy.(*OutputState)
@@ -1397,7 +1397,7 @@ func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 		parts = parts[1:]
 	}
 	if len(parts) < 2 || len(parts) > 3 {
-		return nil, fmt.Errorf("Malformed resource state key: %s", k)
+		return nil, fmt.Errorf("malformed resource state key: %s", k)
 	}
 	rsk := &ResourceStateKey{
 		Mode:  mode,
@@ -1408,7 +1408,7 @@ func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 	if len(parts) == 3 {
 		index, err := strconv.Atoi(parts[2])
 		if err != nil {
-			return nil, fmt.Errorf("Malformed resource state key index: %s", k)
+			return nil, fmt.Errorf("malformed resource state key index: %s", k)
 		}
 		rsk.Index = index
 	}
@@ -1917,13 +1917,13 @@ type jsonStateVersionIdentifier struct {
 func testForV0State(buf *bufio.Reader) error {
 	start, err := buf.Peek(len("tfstate"))
 	if err != nil {
-		return fmt.Errorf("Failed to check for magic bytes: %v", err)
+		return fmt.Errorf("failed to check for magic bytes: %v", err)
 	}
 	if string(start) == "tfstate" {
-		return fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
+		return fmt.Errorf("terraform 0.7 no longer supports upgrading the binary state\n" +
 			"format which was used prior to Terraform 0.3. Please upgrade\n" +
 			"this state file using Terraform 0.6.16 prior to using it with\n" +
-			"Terraform 0.7.")
+			"Terraform 0.7")
 	}
 
 	return nil
@@ -1958,18 +1958,18 @@ func ReadState(src io.Reader) (*State, error) {
 	// This is suboptimal, but will work for now.
 	jsonBytes, err := ioutil.ReadAll(buf)
 	if err != nil {
-		return nil, fmt.Errorf("Reading state file failed: %v", err)
+		return nil, fmt.Errorf("reading state file failed: %v", err)
 	}
 
 	versionIdentifier := &jsonStateVersionIdentifier{}
 	if err := json.Unmarshal(jsonBytes, versionIdentifier); err != nil {
-		return nil, fmt.Errorf("Decoding state file version failed: %v", err)
+		return nil, fmt.Errorf("decoding state file version failed: %v", err)
 	}
 
 	var result *State
 	switch versionIdentifier.Version {
 	case 0:
-		return nil, fmt.Errorf("State version 0 is not supported as JSON.")
+		return nil, fmt.Errorf("state version 0 is not supported as JSON")
 	case 1:
 		v1State, err := ReadStateV1(jsonBytes)
 		if err != nil {
@@ -2009,7 +2009,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 		result = v3State
 	default:
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("terraform %s does not support state version %d, please update",
 			tfversion.SemVer.String(), versionIdentifier.Version)
 	}
 
@@ -2033,11 +2033,11 @@ func ReadState(src io.Reader) (*State, error) {
 func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
 	v1State := &stateV1{}
 	if err := json.Unmarshal(jsonBytes, v1State); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+		return nil, fmt.Errorf("decoding state file failed: %v", err)
 	}
 
 	if v1State.Version != 1 {
-		return nil, fmt.Errorf("Decoded state version did not match the decoder selection: "+
+		return nil, fmt.Errorf("decoded state version did not match the decoder selection: "+
 			"read %d, expected 1", v1State.Version)
 	}
 
@@ -2047,13 +2047,13 @@ func ReadStateV1(jsonBytes []byte) (*stateV1, error) {
 func ReadStateV2(jsonBytes []byte) (*State, error) {
 	state := &State{}
 	if err := json.Unmarshal(jsonBytes, state); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+		return nil, fmt.Errorf("decoding state file failed: %v", err)
 	}
 
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("terraform %s does not support state version %d, please update",
 			tfversion.SemVer.String(), state.Version)
 	}
 
@@ -2061,11 +2061,11 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	if state.TFVersion != "" {
 		if _, err := version.NewVersion(state.TFVersion); err != nil {
 			return nil, fmt.Errorf(
-				"State contains invalid version: %s\n\n"+
+				"state contains invalid version: %s\n\n"+
 					"Terraform validates the version format prior to writing it. This\n"+
 					"means that this is invalid of the state becoming corrupted through\n"+
 					"some external means. Please manually modify the Terraform version\n"+
-					"field to be a proper semantic version.",
+					"field to be a proper semantic version",
 				state.TFVersion)
 		}
 	}
@@ -2082,13 +2082,13 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 func ReadStateV3(jsonBytes []byte) (*State, error) {
 	state := &State{}
 	if err := json.Unmarshal(jsonBytes, state); err != nil {
-		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+		return nil, fmt.Errorf("decoding state file failed: %v", err)
 	}
 
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("terraform %s does not support state version %d, please update",
 			tfversion.SemVer.String(), state.Version)
 	}
 
@@ -2096,11 +2096,11 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	if state.TFVersion != "" {
 		if _, err := version.NewVersion(state.TFVersion); err != nil {
 			return nil, fmt.Errorf(
-				"State contains invalid version: %s\n\n"+
+				"state contains invalid version: %s\n\n"+
 					"Terraform validates the version format prior to writing it. This\n"+
 					"means that this is invalid of the state becoming corrupted through\n"+
 					"some external means. Please manually modify the Terraform version\n"+
-					"field to be a proper semantic version.",
+					"field to be a proper semantic version",
 				state.TFVersion)
 		}
 	}
@@ -2150,9 +2150,9 @@ func WriteState(d *State, dst io.Writer) error {
 	if d.TFVersion != "" {
 		if _, err := version.NewVersion(d.TFVersion); err != nil {
 			return fmt.Errorf(
-				"Error writing state, invalid version: %s\n\n"+
+				"error writing state, invalid version: %s\n\n"+
 					"The Terraform version when writing the state must be a semantic\n"+
-					"version.",
+					"version",
 				d.TFVersion)
 		}
 	}
@@ -2160,7 +2160,7 @@ func WriteState(d *State, dst io.Writer) error {
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
 	if err != nil {
-		return fmt.Errorf("Failed to encode state: %s", err)
+		return fmt.Errorf("failed to encode state: %s", err)
 	}
 
 	// We append a newline to the data because MarshalIndent doesn't
@@ -2168,7 +2168,7 @@ func WriteState(d *State, dst io.Writer) error {
 
 	// Write the data out to the dst
 	if _, err := io.Copy(dst, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("Failed to write state: %v", err)
+		return fmt.Errorf("failed to write state: %v", err)
 	}
 
 	return nil
