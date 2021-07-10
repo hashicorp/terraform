@@ -44,6 +44,12 @@ func (rp ResourceInstancePhase) String() string {
 	return fmt.Sprintf("%s#%s", rp.ResourceInstance, rp.Phase)
 }
 
+func (rp ResourceInstancePhase) UniqueKey() UniqueKey {
+	return rp // A ResourceInstancePhase is its own UniqueKey
+}
+
+func (rp ResourceInstancePhase) uniqueKeySigil() {}
+
 // ResourceInstancePhaseType is an enumeration used with ResourceInstancePhase.
 type ResourceInstancePhaseType string
 
@@ -103,3 +109,9 @@ func (rp ResourcePhase) String() string {
 	// because this special address type should never be exposed in the UI.
 	return fmt.Sprintf("%s#%s", rp.Resource, rp.Phase)
 }
+
+func (rp ResourcePhase) UniqueKey() UniqueKey {
+	return rp // A ResourcePhase is its own UniqueKey
+}
+
+func (rp ResourcePhase) uniqueKeySigil() {}
