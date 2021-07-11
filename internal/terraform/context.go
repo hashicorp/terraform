@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/planner"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -596,92 +596,19 @@ Note that the -target option is not suitable for routine use, and is provided on
 // by the plan, so Apply can be called after.
 func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
-	c.changes = plans.NewChanges()
-	var diags tfdiags.Diagnostics
 
-	if len(c.targets) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Resource targeting is in effect",
-			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
-		
-The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
-		))
-	}
-
-	moveStmts := refactoring.FindMoveStatements(c.config)
-	if len(moveStmts) != 0 {
-		// TEMP: we haven't fully implemented moving yet, so we'll just
-		// reject it outright for now to reduce confusion.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Moves are not yet supported",
-			"There is currently no handling of \"moved\" blocks in the configuration.",
-		))
-	}
-	moveResults := refactoring.ApplyMoves(moveStmts, c.prevRunState)
-	if len(c.targets) > 0 {
-		for _, result := range moveResults {
-			matchesTarget := false
-			for _, targetAddr := range c.targets {
-				if targetAddr.TargetContains(result.From) {
-					matchesTarget = true
-					break
-				}
-			}
-			if !matchesTarget {
-				// TODO: Return an error stating that a targeted plan is
-				// only valid if it includes this address that was moved.
-			}
-		}
-	}
-
-	var plan *plans.Plan
-	var planDiags tfdiags.Diagnostics
-	switch c.planMode {
-	case plans.NormalMode:
-		plan, planDiags = c.plan()
-	case plans.DestroyMode:
-		plan, planDiags = c.destroyPlan()
-	case plans.RefreshOnlyMode:
-		plan, planDiags = c.refreshOnlyPlan()
-	default:
-		panic(fmt.Sprintf("unsupported plan mode %s", c.planMode))
-	}
-	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// TODO: Call refactoring.ValidateMoves, but need to figure out how to
-	// get hold of the plan's expander here, or somehow otherwise export
-	// the necessary subset of its data for ValidateMoves to do its work.
-
-	// convert the variables into the format expected for the plan
-	varVals := make(map[string]plans.DynamicValue, len(c.variables))
-	for k, iv := range c.variables {
-		// We use cty.DynamicPseudoType here so that we'll save both the
-		// value _and_ its dynamic type in the plan, so we can recover
-		// exactly the same value later.
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to prepare variable value for plan",
-				fmt.Sprintf("The value for variable %q could not be serialized to store in the plan: %s.", k, err),
-			))
-			continue
-		}
-		varVals[k] = dv
-	}
-
-	// insert the run-specific data from the context into the plan; variables,
-	// targets and provider SHAs.
-	plan.VariableValues = varVals
-	plan.TargetAddrs = c.targets
-	plan.ProviderSHA256s = c.providerSHA256s
-
-	return plan, diags
+	return planner.Plan(
+		c.runContext,
+		&planner.Options{
+			Mode:             c.planMode,
+			RootVariableVals: c.variables.JustValues(),
+			TargetAddrs:      c.targets,
+			Refresh:          !c.skipRefresh,
+		},
+		c.config,
+		c.prevRunState,
+		c.components.ResourceProvider,
+	)
 }
 
 func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
