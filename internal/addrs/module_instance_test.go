@@ -92,7 +92,7 @@ func BenchmarkStringLong(b *testing.B) {
 	}
 }
 
-func TestModuleInstance_IsCallInstance(t *testing.T) {
+func TestModuleInstance_IsDeclaredByCall(t *testing.T) {
 	tests := []struct {
 		instance ModuleInstance
 		call     AbsModuleCall
