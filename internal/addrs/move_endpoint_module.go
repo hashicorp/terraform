@@ -1,6 +1,7 @@
 package addrs
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -63,22 +64,66 @@ func (e *MoveEndpointInModule) String() string {
 	return buf.String()
 }
 
-// SelectsMoveable returns true if the reciever directly selects the object
-// represented by the given address, without any consideration of nesting.
+// SelectsModule returns true if the reciever directly selects either
+// the given module or a resource nested directly inside that module.
 //
-// This is a good function to use for deciding whether a specific object
-// found in the state should be acted on by a particular move statement.
-func (e *MoveEndpointInModule) SelectsMoveable(addr AbsMoveable) bool {
-	// Only addresses of the same kind can possibly match. This guarantees
-	// that our logic below only needs to deal with combinations of resources
-	// and resource instances or with combinations of module calls and
-	// module instances.
-	if e.ObjectKind() != absMoveableEndpointKind(addr) {
+// This is a good function to use to decide which modules in a state
+// to consider when processing a particular move statement. For a
+// module move the given module itself is what will move, while a
+// resource move indicates that we should search each of the resources in
+// the given module to see if they match.
+func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
+	// In order to match the given module path should be at least as
+	// long as the path to the module where the move endpoint was defined.
+	if len(addr) < len(e.module) {
 		return false
 	}
 
-	// TODO: implement
-	return false
+	containerPart := addr[:len(e.module)]
+	relPart := addr[len(e.module):]
+
+	// The names of all of the steps that align with e.module must match,
+	// though the instance keys are wildcards for this part.
+	for i := range e.module {
+		if containerPart[i].Name != e.module[i] {
+			return false
+		}
+	}
+
+	// The remaining module address steps must match both name and key.
+	// The logic for all of these is similar but we will retrieve the
+	// module address differently for each type.
+	var relMatch ModuleInstance
+	switch relAddr := e.relSubject.(type) {
+	case ModuleInstance:
+		relMatch = relAddr
+	case AbsModuleCall:
+		// This one requires a little more fuss because the call effectively
+		// slices in two the final step of the module address.
+		if len(relPart) != len(relAddr.Module)+1 {
+			return false
+		}
+		callPart := relPart[len(relPart)-1]
+		if callPart.Name != relAddr.Call.Name {
+			return false
+		}
+	case AbsResource:
+		relMatch = relAddr.Module
+	case AbsResourceInstance:
+		relMatch = relAddr.Module
+	default:
+		panic(fmt.Sprintf("unhandled relative address type %T", relAddr))
+	}
+
+	if len(relPart) != len(relMatch) {
+		return false
+	}
+	for i := range relMatch {
+		if relPart[i] != relMatch[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // CanChainFrom returns true if the reciever describes an address that could
@@ -98,4 +143,49 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
 	// TODO: implement
 	return false
+}
+
+// MoveDestination considers a an address representing a module
+// instance in the context of source and destination move endpoints and then,
+// if the module address matches the from endpoint, returns the corresponding
+// new module address that the object should move to.
+//
+// MoveDestination will return false in its second return value if the receiver
+// doesn't match fromMatch, indicating that the given move statement doesn't
+// apply to this object.
+//
+// Both of the given endpoints must be from the same move statement and thus
+// must have matching object types. If not, MoveDestination will panic.
+func (m ModuleInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (ModuleInstance, bool) {
+	return nil, false
+}
+
+// MoveDestination considers a an address representing a resource
+// in the context of source and destination move endpoints and then,
+// if the resource address matches the from endpoint, returns the corresponding
+// new resource address that the object should move to.
+//
+// MoveDestination will return false in its second return value if the receiver
+// doesn't match fromMatch, indicating that the given move statement doesn't
+// apply to this object.
+//
+// Both of the given endpoints must be from the same move statement and thus
+// must have matching object types. If not, MoveDestination will panic.
+func (r AbsResource) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (AbsResource, bool) {
+	return AbsResource{}, false
+}
+
+// MoveDestination considers a an address representing a resource
+// instance in the context of source and destination move endpoints and then,
+// if the instance address matches the from endpoint, returns the corresponding
+// new instance address that the object should move to.
+//
+// MoveDestination will return false in its second return value if the receiver
+// doesn't match fromMatch, indicating that the given move statement doesn't
+// apply to this object.
+//
+// Both of the given endpoints must be from the same move statement and thus
+// must have matching object types. If not, MoveDestination will panic.
+func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (AbsResourceInstance, bool) {
+	return AbsResourceInstance{}, false
 }
