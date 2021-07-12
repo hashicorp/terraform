@@ -1,5 +1,9 @@
 ## 1.0.3 (Unreleased)
 
+ENHANCEMENTS
+
+* json-output: Add `resource_drift` message to the JSON UI logs, to highlight resources found to have changed outside Terraform. [GH-29072]
+
 ## 1.0.2 (July 07, 2021)
 
 BUG FIXES:
