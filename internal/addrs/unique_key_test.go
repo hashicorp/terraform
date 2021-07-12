@@ -46,6 +46,14 @@ func TestUniqueKeyer(t *testing.T) {
 			},
 			Key: IntKey(1),
 		},
+		RootModuleInstance,
+		RootModuleInstance.Child("foo", NoKey),
+		RootModuleInstance.ResourceInstance(
+			DataResourceMode,
+			"boop",
+			"beep",
+			NoKey,
+		),
 		Self,
 	}
 

@@ -292,6 +292,14 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+type absResourceInstanceKey string
+
+func (r AbsResourceInstance) UniqueKey() UniqueKey {
+	return absResourceInstanceKey(r.String())
+}
+
+func (r absResourceInstanceKey) uniqueKeySigil() {}
+
 func (r AbsResourceInstance) absMoveableSigil() {
 	// AbsResourceInstance is moveable
 }
