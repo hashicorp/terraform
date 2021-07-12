@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 )
@@ -339,245 +338,127 @@ func TestParseMoveEndpoint(t *testing.T) {
 func TestUnifyMoveEndpoints(t *testing.T) {
 	tests := []struct {
 		InputFrom, InputTo string
-		Module             ModuleInstance
-		WantFrom, WantTo   AbsMoveable
+		Module             Module
+		WantFrom, WantTo   string
 	}{
 		{
 			InputFrom: `foo.bar`,
 			InputTo:   `foo.baz`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsResource{
-				Module: RootModuleInstance,
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "bar",
-				},
-			},
-			WantTo: AbsResource{
-				Module: RootModuleInstance,
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "baz",
-				},
-			},
+			Module:    RootModule,
+			WantFrom:  `foo.bar[*]`,
+			WantTo:    `foo.baz[*]`,
 		},
 		{
 			InputFrom: `foo.bar`,
 			InputTo:   `foo.baz`,
-			Module:    RootModuleInstance.Child("a", NoKey),
-			WantFrom: AbsResource{
-				Module: RootModuleInstance.Child("a", NoKey),
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "bar",
-				},
-			},
-			WantTo: AbsResource{
-				Module: RootModuleInstance.Child("a", NoKey),
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "baz",
-				},
-			},
+			Module:    RootModule.Child("a"),
+			WantFrom:  `module.a[*].foo.bar[*]`,
+			WantTo:    `module.a[*].foo.baz[*]`,
 		},
 		{
 			InputFrom: `foo.bar`,
 			InputTo:   `module.b[0].foo.baz`,
-			Module:    RootModuleInstance.Child("a", NoKey),
-			WantFrom: AbsResource{
-				Module: RootModuleInstance.Child("a", NoKey),
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "bar",
-				},
-			},
-			WantTo: AbsResource{
-				Module: RootModuleInstance.Child("a", NoKey).Child("b", IntKey(0)),
-				Resource: Resource{
-					Mode: ManagedResourceMode,
-					Type: "foo",
-					Name: "baz",
-				},
-			},
+			Module:    RootModule.Child("a"),
+			WantFrom:  `module.a[*].foo.bar[*]`,
+			WantTo:    `module.a[*].module.b[0].foo.baz[*]`,
 		},
 		{
 			InputFrom: `foo.bar`,
 			InputTo:   `foo.bar["thing"]`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-				},
-			},
-			WantTo: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-					Key: StringKey("thing"),
-				},
-			},
+			Module:    RootModule,
+			WantFrom:  `foo.bar`,
+			WantTo:    `foo.bar["thing"]`,
 		},
 		{
 			InputFrom: `foo.bar["thing"]`,
 			InputTo:   `foo.bar`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-					Key: StringKey("thing"),
-				},
-			},
-			WantTo: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-				},
-			},
+			Module:    RootModule,
+			WantFrom:  `foo.bar["thing"]`,
+			WantTo:    `foo.bar`,
 		},
 		{
 			InputFrom: `foo.bar["a"]`,
 			InputTo:   `foo.bar["b"]`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-					Key: StringKey("a"),
-				},
-			},
-			WantTo: AbsResourceInstance{
-				Module: RootModuleInstance,
-				Resource: ResourceInstance{
-					Resource: Resource{
-						Mode: ManagedResourceMode,
-						Type: "foo",
-						Name: "bar",
-					},
-					Key: StringKey("b"),
-				},
-			},
+			Module:    RootModule,
+			WantFrom:  `foo.bar["a"]`,
+			WantTo:    `foo.bar["b"]`,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `module.bar`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsModuleCall{
-				Module: RootModuleInstance,
-				Call:   ModuleCall{Name: "foo"},
-			},
-			WantTo: AbsModuleCall{
-				Module: RootModuleInstance,
-				Call:   ModuleCall{Name: "bar"},
-			},
+			Module:    RootModule,
+			WantFrom:  `module.foo[*]`,
+			WantTo:    `module.bar[*]`,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `module.bar.module.baz`,
-			Module:    RootModuleInstance,
-			WantFrom: AbsModuleCall{
-				Module: RootModuleInstance,
-				Call:   ModuleCall{Name: "foo"},
-			},
-			WantTo: AbsModuleCall{
-				Module: RootModuleInstance.Child("bar", NoKey),
-				Call:   ModuleCall{Name: "baz"},
-			},
+			Module:    RootModule,
+			WantFrom:  `module.foo[*]`,
+			WantTo:    `module.bar.module.baz[*]`,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `module.bar.module.baz`,
-			Module:    RootModuleInstance.Child("bloop", StringKey("hi")),
-			WantFrom: AbsModuleCall{
-				Module: RootModuleInstance.Child("bloop", StringKey("hi")),
-				Call:   ModuleCall{Name: "foo"},
-			},
-			WantTo: AbsModuleCall{
-				Module: RootModuleInstance.Child("bloop", StringKey("hi")).Child("bar", NoKey),
-				Call:   ModuleCall{Name: "baz"},
-			},
+			Module:    RootModule.Child("bloop"),
+			WantFrom:  `module.bloop[*].module.foo[*]`,
+			WantTo:    `module.bloop[*].module.bar.module.baz[*]`,
 		},
 		{
 			InputFrom: `module.foo[0]`,
 			InputTo:   `module.foo["a"]`,
-			Module:    RootModuleInstance,
-			WantFrom:  RootModuleInstance.Child("foo", IntKey(0)),
-			WantTo:    RootModuleInstance.Child("foo", StringKey("a")),
+			Module:    RootModule,
+			WantFrom:  `module.foo[0]`,
+			WantTo:    `module.foo["a"]`,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `module.foo["a"]`,
-			Module:    RootModuleInstance,
-			WantFrom:  RootModuleInstance.Child("foo", NoKey),
-			WantTo:    RootModuleInstance.Child("foo", StringKey("a")),
+			Module:    RootModule,
+			WantFrom:  `module.foo`,
+			WantTo:    `module.foo["a"]`,
 		},
 		{
 			InputFrom: `module.foo[0]`,
 			InputTo:   `module.foo`,
-			Module:    RootModuleInstance,
-			WantFrom:  RootModuleInstance.Child("foo", IntKey(0)),
-			WantTo:    RootModuleInstance.Child("foo", NoKey),
+			Module:    RootModule,
+			WantFrom:  `module.foo[0]`,
+			WantTo:    `module.foo`,
 		},
 		{
 			InputFrom: `module.foo[0]`,
 			InputTo:   `module.foo`,
-			Module:    RootModuleInstance.Child("bloop", NoKey),
-			WantFrom:  RootModuleInstance.Child("bloop", NoKey).Child("foo", IntKey(0)),
-			WantTo:    RootModuleInstance.Child("bloop", NoKey).Child("foo", NoKey),
+			Module:    RootModule.Child("bloop"),
+			WantFrom:  `module.bloop[*].module.foo[0]`,
+			WantTo:    `module.bloop[*].module.foo`,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `foo.bar`,
-			Module:    RootModuleInstance,
-			WantFrom:  nil, // Can't unify module call with resource
-			WantTo:    nil,
+			Module:    RootModule,
+			WantFrom:  ``, // Can't unify module call with resource
+			WantTo:    ``,
 		},
 		{
 			InputFrom: `module.foo[0]`,
 			InputTo:   `foo.bar`,
-			Module:    RootModuleInstance,
-			WantFrom:  nil, // Can't unify module instance with resource
-			WantTo:    nil,
+			Module:    RootModule,
+			WantFrom:  ``, // Can't unify module instance with resource
+			WantTo:    ``,
 		},
 		{
 			InputFrom: `module.foo`,
 			InputTo:   `foo.bar[0]`,
-			Module:    RootModuleInstance,
-			WantFrom:  nil, // Can't unify module call with resource instance
-			WantTo:    nil,
+			Module:    RootModule,
+			WantFrom:  ``, // Can't unify module call with resource instance
+			WantTo:    ``,
 		},
 		{
 			InputFrom: `module.foo[0]`,
 			InputTo:   `foo.bar[0]`,
-			Module:    RootModuleInstance,
-			WantFrom:  nil, // Can't unify module instance with resource instance
-			WantTo:    nil,
+			Module:    RootModule,
+			WantFrom:  ``, // Can't unify module instance with resource instance
+			WantTo:    ``,
 		},
 	}
 
@@ -604,13 +485,12 @@ func TestUnifyMoveEndpoints(t *testing.T) {
 			fromEp := parseInput(test.InputFrom)
 			toEp := parseInput(test.InputTo)
 
-			diffOpts := cmpopts.IgnoreUnexported(ModuleCall{})
 			gotFrom, gotTo := UnifyMoveEndpoints(test.Module, fromEp, toEp)
-			if diff := cmp.Diff(test.WantFrom, gotFrom, diffOpts); diff != "" {
-				t.Errorf("wrong 'from' address\n%s", diff)
+			if got, want := gotFrom.String(), test.WantFrom; got != want {
+				t.Errorf("wrong 'from' result\ngot:  %s\nwant: %s", got, want)
 			}
-			if diff := cmp.Diff(test.WantTo, gotTo, diffOpts); diff != "" {
-				t.Errorf("wrong 'to' address\n%s", diff)
+			if got, want := gotTo.String(), test.WantTo; got != want {
+				t.Errorf("wrong 'to' result\ngot:  %s\nwant: %s", got, want)
 			}
 		})
 	}

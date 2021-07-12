@@ -53,7 +53,11 @@ func (c AbsModuleCall) absMoveableSigil() {
 }
 
 func (c AbsModuleCall) String() string {
-	return fmt.Sprintf("%s.%s", c.Module, c.Call.Name)
+	if len(c.Module) == 0 {
+		return "module." + c.Call.Name
+
+	}
+	return fmt.Sprintf("%s.module.%s", c.Module, c.Call.Name)
 }
 
 func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {

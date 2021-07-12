@@ -9,7 +9,6 @@ package addrs
 // of the configuration, which is different than the direct representation
 // of these in configuration where the author gives an address relative to
 // the current module where the address is defined. The type MoveEndpoint
-
 type AbsMoveable interface {
 	absMoveableSigil()
 
