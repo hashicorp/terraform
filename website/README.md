@@ -38,7 +38,7 @@ If you need your changes to be deployed sooner, cherry-pick them to:
 - the `stable-website` branch and push. They will be included in the next site deploy (see below). Note that the release process resets `stable-website` to match the release tag, removing any additional commits. So, we recommend always cherry-picking to the version branch first and then to `stable-website` when needed.
 
 ### Deployment
-The [terraform.io][] site gets deployed by a CI job, currently managed by CircleCI. This job can be run manually by many people within HashiCorp, and also runs automatically whenever a user in the HashiCorp GitHub org merges changes to master in the `terraform-website` repository.
+Currently, HashiCorp uses a CircleCI job to deploy the [terraform.io](terraform.io) site. This job can be run manually by many people within HashiCorp, and also runs automatically whenever a user in the HashiCorp GitHub org merges changes to master in the `terraform-website` repository.
 
 New commits in this repository don't automatically deploy the [terraform.io][] site, but an unrelated site deploy will usually happen within a day. If you can't wait that long, you can do a manual CircleCI build or ask someone in the #proj-terraform-docs channel to do so:
 - Log in to circleci.com, and  make sure you're viewing the HashiCorp organization.
