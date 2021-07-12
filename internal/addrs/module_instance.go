@@ -275,6 +275,14 @@ func (m ModuleInstance) String() string {
 	return buf.String()
 }
 
+type moduleInstanceKey string
+
+func (m ModuleInstance) UniqueKey() UniqueKey {
+	return moduleInstanceKey(m.String())
+}
+
+func (mk moduleInstanceKey) uniqueKeySigil() {}
+
 // Equal returns true if the receiver and the given other value
 // contains the exact same parts.
 func (m ModuleInstance) Equal(o ModuleInstance) bool {
