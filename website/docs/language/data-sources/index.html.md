@@ -3,12 +3,12 @@ layout: "language"
 page_title: "Data Sources - Configuration Language"
 sidebar_current: "docs-config-data-sources"
 description: |-
-  Using Data sources to give Terraform access to data from APIs or other Terraform configurations.
+Data sources allow Terraform to use external data, function output, and data from separate configurations. Learn about data resource arguments, behavior, dependencies, meta-arguments, and lifecycle.
 ---
 
 # Data Sources
 
-_Data sources_ allow Terraform use information defined outside of Terraform,
+_Data sources_ allow Terraform to use information defined outside of Terraform,
 defined by another separate Terraform configuration, or modified by functions.
 
 > **Hands-on:** Try the [Query Data Sources](https://learn.hashicorp.com/tutorials/terraform/data-sources) tutorial on HashiCorp Learn.
