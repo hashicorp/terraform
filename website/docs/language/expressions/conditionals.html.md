@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Conditional Expressions - Configuration Language"
 description: |-
-  Using conditional expressions in Terraform configurations.
+  Use conditional expressions in configurations to select one of two values. They are commonly used to define defaults to replace invalid values.
 ---
 
 # Conditional Expressions
