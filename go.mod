@@ -95,6 +95,7 @@ require (
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
