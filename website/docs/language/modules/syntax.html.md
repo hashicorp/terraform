@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Modules - Configuration Language"
 sidebar_current: "docs-config-modules"
 description: |-
-  Calling one module from another in Terraform configurations.
+  Modules are containers for multiple resources that are used together. Learn how to call one module from another in configurations.
 ---
 
 # Module Blocks

@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Functions - Configuration Language"
 sidebar_current: "docs-config-functions"
 description: |-
-  An introduction to functions in the Terraform language that can transform and combine values.
+  An introduction to the built-in functions that you can use to transform and combine values in expressions.
 ---
 
 # Built-in Functions

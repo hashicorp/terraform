@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Conditional Expressions - Configuration Language"
 description: |-
-  Use conditional expressions in configurations to select one of two values. They are commonly used to define defaults to replace invalid values.
+  Conditional expressions in configurations select one of two values. You can use them to define defaults to replace invalid values.
 ---
 
 # Conditional Expressions

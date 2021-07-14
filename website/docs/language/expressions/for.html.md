@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "For Expressions - Configuration Language"
 description: |-
-  Using `for` expressions in Terraform configurations.
+  `for` expressions transform complex input values into complex output values. Learn how Terraform orders elements and how to filter inputs and group results.
 ---
 
 # `for` Expressions

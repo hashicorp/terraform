@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "References to Values - Configuration Language"
 description: |-
-  Using references to values in Terraform configurations.
+  Reference named values in configurations, including resources, input variables, local and block-local values, module outputs, data sources, and workspace data.
 ---
 
 # References to Named Values

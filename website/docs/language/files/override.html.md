@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Override Files - Configuration Language"
 sidebar_current: "docs-config-override"
 description: |-
-  How Terraform override files merge additional settings into existing configuration objects.
+  Override files merge additional settings into existing configuration objects. Learn how to use override files and about merging behavior. 
 ---
 
 # Override Files

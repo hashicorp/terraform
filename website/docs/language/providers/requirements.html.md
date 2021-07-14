@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Provider Requirements - Configuration Language"
 description: |-
-  Declaring providers in your module configuration so that Terraform can install them.
+  Providers are plugins that allow Terraform to interact with remote systems. Learn how to declare providers in your configuration.
 ---
 
 # Provider Requirements

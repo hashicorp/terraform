@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Resources Overview - Configuration Language"
 description: |-
-  An introduction to the Terraform language resources element that is used to describe infrastructure objects.
+  An introduction to the `resources` element that  describes infrastructure objects in Terraform configurations.
 ---
 
 # Resources

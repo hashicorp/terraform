@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Dynamic Blocks - Configuration Language"
 description: |-
-  Use `dynamic` blocks in configurations to dynamically construct multi-level, nested block structures.
+  `dynamic` blocks dynamically construct multi-level, nested block structures. Learn to configure `dynamic` blocks and understand their behavior. 
 ---
 
 

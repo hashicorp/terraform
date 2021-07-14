@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Provisioner Connection Settings"
 sidebar_current: "docs-provisioners-connection"
 description: |-
-  Managing provisioner connection defaults for SSH and WinRM using the `connection` block in Terraform language.
+  The `connection` block allows you to manage provisioner connection defaults for SSH and WinRM.
 ---
 
 # Provisioner Connection Settings

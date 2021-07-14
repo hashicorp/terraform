@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Function Calls - Configuration Language"
 description: |-
-  Using function calls in Terraform configurations.
+  Function calls transform and combine values. Learn about Terraform's built-in functions.
 ---
 
 # Function Calls

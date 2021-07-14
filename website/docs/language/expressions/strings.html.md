@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Strings and Templates - Configuration Language"
 description: |-
-  Using strings and templates in Terraform configurations.
+  String literals and template sequences interpolate values and manipulate text. Learn about both quoted and "heredoc" string syntax.
 ---
 
 # Strings and Templates

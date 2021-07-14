@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Modules Overview - Configuration Language"
 description: |-
-  An overview of Terraform modules, containers for multiple resources that are used together in a configuration.
+  Modules are containers for multiple resources that are used together in a configuration. Find resources for using, developing, and publishing modules.
 ---
 
 # Modules
