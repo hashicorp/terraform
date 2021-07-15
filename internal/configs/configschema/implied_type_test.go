@@ -37,6 +37,7 @@ func TestBlockImpliedType(t *testing.T) {
 					"optional_computed": {
 						Type:     cty.Map(cty.Bool),
 						Optional: true,
+						Computed: true,
 					},
 				},
 			},
@@ -143,7 +144,7 @@ func TestObjectImpliedType(t *testing.T) {
 					"optional":          {Type: cty.String, Optional: true},
 					"required":          {Type: cty.Number, Required: true},
 					"computed":          {Type: cty.List(cty.Bool), Computed: true},
-					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true, Computed: true},
 				},
 			},
 			cty.ObjectWithOptionalAttrs(
@@ -167,7 +168,7 @@ func TestObjectImpliedType(t *testing.T) {
 								"optional":          {Type: cty.String, Optional: true},
 								"required":          {Type: cty.Number, Required: true},
 								"computed":          {Type: cty.List(cty.Bool), Computed: true},
-								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true, Computed: true},
 							},
 						},
 						Optional: true,
@@ -194,7 +195,7 @@ func TestObjectImpliedType(t *testing.T) {
 								"optional":          {Type: cty.String, Optional: true},
 								"required":          {Type: cty.Number, Required: true},
 								"computed":          {Type: cty.List(cty.Bool), Computed: true},
-								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true, Computed: true},
 								"object": {
 									Type: cty.ObjectWithOptionalAttrs(map[string]cty.Type{
 										"optional": cty.String,

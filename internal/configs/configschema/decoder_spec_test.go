@@ -908,7 +908,7 @@ func TestListOptionalAttrsFromObject(t *testing.T) {
 					"optional":          {Type: cty.String, Optional: true},
 					"required":          {Type: cty.Number, Required: true},
 					"computed":          {Type: cty.List(cty.Bool), Computed: true},
-					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true, Computed: true},
 				},
 			},
 			[]string{"optional", "computed", "optional_computed"},
