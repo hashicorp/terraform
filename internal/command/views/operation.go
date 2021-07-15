@@ -3,6 +3,7 @@ package views
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -202,6 +203,7 @@ func (v *OperationJSON) resourceDrift(oldState, newState *states.State, schemas 
 		// resource instances.
 		return nil
 	}
+	var changes []*json.ResourceInstanceChange
 	for _, ms := range oldState.Modules {
 		for _, rs := range ms.Resources {
 			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
@@ -266,10 +268,18 @@ func (v *OperationJSON) resourceDrift(oldState, newState *states.State, schemas 
 						Action: action,
 					},
 				}
-				v.view.ResourceDrift(json.NewResourceInstanceChange(change))
+				changes = append(changes, json.NewResourceInstanceChange(change))
 			}
 		}
 	}
+
+	// Sort the change structs lexically by address to give stable output
+	sort.Slice(changes, func(i, j int) bool { return changes[i].Resource.Addr < changes[j].Resource.Addr })
+
+	for _, change := range changes {
+		v.view.ResourceDrift(change)
+	}
+
 	return nil
 }
 
