@@ -55,7 +55,7 @@ func init() {
 	configureRequestTimeout()
 }
 
-var SupportedPluginProtocols = MustParseVersionConstraints("~> 5")
+var SupportedPluginProtocols = MustParseVersionConstraints(">= 5, <7")
 
 // registryClient is a client for the provider registry protocol that is
 // specialized only for the needs of this package. It's not intended as a
