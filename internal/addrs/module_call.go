@@ -60,6 +60,14 @@ func (c AbsModuleCall) String() string {
 	return fmt.Sprintf("%s.module.%s", c.Module, c.Call.Name)
 }
 
+func (c AbsModuleCall) UniqueKey() UniqueKey {
+	return absModuleCallKey(c.String())
+}
+
+type absModuleCallKey string
+
+func (k absModuleCallKey) uniqueKeySigil() {}
+
 func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {
 	ret := make(ModuleInstance, len(c.Module), len(c.Module)+1)
 	copy(ret, c.Module)

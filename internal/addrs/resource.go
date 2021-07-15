@@ -186,6 +186,14 @@ func (r AbsResource) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
+func (c AbsResource) UniqueKey() UniqueKey {
+	return absResourceKey(c.String())
+}
+
+type absResourceKey string
+
+func (k absResourceKey) uniqueKeySigil() {}
+
 func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
