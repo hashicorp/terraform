@@ -3,6 +3,7 @@
 ENHANCEMENTS
 
 * json-output: Add `resource_drift` message to the JSON UI logs, to highlight resources found to have changed outside Terraform. [GH-29072]
+* core: Allow protocol version 6 providers to be downloaded from the registry. [GH-29153]
 
 ## 1.0.2 (July 07, 2021)
 
