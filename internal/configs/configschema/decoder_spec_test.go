@@ -1,10 +1,12 @@
 package configschema
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/apparentlymart/go-dump/dump"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
@@ -884,4 +886,44 @@ func TestAttributeDecoderSpec_panic(t *testing.T) {
 	defer func() { recover() }()
 	attrS.decoderSpec("attr")
 	t.Errorf("expected panic")
+}
+
+func TestListOptionalAttrsFromObject(t *testing.T) {
+	tests := []struct {
+		input *Object
+		want  []string
+	}{
+		{
+			nil,
+			[]string{},
+		},
+		{
+			&Object{},
+			[]string{},
+		},
+		{
+			&Object{
+				Nesting: NestingSingle,
+				Attributes: map[string]*Attribute{
+					"optional":          {Type: cty.String, Optional: true},
+					"required":          {Type: cty.Number, Required: true},
+					"computed":          {Type: cty.List(cty.Bool), Computed: true},
+					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+				},
+			},
+			[]string{"optional", "computed", "optional_computed"},
+		},
+	}
+
+	for _, test := range tests {
+		got := listOptionalAttrsFromObject(test.input)
+
+		// order is irrelevant
+		sort.Strings(got)
+		sort.Strings(test.want)
+
+		if diff := cmp.Diff(got, test.want); diff != "" {
+			t.Fatalf("wrong result: %s\n", diff)
+		}
+	}
 }

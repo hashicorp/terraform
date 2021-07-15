@@ -132,26 +132,18 @@ func TestObjectImpliedType(t *testing.T) {
 			nil,
 			cty.EmptyObject,
 		},
+		"empty": {
+			&Object{},
+			cty.EmptyObject,
+		},
 		"attributes": {
 			&Object{
 				Nesting: NestingSingle,
 				Attributes: map[string]*Attribute{
-					"optional": {
-						Type:     cty.String,
-						Optional: true,
-					},
-					"required": {
-						Type:     cty.Number,
-						Required: true,
-					},
-					"computed": {
-						Type:     cty.List(cty.Bool),
-						Computed: true,
-					},
-					"optional_computed": {
-						Type:     cty.Map(cty.Bool),
-						Optional: true,
-					},
+					"optional":          {Type: cty.String, Optional: true},
+					"required":          {Type: cty.Number, Required: true},
+					"computed":          {Type: cty.List(cty.Bool), Computed: true},
+					"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
 				},
 			},
 			cty.ObjectWithOptionalAttrs(
@@ -161,7 +153,7 @@ func TestObjectImpliedType(t *testing.T) {
 					"computed":          cty.List(cty.Bool),
 					"optional_computed": cty.Map(cty.Bool),
 				},
-				[]string{"optional", "optional_computed"},
+				[]string{"optional", "computed", "optional_computed"},
 			),
 		},
 		"nested attributes": {
@@ -172,21 +164,42 @@ func TestObjectImpliedType(t *testing.T) {
 						NestedType: &Object{
 							Nesting: NestingSingle,
 							Attributes: map[string]*Attribute{
-								"optional": {
-									Type:     cty.String,
-									Optional: true,
-								},
-								"required": {
-									Type:     cty.Number,
-									Required: true,
-								},
-								"computed": {
-									Type:     cty.List(cty.Bool),
-									Computed: true,
-								},
-								"optional_computed": {
-									Type:     cty.Map(cty.Bool),
-									Optional: true,
+								"optional":          {Type: cty.String, Optional: true},
+								"required":          {Type: cty.Number, Required: true},
+								"computed":          {Type: cty.List(cty.Bool), Computed: true},
+								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+				"nested_type": cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"optional":          cty.String,
+					"required":          cty.Number,
+					"computed":          cty.List(cty.Bool),
+					"optional_computed": cty.Map(cty.Bool),
+				}, []string{"optional", "computed", "optional_computed"}),
+			}, []string{"nested_type"}),
+		},
+		"nested object-type attributes": {
+			&Object{
+				Nesting: NestingSingle,
+				Attributes: map[string]*Attribute{
+					"nested_type": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"optional":          {Type: cty.String, Optional: true},
+								"required":          {Type: cty.Number, Required: true},
+								"computed":          {Type: cty.List(cty.Bool), Computed: true},
+								"optional_computed": {Type: cty.Map(cty.Bool), Optional: true},
+								"object": {
+									Type: cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+										"optional": cty.String,
+										"required": cty.Number,
+									}, []string{"optional"}),
 								},
 							},
 						},
@@ -200,7 +213,8 @@ func TestObjectImpliedType(t *testing.T) {
 					"required":          cty.Number,
 					"computed":          cty.List(cty.Bool),
 					"optional_computed": cty.Map(cty.Bool),
-				}, []string{"optional", "optional_computed"}),
+					"object":            cty.ObjectWithOptionalAttrs(map[string]cty.Type{"optional": cty.String, "required": cty.Number}, []string{"optional"}),
+				}, []string{"optional", "computed", "optional_computed"}),
 			}, []string{"nested_type"}),
 		},
 		"NestingList": {
