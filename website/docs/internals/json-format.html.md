@@ -451,6 +451,8 @@ Each unevaluated expression in the configuration is represented with an `<expres
 }
 ```
 
+-> **Note:** Expressions in `dynamic` blocks are not included in the configuration representation.
+
 ### Block Expressions Representation
 
 In some cases, it is the entire content of a block (possibly after certain special arguments have already been handled and removed) that must be represented. For that, we have an `<block-expressions-representation>` structure:

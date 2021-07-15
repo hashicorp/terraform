@@ -358,6 +358,10 @@ Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
 
+-> **Note:** The plugin cache directory is not guaranteed to be concurrency
+safe. The provider installer's behavior in environments with multiple `terraform
+init` calls is undefined. 
+
 ### Development Overrides for Provider Developers
 
 -> **Note:** Development overrides work only in Terraform v0.14 and later.

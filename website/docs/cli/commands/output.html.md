@@ -33,6 +33,10 @@ The command-line flags are all optional. The list of available flags are:
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
     Ignored when [remote state](/docs/language/state/remote.html) is used.
 
+-> **Note:** When using the `-json` or `-raw` command-line flag, any sensitive
+values in Terraform state will be displayed in plain text. For more information,
+see [Sensitive Data in State](/docs/language/state/sensitive-data.html).
+
 ## Examples
 
 These examples assume the following Terraform output snippet.
