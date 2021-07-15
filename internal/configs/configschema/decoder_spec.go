@@ -207,9 +207,15 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 // belong to their own cty.Object definitions. It is used in other functions
 // which themselves handle that recursion.
 func listOptionalAttrsFromObject(o *Object) []string {
-	var ret []string
+	ret := make([]string, 0)
+
+	// This is unlikely to happen outside of tests.
+	if o == nil {
+		return ret
+	}
+
 	for name, attr := range o.Attributes {
-		if attr.Optional == true {
+		if attr.Optional || attr.Computed {
 			ret = append(ret, name)
 		}
 	}

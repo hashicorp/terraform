@@ -1457,7 +1457,7 @@ func TestProposedNew(t *testing.T) {
 						"computed":          cty.String,
 						"optional_computed": cty.String,
 						"required":          cty.String,
-					}, []string{"optional", "optional_computed"}),
+					}, []string{"computed", "optional", "optional_computed"}),
 				}))),
 			}),
 		},
