@@ -707,25 +707,6 @@ func TestOperationJSON_planDrift(t *testing.T) {
 	v.Plan(plan, testSchemas())
 
 	want := []map[string]interface{}{
-		// Drift detected: update
-		{
-			"@level":   "info",
-			"@message": "test_resource.boop: Drift detected (update)",
-			"@module":  "terraform.ui",
-			"type":     "resource_drift",
-			"change": map[string]interface{}{
-				"action": "update",
-				"resource": map[string]interface{}{
-					"addr":             "test_resource.boop",
-					"implied_provider": "test",
-					"module":           "",
-					"resource":         "test_resource.boop",
-					"resource_key":     nil,
-					"resource_name":    "boop",
-					"resource_type":    "test_resource",
-				},
-			},
-		},
 		// Drift detected: delete
 		{
 			"@level":   "info",
@@ -741,6 +722,25 @@ func TestOperationJSON_planDrift(t *testing.T) {
 					"resource":         "test_resource.beep",
 					"resource_key":     nil,
 					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: update
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Drift detected (update)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop",
+					"resource_key":     nil,
+					"resource_name":    "boop",
 					"resource_type":    "test_resource",
 				},
 			},
