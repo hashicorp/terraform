@@ -5,6 +5,10 @@ ENHANCEMENTS
 * json-output: Add `resource_drift` message to the JSON UI logs, to highlight resources found to have changed outside Terraform. [GH-29072]
 * core: Allow protocol version 6 providers to be downloaded from the registry. [GH-29153]
 
+BUG FIXES:
+
+* configs/configschema: fix missing "computed" attributes from `NestedObject` `ImpliedType` [GH-29177]
+
 ## 1.0.2 (July 07, 2021)
 
 BUG FIXES:
