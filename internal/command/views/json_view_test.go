@@ -303,12 +303,16 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 	gotLines := strings.Split(output, "\n")
 
 	if len(gotLines) != len(want) {
-		t.Fatalf("unexpected number of messages. got %d, want %d", len(gotLines), len(want))
+		t.Errorf("unexpected number of messages. got %d, want %d", len(gotLines), len(want))
 	}
 
 	// Unmarshal each line and compare to the expected value
 	for i := range gotLines {
 		var gotStruct map[string]interface{}
+		if i >= len(want) {
+			t.Error("reached end of want messages too soon")
+			break
+		}
 		wantStruct := want[i]
 
 		if err := json.Unmarshal([]byte(gotLines[i]), &gotStruct); err != nil {
@@ -323,12 +327,12 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 			// Verify the timestamp format
 			if _, err := time.Parse("2006-01-02T15:04:05.000000Z07:00", timestamp.(string)); err != nil {
-				t.Fatalf("error parsing timestamp: %s", err)
+				t.Errorf("error parsing timestamp on line %d: %s", i, err)
 			}
 		}
 
 		if !cmp.Equal(wantStruct, gotStruct) {
-			t.Fatalf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
+			t.Errorf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
 		}
 	}
 }
