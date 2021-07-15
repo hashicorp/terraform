@@ -140,6 +140,7 @@ func wrappedMain() int {
 	}
 
 	initTracing()
+	defer closeTracing()
 	log.Printf(
 		"[INFO] Terraform version: %s %s",
 		Version, VersionPrerelease)
