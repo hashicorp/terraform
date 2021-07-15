@@ -55,6 +55,14 @@ func TestUniqueKeyer(t *testing.T) {
 			NoKey,
 		),
 		Self,
+		RootModuleInstance,
+		RootModuleInstance.Child("foo", NoKey),
+		RootModuleInstance.ResourceInstance(
+			DataResourceMode,
+			"boop",
+			"beep",
+			NoKey,
+		),
 	}
 
 	for _, test := range tests {

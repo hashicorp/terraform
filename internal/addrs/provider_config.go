@@ -403,3 +403,11 @@ func (pc AbsProviderConfig) String() string {
 
 	return strings.Join(parts, ".")
 }
+
+func (pc AbsProviderConfig) UniqueKey() UniqueKey {
+	return absProviderConfigKey(pc.String())
+}
+
+type absProviderConfigKey string
+
+func (k absProviderConfigKey) uniqueKeySigil() {}
