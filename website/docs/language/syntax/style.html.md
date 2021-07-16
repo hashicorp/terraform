@@ -15,6 +15,8 @@ for consistency between files and modules written by different teams.
 Automatic source code formatting tools may apply these conventions
 automatically.
 
+-> **Note**: You can enforce these conventions automatically by running [`terraform fmt`](/docs/cli/commands/fmt.html).
+
 * Indent two spaces for each nesting level.
 
 * When multiple arguments with single-line values appear on consecutive lines
