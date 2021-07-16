@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Input Variables - Configuration Language"
 sidebar_current: "docs-config-variables"
 description: |-
-  Using input variables to customize Terraform configurations, including how to declare, define, and reference variables in root and child modules.
+  Input variables allow you to customize modules without altering their source code. Learn how to declare, define, and reference variables in configurations.
 ---
 
 # Input Variables
