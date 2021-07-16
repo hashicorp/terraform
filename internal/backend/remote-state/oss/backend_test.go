@@ -2,6 +2,7 @@ package oss
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -69,9 +70,10 @@ func TestBackendConfig(t *testing.T) {
 
 func TestBackendConfigWorkSpace(t *testing.T) {
 	testACC(t)
+	bucketName := fmt.Sprintf("terraform-backend-oss-test-%d", rand.Intn(1000))
 	config := map[string]interface{}{
 		"region":              "cn-beijing",
-		"bucket":              "terraform-backend-oss-test",
+		"bucket":              bucketName,
 		"prefix":              "mystate",
 		"key":                 "first.tfstate",
 		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
@@ -79,15 +81,15 @@ func TestBackendConfigWorkSpace(t *testing.T) {
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-	createOSSBucket(t, b.ossClient, "terraform-backend-oss-test")
-	defer deleteOSSBucket(t, b.ossClient, "terraform-backend-oss-test")
+	createOSSBucket(t, b.ossClient, bucketName)
+	defer deleteOSSBucket(t, b.ossClient, bucketName)
 	if _, err := b.Workspaces(); err != nil {
 		t.Fatal(err.Error())
 	}
 	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")
 	}
-	if b.bucketName != "terraform-backend-oss-test" {
+	if b.bucketName != bucketName {
 		t.Fatalf("Incorrect bucketName was provided")
 	}
 	if b.statePrefix != "mystate" {
