@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
 description: |-
-  Using the `terraform` block type to configure Terraform behavior.
+  The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, and required providers.
 ---
 
 # Terraform Settings
