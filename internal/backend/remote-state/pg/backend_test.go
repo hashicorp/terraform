@@ -89,11 +89,13 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 		SkipSchemaCreation bool
 		SkipTableCreation  bool
 		SkipIndexCreation  bool
+		TestIndexIsPresent bool
 		Setup              func(t *testing.T, db *sql.DB, schemaName string)
 	}{
 		{
 			Name:               "skip_schema_creation",
 			SkipSchemaCreation: true,
+			TestIndexIsPresent: true,
 			Setup: func(t *testing.T, db *sql.DB, schemaName string) {
 				// create the schema as a prerequisites
 				_, err := db.Query(fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS %s`, schemaName))
@@ -103,8 +105,9 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 			},
 		},
 		{
-			Name:              "skip_table_creation",
-			SkipTableCreation: true,
+			Name:               "skip_table_creation",
+			SkipTableCreation:  true,
+			TestIndexIsPresent: true,
 			Setup: func(t *testing.T, db *sql.DB, schemaName string) {
 				// since the table needs to be already created the schema must be too
 				_, err := db.Query(fmt.Sprintf(`CREATE SCHEMA %s`, schemaName))
@@ -122,8 +125,9 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 			},
 		},
 		{
-			Name:              "skip_index_creation",
-			SkipIndexCreation: true,
+			Name:               "skip_index_creation",
+			SkipIndexCreation:  true,
+			TestIndexIsPresent: true,
 			Setup: func(t *testing.T, db *sql.DB, schemaName string) {
 				// Everything need to exists for the index to be created
 				_, err := db.Query(fmt.Sprintf(`CREATE SCHEMA %s`, schemaName))
@@ -144,6 +148,10 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 				}
 			},
 		},
+		{
+			Name:              "missing_index",
+			SkipIndexCreation: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -163,7 +171,9 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			tc.Setup(t, db, schemaName)
+			if tc.Setup != nil {
+				tc.Setup(t, db, schemaName)
+			}
 			defer db.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
 
 			b := backend.TestBackendConfig(t, New(), config).(*Backend)
@@ -179,14 +189,16 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Make sure that the index exists
-			query := `select count(*) from pg_indexes where schemaname=$1 and tablename=$2 and indexname=$3;`
-			var count int
-			if err := b.db.QueryRow(query, tc.Name, statesTableName, statesIndexName).Scan(&count); err != nil {
-				t.Fatal(err)
-			}
-			if count != 1 {
-				t.Fatalf("The index has not been created (%d)", count)
+			if tc.TestIndexIsPresent {
+				// Make sure that the index exists
+				query := `select count(*) from pg_indexes where schemaname=$1 and tablename=$2 and indexname=$3;`
+				var count int
+				if err := b.db.QueryRow(query, tc.Name, statesTableName, statesIndexName).Scan(&count); err != nil {
+					t.Fatal(err)
+				}
+				if count != 1 {
+					t.Fatalf("The index has not been created (%d)", count)
+				}
 			}
 
 			_, err = b.StateMgr(backend.DefaultStateName)
@@ -201,6 +213,16 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 			c := s.(*remote.State).Client.(*RemoteClient)
 			if c.Name != backend.DefaultStateName {
 				t.Fatal("RemoteClient name is not configured")
+			}
+
+			// Make sure that all workspace must have a unique name
+			_, err = db.Exec(fmt.Sprintf(`INSERT INTO %s.%s VALUES (100, 'unique_name_test', '')`, schemaName, statesTableName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = db.Exec(fmt.Sprintf(`INSERT INTO %s.%s VALUES (101, 'unique_name_test', '')`, schemaName, statesTableName))
+			if err == nil {
+				t.Fatal("Creating two workspaces with the same name did not raise an error")
 			}
 		})
 	}
