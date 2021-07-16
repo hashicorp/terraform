@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Provider Documentation"
 sidebar_current: "docs-providers"
 description: |-
-  Pointers to documentation for Terraform provider plugins, including the Terraform Registry.
+  Pointers to provider documentation on the Terraform Registry and to information about how to create documentation for your provider.
 ---
 
 # Provider Documentation
