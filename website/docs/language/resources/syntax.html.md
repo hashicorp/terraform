@@ -3,7 +3,7 @@ layout: "language"
 page_title: "Resources - Configuration Language"
 sidebar_current: "docs-config-resources"
 description: |-
-  Details about Terraform resources, which correspond to infrastructure objects like virtual networks or compute instances.
+  Resources correspond to infrastructure objects like virtual networks or compute instances. Learn about resource types, syntax, behavior, and arguments.
 ---
 
 # Resource Blocks
