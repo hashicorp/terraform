@@ -24,6 +24,8 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -51,6 +53,8 @@ func TestRemoteClient(t *testing.T) {
 
 // test the gzip functionality of the client
 func TestRemoteClient_gzipUpgrade(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	statePath := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend
@@ -89,6 +93,8 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 // manager, as there is a limit to the size of the values in the KV store it
 // will need to be split up before being saved and put back together when read.
 func TestConsul_largeState(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := "tf-unit/test-large-state"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -220,6 +226,8 @@ func TestConsul_largeState(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -250,6 +258,8 @@ func TestConsul_stateLock(t *testing.T) {
 }
 
 func TestConsul_destroyLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -330,6 +340,8 @@ func TestConsul_destroyLock(t *testing.T) {
 }
 
 func TestConsul_lostLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -377,6 +389,8 @@ func TestConsul_lostLock(t *testing.T) {
 }
 
 func TestConsul_lostLockConnection(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	// create an "unreliable" network by closing all the consul client's
 	// network connections
 	conns := &unreliableConns{}
