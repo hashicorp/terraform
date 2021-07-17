@@ -233,7 +233,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// a remote backend API and to get the version constraints.
 	service, constraints, err := b.discover(serviceID)
 
-	// First check any contraints we might have received.
+	// First check any constraints we might have received.
 	if constraints != nil {
 		diags = diags.Append(b.checkConstraints(constraints))
 		if diags.HasErrors() {

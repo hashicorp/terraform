@@ -818,6 +818,15 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"sortsemver": {
+			{
+				`sortsemver("~> 1.0.0", ["2.0.0", "1.0.0", "0.1.0", "0.0.1", "1.0.0-1"])`,
+				cty.ListVal([]cty.Value{
+					cty.StringVal("1.0.0"),
+				}),
+			},
+		},
+
 		"split": {
 			{
 				`split(" ", "Hello World")`,

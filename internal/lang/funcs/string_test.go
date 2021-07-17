@@ -71,3 +71,184 @@ func TestReplace(t *testing.T) {
 		})
 	}
 }
+
+func TestSortSemVer(t *testing.T) {
+	tests := []struct {
+		Constraint cty.Value
+		List       cty.Value
+		Want       cty.Value
+		Err        bool
+	}{
+		{
+			cty.StringVal(""),
+			cty.ListValEmpty(cty.String),
+			cty.ListValEmpty(cty.String),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("banana"),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("banana"),
+				cty.StringVal("apple"),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			true,
+		},
+		{
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("0.4.2"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.UnknownVal(cty.List(cty.String)),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{
+			cty.StringVal(""),
+			cty.ListVal([]cty.Value{
+				cty.UnknownVal(cty.String),
+				cty.StringVal("1.0"),
+			}),
+			cty.UnknownVal(cty.List(cty.String)),
+			false,
+		},
+		{
+			cty.StringVal("~>"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.0"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.0"),
+			}),
+			true,
+		},
+		{
+			cty.StringVal("~> 1.0.0"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.0.0"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("~> 1.0"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.3.0"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("~> 1"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal(">= 1.3"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("< 1.3.0"),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1.2.3"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.3.0"),
+				cty.StringVal("2.0.0"),
+				cty.StringVal("0.4.2"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal("0.4.2"),
+				cty.StringVal("1.0.0"),
+				cty.StringVal("1.2.3"),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("SortSemVer(%#v)", test.List), func(t *testing.T) {
+			got, err := SortSemVer(test.Constraint, test.List)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
