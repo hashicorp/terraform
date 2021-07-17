@@ -140,7 +140,7 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 
 	if tlsCfg, err := tlsInfo.ClientConfig(); err != nil {
 		return nil, err
-	} else if !tlsInfo.Empty() {
+	} else if !tlsInfo.Empty() || tlsInfo.TrustedCAFile != "" {
 		config.TLS = tlsCfg // Assign TLS configuration only if it valid and non-empty.
 	}
 
