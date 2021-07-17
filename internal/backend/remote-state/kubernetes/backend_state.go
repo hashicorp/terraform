@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -21,6 +22,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	}
 
 	secrets, err := secretClient.List(
+		context.Background(),
 		metav1.ListOptions{
 			LabelSelector: tfstateKey + "=true",
 		},
