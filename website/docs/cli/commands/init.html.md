@@ -36,12 +36,16 @@ The following options apply to all of (or several of) the initialization steps:
 * `-input=true` Ask for input if necessary. If false, will error if
   input was required.
 
-* `-lock=false` Disable locking of state files during state-related operations.
+* `-lock=false` Disable locking of state files during state-related operations
+
+    -> Note: This option was removed in Terraform 0.15.
 
 * `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
   a state lock. The default is `0s` (zero seconds), which causes immediate
-  failure if the lock is already held by another process.
+  failure if the lock is already held by another process. (Removed since version 0.15.0)
 
+    -> Note: This option was removed in Terraform 0.15.
+    
 * `-no-color` Disable color codes in the command output.
 
 * `-upgrade` Opt to upgrade modules and plugins as part of their respective
