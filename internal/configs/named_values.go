@@ -358,12 +358,11 @@ func decodeVariableValidationBlock(varName string, block *hcl.Block, override bo
 		moreDiags := gohcl.DecodeExpression(attr.Expr, nil, &vv.ErrorMessage)
 		diags = append(diags, moreDiags...)
 		if !moreDiags.HasErrors() {
-			const errSummary = "Invalid validation error message"
 			switch {
 			case vv.ErrorMessage == "":
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  errSummary,
+					Summary:  "Invalid validation error message",
 					Detail:   "An empty string is not a valid nor useful error message.",
 					Subject:  attr.Expr.Range().Ptr(),
 				})
@@ -380,9 +379,9 @@ func decodeVariableValidationBlock(varName string, block *hcl.Block, override bo
 				// because that's not really consistent with the Terraform UI
 				// writing style.
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail:   "The validation error message must be at least one full sentence starting with an uppercase letter and ending with a period or question mark.\n\nYour given message will be included as part of a larger Terraform error message, written as English prose. For broadly-shared modules we suggest using a similar writing style so that the overall result will be consistent.",
+					Severity: hcl.DiagWarning,
+					Summary:  "Validation error message should use consistent writing style",
+					Detail:   "The validation error message should be at least one full sentence starting with an uppercase letter and ending with a period or question mark.\n\nYour given message will be included as part of a larger Terraform error message, written as English prose. For broadly-shared modules we suggest using a similar writing style so that the overall result will be consistent.",
 					Subject:  attr.Expr.Range().Ptr(),
 				})
 			}
