@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -26,8 +27,8 @@ func testACC(t *testing.T) {
 		t.Log("pg backend tests require setting TF_ACC")
 		t.Skip()
 	}
-	if os.Getenv("DATABASE_URL") == "" {
-		os.Setenv("DATABASE_URL", "postgres://localhost/terraform_backend_pg_test?sslmode=disable")
+	if os.Getenv("PG_CONN_STR") == "" {
+		os.Setenv("PG_CONN_STR", "postgres://localhost/terraform_backend_pg_test?sslmode=disable")
 	}
 }
 
@@ -349,6 +350,66 @@ func TestBackendConcurrentLock(t *testing.T) {
 	}
 }
 
+func TestEnvironmentVariable(t *testing.T) {
+	testACC(t)
+	if v, present := os.LookupEnv("PGCONNSTR"); present {
+		defer os.Setenv("PGCONNSTR", v)
+	}
+
+	expected := "postgres://localhost/terraform_backend_pg_test?sslmode=disable"
+	testCases := []struct {
+		name      string
+		pgconnstr string
+		asEnv     bool
+	}{
+		{
+			name:      "as env var",
+			pgconnstr: expected,
+			asEnv:     true,
+		},
+		{
+			name:      "as attribute",
+			pgconnstr: expected,
+			asEnv:     false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := map[string]interface{}{}
+			if tc.asEnv {
+				os.Setenv("PG_CONN_STR", tc.pgconnstr)
+			} else {
+				os.Unsetenv("PG_CONN_STR")
+				config["conn_str"] = tc.pgconnstr
+			}
+			c := backend.TestWrapConfig(config)
+
+			backend := New()
+			schema := backend.ConfigSchema()
+			spec := schema.DecoderSpec()
+			obj, diags := hcldec.Decode(c, spec, nil)
+			if len(diags) != 0 {
+				t.Fatalf("Got diagnostics while decoding config: %s", diags)
+			}
+			obj, tfdiags := backend.(*Backend).PrepareConfig(obj)
+			if len(tfdiags) != 0 {
+				t.Fatalf("Got diagnostics while preparing config: %s", tfdiags)
+			}
+			tfdiags = backend.Configure(obj)
+			if len(tfdiags) != 0 {
+				t.Fatalf("Got diagnostics while configuring: %s", tfdiags)
+			}
+
+			connStr := backend.(*Backend).connStr
+			if connStr != expected {
+				t.Fatalf("Wrong value for conn_str: %q", connStr)
+			}
+		})
+	}
+
+}
+
 func getDatabaseUrl() string {
-	return os.Getenv("DATABASE_URL")
+	return os.Getenv("PG_CONN_STR")
 }

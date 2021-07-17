@@ -71,7 +71,7 @@ data "terraform_remote_state" "network" {
 
 The following configuration options or environment variables are supported:
 
- * `conn_str` - (Required) Postgres connection string; a `postgres://` URL
+ * `conn_str` - (Required) Postgres connection string; a `postgres://` URL. This value can also be sourced from the `PGCONNSTR` environment variable.
  * `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
  * `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Terraform won't try to create the schema. Useful when the Postgres user does not have "create schema" permission on the database.
  * `skip_table_creation` - If set to `true`, the Postgres table must already exist. Terraform won't try to create the table. Useful when the Postgres user does not have "create table" permission on the database.
