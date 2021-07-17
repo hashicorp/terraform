@@ -9,7 +9,7 @@ description: |-
 
 # Provider Configuration
 
-Providers alow Terraform to interact with cloud providers, SaaS providers, and
+Providers allow Terraform to interact with cloud providers, SaaS providers, and
 other APIs.
 
 Some providers require you to configure them with endpoint URLs, cloud regions,
