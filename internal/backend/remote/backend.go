@@ -266,12 +266,9 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Get the token from the config if no token was configured for this
-	// host in credentials section of the CLI Config File.
-	if token == "" {
-		if val := obj.GetAttr("token"); !val.IsNull() {
-			token = val.AsString()
-		}
+	// Override token from the config if it is set
+	if val := obj.GetAttr("token"); !val.IsNull() {
+		token = val.AsString()
 	}
 
 	// Return an error if we still don't have a token at this point.
