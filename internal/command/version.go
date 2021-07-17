@@ -27,6 +27,7 @@ type VersionOutput struct {
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
 	Outdated           bool              `json:"terraform_outdated"`
+	LatestVersion      string            `json:"terraform_latest_version"`
 }
 
 // VersionCheckFunc is the callback called by the Version command to
@@ -131,11 +132,16 @@ func (c *VersionCommand) Run(args []string) int {
 			versionOutput = c.Version
 		}
 
+		if !outdated {
+			latest = versionOutput
+		}
+
 		output := VersionOutput{
 			Version:            versionOutput,
 			Platform:           c.Platform.String(),
 			ProviderSelections: selectionsOutput,
 			Outdated:           outdated,
+			LatestVersion:      latest,
 		}
 
 		jsonOutput, err := json.MarshalIndent(output, "", "  ")
