@@ -83,6 +83,20 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"base32decode": {
+			{
+				`base32decode("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4===")`,
+				cty.StringVal("abc123!?$*&()'-=@~"),
+			},
+		},
+
+		"base32encode": {
+			{
+				`base32encode("abc123!?$*&()'-=@~")`,
+				cty.StringVal("MFRGGMJSGMQT6JBKEYUCSJZNHVAH4==="),
+			},
+		},
+
 		"base64decode": {
 			{
 				`base64decode("YWJjMTIzIT8kKiYoKSctPUB+")`,
@@ -846,6 +860,20 @@ func TestFunctions(t *testing.T) {
 			{
 				`sum([2340.5,10,3])`,
 				cty.NumberFloatVal(2353.5),
+			},
+		},
+
+		"textdecodebase32": {
+			{
+				`textdecodebase32("OQAGKADTAB2AA===", "UTF-16LE")`,
+				cty.StringVal("test"),
+			},
+		},
+
+		"textencodebase32": {
+			{
+				`textencodebase32("test", "UTF-16LE")`,
+				cty.StringVal("OQAGKADTAB2AA==="),
 			},
 		},
 

@@ -3,6 +3,7 @@ package funcs
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -13,6 +14,132 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"golang.org/x/text/encoding/ianaindex"
 )
+
+// Base32DecodeFunc constructs a function that decodes a string containing a base32 sequence.
+var Base32DecodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		s := args[0].AsString()
+		sDec, err := base32.StdEncoding.DecodeString(s)
+		if err != nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode base32 data '%s'", s)
+		}
+		if !utf8.Valid([]byte(sDec)) {
+			log.Printf("[DEBUG] the result of decoding the provided string is not valid UTF-8: %s", sDec)
+			return cty.UnknownVal(cty.String), fmt.Errorf("the result of decoding the provided string is not valid UTF-8")
+		}
+		return cty.StringVal(string(sDec)), nil
+	},
+})
+
+// Base32EncodeFunc constructs a function that encodes a string to a base32 sequence.
+var Base32EncodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.StringVal(base32.StdEncoding.EncodeToString([]byte(args[0].AsString()))), nil
+	},
+})
+
+// TextEncodeBase32Func constructs a function that encodes a string to a target encoding and then to a base32 sequence.
+var TextEncodeBase32Func = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "string",
+			Type: cty.String,
+		},
+		{
+			Name: "encoding",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		encoding, err := ianaindex.IANA.Encoding(args[1].AsString())
+		if err != nil || encoding == nil {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "%q is not a supported IANA encoding name or alias in this Terraform version", args[1].AsString())
+		}
+
+		encName, err := ianaindex.IANA.Name(encoding)
+		if err != nil { // would be weird, since we just read this encoding out
+			encName = args[1].AsString()
+		}
+
+		encoder := encoding.NewEncoder()
+		encodedInput, err := encoder.Bytes([]byte(args[0].AsString()))
+		if err != nil {
+			// The string representations of "err" disclose implementation
+			// details of the underlying library, and the main error we might
+			// like to return a special message for is unexported as
+			// golang.org/x/text/encoding/internal.RepertoireError, so this
+			// is just a generic error message for now.
+			//
+			// We also don't include the string itself in the message because
+			// it can typically be very large, contain newline characters,
+			// etc.
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given string contains characters that cannot be represented in %s", encName)
+		}
+
+		return cty.StringVal(base32.StdEncoding.EncodeToString(encodedInput)), nil
+	},
+})
+
+// TextDecodeBase32Func constructs a function that decodes a base32 sequence to a target encoding.
+var TextDecodeBase32Func = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "source",
+			Type: cty.String,
+		},
+		{
+			Name: "encoding",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		encoding, err := ianaindex.IANA.Encoding(args[1].AsString())
+		if err != nil || encoding == nil {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "%q is not a supported IANA encoding name or alias in this Terraform version", args[1].AsString())
+		}
+
+		encName, err := ianaindex.IANA.Name(encoding)
+		if err != nil { // would be weird, since we just read this encoding out
+			encName = args[1].AsString()
+		}
+
+		s := args[0].AsString()
+		sDec, err := base32.StdEncoding.DecodeString(s)
+		if err != nil {
+			switch err := err.(type) {
+			case base32.CorruptInputError:
+				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given value is has an invalid base32 symbol at offset %d", int(err))
+			default:
+				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "invalid source string: %T", err)
+			}
+
+		}
+
+		decoder := encoding.NewDecoder()
+		decoded, err := decoder.Bytes(sDec)
+		if err != nil || bytes.ContainsRune(decoded, '�') {
+			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given string contains symbols that are not defined for %s", encName)
+		}
+
+		return cty.StringVal(string(decoded)), nil
+	},
+})
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
 var Base64DecodeFunc = function.New(&function.Spec{
@@ -181,6 +308,52 @@ var URLEncodeFunc = function.New(&function.Spec{
 		return cty.StringVal(url.QueryEscape(args[0].AsString())), nil
 	},
 })
+
+// Base32Decode decodes a string containing a base32 sequence.
+//
+// Terraform uses the "standard" Base32 alphabet as defined in RFC 4648 section 6.
+//
+// Strings in the Terraform language are sequences of unicode characters rather
+// than bytes, so this function will also interpret the resulting bytes as
+// UTF-8. If the bytes after Base32 decoding are _not_ valid UTF-8, this function
+// produces an error.
+func Base32Decode(str cty.Value) (cty.Value, error) {
+	return Base32DecodeFunc.Call([]cty.Value{str})
+}
+
+// Base32Encode applies Base32 encoding to a string.
+//
+// Terraform uses the "standard" Base32 alphabet as defined in RFC 4648 section 6.
+//
+// Strings in the Terraform language are sequences of unicode characters rather
+// than bytes, so this function will first encode the characters from the string
+// as UTF-8, and then apply Base32 encoding to the result.
+func Base32Encode(str cty.Value) (cty.Value, error) {
+	return Base32EncodeFunc.Call([]cty.Value{str})
+}
+
+// TextEncodeBase32 applies Base32 encoding to a string that was encoded before with a target encoding.
+//
+// Terraform uses the "standard" Base32 alphabet as defined in RFC 4648 section 6.
+//
+// First step is to apply the target IANA encoding (e.g. UTF-16LE).
+// Strings in the Terraform language are sequences of unicode characters rather
+// than bytes, so this function will first encode the characters from the string
+// as UTF-8, and then apply Base32 encoding to the result.
+func TextEncodeBase32(str, enc cty.Value) (cty.Value, error) {
+	return TextEncodeBase32Func.Call([]cty.Value{str, enc})
+}
+
+// TextDecodeBase32 decodes a string containing a base32 sequence whereas a specific encoding of the string is expected.
+//
+// Terraform uses the "standard" Base32 alphabet as defined in RFC 4648 section 6.
+//
+// Strings in the Terraform language are sequences of unicode characters rather
+// than bytes, so this function will also interpret the resulting bytes as
+// the target encoding.
+func TextDecodeBase32(str, enc cty.Value) (cty.Value, error) {
+	return TextDecodeBase32Func.Call([]cty.Value{str, enc})
+}
 
 // Base64Decode decodes a string containing a base64 sequence.
 //
