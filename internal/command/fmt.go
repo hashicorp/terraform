@@ -55,11 +55,6 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The fmt command expects at most one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
 
 	var paths []string
 	if len(args) == 0 {
@@ -68,7 +63,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.list = false
 		c.write = false
 	} else {
-		paths = []string{args[0]}
+		paths = args
 	}
 
 	var output io.Writer
@@ -528,15 +523,18 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] fmt [options] [DIR]
+Usage: terraform [global options] fmt [options] PATH...
 
 	Rewrites all Terraform configuration files to a canonical format. Both
 	configuration files (.tf) and variables files (.tfvars) are updated.
 	JSON files (.tf.json or .tfvars.json) are not modified.
 
-	If DIR is not specified then the current working directory will be used.
-	If DIR is "-" then content will be read from STDIN. The given content must
+	If PATH is not specified then the current working directory will be used.
+	If PATH is "-" then content will be read from STDIN. The given content must
 	be in the Terraform language native syntax; JSON is not supported.
+
+	If PATH is a directory it will format the whole directory, otherwise it will
+	format the file (must be .tf or .tfvars).
 
 Options:
 
