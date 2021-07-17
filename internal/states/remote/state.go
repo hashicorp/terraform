@@ -3,10 +3,12 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statecrypto"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
@@ -121,7 +123,13 @@ func (s *State) refreshState() error {
 		return nil
 	}
 
-	stateFile, err := statefile.Read(bytes.NewReader(payload.Data))
+	decrypted, err := statecrypto.StateCryptoWrapper().Decrypt(payload.Data)
+	if err != nil {
+		log.Printf("[ERROR] remote state decryption failed: %s", err.Error())
+		return err
+	}
+
+	stateFile, err := statefile.Read(bytes.NewReader(decrypted))
 	if err != nil {
 		return err
 	}
@@ -178,7 +186,13 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	err = s.Client.Put(buf.Bytes())
+	maybeEncrypted, err := statecrypto.StateCryptoWrapper().Encrypt(buf.Bytes())
+	if err != nil {
+		log.Printf("[ERROR] remote state encryption failed: %s", err.Error())
+		return err
+	}
+
+	err = s.Client.Put(maybeEncrypted)
 	if err != nil {
 		return err
 	}
