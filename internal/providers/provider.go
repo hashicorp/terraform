@@ -3,7 +3,6 @@ package providers
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -86,13 +85,6 @@ type GetProviderSchemaResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
-}
-
-// Schema pairs a provider or resource schema with that schema's version.
-// This is used to be able to upgrade the schema in UpgradeResourceState.
-type Schema struct {
-	Version int64
-	Block   *configschema.Block
 }
 
 type ValidateProviderConfigRequest struct {

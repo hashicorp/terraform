@@ -2,10 +2,12 @@ package addrs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Reference describes a reference to an address with source location
@@ -14,6 +16,43 @@ type Reference struct {
 	Subject     Referenceable
 	SourceRange tfdiags.SourceRange
 	Remaining   hcl.Traversal
+}
+
+// DisplayString returns a string that approximates the subject and remaining
+// traversal of the reciever in a way that resembles the Terraform language
+// syntax that could've produced it.
+//
+// It's not guaranteed to actually be a valid Terraform language expression,
+// since the intended use here is primarily for UI messages such as
+// diagnostics.
+func (r *Reference) DisplayString() string {
+	if len(r.Remaining) == 0 {
+		// Easy case: we can just return the subject's string.
+		return r.Subject.String()
+	}
+
+	var ret strings.Builder
+	ret.WriteString(r.Subject.String())
+	for _, step := range r.Remaining {
+		switch tStep := step.(type) {
+		case hcl.TraverseRoot:
+			ret.WriteString(tStep.Name)
+		case hcl.TraverseAttr:
+			ret.WriteByte('.')
+			ret.WriteString(tStep.Name)
+		case hcl.TraverseIndex:
+			ret.WriteByte('[')
+			switch tStep.Key.Type() {
+			case cty.String:
+				ret.WriteString(fmt.Sprintf("%q", tStep.Key.AsString()))
+			case cty.Number:
+				bf := tStep.Key.AsBigFloat()
+				ret.WriteString(bf.Text('g', 10))
+			}
+			ret.WriteByte(']')
+		}
+	}
+	return ret.String()
 }
 
 // ParseRef attempts to extract a referencable address from the prefix of the

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -154,4 +156,37 @@ func (b *Local) opPlan(
 	if !runningOp.PlanEmpty {
 		op.View.PlanNextStep(op.PlanOutPath)
 	}
+}
+
+// findResourcesPossiblyContributingToPlan is a heuristic that tries to
+// identify which upstream resources may have led to the changes proposed
+// in the given plan.
+//
+// We use this as a hint for the human-oriented renderer of detected changes
+// outside of Terraform (from "refresh") so it can use a more compact
+// presentation for external changes that seem unrelated to the changes
+// Terraform is proposing to make.
+func findResourcesPossiblyContributingToPlan(azr *globalref.Analyzer, plan *plans.Plan) []addrs.AbsResource {
+	// For the moment we're using a relatively coarse heuristic here: a
+	// resource "possibly contributes" if we can find a possibly-indirect
+	// path to that resource through references from any resource that has a
+	// proposed change in the plan.
+	//
+	// This doesn't consider exactly which attributes are proposed to be
+	// changed or that have had external changes detected. Perhaps we'll make
+	// this more precise later, if that seems warranted.
+
+	// Collect up all of the references inside the configuration for any
+	// resource instance that has a proposed change.
+	var refs []globalref.Reference
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.NoOp {
+			continue
+		}
+		instAddr := change.Addr
+		moreRefs := azr.ReferencesFromResourceInstance(instAddr)
+		refs = append(refs, moreRefs...)
+	}
+
+	return azr.ContributingResources(refs...)
 }
