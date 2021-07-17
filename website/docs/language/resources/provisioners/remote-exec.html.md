@@ -12,7 +12,8 @@ The `remote-exec` provisioner invokes a script on a remote resource after it
 is created. This can be used to run a configuration management tool, bootstrap
 into a cluster, etc. To invoke a local process, see the `local-exec`
 [provisioner](/docs/language/resources/provisioners/local-exec.html) instead. The `remote-exec`
-provisioner supports both `ssh` and `winrm` type [connections](/docs/language/resources/provisioners/connection.html).
+provisioner requires a [connection](/docs/language/resources/provisioners/connection.html)
+and supports both `ssh` and `winrm`.
 
 -> **Note:** Provisioners should only be used as a last resort. For most
 common situations there are better alternatives. For more information, see
@@ -23,6 +24,15 @@ common situations there are better alternatives. For more information, see
 ```hcl
 resource "aws_instance" "web" {
   # ...
+
+  # Establishes connection to be used by all 
+  # generic remote provisioners (i.e. file/remote-exec)
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
 
   provisioner "remote-exec" {
     inline = [
