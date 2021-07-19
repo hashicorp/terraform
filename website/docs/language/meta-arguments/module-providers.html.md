@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "The Module providers Meta-Argument - Configuration Language"
-description: |-
-  The `providers` meta-argument specifies which provider configurations from a parent module are available inside a child module.
+description: "`providers` specifies which provider configurations from a parent module are available in a child module."
 ---
 
 # The Module `providers` Meta-Argument

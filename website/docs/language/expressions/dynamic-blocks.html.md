@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Dynamic Blocks - Configuration Language"
-description: |-
-  `dynamic` blocks dynamically construct multi-level, nested block structures. Learn to configure `dynamic` blocks and understand their behavior. 
+description: "`dynamic` blocks automatically construct multi-level, nested block structures. Learn to configure `dynamic` blocks and understand their behavior." 
 ---
 
 

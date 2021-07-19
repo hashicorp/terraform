@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "State"
 sidebar_current: "docs-state"
-description: |-
-  An introduction to state, information that Terraform uses to map resources to a configuration, track metadata, and improve performance.
+description: "An introduction to state, information that Terraform uses to map resources to a configuration, track metadata, and improve performance."
 ---
 
 # State

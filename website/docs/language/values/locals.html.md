@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Local Values - Configuration Language"
 sidebar_current: "docs-config-locals"
-description: |-
-  Local values assign a name to an expression that can be used multiple times within a Terraform module.
+description: "Local values assign a name to an expression that can be used multiple times within a Terraform module."
 ---
 
 # Local Values

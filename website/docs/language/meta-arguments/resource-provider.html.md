@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "The Resource provider Meta-Argument - Configuration Language"
-description: |-
-  The `provider` meta-argument specifies which provider configuration Terraform should use for a resource.
+description: "`provider` specifies the provider configuration Terraform should use for a resource, overriding Terraform's default behavior."
 ---
 
 # The Resource `provider` Meta-Argument

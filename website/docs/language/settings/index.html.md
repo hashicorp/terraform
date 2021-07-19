@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
-description: |-
-  The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, and required providers.
+description: "The `terraform` block allows you to configure Terraform behavior, including the Terraform version, backend, and required providers."
 ---
 
 # Terraform Settings

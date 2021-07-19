@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Files and Directories - Configuration Language"
-description: |-
-  Learn how to name, organize, and store Terraform configuration files as well as how Terraform evaluates modules.
+description: "Learn how to name, organize, and store Terraform configuration files. Also learn how Terraform evaluates modules."
 ---
 
 # Files and Directories

@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Backend Overview - Configuration Language"
-description: |-
-  A backend defines where and how Terraform performs operations, such as where it stores state files. Learn about recommended backends and how backends work.
+description: "A backend defines where and how Terraform performs operations, such as where it stores state files. Learn about recommended backends and how backends work."
 ---
 
 # Backends

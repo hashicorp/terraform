@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Function Calls - Configuration Language"
-description: |-
-  Function calls transform and combine values. Learn about Terraform's built-in functions.
+description: "Functions transform and combine values. Learn about Terraform's built-in functions."
 ---
 
 # Function Calls

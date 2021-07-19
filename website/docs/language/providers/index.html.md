@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Providers - Configuration Language"
-description: |-
-  An overview of how to install and use providers, Terraform plugins that interact with services, cloud providers, and other APIs. 
+description: "An overview of how to install and use providers, Terraform plugins that interact with services, cloud providers, and other APIs." 
 ---
 
 # Providers

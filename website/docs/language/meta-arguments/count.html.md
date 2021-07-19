@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "The count Meta-Argument - Configuration Language"
-description: |-
-  The `count` meta-argument helps you efficiently manage nearly identical infrastructure resources without writing a separate block for each one.
+description: "`count` helps you efficiently manage nearly identical infrastructure resources without writing a separate block for each one."
 ---
 
 # The `count` Meta-Argument

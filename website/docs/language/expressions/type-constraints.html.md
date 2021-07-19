@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Type Constraints - Configuration Language"
 sidebar_current: "docs-config-types"
-description: |-
-  Learn how to use type constraints to validate user inputs to modules and resources.
+description: "Learn how to use type constraints to validate user inputs to modules and resources."
 ---
 
 # Type Constraints

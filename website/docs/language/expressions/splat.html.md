@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Splat Expressions - Configuration Language"
-description: |-
-  Splat expressions concisely express common operations. They also transform single, non-null values into a single-element tuple.
+description: "Splat expressions concisely represent common operations. In Terraform, they also transform single, non-null values into a single-element tuple."
 ---
 
 # Splat Expressions

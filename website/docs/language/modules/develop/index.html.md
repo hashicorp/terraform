@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Creating Modules"
 sidebar_current: "docs-modules"
-description: |-
-  Modules are containers for multiple resources that are used together in a configuration. Learn when to create modules and about module structure.
+description: "Modules are containers for multiple resources that are used together in a configuration. Learn when to create modules and about module structure."
 ---
 
 # Creating Modules

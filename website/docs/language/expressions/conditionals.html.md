@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Conditional Expressions - Configuration Language"
-description: |-
-  Conditional expressions in configurations select one of two values. You can use them to define defaults to replace invalid values.
+description: "Conditional expressions select one of two values. You can use them to define defaults to replace invalid values."
 ---
 
 # Conditional Expressions

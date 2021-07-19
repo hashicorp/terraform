@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax"
-description: |-
-  Key constructs of the native Terraform language syntax, including identifiers, arguments, blocks, and comments.
+description: "Key constructs of the native Terraform language syntax, including identifiers, arguments, blocks, and comments."
 ---
 
 # Configuration Syntax

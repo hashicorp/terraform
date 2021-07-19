@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Provisioners"
 sidebar_current: "docs-provisioners"
-description: |-
-  Provisioners run scripts on a local or remote machine during resource creation or destruction. Learn how to declare provisioners in a configuration.
+description: "Provisioners run scripts on a local or remote machine during resource creation or destruction. Learn how to declare provisioners in a configuration."
 ---
 
 # Provisioners

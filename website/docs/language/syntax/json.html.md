@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "JSON Configuration Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax-json"
-description: |-
-  Details about the JSON-compatible language syntax, including file structure, expression mapping, block mapping, and block-type-specific exceptions.
+description: "Learn about the JSON-compatible language syntax, including file structure, expression mapping, block mapping, and block-type-specific exceptions."
 ---
 
 # JSON Configuration Syntax

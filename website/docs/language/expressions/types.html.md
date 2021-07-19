@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Types and Values - Configuration Language"
-description: |-
-  Learn about value types and their syntax, including string, number, bool, list, and map. Also learn about complex types and type conversion.
+description: "Learn about value types and syntax, including string, number, bool, list, and map. Also learn about complex types and type conversion."
 ---
 
 # Types and Values

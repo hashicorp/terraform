@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "Modules Overview - Configuration Language"
-description: |-
-  Modules are containers for multiple resources that are used together in a configuration. Find resources for using, developing, and publishing modules.
+description: "Modules are containers for multiple resources that are used together in a configuration. Find resources for using, developing, and publishing modules."
 ---
 
 # Modules

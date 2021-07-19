@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Modules - Configuration Language"
 sidebar_current: "docs-config-modules"
-description: |-
-  Modules are containers for multiple resources that are used together. Learn how to call one module from another in configurations.
+description: "Modules are containers for multiple resources that are used together in configurations. Learn how to call one module from another and access module output."
 ---
 
 # Module Blocks

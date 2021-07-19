@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Data Sources - Configuration Language"
 sidebar_current: "docs-config-data-sources"
-description: |-
-Data sources allow Terraform to use external data, function output, and data from other configurations. Terraform accesses them via data resources.
+description: "Data sources allow Terraform to use external data, function output, and data from other configurations. Learn data resource arguments, behavior, and lifecycle."
 ---
 
 # Data Sources

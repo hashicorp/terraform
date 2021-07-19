@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Style Conventions - Configuration Language"
 sidebar_current: "docs-config-style"
-description: |-
-  Recommended formatting conventions for the Terraform language.
+description: "Learn recommended formatting conventions for the Terraform language and a command to automatically enforce them."
 ---
 
 # Style Conventions
