@@ -10,6 +10,7 @@ BUG FIXES:
 * configs/configschema: fix missing "computed" attributes from `NestedObject` `ImpliedType` [GH-29177]
 * backend/pg: prevent the creation of multiple workspaces with the same name [GH-29157]
 * backend/oss: Fix issue where STS auth was not supported [GH-29167]
+* backend/etcdv3: Add `max_request_bytes` allowing larger requests and for the client to match the server request limit [GH-28078]
 
 ## 1.0.2 (July 07, 2021)
 
