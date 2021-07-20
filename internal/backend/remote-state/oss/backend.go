@@ -319,20 +319,14 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if endpoint == "" {
-		endpointItem, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
-		if endpointItem != nil && len(endpointItem.Endpoint) > 0 {
-			if len(endpointItem.Protocols.Protocols) > 0 {
-				// HTTP or HTTPS
-				schma = strings.ToLower(endpointItem.Protocols.Protocols[0])
-				for _, p := range endpointItem.Protocols.Protocols {
-					if strings.ToLower(p) == "https" {
-						schma = strings.ToLower(p)
-						break
-					}
-				}
+		endpointsResponse, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
+		for _, endpointItem := range endpointsResponse.Endpoints.Endpoint {
+			if endpointItem.Type == "openAPI" {
+				endpoint = endpointItem.Endpoint
+				break
 			}
-			endpoint = endpointItem.Endpoint
-		} else {
+		}
+		if endpoint == "" {
 			endpoint = fmt.Sprintf("oss-%s.aliyuncs.com", region)
 		}
 	}
@@ -367,8 +361,8 @@ func (b *Backend) configure(ctx context.Context) error {
 	return err
 }
 
-func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token, region string) (*location.DescribeEndpointResponse, error) {
-	args := location.CreateDescribeEndpointRequest()
+func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token, region string) (*location.DescribeEndpointsResponse, error) {
+	args := location.CreateDescribeEndpointsRequest()
 	args.ServiceCode = "oss"
 	args.Id = region
 	args.Domain = "location-readonly.aliyuncs.com"
@@ -379,7 +373,7 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 
 	}
 	locationClient.AppendUserAgent(TerraformUA, TerraformVersion)
-	endpointsResponse, err := locationClient.DescribeEndpoint(args)
+	endpointsResponse, err := locationClient.DescribeEndpoints(args)
 	if err != nil {
 		return nil, fmt.Errorf("Describe oss endpoint using region: %#v got an error: %#v.", region, err)
 	}
