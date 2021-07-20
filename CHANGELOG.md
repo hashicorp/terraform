@@ -8,6 +8,7 @@ ENHANCEMENTS
 BUG FIXES:
 
 * configs/configschema: fix missing "computed" attributes from `NestedObject` `ImpliedType` [GH-29177]
+* backend/pg: prevent the creation of multiple workspaces with the same name [GH-29157]
 
 ## 1.0.2 (July 07, 2021)
 
