@@ -509,7 +509,8 @@ output "out" {
 }
 
 func TestContext2Apply_ignoreImpureFunctionChanges(t *testing.T) {
-	// Ensure we're not trying to double-mark values decoded from state
+	// The impure function call should not cause a planned change with
+	// ignore_changes
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 variable "pw" {
@@ -523,6 +524,15 @@ resource "test_object" "x" {
   }
   lifecycle {
     ignore_changes = [ test_map["string"] ]
+  }
+}
+
+resource "test_object" "y" {
+  test_map = {
+	string = "X${bcrypt(var.pw)}"
+  }
+  lifecycle {
+    ignore_changes = [ test_map ]
   }
 }
 
