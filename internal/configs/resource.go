@@ -213,9 +213,11 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				// resource entirely.
 				//   ignore_changes = [ami, instance_type]
 				//   ignore_changes = all
-				// We also allow two legacy forms for compatibility with earlier
+				// We also allow a legacy forms for compatibility with earlier
 				// versions:
 				//   ignore_changes = ["ami", "instance_type"]
+				// We no longer support the following legacy equivalent of
+				// "all", though earlier versions did:
 				//   ignore_changes = ["*"]
 
 				kw := hcl.ExprAsKeyword(attr.Expr)
@@ -227,20 +229,18 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 					exprs, listDiags := hcl.ExprList(attr.Expr)
 					diags = append(diags, listDiags...)
 
-					var ignoreAllRange hcl.Range
-
 					for _, expr := range exprs {
 
 						// our expr might be the literal string "*", which
 						// we accept as a deprecated way of saying "all".
 						if shimIsIgnoreChangesStar(expr) {
 							r.Managed.IgnoreAllChanges = true
-							ignoreAllRange = expr.Range()
+							ignoreAllRange := expr.Range()
 							diags = append(diags, &hcl.Diagnostic{
 								Severity: hcl.DiagError,
 								Summary:  "Invalid ignore_changes wildcard",
 								Detail:   "The [\"*\"] form of ignore_changes wildcard is was deprecated and is now invalid. Use \"ignore_changes = all\" to ignore changes to all attributes.",
-								Subject:  attr.Expr.Range().Ptr(),
+								Subject:  ignoreAllRange.Ptr(),
 							})
 							continue
 						}
@@ -254,17 +254,6 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 							r.Managed.IgnoreChanges = append(r.Managed.IgnoreChanges, traversal)
 						}
 					}
-
-					if r.Managed.IgnoreAllChanges && len(r.Managed.IgnoreChanges) != 0 {
-						diags = append(diags, &hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Invalid ignore_changes ruleset",
-							Detail:   "Cannot mix wildcard string \"*\" with non-wildcard references.",
-							Subject:  &ignoreAllRange,
-							Context:  attr.Expr.Range().Ptr(),
-						})
-					}
-
 				}
 
 			}
