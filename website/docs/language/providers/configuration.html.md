@@ -2,14 +2,12 @@
 layout: "language"
 page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
-description: |-
-  Learn how to configure provider settings and alias providers to use multiple
-  different provider configurations in the same Terraform project.
+description: "Learn how to set up providers, including how to use the `alias` meta-argument to specify multiple configurations for a single provider."
 ---
 
 # Provider Configuration
 
-Providers alow Terraform to interact with cloud providers, SaaS providers, and
+Providers allow Terraform to interact with cloud providers, SaaS providers, and
 other APIs.
 
 Some providers require you to configure them with endpoint URLs, cloud regions,

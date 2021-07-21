@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "Provider Requirements - Configuration Language"
+description: "Providers are plugins that allow Terraform to interact with services, cloud providers, and other APIs. Learn how to declare providers in a configuration."
 ---
 
 # Provider Requirements

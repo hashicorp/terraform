@@ -2,9 +2,7 @@
 layout: "language"
 page_title: "JSON Configuration Syntax - Configuration Language"
 sidebar_current: "docs-config-syntax-json"
-description: |-
-  In addition to the native syntax that is most commonly used with Terraform,
-  the Terraform language can also be expressed in a JSON-compatible syntax.
+description: "Learn about the JSON-compatible language syntax, including file structure, expression mapping, block mapping, and block-type-specific exceptions."
 ---
 
 # JSON Configuration Syntax

@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "Provisioners Overview - Configuration Language"
+description: "Provisioners model specific actions on a local or remote machine to prepare servers or other infrastructure for service."
 ---
 
 # Provisioners
