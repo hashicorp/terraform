@@ -2868,6 +2868,53 @@ func TestResourceChange_nestedSet(t *testing.T) {
 
 func TestResourceChange_nestedMap(t *testing.T) {
 	testCases := map[string]testCase{
+		"creation from null": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"ami": cty.NullVal(cty.String),
+				"disks": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				}))),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + ami   = "ami-AFTER"
+      + disks = {
+          + "disk_a" = {
+            + mount_point = "/var/diska"
+          },
+        }
+      + id    = "i-02ae66f368e8518a9"
+
+      + root_block_device "a" {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
 		"in-place update - creation": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
