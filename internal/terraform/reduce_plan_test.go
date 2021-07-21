@@ -382,7 +382,7 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				ignore[i] = trav
 			}
 
-			ret, diags := processIgnoreChangesIndividual(test.Old, test.New, ignore)
+			ret, diags := processIgnoreChangesIndividual(test.Old, test.New, traversalsToPaths(ignore))
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
