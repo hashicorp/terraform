@@ -58,7 +58,7 @@ func TestStaticValidateTraversal(t *testing.T) {
 		},
 		{
 			`obj.str.nonexist`,
-			`Unsupported attribute: This value does not have any attributes.`,
+			`Unsupported attribute: Can't access attributes on a primitive-typed value (string).`,
 		},
 		{
 			`obj.list`,
