@@ -17,6 +17,7 @@ const (
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
 	ConfigDrivenMove               = Experiment("config_driven_move")
+	UnusedAttrs                    = Experiment("unused_attrs")
 )
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
 	registerCurrentExperiment(ConfigDrivenMove)
+	registerCurrentExperiment(UnusedAttrs)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
