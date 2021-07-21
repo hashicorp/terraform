@@ -11,6 +11,8 @@ BUG FIXES:
 * `terraform plan`: Will no longer panic when trying to render null maps. [GH-29207]
 * backend/pg: Prevent the creation of multiple workspaces with the same name. [GH-29157]
 * backend/oss: STS auth is now supported. [GH-29167]
+* config: Dynamic blocks with unknown for_each values were not being validated. Ensure block attributes are valid even when the block is unknown [GH-29208]
+* config: Unknown values in string templates could lose sensitivity, causing the planned change to be inaccurate [GH-29208]
 
 ## 1.0.2 (July 07, 2021)
 
