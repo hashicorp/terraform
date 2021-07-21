@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -35,6 +36,47 @@ func FormatCtyPath(path cty.Path) string {
 				buf.WriteString("...")
 			}
 			buf.WriteByte(']')
+		}
+	}
+	return buf.String()
+}
+
+// FormatHCLTraversal is a helper function to produce a user-friendly string
+// representation of a hcl.Traversal. The result uses a syntax similar to the
+// HCL expression language in the hope of it being familiar to users.
+func FormatHCLTraversal(traversal hcl.Traversal) string {
+	var buf bytes.Buffer
+	for _, step := range traversal {
+		switch ts := step.(type) {
+		case hcl.TraverseRoot:
+			buf.WriteString(ts.Name)
+		case hcl.TraverseAttr:
+			fmt.Fprintf(&buf, ".%s", ts.Name)
+		case hcl.TraverseIndex:
+			buf.WriteByte('[')
+			key := ts.Key
+			keyTy := key.Type()
+			switch {
+			case key.IsNull():
+				buf.WriteString("null")
+			case !key.IsKnown():
+				buf.WriteString("(not yet known)")
+			case keyTy == cty.Number:
+				bf := key.AsBigFloat()
+				buf.WriteString(bf.Text('g', -1))
+			case keyTy == cty.String:
+				buf.WriteString(strconv.Quote(key.AsString()))
+			default:
+				buf.WriteString("...")
+			}
+			buf.WriteByte(']')
+		case hcl.TraverseSplat:
+			buf.WriteString("[*]")
+			buf.WriteString(FormatHCLTraversal(ts.Each))
+		default:
+			// Shouldn't get here because the above should be exhaustive
+			// for all HCL traversal step types.
+			buf.WriteString("[???]")
 		}
 	}
 	return buf.String()

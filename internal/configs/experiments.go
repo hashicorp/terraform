@@ -208,6 +208,28 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	}
 
+	if !m.ActiveExperiments.Has(experiments.UnusedAttrs) {
+		for _, rc := range m.ManagedResources {
+			if rc.Managed.UnusedSet {
+				// We don't retain the source range for the "unused" argument
+				// itself because we wouldn't need it for any purpose other
+				// than this temporary error, so we'll just fudge it as
+				// closely as we can.
+				rng := rc.DeclRange
+				if len(rc.Managed.Unused) > 0 {
+					rng = rc.Managed.Unused[0].SourceRange()
+				}
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "The \"unused\" argument is experimental",
+					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding unused_attrs to the list of active experiments.",
+					Subject:  rng.Ptr(),
+				})
+			}
+		}
+	}
+
 	return diags
 }
 

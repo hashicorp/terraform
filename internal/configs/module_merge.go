@@ -234,6 +234,10 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		if len(or.Managed.Provisioners) != 0 {
 			r.Managed.Provisioners = or.Managed.Provisioners
 		}
+		if or.Managed.UnusedSet {
+			r.Managed.Unused = or.Managed.Unused
+			r.Managed.UnusedSet = or.Managed.UnusedSet
+		}
 	}
 
 	r.Config = MergeBodies(r.Config, or.Config)

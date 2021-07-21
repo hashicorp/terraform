@@ -43,6 +43,9 @@ type ManagedResource struct {
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
+	Unused    []hcl.Traversal
+	UnusedSet bool
+
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
 }
@@ -172,6 +175,35 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.PreventDestroy)
 				diags = append(diags, valDiags...)
 				r.Managed.PreventDestroySet = true
+			}
+
+			if attr, exists := lcContent.Attributes["unused"]; exists {
+				if kw := hcl.ExprAsKeyword(attr.Expr); kw == "all" {
+					// This keyword is allowed for ignore_changes, and unused
+					// has a similar syntax to ignore_changes, so we'll use
+					// a special error message for that case.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid \"unused\" wildcard",
+						Detail:   "Unlike \"ignore_changes\", the \"unused\" lifecycle argument does not accept the \"all\" keyword, because that would make it impossible to configure or refer to this resource.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+				} else {
+					// Although similar to the _modern_ ignore_changes syntax,
+					// unused intentionally doesn't support all of the old
+					// backward-compatibility shims because we introduced it
+					// long after Terraform v0.11.
+					exprs, moreDiags := hcl.ExprList(attr.Expr)
+					diags = append(diags, moreDiags...)
+					for _, expr := range exprs {
+						traversal, moreDiags := hcl.RelTraversalForExpr(expr)
+						diags = append(diags, moreDiags...)
+						if len(traversal) != 0 {
+							r.Managed.Unused = append(r.Managed.Unused, traversal)
+						}
+					}
+					r.Managed.UnusedSet = true
+				}
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
@@ -559,14 +591,9 @@ var dataBlockSchema = &hcl.BodySchema{
 
 var resourceLifecycleBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
-		{
-			Name: "create_before_destroy",
-		},
-		{
-			Name: "prevent_destroy",
-		},
-		{
-			Name: "ignore_changes",
-		},
+		{Name: "create_before_destroy"},
+		{Name: "prevent_destroy"},
+		{Name: "ignore_changes"},
+		{Name: "unused"},
 	},
 }
