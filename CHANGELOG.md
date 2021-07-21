@@ -1,18 +1,18 @@
-## 1.0.3 (Unreleased)
+## 1.0.3 (July 21, 2021)
 
 ENHANCEMENTS
 
-* `terraform plan`: The JSON logs (`-json` option) will now include `resource_drift`, showing changes detected outside of Terraform during the refresh step. [GH-29072]
-* core: The automatic provider installer will now accept providers that are recorded in their registry as using provider protocol version 6. [GH-29153]
-* backend/etcdv3: New argument `max_request_bytes` allows larger requests and for the client, to match the server request limit. [GH-28078]
+* `terraform plan`: The JSON logs (`-json` option) will now include `resource_drift`, showing changes detected outside of Terraform during the refresh step. ([#29072](https://github.com/hashicorp/terraform/issues/29072))
+* core: The automatic provider installer will now accept providers that are recorded in their registry as using provider protocol version 6. ([#29153](https://github.com/hashicorp/terraform/issues/29153))
+* backend/etcdv3: New argument `max_request_bytes` allows larger requests and for the client, to match the server request limit. ([#28078](https://github.com/hashicorp/terraform/issues/28078))
 
 BUG FIXES:
 
-* `terraform plan`: Will no longer panic when trying to render null maps. [GH-29207]
-* backend/pg: Prevent the creation of multiple workspaces with the same name. [GH-29157]
-* backend/oss: STS auth is now supported. [GH-29167]
-* config: Dynamic blocks with unknown for_each values were not being validated. Ensure block attributes are valid even when the block is unknown [GH-29208]
-* config: Unknown values in string templates could lose sensitivity, causing the planned change to be inaccurate [GH-29208]
+* `terraform plan`: Will no longer panic when trying to render null maps. ([#29207](https://github.com/hashicorp/terraform/issues/29207))
+* backend/pg: Prevent the creation of multiple workspaces with the same name. ([#29157](https://github.com/hashicorp/terraform/issues/29157))
+* backend/oss: STS auth is now supported. ([#29167](https://github.com/hashicorp/terraform/issues/29167))
+* config: Dynamic blocks with unknown for_each values were not being validated. Ensure block attributes are valid even when the block is unknown ([#29208](https://github.com/hashicorp/terraform/issues/29208))
+* config: Unknown values in string templates could lose sensitivity, causing the planned change to be inaccurate ([#29208](https://github.com/hashicorp/terraform/issues/29208))
 
 ## 1.0.2 (July 07, 2021)
 
