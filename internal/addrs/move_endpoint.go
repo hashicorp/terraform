@@ -39,6 +39,10 @@ type MoveEndpoint struct {
 	relSubject AbsMoveable
 }
 
+func (e *MoveEndpoint) ObjectKind() MoveEndpointKind {
+	return absMoveableEndpointKind(e.relSubject)
+}
+
 func (e *MoveEndpoint) String() string {
 	// Our internal pseudo-AbsMovable representing the relative
 	// address (either ModuleInstance or AbsResourceInstance) is
@@ -73,7 +77,7 @@ func (e *MoveEndpoint) MightUnifyWith(other *MoveEndpoint) bool {
 	// address, because the rules for whether unify can succeed depend
 	// only on the relative part of the addresses, not on which module
 	// they were declared in.
-	from, to := UnifyMoveEndpoints(RootModuleInstance, e, other)
+	from, to := UnifyMoveEndpoints(RootModule, e, other)
 	return from != nil && to != nil
 }
 
@@ -147,11 +151,10 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 
 // UnifyMoveEndpoints takes a pair of MoveEndpoint objects representing the
 // "from" and "to" addresses in a moved block, and returns a pair of
-// AbsMoveable addresses guaranteed to be of the same dynamic type
+// MoveEndpointInModule addresses guaranteed to be of the same dynamic type
 // that represent what the two MoveEndpoint addresses refer to.
 //
-// moduleAddr must be the address of the module instance where the move
-// was declared.
+// moduleAddr must be the address of the module where the move was declared.
 //
 // This function deals both with the conversion from relative to absolute
 // addresses and with resolving the ambiguity between no-key instance
@@ -163,7 +166,7 @@ func ParseMoveEndpoint(traversal hcl.Traversal) (*MoveEndpoint, tfdiags.Diagnost
 // given addresses are incompatible then UnifyMoveEndpoints returns (nil, nil),
 // in which case the caller should typically report an error to the user
 // stating the unification constraints.
-func UnifyMoveEndpoints(moduleAddr ModuleInstance, relFrom, relTo *MoveEndpoint) (absFrom, absTo AbsMoveable) {
+func UnifyMoveEndpoints(moduleAddr Module, relFrom, relTo *MoveEndpoint) (modFrom, modTo *MoveEndpointInModule) {
 
 	// First we'll make a decision about which address type we're
 	// ultimately trying to unify to. For our internal purposes
@@ -197,17 +200,17 @@ func UnifyMoveEndpoints(moduleAddr ModuleInstance, relFrom, relTo *MoveEndpoint)
 		panic("unhandled move address types")
 	}
 
-	absFrom = relFrom.prepareAbsMoveable(moduleAddr, wantType)
-	absTo = relTo.prepareAbsMoveable(moduleAddr, wantType)
-	if absFrom == nil || absTo == nil {
+	modFrom = relFrom.prepareMoveEndpointInModule(moduleAddr, wantType)
+	modTo = relTo.prepareMoveEndpointInModule(moduleAddr, wantType)
+	if modFrom == nil || modTo == nil {
 		// if either of them failed then they both failed, to make the
 		// caller's life a little easier.
 		return nil, nil
 	}
-	return absFrom, absTo
+	return modFrom, modTo
 }
 
-func (e *MoveEndpoint) prepareAbsMoveable(moduleAddr ModuleInstance, wantType TargetableAddrType) AbsMoveable {
+func (e *MoveEndpoint) prepareMoveEndpointInModule(moduleAddr Module, wantType TargetableAddrType) *MoveEndpointInModule {
 	// relAddr can only be either AbsResourceInstance or ModuleInstance, the
 	// internal intermediate representation produced by ParseMoveEndpoint.
 	relAddr := e.relSubject
@@ -216,40 +219,43 @@ func (e *MoveEndpoint) prepareAbsMoveable(moduleAddr ModuleInstance, wantType Ta
 	case ModuleInstance:
 		switch wantType {
 		case ModuleInstanceAddrType:
-			ret := make(ModuleInstance, 0, len(moduleAddr)+len(relAddr))
-			ret = append(ret, moduleAddr...)
-			ret = append(ret, relAddr...)
-			return ret
+			// Since our internal representation is already a module instance,
+			// we can just rewrap this one.
+			return &MoveEndpointInModule{
+				SourceRange: e.SourceRange,
+				module:      moduleAddr,
+				relSubject:  relAddr,
+			}
 		case ModuleAddrType:
 			// NOTE: We're fudging a little here and using
 			// ModuleAddrType to represent AbsModuleCall rather
 			// than Module.
-			callerAddr := make(ModuleInstance, 0, len(moduleAddr)+len(relAddr)-1)
-			callerAddr = append(callerAddr, moduleAddr...)
-			callerAddr = append(callerAddr, relAddr[:len(relAddr)-1]...)
-			return AbsModuleCall{
+			callerAddr, callAddr := relAddr.Call()
+			absCallAddr := AbsModuleCall{
 				Module: callerAddr,
-				Call: ModuleCall{
-					Name: relAddr[len(relAddr)-1].Name,
-				},
+				Call:   callAddr,
+			}
+			return &MoveEndpointInModule{
+				SourceRange: e.SourceRange,
+				module:      moduleAddr,
+				relSubject:  absCallAddr,
 			}
 		default:
 			return nil // can't make any other types from a ModuleInstance
 		}
 	case AbsResourceInstance:
-		callerAddr := make(ModuleInstance, 0, len(moduleAddr)+len(relAddr.Module))
-		callerAddr = append(callerAddr, moduleAddr...)
-		callerAddr = append(callerAddr, relAddr.Module...)
 		switch wantType {
 		case AbsResourceInstanceAddrType:
-			return AbsResourceInstance{
-				Module:   callerAddr,
-				Resource: relAddr.Resource,
+			return &MoveEndpointInModule{
+				SourceRange: e.SourceRange,
+				module:      moduleAddr,
+				relSubject:  relAddr,
 			}
 		case AbsResourceAddrType:
-			return AbsResource{
-				Module:   callerAddr,
-				Resource: relAddr.Resource.Resource,
+			return &MoveEndpointInModule{
+				SourceRange: e.SourceRange,
+				module:      moduleAddr,
+				relSubject:  relAddr.ContainingResource(),
 			}
 		default:
 			return nil // can't make any other types from an AbsResourceInstance

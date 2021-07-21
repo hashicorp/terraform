@@ -37,6 +37,21 @@ The [Terraform Registry](https://registry.terraform.io/browse/providers)
 is the main directory of publicly available Terraform providers, and hosts
 providers for most major infrastructure platforms.
 
+## Provider Documentation
+
+Each provider has its own documentation, describing its resource
+types and their arguments.
+
+The [Terraform Registry](https://registry.terraform.io/browse/providers)
+includes documentation for a wide range of providers developed by HashiCorp, third-party vendors, and our Terraform community. Use the
+"Documentation" link in a provider's header to browse its documentation.
+
+Provider documentation in the Registry is versioned; you can use the version
+menu in the header to change which version you're viewing.
+
+For details about writing, generating, and previewing provider documentation,
+see the [provider publishing documentation](/docs/registry/providers/docs.html).
+
 ## How to Use Providers
 
 To use resources from a given provider, you need to include some information

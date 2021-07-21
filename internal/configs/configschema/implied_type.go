@@ -79,7 +79,7 @@ func (o *Object) ImpliedType() cty.Type {
 	case NestingSet:
 		return cty.Set(ret)
 	default: // Should never happen
-		panic("invalid Nesting")
+		return cty.EmptyObject
 	}
 }
 

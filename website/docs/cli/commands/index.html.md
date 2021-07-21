@@ -19,8 +19,8 @@ We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
 in the documentation. This terminology is often used to distinguish it from
 other components you might use in the Terraform product family, such as
 [Terraform Cloud](/docs/cloud/) or
-the various [Terraform providers](/docs/providers/), which are developed and
-released separately from Terraform CLI.
+the various [Terraform providers](/docs/language/providers/index.html), which
+are developed and released separately from Terraform CLI.
 
 To view a list of the commands available in your current Terraform version,
 run `terraform` with no additional arguments:

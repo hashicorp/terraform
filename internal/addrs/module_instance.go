@@ -275,6 +275,14 @@ func (m ModuleInstance) String() string {
 	return buf.String()
 }
 
+type moduleInstanceKey string
+
+func (m ModuleInstance) UniqueKey() UniqueKey {
+	return moduleInstanceKey(m.String())
+}
+
+func (mk moduleInstanceKey) uniqueKeySigil() {}
+
 // Equal returns true if the receiver and the given other value
 // contains the exact same parts.
 func (m ModuleInstance) Equal(o ModuleInstance) bool {
@@ -494,6 +502,28 @@ func (m ModuleInstance) targetableSigil() {
 
 func (m ModuleInstance) absMoveableSigil() {
 	// ModuleInstance is moveable
+}
+
+// IsDeclaredByCall returns true if the receiver is an instance of the given
+// AbsModuleCall.
+func (m ModuleInstance) IsDeclaredByCall(other AbsModuleCall) bool {
+	// Compare len(m) to len(other.Module+1) because the final module instance
+	// step in other is stored in the AbsModuleCall.Call
+	if len(m) > len(other.Module)+1 || len(m) == 0 && len(other.Module) == 0 {
+		return false
+	}
+
+	// Verify that the other's ModuleInstance matches the receiver.
+	inst, lastStep := other.Module, other.Call
+	for i := range inst {
+		if inst[i] != m[i] {
+			return false
+		}
+	}
+
+	// Now compare the final step of the received with the other Call, where
+	// only the name needs to match.
+	return lastStep.Name == m[len(m)-1].Name
 }
 
 func (s ModuleInstanceStep) String() string {

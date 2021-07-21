@@ -1814,7 +1814,27 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	lcs := objchange.LongestCommonSubsequence(old, new)
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
+		// We first process items in the old and new sequences which are not
+		// equal to the current common sequence item.  Old items are marked as
+		// deletions, and new items are marked as additions.
+		//
+		// There is an exception for deleted & created object items, which we
+		// try to render as updates where that makes sense.
 		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
+			// Render this as an object update if all of these are true:
+			//
+			// - the current old item is an object;
+			// - there's a current new item which is also an object;
+			// - either there are no common items left, or the current new item
+			//   doesn't equal the current common item.
+			//
+			// Why do we need the the last clause? If we have current items in all
+			// three sequences, and the current new item is equal to a common item,
+			// then we should just need to advance the old item list and we'll
+			// eventually find a common item matching both old and new.
+			//
+			// This combination of conditions allows us to render an object update
+			// diff instead of a combination of delete old & create new.
 			isObjectDiff := old[oldI].Type().IsObjectType() && newI < len(new) && new[newI].Type().IsObjectType() && (lcsI >= len(lcs) || !new[newI].RawEquals(lcs[lcsI]))
 			if isObjectDiff {
 				ret = append(ret, &plans.Change{
@@ -1827,6 +1847,8 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 				continue
 			}
 
+			// Otherwise, this item is not part of the common sequence, so
+			// render as a deletion.
 			ret = append(ret, &plans.Change{
 				Action: plans.Delete,
 				Before: old[oldI],
@@ -1842,6 +1864,9 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 			})
 			newI++
 		}
+
+		// When we've exhausted the old & new sequences of items which are not
+		// in the common subsequence, we render a common item and continue.
 		if lcsI < len(lcs) {
 			ret = append(ret, &plans.Change{
 				Action: plans.NoOp,

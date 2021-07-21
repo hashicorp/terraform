@@ -554,3 +554,45 @@ func (s *SyncState) maybePruneModule(addr addrs.ModuleInstance) {
 		s.state.RemoveModule(addr)
 	}
 }
+
+func (s *SyncState) MoveAbsResource(src, dst addrs.AbsResource) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.state.MoveAbsResource(src, dst)
+}
+
+func (s *SyncState) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.state.MaybeMoveAbsResource(src, dst)
+}
+
+func (s *SyncState) MoveResourceInstance(src, dst addrs.AbsResourceInstance) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.state.MoveAbsResourceInstance(src, dst)
+}
+
+func (s *SyncState) MaybeMoveResourceInstance(src, dst addrs.AbsResourceInstance) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.state.MaybeMoveAbsResourceInstance(src, dst)
+}
+
+func (s *SyncState) MoveModuleInstance(src, dst addrs.ModuleInstance) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	s.state.MoveModuleInstance(src, dst)
+}
+
+func (s *SyncState) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	return s.state.MaybeMoveModuleInstance(src, dst)
+}

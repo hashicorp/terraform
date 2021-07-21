@@ -172,8 +172,10 @@ block label) and _name_ (second block label). The combination of the type
 and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
-configuration is dependent on the type, and is documented for each
-data source in the [providers section](/docs/providers/index.html).
+configuration is dependent on the type; as with
+[resources](/docs/language/resources/index.html), each provider on the
+[Terraform Registry](https://registry.terraform.io/browse/providers) has its own
+documentation for configuring and using the data types it provides.
 
 Each data instance will export one or more attributes, which can be
 used in other resources as reference expressions of the form

@@ -91,3 +91,80 @@ func BenchmarkStringLong(b *testing.B) {
 		addr.String()
 	}
 }
+
+func TestModuleInstance_IsDeclaredByCall(t *testing.T) {
+	tests := []struct {
+		instance ModuleInstance
+		call     AbsModuleCall
+		want     bool
+	}{
+		{
+			ModuleInstance{},
+			AbsModuleCall{},
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{},
+			false,
+		},
+		{
+			ModuleInstance{},
+			AbsModuleCall{
+				RootModuleInstance,
+				ModuleCall{Name: "child"},
+			},
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{ // module.child
+				RootModuleInstance,
+				ModuleCall{Name: "child"},
+			},
+			true,
+		},
+		{
+			mustParseModuleInstanceStr(`module.child`),
+			AbsModuleCall{ // module.kinder.module.child
+				mustParseModuleInstanceStr("module.kinder"),
+				ModuleCall{Name: "child"},
+			},
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.kinder"),
+			// module.kinder.module.child contains module.kinder, but is not itself an instance of module.kinder
+			AbsModuleCall{
+				mustParseModuleInstanceStr("module.kinder"),
+				ModuleCall{Name: "child"},
+			},
+			false,
+		},
+		{
+			mustParseModuleInstanceStr("module.child"),
+			AbsModuleCall{
+				mustParseModuleInstanceStr(`module.kinder["a"]`),
+				ModuleCall{Name: "kinder"},
+			},
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%q.IsCallInstance(%q)", test.instance, test.call.String()), func(t *testing.T) {
+			got := test.instance.IsDeclaredByCall(test.call)
+			if got != test.want {
+				t.Fatal("wrong result")
+			}
+		})
+	}
+}
+
+func mustParseModuleInstanceStr(str string) ModuleInstance {
+	mi, err := ParseModuleInstanceStr(str)
+	if err != nil {
+		panic(err)
+	}
+	return mi
+}

@@ -14,6 +14,12 @@ func (v LocalValue) String() string {
 	return "local." + v.Name
 }
 
+func (v LocalValue) UniqueKey() UniqueKey {
+	return v // A LocalValue is its own UniqueKey
+}
+
+func (v LocalValue) uniqueKeySigil() {}
+
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
 func (v LocalValue) Absolute(m ModuleInstance) AbsLocalValue {

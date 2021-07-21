@@ -10,3 +10,9 @@ type PathAttr struct {
 func (pa PathAttr) String() string {
 	return "path." + pa.Name
 }
+
+func (pa PathAttr) UniqueKey() UniqueKey {
+	return pa // A PathAttr is its own UniqueKey
+}
+
+func (pa PathAttr) uniqueKeySigil() {}
