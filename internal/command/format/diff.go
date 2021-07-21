@@ -659,6 +659,12 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString("]")
 
 	case configschema.NestingMap:
+		// For the sake of handling nested blocks, we'll treat a null map
+		// the same as an empty map since the config language doesn't
+		// distinguish these anyway.
+		old = ctyNullBlockMapAsEmpty(old)
+		new = ctyNullBlockMapAsEmpty(new)
+
 		oldItems := old.AsValueMap()
 		newItems := new.AsValueMap()
 
