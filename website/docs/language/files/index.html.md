@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Files and Directories - Configuration Language"
+description: |-
+  An overview of how Terraform configuration files are named, organized, and stored as well as how Terraform modules are created and evaluated.
 ---
 
 # Files and Directories

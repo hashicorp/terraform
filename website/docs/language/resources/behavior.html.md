@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Resource Behavior - Configuration Language"
+description: |-
+  How Terraform uses resource blocks to create infrastructure objects as well as details about resource attributes and dependencies.
 ---
 
 # Resource Behavior

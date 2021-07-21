@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Overview - Configuration Language"
+description: |-
+  An introduction to the Terraform Configuration Language that is used to declare resources in infrastructure as code.
 ---
 
 # Terraform Language Documentation
