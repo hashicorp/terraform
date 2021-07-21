@@ -4794,7 +4794,7 @@ func TestContext2Plan_ignoreChangesSensitive(t *testing.T) {
 
 	checkVals(t, objectVal(t, schema, map[string]cty.Value{
 		"id":   cty.StringVal("bar"),
-		"ami":  cty.StringVal("ami-abcd1234").Mark(marks.Sensitive),
+		"ami":  cty.StringVal("ami-abcd1234"),
 		"type": cty.StringVal("aws_instance"),
 	}), ric.After)
 }

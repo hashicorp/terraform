@@ -687,26 +687,24 @@ func (n *NodeAbstractResourceInstance) plan(
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	// Create an unmarked version of our config val and our prior val.
-	// Store the paths for the config val to re-markafter
-	// we've sent things over the wire.
-	unmarkedConfigVal, unmarkedPaths := origConfigVal.UnmarkDeepWithPaths()
-	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
-
 	log.Printf("[TRACE] Re-validating config for %q", n.Addr)
-	// Allow the provider to validate the final set of values.
-	// The config was statically validated early on, but there may have been
-	// unknown values which the provider could not validate at the time.
+	// Allow the provider to validate the final set of values.  The config was
+	// statically validated early on, but there may have been unknown values
+	// which the provider could not validate at the time.
+	//
 	// TODO: It would be more correct to validate the config after
 	// ignore_changes has been applied, but the current implementation cannot
 	// exclude computed-only attributes when given the `all` option.
+
+	// we must unmark and use the original config, since the ignore_changes
+	// handling below needs access to the marks.
+	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
 	validateResp := provider.ValidateResourceConfig(
 		providers.ValidateResourceConfigRequest{
 			TypeName: n.Addr.Resource.Resource.Type,
 			Config:   unmarkedConfigVal,
 		},
 	)
-
 	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
 		return plan, state, diags
@@ -717,13 +715,21 @@ func (n *NodeAbstractResourceInstance) plan(
 	// the proposed value, the proposed value itself, and the config presented
 	// to the provider in the PlanResourceChange request all agree on the
 	// starting values.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(unmarkedPriorVal, unmarkedConfigVal)
+	// Here we operate on the marked values, so as to revert any changes to the
+	// marks as well as the value.
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return plan, state, diags
 	}
 
-	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, configValIgnored)
+	// Create an unmarked version of our config val and our prior val.
+	// Store the paths for the config val to re-mark after we've sent things
+	// over the wire.
+	unmarkedConfigVal, unmarkedPaths := configValIgnored.UnmarkDeepWithPaths()
+	unmarkedPriorVal, priorPaths := priorVal.UnmarkDeepWithPaths()
+
+	proposedNewVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
 
 	// Call pre-diff hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -735,7 +741,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
 		TypeName:         n.Addr.Resource.Resource.Type,
-		Config:           configValIgnored,
+		Config:           unmarkedConfigVal,
 		PriorState:       unmarkedPriorVal,
 		ProposedNewState: proposedNewVal,
 		PriorPrivate:     priorPrivate,
@@ -774,7 +780,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, diags
 	}
 
-	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, configValIgnored, plannedNewVal); len(errs) > 0 {
+	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
 		if resp.LegacyTypeSystem {
 			// The shimming of the old type system in the legacy SDK is not precise
 			// enough to pass this consistency check, so we'll give it a pass here,
@@ -1085,7 +1091,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (ct
 		return config, nil
 	}
 
-	ignoreChanges := n.Config.Managed.IgnoreChanges
+	ignoreChanges := traversalsToPaths(n.Config.Managed.IgnoreChanges)
 	ignoreAll := n.Config.Managed.IgnoreAllChanges
 
 	if len(ignoreChanges) == 0 && !ignoreAll {
@@ -1100,14 +1106,16 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (ct
 		return config, nil
 	}
 
-	return processIgnoreChangesIndividual(prior, config, ignoreChanges)
+	ret, diags := processIgnoreChangesIndividual(prior, config, ignoreChanges)
+
+	return ret, diags
 }
 
-func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl.Traversal) (cty.Value, tfdiags.Diagnostics) {
-	// When we walk below we will be using cty.Path values for comparison, so
-	// we'll convert our traversals here so we can compare more easily.
-	ignoreChangesPath := make([]cty.Path, len(ignoreChanges))
-	for i, traversal := range ignoreChanges {
+// Convert the hcl.Traversal values we get form the configuration to the
+// cty.Path values we need to operate on the cty.Values
+func traversalsToPaths(traversals []hcl.Traversal) []cty.Path {
+	paths := make([]cty.Path, len(traversals))
+	for i, traversal := range traversals {
 		path := make(cty.Path, len(traversal))
 		for si, step := range traversal {
 			switch ts := step.(type) {
@@ -1127,9 +1135,12 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 				panic(fmt.Sprintf("unsupported traversal step %#v", step))
 			}
 		}
-		ignoreChangesPath[i] = path
+		paths[i] = path
 	}
+	return paths
+}
 
+func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath []cty.Path) (cty.Value, tfdiags.Diagnostics) {
 	type ignoreChange struct {
 		// Path is the full path, minus any trailing map index
 		path cty.Path
@@ -1175,8 +1186,7 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 		// here even if our ignored key doesn't change. That is OK since it
 		// won't cause any changes in the transformation, but allows us to skip
 		// breaking up the maps and checking for key existence here too.
-		eq := p.Equals(c)
-		if !eq.IsKnown() || eq.False() {
+		if !p.RawEquals(c) {
 			// there a change to ignore at this path, store the prior value
 			ignoredValues = append(ignoredValues, ignoreChange{icPath, p, key})
 		}
@@ -1204,6 +1214,10 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 			// since v is not known, we cannot ignore individual keys
 			return v, nil
 		}
+
+		// The map values will remain as cty values, so we only need to store
+		// the marks from the outer map itself
+		v, vMarks := v.Unmark()
 
 		// The configMap is the current configuration value, which we will
 		// mutate based on the ignored paths and the prior map value.
@@ -1234,11 +1248,17 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 			// return null for a key with a null value and for a non-existent
 			// key.
 			var priorMap map[string]cty.Value
+
+			// We need to drop the marks from the ignored map for handling. We
+			// don't need to store these, as we now know the ignored value is
+			// only within the map, not the map itself.
+			ignoredVal, _ := ignored.value.Unmark()
+
 			switch {
-			case ignored.value.IsNull() || ignored.value.LengthInt() == 0:
+			case ignored.value.IsNull() || ignoredVal.LengthInt() == 0:
 				priorMap = map[string]cty.Value{}
 			default:
-				priorMap = ignored.value.AsValueMap()
+				priorMap = ignoredVal.AsValueMap()
 			}
 
 			key := ignored.key.AsString()
@@ -1254,11 +1274,18 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChanges []hcl
 			}
 		}
 
+		var newVal cty.Value
 		if len(configMap) == 0 {
-			return cty.MapValEmpty(v.Type().ElementType()), nil
+			newVal = cty.MapValEmpty(v.Type().ElementType())
+		} else {
+			newVal = cty.MapVal(configMap)
 		}
 
-		return cty.MapVal(configMap), nil
+		if len(vMarks) > 0 {
+			newVal = v.WithMarks(vMarks)
+		}
+
+		return newVal, nil
 	})
 	return ret, nil
 }
