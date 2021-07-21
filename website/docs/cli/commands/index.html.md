@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Basic CLI Features"
 sidebar_current: "docs-commands"
-description: |-
-  Main usage information for the Terraform CLI tool.
+description: "`terraform` accepts a variety of subcommands. Learn how to switch your working directory, enable shell tab-completion, and manage service checkpoints."
 ---
 
 # Basic CLI Features
