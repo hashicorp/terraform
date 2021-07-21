@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Terraform CLI Documentation"
 sidebar_current: "docs-home"
-description: |-
-  Documentation for Terraform's CLI-based workflows.
+description: "Learn how to use Terraform's CLI-based workflows. You can use the CLI alone or in conjunction with Terraform Cloud or Terraform Enterprise."
 ---
 
 # Terraform CLI Documentation
