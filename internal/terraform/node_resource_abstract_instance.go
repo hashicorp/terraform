@@ -1116,28 +1116,32 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (ct
 func traversalsToPaths(traversals []hcl.Traversal) []cty.Path {
 	paths := make([]cty.Path, len(traversals))
 	for i, traversal := range traversals {
-		path := make(cty.Path, len(traversal))
-		for si, step := range traversal {
-			switch ts := step.(type) {
-			case hcl.TraverseRoot:
-				path[si] = cty.GetAttrStep{
-					Name: ts.Name,
-				}
-			case hcl.TraverseAttr:
-				path[si] = cty.GetAttrStep{
-					Name: ts.Name,
-				}
-			case hcl.TraverseIndex:
-				path[si] = cty.IndexStep{
-					Key: ts.Key,
-				}
-			default:
-				panic(fmt.Sprintf("unsupported traversal step %#v", step))
-			}
-		}
-		paths[i] = path
+		paths[i] = traversalToPath(traversal)
 	}
 	return paths
+}
+
+func traversalToPath(traversal hcl.Traversal) cty.Path {
+	path := make(cty.Path, len(traversal))
+	for si, step := range traversal {
+		switch ts := step.(type) {
+		case hcl.TraverseRoot:
+			path[si] = cty.GetAttrStep{
+				Name: ts.Name,
+			}
+		case hcl.TraverseAttr:
+			path[si] = cty.GetAttrStep{
+				Name: ts.Name,
+			}
+		case hcl.TraverseIndex:
+			path[si] = cty.IndexStep{
+				Key: ts.Key,
+			}
+		default:
+			panic(fmt.Sprintf("unsupported traversal step %#v", step))
+		}
+	}
+	return path
 }
 
 func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath []cty.Path) (cty.Value, tfdiags.Diagnostics) {

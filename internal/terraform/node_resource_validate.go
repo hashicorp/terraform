@@ -385,6 +385,37 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				// easy way to correlate the config value, schema and
 				// traversal together.
 			}
+
+			for _, traversal := range n.Config.Managed.Unused {
+				path := traversalToPath(traversal)
+
+				// Putting a required attribute in "unused" is not allowed
+				// and gets its own special error message in preference to the
+				// confusing one that would otherwise follow later saying
+				// that a required attribute hasn't been set.
+				attrS := schema.AttributeByPath(path)
+				if attrS != nil && attrS.Required {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Required argument cannot be \"unused\"",
+						Detail: fmt.Sprintf(
+							"Argument %s is declared as required by the provider's schema, so it must not be in \"unused\" so that you can set its value in the configuration.",
+							tfdiags.FormatHCLTraversal(traversal),
+						),
+						Subject: traversal.SourceRange().Ptr(),
+					})
+					continue
+				}
+
+				// Our usual traversal validations apply for non-required
+				// attributes. This catches references to attributes that
+				// don't exist at all, etc.
+				moreDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(moreDiags)
+
+				// An "unused" attribute can't be set in configuration, because
+				// that would be an example of "using" it.
+			}
 		}
 
 		// Use unmarked value for validate request
