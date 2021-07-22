@@ -11,6 +11,24 @@ func TestAttributeByPath(t *testing.T) {
 		Attributes: map[string]*Attribute{
 			"a1": {Description: "a1"},
 			"a2": {Description: "a2"},
+			"a3": {
+				Description: "a3",
+				NestedType: &Object{
+					Nesting: NestingList,
+					Attributes: map[string]*Attribute{
+						"nt1": {Description: "nt1"},
+						"nt2": {
+							Description: "nt2",
+							NestedType: &Object{
+								Nesting: NestingSingle,
+								Attributes: map[string]*Attribute{
+									"deeply_nested": {Description: "deeply_nested"},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		BlockTypes: map[string]*NestedBlock{
 			"b1": {
@@ -67,6 +85,16 @@ func TestAttributeByPath(t *testing.T) {
 			true,
 		},
 		{
+			cty.GetAttrPath("a3").IndexInt(1).GetAttr("nt2"),
+			"nt2",
+			true,
+		},
+		{
+			cty.GetAttrPath("a3").IndexInt(1).GetAttr("b2").IndexString("foo").GetAttr("no"),
+			"missing",
+			false,
+		},
+		{
 			cty.GetAttrPath("b1"),
 			"block",
 			false,
@@ -118,4 +146,84 @@ func TestAttributeByPath(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestObject_AttributeByPath(t *testing.T) {
+	obj := &Object{
+		Nesting: NestingList,
+		Attributes: map[string]*Attribute{
+			"a1": {Description: "a1"},
+			"a2": {
+				Description: "a2",
+				NestedType: &Object{
+					Nesting: NestingSingle,
+					Attributes: map[string]*Attribute{
+						"n1": {Description: "n1"},
+						"n2": {
+							Description: "n2",
+							NestedType: &Object{
+								Attributes: map[string]*Attribute{
+									"dn1": {Description: "dn1"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		path            cty.Path
+		attrDescription string
+		exists          bool
+	}{
+		{
+			cty.GetAttrPath("a2"),
+			"a2",
+			true,
+		},
+		{
+			cty.GetAttrPath("a3"),
+			"missing",
+			false,
+		},
+		{
+			cty.GetAttrPath("a2").IndexString("foo").GetAttr("n1"),
+			"n1",
+			true,
+		},
+		{
+			cty.GetAttrPath("a2").IndexString("foo").GetAttr("n2").IndexInt(11).GetAttr("dn1"),
+			"dn1",
+			true,
+		},
+		{
+			cty.GetAttrPath("a2").IndexString("foo").GetAttr("n2").IndexInt(11).GetAttr("dn1").IndexString("hello").GetAttr("nope"),
+			"missing_nested",
+			false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.attrDescription, func(t *testing.T) {
+			attr := obj.AttributeByPath(tc.path)
+			if !tc.exists && attr == nil {
+				return
+			}
+
+			if !tc.exists && attr != nil {
+				t.Fatalf("found Attribute, expected nil from path %#v\n", tc.path)
+			}
+
+			if attr == nil {
+				t.Fatalf("missing attribute from path %#v\n", tc.path)
+			}
+
+			if attr.Description != tc.attrDescription {
+				t.Fatalf("expected Attribute for %q, got %#v\n", tc.attrDescription, attr)
+			}
+		})
+	}
+
 }
