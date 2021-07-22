@@ -1,8 +1,6 @@
 package configschema
 
 import (
-	"fmt"
-
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -18,7 +16,7 @@ func (b *Block) AttributeByPath(path cty.Path) *Attribute {
 				// If the Attribute is defined with a NestedType and there's
 				// more to the path, descend into the NestedType
 				if attr.NestedType != nil && i < len(path)-1 {
-					return attr.NestedType.AttributeByPath(path)
+					return attr.NestedType.AttributeByPath(path[i+1:])
 				} else if i < len(path)-1 { // There's more to the path, but not more to this Attribute.
 					return nil
 				}
@@ -43,7 +41,6 @@ func (o *Object) AttributeByPath(path cty.Path) *Attribute {
 	for i, step := range path {
 		switch step := step.(type) {
 		case cty.GetAttrStep:
-			fmt.Println(step.Name)
 			if attr := o.Attributes[step.Name]; attr != nil {
 				if attr.NestedType != nil && i < len(path)-1 {
 					return attr.NestedType.AttributeByPath(path[i+1:])
