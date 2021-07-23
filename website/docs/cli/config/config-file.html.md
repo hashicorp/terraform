@@ -2,9 +2,7 @@
 layout: "docs"
 page_title: "CLI Configuration"
 sidebar_current: "docs-commands-cli-config"
-description: |-
-  The general behavior of the Terraform CLI can be customized using the CLI
-  configuration file.
+description: "Learn to use the CLI configuration file to customize your CLI settings, including credentials, plugin caching, provider installation methods, etc."
 ---
 
 # CLI Configuration File (`.terraformrc` or `terraform.rc`)
@@ -351,6 +349,10 @@ the filesystem mirror logic when operating on the same directory.
 Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
+
+-> **Note:** The plugin cache directory is not guaranteed to be concurrency
+safe. The provider installer's behavior in environments with multiple `terraform
+init` calls is undefined.
 
 ### Development Overrides for Provider Developers
 
