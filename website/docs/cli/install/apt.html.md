@@ -52,7 +52,7 @@ The above command line uses the following sub-shell commands:
 
 `apt-add-repository` usually automatically runs `apt update` as part of its
 work in order to fetch the new package indices, but if it does not then you
-will need to so manually before the packages will be available.
+will need to do so manually before the packages will be available.
 
 To install Terraform from the new repository:
 
