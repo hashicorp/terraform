@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: env"
 sidebar_current: "docs-commands-envcmd"
-description: |-
-  The terraform env command is a deprecated, legacy form of "terraform workspace".
+description: "`terraform env` is a deprecated, legacy form of `terraform workspace`."
 ---
 
 # Command: env
