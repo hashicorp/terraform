@@ -2,8 +2,8 @@
 layout: "docs"
 page_title: "Command: workspace"
 sidebar_current: "docs-commands-workspace-index"
-description: |-
-  The terraform workspace command is used to manage workspaces.
+description: "`workspace` subcommands to list, output, create, and select workspaces."
+
 ---
 
 # Command: workspace
