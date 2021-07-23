@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "CLI Configuration - Terraform CLI"
+description: "Find documentation about the CLI config file and customizing Terraform environment variables."
 ---
 
 # CLI Configuration
