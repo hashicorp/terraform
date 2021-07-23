@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: apply"
 sidebar_current: "docs-commands-apply"
-description: "'apply` executes the actions proposed in a Terraform plan to create, update, or destroy infrastructure."
+description: "'terraform apply` executes the actions proposed in a Terraform plan to create, update, or destroy infrastructure."
 ---
 
 # Command: apply
