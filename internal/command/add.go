@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -31,6 +32,43 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	// In case the output configuration path is specified, we should ensure the
+	// target resource address doesn't exist in the module tree indicated by
+	// the existing configuration files.
+	if args.OutPath != "" {
+		// Ensure the directory to the path exists and is accessible.
+		outDir := filepath.Dir(args.OutPath)
+		if _, err := os.Stat(outDir); os.IsNotExist(err) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"The out path doesn't exist or is not accessible",
+				err.Error(),
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		config, loadDiags := c.loadConfig(outDir)
+		diags = diags.Append(loadDiags)
+		if diags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		if config != nil && config.Module != nil {
+			if rs, ok := config.Module.ManagedResources[args.Addr.ContainingResource().Config().String()]; ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource already in configuration",
+					Detail:   fmt.Sprintf("The resource %s is already in this configuration at %s. Resource names must be unique per type in each module.", args.Addr, rs.DeclRange),
+					Subject:  &rs.DeclRange,
+				})
+				c.View.Diagnostics(diags)
+				return 1
+			}
+		}
 	}
 
 	// Check for user-supplied plugin path
@@ -116,21 +154,6 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		cfg := ctx.Config().Root.Descendent(args.Addr.Module.Module())
 		if cfg != nil {
 			module = cfg.Module
-		}
-	}
-
-	if module == nil {
-		// It's fine if the module doesn't actually exist; we don't need to check if the resource exists.
-	} else {
-		if rs, ok := module.ManagedResources[args.Addr.ContainingResource().Config().String()]; ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Resource already in configuration",
-				Detail:   fmt.Sprintf("The resource %s is already in this configuration at %s. Resource names must be unique per type in each module.", args.Addr, rs.DeclRange),
-				Subject:  &rs.DeclRange,
-			})
-			c.View.Diagnostics(diags)
-			return 1
 		}
 	}
 
