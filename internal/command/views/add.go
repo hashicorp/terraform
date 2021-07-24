@@ -74,7 +74,14 @@ func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema
 	} else {
 		// The Println call above adds this final newline automatically; we add it manually here.
 		formatted = append(formatted, '\n')
-		return os.WriteFile(v.outPath, formatted, 0600)
+
+		f, err := os.OpenFile(v.outPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(formatted)
+		return err
 	}
 }
 
