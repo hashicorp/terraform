@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "Providers - Configuration Language"
-description: "An overview of how to install and use providers, Terraform plugins that interact with services, cloud providers, and other APIs." 
+description: "An overview of how to install and use providers, Terraform plugins that interact with services, cloud providers, and other APIs."
 ---
 
 # Providers
@@ -136,6 +136,6 @@ develops and maintains a given provider.
 Providers are written in Go, using the Terraform Plugin SDK. For more
 information on developing providers, see:
 
-- The [Extending Terraform](/docs/extend/index.html) documentation
+- The [Plugin Development](/docs/extend/index.html) documentation
 - The [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
   collection on HashiCorp Learn
