@@ -21,7 +21,7 @@ might prefer to [install Terraform from our Yum repositories](yum.html).
 -> **Note:** The APT repositories discussed on this page are generic HashiCorp
 repositories that contain packages for a variety of different HashiCorp
 products, rather than just Terraform. Adding these repositories to your
-system will, by default, therefore make a number of other non-Terraform
+system will, by default, therefore make several other non-Terraform
 packages available for installation. That might then mask some packages that
 are available for some HashiCorp products in the main Debian and Ubuntu
 package repositories.
@@ -51,8 +51,8 @@ The above command line uses the following sub-shell commands:
   system, such as `buster`, `groovy`, or `sid`.
 
 `apt-add-repository` usually automatically runs `apt update` as part of its
-work in order to fetch the new package indices, but if it does not then you
-will need to do so manually before the packages will be available.
+work to fetch the new package indices, but if it does not, you will need to
+manually do so before the packages will be available.
 
 To install Terraform from the new repository:
 
@@ -83,7 +83,7 @@ following distribution releases:
 * Ubuntu 20.04 (`focal`)
 * Ubuntu 20.10 (`groovy`)
 
-No repositories are available for other Debian or Ubuntu versions or for
+No repositories are available for other Debian or Ubuntu versions or
 any other APT-based Linux distributions. If you add the repository using
 the above commands on other systems then `apt update` will report the
 repository index as missing.
@@ -116,7 +116,7 @@ apt policy terraform
 There may be multiple package releases for a particular Terraform version if
 we need to publish an updated package for any reason. In that case, the
 subsequent releases will have an additional suffix, like `0.13.4-2`. In these
-cases the Terraform executable inside the package should be unchanged, but its
+cases, the Terraform executable inside the package should be unchanged, but its
 metadata and other contents may be different.
 
 You can select a specific version to install by including it in the
