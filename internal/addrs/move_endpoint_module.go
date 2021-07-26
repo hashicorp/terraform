@@ -157,7 +157,90 @@ func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
 // Both of the given endpoints must be from the same move statement and thus
 // must have matching object types. If not, MoveDestination will panic.
 func (m ModuleInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (ModuleInstance, bool) {
-	return nil, false
+	// NOTE: This implementation assumes the invariant that fromMatch and
+	// toMatch both belong to the same configuration statement, and thus they
+	// will both have the same address type and the same declaration module.
+
+	// The root module instance is not itself moveable.
+	if m.IsRoot() {
+		return nil, false
+	}
+
+	// The two endpoints must either be module call or module instance
+	// addresses, or else this statement can never match.
+	if fromMatch.ObjectKind() != MoveEndpointModule {
+		return nil, false
+	}
+
+	// The given module instance must have a prefix that matches the
+	// declaration module of the two endpoints.
+	if len(fromMatch.module) > len(m) {
+		return nil, false // too short to possibly match
+	}
+	for i := range fromMatch.module {
+		if fromMatch.module[i] != m[i].Name {
+			return nil, false // this step doesn't match
+		}
+	}
+
+	// The rest of our work will be against the part of the reciever that's
+	// relative to the declaration module. mRel is a weird abuse of
+	// ModuleInstance that represents a relative module address, similar to
+	// what we do for MoveEndpointInModule.relSubject.
+	mPrefix, mRel := m[:len(fromMatch.module)], m[len(fromMatch.module):]
+
+	// Our next goal is to split mRel into two parts: the match (if any) and
+	// the suffix. Our result will then replace the match with the replacement
+	// in toMatch while preserving the prefix and suffix.
+	var mSuffix, mNewMatch ModuleInstance
+
+	switch relSubject := fromMatch.relSubject.(type) {
+	case ModuleInstance:
+		if len(relSubject) > len(mRel) {
+			return nil, false // too short to possibly match
+		}
+		for i := range relSubject {
+			if relSubject[i] != mRel[i] {
+				return nil, false // this step doesn't match
+			}
+		}
+		// If we get to here then we've found a match. Since the statement
+		// addresses are already themselves ModuleInstance fragments we can
+		// just slice out the relevant parts.
+		mNewMatch = toMatch.relSubject.(ModuleInstance)
+		mSuffix = mRel[len(relSubject):]
+	case AbsModuleCall:
+		// The module instance part of relSubject must be a prefix of
+		// mRel, and mRel must be at least one step longer to account for
+		// the call step itself.
+		if len(relSubject.Module) > len(mRel)-1 {
+			return nil, false
+		}
+		for i := range relSubject.Module {
+			if relSubject.Module[i] != mRel[i] {
+				return nil, false // this step doesn't match
+			}
+		}
+		// The call name must also match the next step of mRel, after
+		// the relSubject.Module prefix.
+		callStep := mRel[len(relSubject.Module)]
+		if callStep.Name != relSubject.Call.Name {
+			return nil, false
+		}
+		// If we get to here then we've found a match. We need to construct
+		// a new mNewMatch that's an instance of the "new" relSubject with
+		// the same key as our call.
+		mNewMatch = toMatch.relSubject.(AbsModuleCall).Instance(callStep.InstanceKey)
+		mSuffix = mRel[len(relSubject.Module)+1:]
+	default:
+		panic("invalid address type for module-kind move endpoint")
+	}
+
+	ret := make(ModuleInstance, 0, len(mPrefix)+len(mNewMatch)+len(mSuffix))
+	ret = append(ret, mPrefix...)
+	ret = append(ret, mNewMatch...)
+	ret = append(ret, mSuffix...)
+	return ret, true
 }
 
 // MoveDestination considers a an address representing a resource
