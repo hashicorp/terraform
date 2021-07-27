@@ -255,7 +255,24 @@ func (m ModuleInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule
 // Both of the given endpoints must be from the same move statement and thus
 // must have matching object types. If not, MoveDestination will panic.
 func (r AbsResource) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (AbsResource, bool) {
-	return AbsResource{}, false
+	switch fromMatch.ObjectKind() {
+	case MoveEndpointModule:
+		// If we've moving a module then any resource inside that module
+		// moves too.
+		fromMod := r.Module
+		toMod, match := fromMod.MoveDestination(fromMatch, toMatch)
+		if !match {
+			return AbsResource{}, false
+		}
+		return r.Resource.Absolute(toMod), true
+
+	case MoveEndpointResource:
+		// TODO: Implement
+		return AbsResource{}, false
+
+	default:
+		panic("unexpected object kind")
+	}
 }
 
 // MoveDestination considers a an address representing a resource
@@ -270,5 +287,33 @@ func (r AbsResource) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (
 // Both of the given endpoints must be from the same move statement and thus
 // must have matching object types. If not, MoveDestination will panic.
 func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (AbsResourceInstance, bool) {
-	return AbsResourceInstance{}, false
+	switch fromMatch.ObjectKind() {
+	case MoveEndpointModule:
+		// If we've moving a module then any resource inside that module
+		// moves too.
+		fromMod := r.Module
+		toMod, match := fromMod.MoveDestination(fromMatch, toMatch)
+		if !match {
+			return AbsResourceInstance{}, false
+		}
+		return r.Resource.Absolute(toMod), true
+
+	case MoveEndpointResource:
+		switch fromMatch.relSubject.(type) {
+		case AbsResource:
+			oldResource := r.ContainingResource()
+			newResource, match := oldResource.MoveDestination(fromMatch, toMatch)
+			if !match {
+				return AbsResourceInstance{}, false
+			}
+			return newResource.Instance(r.Resource.Key), true
+		case AbsResourceInstance:
+			// TODO: Implement
+			return AbsResourceInstance{}, false
+		default:
+			panic("invalid address type for resource-kind move endpoint")
+		}
+	default:
+		panic("unexpected object kind")
+	}
 }
