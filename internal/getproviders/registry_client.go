@@ -323,7 +323,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 	if shasumsURL.Scheme != "http" && shasumsURL.Scheme != "https" {
 		return PackageMeta{}, fmt.Errorf("registry response includes invalid SHASUMS URL: must use http or https scheme")
 	}
-	document, err := c.getFile(shasumsURL)
+	document, err := c.getFile(ctx, shasumsURL)
 	if err != nil {
 		return PackageMeta{}, c.errQueryFailed(
 			provider,
@@ -338,7 +338,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 	if signatureURL.Scheme != "http" && signatureURL.Scheme != "https" {
 		return PackageMeta{}, fmt.Errorf("registry response includes invalid SHASUMS signature URL: must use http or https scheme")
 	}
-	signature, err := c.getFile(signatureURL)
+	signature, err := c.getFile(ctx, signatureURL)
 	if err != nil {
 		return PackageMeta{}, c.errQueryFailed(
 			provider,
@@ -429,8 +429,16 @@ func (c *registryClient) errUnauthorized(hostname svchost.Hostname) error {
 	}
 }
 
-func (c *registryClient) getFile(url *url.URL) ([]byte, error) {
-	resp, err := c.httpClient.Get(url.String())
+func (c *registryClient) getFile(ctx context.Context, url *url.URL) ([]byte, error) {
+
+	req, err := retryablehttp.NewRequest("GET", url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	c.addHeadersToRequest(req.Request)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
