@@ -317,3 +317,52 @@ func TestBase64TextDecode(t *testing.T) {
 		})
 	}
 }
+
+func TestDotEnvDecode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("TEST_VAR=testvalue"),
+			cty.MapVal(map[string]cty.Value{
+				"TEST_VAR": cty.StringVal("testvalue"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("TEST_VAR=test=value"),
+			cty.MapVal(map[string]cty.Value{
+				"TEST_VAR": cty.StringVal("test=value"),
+			}),
+			false,
+		},
+		{
+			cty.StringVal("TEST_VAR=\"test value\""),
+			cty.MapVal(map[string]cty.Value{
+				"TEST_VAR": cty.StringVal("test value"),
+			}),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("dotenvdecode(%#v)", test.String), func(t *testing.T) {
+			got, err := DotEnvDecode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
