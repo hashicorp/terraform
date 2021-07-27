@@ -267,8 +267,54 @@ func (r AbsResource) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (
 		return r.Resource.Absolute(toMod), true
 
 	case MoveEndpointResource:
-		// TODO: Implement
-		return AbsResource{}, false
+		fromRelSubject, ok := fromMatch.relSubject.(AbsResource)
+		if !ok {
+			// The only other possible type for a resource move is
+			// AbsResourceInstance, and that can never match an AbsResource.
+			return AbsResource{}, false
+		}
+
+		// fromMatch can only possibly match the reciever if the resource
+		// portions are identical, regardless of the module paths.
+		if fromRelSubject.Resource != r.Resource {
+			return AbsResource{}, false
+		}
+
+		// The module path portion of relSubject must have a prefix that
+		// matches the module where our endpoints were declared.
+		if len(fromMatch.module) > len(r.Module) {
+			return AbsResource{}, false // too short to possibly match
+		}
+		for i := range fromMatch.module {
+			if fromMatch.module[i] != r.Module[i].Name {
+				return AbsResource{}, false // this step doesn't match
+			}
+		}
+
+		// The remaining steps of the module path must _exactly_ match
+		// the relative module path in the "fromMatch" address.
+		mPrefix, mRel := r.Module[:len(fromMatch.module)], r.Module[len(fromMatch.module):]
+		if len(mRel) != len(fromRelSubject.Module) {
+			return AbsResource{}, false // can't match if lengths are different
+		}
+		for i := range mRel {
+			if mRel[i] != fromRelSubject.Module[i] {
+				return AbsResource{}, false // all of the steps must match
+			}
+		}
+
+		// If we got here then we have a match, and so our result is the
+		// module instance where the statement was declared (mPrefix) followed
+		// by the "to" relative address in toMatch.
+		toRelSubject := toMatch.relSubject.(AbsResource)
+		var mNew ModuleInstance
+		if len(mPrefix) > 0 || len(toRelSubject.Module) > 0 {
+			mNew = make(ModuleInstance, 0, len(mPrefix)+len(toRelSubject.Module))
+			mNew = append(mNew, mPrefix...)
+			mNew = append(mNew, toRelSubject.Module...)
+		}
+		ret := toRelSubject.Resource.Absolute(mNew)
+		return ret, true
 
 	default:
 		panic("unexpected object kind")

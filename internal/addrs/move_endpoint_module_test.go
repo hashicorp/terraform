@@ -14,7 +14,7 @@ func TestModuleInstanceMoveDestination(t *testing.T) {
 	tests := []struct {
 		DeclModule       string
 		StmtFrom, StmtTo string
-		Reciever         string
+		Receiver         string
 		WantMatch        bool
 		WantResult       string
 	}{
@@ -242,7 +242,7 @@ func TestModuleInstanceMoveDestination(t *testing.T) {
 				"%s: %s to %s with %s",
 				test.DeclModule,
 				test.StmtFrom, test.StmtTo,
-				test.Reciever,
+				test.Receiver,
 			),
 			func(t *testing.T) {
 
@@ -277,9 +277,9 @@ func TestModuleInstanceMoveDestination(t *testing.T) {
 				}
 
 				receiverAddr := RootModuleInstance
-				if test.Reciever != "" {
+				if test.Receiver != "" {
 					var diags tfdiags.Diagnostics
-					receiverAddr, diags = ParseModuleInstanceStr(test.Reciever)
+					receiverAddr, diags = ParseModuleInstanceStr(test.Receiver)
 					if diags.HasErrors() {
 						t.Fatalf("invalid reciever address: %s", diags.Err().Error())
 					}
@@ -287,13 +287,13 @@ func TestModuleInstanceMoveDestination(t *testing.T) {
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)
 				if !test.WantMatch {
 					if gotMatch {
-						t.Errorf("unexpected match\nreciever: %s\nfrom:     %s\nto:       %s\nresult:   %s", test.Reciever, fromEP, toEP, gotAddr)
+						t.Errorf("unexpected match\nreceiver: %s\nfrom:     %s\nto:       %s\nresult:   %s", test.Receiver, fromEP, toEP, gotAddr)
 					}
 					return
 				}
 
 				if !gotMatch {
-					t.Errorf("unexpected non-match\nreciever: %s\nfrom:     %s\nto:       %s", test.Reciever, fromEP, toEP)
+					t.Errorf("unexpected non-match\nreceiver: %s\nfrom:     %s\nto:       %s", test.Receiver, fromEP, toEP)
 				}
 
 				if gotStr, wantStr := gotAddr.String(), test.WantResult; gotStr != wantStr {
@@ -308,7 +308,7 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 	tests := []struct {
 		DeclModule       string
 		StmtFrom, StmtTo string
-		Reciever         string
+		Receiver         string
 		WantMatch        bool
 		WantResult       string
 	}{
@@ -528,7 +528,7 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 				"%s: %s to %s with %s",
 				test.DeclModule,
 				test.StmtFrom, test.StmtTo,
-				test.Reciever,
+				test.Receiver,
 			),
 			func(t *testing.T) {
 
@@ -562,20 +562,20 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 					t.Fatalf("invalid test case: non-unifyable endpoints\nfrom: %s\nto:   %s", fromEPLocal, toEPLocal)
 				}
 
-				receiverAddr, diags := ParseAbsResourceInstanceStr(test.Reciever)
+				receiverAddr, diags := ParseAbsResourceInstanceStr(test.Receiver)
 				if diags.HasErrors() {
 					t.Fatalf("invalid reciever address: %s", diags.Err().Error())
 				}
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)
 				if !test.WantMatch {
 					if gotMatch {
-						t.Errorf("unexpected match\nreciever: %s\nfrom:     %s\nto:       %s\nresult:   %s", test.Reciever, fromEP, toEP, gotAddr)
+						t.Errorf("unexpected match\nreceiver: %s\nfrom:     %s\nto:       %s\nresult:   %s", test.Receiver, fromEP, toEP, gotAddr)
 					}
 					return
 				}
 
 				if !gotMatch {
-					t.Errorf("unexpected non-match\nreciever: %s\nfrom:     %s\nto:       %s", test.Reciever, fromEP, toEP)
+					t.Fatalf("unexpected non-match\nreceiver: %s (%T)\nfrom:     %s\nto:       %s\ngot:      (no match)\nwant:     %s", test.Receiver, receiverAddr, fromEP, toEP, test.WantResult)
 				}
 
 				if gotStr, wantStr := gotAddr.String(), test.WantResult; gotStr != wantStr {
@@ -590,10 +590,95 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 	tests := []struct {
 		DeclModule       string
 		StmtFrom, StmtTo string
-		Reciever         string
+		Receiver         string
 		WantMatch        bool
 		WantResult       string
 	}{
+		{
+			``,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			true,
+			`test_object.boop`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`module.foo.test_object.beep`,
+			`test_object.beep`,
+			true,
+			`module.foo.test_object.beep`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			true,
+			`module.foo[0].test_object.beep`,
+		},
+
+		{
+			``,
+			`module.foo.test_object.beep`,
+			`test_object.beep`,
+			`module.foo.test_object.beep`,
+			true,
+			`test_object.beep`,
+		},
+		{
+			``,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			`module.foo[0].test_object.beep`,
+			true,
+			`test_object.beep`,
+		},
+		{
+			`foo`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`module.foo[0].test_object.beep`,
+			true,
+			`module.foo[0].test_object.boop`,
+		},
+
+		{
+			``,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.boop`,
+			false, // the reciever is already the "to" address
+			``,
+		},
+		{
+			`foo`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			false, // the receiver is not inside an instance of module "foo"
+			``,
+		},
+		{
+			`foo.bar`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			false, // the receiver is not inside an instance of module "foo.bar"
+			``,
+		},
+		{
+			``,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			`module.foo[1].test_object.beep`,
+			false, // receiver is in a different instance of module.foo
+			``,
+		},
+
+		// Moving a module also moves all of the resources declared within it.
+		// The following tests all cover variations of that rule.
 		{
 			``,
 			`module.foo`,
@@ -804,13 +889,14 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i, test := range tests {
 		t.Run(
 			fmt.Sprintf(
-				"%s: %s to %s with %s",
+				"[%02d] %s: %s to %s with %s",
+				i,
 				test.DeclModule,
 				test.StmtFrom, test.StmtTo,
-				test.Reciever,
+				test.Receiver,
 			),
 			func(t *testing.T) {
 
@@ -848,7 +934,7 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 				// AbsResourceParser, and so we'll just cheat and parse this
 				// as a resource instance but fail if it includes an instance
 				// key.
-				receiverInstanceAddr, diags := ParseAbsResourceInstanceStr(test.Reciever)
+				receiverInstanceAddr, diags := ParseAbsResourceInstanceStr(test.Receiver)
 				if diags.HasErrors() {
 					t.Fatalf("invalid reciever address: %s", diags.Err().Error())
 				}
@@ -859,13 +945,13 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 				gotAddr, gotMatch := receiverAddr.MoveDestination(fromEP, toEP)
 				if !test.WantMatch {
 					if gotMatch {
-						t.Errorf("unexpected match\nreciever: %s\nfrom:     %s\nto:       %s\nresult:   %s", test.Reciever, fromEP, toEP, gotAddr)
+						t.Errorf("unexpected match\nreceiver: %s (%T)\nfrom:     %s\nto:       %s\nresult:   %s", test.Receiver, receiverAddr, fromEP, toEP, gotAddr)
 					}
 					return
 				}
 
 				if !gotMatch {
-					t.Errorf("unexpected non-match\nreciever: %s\nfrom:     %s\nto:       %s", test.Reciever, fromEP, toEP)
+					t.Fatalf("unexpected non-match\nreceiver: %s (%T)\nfrom:     %s\nto:       %s\ngot:      no match\nwant:     %s", test.Receiver, receiverAddr, fromEP, toEP, test.WantResult)
 				}
 
 				if gotStr, wantStr := gotAddr.String(), test.WantResult; gotStr != wantStr {
