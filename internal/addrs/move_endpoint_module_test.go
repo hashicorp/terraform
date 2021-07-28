@@ -314,6 +314,121 @@ func TestAbsResourceInstanceMoveDestination(t *testing.T) {
 	}{
 		{
 			``,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			true,
+			`test_object.boop`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`test_object.beep[2]`,
+			`test_object.beep`,
+			true,
+			`test_object.beep[2]`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`module.foo.test_object.beep`,
+			`test_object.beep`,
+			true,
+			`module.foo.test_object.beep`,
+		},
+		{
+			``,
+			`test_object.beep[2]`,
+			`module.foo.test_object.beep["a"]`,
+			`test_object.beep[2]`,
+			true,
+			`module.foo.test_object.beep["a"]`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			true,
+			`module.foo[0].test_object.beep`,
+		},
+		{
+			``,
+			`module.foo.test_object.beep`,
+			`test_object.beep`,
+			`module.foo.test_object.beep`,
+			true,
+			`test_object.beep`,
+		},
+		{
+			``,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			`module.foo[0].test_object.beep`,
+			true,
+			`test_object.beep`,
+		},
+		{
+			`foo`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`module.foo[0].test_object.beep`,
+			true,
+			`module.foo[0].test_object.boop`,
+		},
+		{
+			`foo`,
+			`test_object.beep`,
+			`test_object.beep[1]`,
+			`module.foo[0].test_object.beep`,
+			true,
+			`module.foo[0].test_object.beep[1]`,
+		},
+		{
+			``,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.boop`,
+			false, // the reciever is already the "to" address
+			``,
+		},
+		{
+			``,
+			`test_object.beep[1]`,
+			`test_object.beep[2]`,
+			`test_object.beep[5]`,
+			false, // the receiver has a non-matching instance key
+			``,
+		},
+		{
+			`foo`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			false, // the receiver is not inside an instance of module "foo"
+			``,
+		},
+		{
+			`foo.bar`,
+			`test_object.beep`,
+			`test_object.boop`,
+			`test_object.beep`,
+			false, // the receiver is not inside an instance of module "foo.bar"
+			``,
+		},
+		{
+			``,
+			`module.foo[0].test_object.beep`,
+			`test_object.beep`,
+			`module.foo[1].test_object.beep`,
+			false, // receiver is in a different instance of module.foo
+			``,
+		},
+
+		// Moving a module also moves all of the resources declared within it.
+		// The following tests all cover variations of that rule.
+		{
+			``,
 			`module.foo`,
 			`module.bar`,
 			`module.foo.test_object.beep`,
@@ -618,7 +733,6 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 			true,
 			`module.foo[0].test_object.beep`,
 		},
-
 		{
 			``,
 			`module.foo.test_object.beep`,
@@ -643,7 +757,6 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 			true,
 			`module.foo[0].test_object.boop`,
 		},
-
 		{
 			``,
 			`test_object.beep`,
