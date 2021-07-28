@@ -145,6 +145,35 @@ func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
 	return false
 }
 
+// matchModuleInstancePrefix is an internal helper to decide whether the given
+// module instance address refers to either the module where the move endpoint
+// was declared or some descendent of that module.
+//
+// If so, it will split the given address into two parts: the "prefix" part
+// which corresponds with the module where the statement was declared, and
+// the "relative" part which is the remainder that the relSubject of the
+// statement might match against.
+//
+// The second return value is another example of our light abuse of
+// ModuleInstance to represent _relative_ module references rather than
+// absolute: it's a module instance address relative to the same return value.
+// Because the exported idea of ModuleInstance represents only _absolute_
+// module instance addresses, we mustn't expose that value through any exported
+// API.
+func (e *MoveEndpointInModule) matchModuleInstancePrefix(instAddr ModuleInstance) (ModuleInstance, ModuleInstance, bool) {
+	if len(e.module) > len(instAddr) {
+		return nil, nil, false // to short to possibly match
+	}
+	for i := range e.module {
+		if e.module[i] != instAddr[i].Name {
+			return nil, nil, false
+		}
+	}
+	// If we get here then we have a match, so we'll slice up the input
+	// to produce the prefix and match segments.
+	return instAddr[:len(e.module)], instAddr[len(e.module):], true
+}
+
 // MoveDestination considers a an address representing a module
 // instance in the context of source and destination move endpoints and then,
 // if the module address matches the from endpoint, returns the corresponding
@@ -172,22 +201,14 @@ func (m ModuleInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInModule
 		return nil, false
 	}
 
-	// The given module instance must have a prefix that matches the
-	// declaration module of the two endpoints.
-	if len(fromMatch.module) > len(m) {
-		return nil, false // too short to possibly match
-	}
-	for i := range fromMatch.module {
-		if fromMatch.module[i] != m[i].Name {
-			return nil, false // this step doesn't match
-		}
-	}
-
 	// The rest of our work will be against the part of the reciever that's
 	// relative to the declaration module. mRel is a weird abuse of
 	// ModuleInstance that represents a relative module address, similar to
 	// what we do for MoveEndpointInModule.relSubject.
-	mPrefix, mRel := m[:len(fromMatch.module)], m[len(fromMatch.module):]
+	mPrefix, mRel, match := fromMatch.matchModuleInstancePrefix(m)
+	if !match {
+		return nil, false
+	}
 
 	// Our next goal is to split mRel into two parts: the match (if any) and
 	// the suffix. Our result will then replace the match with the replacement
@@ -282,18 +303,13 @@ func (r AbsResource) MoveDestination(fromMatch, toMatch *MoveEndpointInModule) (
 
 		// The module path portion of relSubject must have a prefix that
 		// matches the module where our endpoints were declared.
-		if len(fromMatch.module) > len(r.Module) {
-			return AbsResource{}, false // too short to possibly match
-		}
-		for i := range fromMatch.module {
-			if fromMatch.module[i] != r.Module[i].Name {
-				return AbsResource{}, false // this step doesn't match
-			}
+		mPrefix, mRel, match := fromMatch.matchModuleInstancePrefix(r.Module)
+		if !match {
+			return AbsResource{}, false
 		}
 
 		// The remaining steps of the module path must _exactly_ match
 		// the relative module path in the "fromMatch" address.
-		mPrefix, mRel := r.Module[:len(fromMatch.module)], r.Module[len(fromMatch.module):]
 		if len(mRel) != len(fromRelSubject.Module) {
 			return AbsResource{}, false // can't match if lengths are different
 		}
@@ -369,18 +385,13 @@ func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInM
 
 			// The module path portion of relSubject must have a prefix that
 			// matches the module where our endpoints were declared.
-			if len(fromMatch.module) > len(r.Module) {
-				return AbsResourceInstance{}, false // too short to possibly match
-			}
-			for i := range fromMatch.module {
-				if fromMatch.module[i] != r.Module[i].Name {
-					return AbsResourceInstance{}, false // this step doesn't match
-				}
+			mPrefix, mRel, match := fromMatch.matchModuleInstancePrefix(r.Module)
+			if !match {
+				return AbsResourceInstance{}, false
 			}
 
 			// The remaining steps of the module path must _exactly_ match
 			// the relative module path in the "fromMatch" address.
-			mPrefix, mRel := r.Module[:len(fromMatch.module)], r.Module[len(fromMatch.module):]
 			if len(mRel) != len(fromRelSubject.Module) {
 				return AbsResourceInstance{}, false // can't match if lengths are different
 			}
