@@ -19,7 +19,7 @@ unsafe if you have misconfigured credentials for any of your providers.
 See below for more information and recommended alternatives.
 
 This won't modify your real remote objects, but it will modify the
-[the Terraform state](/docs/language/state/).
+[Terraform state](/docs/language/state/).
 
 You shouldn't typically need to use this command, because Terraform
 automatically performs the same refreshing actions as a part of creating
@@ -52,7 +52,7 @@ be misled into thinking that all of the managed objects have been deleted,
 and thus remove all of the tracked objects without any confirmation prompt.
 
 Instead, we recommend using the following command in order to get the same
-effect but with the opportunity to review the the changes that Terraform has
+effect but with the opportunity to review the changes that Terraform has
 detected before committing them to the state:
 
 ```
