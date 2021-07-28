@@ -354,8 +354,54 @@ func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInM
 			}
 			return newResource.Instance(r.Resource.Key), true
 		case AbsResourceInstance:
-			// TODO: Implement
-			return AbsResourceInstance{}, false
+			fromRelSubject, ok := fromMatch.relSubject.(AbsResourceInstance)
+			if !ok {
+				// The only other possible type for a resource move is
+				// AbsResourceInstance, and that can never match an AbsResource.
+				return AbsResourceInstance{}, false
+			}
+
+			// fromMatch can only possibly match the reciever if the resource
+			// portions are identical, regardless of the module paths.
+			if fromRelSubject.Resource != r.Resource {
+				return AbsResourceInstance{}, false
+			}
+
+			// The module path portion of relSubject must have a prefix that
+			// matches the module where our endpoints were declared.
+			if len(fromMatch.module) > len(r.Module) {
+				return AbsResourceInstance{}, false // too short to possibly match
+			}
+			for i := range fromMatch.module {
+				if fromMatch.module[i] != r.Module[i].Name {
+					return AbsResourceInstance{}, false // this step doesn't match
+				}
+			}
+
+			// The remaining steps of the module path must _exactly_ match
+			// the relative module path in the "fromMatch" address.
+			mPrefix, mRel := r.Module[:len(fromMatch.module)], r.Module[len(fromMatch.module):]
+			if len(mRel) != len(fromRelSubject.Module) {
+				return AbsResourceInstance{}, false // can't match if lengths are different
+			}
+			for i := range mRel {
+				if mRel[i] != fromRelSubject.Module[i] {
+					return AbsResourceInstance{}, false // all of the steps must match
+				}
+			}
+
+			// If we got here then we have a match, and so our result is the
+			// module instance where the statement was declared (mPrefix) followed
+			// by the "to" relative address in toMatch.
+			toRelSubject := toMatch.relSubject.(AbsResourceInstance)
+			var mNew ModuleInstance
+			if len(mPrefix) > 0 || len(toRelSubject.Module) > 0 {
+				mNew = make(ModuleInstance, 0, len(mPrefix)+len(toRelSubject.Module))
+				mNew = append(mNew, mPrefix...)
+				mNew = append(mNew, toRelSubject.Module...)
+			}
+			ret := toRelSubject.Resource.Absolute(mNew)
+			return ret, true
 		default:
 			panic("invalid address type for resource-kind move endpoint")
 		}
