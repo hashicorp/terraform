@@ -17,8 +17,6 @@ require (
 	github.com/apparentlymart/go-userdirs v0.0.0-20200915174352-b0c018a67c13
 	github.com/apparentlymart/go-versions v1.0.1
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
-	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
-	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.37.0
 	github.com/baiyubin/aliyun-sts-go-sdk v0.0.0-20180326062324-cfa1a18b161f // indirect
 	github.com/bgentry/speakeasy v0.1.0
@@ -39,27 +37,23 @@ require (
 	github.com/gophercloud/utils v0.0.0-20200423144003-7c72efc7435d
 	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
 	github.com/hashicorp/aws-sdk-go-base v0.6.0
-	github.com/hashicorp/consul v0.0.0-20171026175957-610f3c86a089
+	github.com/hashicorp/consul/api v1.9.1
+	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-azure-helpers v0.14.0
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.1
 	github.com/hashicorp/go-getter v1.5.2
 	github.com/hashicorp/go-hclog v0.15.0
-	github.com/hashicorp/go-immutable-radix v0.0.0-20180129170900-7f3cd4390caa // indirect
 	github.com/hashicorp/go-msgpack v0.5.4 // indirect
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.1
 	github.com/hashicorp/go-retryablehttp v0.5.2
-	github.com/hashicorp/go-rootcerts v1.0.0 // indirect
-	github.com/hashicorp/go-sockaddr v0.0.0-20180320115054-6d291a969b86 // indirect
 	github.com/hashicorp/go-tfe v0.15.0
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl/v2 v2.10.1
-	github.com/hashicorp/memberlist v0.1.0 // indirect
-	github.com/hashicorp/serf v0.0.0-20160124182025-e4ec8cc423bb // indirect
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
@@ -74,7 +68,6 @@ require (
 	github.com/masterzen/winrm v0.0.0-20200615185753-c42b5136ff88
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.4
-	github.com/miekg/dns v1.0.8 // indirect
 	github.com/mitchellh/cli v1.1.2
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db
 	github.com/mitchellh/copystructure v1.0.0
@@ -87,11 +80,9 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
-	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/pkg/errors v0.9.1
-	github.com/posener/complete v1.2.1
-	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
+	github.com/posener/complete v1.2.3
 	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/afero v1.2.2
