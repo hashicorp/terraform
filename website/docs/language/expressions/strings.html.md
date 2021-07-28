@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Strings and Templates - Configuration Language"
+description: "String literals and template sequences interpolate values and manipulate text. Learn about both quoted and heredoc string syntax."
+
 ---
 
 # Strings and Templates

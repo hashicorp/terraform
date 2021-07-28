@@ -7,6 +7,9 @@ type Referenceable interface {
 	// in lang.Scope.buildEvalContext.
 	referenceableSigil()
 
+	// All Referenceable address types must have unique keys.
+	UniqueKeyer
+
 	// String produces a string representation of the address that could be
 	// parsed as a HCL traversal and passed to ParseRef to produce an identical
 	// result.

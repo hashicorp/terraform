@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -608,6 +609,33 @@ The -target option is not for routine use, and is provided only for exceptional 
 		))
 	}
 
+	moveStmts := refactoring.FindMoveStatements(c.config)
+	if len(moveStmts) != 0 {
+		// TEMP: we haven't fully implemented moving yet, so we'll just
+		// reject it outright for now to reduce confusion.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Moves are not yet supported",
+			"There is currently no handling of \"moved\" blocks in the configuration.",
+		))
+	}
+	moveResults := refactoring.ApplyMoves(moveStmts, c.prevRunState)
+	if len(c.targets) > 0 {
+		for _, result := range moveResults {
+			matchesTarget := false
+			for _, targetAddr := range c.targets {
+				if targetAddr.TargetContains(result.From) {
+					matchesTarget = true
+					break
+				}
+			}
+			if !matchesTarget {
+				// TODO: Return an error stating that a targeted plan is
+				// only valid if it includes this address that was moved.
+			}
+		}
+	}
+
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	switch c.planMode {
@@ -624,6 +652,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	// TODO: Call refactoring.ValidateMoves, but need to figure out how to
+	// get hold of the plan's expander here, or somehow otherwise export
+	// the necessary subset of its data for ValidateMoves to do its work.
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(c.variables))

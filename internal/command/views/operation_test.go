@@ -517,103 +517,10 @@ func TestOperationJSON_plan(t *testing.T) {
 				},
 			},
 		},
-		PrevRunState: states.BuildState(func(state *states.SyncState) {
-			// Update
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.IntKey(0)).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"bar"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// Delete
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.IntKey(1)).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// No-op
-			state.SetResourceInstanceCurrent(
-				beep.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-		}),
-		PriorState: states.BuildState(func(state *states.SyncState) {
-			// Update
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.IntKey(0)).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"baz"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// Delete
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.IntKey(1)).Absolute(root),
-				nil,
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// No-op
-			state.SetResourceInstanceCurrent(
-				beep.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-		}),
 	}
 	v.Plan(plan, testSchemas())
 
 	want := []map[string]interface{}{
-		// Drift detected: update
-		{
-			"@level":   "info",
-			"@message": "test_resource.boop[0]: Drift detected (update)",
-			"@module":  "terraform.ui",
-			"type":     "resource_drift",
-			"change": map[string]interface{}{
-				"action": "update",
-				"resource": map[string]interface{}{
-					"addr":             "test_resource.boop[0]",
-					"implied_provider": "test",
-					"module":           "",
-					"resource":         "test_resource.boop[0]",
-					"resource_key":     float64(0),
-					"resource_name":    "boop",
-					"resource_type":    "test_resource",
-				},
-			},
-		},
-		// Drift detected: delete
-		{
-			"@level":   "info",
-			"@message": "test_resource.boop[1]: Drift detected (delete)",
-			"@module":  "terraform.ui",
-			"type":     "resource_drift",
-			"change": map[string]interface{}{
-				"action": "delete",
-				"resource": map[string]interface{}{
-					"addr":             "test_resource.boop[1]",
-					"implied_provider": "test",
-					"module":           "",
-					"resource":         "test_resource.boop[1]",
-					"resource_key":     float64(1),
-					"resource_name":    "boop",
-					"resource_type":    "test_resource",
-				},
-			},
-		},
 		// Create-then-delete should result in replace
 		{
 			"@level":   "info",
@@ -721,6 +628,134 @@ func TestOperationJSON_plan(t *testing.T) {
 				"add":       float64(3),
 				"change":    float64(1),
 				"remove":    float64(3),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
+	derp := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "derp"}
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		PrevRunState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				derp.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
+		PriorState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"baz"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				nil,
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				derp.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Drift detected: delete
+		{
+			"@level":   "info",
+			"@message": "test_resource.beep: Drift detected (delete)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "delete",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.beep",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.beep",
+					"resource_key":     nil,
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: update
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Drift detected (update)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop",
+					"resource_key":     nil,
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// No changes
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(0),
+				"change":    float64(0),
+				"remove":    float64(0),
 			},
 		},
 	}

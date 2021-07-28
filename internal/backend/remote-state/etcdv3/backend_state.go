@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
@@ -58,16 +58,8 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 	lockInfo := statemgr.NewLockInfo()
 	lockInfo.Operation = "init"
-	lockId, err := stateMgr.Lock(lockInfo)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to lock state in etcd: %s.", err)
-	}
-
 	lockUnlock := func(parent error) error {
-		if err := stateMgr.Unlock(lockId); err != nil {
-			return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
-		}
-		return parent
+		return nil
 	}
 
 	if err := stateMgr.RefreshState(); err != nil {
@@ -76,6 +68,18 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	if v := stateMgr.State(); v == nil {
+		lockId, err := stateMgr.Lock(lockInfo)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to lock state in etcd: %s.", err)
+		}
+
+		lockUnlock = func(parent error) error {
+			if err := stateMgr.Unlock(lockId); err != nil {
+				return fmt.Errorf(strings.TrimSpace(errStateUnlock), lockId, err)
+			}
+			return parent
+		}
+
 		if err := stateMgr.WriteState(states.NewState()); err != nil {
 			err = lockUnlock(err)
 			return nil, err

@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "Version Constraints - Configuration Language"
+description: "Version constraint strings specify a range of acceptable versions for modules, providers, and Terraform itself. Learn version constraint syntax and behavior."  
 ---
 
 # Version Constraints

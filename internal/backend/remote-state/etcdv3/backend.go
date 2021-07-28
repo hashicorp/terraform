@@ -3,10 +3,10 @@ package etcd
 import (
 	"context"
 
-	etcdv3 "github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/pkg/transport"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	etcdv3 "go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/pkg/transport"
 )
 
 const (
@@ -15,6 +15,7 @@ const (
 	usernameEnvVarName = "ETCDV3_USERNAME"
 	passwordKey        = "password"
 	passwordEnvVarName = "ETCDV3_PASSWORD"
+	maxRequestBytesKey = "max_request_bytes"
 	prefixKey          = "prefix"
 	lockKey            = "lock"
 	cacertPathKey      = "cacert_path"
@@ -47,6 +48,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Password used to connect to the etcd cluster.",
 				DefaultFunc: schema.EnvDefaultFunc(passwordEnvVarName, ""),
+			},
+
+			maxRequestBytesKey: &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The max request size to send to etcd.",
+				Default:     0,
 			},
 
 			prefixKey: &schema.Schema{
@@ -127,6 +135,9 @@ func (b *Backend) rawClient() (*etcdv3.Client, error) {
 	}
 	if v, ok := b.data.GetOk(passwordKey); ok && v.(string) != "" {
 		config.Password = v.(string)
+	}
+	if v, ok := b.data.GetOk(maxRequestBytesKey); ok && v.(int) != 0 {
+		config.MaxCallSendMsgSize = v.(int)
 	}
 	if v, ok := b.data.GetOk(cacertPathKey); ok && v.(string) != "" {
 		tlsInfo.TrustedCAFile = v.(string)

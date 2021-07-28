@@ -12,3 +12,9 @@ func (s selfT) referenceableSigil() {
 func (s selfT) String() string {
 	return "self"
 }
+
+func (s selfT) UniqueKey() UniqueKey {
+	return Self // Self is its own UniqueKey
+}
+
+func (s selfT) uniqueKeySigil() {}

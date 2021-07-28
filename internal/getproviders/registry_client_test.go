@@ -218,6 +218,10 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
 			resp.Write([]byte(`{"versions":[{"version":"1.0.0","protocols":["0.1"]}]}`))
+		case "weaksauce/protocol-six":
+			resp.Header().Set("Content-Type", "application/json")
+			resp.WriteHeader(200)
+			resp.Write([]byte(`{"versions":[{"version":"1.0.0","protocols":["6.0"]}]}`))
 		case "weaksauce/no-versions":
 			resp.Header().Set("Content-Type", "application/json")
 			resp.WriteHeader(200)
@@ -410,6 +414,12 @@ func TestFindClosestProtocolCompatibleVersion(t *testing.T) {
 			addrs.MustParseProviderSourceString("example.com/weaksauce/unsupported-protocol"),
 			MustParseVersion("1.0.0"),
 			versions.Unspecified,
+			``,
+		},
+		"provider protocol six": {
+			addrs.MustParseProviderSourceString("example.com/weaksauce/protocol-six"),
+			MustParseVersion("1.0.0"),
+			MustParseVersion("1.0.0"),
 			``,
 		},
 	}

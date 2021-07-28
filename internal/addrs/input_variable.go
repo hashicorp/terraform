@@ -14,6 +14,12 @@ func (v InputVariable) String() string {
 	return "var." + v.Name
 }
 
+func (v InputVariable) UniqueKey() UniqueKey {
+	return v // A InputVariable is its own UniqueKey
+}
+
+func (v InputVariable) uniqueKeySigil() {}
+
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
 func (v InputVariable) Absolute(m ModuleInstance) AbsInputVariableInstance {

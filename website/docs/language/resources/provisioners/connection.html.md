@@ -2,8 +2,7 @@
 layout: "language"
 page_title: "Provisioner Connection Settings"
 sidebar_current: "docs-provisioners-connection"
-description: |-
-  Managing connection defaults for SSH and WinRM using the `connection` block.
+description: "The `connection` block allows you to manage provisioner connection defaults for SSH and WinRM."
 ---
 
 # Provisioner Connection Settings
@@ -133,7 +132,7 @@ block would create a dependency cycle.
 
 * `insecure` - Set to `true` to not validate the HTTPS certificate chain.
 
-* `use_ntlm` - Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Further reading for remote connection authentication can be found [here](https://msdn.microsoft.com/en-us/library/aa384295(v=vs.85).aspx).
+* `use_ntlm` - Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Further reading for remote connection authentication can be found [here](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections?redirectedfrom=MSDN).
 
 * `cacert` - The CA certificate to validate against.
 

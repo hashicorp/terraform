@@ -508,3 +508,69 @@ output "out" {
 		}
 	}
 }
+
+func TestContext2Apply_ignoreImpureFunctionChanges(t *testing.T) {
+	// The impure function call should not cause a planned change with
+	// ignore_changes
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "pw" {
+  sensitive = true
+  default = "foo"
+}
+
+resource "test_object" "x" {
+  test_map = {
+	string = "X${bcrypt(var.pw)}"
+  }
+  lifecycle {
+    ignore_changes = [ test_map["string"] ]
+  }
+}
+
+resource "test_object" "y" {
+  test_map = {
+	string = "X${bcrypt(var.pw)}"
+  }
+  lifecycle {
+    ignore_changes = [ test_map ]
+  }
+}
+
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Config: m,
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	_, diags = ctx.Apply()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// FINAL PLAN:
+	plan, diags := ctx.Plan()
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	// make sure the same marks are compared in the next plan as well
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Logf("marks before: %#v", c.BeforeValMarks)
+			t.Logf("marks after:  %#v", c.AfterValMarks)
+			t.Errorf("Unexpcetd %s change for %s", c.Action, c.Addr)
+		}
+	}
+}
