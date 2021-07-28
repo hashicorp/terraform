@@ -24,7 +24,7 @@ import (
 // construct in incorrect plan (because it'll be starting from the wrong
 // prior state) but ValidateMoves will block actually showing that invalid
 // plan to the user.
-func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, expander *instances.Expander) tfdiags.Diagnostics {
+func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts instances.Set) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	g := buildMoveStatementGraph(stmts)
