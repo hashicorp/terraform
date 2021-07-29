@@ -64,6 +64,91 @@ func (e *MoveEndpointInModule) String() string {
 	return buf.String()
 }
 
+// Module returns the address of the module where the receiving address was
+// declared.
+func (e *MoveEndpointInModule) Module() Module {
+	return e.module
+}
+
+// InModuleInstance returns an AbsMovable address which concatenates the
+// given module instance address with the receiver's relative object selection
+// to produce one example of an instance that might be affected by this
+// move statement.
+//
+// The result is meaningful only if the given module instance is an instance
+// of the same module returned by the method Module. InModuleInstance doesn't
+// fully verify that (aside from some cheap/easy checks), but it will produce
+// meaningless garbage if not.
+func (e *MoveEndpointInModule) InModuleInstance(modInst ModuleInstance) AbsMoveable {
+	if len(modInst) != len(e.module) {
+		// We don't check all of the steps to make sure that their names match,
+		// because it would be expensive to do that repeatedly for every
+		// instance of a module, but if the lengths don't match then that's
+		// _obviously_ wrong.
+		panic("given instance address does not match module address")
+	}
+	switch relSubject := e.relSubject.(type) {
+	case ModuleInstance:
+		ret := make(ModuleInstance, 0, len(modInst)+len(relSubject))
+		ret = append(ret, modInst...)
+		ret = append(ret, relSubject...)
+		return ret
+	case AbsModuleCall:
+		retModAddr := make(ModuleInstance, 0, len(modInst)+len(relSubject.Module))
+		retModAddr = append(retModAddr, modInst...)
+		retModAddr = append(retModAddr, relSubject.Module...)
+		return relSubject.Call.Absolute(retModAddr)
+	case AbsResourceInstance:
+		retModAddr := make(ModuleInstance, 0, len(modInst)+len(relSubject.Module))
+		retModAddr = append(retModAddr, modInst...)
+		retModAddr = append(retModAddr, relSubject.Module...)
+		return relSubject.Resource.Absolute(retModAddr)
+	case AbsResource:
+		retModAddr := make(ModuleInstance, 0, len(modInst)+len(relSubject.Module))
+		retModAddr = append(retModAddr, modInst...)
+		retModAddr = append(retModAddr, relSubject.Module...)
+		return relSubject.Resource.Absolute(retModAddr)
+	default:
+		panic(fmt.Sprintf("unexpected move subject type %T", relSubject))
+	}
+}
+
+// ModuleCallTraversals returns both the address of the module where the
+// receiver was declared and any other module calls it traverses through
+// while selecting a particular object to move.
+//
+// This is a rather special-purpose function here mainly to support our
+// validation rule that a module can only traverse down into child modules
+// that belong to the same module package.
+func (e *MoveEndpointInModule) ModuleCallTraversals() (Module, []ModuleCall) {
+	// We're returning []ModuleCall rather than Module here to make it clearer
+	// that this is a relative sequence of calls rather than an absolute
+	// module path.
+
+	var steps []ModuleInstanceStep
+	switch relSubject := e.relSubject.(type) {
+	case ModuleInstance:
+		// We want all of the steps except the last one here, because the
+		// last one is always selecting something declared in the same module
+		// even though our address structure doesn't capture that.
+		steps = []ModuleInstanceStep(relSubject[:len(relSubject)-1])
+	case AbsModuleCall:
+		steps = []ModuleInstanceStep(relSubject.Module)
+	case AbsResourceInstance:
+		steps = []ModuleInstanceStep(relSubject.Module)
+	case AbsResource:
+		steps = []ModuleInstanceStep(relSubject.Module)
+	default:
+		panic(fmt.Sprintf("unexpected move subject type %T", relSubject))
+	}
+
+	ret := make([]ModuleCall, len(steps))
+	for i, step := range steps {
+		ret[i] = ModuleCall{Name: step.Name}
+	}
+	return e.module, ret
+}
+
 // SelectsModule returns true if the reciever directly selects either
 // the given module or a resource nested directly inside that module.
 //
