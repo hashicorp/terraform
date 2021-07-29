@@ -39,3 +39,13 @@ func (s Set) HasResourceInstance(want addrs.AbsResourceInstance) bool {
 func (s Set) HasResource(want addrs.AbsResource) bool {
 	return s.exp.knowsResource(want)
 }
+
+// InstancesForModule returns all of the module instances that correspond with
+// the given static module path.
+//
+// If there are multiple module calls in the path that have repetition enabled
+// then the result is the full expansion of all combinations of all of their
+// declared instance keys.
+func (s Set) InstancesForModule(modAddr addrs.Module) []addrs.ModuleInstance {
+	return s.exp.ExpandModule(modAddr)
+}
