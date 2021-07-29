@@ -70,6 +70,14 @@ func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {
 	return ret
 }
 
+type absModuleCallInstanceKey string
+
+func (c AbsModuleCall) UniqueKey() UniqueKey {
+	return absModuleCallInstanceKey(c.String())
+}
+
+func (mk absModuleCallInstanceKey) uniqueKeySigil() {}
+
 // ModuleCallInstance is the address of one instance of a module created from
 // a module call, which might create multiple instances using "count" or
 // "for_each" arguments.

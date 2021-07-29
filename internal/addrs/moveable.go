@@ -11,6 +11,7 @@ package addrs
 // the current module where the address is defined. The type MoveEndpoint
 type AbsMoveable interface {
 	absMoveableSigil()
+	UniqueKeyer
 
 	String() string
 }
