@@ -37,9 +37,9 @@ the same addressing scheme as the given prefix.
 ## Examples
 
 ```
-> cidrhost("10.12.127.0/20", 16)
+> cidrhost("10.12.112.0/20", 16)
 10.12.112.16
-> cidrhost("10.12.127.0/20", 268)
+> cidrhost("10.12.112.0/20", 268)
 10.12.113.12
 > cidrhost("fd00:fd12:3456:7890:00a2::/72", 34)
 fd00:fd12:3456:7890::22
