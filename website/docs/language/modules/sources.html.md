@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
-description: The source argument within a module block specifies the location of the source code of a child module.
+description: "source tells Terraform where to find child modules in locations like GitHub, the Terraform Registry, Bitbucket, Git, Mercurial, S3, and GCS."
 ---
 
 # Module Sources
