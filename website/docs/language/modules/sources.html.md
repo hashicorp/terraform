@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
-description: "`source` tells Terraform where to find child modules in locations like GitHub, the Terraform Registry, Bitbucket, Git, Mercurial, S3, and GCS."
+description: "source tells Terraform where to find child modules in locations like GitHub, the Terraform Registry, Bitbucket, Git, Mercurial, S3, and GCS."
 ---
 
 # Module Sources
