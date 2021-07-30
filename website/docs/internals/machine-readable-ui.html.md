@@ -185,10 +185,11 @@ Terraform outputs a change summary when a plan or apply operation completes. Bot
 
 ## Outputs
 
-After a successful apply, a message with type `outputs` contains the values of all root module output values. This message contains an `outputs` object, the keys of which are the output names. The outputs values are objects with the following keys:
+After a successful plan or apply, a message with type `outputs` contains the values of all root module output values. This message contains an `outputs` object, the keys of which are the output names. The outputs values are objects with the following keys:
 
-- `value:` the value of the output, encoded in JSON
-- `type`: the detected HCL type of the output value
+- `action`: for planned outputs, the action which will be taken for the output. Values: `noop`, `create`, `update`, `delete`
+- `value`: for applied outputs, the value of the output, encoded in JSON
+- `type`: for applied outputs, the detected HCL type of the output value
 - `sensitive`: boolean value, `true` if the output is sensitive and should be hidden from UI by default
 
 Note that `sensitive` outputs still include the `value` field, and integrating software should respect the sensitivity value as appropriate for the given use case.
