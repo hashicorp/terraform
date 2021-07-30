@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "For Expressions - Configuration Language"
-description: "`for` expressions transform complex input values into complex output values. Learn how to filter inputs and how to group results."
+description: "For expressions transform complex input values into complex output values. Learn how to filter inputs and how to group results."
 ---
 
 # `for` Expressions
