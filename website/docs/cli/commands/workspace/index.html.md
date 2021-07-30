@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: workspace"
 sidebar_current: "docs-commands-workspace-index"
-description: "`workspace` subcommands to list, output, create, and select workspaces."
+description: "Subcommands to list, output, create, and select workspaces."
 
 ---
 
