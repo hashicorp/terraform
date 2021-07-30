@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Import"
 sidebar_current: "docs-import"
-description: "Terraform can import and manage existing infrastructure. This can help you slowly transition your infrastructure to Terraform."
+description: "Terraform can import and manage existing infrastructure. This can help you transition your infrastructure to Terraform."
 ---
 
 # Import
