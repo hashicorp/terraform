@@ -2,9 +2,8 @@
 layout: "docs"
 page_title: "Command: providers"
 sidebar_current: "docs-commands-providers"
-description: |-
-  The `terraform providers` command prints information about the providers used
-  in the current configuration.
+description: "terraform providers prints information about the providers used
+  in the current configuration."
 ---
 
 # Command: providers
