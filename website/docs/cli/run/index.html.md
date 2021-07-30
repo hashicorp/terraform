@@ -1,7 +1,7 @@
 ---
 layout: "docs"
 page_title: "Provisioning Infrastructure - Terraform CLI"
-description: "Learn about core provisioning tasks: `plan`, `apply`, and `destroy`. Terraform uses them to create, modify, and destroy infrastructure to match a configuration."
+description: "Learn about core provisioning tasks: plan, apply, and destroy."
 ---
 
 # Provisioning Infrastructure with Terraform
