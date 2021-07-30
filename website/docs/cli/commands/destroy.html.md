@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: destroy"
 sidebar_current: "docs-commands-destroy"
-description: "`terraform destroy` destroys all objects managed by a particular Terraform configuration."
+description: "terraform destroy destroys all objects managed by a particular Terraform configuration."
 ---
 
 # Command: destroy
