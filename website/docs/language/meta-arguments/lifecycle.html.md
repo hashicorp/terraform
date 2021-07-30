@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "The lifecycle Meta-Argument - Configuration Language"
-description: "The meta-arguments in a `lifecycle` block allow you to customize resource behavior. For example, preventing Terraform from destroying associated infrastructure."
+description: "The meta-arguments in a lifecycle block allow you to customize resource behavior."
 ---
 
 # The `lifecycle` Meta-Argument

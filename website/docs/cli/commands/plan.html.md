@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: plan"
 sidebar_current: "docs-commands-plan"
-description: |-
-  The terraform plan command creates an execution plan.
+description: "The terraform plan command creates an execution plan with a preview of the changes that Terraform will make to your infrastructure."
 ---
 
 # Command: plan

@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Managing Workspaces - Terraform CLI"
+description: "Commands to list, select, create, and output workspaces. Workspaces help manage different groups of resources with one configuration."
 ---
 
 # Managing Workspaces

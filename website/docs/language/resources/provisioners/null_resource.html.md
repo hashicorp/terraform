@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Provisioners Without a Resource"
 sidebar_current: "docs-provisioners-null-resource"
-description: "'null_resource' allows you to configure provisioners that are not directly associated with a single existing resource."
+description: "A null_resource allows you to configure provisioners that are not directly associated with a single existing resource."
 ---
 
 # Provisioners Without a Resource

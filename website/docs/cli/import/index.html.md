@@ -2,10 +2,7 @@
 layout: "docs"
 page_title: "Import"
 sidebar_current: "docs-import"
-description: |-
-  Terraform is able to import existing infrastructure. This allows you take
-  resources you've created by some other means and bring it under Terraform
-  management.
+description: "Terraform can import and manage existing infrastructure. This can help you transition your infrastructure to Terraform."
 ---
 
 # Import

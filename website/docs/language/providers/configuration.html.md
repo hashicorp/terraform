@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
-description: "Learn how to set up providers, including how to use the `alias` meta-argument to specify multiple configurations for a single provider."
+description: "Learn how to set up providers, including how to use the alias meta-argument to specify multiple configurations for a single provider."
 ---
 
 # Provider Configuration

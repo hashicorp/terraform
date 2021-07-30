@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Forcing Re-creation of Resources (Tainting) - Terraform CLI"
+description: "Commands that allow you to destroy and re-create resources manually."
 ---
 
 # Forcing Re-creation of Resources (Tainting)

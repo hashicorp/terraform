@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Authentication - Terraform CLI"
+description: "Documentation about the login and logout commands that help automate getting an API token for your Terraform Cloud account."
 ---
 
 # CLI Authentication

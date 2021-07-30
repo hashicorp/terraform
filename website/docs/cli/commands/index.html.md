@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Basic CLI Features"
 sidebar_current: "docs-commands"
-description: |-
-  Main usage information for the Terraform CLI tool.
+description: "An introduction to the terraform command and its available subcommands."
 ---
 
 # Basic CLI Features

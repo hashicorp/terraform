@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: version"
 sidebar_current: "docs-commands-version"
-description: |-
-  The `terraform version` command displays the version of Terraform and all installed plugins.
+description: "The terraform version command displays the Terraform version and the version of all installed plugins."
 ---
 
 # Command: version
@@ -21,10 +20,10 @@ and security checks [unless disabled](/docs/cli/commands/index.html#upgrade-and-
 
 This command has one optional flag:
 
-* `-json` - If specified, the version information is formatted as a JSON object, 
+* `-json` - If specified, the version information is formatted as a JSON object,
     and no upgrade or security information is included.
 
--> **Note:** Platform information was added to the `version` command in Terraform 0.15. 
+-> **Note:** Platform information was added to the `version` command in Terraform 0.15.
 
 ## Example
 

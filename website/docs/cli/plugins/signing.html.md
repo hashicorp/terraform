@@ -1,8 +1,7 @@
 ---
 layout: "docs"
 page_title: "Plugin Signing"
-description: |-
-  Terraform plugin signing trust levels
+description: "Learn about the types of signatures providers can have on the Terraform Registry."
 ---
 
 <!-- THIS PAGED IS LINKED TO IN THE CLI -->

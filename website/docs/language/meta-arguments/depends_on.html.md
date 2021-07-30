@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "The depends_on Meta-Argument - Configuration Language"
-description: "`depends_on` allows you to handle hidden resource or module dependencies."
+description: "The depends_on meta-argument allows you to handle hidden resource or module dependencies."
 ---
 
 # The `depends_on` Meta-Argument
