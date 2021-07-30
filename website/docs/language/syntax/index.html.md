@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "Syntax Overview - Configuration Language"
-description: "Terraform language syntax for both the native and JSON variants. Also learn formatting conventions that you can enforce with `terraform fmt`."
+description: "Terraform language syntax for both the native and JSON variants. Also learn formatting conventions that you can enforce with terraform fmt."
 ---
 
 # Syntax
