@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Basic CLI Features"
 sidebar_current: "docs-commands"
-description: "Learn how to switch your working directory, enable shell tab-completion, and manage service checkpoints."
+description: "An introduction to the terraform command and its available subcommands."
 ---
 
 # Basic CLI Features
