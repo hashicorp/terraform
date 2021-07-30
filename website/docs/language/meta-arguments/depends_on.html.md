@@ -1,8 +1,7 @@
 ---
 layout: "language"
 page_title: "The depends_on Meta-Argument - Configuration Language"
-description: |-
-  Use the Terraform language `depends_on` meta-argument to handle hidden resource or module dependencies.
+description: "depends_on allows you to handle hidden resource or module dependencies."
 ---
 
 # The `depends_on` Meta-Argument
