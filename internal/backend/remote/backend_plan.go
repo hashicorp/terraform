@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
@@ -65,21 +66,23 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
-	if b.hasExplicitVariableValues(op) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Run variables are currently not supported",
-			fmt.Sprintf(
-				"The \"remote\" backend does not support setting run variables at this time. "+
-					"Currently the only to way to pass variables to the remote backend is by "+
-					"creating a '*.auto.tfvars' variables file. This file will automatically "+
-					"be loaded by the \"remote\" backend when the workspace is configured to use "+
-					"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
-					"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
-				b.hostname, b.organization, op.Workspace,
-			),
-		))
-	}
+	// This returns true when there is a value from cli arg or value from named
+	// file
+	//if b.hasExplicitVariableValues(op) {
+	//	diags = diags.Append(tfdiags.Sourceless(
+	//		tfdiags.Error,
+	//		"Run variables are currently not supported",
+	//		fmt.Sprintf(
+	//			"The \"remote\" backend does not support setting run variables at this time. "+
+	//				"Currently the only to way to pass variables to the remote backend is by "+
+	//				"creating a '*.auto.tfvars' variables file. This file will automatically "+
+	//				"be loaded by the \"remote\" backend when the workspace is configured to use "+
+	//				"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
+	//				"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
+	//			b.hostname, b.organization, op.Workspace,
+	//		),
+	//	))
+	//}
 
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -309,6 +312,25 @@ in order to capture the filesystem context the remote workspace expects:
 			runOptions.ReplaceAddrs = append(runOptions.ReplaceAddrs, addr.String())
 		}
 	}
+
+	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	if configDiags.HasErrors() {
+		return nil, generalError(fmt.Errorf("error doing LoadConfigWithSnapshot"))
+	}
+	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+
+	runVariables := map[string][]byte{}
+	for varKey, varValue := range variables {
+		if varValue.SourceType == terraform.ValueFromCLIArg ||
+			varValue.SourceType == terraform.ValueFromNamedFile {
+			valueData, err := ctyjson.Marshal(varValue, varValue.Type())
+			if err != nil {
+				return nil, generalError(fmt.Errorf("could not marshal json", err))
+			}
+			runVariables[varKey] = valueData
+		}
+	}
+	runOptions.Variables = runVariables
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {
