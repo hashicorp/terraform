@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Provisioner Connection Settings"
 sidebar_current: "docs-provisioners-connection"
-description: "The `connection` block allows you to manage provisioner connection defaults for SSH and WinRM."
+description: "The connection block allows you to manage provisioner connection defaults for SSH and WinRM."
 ---
 
 # Provisioner Connection Settings
