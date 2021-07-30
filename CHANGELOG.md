@@ -1,5 +1,10 @@
 ## 1.0.4 (Unreleased)
 
+
+BUG FIXES:
+
+* backend/consul: Fix a bug where the state value may be too large for consul to accept [GH-28838]
+
 ## 1.0.3 (July 21, 2021)
 
 ENHANCEMENTS
