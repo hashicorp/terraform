@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Managing Plugins - Terraform CLI"
+description: "Commands to install, configure, and show information about providers. Also commands to reduce install effort in air-gapped environments."
 ---
 
 # Managing Plugins

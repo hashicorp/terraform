@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Inspecting Infrastructure - Terraform CLI"
+description: "Learn commands to inspect and transform dependency information, outputs, etc. Use them for integration or to more deeply understand your infrastructure."
 ---
 
 # Inspecting Infrastructure
