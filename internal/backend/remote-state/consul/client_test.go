@@ -142,11 +142,6 @@ func TestConsul_largeState(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// md5 := md5.Sum(payload)
-		// if !bytes.Equal(md5[:], remote.MD5) {
-		// 	t.Fatal("the md5 sums do not match")
-		// }
-
 		if !bytes.Equal(payload, remote.Data) {
 			t.Fatal("the data do not match")
 		}
@@ -164,6 +159,19 @@ func TestConsul_largeState(t *testing.T) {
 			"tf-unit/test-large-state",
 			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/0",
 			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/1",
+		},
+	)
+
+	// This payload is just short enough to be stored but will be bigger when
+	// going through the Transaction API as it will be base64 encoded
+	testPayload(
+		t,
+		map[string]string{
+			"foo": strings.Repeat("a", 524288-10),
+		},
+		[]string{
+			"tf-unit/test-large-state",
+			"tf-unit/test-large-state/tfstate.4f407ace136a86521fd0d366972fe5c7/0",
 		},
 	)
 
