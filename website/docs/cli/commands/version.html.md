@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: version"
 sidebar_current: "docs-commands-version"
-description: "terraform version displays the Terraform version and the version of all installed plugins."
+description: "The terraform version command displays the Terraform version and the version of all installed plugins."
 ---
 
 # Command: version

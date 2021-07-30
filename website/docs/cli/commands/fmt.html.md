@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: fmt"
 sidebar_current: "docs-commands-fmt"
-description: "terraform fmt rewrites Terraform configuration files to a canonical format and style."
+description: "The terraform fmt command rewrites configuration files to a canonical format and style."
 ---
 
 # Command: fmt
