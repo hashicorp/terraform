@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: get"
 sidebar_current: "docs-commands-get"
-description: "terraform get downloads and updates modules."
+description: "The terraform get command downloads and updates modules."
 ---
 
 # Command: get

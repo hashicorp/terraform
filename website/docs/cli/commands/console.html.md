@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: console"
 sidebar_current: "docs-commands-console"
-description: "terraform console provides an interactive console for
+description: "The terraform console command provides an interactive console for
   evaluating expressions."
 ---
 

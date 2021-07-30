@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: import"
 sidebar_current: "docs-commands-import"
-description: "terraform import brings existing resources into Terraform state."
+description: "The terraform import command brings existing resources into Terraform state."
 ---
 
 # Command: import

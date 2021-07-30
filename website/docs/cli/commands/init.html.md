@@ -2,7 +2,7 @@
 layout: "docs"
 page_title: "Command: init"
 sidebar_current: "docs-commands-init"
-description: "terraform init initializes a working directory containing Terraform configuration files and installs the plugins for required providers."
+description: "The terraform init command initializes a working directory containing configuration files and installs plugins for required providers."
 ---
 
 # Command: init
