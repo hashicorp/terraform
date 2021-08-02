@@ -4,6 +4,7 @@
 BUG FIXES:
 
 * backend/consul: Fix a bug where the state value may be too large for consul to accept [GH-28838]
+* cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. ([#29048](https://github.com/hashicorp/terraform/issues/29048))
 
 ## 1.0.3 (July 21, 2021)
 
