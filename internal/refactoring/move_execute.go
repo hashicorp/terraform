@@ -28,6 +28,8 @@ type MoveResult struct {
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
 func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]MoveResult {
+	results := make(map[addrs.UniqueKey]MoveResult)
+
 	// The methodology here is to construct a small graph of all of the move
 	// statements where the edges represent where a particular statement
 	// is either chained from or nested inside the effect of another statement.
@@ -40,7 +42,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 	// at all. The separate validation step should detect this and return
 	// an error.
 	if len(g.Cycles()) != 0 {
-		return nil
+		return results
 	}
 
 	// The starting nodes are the ones that don't depend on any other nodes.
@@ -51,7 +53,6 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 		}
 	}
 
-	results := make(map[addrs.UniqueKey]MoveResult)
 	g.DepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
 		stmt := v.(*MoveStatement)
 

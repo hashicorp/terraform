@@ -15,10 +15,6 @@ import (
 )
 
 func TestApplyMoves(t *testing.T) {
-	// TODO: Renable this once we're ready to implement the intended behaviors
-	// it is describing.
-	t.Skip("ApplyMoves is not yet fully implemented")
-
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
 		Provider: addrs.MustParseProviderSourceString("example.com/foo/bar"),
@@ -48,6 +44,8 @@ func TestApplyMoves(t *testing.T) {
 		}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
 	}
 
+	emptyResults := map[addrs.UniqueKey]MoveResult{}
+
 	tests := map[string]struct {
 		Stmts []MoveStatement
 		State *states.State
@@ -58,7 +56,7 @@ func TestApplyMoves(t *testing.T) {
 		"no moves and empty state": {
 			[]MoveStatement{},
 			states.NewState(),
-			nil,
+			emptyResults,
 			nil,
 		},
 		"no moves": {
@@ -73,7 +71,7 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			nil,
+			emptyResults,
 			[]string{
 				`foo.from`,
 			},
@@ -98,7 +96,7 @@ func TestApplyMoves(t *testing.T) {
 					To:   rootNoKeyResourceAddr[1],
 				},
 				rootNoKeyResourceAddr[1].UniqueKey(): {
-					From: rootNoKeyResourceAddr[1],
+					From: rootNoKeyResourceAddr[0],
 					To:   rootNoKeyResourceAddr[1],
 				},
 			},
@@ -121,11 +119,11 @@ func TestApplyMoves(t *testing.T) {
 				)
 			}),
 			map[addrs.UniqueKey]MoveResult{
-				rootNoKeyResourceAddr[0].UniqueKey(): {
+				rootIntKeyResourceAddr[0].UniqueKey(): {
 					From: rootIntKeyResourceAddr[0],
 					To:   rootIntKeyResourceAddr[1],
 				},
-				rootNoKeyResourceAddr[1].UniqueKey(): {
+				rootIntKeyResourceAddr[1].UniqueKey(): {
 					From: rootIntKeyResourceAddr[0],
 					To:   rootIntKeyResourceAddr[1],
 				},
