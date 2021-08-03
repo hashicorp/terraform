@@ -148,9 +148,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 // may contain cycles and other sorts of invalidity.
 func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 	g := &dag.AcyclicGraph{}
-	for _, stmt := range stmts {
+	for i := range stmts {
 		// The graph nodes are pointers to the actual statements directly.
-		g.Add(&stmt)
+		g.Add(&stmts[i])
 	}
 
 	// Now we'll add the edges representing chaining and nesting relationships.
