@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -152,6 +153,10 @@ func (c *PlanCommand) OperationRequest(
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backend.OperationTypePlan
 	opReq.View = view.Operation()
+
+	if opReq.PlanMode == plans.DestroyMode {
+		opReq.AllowUnsetVariables = true
+	}
 
 	var err error
 	opReq.ConfigLoader, err = c.initConfigLoader()
