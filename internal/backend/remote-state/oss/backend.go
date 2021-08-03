@@ -146,8 +146,6 @@ func New() backend.Backend {
 					return nil, nil
 				},
 			},
-
-			"assume_role": assumeRoleSchema(),
 			"shared_credentials_file": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -160,60 +158,48 @@ func New() backend.Backend {
 				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
 			},
+			"assume_role_role_arn": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The ARN of a RAM role to assume prior to making API calls.",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+			},
+			"assume_role_session_name": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+			},
+			"assume_role_policy": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+			},
+			"assume_role_session_expiration": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The time after which the established session for assuming role expires.",
+				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+					min := 900
+					max := 3600
+					value, ok := v.(int)
+					if !ok {
+						return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
+					}
+
+					if value < min || value > max {
+						return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
+					}
+
+					return nil, nil
+				},
+			},
 		},
 	}
 
 	result := &Backend{Backend: s}
 	result.Backend.ConfigureFunc = result.configure
 	return result
-}
-
-func assumeRoleSchema() *schema.Schema {
-	return &schema.Schema{
-		Type:     schema.TypeSet,
-		Optional: true,
-		MaxItems: 1,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"role_arn": {
-					Type:        schema.TypeString,
-					Required:    true,
-					Description: "The ARN of a RAM role to assume prior to making API calls.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
-				},
-				"session_name": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The session name to use when assuming the role.",
-					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
-				},
-				"policy": {
-					Type:        schema.TypeString,
-					Optional:    true,
-					Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
-				},
-				"session_expiration": {
-					Type:        schema.TypeInt,
-					Optional:    true,
-					Description: "The time after which the established session for assuming role expires.",
-					ValidateFunc: func(v interface{}, k string) ([]string, []error) {
-						min := 900
-						max := 3600
-						value, ok := v.(int)
-						if !ok {
-							return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
-						}
-
-						if value < min || value > max {
-							return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
-						}
-
-						return nil, nil
-					},
-				},
-			},
-		},
-	}
 }
 
 type Backend struct {
@@ -274,30 +260,21 @@ func (b *Backend) configure(ctx context.Context) error {
 		sessionExpiration = (int)(expiredSeconds.(float64))
 	}
 
-	if v, ok := d.GetOk("assume_role"); ok {
-		for _, v := range v.(*schema.Set).List() {
-			assumeRole := v.(map[string]interface{})
-			if assumeRole["role_arn"].(string) != "" {
-				roleArn = assumeRole["role_arn"].(string)
+	roleArn = d.Get("assume_role_role_arn").(string)
+	sessionName = d.Get("assume_role_session_name").(string)
+	if sessionName == "" {
+		sessionName = "terraform"
+	}
+	policy = d.Get("assume_role_policy").(string)
+	sessionExpiration = d.Get("assume_role_session_expiration").(int)
+	if sessionExpiration == 0 {
+		if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
+			if expiredSeconds, err := strconv.Atoi(v); err == nil {
+				sessionExpiration = expiredSeconds
 			}
-			if assumeRole["session_name"].(string) != "" {
-				sessionName = assumeRole["session_name"].(string)
-			}
-			if sessionName == "" {
-				sessionName = "terraform"
-			}
-			policy = assumeRole["policy"].(string)
-			sessionExpiration = assumeRole["session_expiration"].(int)
-			if sessionExpiration == 0 {
-				if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
-					if expiredSeconds, err := strconv.Atoi(v); err == nil {
-						sessionExpiration = expiredSeconds
-					}
-				}
-				if sessionExpiration == 0 {
-					sessionExpiration = 3600
-				}
-			}
+		}
+		if sessionExpiration == 0 {
+			sessionExpiration = 3600
 		}
 	}
 

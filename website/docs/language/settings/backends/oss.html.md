@@ -95,18 +95,11 @@ The following configuration options or environment variables are supported:
    to be applied to the state file.
  * `shared_credentials_file` - (Optional, Available in 0.12.8+) This is the path to the shared credentials file. It can also be sourced from the `ALICLOUD_SHARED_CREDENTIALS_FILE` environment variable. If this is not set and a profile is specified, `~/.aliyun/config.json` will be used.
  * `profile` - (Optional, Available in 0.12.8+)  This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.
- * `assume_role` - (Optional, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials.
-
-The nested `assume_role` block supports the following:
-
-* `role_arn` - (Required) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
+* `assume_role_role_arn` - (Optional, Available in 0.12.6+) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
   Terraform executes configuration on account with provided credentials.
-
-* `policy` - (Optional) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary
+* `assume_role_policy` - (Optional, Available in 0.12.6+) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary
   security credentials. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.
-
-* `session_name` - (Optional) The session name to use when assuming the role. If omitted, 'terraform' is passed to the AssumeRole call as session name. It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_NAME`.
-
-* `session_expiration` - (Optional) The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 3600 (in this case Alibaba Cloud use own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
+* `assume_role_session_name` - (Optional, Available in 0.12.6+) The session name to use when assuming the role. If omitted, 'terraform' is passed to the AssumeRole call as session name. It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_NAME`.
+* `assume_role_session_expiration` - (Optional, Available in 0.12.6+) The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 3600 (in this case Alibaba Cloud use own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
 
 -> **Note:** If you want to store state in the custom OSS endpoint, you can specify a environment variable `OSS_ENDPOINT`, like "oss-cn-beijing-internal.aliyuncs.com"
