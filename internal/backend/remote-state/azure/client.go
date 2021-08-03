@@ -29,6 +29,7 @@ type RemoteClient struct {
 	keyName            string
 	leaseID            string
 	snapshot           bool
+	encryptionKey      []byte
 }
 
 func (c *RemoteClient) Get() (*remote.Payload, error) {
@@ -46,8 +47,18 @@ func (c *RemoteClient) Get() (*remote.Payload, error) {
 		return nil, err
 	}
 
+	contents := blob.Contents
+	if c.encryptionKey != nil {
+		if len(contents) > 0 {
+			contents, err = decrypt(c.encryptionKey, contents)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	payload := &remote.Payload{
-		Data: blob.Contents,
+		Data: contents,
 	}
 
 	// If there was no data, then return nil
@@ -87,6 +98,13 @@ func (c *RemoteClient) Put(data []byte) error {
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
 	if err != nil {
 		if blob.StatusCode != 404 {
+			return err
+		}
+	}
+
+	if c.encryptionKey != nil {
+		data, err = encrypt(c.encryptionKey, data)
+		if err != nil {
 			return err
 		}
 	}

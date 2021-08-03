@@ -2,6 +2,7 @@ package azure
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -63,6 +64,13 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "Enable/Disable automatic blob snapshotting",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_SNAPSHOT", false),
+			},
+
+			"encryption_phrase": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Phrase that is used to derive the AES-256 encryption key to encrypt the state",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_ENCRYPTION_PHRASE", ""),
 			},
 
 			"resource_group_name": {
@@ -159,6 +167,7 @@ type Backend struct {
 	keyName       string
 	accountName   string
 	snapshot      bool
+	encryptionKey []byte
 }
 
 type BackendConfig struct {
@@ -194,6 +203,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.accountName = data.Get("storage_account_name").(string)
 	b.keyName = data.Get("key").(string)
 	b.snapshot = data.Get("snapshot").(bool)
+
+	encryptionPhrase := data.Get("encryption_phrase").(string)
+	if encryptionPhrase != "" {
+		encryptionKey := sha256.Sum256([]byte(encryptionPhrase))
+		b.encryptionKey = encryptionKey[:]
+	}
 
 	config := BackendConfig{
 		AccessKey:                     data.Get("access_key").(string),

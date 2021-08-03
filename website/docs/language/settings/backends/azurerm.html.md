@@ -211,6 +211,8 @@ The following configuration options are supported:
 
 * `snapshot` - (Optional) Should the Blob used to store the Terraform Statefile be snapshotted before use? Defaults to `false`. This value can also be sourced from the `ARM_SNAPSHOT` environment variable.
 
+* `encryption_phrase` - (Optional) Encryption phrase that is used to encrypt the state (using AES-256 GCM). Defaults to an empty string, that disables encryption. This value can also be sourced from the `ARM_ENCRYPTION_PHRASE` environment variable.
+
 ---
 
 When authenticating using the Managed Service Identity (MSI) - the following fields are also supported:
