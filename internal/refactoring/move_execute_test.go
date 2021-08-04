@@ -30,6 +30,11 @@ func TestApplyMoves(t *testing.T) {
 			Type: "foo",
 			Name: "to",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "mid",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 	}
 	rootIntKeyResourceAddr := [...]addrs.AbsResourceInstance{
 		addrs.Resource{
@@ -132,13 +137,46 @@ func TestApplyMoves(t *testing.T) {
 				`foo.to[0]`,
 			},
 		},
+		"chained move of whole singleton resource": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.mid"),
+				testMoveStatement(t, "", "foo.mid", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					rootNoKeyResourceAddr[0],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				rootNoKeyResourceAddr[0].UniqueKey(): {
+					From: rootNoKeyResourceAddr[0],
+					To:   rootNoKeyResourceAddr[2],
+				},
+				rootNoKeyResourceAddr[2].UniqueKey(): {
+					From: rootNoKeyResourceAddr[2],
+					To:   rootNoKeyResourceAddr[1],
+				},
+				rootNoKeyResourceAddr[1].UniqueKey(): {
+					From: rootNoKeyResourceAddr[2],
+					To:   rootNoKeyResourceAddr[1],
+				},
+			},
+			[]string{
+				`foo.to`,
+			},
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			var stmtsBuf strings.Builder
 			for _, stmt := range test.Stmts {
-				fmt.Fprintf(&stmtsBuf, "- from: %s\n  to:   %s", stmt.From, stmt.To)
+				fmt.Fprintf(&stmtsBuf, "- from: %s\n  to:   %s\n", stmt.From, stmt.To)
 			}
 			t.Logf("move statements:\n%s", stmtsBuf.String())
 
