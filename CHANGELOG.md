@@ -1,9 +1,9 @@
-## 1.0.4 (Unreleased)
+## 1.0.4 (August 04, 2021)
 
 
 BUG FIXES:
 
-* backend/consul: Fix a bug where the state value may be too large for consul to accept [GH-28838]
+* backend/consul: Fix a bug where the state value may be too large for consul to accept ([#28838](https://github.com/hashicorp/terraform/issues/28838))
 * cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. ([#29048](https://github.com/hashicorp/terraform/issues/29048))
 
 ## 1.0.3 (July 21, 2021)
