@@ -61,7 +61,7 @@ To make use of the pg remote state in another configuration, use the [`terraform
 ```hcl
 data "terraform_remote_state" "network" {
   backend = "pg"
-  config {
+  config = {
     conn_str = "postgres://localhost/terraform_backend"
   }
 }
