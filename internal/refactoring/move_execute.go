@@ -48,12 +48,12 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := make(dag.Set, len(stmts))
 	for _, v := range g.Vertices() {
-		if len(g.UpEdges(v)) == 0 {
+		if len(g.DownEdges(v)) == 0 {
 			startNodes.Add(v)
 		}
 	}
 
-	g.DepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
+	g.ReverseDepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
 		stmt := v.(*MoveStatement)
 
 		for _, ms := range state.Modules {
