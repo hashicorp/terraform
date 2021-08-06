@@ -98,7 +98,7 @@ maps with admin vs non-admin objects:
 ```hcl
 variable "users" {
   type = map(object({
-    is_admin = boolean
+    is_admin = bool
   }))
 }
 
