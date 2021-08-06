@@ -1,5 +1,9 @@
 ## 1.0.5 (Unreleased)
 
+BUG FIXES:
+
+* json-output: Add an output change summary message as part of the `terraform plan -json` structured logs, bringing this format into parity with the human-readable UI. [GH-29312]
+
 ## 1.0.4 (August 04, 2021)
 
 
