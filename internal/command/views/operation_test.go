@@ -763,6 +763,90 @@ func TestOperationJSON_planDrift(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
+func TestOperationJSON_planOutputChanges(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+			Outputs: []*plans.OutputChangeSrc{
+				{
+					Addr: root.OutputValue("boop"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+					},
+				},
+				{
+					Addr: root.OutputValue("beep"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: root.OutputValue("bonk"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Delete,
+					},
+				},
+				{
+					Addr: root.OutputValue("honk"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Update,
+					},
+					Sensitive: true,
+				},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// No resource changes
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(0),
+				"change":    float64(0),
+				"remove":    float64(0),
+			},
+		},
+		// Output changes
+		{
+			"@level":   "info",
+			"@message": "Outputs: 4",
+			"@module":  "terraform.ui",
+			"type":     "outputs",
+			"outputs": map[string]interface{}{
+				"boop": map[string]interface{}{
+					"action":    "noop",
+					"sensitive": false,
+				},
+				"beep": map[string]interface{}{
+					"action":    "create",
+					"sensitive": false,
+				},
+				"bonk": map[string]interface{}{
+					"action":    "delete",
+					"sensitive": false,
+				},
+				"honk": map[string]interface{}{
+					"action":    "update",
+					"sensitive": true,
+				},
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
 func TestOperationJSON_plannedChange(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	v := &OperationJSON{view: NewJSONView(NewView(streams))}

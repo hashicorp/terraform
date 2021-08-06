@@ -195,6 +195,17 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	}
 
 	v.view.ChangeSummary(cs)
+
+	var rootModuleOutputs []*plans.OutputChangeSrc
+	for _, output := range plan.Changes.Outputs {
+		if !output.Addr.Module.IsRoot() {
+			continue
+		}
+		rootModuleOutputs = append(rootModuleOutputs, output)
+	}
+	if len(rootModuleOutputs) > 0 {
+		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
+	}
 }
 
 func (v *OperationJSON) resourceDrift(oldState, newState *states.State, schemas *terraform.Schemas) error {
