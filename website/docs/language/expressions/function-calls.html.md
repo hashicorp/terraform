@@ -98,7 +98,7 @@ dynamically on disk as part of the plan or apply steps.
 
 The `timestamp` function returns a representation of the current system time
 at the point when Terraform calls it, and the `uuid` function returns a random
-result which differs on each call. Without any special behavior these would
+result which differs on each call. Without any special behavior these
 would both cause the final configuration during the apply step not to match the
 actions shown in the plan, which violates the Terraform execution model.
 
