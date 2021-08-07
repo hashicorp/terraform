@@ -511,7 +511,6 @@ func writeAttrTypeConstraint(buf *strings.Builder, schema *configschema.Attribut
 	} else {
 		buf.WriteString(fmt.Sprintf("%s\n", schema.Type.FriendlyName()))
 	}
-	return
 }
 
 func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedBlock) {
@@ -520,7 +519,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	} else {
 		buf.WriteString(" # OPTIONAL block\n")
 	}
-	return
 }
 
 // copied from command/format/diff
