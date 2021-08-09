@@ -278,7 +278,7 @@ variable "with_optional_attribute" {
 By default, for required attributes, Terraform will return an error if the
 source value has no matching attribute. Marking an attribute as optional
 changes the behavior in that situation: Terraform will instead just silently
-insert `null` as the value of the attribute, allowing the recieving module
+insert `null` as the value of the attribute, allowing the receiving module
 to describe an appropriate fallback behavior.
 
 Because this feature is currently experimental, it requires an explicit
