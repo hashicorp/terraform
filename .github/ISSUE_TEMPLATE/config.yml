@@ -4,8 +4,8 @@ contact_links:
     url: https://support.hashicorp.com/hc/en-us/requests/new
     about: For issues and feature requests related to the Terraform Cloud/Enterprise platform, please submit a HashiCorp support request or email tf-cloud@hashicorp.support
   - name: Provider-related Feedback and Questions
-    url: https://github.com/terraform-providers
-    about: Each provider (e.g. AWS, Azure, GCP, Oracle, K8S, etc.) has its own repository, any provider related issues or questions should be directed to appropriate provider repository.
+    url: https://registry.terraform.io/browse/providers
+    about: Each provider (e.g. AWS, Azure, GCP, Oracle, K8S, etc.) has its own repository, any provider related issues or questions should be directed to the appropriate issue tracker linked from the Registry.
   - name: Provider Development Feedback and Questions
     url: https://github.com/hashicorp/terraform-plugin-sdk/issues/new/choose
     about: Plugin SDK has its own repository, any SDK and provider development related issues or questions should be directed there.
