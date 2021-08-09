@@ -1,6 +1,6 @@
 # Contributing to Terraform
 
-This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub. Instructions for developing each provider are in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
+This repository contains only Terraform core, which includes the command line interface and the main graph engine. Providers are implemented as plugins that each have their own repository linked from the [Terraform Registry index](https://registry.terraform.io/browse/providers). Instructions for developing each provider are usually in the associated README file. For more information, see [the provider development overview](https://www.terraform.io/docs/plugins/provider.html).
 
 ---
 
@@ -119,9 +119,6 @@ The following checks run when a PR is opened:
 
 - Contributor License Agreement (CLA): If this is your first contribution to Terraform you will be asked to sign the CLA.
 - Tests: tests include unit tests and acceptance tests, and all tests must pass before a PR can be merged.
-- Test Coverage Report: We use [codecov](https://codecov.io/) to check both overall test coverage, and patch coverage.
-
--> **Note:** We are still deciding on the right targets for our code coverage check. A failure in `codecov` does not necessarily mean that your PR will not be approved or merged.
 
 ----
 
@@ -129,7 +126,9 @@ The following checks run when a PR is opened:
 
 This repository contains the source code for Terraform CLI, which is the main component of Terraform that contains the core Terraform engine.
 
-The HashiCorp-maintained Terraform providers are also open source but are not in this repository; instead, they are each in their own repository in [the `terraform-providers` organization](https://github.com/terraform-providers) on GitHub.
+Terraform providers are not maintained in this repository; you can find relevant
+repository and relevant issue tracker for each provider within the
+[Terraform Registry index](https://registry.terraform.io/browse/providers).
 
 This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
 
