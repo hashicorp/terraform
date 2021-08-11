@@ -241,7 +241,7 @@ The following example illustrates the structure of a `<values-representation>`:
         // "sensitive_values" is the JSON representation of the sensitivity of
         // the resource's attribute values. Only attributes which are sensitive
         // are included in this structure.
-        "values": {
+        "sensitive_values": {
           "id": true,
         }
       }
