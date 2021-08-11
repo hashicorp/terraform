@@ -19,7 +19,9 @@ This function produces a new value each time it is called, and so using it
 directly in resource arguments will result in spurious diffs. We do not
 recommend using the `uuid` function in resource configurations, but it can
 be used with care in conjunction with
-[the `ignore_changes` lifecycle meta-argument](/docs/language/meta-arguments/lifecycle.html#ignore_changes).
+[the `ignore_changes` lifecycle meta-argument](/docs/language/meta-arguments/lifecycle.html#ignore_changes). 
+
+If this function produced a value during the plan step, it would cause the final configuration during the apply step not to match the actions shown in the plan (since the function is called again in the apply step, and would return a different value), which violates the Terraform execution model. For that reason, this function produces an unknown value result during the plan step, with the real result being decided only during the apply step.
 
 In most cases we recommend using [the `random` provider](https://registry.terraform.io/providers/hashicorp/random/latest/docs)
 instead, since it allows the one-time generation of random values that are
