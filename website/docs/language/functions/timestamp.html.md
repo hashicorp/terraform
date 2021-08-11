@@ -24,9 +24,7 @@ but in rare cases it can be used in conjunction with
 to take the timestamp only on initial creation of the resource. For more stable
 time handling, see the [Time Provider](https://registry.terraform.io/providers/hashicorp/time/).
 
-Due to the constantly changing return value, the result of this function cannot
-be predicted during Terraform's planning phase, and so the timestamp will be
-taken only once the plan is being applied.
+If this function produced a value during the plan step, it would cause the final configuration during the apply step not to match the actions shown in the plan (since the function is called again in the apply step, and would return a different value), which violates the Terraform execution model. For that reason, this function produces an unknown value result during the plan step, with the real result being decided only during the apply step. This means that the recorded time will be the instant when Terraform began _applying_ the change, rather than when Terraform _planned_ the change.
 
 ## Examples
 
