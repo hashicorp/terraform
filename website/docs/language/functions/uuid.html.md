@@ -11,7 +11,7 @@ description: |-
 `uuid` generates a unique identifier string.
 
 The id is a generated and formatted as required by
-[RFC 4122 section 4.4](https://tools.ietf.org/html/rfc4122#section-4.4),
+[RFC 4122 section 4.4](https://datatracker.ietf.org/doc/html/rfc4122#section-4.4),
 producing a Version 4 UUID. The result is a UUID generated only from
 pseudo-random numbers.
 
