@@ -9,10 +9,10 @@ description: |-
 
 # `timestamp` Function
 
-`timestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.
+`timestamp` returns a UTC timestamp string in [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) format.
 
 In the Terraform language, timestamps are conventionally represented as
-strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
+strings using [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339)
 "Date and Time format" syntax, and so `timestamp` returns a string
 in this format.
 
