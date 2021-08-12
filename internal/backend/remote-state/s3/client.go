@@ -420,3 +420,10 @@ again.
 
 Error: %s
 `
+
+const errS3ListBucketPermissionDenied = `Permission denied to list s3 bucket.
+
+Make sure you have access permission to the backend bucket.
+
+Error: %s
+`

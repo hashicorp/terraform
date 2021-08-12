@@ -46,6 +46,9 @@ func (b *Backend) Workspaces() ([]string, error) {
 	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
 		return nil, fmt.Errorf(errS3NoSuchBucket, err)
 	}
+	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "AccessDenied" {
+		return nil, fmt.Errorf(errS3ListBucketPermissionDenied, err)
+	}
 
 	sort.Strings(wss[1:])
 	return wss, nil
