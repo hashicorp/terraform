@@ -18,6 +18,7 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -65,24 +66,6 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 				`plan locally at this time.`,
 		))
 	}
-
-	// This returns true when there is a value from cli arg or value from named
-	// file
-	//if b.hasExplicitVariableValues(op) {
-	//	diags = diags.Append(tfdiags.Sourceless(
-	//		tfdiags.Error,
-	//		"Run variables are currently not supported",
-	//		fmt.Sprintf(
-	//			"The \"remote\" backend does not support setting run variables at this time. "+
-	//				"Currently the only to way to pass variables to the remote backend is by "+
-	//				"creating a '*.auto.tfvars' variables file. This file will automatically "+
-	//				"be loaded by the \"remote\" backend when the workspace is configured to use "+
-	//				"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
-	//				"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
-	//			b.hostname, b.organization, op.Workspace,
-	//		),
-	//	))
-	//}
 
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -315,17 +298,32 @@ in order to capture the filesystem context the remote workspace expects:
 
 	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
 	if configDiags.HasErrors() {
-		return nil, generalError(fmt.Errorf("error doing LoadConfigWithSnapshot"))
+		return nil, fmt.Errorf("error doing LoadConfigWithSnapshot")
 	}
-	variables, _ := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+	variables, varDiags := backend.ParseVariableValues(op.Variables, config.Module.Variables)
+	if varDiags.HasErrors() {
+		return nil, varDiags.Err()
+	}
 
 	runVariables := map[string][]byte{}
 	for varKey, varValue := range variables {
-		if varValue.SourceType == terraform.ValueFromCLIArg ||
-			varValue.SourceType == terraform.ValueFromNamedFile {
-			valueData, err := ctyjson.Marshal(varValue, varValue.Type())
+		var inputValue *terraform.InputValue
+		if varValue.SourceType == terraform.ValueFromNamedFile {
+			inputValue = varValue
+		}
+
+		if varValue.SourceType == terraform.ValueFromCLIArg {
+			inputValue = varValue
+		}
+
+		if varValue.SourceType == terraform.ValueFromEnvVar {
+			inputValue = varValue
+		}
+
+		if inputValue != nil {
+			valueData, err := ctyjson.Marshal(inputValue.Value, varValue.Value.Type())
 			if err != nil {
-				return nil, generalError(fmt.Errorf("could not marshal json", err))
+				return nil, fmt.Errorf("could not marshal json", err)
 			}
 			runVariables[varKey] = valueData
 		}

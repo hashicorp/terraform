@@ -219,6 +219,10 @@ func (m *mockConfigurationVersions) Upload(ctx context.Context, url, path string
 	return nil
 }
 
+func (m *mockConfigurationVersions) ReadWithOptions(ctx context.Context, cvID string, options *tfe.ConfigurationVersionReadOptions) (*tfe.ConfigurationVersion, error) {
+	return m.Read(ctx, cvID)
+}
+
 type mockCostEstimates struct {
 	client      *mockClient
 	estimations map[string]*tfe.CostEstimate
@@ -1206,6 +1210,10 @@ func (m *mockWorkspaces) ReadByID(ctx context.Context, workspaceID string) (*tfe
 		return nil, tfe.ErrResourceNotFound
 	}
 	return w, nil
+}
+
+func (m *mockWorkspaces) ReadByIDWithOptions(ctx context.Context, workspaceID string, options *tfe.WorkspaceReadOptions) (*tfe.Workspace, error) {
+	return m.ReadByID(ctx, workspaceID)
 }
 
 func (m *mockWorkspaces) Update(ctx context.Context, organization, workspace string, options tfe.WorkspaceUpdateOptions) (*tfe.Workspace, error) {
