@@ -46,6 +46,9 @@ func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema
 		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
 	}
 
+	// Exclude the "id" as it is marked as Computed+Optional in the schema, while should only serve the purpose as Computed.
+	delete(schema.Attributes, "id")
+
 	if stateVal.RawEquals(cty.NilVal) {
 		if err := v.writeConfigAttributes(&buf, schema.Attributes, 2); err != nil {
 			return err
