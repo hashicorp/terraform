@@ -91,3 +91,5 @@ Realizing multi-cloud deployments can be very challenging as many existing tools
 for infrastructure management are cloud-specific. Terraform is cloud-agnostic
 and allows a single configuration to be used to manage multiple providers, and
 to even handle cross-cloud dependencies. This simplifies management and orchestration, helping operators build large-scale multi-cloud infrastructures.
+
+> **Hands-on:** Try the [Deploy Federated Multi-Cloud Kubernetes Clusters](https://learn.hashicorp.com/tutorials/terraform/multicloud-kubernetes) tutorial on HashiCorp Learn.
