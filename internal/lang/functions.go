@@ -59,6 +59,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"defaults":         s.experimentalFunction(experiments.ModuleVariableOptionalAttrs, funcs.DefaultsFunc),
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
+			"dotenvdecode":     funcs.DotEnvDecodeFunc,
 			"element":          stdlib.ElementFunc,
 			"chunklist":        stdlib.ChunklistFunc,
 			"file":             funcs.MakeFileFunc(s.BaseDir, false),

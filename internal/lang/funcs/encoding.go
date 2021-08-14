@@ -12,6 +12,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"golang.org/x/text/encoding/ianaindex"
+
+	dotenv "github.com/direnv/go-dotenv"
 )
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
@@ -182,6 +184,28 @@ var URLEncodeFunc = function.New(&function.Spec{
 	},
 })
 
+// DotEnvDecodeFunc constructs a function parses "dotenv" format and produces a map.
+var DotEnvDecodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Map(cty.String)),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		m, err := dotenv.Parse(args[0].AsString())
+		if err != nil {
+			return cty.UnknownVal(cty.Map(cty.String)), err
+		}
+		mm := map[string]cty.Value{}
+		for k, v := range m {
+			mm[k] = cty.StringVal(v)
+		}
+		return cty.MapVal(mm), nil
+	},
+})
+
 // Base64Decode decodes a string containing a base64 sequence.
 //
 // Terraform uses the "standard" Base64 alphabet as defined in RFC 4648 section 4.
@@ -250,4 +274,9 @@ func TextEncodeBase64(str, enc cty.Value) (cty.Value, error) {
 // the target encoding.
 func TextDecodeBase64(str, enc cty.Value) (cty.Value, error) {
 	return TextDecodeBase64Func.Call([]cty.Value{str, enc})
+}
+
+// DotEnvDecode converts a string in "dotenv" format to a map
+func DotEnvDecode(str cty.Value) (cty.Value, error) {
+	return DotEnvDecodeFunc.Call([]cty.Value{str})
 }
