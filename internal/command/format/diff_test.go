@@ -2862,6 +2862,41 @@ func TestResourceChange_nestedSet(t *testing.T) {
     }
 `,
 		},
+		"in-place update - empty nested sets": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = []
+        id    = "i-02ae66f368e8518a9"
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
