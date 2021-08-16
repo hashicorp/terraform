@@ -471,8 +471,28 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	if attrS.NestedType != nil {
-		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
-		return false
+		renderNested := true
+
+		// If the collection values are empty or null, we render them as single attributes
+		switch attrS.NestedType.Nesting {
+		case configschema.NestingList, configschema.NestingSet, configschema.NestingMap:
+			var oldLen, newLen int
+			if !old.IsNull() && old.IsKnown() {
+				oldLen = old.LengthInt()
+			}
+			if !new.IsNull() && new.IsKnown() {
+				newLen = new.LengthInt()
+			}
+
+			if oldLen+newLen == 0 {
+				renderNested = false
+			}
+		}
+
+		if renderNested {
+			p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
+			return false
+		}
 	}
 
 	p.buf.WriteString("\n")
@@ -613,6 +633,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
 		allItems = append(allItems, oldItems...)
 		allItems = append(allItems, newItems...)
+
 		all := cty.SetVal(allItems)
 
 		p.buf.WriteString(" = [")
