@@ -645,11 +645,11 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			case !val.IsKnown():
 				action = plans.Update
 				newValue = val
-			case !old.HasElement(val).True():
+			case old.IsNull() || !old.HasElement(val).True():
 				action = plans.Create
 				oldValue = cty.NullVal(val.Type())
 				newValue = val
-			case !new.HasElement(val).True():
+			case new.IsNull() || !new.HasElement(val).True():
 				action = plans.Delete
 				oldValue = val
 				newValue = cty.NullVal(val.Type())
