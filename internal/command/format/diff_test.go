@@ -2898,6 +2898,62 @@ func TestResourceChange_nestedSet(t *testing.T) {
     }
 `,
 		},
+		"in-place update - null insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = [
+          + {
+            + mount_point = "/var/diska"
+            + size        = "50GB"
+          },
+        ]
+        id    = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + new_field   = "new_value"
+          + volume_type = "gp2"
+        }
+      - root_block_device {
+          - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
