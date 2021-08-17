@@ -1,5 +1,9 @@
 ## 1.1.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* Terraform on macOS now requires macOS 10.13 High Sierra or later; Older macOS versions are no longer supported.
+
 NEW FEATURES:
 
 * cli: `terraform add` generates resource configuration templates ([#28874](https://github.com/hashicorp/terraform/issues/28874))
