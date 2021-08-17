@@ -308,6 +308,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	var runVariables []*tfe.Variable
 	for varKey, varValue := range variables {
+		fmt.Println(varKey)
 		var inputValue *terraform.InputValue
 		if varValue.SourceType == terraform.ValueFromNamedFile {
 			inputValue = varValue
