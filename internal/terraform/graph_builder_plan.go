@@ -91,6 +91,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	boundaryTransformer := NewBoundaryTransformer(b.Config)
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
@@ -144,6 +146,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Concrete: b.ConcreteModule, Config: b.Config},
 
+		// Add Boundary proxies
+		boundaryTransformer.Proxies(),
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
@@ -167,6 +172,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Close Boundary proxies
+		boundaryTransformer.Closer(),
 
 		// Close the root module
 		&CloseRootModuleTransformer{},

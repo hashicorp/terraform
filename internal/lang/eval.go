@@ -281,6 +281,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	terraformAttrs := map[string]cty.Value{}
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
+	boundary := map[string]cty.Value{}
 	var self cty.Value
 
 	for _, ref := range refs {
@@ -401,6 +402,11 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			forEachAttrs[subj.Name] = val
 
+		case addrs.Boundary:
+			val, valDiags := normalizeRefValue(s.Data.GetBoundary(subj, rng))
+			diags = diags.Append(valDiags)
+			boundary[subj.Name] = val
+
 		default:
 			// Should never happen
 			panic(fmt.Errorf("Scope.buildEvalContext cannot handle address type %T", rawSubj))
@@ -425,6 +431,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
+	vals["boundary"] = cty.ObjectVal(boundary)
 	if self != cty.NilVal {
 		vals["self"] = self
 	}

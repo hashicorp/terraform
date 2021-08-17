@@ -928,6 +928,30 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 	}
 }
 
+func (d *evaluationStateData) GetBoundary(b addrs.Boundary, rng tfdiags.SourceRange) (val cty.Value, diags tfdiags.Diagnostics) {
+	val = d.Evaluator.State.BoundaryConnection(b.Name)
+	if val != cty.NilVal {
+		return
+	}
+
+	suggestions := []string{}
+	for name := range d.Evaluator.Config.Module.Boundary {
+		suggestions = append(suggestions, name)
+	}
+
+	suggestion := nameSuggestion(b.Name, suggestions)
+	if suggestion != "" {
+		suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+	}
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Unknown boundary connection",
+		Detail:   fmt.Sprintf("No boundary connection named %q has been defined.%s", b.Name, suggestion),
+		Subject:  rng.ToHCL().Ptr(),
+	})
+	return
+}
+
 // nameSuggestion tries to find a name from the given slice of suggested names
 // that is close to the given name and returns it if found. If no suggestion
 // is close enough, returns the empty string.

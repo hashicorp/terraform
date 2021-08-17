@@ -81,6 +81,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	boundaryTransformer := NewBoundaryTransformer(b.Config)
+
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config. During apply,
 		// we use this just to ensure that the whole-resource metadata is
@@ -130,6 +132,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Add Boundary proxies
+		boundaryTransformer.Proxies(),
+
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},
 		&AttachDependenciesTransformer{},
@@ -165,6 +170,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Close Boundary proxies
+		boundaryTransformer.Closer(),
 
 		// close the root module
 		&CloseRootModuleTransformer{},

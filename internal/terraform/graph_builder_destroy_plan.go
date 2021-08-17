@@ -74,6 +74,8 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	boundaryTransformer := NewBoundaryTransformer(b.Config)
+
 	steps := []GraphTransformer{
 		// Creates nodes for the resource instances tracked in the state.
 		&StateTransformer{
@@ -96,6 +98,9 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 
 		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
 
+		// Add Boundary proxies
+		boundaryTransformer.Proxies(),
+
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
 		&DestroyEdgeTransformer{
@@ -108,6 +113,9 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Close Boundary proxies
+		boundaryTransformer.Closer(),
 
 		// Close the root module
 		&CloseRootModuleTransformer{},

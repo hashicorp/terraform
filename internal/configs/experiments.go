@@ -208,6 +208,17 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	}
 
+	if !m.ActiveExperiments.Has(experiments.BoundaryProxy) {
+		for _, b := range m.Boundary {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Boundary proxy is an experimental feature",
+				Detail:   "This feature is currently under development and may change in minor or patch releases.\n\nIf you'd like to try the partial implementation that exists so far, add boundary to the set of active experiments for this module.",
+				Subject:  b.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }
 

@@ -539,3 +539,12 @@ func (s *State) MoveModule(src, dst addrs.AbsModuleCall) {
 		s.MoveModuleInstance(ms.Addr, newInst)
 	}
 }
+
+func (s *State) BoundaryConnection(name string) cty.Value {
+	// Boundary connections can only be defined in the root module for now.
+	ms := s.Module(addrs.ModuleInstance{})
+	if ms == nil {
+		return cty.NilVal
+	}
+	return ms.BoundaryConnections[name]
+}

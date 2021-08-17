@@ -27,6 +27,7 @@ func TestState(t *testing.T) {
 	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
 	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
+	rootModule.SetBoundaryConnection("test", cty.StringVal("hello"))
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -102,6 +103,9 @@ func TestState(t *testing.T) {
 						},
 					},
 				},
+				BoundaryConnections: map[string]cty.Value{
+					"test": cty.StringVal("hello"),
+				},
 			},
 			"module.child": {
 				Addr:        addrs.RootModuleInstance.Child("child", addrs.NoKey),
@@ -118,7 +122,8 @@ func TestState(t *testing.T) {
 						Sensitive: false,
 					},
 				},
-				Resources: map[string]*Resource{},
+				Resources:           map[string]*Resource{},
+				BoundaryConnections: map[string]cty.Value{},
 			},
 			`module.multi["a"]`: {
 				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
@@ -135,7 +140,8 @@ func TestState(t *testing.T) {
 						Sensitive: false,
 					},
 				},
-				Resources: map[string]*Resource{},
+				Resources:           map[string]*Resource{},
+				BoundaryConnections: map[string]cty.Value{},
 			},
 			`module.multi["b"]`: {
 				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
@@ -152,7 +158,8 @@ func TestState(t *testing.T) {
 						Sensitive: false,
 					},
 				},
-				Resources: map[string]*Resource{},
+				Resources:           map[string]*Resource{},
+				BoundaryConnections: map[string]cty.Value{},
 			},
 		},
 	}

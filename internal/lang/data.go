@@ -30,4 +30,5 @@ type Data interface {
 	GetPathAttr(addrs.PathAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetTerraformAttr(addrs.TerraformAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetInputVariable(addrs.InputVariable, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
+	GetBoundary(addrs.Boundary, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 }

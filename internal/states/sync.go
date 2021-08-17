@@ -596,3 +596,18 @@ func (s *SyncState) MaybeMoveModuleInstance(src, dst addrs.ModuleInstance) bool 
 
 	return s.state.MaybeMoveModuleInstance(src, dst)
 }
+
+func (s *SyncState) BoundaryConnection(name string) cty.Value {
+	s.Lock()
+	defer s.Unlock()
+	return s.state.BoundaryConnection(name)
+}
+
+func (s *SyncState) SetBoundaryConnection(name string, value cty.Value) {
+	s.Lock()
+	defer s.Unlock()
+
+	// Boundary connection are always made in the root module
+	ms := s.state.EnsureModule(addrs.ModuleInstance{})
+	ms.SetBoundaryConnection(name, value)
+}

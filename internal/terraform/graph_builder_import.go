@@ -51,6 +51,8 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	boundaryTransformer := NewBoundaryTransformer(b.Config)
+
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Config: config},
@@ -78,6 +80,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Add Boundary proxies
+		boundaryTransformer.Proxies(),
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
@@ -88,6 +93,9 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
+
+		// Close Boundary proxies
+		boundaryTransformer.Closer(),
 
 		// Close root module
 		&CloseRootModuleTransformer{},

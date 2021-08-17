@@ -251,6 +251,14 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		})
 		return nil, diags
 
+	case "boundary":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		return &Reference{
+			Subject:     Boundary{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}, diags
+
 	default:
 		return parseResourceRef(ManagedResourceMode, rootRange, traversal)
 	}
