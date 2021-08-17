@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // This file is a helper for those doing _manual_ testing of "terraform login"

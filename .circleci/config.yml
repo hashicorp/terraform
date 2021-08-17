@@ -10,7 +10,7 @@ references:
 executors:
   go:
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.16
+      - image: docker.mirror.hashicorp.services/cimg/go:1.17
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
