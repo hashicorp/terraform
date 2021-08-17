@@ -3,6 +3,7 @@ package remote
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -305,7 +306,7 @@ in order to capture the filesystem context the remote workspace expects:
 		return nil, varDiags.Err()
 	}
 
-	runVariables := map[string][]byte{}
+	var runVariables []*tfe.Variable
 	for varKey, varValue := range variables {
 		var inputValue *terraform.InputValue
 		if varValue.SourceType == terraform.ValueFromNamedFile {
@@ -325,7 +326,11 @@ in order to capture the filesystem context the remote workspace expects:
 			if err != nil {
 				return nil, fmt.Errorf("could not marshal json", err)
 			}
-			runVariables[varKey] = valueData
+			var variable interface{}
+			json.Unmarshal(valueData, &variable)
+			// TODO: convert variable to tfe.Variable
+			//runVariables[varKey] = variable
+			runVariables = append(runVariables, &tfe.Variable{})
 		}
 	}
 	runOptions.Variables = runVariables

@@ -60,22 +60,6 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		))
 	}
 
-	if b.hasExplicitVariableValues(op) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Run variables are currently not supported",
-			fmt.Sprintf(
-				"The \"remote\" backend does not support setting run variables at this time. "+
-					"Currently the only to way to pass variables to the remote backend is by "+
-					"creating a '*.auto.tfvars' variables file. This file will automatically "+
-					"be loaded by the \"remote\" backend when the workspace is configured to use "+
-					"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
-					"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
-				b.hostname, b.organization, op.Workspace,
-			),
-		))
-	}
-
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
