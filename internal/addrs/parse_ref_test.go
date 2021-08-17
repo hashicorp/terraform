@@ -624,6 +624,43 @@ func TestParseRef(t *testing.T) {
 			`The symbol name "arg" is reserved for use in a future Terraform version. If you are using a provider that already uses this as a resource type name, add the prefix "resource." to force interpretation as a resource type name.`,
 		},
 
+		// boundary
+		{
+			`boundary.vault`,
+			&Reference{
+				Subject: Boundary{
+					Name: "vault",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 15, Byte: 14},
+				},
+			},
+			``,
+		},
+		{
+			`boundary.vault.listen_addr`,
+			&Reference{
+				Subject: Boundary{
+					Name: "vault",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 15, Byte: 14},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "listen_addr",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 15, Byte: 14},
+							End:   hcl.Pos{Line: 1, Column: 27, Byte: 26},
+						},
+					},
+				},
+			},
+			``,
+		},
+
 		// anything else, interpreted as a managed resource reference
 		{
 			`boop_instance.foo`,

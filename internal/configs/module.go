@@ -43,7 +43,8 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved []*Moved
+	Moved    []*Moved
+	Boundary map[string]*Boundary
 }
 
 // File describes the contents of a single configuration file.
@@ -76,7 +77,8 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved []*Moved
+	Moved    []*Moved
+	Boundary map[string]*Boundary
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -99,6 +101,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
+		Boundary:           map[string]*Boundary{},
 	}
 
 	// Process the required_providers blocks first, to ensure that all
@@ -336,6 +339,17 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	// of one another at this level. (We handle any references between
 	// them at runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
+
+	for name, c := range file.Boundary {
+		if _, found := m.Boundary[name]; found {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Connection %q has been defined multiple times", name),
+				Subject:  &c.DeclRange,
+			})
+		}
+		m.Boundary[name] = c
+	}
 
 	return diags
 }

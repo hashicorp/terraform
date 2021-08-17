@@ -15,6 +15,7 @@ type dataForTests struct {
 	PathAttrs      map[string]cty.Value
 	TerraformAttrs map[string]cty.Value
 	InputVariables map[string]cty.Value
+	Boundary       map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -59,4 +60,8 @@ func (d *dataForTests) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange)
 
 func (d *dataForTests) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.TerraformAttrs[addr.Name], nil
+}
+
+func (d *dataForTests) GetBoundary(addr addrs.Boundary, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.Boundary[addr.Name], nil
 }

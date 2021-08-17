@@ -56,6 +56,8 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		}
 	}
 
+	boundaryTransformer := NewBoundaryTransformer(b.Config)
+
 	steps := []GraphTransformer{
 		// Creates all the data resources that aren't in the state. This will also
 		// add any orphans from scaling in as destroy nodes.
@@ -86,6 +88,9 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
 
+		// Add Boundary proxies
+		boundaryTransformer.Proxies(),
+
 		// Connect so that the references are ready for targeting. We'll
 		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
@@ -93,6 +98,9 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Although we don't configure providers, we do still start them up
 		// to get their schemas, and so we must shut them down again here.
 		&CloseProviderTransformer{},
+
+		// Close Boundary proxies
+		boundaryTransformer.Closer(),
 
 		// Close root module
 		&CloseRootModuleTransformer{},

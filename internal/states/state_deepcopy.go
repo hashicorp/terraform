@@ -59,12 +59,17 @@ func (ms *Module) DeepCopy() *Module {
 		// cty.Value is immutable, so we don't need to copy these.
 		localValues[k] = v
 	}
+	boundaryValues := make(map[string]cty.Value, len(ms.BoundaryConnections))
+	for k, v := range ms.BoundaryConnections {
+		boundaryValues[k] = v
+	}
 
 	return &Module{
-		Addr:         ms.Addr, // technically mutable, but immutable by convention
-		Resources:    resources,
-		OutputValues: outputValues,
-		LocalValues:  localValues,
+		Addr:                ms.Addr, // technically mutable, but immutable by convention
+		Resources:           resources,
+		OutputValues:        outputValues,
+		LocalValues:         localValues,
+		BoundaryConnections: boundaryValues,
 	}
 }
 

@@ -1,6 +1,8 @@
 package configs
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -36,7 +38,9 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 		return nil, diags
 	}
 
-	file := &File{}
+	file := &File{
+		Boundary: map[string]*Boundary{},
+	}
 
 	var reqDiags hcl.Diagnostics
 	file.CoreVersionConstraints, reqDiags = sniffCoreVersionRequirements(body)
@@ -155,6 +159,20 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.Moved = append(file.Moved, cfg)
 			}
 
+		case "boundary":
+			cfg, cfgDiags := decodeBoundaryBlock(block)
+			diags = append(diags, cfgDiags...)
+			for name, c := range cfg {
+				if _, found := file.Boundary[name]; found {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Connection %q has been defined multiple times", name),
+						Subject:  &c.DeclRange,
+					})
+				}
+				file.Boundary[name] = c
+			}
+
 		default:
 			// Should never happen because the above cases should be exhaustive
 			// for all block type names in our schema.
@@ -244,6 +262,9 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "moved",
+		},
+		{
+			Type: "boundary",
 		},
 	},
 }

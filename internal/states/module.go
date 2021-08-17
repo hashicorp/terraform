@@ -21,15 +21,20 @@ type Module struct {
 	// LocalValues contains the value for each named output value. The keys
 	// in this map are local value names.
 	LocalValues map[string]cty.Value
+
+	// BoundaryConnections contains the value for each boundary connection. The
+	// keys in this map are the connection name.
+	BoundaryConnections map[string]cty.Value
 }
 
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:         addr,
-		Resources:    map[string]*Resource{},
-		OutputValues: map[string]*OutputValue{},
-		LocalValues:  map[string]cty.Value{},
+		Addr:                addr,
+		Resources:           map[string]*Resource{},
+		OutputValues:        map[string]*OutputValue{},
+		LocalValues:         map[string]cty.Value{},
+		BoundaryConnections: map[string]cty.Value{},
 	}
 }
 
@@ -317,5 +322,10 @@ func (ms *Module) empty() bool {
 	// in future.
 	return (len(ms.Resources) == 0 &&
 		len(ms.OutputValues) == 0 &&
-		len(ms.LocalValues) == 0)
+		len(ms.LocalValues) == 0 &&
+		len(ms.BoundaryConnections) == 0)
+}
+
+func (ms *Module) SetBoundaryConnection(name string, value cty.Value) {
+	ms.BoundaryConnections[name] = value
 }
