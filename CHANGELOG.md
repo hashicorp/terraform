@@ -3,6 +3,8 @@
 BUG FIXES:
 
 * json-output: Add an output change summary message as part of the `terraform plan -json` structured logs, bringing this format into parity with the human-readable UI. [GH-29312]
+* cli: Fix crash when planning a diff between null and empty sets in nested attributes [GH-29398]
+* cli: Fix crash when planning a new resource containing a set of nested object attributes [GH-29398]
 
 ## 1.0.4 (August 04, 2021)
 
