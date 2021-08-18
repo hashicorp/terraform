@@ -248,11 +248,10 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	}
 
 	diags = diags.Append(view.Resource(args.Addr, schema, localProviderConfig, stateVal))
+	c.View.Diagnostics(diags)
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
 		return 1
 	}
-
 	return 0
 }
 
@@ -260,21 +259,27 @@ func (c *AddCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] add [options] ADDRESS
 
-  Generates a blank resource template. With no additional options,
-  the template will be displayed in the terminal. 
+  Generates a blank resource template. With no additional options, Terraform
+  will write the result to standard output.
 
 Options:
 
--from-state=true		Fill the template with values from an existing resource.
-                        Defaults to false.
+  -from-state         Fill the template with values from an existing resource
+                      instance tracked in the state. By default, Terraform will
+                      emit only placeholder values based on the resource type.
 
--out=string 			Write the template to a file. If the file already
-                        exists, the template will be appended to the file.
+  -out=string         Write the template to a file, instead of to standard
+                      output.
 
--optional=true          Include optional attributes. Defaults to false.
+  -optional           Include optional arguments. By default, the result will
+                      include only required arguments.
 
--provider=provider		Override the configured provider for the resource. Conflicts
-                        with -from-state
+  -provider=provider  Override the provider configuration for the resource,
+                      using the absolute provider configuration address syntax.
+
+                      This is incompatible with -from-state, because in that
+                      case Terraform will use the provider configuration already
+                      selected in the state.
 `
 	return strings.TrimSpace(helpText)
 }
