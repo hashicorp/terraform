@@ -1,3 +1,5 @@
+## 1.0.6 (Unreleased)
+
 ## 1.0.5 (August 18, 2021)
 
 BUG FIXES:
