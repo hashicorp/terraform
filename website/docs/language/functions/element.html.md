@@ -46,5 +46,5 @@ c
 
 ## Related Functions
 
-* [`index`](./index.html) finds the index for a particular element value.
+* [`index`](./index_function.html) finds the index for a particular element value.
 * [`lookup`](./lookup.html) retrieves a value from a _map_ given its _key_.
