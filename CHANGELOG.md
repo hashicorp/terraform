@@ -6,6 +6,8 @@ BUG FIXES:
 * cli: Fix crash when planning a diff between null and empty sets in nested attributes [GH-29398]
 * cli: Fix crash when planning a new resource containing a set of nested object attributes [GH-29398]
 * cli: Fix crash when displaying a resource diff where a possibly identifying attribute is sensitive [GH-29397]
+* config: Fix handling of dynamically types arguments in `formatlist`, ensuring the correct resulting type. [GH-29408]
+* config: Floating point operations like `floor` and `ceil` can no longer mutate their arguments. [GH-29408]
 
 ## 1.0.4 (August 04, 2021)
 
