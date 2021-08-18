@@ -308,7 +308,6 @@ in order to capture the filesystem context the remote workspace expects:
 
 	var runVariables []*tfe.Variable
 	for varKey, varValue := range variables {
-		fmt.Println(varKey)
 		var inputValue *terraform.InputValue
 		if varValue.SourceType == terraform.ValueFromNamedFile {
 			inputValue = varValue
@@ -327,12 +326,18 @@ in order to capture the filesystem context the remote workspace expects:
 			if err != nil {
 				return nil, fmt.Errorf("could not marshal json", err)
 			}
-			var variable interface{}
-			json.Unmarshal(valueData, &variable)
-			// TODO: convert variable to tfe.Variable
-			//runVariables[varKey] = variable
-			runVariables = append(runVariables, &tfe.Variable{})
+			var variableValue string
+			json.Unmarshal(valueData, &variableValue)
+			runVariables = append(runVariables, &tfe.Variable{
+				Key:   varKey,
+				Value: variableValue,
+			})
 		}
+	}
+	fmt.Println("OMAR VARIABLES ", fmt.Sprintf("%v", runVariables))
+	for _, runVar := range runVariables {
+		fmt.Println("OMAR VARIABLES VALUE ", fmt.Sprintf("%v", runVar.Value))
+		fmt.Println("OMAR VARIABLES KEY", fmt.Sprintf("%v", runVar.Key))
 	}
 	runOptions.Variables = runVariables
 
