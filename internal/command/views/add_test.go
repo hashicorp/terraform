@@ -27,9 +27,17 @@ func TestAddResource(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		expected := `resource "test_instance" "foo" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "foo" {
   provider = mytest
-  ami      = null      # OPTIONAL string
+
+  ami = null           # OPTIONAL string
   disks = {            # OPTIONAL object
     mount_point = null # OPTIONAL string
     size        = null # OPTIONAL string
@@ -66,11 +74,19 @@ func TestAddResource(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		expected := `resource "test_instance" "foo" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "foo" {
   provider = mytest
-  ami      = "ami-123456789"
-  disks    = {} # sensitive
-  id       = null
+
+  ami   = "ami-123456789"
+  disks = {} # sensitive
+  id    = null
 }
 `
 		output := done(t)

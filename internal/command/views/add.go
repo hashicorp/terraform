@@ -39,11 +39,21 @@ type addHuman struct {
 
 func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema.Block, pc addrs.LocalProviderConfig, stateVal cty.Value) error {
 	var buf strings.Builder
+
+	buf.WriteString(`# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+`)
+
 	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
 
 	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
 		buf.WriteString(strings.Repeat(" ", 2))
-		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
+		buf.WriteString(fmt.Sprintf("provider = %s\n\n", pc.StringCompact()))
 	}
 
 	if stateVal.RawEquals(cty.NilVal) {
