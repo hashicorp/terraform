@@ -329,8 +329,9 @@ in order to capture the filesystem context the remote workspace expects:
 			var variableValue string
 			json.Unmarshal(valueData, &variableValue)
 			runVariables = append(runVariables, &tfe.Variable{
-				Key:   varKey,
-				Value: variableValue,
+				Key:      varKey,
+				Value:    variableValue,
+				Category: tfe.CategoryTerraform,
 			})
 		}
 	}
@@ -338,6 +339,7 @@ in order to capture the filesystem context the remote workspace expects:
 	for _, runVar := range runVariables {
 		fmt.Println("OMAR VARIABLES VALUE ", fmt.Sprintf("%v", runVar.Value))
 		fmt.Println("OMAR VARIABLES KEY", fmt.Sprintf("%v", runVar.Key))
+		fmt.Println("OMAR VARIABLES Category", fmt.Sprintf("%v", runVar.Category))
 	}
 	runOptions.Variables = runVariables
 
