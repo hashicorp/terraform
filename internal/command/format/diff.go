@@ -471,28 +471,8 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	if attrS.NestedType != nil {
-		renderNested := true
-
-		// If the collection values are empty or null, we render them as single attributes
-		switch attrS.NestedType.Nesting {
-		case configschema.NestingList, configschema.NestingSet, configschema.NestingMap:
-			var oldLen, newLen int
-			if !old.IsNull() && old.IsKnown() {
-				oldLen = old.LengthInt()
-			}
-			if !new.IsNull() && new.IsKnown() {
-				newLen = new.LengthInt()
-			}
-
-			if oldLen+newLen == 0 {
-				renderNested = false
-			}
-		}
-
-		if renderNested {
-			p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
-			return false
-		}
+		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
+		return false
 	}
 
 	p.buf.WriteString("\n")
@@ -626,15 +606,24 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
+
 	case configschema.NestingSet:
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
 
-		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
-		allItems = append(allItems, oldItems...)
-		allItems = append(allItems, newItems...)
+		var all cty.Value
+		if len(oldItems)+len(newItems) > 0 {
+			allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
+			allItems = append(allItems, oldItems...)
+			allItems = append(allItems, newItems...)
 
-		all := cty.SetVal(allItems)
+			all = cty.SetVal(allItems)
+		} else {
+			all = cty.SetValEmpty(old.Type().ElementType())
+		}
 
 		p.buf.WriteString(" = [")
 
@@ -646,6 +635,13 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			case !val.IsKnown():
 				action = plans.Update
 				newValue = val
+			case !new.IsKnown():
+				action = plans.Delete
+				// the value must have come from the old set
+				oldValue = val
+				// Mark the new val as null, but the entire set will be
+				// displayed as "(unknown after apply)"
+				newValue = cty.NullVal(val.Type())
 			case old.IsNull() || !old.HasElement(val).True():
 				action = plans.Create
 				oldValue = cty.NullVal(val.Type())
@@ -680,6 +676,10 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
+
 	case configschema.NestingMap:
 		// For the sake of handling nested blocks, we'll treat a null map
 		// the same as an empty map since the config language doesn't
@@ -688,7 +688,12 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		new = ctyNullBlockMapAsEmpty(new)
 
 		oldItems := old.AsValueMap()
-		newItems := new.AsValueMap()
+
+		newItems := map[string]cty.Value{}
+
+		if new.IsKnown() {
+			newItems = new.AsValueMap()
+		}
 
 		allKeys := make(map[string]bool)
 		for k := range oldItems {
@@ -710,6 +715,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		for _, k := range allKeysOrder {
 			var action plans.Action
 			oldValue := oldItems[k]
+
 			newValue := newItems[k]
 			switch {
 			case oldValue == cty.NilVal:
@@ -745,6 +751,9 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.writeSkippedElems(unchanged, indent+4)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
 	}
 
 	return
