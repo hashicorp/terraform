@@ -1,15 +1,15 @@
-## 1.0.5 (Unreleased)
+## 1.0.5 (August 18, 2021)
 
 BUG FIXES:
 
-* json-output: Add an output change summary message as part of the `terraform plan -json` structured logs, bringing this format into parity with the human-readable UI. [GH-29312]
-* core: Handle null nested single attribute values [GH-29411]
-* cli: Fix crash when planning a diff between null and empty sets in nested attributes [GH-29398]
-* cli: Fix crash when planning a new resource containing a set of nested object attributes [GH-29398]
-* cli: Fix crash when displaying a resource diff where a possibly identifying attribute is sensitive [GH-29397]
-* cli: Fix crash when a diff with unknown nested map attributes [GH-29410]
-* config: Fix handling of dynamically types arguments in `formatlist`, ensuring the correct resulting type. [GH-29408]
-* config: Floating point operations like `floor` and `ceil` can no longer mutate their arguments. [GH-29408]
+* json-output: Add an output change summary message as part of the `terraform plan -json` structured logs, bringing this format into parity with the human-readable UI. ([#29312](https://github.com/hashicorp/terraform/issues/29312))
+* core: Handle null nested single attribute values ([#29411](https://github.com/hashicorp/terraform/issues/29411))
+* cli: Fix crash when planning a diff between null and empty sets in nested attributes ([#29398](https://github.com/hashicorp/terraform/issues/29398))
+* cli: Fix crash when planning a new resource containing a set of nested object attributes ([#29398](https://github.com/hashicorp/terraform/issues/29398))
+* cli: Fix crash when displaying a resource diff where a possibly identifying attribute is sensitive ([#29397](https://github.com/hashicorp/terraform/issues/29397))
+* cli: Fix crash when a diff with unknown nested map attributes ([#29410](https://github.com/hashicorp/terraform/issues/29410))
+* config: Fix handling of dynamically types arguments in `formatlist`, ensuring the correct resulting type. ([#29408](https://github.com/hashicorp/terraform/issues/29408))
+* config: Floating point operations like `floor` and `ceil` can no longer mutate their arguments. ([#29408](https://github.com/hashicorp/terraform/issues/29408))
 
 ## 1.0.4 (August 04, 2021)
 
