@@ -3,9 +3,11 @@
 BUG FIXES:
 
 * json-output: Add an output change summary message as part of the `terraform plan -json` structured logs, bringing this format into parity with the human-readable UI. [GH-29312]
+* core: Handle null nested single attribute values [GH-29411]
 * cli: Fix crash when planning a diff between null and empty sets in nested attributes [GH-29398]
 * cli: Fix crash when planning a new resource containing a set of nested object attributes [GH-29398]
 * cli: Fix crash when displaying a resource diff where a possibly identifying attribute is sensitive [GH-29397]
+* cli: Fix crash when a diff with unknown nested map attributes [GH-29410]
 * config: Fix handling of dynamically types arguments in `formatlist`, ensuring the correct resulting type. [GH-29408]
 * config: Floating point operations like `floor` and `ceil` can no longer mutate their arguments. [GH-29408]
 
