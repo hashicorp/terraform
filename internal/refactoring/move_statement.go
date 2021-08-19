@@ -50,3 +50,8 @@ func (s *MoveStatement) ObjectKind() addrs.MoveEndpointKind {
 	// match it.
 	return s.From.ObjectKind()
 }
+
+// Name is used internally for displaying the statement graph
+func (s *MoveStatement) Name() string {
+	return fmt.Sprintf("%s->%s", s.From, s.To)
+}

@@ -1074,3 +1074,284 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 		)
 	}
 }
+
+func TestMoveEndpointChainAndNested(t *testing.T) {
+	tests := []struct {
+		Endpoint, Other            AbsMoveable
+		CanChainFrom, NestedWithin bool
+	}{
+		{
+			Endpoint: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			CanChainFrom: true,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint: mustParseModuleInstanceStr("module.foo[2]"),
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			CanChainFrom: false,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint: mustParseModuleInstanceStr("module.foo[2].module.bar[2]"),
+			Other: AbsModuleCall{
+				Module: RootModuleInstance,
+				Call:   ModuleCall{Name: "foo"},
+			},
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource.baz").ContainingResource(),
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: mustParseAbsResourceInstanceStr("module.foo[2].module.bar[3].resource.baz[2]"),
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			Other:        mustParseModuleInstanceStr("module.foo[2]"),
+			CanChainFrom: false,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
+			Other:        mustParseModuleInstanceStr("module.foo[2]"),
+			CanChainFrom: true,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseModuleInstanceStr("module.foo[2]"),
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].module.bar.resource.baz"),
+			Other:        mustParseModuleInstanceStr("module.foo[2]"),
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			CanChainFrom: false,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			CanChainFrom: false,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			CanChainFrom: true,
+			NestedWithin: false,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz[2]").ContainingResource(),
+			CanChainFrom: false,
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo[2]"),
+				Call:   ModuleCall{Name: "bar"},
+			},
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			CanChainFrom: false,
+		},
+		{
+			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			CanChainFrom: false,
+		},
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			CanChainFrom: false,
+		},
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			CanChainFrom: true,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]%s.CanChainFrom(%s)", i, test.Endpoint, test.Other),
+			func(t *testing.T) {
+				endpoint := &MoveEndpointInModule{
+					relSubject: test.Endpoint,
+				}
+
+				other := &MoveEndpointInModule{
+					relSubject: test.Other,
+				}
+
+				if endpoint.CanChainFrom(other) != test.CanChainFrom {
+					t.Errorf("expected %s CanChainFrom %s == %t", test.Endpoint, test.Other, test.CanChainFrom)
+				}
+
+				if endpoint.NestedWithin(other) != test.NestedWithin {
+					t.Errorf("expected %s NestedWithin %s == %t", test.Endpoint, test.Other, test.NestedWithin)
+				}
+			},
+		)
+	}
+}
+
+func TestSelectsModule(t *testing.T) {
+	tests := []struct {
+		Endpoint *MoveEndpointInModule
+		Addr     ModuleInstance
+		Selects  bool
+	}{
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.foo[2]"),
+					Call:   ModuleCall{Name: "bar"},
+				},
+			},
+			Addr:    mustParseModuleInstanceStr("module.foo[2].module.bar[1]"),
+			Selects: true,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module: mustParseModuleInstanceStr("module.foo").Module(),
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.bar[2]"),
+					Call:   ModuleCall{Name: "baz"},
+				},
+			},
+			Addr:    mustParseModuleInstanceStr("module.foo[2].module.bar[2].module.baz"),
+			Selects: true,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module: mustParseModuleInstanceStr("module.foo").Module(),
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.bar[2]"),
+					Call:   ModuleCall{Name: "baz"},
+				},
+			},
+			Addr:    mustParseModuleInstanceStr("module.foo[2].module.bar[1].module.baz"),
+			Selects: false,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.bar"),
+					Call:   ModuleCall{Name: "baz"},
+				},
+			},
+			Addr:    mustParseModuleInstanceStr("module.bar[1].module.baz"),
+			Selects: false,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module:     mustParseModuleInstanceStr("module.foo").Module(),
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource.name["key"]`),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.foo[1].module.bar`),
+			Selects: true,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
+			Selects: true,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.module.baz["key"].resource.name`).ContainingResource(),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
+			Selects: true,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module:     mustParseModuleInstanceStr("module.nope").Module(),
+				relSubject: mustParseAbsResourceInstanceStr(`module.bar.resource.name["key"]`),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.foo[1].module.bar`),
+			Selects: false,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["nope"]`),
+			Selects: false,
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseAbsResourceInstanceStr(`module.nope.module.baz["key"].resource.name`).ContainingResource(),
+			},
+			Addr:    mustParseModuleInstanceStr(`module.bar.module.baz["key"]`),
+			Selects: false,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]%s.SelectsModule(%s)", i, test.Endpoint, test.Addr),
+			func(t *testing.T) {
+				if test.Endpoint.SelectsModule(test.Addr) != test.Selects {
+					t.Errorf("expected %s SelectsModule %s == %t", test.Endpoint, test.Addr, test.Selects)
+				}
+			},
+		)
+	}
+}
+
+func mustParseAbsResourceInstanceStr(s string) AbsResourceInstance {
+	r, diags := ParseAbsResourceInstanceStr(s)
+	if diags.HasErrors() {
+		panic(diags.ErrWithWarnings().Error())
+	}
+	return r
+}

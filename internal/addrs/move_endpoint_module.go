@@ -192,6 +192,8 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 		if callPart.Name != relAddr.Call.Name {
 			return false
 		}
+
+		relMatch = relAddr.Module.Child(relAddr.Call.Name, callPart.InstanceKey)
 	case AbsResource:
 		relMatch = relAddr.Module
 	case AbsResourceInstance:
@@ -203,11 +205,13 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 	if len(relPart) != len(relMatch) {
 		return false
 	}
+
 	for i := range relMatch {
 		if relPart[i] != relMatch[i] {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -218,7 +222,35 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 // the reciever is the "to" from one statement and the other given address
 // is the "from" of another statement.
 func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
-	// TODO: implement
+	eSub := e.relSubject
+	oSub := other.relSubject
+
+	switch oSub := oSub.(type) {
+	case AbsModuleCall:
+		switch eSub := eSub.(type) {
+		case AbsModuleCall:
+			return eSub.Equal(oSub)
+		}
+
+	case ModuleInstance:
+		switch eSub := eSub.(type) {
+		case ModuleInstance:
+			return eSub.Equal(oSub)
+		}
+
+	case AbsResource:
+		switch eSub := eSub.(type) {
+		case AbsResource:
+			return eSub.Equal(oSub)
+		}
+
+	case AbsResourceInstance:
+		switch eSub := eSub.(type) {
+		case AbsResourceInstance:
+			return eSub.Equal(oSub)
+		}
+	}
+
 	return false
 }
 
@@ -226,7 +258,52 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
-	// TODO: implement
+	eSub := e.relSubject
+	oSub := other.relSubject
+
+	switch oSub := oSub.(type) {
+	case AbsModuleCall:
+		withinModuleCall := func(mod ModuleInstance, call AbsModuleCall) bool {
+			// parent modules don't match at all
+			if !call.Module.IsAncestor(mod) {
+				return false
+			}
+
+			rem := mod[len(call.Module):]
+			return rem[0].Name == call.Call.Name
+		}
+
+		// Module calls can contain module instances, resources, and resource
+		// instances.
+		switch eSub := eSub.(type) {
+		case AbsResource:
+			return withinModuleCall(eSub.Module, oSub)
+
+		case AbsResourceInstance:
+			return withinModuleCall(eSub.Module, oSub)
+
+		case ModuleInstance:
+			return withinModuleCall(eSub, oSub)
+		}
+
+	case ModuleInstance:
+		// Module instances can contain resources and resource instances.
+		switch eSub := eSub.(type) {
+		case AbsResource:
+			return eSub.Module.Equal(oSub) || oSub.IsAncestor(eSub.Module)
+
+		case AbsResourceInstance:
+			return eSub.Module.Equal(oSub) || oSub.IsAncestor(eSub.Module)
+		}
+
+	case AbsResource:
+		// A resource can only contain a resource instance.
+		switch eSub := eSub.(type) {
+		case AbsResourceInstance:
+			return eSub.ContainingResource().Equal(oSub)
+		}
+	}
+
 	return false
 }
 
