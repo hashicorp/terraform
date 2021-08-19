@@ -135,7 +135,7 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v3.0.82+incompatible
+	github.com/tencentcloud/tencentcloud-sdk-go v0.0.0-20190816164403-f8fa457a3c72
 	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
 	github.com/tombuildsstuff/giovanni v0.15.1
 	github.com/ulikunitz/xz v0.5.8 // indirect
