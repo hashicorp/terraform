@@ -192,6 +192,8 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 		if callPart.Name != relAddr.Call.Name {
 			return false
 		}
+
+		relMatch = relAddr.Module.Child(relAddr.Call.Name, callPart.InstanceKey)
 	case AbsResource:
 		relMatch = relAddr.Module
 	case AbsResourceInstance:
@@ -203,11 +205,13 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 	if len(relPart) != len(relMatch) {
 		return false
 	}
+
 	for i := range relMatch {
 		if relPart[i] != relMatch[i] {
 			return false
 		}
 	}
+
 	return true
 }
 
