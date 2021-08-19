@@ -6,7 +6,7 @@ UPGRADE NOTES:
 
 NEW FEATURES:
 
-* cli: `terraform add` generates resource configuration templates ([#28874](https://github.com/hashicorp/terraform/issues/28874))
+* cli: The (currently-experimental) `terraform add` generates a starting point for a particular resource configuration. ([#28874](https://github.com/hashicorp/terraform/issues/28874))
 * config: a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
