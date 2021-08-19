@@ -1078,6 +1078,7 @@ func TestAbsResourceMoveDestination(t *testing.T) {
 func TestMoveEndpointChainAndNested(t *testing.T) {
 	tests := []struct {
 		Endpoint, Other            AbsMoveable
+		EndpointMod, OtherMod      Module
 		CanChainFrom, NestedWithin bool
 	}{
 		{
@@ -1140,7 +1141,7 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 			},
 			Other:        mustParseModuleInstanceStr("module.foo[2]"),
 			CanChainFrom: false,
-			NestedWithin: false,
+			NestedWithin: true,
 		},
 
 		{
@@ -1203,6 +1204,7 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
 			CanChainFrom: false,
 		},
+
 		{
 			Endpoint:     mustParseModuleInstanceStr("module.foo[2]"),
 			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
@@ -1213,10 +1215,115 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
 			CanChainFrom: false,
 		},
+
 		{
 			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
 			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
 			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("resource.baz"),
+			OtherMod:     Module{"foo"},
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseAbsResourceInstanceStr("resource.baz"),
+			OtherMod:     Module{"foo"},
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseModuleInstanceStr("module.foo[2].module.baz"),
+			Other:        mustParseModuleInstanceStr("module.baz"),
+			OtherMod:     Module{"foo"},
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Call: ModuleCall{Name: "bing"},
+			},
+			EndpointMod: Module{"foo", "baz"},
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.baz"),
+				Call:   ModuleCall{Name: "bing"},
+			},
+			OtherMod:     Module{"foo"},
+			CanChainFrom: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseAbsResourceInstanceStr("module.foo[2].resource.baz").ContainingResource(),
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("module.foo[2].resource.baz"),
+			Other:        mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			OtherMod:     Module{"foo"},
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("resource.baz"),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseAbsResourceInstanceStr("resource.baz").ContainingResource(),
+			OtherMod:     Module{"foo"},
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint:     mustParseAbsResourceInstanceStr("ressurce.baz").ContainingResource(),
+			EndpointMod:  Module{"foo"},
+			Other:        mustParseModuleInstanceStr("module.foo[2]"),
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Call: ModuleCall{Name: "bang"},
+			},
+			EndpointMod: Module{"foo", "baz", "bing"},
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.baz"),
+				Call:   ModuleCall{Name: "bing"},
+			},
+			OtherMod:     Module{"foo"},
+			NestedWithin: true,
+		},
+
+		{
+			Endpoint: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.bing"),
+				Call:   ModuleCall{Name: "bang"},
+			},
+			EndpointMod: Module{"foo", "baz"},
+			Other: AbsModuleCall{
+				Module: mustParseModuleInstanceStr("module.foo.module.baz"),
+				Call:   ModuleCall{Name: "bing"},
+			},
+			NestedWithin: true,
 		},
 	}
 
@@ -1225,18 +1332,20 @@ func TestMoveEndpointChainAndNested(t *testing.T) {
 			func(t *testing.T) {
 				endpoint := &MoveEndpointInModule{
 					relSubject: test.Endpoint,
+					module:     test.EndpointMod,
 				}
 
 				other := &MoveEndpointInModule{
 					relSubject: test.Other,
+					module:     test.OtherMod,
 				}
 
 				if endpoint.CanChainFrom(other) != test.CanChainFrom {
-					t.Errorf("expected %s CanChainFrom %s == %t", test.Endpoint, test.Other, test.CanChainFrom)
+					t.Errorf("expected %s CanChainFrom %s == %t", endpoint, other, test.CanChainFrom)
 				}
 
 				if endpoint.NestedWithin(other) != test.NestedWithin {
-					t.Errorf("expected %s NestedWithin %s == %t", test.Endpoint, test.Other, test.NestedWithin)
+					t.Errorf("expected %s NestedWithin %s == %t", endpoint, other, test.NestedWithin)
 				}
 			},
 		)
