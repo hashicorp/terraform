@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -592,4 +593,7 @@ resource "test_instance" "new" {
 		t.Fatalf("wrong output:\n%s", cmp.Diff(expected, output.Stdout()))
 	}
 
+	if _, err := os.Stat(filepath.Join(td, ".terraform.tfstate.lock.info")); !os.IsNotExist(err) {
+		t.Fatal("state left locked after add")
+	}
 }
