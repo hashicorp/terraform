@@ -1,5 +1,10 @@
 ## 1.0.6 (Unreleased)
 
+* EHANCEMENTS:
+
+* backend/s3: Improve SSO handling and add new endpoints in the AWS SDK [GH-29017]
+
+
 ## 1.0.5 (August 18, 2021)
 
 BUG FIXES:
