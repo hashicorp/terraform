@@ -166,6 +166,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210319143718-93e7006c17a6 // indirect
 	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/inf.v0 v0.9.0 // indirect
 	gopkg.in/ini.v1 v1.42.0 // indirect
