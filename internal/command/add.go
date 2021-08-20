@@ -106,6 +106,14 @@ func (c *AddCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	// Successfully creating the context can result in a lock, so ensure we release it
+	defer func() {
+		diags := opReq.StateLocker.Unlock()
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
+		}
+	}()
+
 	// load the configuration to verify that the resource address doesn't
 	// already exist in the config.
 	var module *configs.Module
