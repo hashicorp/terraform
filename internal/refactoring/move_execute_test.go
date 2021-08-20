@@ -324,10 +324,10 @@ func TestApplyMoves(t *testing.T) {
 			},
 		},
 
-		"move whole module to within indexed module and instance chained": {
+		"move whole module to indexed module and move instance chained": {
 			[]MoveStatement{
 				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
-				testMoveStatement(t, "module.bar[0]", "foo.from[0]", "foo.too[0]"),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
 			},
 			states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
@@ -345,19 +345,23 @@ func TestApplyMoves(t *testing.T) {
 					To:   instAddrs["module.bar[0].foo.from[0]"],
 				},
 				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
 				},
 			},
 			[]string{
-				`module.bar[0].foo.from[0]`,
+				`module.bar[0].foo.to[0]`,
 			},
 		},
 
 		"move instance to indexed module and instance chained": {
 			[]MoveStatement{
 				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.from[0]"),
-				testMoveStatement(t, "module.bar[0]", "foo.from[0]", "foo.too[0]"),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
 			},
 			states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
@@ -375,12 +379,16 @@ func TestApplyMoves(t *testing.T) {
 					To:   instAddrs["module.bar[0].foo.from[0]"],
 				},
 				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
 				},
 			},
 			[]string{
-				`module.bar[0].foo.from[0]`,
+				`module.bar[0].foo.to[0]`,
 			},
 		},
 	}
