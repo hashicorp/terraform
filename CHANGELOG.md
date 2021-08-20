@@ -1,9 +1,12 @@
 ## 1.0.6 (Unreleased)
 
-* EHANCEMENTS:
+ENHANCEMENTS:
 
 * backend/s3: Improve SSO handling and add new endpoints in the AWS SDK [GH-29017]
 
+BUG FIXES:
+
+* cli: Suppress confirmation prompt when initializing with the `-force-copy` flag and migrating state between multiple workspaces. [GH-29438]
 
 ## 1.0.5 (August 18, 2021)
 
