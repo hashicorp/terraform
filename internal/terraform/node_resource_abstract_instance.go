@@ -392,8 +392,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// that we checked something and concluded no changes were needed
 		// vs. that something being entirely excluded e.g. due to -target.
 		noop := &plans.ResourceInstanceChange{
-			Addr:       absAddr,
-			DeposedKey: deposedKey,
+			Addr:        absAddr,
+			PrevRunAddr: absAddr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
+			DeposedKey:  deposedKey,
 			Change: plans.Change{
 				Action: plans.NoOp,
 				Before: cty.NullVal(cty.DynamicPseudoType),
@@ -419,8 +420,9 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// Plan is always the same for a destroy. We don't need the provider's
 	// help for this one.
 	plan := &plans.ResourceInstanceChange{
-		Addr:       absAddr,
-		DeposedKey: deposedKey,
+		Addr:        absAddr,
+		PrevRunAddr: absAddr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
+		DeposedKey:  deposedKey,
 		Change: plans.Change{
 			Action: plans.Delete,
 			Before: currentState.Value,
@@ -444,7 +446,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	return plan, diags
 }
 
-// writeChange  saves a planned change for an instance object into the set of
+// writeChange saves a planned change for an instance object into the set of
 // global planned changes.
 func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
 	changes := ctx.Changes()
@@ -468,6 +470,16 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != deposedKey {
 		// Should never happen, and indicates a bug in the caller.
 		panic("inconsistent address and/or deposed key in writeChange")
+	}
+	if change.PrevRunAddr.Resource.Resource.Type == "" {
+		// Should never happen, and indicates a bug in the caller.
+		// (The change.Encode function actually has its own fixup to just
+		// quietly make this match change.Addr in the incorrect case, but we
+		// intentionally panic here in order to catch incorrect callers where
+		// the stack trace will hopefully be actually useful. The tolerance
+		// at the next layer down is mainly to accommodate sloppy input in
+		// older tests.)
+		panic("unpopulated ResourceInstanceChange.PrevRunAddr in writeChange")
 	}
 
 	ri := n.Addr.Resource
@@ -1054,6 +1066,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Update our return plan
 	plan = &plans.ResourceInstanceChange{
 		Addr:         n.Addr,
+		PrevRunAddr:  n.Addr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
 		Private:      plannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
@@ -1515,6 +1528,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		// value containing unknowns from PlanDataResourceObject.
 		plannedChange := &plans.ResourceInstanceChange{
 			Addr:         n.Addr,
+			PrevRunAddr:  n.Addr, // data resources are not refactorable
 			ProviderAddr: n.ResolvedProvider,
 			Change: plans.Change{
 				Action: plans.Read,

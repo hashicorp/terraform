@@ -129,34 +129,23 @@ enum ResourceInstanceActionReason {
 }
 
 message ResourceInstanceChange {
-    // module_path is an address to the module that defined this resource.
-    // module_path is omitted for resources in the root module. For descendent modules
-    // it is a string like module.foo.module.bar as would be seen at the beginning of a
-    // resource address. The format of this string is not yet frozen and so external
-    // callers should treat it as an opaque key for filtering purposes.
-    string module_path = 1;
+    // addr is a string representation of the resource instance address that
+    // this change will apply to.
+    string addr = 13;
 
-    // mode is the resource mode.
-    ResourceMode mode = 2;
-    enum ResourceMode {
-        managed = 0; // for "resource" blocks in configuration
-        data = 1;    // for "data" blocks in configuration
-    }
+    // prev_run_addr is a string representation of the address at which
+    // this resource instance was tracked during the previous apply operation.
+    //
+    // This is populated only if it would be different from addr due to
+    // Terraform having reacted to refactoring annotations in the configuration.
+    // If empty, the previous run address is the same as the current address.
+    string prev_run_addr = 14;
 
-    // type is the resource type name, like "aws_instance".
-    string type = 3;
-
-    // name is the logical name of the resource as defined in configuration.
-    // For example, in aws_instance.foo this would be "foo".
-    string name = 4;
-
-    // instance_key is either an integer index or a string key, depending on which iteration
-    // attributes ("count" or "for_each") are being used for this resource. If none
-    // are in use, this field is omitted.
-    oneof instance_key {
-        string str = 5;
-        int64 int = 6;
-    };
+    // NOTE: Earlier versions of this format had fields 1 through 6 describing
+    // various indivdual parts of "addr". We're now using our standard compact
+    // string representation to capture the same information. We don't support
+    // preserving plan files from one Terraform version to the next, so we
+    // no longer declare nor accept those fields.
 
     // deposed_key, if set, indicates that this change applies to a deposed
     // object for the indicated instance with the given deposed key. If not
@@ -169,8 +158,7 @@ message ResourceInstanceChange {
     string provider = 8;
 
     // Description of the proposed change. May use "create", "read", "update",
-    // "replace" and "delete" actions. "no-op" changes are not currently used here
-    // but consumers must accept and discard them to allow for future expansion.
+    // "replace", "delete" and "no-op" actions.
     Change change = 9;
 
     // raw blob value provided by the provider as additional context for the
