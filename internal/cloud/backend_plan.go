@@ -106,7 +106,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				tfdiags.Error,
 				"Resource targeting is not supported",
 				fmt.Sprintf(
-					`The host %s does not support the -target option for `+
+					`The Terraform Enterprise installation at %s does not support the -target option for `+
 						`remote plans.`,
 					b.hostname,
 				),
@@ -122,7 +122,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				tfdiags.Error,
 				"Planning without refresh is not supported",
 				fmt.Sprintf(
-					`The host %s does not support the -refresh=false option for `+
+					`The Terraform Enterprise installation at %s does not support the -refresh=false option for `+
 						`remote plans.`,
 					b.hostname,
 				),
@@ -138,7 +138,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				tfdiags.Error,
 				"Planning resource replacements is not supported",
 				fmt.Sprintf(
-					`The host %s does not support the -replace option for `+
+					`The Terraform Enterprise installation at %s does not support the -replace option for `+
 						`remote plans.`,
 					b.hostname,
 				),
@@ -154,7 +154,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				tfdiags.Error,
 				"Refresh-only mode is not supported",
 				fmt.Sprintf(
-					`The host %s does not support -refresh-only mode for `+
+					`The Terraform Enterprise installation at %s does not support -refresh-only mode for `+
 						`remote plans.`,
 					b.hostname,
 				),
