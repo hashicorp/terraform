@@ -38,8 +38,6 @@ Unicode escape sequences: replacing `<`, `>`, `&`, `U+2028`, and `U+2029` with
 `\u003c`, `\u003e`, `\u0026`, `\u2028`, and `\u2029`. This is to preserve
 compatibility with Terraform 0.11 behavior.
 
-`jsonencode` outputs a minified representation of the input.
-
 ## Examples
 
 ```
