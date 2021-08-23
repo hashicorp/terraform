@@ -32,7 +32,7 @@ The sequence-building algorithm follows the following pseudocode:
 
 ```
 let num = start
-while num < limit: (or, for negative step, num >= limit)
+while num < limit: (or, for negative step, num > limit)
   append num to the sequence
   num = num + step
 return the sequence
