@@ -64,22 +64,6 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		))
 	}
 
-	if b.hasExplicitVariableValues(op) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Run variables are currently not supported",
-			fmt.Sprintf(
-				"Terraform Cloud does not support setting run variables from command line arguments at this time. "+
-					"Currently the only to way to pass variables is by "+
-					"creating a '*.auto.tfvars' variables file. This file will automatically "+
-					"be loaded when the workspace is configured to use "+
-					"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
-					"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
-				b.hostname, b.organization, op.Workspace,
-			),
-		))
-	}
-
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -240,6 +224,25 @@ in order to capture the filesystem context the remote workspace expects:
 			runOptions.ReplaceAddrs = append(runOptions.ReplaceAddrs, addr.String())
 		}
 	}
+
+	config, _, configDiags := op.ConfigLoader.LoadConfigWithSnapshot(op.ConfigDir)
+	if configDiags.HasErrors() {
+		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
+	}
+	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
+
+	if varDiags.HasErrors() {
+		return nil, varDiags.Err()
+	}
+
+	runVariables := make([]*tfe.RunVariable, len(variables))
+	for name, value := range variables {
+		runVariables = append(runVariables, &tfe.RunVariable{
+			Key:   name,
+			Value: value,
+		})
+	}
+	runOptions.Variables = runVariables
 
 	r, err := b.client.Runs.Create(stopCtx, runOptions)
 	if err != nil {

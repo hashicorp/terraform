@@ -436,14 +436,15 @@ func TestCloud_applyWithReplace(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithVariables(t *testing.T) {
+func TestCloud_applyWithRequiredVariables(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-variables")
 	defer configCleanup()
+	defer done(t)
 
-	op.Variables = testVariables(terraform.ValueFromNamedFile, "foo", "bar")
+	op.Variables = testVariables(terraform.ValueFromNamedFile, "foo") // "bar" variable value missing
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -452,14 +453,15 @@ func TestCloud_applyWithVariables(t *testing.T) {
 	}
 
 	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
+	// The usual error of a required variable being missing is deferred and the operation
+	// is successful
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected plan operation to succeed")
 	}
 
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "variables are currently not supported") {
-		t.Fatalf("expected a variables error, got: %v", errOutput)
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running apply in Terraform Cloud") {
+		t.Fatalf("unexpected TFC header in output: %s", output)
 	}
 }
 

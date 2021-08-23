@@ -3,7 +3,6 @@ package cloud
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"log"
 
@@ -56,22 +55,6 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			"Applying a saved plan is currently not supported",
 			`Terraform Cloud currently requires configuration to be present and `+
 				`does not accept an existing saved plan as an argument at this time.`,
-		))
-	}
-
-	if b.hasExplicitVariableValues(op) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Run variables are currently not supported",
-			fmt.Sprintf(
-				"Terraform Cloud does not support setting run variables from command line arguments at this time. "+
-					"Currently the only to way to pass variables is by "+
-					"creating a '*.auto.tfvars' variables file. This file will automatically "+
-					"be loaded when the workspace is configured to use "+
-					"Terraform v0.10.0 or later.\n\nAdditionally you can also set variables on "+
-					"the workspace in the web UI:\nhttps://%s/app/%s/%s/variables",
-				b.hostname, b.organization, op.Workspace,
-			),
 		))
 	}
 
