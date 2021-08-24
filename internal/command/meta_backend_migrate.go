@@ -75,17 +75,17 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Disregard remote Terraform version for the state source backend. If it's a
 	// Terraform Cloud remote backend, we don't care about the remote version,
 	// as we are migrating away and will not break a remote workspace.
-	m.ignoreRemoteBackendVersionConflict(opts.Source)
+	m.ignoreRemoteVersionConflict(opts.Source)
 
 	// Disregard remote Terraform version if instructed to do so via CLI flag.
 	if m.ignoreRemoteVersion {
-		m.ignoreRemoteBackendVersionConflict(opts.Destination)
+		m.ignoreRemoteVersionConflict(opts.Destination)
 	} else {
 		// Check the remote Terraform version for the state destination backend. If
 		// it's a Terraform Cloud remote backend, we want to ensure that we don't
 		// break the workspace by uploading an incompatible state file.
 		for _, workspace := range destinationWorkspaces {
-			diags := m.remoteBackendVersionCheck(opts.Destination, workspace)
+			diags := m.remoteVersionCheck(opts.Destination, workspace)
 			if diags.HasErrors() {
 				return diags.Err()
 			}
@@ -93,7 +93,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		// If there are no specified destination workspaces, perform a remote
 		// backend version check with the default workspace.
 		if len(destinationWorkspaces) == 0 {
-			diags := m.remoteBackendVersionCheck(opts.Destination, backend.DefaultStateName)
+			diags := m.remoteVersionCheck(opts.Destination, backend.DefaultStateName)
 			if diags.HasErrors() {
 				return diags.Err()
 			}

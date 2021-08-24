@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
-	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -53,6 +52,13 @@ type BackendOpts struct {
 	// ForceLocal will force a purely local backend, including state.
 	// You probably don't want to set this.
 	ForceLocal bool
+}
+
+// BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
+// for simplified type checking when calling functions common to those particular backends.
+type BackendWithRemoteTerraformVersion interface {
+	IgnoreVersionConflict()
+	VerifyWorkspaceTerraformVersion(workspace string) tfdiags.Diagnostics
 }
 
 // Backend initializes and returns the backend for this CLI session.
@@ -1168,32 +1174,32 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	return b, configVal, diags
 }
 
-// Helper method to ignore remote backend version conflicts. Only call this
+// Helper method to ignore remote/cloud backend version conflicts. Only call this
 // for commands which cannot accidentally upgrade remote state files.
-func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
-	if rb, ok := b.(*remoteBackend.Remote); ok {
-		rb.IgnoreVersionConflict()
+func (m *Meta) ignoreRemoteVersionConflict(b backend.Backend) {
+	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
+		back.IgnoreVersionConflict()
 	}
 }
 
 // Helper method to check the local Terraform version against the configured
 // version in the remote workspace, returning diagnostics if they conflict.
-func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
+func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	if rb, ok := b.(*remoteBackend.Remote); ok {
+	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
 		// Allow user override based on command-line flag
 		if m.ignoreRemoteVersion {
-			rb.IgnoreVersionConflict()
+			back.IgnoreVersionConflict()
 		}
 		// If the override is set, this check will return a warning instead of
 		// an error
-		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
+		versionDiags := back.VerifyWorkspaceTerraformVersion(workspace)
 		diags = diags.Append(versionDiags)
 		// If there are no errors resulting from this check, we do not need to
 		// check again
 		if !diags.HasErrors() {
-			rb.IgnoreVersionConflict()
+			back.IgnoreVersionConflict()
 		}
 	}
 

@@ -209,8 +209,20 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	var back backend.Backend
-	if flagBackend {
 
+	switch {
+	case config.Module.CloudConfig != nil:
+		be, backendOutput, backendDiags := c.initCloud(config.Module)
+		diags = diags.Append(backendDiags)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if backendOutput {
+			header = true
+		}
+		back = be
+	case flagBackend:
 		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
@@ -221,7 +233,7 @@ func (c *InitCommand) Run(args []string) int {
 			header = true
 		}
 		back = be
-	} else {
+	default:
 		// load the previously-stored backend config
 		be, backendDiags := c.Meta.backendFromState()
 		diags = diags.Append(backendDiags)
@@ -251,7 +263,7 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		c.ignoreRemoteBackendVersionConflict(back)
+		c.ignoreRemoteVersionConflict(back)
 		workspace, err := c.Workspace()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -335,6 +347,21 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	}
 
 	return true, diags
+}
+
+func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+
+	backendConfig := root.CloudConfig.ToBackendConfig()
+
+	opts := &BackendOpts{
+		Config: &backendConfig,
+		Init:   true,
+	}
+
+	back, backDiags := c.Backend(opts)
+	diags = diags.Append(backDiags)
+	return back, true, diags
 }
 
 func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {

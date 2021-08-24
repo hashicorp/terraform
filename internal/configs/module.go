@@ -29,6 +29,7 @@ type Module struct {
 	ActiveExperiments experiments.Set
 
 	Backend              *Backend
+	CloudConfig          *CloudConfig
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements *RequiredProviders
 	ProviderLocalNames   map[addrs.Provider]string
@@ -63,6 +64,7 @@ type File struct {
 	ActiveExperiments experiments.Set
 
 	Backends          []*Backend
+	CloudConfigs      []*CloudConfig
 	ProviderConfigs   []*Provider
 	ProviderMetas     []*ProviderMeta
 	RequiredProviders []*RequiredProviders
@@ -188,6 +190,29 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.Backend = b
+	}
+
+	for _, c := range file.CloudConfigs {
+		if m.CloudConfig != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate Terraform Cloud configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", m.CloudConfig.DeclRange),
+				Subject:  &c.DeclRange,
+			})
+			continue
+		}
+
+		m.CloudConfig = c
+	}
+
+	if m.Backend != nil && m.CloudConfig != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Both a backend and Terraform Cloud configuration are present",
+			Detail:   fmt.Sprintf("A module may declare either one 'cloud' block configuring Terraform Cloud OR one 'backend' block configuring a state backend. Terraform Cloud is configured at %s; a backend is configured at %s. Remove the backend block to configure Terraform Cloud.", m.CloudConfig.DeclRange, m.Backend.DeclRange),
+			Subject:  &m.Backend.DeclRange,
+		})
 	}
 
 	for _, pc := range file.ProviderConfigs {

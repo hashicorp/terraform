@@ -83,7 +83,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// This command will not write state
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	workspaces, err := b.Workspaces()
 	if err != nil {

@@ -136,6 +136,12 @@ func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diag
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	if mod.CloudConfig != nil {
+		backendConfig := mod.CloudConfig.ToBackendConfig()
+		return &backendConfig, nil
+	}
+
 	return mod.Backend, nil
 }
 

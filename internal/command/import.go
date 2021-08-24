@@ -204,7 +204,7 @@ func (c *ImportCommand) Run(args []string) int {
 	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	// Check remote Terraform version is compatible
-	remoteVersionDiags := c.remoteBackendVersionCheck(b, opReq.Workspace)
+	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {

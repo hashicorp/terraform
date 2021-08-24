@@ -88,7 +88,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
 	opReq := c.Operation(b)
