@@ -2,9 +2,11 @@ package refactoring
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -53,6 +55,13 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 		}
 	}
 
+	if startNodes.Len() == 0 {
+		log.Println("[TRACE] refactoring.ApplyMoves: No 'moved' statements to consider in this configuration")
+		return results
+	}
+
+	log.Printf("[TRACE] refactoring.ApplyMoves: Processing 'moved' statements in the configuration\n%s", logging.Indent(g.String()))
+
 	g.ReverseDepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
 		stmt := v.(*MoveStatement)
 
@@ -69,6 +78,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 				// For a module endpoint we just try the module address
 				// directly.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
+					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
 					// We need to visit all of the resource instances in the
 					// module and record them individually as results.
 					for _, rs := range ms.Resources {
@@ -94,6 +104,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 				for _, rs := range ms.Resources {
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
+						log.Printf("[TRACE] refactoring.ApplyMoves: resource %s has moved to %s", rAddr, newAddr)
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
@@ -110,6 +121,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 					for key := range rs.Instances {
 						iAddr := rAddr.Instance(key)
 						if newAddr, matches := iAddr.MoveDestination(stmt.From, stmt.To); matches {
+							log.Printf("[TRACE] refactoring.ApplyMoves: resource instance %s has moved to %s", iAddr, newAddr)
 							result := MoveResult{From: iAddr, To: newAddr}
 							results[iAddr.UniqueKey()] = result
 							results[newAddr.UniqueKey()] = result

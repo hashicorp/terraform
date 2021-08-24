@@ -60,7 +60,7 @@ func (c *Context) Import(opts *ImportOpts) (*states.State, tfdiags.Diagnostics) 
 	}
 
 	// Walk it
-	_, walkDiags := c.walk(graph, walkImport)
+	_, walkDiags := c.walk(graph, walkImport, &graphWalkOpts{})
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		return c.state, diags

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -127,6 +128,9 @@ type MockEvalContext struct {
 
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
+
+	MoveResultsCalled  bool
+	MoveResultsResults map[addrs.UniqueKey]refactoring.MoveResult
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
@@ -345,6 +349,11 @@ func (c *MockEvalContext) RefreshState() *states.SyncState {
 func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	c.PrevRunStateCalled = true
 	return c.PrevRunStateState
+}
+
+func (c *MockEvalContext) MoveResults() map[addrs.UniqueKey]refactoring.MoveResult {
+	c.MoveResultsCalled = true
+	return c.MoveResultsResults
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

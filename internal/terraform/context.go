@@ -129,6 +129,20 @@ type Context struct {
 	refreshState *states.State
 	prevRunState *states.State
 
+	// NOTE: If you're considering adding something new here, consider first
+	// whether it'd work to add it to type graphWalkOpts instead, possibly by
+	// adding new arguments to one of the exported operation methods, to scope
+	// it only to a particular operation rather than having it survive from one
+	// operation to the next as global mutable state.
+	//
+	// Historically we used fields here as a bit of a dumping ground for
+	// data that needed to ambiently pass between methods of Context, but
+	// that has tended to cause surprising misbehavior when data from one
+	// walk inadvertently bleeds into another walk against the same context.
+	// Perhaps one day we'll move changes, state, refreshState, and prevRunState
+	// to graphWalkOpts too. Ideally there shouldn't be anything in here which
+	// changes after NewContext returns.
+
 	hooks      []Hook
 	components contextComponentFactory
 	schemas    *Schemas
@@ -491,7 +505,7 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 	diags = diags.Append(graphDiags)
 	if !diags.HasErrors() {
 		var walkDiags tfdiags.Diagnostics
-		walker, walkDiags = c.walk(graph, walkEval)
+		walker, walkDiags = c.walk(graph, walkEval, &graphWalkOpts{})
 		diags = diags.Append(walker.NonFatalDiagnostics)
 		diags = diags.Append(walkDiags)
 	}
@@ -500,7 +514,7 @@ func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnost
 		// If we skipped walking the graph (due to errors) then we'll just
 		// use a placeholder graph walker here, which'll refer to the
 		// unmodified state.
-		walker = c.graphWalker(walkEval)
+		walker = c.graphWalker(walkEval, &graphWalkOpts{})
 	}
 
 	// This is a bit weird since we don't normally evaluate outside of
@@ -545,7 +559,7 @@ func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
 	}
 
 	// Walk the graph
-	walker, walkDiags := c.walk(graph, operation)
+	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 
@@ -656,7 +670,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	moveStmts, _ := c.prePlanFindAndApplyMoves()
+	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
 
 	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
@@ -665,7 +679,9 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan)
+	walker, walkDiags := c.walk(graph, walkPlan, &graphWalkOpts{
+		MoveResults: moveResults,
+	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
@@ -700,7 +716,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 	c.changes = plans.NewChanges()
 
-	moveStmts, _ := c.prePlanFindAndApplyMoves()
+	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
 
 	// A destroy plan starts by running Refresh to read any pending data
 	// sources, and remove missing managed resources. This is required because
@@ -734,7 +750,9 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlanDestroy)
+	walker, walkDiags := c.walk(graph, walkPlanDestroy, &graphWalkOpts{
+		MoveResults: moveResults,
+	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
@@ -764,7 +782,7 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	moveStmts, _ := c.prePlanFindAndApplyMoves()
+	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
 
 	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
 	diags = diags.Append(graphDiags)
@@ -773,7 +791,9 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	}
 
 	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan)
+	walker, walkDiags := c.walk(graph, walkPlan, &graphWalkOpts{
+		MoveResults: moveResults,
+	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
@@ -918,7 +938,7 @@ func (c *Context) Validate() tfdiags.Diagnostics {
 	}
 
 	// Walk
-	walker, walkDiags := c.walk(graph, walkValidate)
+	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
@@ -991,10 +1011,18 @@ func (c *Context) releaseRun() {
 	c.runContext = nil
 }
 
-func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalker, tfdiags.Diagnostics) {
+// graphWalkOpts is an assortment of options and inputs we need when
+// constructing a graph walker.
+type graphWalkOpts struct {
+	// MoveResults is a table of the results of applying move statements prior
+	// to a plan walk. Irrelevant and totally ignored for non-plan walks.
+	MoveResults map[addrs.UniqueKey]refactoring.MoveResult
+}
+
+func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
 	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
 
-	walker := c.graphWalker(operation)
+	walker := c.graphWalker(operation, opts)
 
 	// Watch for a stop so we can call the provider Stop() API.
 	watchStop, watchWait := c.watchStop(walker)
@@ -1009,7 +1037,7 @@ func (c *Context) walk(graph *Graph, operation walkOperation) (*ContextGraphWalk
 	return walker, diags
 }
 
-func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
+func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *ContextGraphWalker {
 	var state *states.SyncState
 	var refreshState *states.SyncState
 	var prevRunState *states.SyncState
@@ -1040,6 +1068,7 @@ func (c *Context) graphWalker(operation walkOperation) *ContextGraphWalker {
 		PrevRunState:       prevRunState,
 		Changes:            c.changes.SyncWrapper(),
 		InstanceExpander:   instances.NewExpander(),
+		MoveResults:        opts.MoveResults,
 		Operation:          operation,
 		StopContext:        c.runContext,
 		RootVariableValues: c.variables,
