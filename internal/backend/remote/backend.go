@@ -91,6 +91,8 @@ type Remote struct {
 }
 
 var _ backend.Backend = (*Remote)(nil)
+var _ backend.Enhanced = (*Remote)(nil)
+var _ backend.Local = (*Remote)(nil)
 
 // New creates a new initialized remote backend.
 func New(services *disco.Disco) *Remote {

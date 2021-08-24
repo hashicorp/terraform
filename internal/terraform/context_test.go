@@ -109,9 +109,12 @@ func TestNewContextRequiredVersion(t *testing.T) {
 					Required: constraint,
 				})
 			}
-			_, diags := NewContext(&ContextOpts{
-				Config: mod,
-			})
+			c, diags := NewContext(&ContextOpts{})
+			if diags.HasErrors() {
+				t.Fatalf("unexpected NewContext errors: %s", diags.Err())
+			}
+
+			diags = c.Validate(mod)
 			if diags.HasErrors() != tc.Err {
 				t.Fatalf("err: %s", diags.Err())
 			}
@@ -262,9 +265,6 @@ Please run "terraform init".`,
 				devProviders[provider] = struct{}{}
 			}
 			opts := &ContextOpts{
-				Config: testModuleInline(t, map[string]string{
-					"main.tf": tc.Config,
-				}),
 				LockedDependencies:     locks,
 				ProvidersInDevelopment: devProviders,
 				Providers: map[addrs.Provider]providers.Factory{
@@ -274,7 +274,16 @@ Please run "terraform init".`,
 				},
 			}
 
-			ctx, diags := NewContext(opts)
+			m := testModuleInline(t, map[string]string{
+				"main.tf": tc.Config,
+			})
+
+			c, diags := NewContext(opts)
+			if diags.HasErrors() {
+				t.Fatalf("unexpected NewContext error: %s", diags.Err())
+			}
+
+			diags = c.Validate(m)
 			if tc.WantErr != "" {
 				if len(diags) == 0 {
 					t.Fatal("expected diags but none returned")
@@ -285,9 +294,6 @@ Please run "terraform init".`,
 			} else {
 				if len(diags) > 0 {
 					t.Errorf("unexpected diags: %s", diags.Err())
-				}
-				if ctx == nil {
-					t.Error("ctx is nil")
 				}
 			}
 		})
@@ -717,10 +723,10 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 // our context tests try to exercise lots of stuff at once and so having them
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
-func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, error) {
+func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
 	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 	defer os.RemoveAll(dir)
 
@@ -751,49 +757,27 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	filename := filepath.Join(dir, "tfplan")
 	err = planfile.Create(filename, configSnap, prevStateFile, stateFile, plan)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	pr, err := planfile.Open(filename)
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
 	config, diags := pr.ReadConfig()
 	if diags.HasErrors() {
-		return nil, diags.Err()
-	}
-
-	stateFile, err = pr.ReadStateFile()
-	if err != nil {
-		return nil, err
+		return nil, nil, nil, diags.Err()
 	}
 
 	plan, err = pr.ReadPlan()
 	if err != nil {
-		return nil, err
-	}
-
-	vars := make(InputValues)
-	for name, vv := range plan.VariableValues {
-		val, err := vv.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			return nil, fmt.Errorf("can't decode value for variable %q: %s", name, err)
-		}
-		vars[name] = &InputValue{
-			Value:      val,
-			SourceType: ValueFromPlan,
-		}
+		return nil, nil, nil, err
 	}
 
 	return &ContextOpts{
-		Config:          config,
-		State:           stateFile.State,
-		Changes:         plan.Changes,
-		Variables:       vars,
-		Targets:         plan.TargetAddrs,
 		ProviderSHA256s: plan.ProviderSHA256s,
-	}, nil
+	}, config, plan, nil
 }
 
 // legacyPlanComparisonString produces a string representation of the changes

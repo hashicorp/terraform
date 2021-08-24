@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -46,7 +47,6 @@ func TestContext2Input_provider(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -59,7 +59,7 @@ func TestContext2Input_provider(t *testing.T) {
 		return
 	}
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
@@ -70,11 +70,10 @@ func TestContext2Input_provider(t *testing.T) {
 		t.Errorf("wrong description\ngot:  %q\nwant: %q", got, want)
 	}
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -117,7 +116,6 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -127,13 +125,12 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	var actual []interface{}
 	var lock sync.Mutex
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
 
 	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		lock.Lock()
@@ -141,7 +138,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		actual = append(actual, req.Config.GetAttr("foo").AsString())
 		return
 	}
-	if _, diags := ctx.Apply(); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -155,13 +152,12 @@ func TestContext2Input_providerOnce(t *testing.T) {
 	m := testModule(t, "input-provider-once")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
@@ -195,7 +191,6 @@ func TestContext2Input_providerId(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -212,15 +207,14 @@ func TestContext2Input_providerId(t *testing.T) {
 		"provider.aws.foo": "bar",
 	}
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -255,15 +249,8 @@ func TestContext2Input_providerOnly(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("us-west-2"),
-				SourceType: ValueFromCaller,
-			},
 		},
 		UIInput: input,
 	})
@@ -278,15 +265,30 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		return
 	}
 
-	if err := ctx.Input(InputModeProvider); err != nil {
+	if err := ctx.Input(m, InputModeProvider); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	// NOTE: This is a stale test case from an older version of Terraform
+	// where Input was responsible for prompting for both input variables _and_
+	// provider configuration arguments, where it was trying to test the case
+	// where we were turning off the mode of prompting for input variables.
+	// That's now always disabled, and so this is essentially the same as the
+	// normal Input test, but we're preserving it until we have time to review
+	// and make sure this isn't inadvertently providing unique test coverage
+	// other than what it set out to test.
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("us-west-2"),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	assertNoErrors(t, diags)
 
-	state, err := ctx.Apply()
+	state, err := ctx.Apply(plan, m)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -307,15 +309,8 @@ func TestContext2Input_providerVars(t *testing.T) {
 	m := testModule(t, "input-provider-with-vars")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
 		},
 		UIInput: input,
 	})
@@ -329,15 +324,22 @@ func TestContext2Input_providerVars(t *testing.T) {
 		actual = req.Config.GetAttr("foo").AsString()
 		return
 	}
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	if _, diags := ctx.Plan(); diags.HasErrors() {
-		t.Fatalf("plan errors: %s", diags.Err())
-	}
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"foo": &InputValue{
+				Value:      cty.StringVal("bar"),
+				SourceType: ValueFromCaller,
+			},
+		},
+	})
+	assertNoErrors(t, diags)
 
-	if _, diags := ctx.Apply(); diags.HasErrors() {
+	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
@@ -351,14 +353,13 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 	m := testModule(t, "input-provider-with-vars-and-module")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
@@ -369,14 +370,13 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 	m := testModule(t, "input-submodule-count")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 }
@@ -427,23 +427,25 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
-		State:   state,
 		UIInput: input,
 	})
 
-	if diags := ctx.Input(InputModeStd); diags.HasErrors() {
+	if diags := ctx.Input(m, InputModeStd); diags.HasErrors() {
 		t.Fatalf("input errors: %s", diags.Err())
 	}
 
-	// ensure that plan works after Refresh
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	// ensure that plan works after Refresh. This is a legacy test that
+	// doesn't really make sense anymore, because Refresh is really just
+	// a wrapper around plan anyway, but we're keeping it until we get a
+	// chance to review and check whether it's giving us any additional
+	// test coverage aside from what it's specifically intending to test.
+	if _, diags := ctx.Refresh(m, state, DefaultPlanOpts); diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
-	if _, diags := ctx.Plan(); diags.HasErrors() {
+	if _, diags := ctx.Plan(m, state, DefaultPlanOpts); diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
 }

@@ -204,17 +204,19 @@ func testSession(t *testing.T, test testSessionTest) {
 
 	// Build the TF context
 	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
-		State: test.State,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
 		},
-		Config: config,
 	})
 	if diags.HasErrors() {
 		t.Fatalf("failed to create context: %s", diags.Err())
 	}
 
-	scope, diags := ctx.Eval(addrs.RootModuleInstance)
+	state := test.State
+	if state == nil {
+		state = states.NewState()
+	}
+	scope, diags := ctx.Eval(config, state, addrs.RootModuleInstance, &terraform.EvalOpts{})
 	if diags.HasErrors() {
 		t.Fatalf("failed to create scope: %s", diags.Err())
 	}

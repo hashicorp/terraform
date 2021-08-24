@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -33,6 +34,8 @@ type ContextGraphWalker struct {
 	Operation          walkOperation
 	StopContext        context.Context
 	RootVariableValues InputValues
+	Schemas            *Schemas
+	Config             *configs.Config
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -74,11 +77,11 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// different modules.
 	evaluator := &Evaluator{
 		Meta:               w.Context.meta,
-		Config:             w.Context.config,
+		Config:             w.Config,
 		Operation:          w.Operation,
 		State:              w.State,
 		Changes:            w.Changes,
-		Schemas:            w.Context.schemas,
+		Schemas:            w.Schemas,
 		VariableValues:     w.variableValues,
 		VariableValuesLock: &w.variableValuesLock,
 	}
@@ -89,7 +92,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		InputValue:            w.Context.uiInput,
 		InstanceExpanderValue: w.InstanceExpander,
 		Components:            w.Context.components,
-		Schemas:               w.Context.schemas,
+		Schemas:               w.Schemas,
 		MoveResultsValue:      w.MoveResults,
 		ProviderCache:         w.providerCache,
 		ProviderInputConfig:   w.Context.providerInputConfig,

@@ -10,12 +10,8 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -41,16 +37,7 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
-	Config       *configs.Config
-	Changes      *plans.Changes
-	State        *states.State
-	Targets      []addrs.Targetable
-	ForceReplace []addrs.AbsResourceInstance
-	Variables    InputValues
 	Meta         *ContextMeta
-	PlanMode     plans.Mode
-	SkipRefresh  bool
-
 	Hooks        []Hook
 	Parallelism  int
 	Providers    map[addrs.Provider]providers.Factory
@@ -96,58 +83,18 @@ type ContextMeta struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext.
 type Context struct {
-	config       *configs.Config
-	changes      *plans.Changes
-	skipRefresh  bool
-	targets      []addrs.Targetable
-	forceReplace []addrs.AbsResourceInstance
-	variables    InputValues
-	meta         *ContextMeta
-	planMode     plans.Mode
+	// meta captures some misc. information about the working directory where
+	// we're taking these actions, and thus which should remain steady between
+	// operations.
+	meta *ContextMeta
 
-	// state, refreshState, and prevRunState simultaneously track three
-	// different incarnations of the Terraform state:
-	//
-	// "state" is always the most "up-to-date". During planning it represents
-	// our best approximation of the planned new state, and during applying
-	// it represents the results of all of the actions we've taken so far.
-	//
-	// "refreshState" is populated and relevant only during planning, where we
-	// update it to reflect a provider's sense of the current state of the
-	// remote object each resource instance is bound to but don't include
-	// any changes implied by the configuration.
-	//
-	// "prevRunState" is similar to refreshState except that it doesn't even
-	// include the result of the provider's refresh step, and instead reflects
-	// the state as we found it prior to any changes, although it does reflect
-	// the result of running the provider's schema upgrade actions so that the
-	// resource instance objects will all conform to the _current_ resource
-	// type schemas if planning is successful, so that in that case it will
-	// be meaningful to compare prevRunState to refreshState to detect changes
-	// made outside of Terraform.
-	state        *states.State
-	refreshState *states.State
-	prevRunState *states.State
+	components             contextComponentFactory
+	dependencyLocks        *depsfile.Locks
+	providersInDevelopment map[addrs.Provider]struct{}
 
-	// NOTE: If you're considering adding something new here, consider first
-	// whether it'd work to add it to type graphWalkOpts instead, possibly by
-	// adding new arguments to one of the exported operation methods, to scope
-	// it only to a particular operation rather than having it survive from one
-	// operation to the next as global mutable state.
-	//
-	// Historically we used fields here as a bit of a dumping ground for
-	// data that needed to ambiently pass between methods of Context, but
-	// that has tended to cause surprising misbehavior when data from one
-	// walk inadvertently bleeds into another walk against the same context.
-	// Perhaps one day we'll move changes, state, refreshState, and prevRunState
-	// to graphWalkOpts too. Ideally there shouldn't be anything in here which
-	// changes after NewContext returns.
-
-	hooks      []Hook
-	components contextComponentFactory
-	schemas    *Schemas
-	sh         *stopHook
-	uiInput    UIInput
+	hooks   []Hook
+	sh      *stopHook
+	uiInput UIInput
 
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
@@ -168,14 +115,9 @@ type Context struct {
 // If the returned diagnostics contains errors then the resulting context is
 // invalid and must not be used.
 func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
 	log.Printf("[TRACE] terraform.NewContext: starting")
-	diags := CheckCoreVersionRequirements(opts.Config)
-	// If version constraints are not met then we'll bail early since otherwise
-	// we're likely to just see a bunch of other errors related to
-	// incompatibilities, which could be overwhelming for the user.
-	if diags.HasErrors() {
-		return nil, diags
-	}
 
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
@@ -183,11 +125,6 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	hooks := make([]Hook, len(opts.Hooks)+1)
 	copy(hooks, opts.Hooks)
 	hooks[len(opts.Hooks)] = sh
-
-	state := opts.State
-	if state == nil {
-		state = states.NewState()
-	}
 
 	// Determine parallelism, default to 10. We do this both to limit
 	// CPU pressure but also to have an extra guard against rate throttling
@@ -207,55 +144,47 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	// Set up the variables in the following sequence:
-	//    0 - Take default values from the configuration
-	//    1 - Take values from TF_VAR_x environment variables
-	//    2 - Take values specified in -var flags, overriding values
-	//        set by environment variables if necessary. This includes
-	//        values taken from -var-file in addition.
-	var variables InputValues
-	if opts.Config != nil {
-		// Default variables from the configuration seed our map.
-		variables = DefaultVariableValues(opts.Config.Module.Variables)
-	}
-	// Variables provided by the caller (from CLI, environment, etc) can
-	// override the defaults.
-	variables = variables.Override(opts.Variables)
-
 	components := &basicComponentFactory{
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 	}
 
-	log.Printf("[TRACE] terraform.NewContext: loading provider schemas")
-	schemas, err := LoadSchemas(opts.Config, opts.State, components)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Could not load plugin",
-			fmt.Sprintf(errPluginInit, err),
-		))
-		return nil, diags
-	}
+	log.Printf("[TRACE] terraform.NewContext: complete")
 
-	changes := opts.Changes
-	if changes == nil {
-		changes = plans.NewChanges()
-	}
+	return &Context{
+		hooks:   hooks,
+		meta:    opts.Meta,
+		uiInput: opts.UIInput,
 
-	config := opts.Config
-	if config == nil {
-		config = configs.NewEmptyConfig()
-	}
+		components:             components,
+		dependencyLocks:        opts.LockedDependencies,
+		providersInDevelopment: opts.ProvidersInDevelopment,
+
+		parallelSem:         NewSemaphore(par),
+		providerInputConfig: make(map[string]map[string]cty.Value),
+		providerSHA256s:     opts.ProviderSHA256s,
+		sh:                  sh,
+	}, diags
+}
+
+func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas, tfdiags.Diagnostics) {
+	// TODO: This method gets called multiple times on the same context with
+	// the same inputs by different parts of Terraform that all need the
+	// schemas, and it's typically quite expensive because it has to spin up
+	// plugins to gather their schemas, so it'd be good to have some caching
+	// here to remember plugin schemas we already loaded since the plugin
+	// selections can't change during the life of a *Context object.
+
+	var diags tfdiags.Diagnostics
 
 	// If we have a configuration and a set of locked dependencies, verify that
 	// the provider requirements from the configuration can be satisfied by the
 	// locked dependencies.
-	if opts.LockedDependencies != nil {
+	if c.dependencyLocks != nil && config != nil {
 		reqs, providerDiags := config.ProviderRequirements()
 		diags = diags.Append(providerDiags)
 
-		locked := opts.LockedDependencies.AllProviders()
+		locked := c.dependencyLocks.AllProviders()
 		unmetReqs := make(getproviders.Requirements)
 		for provider, versionConstraints := range reqs {
 			// Builtin providers are not listed in the locks file
@@ -263,7 +192,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 				continue
 			}
 			// Development providers must be excluded from this check
-			if _, ok := opts.ProvidersInDevelopment[provider]; ok {
+			if _, ok := c.providersInDevelopment[provider]; ok {
 				continue
 			}
 			// If the required provider doesn't exist in the lock, or the
@@ -292,81 +221,16 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		}
 	}
 
-	switch opts.PlanMode {
-	case plans.NormalMode, plans.DestroyMode:
-		// OK
-	case plans.RefreshOnlyMode:
-		if opts.SkipRefresh {
-			// The CLI layer (and other similar callers) should prevent this
-			// combination of options.
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Incompatible plan options",
-				"Cannot skip refreshing in refresh-only mode. This is a bug in Terraform.",
-			))
-			return nil, diags
-		}
-	default:
-		// The CLI layer (and other similar callers) should not try to
-		// create a context for a mode that Terraform Core doesn't support.
+	ret, err := LoadSchemas(config, state, c.components)
+	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Unsupported plan mode",
-			fmt.Sprintf("Terraform Core doesn't know how to handle plan mode %s. This is a bug in Terraform.", opts.PlanMode),
+			"Failed to load plugin schemas",
+			fmt.Sprintf("Error while loading schemas for plugin components: %s.", err),
 		))
 		return nil, diags
 	}
-	if len(opts.ForceReplace) > 0 && opts.PlanMode != plans.NormalMode {
-		// The other modes don't generate no-op or update actions that we might
-		// upgrade to be "replace", so doesn't make sense to combine those.
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unsupported plan mode",
-			fmt.Sprintf("Forcing resource instance replacement (with -replace=...) is allowed only in normal planning mode."),
-		))
-		return nil, diags
-	}
-
-	log.Printf("[TRACE] terraform.NewContext: complete")
-
-	// By the time we get here, we should have values defined for all of
-	// the root module variables, even if some of them are "unknown". It's the
-	// caller's responsibility to have already handled the decoding of these
-	// from the various ways the CLI allows them to be set and to produce
-	// user-friendly error messages if they are not all present, and so
-	// the error message from checkInputVariables should never be seen and
-	// includes language asking the user to report a bug.
-	if config != nil {
-		varDiags := checkInputVariables(config.Module.Variables, variables)
-		diags = diags.Append(varDiags)
-	}
-
-	return &Context{
-		components:   components,
-		schemas:      schemas,
-		planMode:     opts.PlanMode,
-		changes:      changes,
-		hooks:        hooks,
-		meta:         opts.Meta,
-		config:       config,
-		state:        state,
-		refreshState: state.DeepCopy(),
-		prevRunState: state.DeepCopy(),
-		skipRefresh:  opts.SkipRefresh,
-		targets:      opts.Targets,
-		forceReplace: opts.ForceReplace,
-		uiInput:      opts.UIInput,
-		variables:    variables,
-
-		parallelSem:         NewSemaphore(par),
-		providerInputConfig: make(map[string]map[string]cty.Value),
-		providerSHA256s:     opts.ProviderSHA256s,
-		sh:                  sh,
-	}, diags
-}
-
-func (c *Context) Schemas() *Schemas {
-	return c.schemas
+	return ret, diags
 }
 
 type ContextGraphOpts struct {
@@ -375,510 +239,6 @@ type ContextGraphOpts struct {
 
 	// Legacy graphs only: won't prune the graph
 	Verbose bool
-}
-
-// Graph returns the graph used for the given operation type.
-//
-// The most extensive or complex graph type is GraphTypePlan.
-func (c *Context) Graph(typ GraphType, opts *ContextGraphOpts) (*Graph, tfdiags.Diagnostics) {
-	if opts == nil {
-		opts = &ContextGraphOpts{Validate: true}
-	}
-
-	log.Printf("[INFO] terraform: building graph: %s", typ)
-	switch typ {
-	case GraphTypeApply:
-		return (&ApplyGraphBuilder{
-			Config:       c.config,
-			Changes:      c.changes,
-			State:        c.state,
-			Components:   c.components,
-			Schemas:      c.schemas,
-			Targets:      c.targets,
-			ForceReplace: c.forceReplace,
-			Validate:     opts.Validate,
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypeValidate:
-		// The validate graph is just a slightly modified plan graph: an empty
-		// state is substituted in for Validate.
-		return ValidateGraphBuilder(&PlanGraphBuilder{
-			Config:     c.config,
-			Components: c.components,
-			Schemas:    c.schemas,
-			Targets:    c.targets,
-			Validate:   opts.Validate,
-			State:      states.NewState(),
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypePlan:
-		// Create the plan graph builder
-		return (&PlanGraphBuilder{
-			Config:       c.config,
-			State:        c.state,
-			Components:   c.components,
-			Schemas:      c.schemas,
-			Targets:      c.targets,
-			ForceReplace: c.forceReplace,
-			Validate:     opts.Validate,
-			skipRefresh:  c.skipRefresh,
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypePlanDestroy:
-		return (&DestroyPlanGraphBuilder{
-			Config:      c.config,
-			State:       c.state,
-			Components:  c.components,
-			Schemas:     c.schemas,
-			Targets:     c.targets,
-			Validate:    opts.Validate,
-			skipRefresh: c.skipRefresh,
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypePlanRefreshOnly:
-		// Create the plan graph builder, with skipPlanChanges set to
-		// activate the "refresh only" mode.
-		return (&PlanGraphBuilder{
-			Config:          c.config,
-			State:           c.state,
-			Components:      c.components,
-			Schemas:         c.schemas,
-			Targets:         c.targets,
-			Validate:        opts.Validate,
-			skipRefresh:     c.skipRefresh,
-			skipPlanChanges: true, // this activates "refresh only" mode.
-		}).Build(addrs.RootModuleInstance)
-
-	case GraphTypeEval:
-		return (&EvalGraphBuilder{
-			Config:     c.config,
-			State:      c.state,
-			Components: c.components,
-			Schemas:    c.schemas,
-		}).Build(addrs.RootModuleInstance)
-
-	default:
-		// Should never happen, because the above is exhaustive for all graph types.
-		panic(fmt.Errorf("unsupported graph type %s", typ))
-	}
-}
-
-// State returns a copy of the current state associated with this context.
-//
-// This cannot safely be called in parallel with any other Context function.
-func (c *Context) State() *states.State {
-	return c.state.DeepCopy()
-}
-
-// Eval produces a scope in which expressions can be evaluated for
-// the given module path.
-//
-// This method must first evaluate any ephemeral values (input variables, local
-// values, and output values) in the configuration. These ephemeral values are
-// not included in the persisted state, so they must be re-computed using other
-// values in the state before they can be properly evaluated. The updated
-// values are retained in the main state associated with the receiving context.
-//
-// This function takes no action against remote APIs but it does need access
-// to all provider and provisioner instances in order to obtain their schemas
-// for type checking.
-//
-// The result is an evaluation scope that can be used to resolve references
-// against the root module. If the returned diagnostics contains errors then
-// the returned scope may be nil. If it is not nil then it may still be used
-// to attempt expression evaluation or other analysis, but some expressions
-// may not behave as expected.
-func (c *Context) Eval(path addrs.ModuleInstance) (*lang.Scope, tfdiags.Diagnostics) {
-	// This is intended for external callers such as the "terraform console"
-	// command. Internally, we create an evaluator in c.walk before walking
-	// the graph, and create scopes in ContextGraphWalker.
-
-	var diags tfdiags.Diagnostics
-	defer c.acquireRun("eval")()
-
-	// Start with a copy of state so that we don't affect any instances
-	// that other methods may have already returned.
-	c.state = c.state.DeepCopy()
-	var walker *ContextGraphWalker
-
-	graph, graphDiags := c.Graph(GraphTypeEval, nil)
-	diags = diags.Append(graphDiags)
-	if !diags.HasErrors() {
-		var walkDiags tfdiags.Diagnostics
-		walker, walkDiags = c.walk(graph, walkEval, &graphWalkOpts{})
-		diags = diags.Append(walker.NonFatalDiagnostics)
-		diags = diags.Append(walkDiags)
-	}
-
-	if walker == nil {
-		// If we skipped walking the graph (due to errors) then we'll just
-		// use a placeholder graph walker here, which'll refer to the
-		// unmodified state.
-		walker = c.graphWalker(walkEval, &graphWalkOpts{})
-	}
-
-	// This is a bit weird since we don't normally evaluate outside of
-	// the context of a walk, but we'll "re-enter" our desired path here
-	// just to get hold of an EvalContext for it. GraphContextBuiltin
-	// caches its contexts, so we should get hold of the context that was
-	// previously used for evaluation here, unless we skipped walking.
-	evalCtx := walker.EnterPath(path)
-	return evalCtx.EvaluationScope(nil, EvalDataForNoInstanceKey), diags
-}
-
-// Apply applies the changes represented by this context and returns
-// the resulting state.
-//
-// Even in the case an error is returned, the state may be returned and will
-// potentially be partially updated.  In addition to returning the resulting
-// state, this context is updated with the latest state.
-//
-// If the state is required after an error, the caller should call
-// Context.State, rather than rely on the return value.
-//
-// TODO: Apply and Refresh should either always return a state, or rely on the
-//       State() method. Currently the helper/resource testing framework relies
-//       on the absence of a returned state to determine if Destroy can be
-//       called, so that will need to be refactored before this can be changed.
-func (c *Context) Apply() (*states.State, tfdiags.Diagnostics) {
-	defer c.acquireRun("apply")()
-
-	// Copy our own state
-	c.state = c.state.DeepCopy()
-
-	// Build the graph.
-	graph, diags := c.Graph(GraphTypeApply, nil)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// Determine the operation
-	operation := walkApply
-	if c.planMode == plans.DestroyMode {
-		operation = walkDestroy
-	}
-
-	// Walk the graph
-	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{})
-	diags = diags.Append(walker.NonFatalDiagnostics)
-	diags = diags.Append(walkDiags)
-
-	if c.planMode == plans.DestroyMode && !diags.HasErrors() {
-		// If we know we were trying to destroy objects anyway, and we
-		// completed without any errors, then we'll also prune out any
-		// leftover empty resource husks (left after all of the instances
-		// of a resource with "count" or "for_each" are destroyed) to
-		// help ensure we end up with an _actually_ empty state, assuming
-		// we weren't destroying with -target here.
-		//
-		// (This doesn't actually take into account -target, but that should
-		// be okay because it doesn't throw away anything we can't recompute
-		// on a subsequent "terraform plan" run, if the resources are still
-		// present in the configuration. However, this _will_ cause "count = 0"
-		// resources to read as unknown during the next refresh walk, which
-		// may cause some additional churn if used in a data resource or
-		// provider block, until we remove refreshing as a separate walk and
-		// just do it as part of the plan walk.)
-		c.state.PruneResourceHusks()
-	}
-
-	if len(c.targets) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Applied changes may be incomplete",
-			`The plan was created with the -target option in effect, so some changes requested in the configuration may have been ignored and the output values may not be fully updated. Run the following command to verify that no other changes are pending:
-    terraform plan
-	
-Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
-		))
-	}
-
-	// This isn't technically needed, but don't leave an old refreshed state
-	// around in case we re-use the context in internal tests.
-	c.refreshState = c.state.DeepCopy()
-
-	return c.state, diags
-}
-
-// Plan generates an execution plan for the given context, and returns the
-// refreshed state.
-//
-// The execution plan encapsulates the context and can be stored
-// in order to reinstantiate a context later for Apply.
-//
-// Plan also updates the diff of this context to be the diff generated
-// by the plan, so Apply can be called after.
-func (c *Context) Plan() (*plans.Plan, tfdiags.Diagnostics) {
-	defer c.acquireRun("plan")()
-	c.changes = plans.NewChanges()
-	var diags tfdiags.Diagnostics
-
-	if len(c.targets) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Resource targeting is in effect",
-			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
-		
-The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
-		))
-	}
-
-	var plan *plans.Plan
-	var planDiags tfdiags.Diagnostics
-	switch c.planMode {
-	case plans.NormalMode:
-		plan, planDiags = c.plan()
-	case plans.DestroyMode:
-		plan, planDiags = c.destroyPlan()
-	case plans.RefreshOnlyMode:
-		plan, planDiags = c.refreshOnlyPlan()
-	default:
-		panic(fmt.Sprintf("unsupported plan mode %s", c.planMode))
-	}
-	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	// convert the variables into the format expected for the plan
-	varVals := make(map[string]plans.DynamicValue, len(c.variables))
-	for k, iv := range c.variables {
-		// We use cty.DynamicPseudoType here so that we'll save both the
-		// value _and_ its dynamic type in the plan, so we can recover
-		// exactly the same value later.
-		dv, err := plans.NewDynamicValue(iv.Value, cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to prepare variable value for plan",
-				fmt.Sprintf("The value for variable %q could not be serialized to store in the plan: %s.", k, err),
-			))
-			continue
-		}
-		varVals[k] = dv
-	}
-
-	// insert the run-specific data from the context into the plan; variables,
-	// targets and provider SHAs.
-	plan.VariableValues = varVals
-	plan.TargetAddrs = c.targets
-	plan.ProviderSHA256s = c.providerSHA256s
-
-	return plan, diags
-}
-
-func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
-
-	graph, graphDiags := c.Graph(GraphTypePlan, nil)
-	diags = diags.Append(graphDiags)
-	if graphDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan, &graphWalkOpts{
-		MoveResults: moveResults,
-	})
-	diags = diags.Append(walker.NonFatalDiagnostics)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-	plan := &plans.Plan{
-		UIMode:            plans.NormalMode,
-		Changes:           c.changes,
-		ForceReplaceAddrs: c.forceReplace,
-		PrevRunState:      c.prevRunState.DeepCopy(),
-	}
-
-	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
-	refreshedState := c.refreshState.DeepCopy()
-	plan.PriorState = refreshedState
-
-	// replace the working state with the updated state, so that immediate calls
-	// to Apply work as expected.
-	c.state = refreshedState
-
-	// TODO: Record the move results in the plan
-	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
-
-	return plan, diags
-}
-
-func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	destroyPlan := &plans.Plan{
-		PriorState: c.state.DeepCopy(),
-	}
-	c.changes = plans.NewChanges()
-
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
-
-	// A destroy plan starts by running Refresh to read any pending data
-	// sources, and remove missing managed resources. This is required because
-	// a "destroy plan" is only creating delete changes, and is essentially a
-	// local operation.
-	//
-	// NOTE: if skipRefresh _is_ set then we'll rely on the destroy-plan walk
-	// below to upgrade the prevRunState and priorState both to the latest
-	// resource type schemas, so NodePlanDestroyableResourceInstance.Execute
-	// must coordinate with this by taking that action only when c.skipRefresh
-	// _is_ set. This coupling between the two is unfortunate but necessary
-	// to work within our current structure.
-	if !c.skipRefresh {
-		refreshPlan, refreshDiags := c.plan()
-		diags = diags.Append(refreshDiags)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-
-		// insert the refreshed state into the destroy plan result, and discard
-		// the changes recorded from the refresh.
-		destroyPlan.PriorState = refreshPlan.PriorState.DeepCopy()
-		destroyPlan.PrevRunState = refreshPlan.PrevRunState.DeepCopy()
-		c.changes = plans.NewChanges()
-	}
-
-	graph, graphDiags := c.Graph(GraphTypePlanDestroy, nil)
-	diags = diags.Append(graphDiags)
-	if graphDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlanDestroy, &graphWalkOpts{
-		MoveResults: moveResults,
-	})
-	diags = diags.Append(walker.NonFatalDiagnostics)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-
-	if c.skipRefresh {
-		// If we didn't do refreshing then both the previous run state and
-		// the prior state are the result of upgrading the previous run state,
-		// which we should've upgraded as part of the plan-destroy walk
-		// in NodePlanDestroyableResourceInstance.Execute, so they'll have the
-		// current schema but neither will reflect any out-of-band changes in
-		// the remote system.
-		destroyPlan.PrevRunState = c.prevRunState.DeepCopy()
-		destroyPlan.PriorState = c.prevRunState.DeepCopy()
-	}
-
-	destroyPlan.UIMode = plans.DestroyMode
-	destroyPlan.Changes = c.changes
-
-	// TODO: Record the move results in the plan
-	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
-
-	return destroyPlan, diags
-}
-
-func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	moveStmts, moveResults := c.prePlanFindAndApplyMoves()
-
-	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
-	diags = diags.Append(graphDiags)
-	if graphDiags.HasErrors() {
-		return nil, diags
-	}
-
-	// Do the walk
-	walker, walkDiags := c.walk(graph, walkPlan, &graphWalkOpts{
-		MoveResults: moveResults,
-	})
-	diags = diags.Append(walker.NonFatalDiagnostics)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return nil, diags
-	}
-	plan := &plans.Plan{
-		UIMode:       plans.RefreshOnlyMode,
-		Changes:      c.changes,
-		PrevRunState: c.prevRunState.DeepCopy(),
-	}
-
-	// If the graph builder and graph nodes correctly obeyed our directive
-	// to refresh only, the set of resource changes should always be empty.
-	// We'll safety-check that here so we can return a clear message about it,
-	// rather than probably just generating confusing output at the UI layer.
-	if len(plan.Changes.Resources) != 0 {
-		// Some extra context in the logs in case the user reports this message
-		// as a bug, as a starting point for debugging.
-		for _, rc := range plan.Changes.Resources {
-			if depKey := rc.DeposedKey; depKey == states.NotDeposed {
-				log.Printf("[DEBUG] Refresh-only plan includes %s change for %s", rc.Action, rc.Addr)
-			} else {
-				log.Printf("[DEBUG] Refresh-only plan includes %s change for %s deposed object %s", rc.Action, rc.Addr, depKey)
-			}
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Invalid refresh-only plan",
-			"Terraform generated planned resource changes in a refresh-only plan. This is a bug in Terraform.",
-		))
-	}
-
-	c.refreshState.SyncWrapper().RemovePlannedResourceInstanceObjects()
-
-	refreshedState := c.refreshState
-	plan.PriorState = refreshedState.DeepCopy()
-
-	// replace the working state with the updated state, so that immediate calls
-	// to Apply work as expected. DeepCopy because such an apply should not
-	// mutate
-	c.state = refreshedState
-
-	// TODO: Record the move results in the plan
-	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
-
-	return plan, diags
-}
-
-func (c *Context) prePlanFindAndApplyMoves() ([]refactoring.MoveStatement, map[addrs.UniqueKey]refactoring.MoveResult) {
-	moveStmts := refactoring.FindMoveStatements(c.config)
-	moveResults := refactoring.ApplyMoves(moveStmts, c.prevRunState)
-	if len(c.targets) > 0 {
-		for _, result := range moveResults {
-			matchesTarget := false
-			for _, targetAddr := range c.targets {
-				if targetAddr.TargetContains(result.From) {
-					matchesTarget = true
-					break
-				}
-			}
-			if !matchesTarget {
-				// TODO: Return an error stating that a targeted plan is
-				// only valid if it includes this address that was moved.
-			}
-		}
-	}
-	return moveStmts, moveResults
-}
-
-func (c *Context) postPlanValidateMoves(stmts []refactoring.MoveStatement, allInsts instances.Set) tfdiags.Diagnostics {
-	return refactoring.ValidateMoves(stmts, c.config, allInsts)
-}
-
-// Refresh goes through all the resources in the state and refreshes them
-// to their latest state. This is done by executing a plan, and retaining the
-// state while discarding the change set.
-//
-// In the case of an error, there is no state returned.
-func (c *Context) Refresh() (*states.State, tfdiags.Diagnostics) {
-	p, diags := c.Plan()
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	return p.PriorState, diags
 }
 
 // Stop stops the running task.
@@ -909,63 +269,6 @@ func (c *Context) Stop() {
 	}
 
 	log.Printf("[WARN] terraform: stop complete")
-}
-
-// Validate performs semantic validation of the configuration, and returning
-// any warnings or errors.
-//
-// Syntax and structural checks are performed by the configuration loader,
-// and so are not repeated here.
-func (c *Context) Validate() tfdiags.Diagnostics {
-	defer c.acquireRun("validate")()
-
-	var diags tfdiags.Diagnostics
-
-	// If we have errors at this point then we probably won't be able to
-	// construct a graph without producing redundant errors, so we'll halt early.
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// Build the graph so we can walk it and run Validate on nodes.
-	// We also validate the graph generated here, but this graph doesn't
-	// necessarily match the graph that Plan will generate, so we'll validate the
-	// graph again later after Planning.
-	graph, graphDiags := c.Graph(GraphTypeValidate, nil)
-	diags = diags.Append(graphDiags)
-	if graphDiags.HasErrors() {
-		return diags
-	}
-
-	// Walk
-	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{})
-	diags = diags.Append(walker.NonFatalDiagnostics)
-	diags = diags.Append(walkDiags)
-	if walkDiags.HasErrors() {
-		return diags
-	}
-
-	return diags
-}
-
-// Config returns the configuration tree associated with this context.
-func (c *Context) Config() *configs.Config {
-	return c.config
-}
-
-// Variables will return the mapping of variables that were defined
-// for this Context. If Input was called, this mapping may be different
-// than what was given.
-func (c *Context) Variables() InputValues {
-	return c.variables
-}
-
-// SetVariable sets a variable after a context has already been built.
-func (c *Context) SetVariable(k string, v cty.Value) {
-	c.variables[k] = &InputValue{
-		Value:      v,
-		SourceType: ValueFromCaller,
-	}
 }
 
 func (c *Context) acquireRun(phase string) func() {
@@ -1009,70 +312,6 @@ func (c *Context) releaseRun() {
 
 	// Unset the context
 	c.runContext = nil
-}
-
-// graphWalkOpts is an assortment of options and inputs we need when
-// constructing a graph walker.
-type graphWalkOpts struct {
-	// MoveResults is a table of the results of applying move statements prior
-	// to a plan walk. Irrelevant and totally ignored for non-plan walks.
-	MoveResults map[addrs.UniqueKey]refactoring.MoveResult
-}
-
-func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
-	log.Printf("[DEBUG] Starting graph walk: %s", operation.String())
-
-	walker := c.graphWalker(operation, opts)
-
-	// Watch for a stop so we can call the provider Stop() API.
-	watchStop, watchWait := c.watchStop(walker)
-
-	// Walk the real graph, this will block until it completes
-	diags := graph.Walk(walker)
-
-	// Close the channel so the watcher stops, and wait for it to return.
-	close(watchStop)
-	<-watchWait
-
-	return walker, diags
-}
-
-func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *ContextGraphWalker {
-	var state *states.SyncState
-	var refreshState *states.SyncState
-	var prevRunState *states.SyncState
-
-	switch operation {
-	case walkValidate:
-		// validate should not use any state
-		state = states.NewState().SyncWrapper()
-
-		// validate currently uses the plan graph, so we have to populate the
-		// refreshState and the prevRunState.
-		refreshState = states.NewState().SyncWrapper()
-		prevRunState = states.NewState().SyncWrapper()
-
-	case walkPlan, walkPlanDestroy:
-		state = c.state.SyncWrapper()
-		refreshState = c.refreshState.SyncWrapper()
-		prevRunState = c.prevRunState.SyncWrapper()
-
-	default:
-		state = c.state.SyncWrapper()
-	}
-
-	return &ContextGraphWalker{
-		Context:            c,
-		State:              state,
-		RefreshState:       refreshState,
-		PrevRunState:       prevRunState,
-		Changes:            c.changes.SyncWrapper(),
-		InstanceExpander:   instances.NewExpander(),
-		MoveResults:        opts.MoveResults,
-		Operation:          operation,
-		StopContext:        c.runContext,
-		RootVariableValues: c.variables,
-	}
 }
 
 // watchStop immediately returns a `stop` and a `wait` chan after dispatching

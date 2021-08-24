@@ -204,7 +204,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 			}
 			b.client.Variables.Create(context.TODO(), workspaceID, *v)
 
-			_, _, diags := b.Context(op)
+			_, _, diags := b.LocalRun(op)
 
 			if test.WantError != "" {
 				if !diags.HasErrors() {

@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -48,13 +49,12 @@ func TestContextEval(t *testing.T) {
 	m := testModule(t, "eval-context-basic")
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	scope, diags := ctx.Eval(addrs.RootModuleInstance)
+	scope, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{})
 	if diags.HasErrors() {
 		t.Fatalf("Eval errors: %s", diags.Err())
 	}

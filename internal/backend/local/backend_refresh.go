@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -45,7 +44,7 @@ func (b *Local) opRefresh(
 	op.PlanRefresh = true
 
 	// Get our context
-	tfCtx, _, opState, contextDiags := b.context(op)
+	lr, _, opState, contextDiags := b.localRun(op)
 	diags = diags.Append(contextDiags)
 	if contextDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -62,8 +61,9 @@ func (b *Local) opRefresh(
 		}
 	}()
 
-	// Set our state
-	runningOp.State = opState.State()
+	// If we succeed then we'll overwrite this with the resulting state below,
+	// but otherwise the resulting state is just the input state.
+	runningOp.State = lr.InputState
 	if !runningOp.State.HasResources() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
@@ -78,11 +78,11 @@ func (b *Local) opRefresh(
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		newState, refreshDiags = tfCtx.Refresh()
+		newState, refreshDiags = lr.Core.Refresh(lr.Config, lr.InputState, lr.PlanOpts)
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
 		return
 	}
 
@@ -96,7 +96,7 @@ func (b *Local) opRefresh(
 
 	err := statemgr.WriteAndPersist(opState, newState)
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("Failed to write state: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("failed to write state: %w", err))
 		op.ReportResult(runningOp, diags)
 		return
 	}

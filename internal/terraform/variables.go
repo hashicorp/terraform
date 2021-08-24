@@ -227,6 +227,19 @@ func (vv InputValues) Identical(other InputValues) bool {
 	return true
 }
 
+func mergeDefaultInputVariableValues(setVals InputValues, rootVarsConfig map[string]*configs.Variable) InputValues {
+	var variables InputValues
+
+	// Default variables from the configuration seed our map.
+	variables = DefaultVariableValues(rootVarsConfig)
+
+	// Variables provided by the caller (from CLI, environment, etc) can
+	// override the defaults.
+	variables = variables.Override(setVals)
+
+	return variables
+}
+
 // checkInputVariables ensures that variable values supplied at the UI conform
 // to their corresponding declarations in configuration.
 //
