@@ -444,7 +444,6 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 
 	var opts terraform.ContextOpts
 
-	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
 

@@ -522,7 +522,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
 			Dependencies: []addrs.ConfigResource{
-				addrs.ConfigResource{
+				{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_object",
@@ -626,7 +626,7 @@ func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b_id","test_string":"a_id"}`),
 			Dependencies: []addrs.ConfigResource{
-				addrs.ConfigResource{
+				{
 					Resource: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_object",

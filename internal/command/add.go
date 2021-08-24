@@ -99,7 +99,7 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -118,10 +118,10 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	// already exist in the config.
 	var module *configs.Module
 	if args.Addr.Module.IsRoot() {
-		module = ctx.Config().Module
+		module = lr.Config.Module
 	} else {
 		// This is weird, but users can potentially specify non-existant module names
-		cfg := ctx.Config().Root.Descendent(args.Addr.Module.Module())
+		cfg := lr.Config.Root.Descendent(args.Addr.Module.Module())
 		if cfg != nil {
 			module = cfg.Module
 		}
@@ -143,7 +143,12 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	}
 
 	// Get the schemas from the context
-	schemas := ctx.Schemas()
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Determine the correct provider config address. The provider-related
 	// variables may get updated below
@@ -154,7 +159,6 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	// If we are getting the values from state, get the AbsProviderConfig
 	// directly from state as well.
 	var resource *states.Resource
-	var moreDiags tfdiags.Diagnostics
 	if args.FromState {
 		resource, moreDiags = c.getResource(b, args.Addr.ContainingResource())
 		if moreDiags.HasErrors() {

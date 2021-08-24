@@ -150,6 +150,7 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 		log.Printf("[WARN] attaching nil state to %s", n.Addr)
 		return
 	}
+	log.Printf("[TRACE] NodeAbstractResourceInstance.AttachResourceState for %s", n.Addr)
 	n.instanceState = s.Instance(n.Addr.Resource.Key)
 	n.storedProviderConfig = s.ProviderConfig
 }
