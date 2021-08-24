@@ -371,6 +371,16 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 	var backendConfigOverride hcl.Body
 	if root.Backend != nil {
 		backendType := root.Backend.Type
+		if backendType == "cloud" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure Terraform Cloud, declare a 'cloud' block instead.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
 		bf := backendInit.Backend(backendType)
 		if bf == nil {
 			diags = diags.Append(&hcl.Diagnostic{
