@@ -221,25 +221,27 @@ func TestEncryptDecrypt(t *testing.T) {
 			if cut == nil {
 				t.Error("got unexpected nil implementation")
 			} else {
-				encOutput, err := cut.Encrypt([]byte(tc.input))
-				if comp := compareErrors(err, tc.expectedEncError); comp != "" {
-					t.Error(comp)
-				} else {
-					// log.Printf("crypted json is %s", string(encOutput))
+				roundtripTestcase(t, cut, tc)
+			}
+		}
+	}
+}
 
-					if tc.injectOutput != "" {
-						encOutput = []byte(tc.injectOutput)
-					}
+func roundtripTestcase(t *testing.T, cut StateCryptoProvider, tc roundtripTestCase) {
+	encOutput, err := cut.Encrypt([]byte(tc.input))
+	if comp := compareErrors(err, tc.expectedEncError); comp != "" {
+		t.Error(comp)
+	} else {
+		if tc.injectOutput != "" {
+			encOutput = []byte(tc.injectOutput)
+		}
 
-					decOutput, err := cut.Decrypt(encOutput)
-					if comp := compareErrors(err, tc.expectedDecError); comp != "" {
-						t.Error(comp)
-					} else {
-						if err == nil && !compareSlices(decOutput, []byte(tc.input)) {
-							t.Errorf("round trip error, got %#v; want %#v", decOutput, []byte(tc.input))
-						}
-					}
-				}
+		decOutput, err := cut.Decrypt(encOutput)
+		if comp := compareErrors(err, tc.expectedDecError); comp != "" {
+			t.Error(comp)
+		} else {
+			if err == nil && !compareSlices(decOutput, []byte(tc.input)) {
+				t.Errorf("round trip error, got %#v; want %#v", decOutput, []byte(tc.input))
 			}
 		}
 	}
