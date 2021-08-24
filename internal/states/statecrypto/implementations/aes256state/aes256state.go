@@ -55,7 +55,7 @@ func (a *AES256StateWrapper) isSyntacticallyValidEncrypted(data []byte) bool {
 	return validator.Match(data)
 }
 
-func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byte) ([]byte, error) {
+func (a *AES256StateWrapper) decodeFromEncryptedJsonWithChecks(jsonCryptedData []byte) ([]byte, error) {
 	if !a.isSyntacticallyValidEncrypted(jsonCryptedData) {
 		return []byte{}, fmt.Errorf("ciphertext contains invalid characters, possibly cut off or garbled")
 	}
@@ -70,6 +70,23 @@ func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byt
 	}
 	if n != hex.DecodedLen(len(src)) {
 		return []byte{}, fmt.Errorf("did not fully decode, only read %d characters before encountering an error", n)
+	}
+	return ciphertext, nil
+}
+
+func (a *AES256StateWrapper) encodeToEncryptedJson(ciphertext []byte) []byte {
+	prefix := []byte(`{"crypted":"`)
+	postfix := []byte(`"}`)
+	encryptedHex := make([]byte, hex.EncodedLen(len(ciphertext)))
+	_ = hex.Encode(encryptedHex, ciphertext)
+
+	return append(append(prefix, encryptedHex...), postfix...)
+}
+
+func (a *AES256StateWrapper) attemptDecryption(jsonCryptedData []byte, key []byte) ([]byte, error) {
+	ciphertext, err := a.decodeFromEncryptedJsonWithChecks(jsonCryptedData)
+	if err != nil {
+		return []byte{}, err
 	}
 
 	block, err := aes.NewCipher(key)
@@ -124,13 +141,7 @@ func (a *AES256StateWrapper) Encrypt(plaintextPayload []byte) ([]byte, error) {
 	stream := cipher.NewCFBEncrypter(block, iv)
 	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintextWithHash)
 
-	prefix := []byte(`{"crypted":"`)
-	postfix := []byte(`"}`)
-	encryptedHex := make([]byte, hex.EncodedLen(len(ciphertext)))
-	_ = hex.Encode(encryptedHex, ciphertext)
-
-	jsonCryptedData := append(append(prefix, encryptedHex...), postfix...)
-	return jsonCryptedData, nil
+	return a.encodeToEncryptedJson(ciphertext), nil
 }
 
 // Decrypt the hex-encoded contents of data, which is expected to be of the form
