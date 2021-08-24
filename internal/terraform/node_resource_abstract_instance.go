@@ -393,7 +393,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		// vs. that something being entirely excluded e.g. due to -target.
 		noop := &plans.ResourceInstanceChange{
 			Addr:        absAddr,
-			PrevRunAddr: absAddr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
+			PrevRunAddr: n.prevRunAddr(ctx),
 			DeposedKey:  deposedKey,
 			Change: plans.Change{
 				Action: plans.NoOp,
@@ -421,7 +421,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// help for this one.
 	plan := &plans.ResourceInstanceChange{
 		Addr:        absAddr,
-		PrevRunAddr: absAddr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
+		PrevRunAddr: n.prevRunAddr(ctx),
 		DeposedKey:  deposedKey,
 		Change: plans.Change{
 			Action: plans.Delete,
@@ -1066,7 +1066,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// Update our return plan
 	plan = &plans.ResourceInstanceChange{
 		Addr:         n.Addr,
-		PrevRunAddr:  n.Addr, // TODO-PrevRunAddr: If this instance was moved/renamed in this run, record its old address
+		PrevRunAddr:  n.prevRunAddr(ctx),
 		Private:      plannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
 		Change: plans.Change{
@@ -1528,7 +1528,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		// value containing unknowns from PlanDataResourceObject.
 		plannedChange := &plans.ResourceInstanceChange{
 			Addr:         n.Addr,
-			PrevRunAddr:  n.Addr, // data resources are not refactorable
+			PrevRunAddr:  n.prevRunAddr(ctx),
 			ProviderAddr: n.ResolvedProvider,
 			Change: plans.Change{
 				Action: plans.Read,
@@ -2266,4 +2266,21 @@ func (n *NodeAbstractResourceInstance) apply(
 		// Non error case, were the object was deleted
 		return nil, diags
 	}
+}
+
+func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsResourceInstance {
+	return resourceInstancePrevRunAddr(ctx, n.Addr)
+}
+
+func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
+	table := ctx.MoveResults()
+
+	result, ok := table[currentAddr.UniqueKey()]
+	if !ok {
+		// If there's no entry in the table then we'll assume it didn't move
+		// at all, and so its previous address is the same as the current one.
+		return currentAddr
+	}
+
+	return result.From
 }
