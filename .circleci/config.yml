@@ -10,7 +10,7 @@ references:
 executors:
   go:
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.16
+      - image: docker.mirror.hashicorp.services/cimg/go:1.17
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
@@ -37,6 +37,20 @@ jobs:
               git status --porcelain
               exit 1
             fi
+      - run:
+          name: verify go.mod and go.sum are correct
+          command: |
+            go mod tidy
+            git diff --quiet && exit 0
+            echo "please run 'go mod tidy' to ensure go.mod and go.sum are up to date"
+            exit 1
+      - run:
+          name: verify that our protobuf stubs are up-to-date
+          command: |
+            make protobuf
+            git diff --quiet && exit 0
+            echo "Run 'make protobuf' to ensure that the protobuf stubs are up-to-date."
+            exit 1
 
   go-test:
     executor:
@@ -93,7 +107,7 @@ jobs:
       - run:
           name: Run Go E2E Tests
           command: |
-            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./internal/command/e2etest ./tools/terraform-bundle/e2etest
+            gotestsum --format=short-verbose --junitfile $TEST_RESULTS_DIR/gotestsum-report.xml -- -p 2 -cover -coverprofile=cov_e2e.part ./internal/command/e2etest 
 
       # save coverage report parts
       - persist_to_workspace:
@@ -140,6 +154,14 @@ jobs:
       <<: *build-env
       XC_OS: "linux"
       XC_ARCH: "arm"
+
+  # build all arm64 architecture supported OS binaries
+  build-arm64:
+    <<: *build-distros
+    environment:
+      <<: *build-env
+      XC_OS: "darwin"
+      XC_ARCH: "arm64"
 
   test-docker-full:
     executor:
@@ -264,6 +286,7 @@ workflows:
     jobs:
       - build-amd64
       - build-arm
+      - build-arm64
 
   website-test:
     jobs:

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -170,7 +171,7 @@ EOT_`,
 			`toset([])`,
 		},
 		{
-			cty.StringVal("sensitive value").Mark("sensitive"),
+			cty.StringVal("sensitive value").Mark(marks.Sensitive),
 			"(sensitive)",
 		},
 	}

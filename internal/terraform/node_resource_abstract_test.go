@@ -25,7 +25,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				Name: "baz",
 			}.InModule(addrs.RootModule),
 			Want: addrs.Provider{
-				Hostname:  addrs.DefaultRegistryHost,
+				Hostname:  addrs.DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 				Type:      "null",
 			},
@@ -54,14 +54,14 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
-					Hostname:  addrs.DefaultRegistryHost,
+					Hostname:  addrs.DefaultProviderRegistryHost,
 					Namespace: "awesomecorp",
 					Type:      "happycloud",
 				},
 			},
 			// The config overrides the default behavior.
 			Want: addrs.Provider{
-				Hostname:  addrs.DefaultRegistryHost,
+				Hostname:  addrs.DefaultProviderRegistryHost,
 				Namespace: "awesomecorp",
 				Type:      "happycloud",
 			},
@@ -76,14 +76,14 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 				// Just enough configs.Resource for the Provider method. Not
 				// actually valid for general use.
 				Provider: addrs.Provider{
-					Hostname:  addrs.DefaultRegistryHost,
+					Hostname:  addrs.DefaultProviderRegistryHost,
 					Namespace: "awesomecorp",
 					Type:      "happycloud",
 				},
 			},
 			// The config overrides the default behavior.
 			Want: addrs.Provider{
-				Hostname:  addrs.DefaultRegistryHost,
+				Hostname:  addrs.DefaultProviderRegistryHost,
 				Namespace: "awesomecorp",
 				Type:      "happycloud",
 			},

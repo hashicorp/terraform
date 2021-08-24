@@ -9,8 +9,10 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -93,8 +95,10 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 	seenModules := make(map[string]bool)
 
 	for _, resource := range changes.Resources {
-		// if the resource is being deleted, skip over it.
-		if resource.Action != plans.Delete {
+		// If the resource is being deleted, skip over it.
+		// Deposed instances are always conceptually a destroy, but if they
+		// were gone during refresh then the change becomes a noop.
+		if resource.Action != plans.Delete && resource.DeposedKey == states.NotDeposed {
 			containingModule := resource.Addr.Module.String()
 			moduleResourceMap[containingModule] = append(moduleResourceMap[containingModule], resource.Addr)
 
@@ -195,6 +199,10 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 		if err != nil {
 			return nil, err
 		}
+
+		// copy the marked After values so we can use these in marshalSensitiveValues
+		markedAfter := changeV.After
+
 		// The values may be marked, but we must rely on the Sensitive flag
 		// as the decoded value is only an intermediate step in transcoding
 		// this to a json format.
@@ -209,6 +217,13 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 				resource.AttributeValues = marshalAttributeValues(knowns, schema)
 			}
 		}
+
+		s := jsonstate.SensitiveAsBool(markedAfter)
+		v, err := ctyjson.Marshal(s, s.Type())
+		if err != nil {
+			return nil, err
+		}
+		resource.SensitiveValues = v
 
 		ret = append(ret, resource)
 	}
@@ -258,4 +273,29 @@ func marshalPlanModules(
 	}
 
 	return ret, nil
+}
+
+// marshalSensitiveValues returns a map of sensitive attributes, with the value
+// set to true. It returns nil if the value is nil or if there are no sensitive
+// vals.
+func marshalSensitiveValues(value cty.Value) map[string]bool {
+	if value.RawEquals(cty.NilVal) || value.IsNull() {
+		return nil
+	}
+
+	ret := make(map[string]bool)
+
+	it := value.ElementIterator()
+	for it.Next() {
+		k, v := it.Element()
+		s := jsonstate.SensitiveAsBool(v)
+		if !s.RawEquals(cty.False) {
+			ret[k.AsString()] = true
+		}
+	}
+
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
 }

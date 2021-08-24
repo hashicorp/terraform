@@ -10,7 +10,7 @@ import (
 func TestCachedProviderHash(t *testing.T) {
 	cp := &CachedProvider{
 		Provider: addrs.NewProvider(
-			addrs.DefaultRegistryHost,
+			addrs.DefaultProviderRegistryHost,
 			"hashicorp", "null",
 		),
 		Version: getproviders.MustParseVersion("2.0.0"),
@@ -40,7 +40,7 @@ func TestCachedProviderHash(t *testing.T) {
 	// has a .exe suffix, but the darwin build (hashed above) does not.
 	cp2 := &CachedProvider{
 		Provider: addrs.NewProvider(
-			addrs.DefaultRegistryHost,
+			addrs.DefaultProviderRegistryHost,
 			"hashicorp", "null",
 		),
 		Version: getproviders.MustParseVersion("2.0.0"),
@@ -65,7 +65,7 @@ func TestExecutableFile(t *testing.T) {
 	}{
 		"linux": {
 			cp: &CachedProvider{
-				Provider:   addrs.NewProvider(addrs.DefaultRegistryHost, "hashicorp", "null"),
+				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "null"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
 				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64",
 			},
@@ -73,7 +73,7 @@ func TestExecutableFile(t *testing.T) {
 		},
 		"windows": {
 			cp: &CachedProvider{
-				Provider:   addrs.NewProvider(addrs.DefaultRegistryHost, "hashicorp", "null"),
+				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "null"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
 				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
 			},
@@ -81,7 +81,7 @@ func TestExecutableFile(t *testing.T) {
 		},
 		"missing-executable": {
 			cp: &CachedProvider{
-				Provider:   addrs.NewProvider(addrs.DefaultRegistryHost, "missing", "executable"),
+				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "missing", "executable"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
 				PackageDir: "testdata/cachedir/registry.terraform.io/missing/executable/2.0.0/linux_amd64",
 			},
@@ -89,7 +89,7 @@ func TestExecutableFile(t *testing.T) {
 		},
 		"missing-dir": {
 			cp: &CachedProvider{
-				Provider:   addrs.NewProvider(addrs.DefaultRegistryHost, "missing", "packagedir"),
+				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "missing", "packagedir"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
 				PackageDir: "testdata/cachedir/registry.terraform.io/missing/packagedir/2.0.0/linux_amd64",
 			},

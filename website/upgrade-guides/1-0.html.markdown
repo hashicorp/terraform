@@ -1,0 +1,73 @@
+---
+layout: "language"
+page_title: "Upgrading to Terraform v1.0"
+sidebar_current: "upgrade-guides-1-0"
+description: |-
+  Upgrading to Terraform v1.0
+---
+
+# Upgrading to Terraform v1.0
+
+Terraform v1.0 is an unusual release in that its primary focus is on stability,
+and it represents the culmination of several years of work in previous major
+releases to make sure that the Terraform language and internal architecture
+will be a suitable foundation for forthcoming additions that will remain
+backward-compatible.
+
+Terraform v1.0.0 intentionally has no significant changes compared to Terraform
+v0.15.5. You can consider the v1.0 series as a direct continuation of the v0.15
+series.
+
+There are no special steps to take if you are upgrading from the previous
+major release, Terraform v0.15.
+
+You can also upgrade directly from Terraform v0.14 if you wish, although please
+still consider the notes from [the Terraform v0.15 upgrade guide](0-15.html).
+If you are affected by the notes in that upgrade guide, you will still need to
+take the steps described there but you can do so as part of upgrading to v1.0,
+without any need for an intermediate step of running Terraform v0.15.
+
+If you are currently using Terraform v0.13 or earlier then we strongly
+recommend upgrading one major version at a time until you reach Terraform v0.14,
+following the upgrade guides of each of those versions, because those earlier
+versions include mechanisms to automatically detect necessary changes to your
+configuration, and in some cases also automatically edit your configuration
+to include those changes. One you reach Terraform v0.14 you can then skip
+directly from there to Terraform v1.0.
+
+The following table summarizes the above recommendations. In each case, we
+recommend using the latest patch release from each major version in order to
+complete your upgrade.
+
+| Current Version | Recommendation |
+| -- | -- |
+| v0.10 or earlier | Refer to the upgrade guides for these historical versions until you have upgraded to the latest v0.11 release, then refer to the following item. |
+| v0.11 | Use [the `terraform 0.12checklist` command](0-12.html#pre-upgrade-checklist) to detect any situations that must be addressed before upgrading to v0.12, resolve them, and then upgrade to the latest v0.12 release and follow [the v0.12 Upgrade Guide](/upgrade-guides/0-12.html). |
+| v0.12 | Upgrade to the latest Terraform v0.13 release and then follow [the v0.13 upgrade guide](0-13.html) to upgrade your configuration and state for explicit provider requirements. |
+| v0.13 | Upgrade to the latest Terraform v0.14 release and attempt a normal Terraform run. If you encounter any new errors, refer to [the v0.14 upgrade guide](0-14.html) for resolution steps. |
+| v0.14 | Upgrade directly to the latest Terraform v1.0 release and attempt a normal Terraform run. If you encounter any new errors, refer to [the v0.15 upgrade guide](0-15.html) for resolution steps. |
+| v0.15 | Upgrade directly to the latest Terraform v1.0 release and attempt a normal Terraform run. Terraform v1.0 is a continuation of the v0.15 series, and so v1.0.0 and later are directly backward-compatible with Terraform v0.15.5. |
+
+-> If you run into any problems during upgrading, please feel free to start a
+topic in [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core),
+describing the problem you've encountered in enough detail that other readers
+may be able to reproduce it and offer advice.
+
+## Remote State Compatibility
+
+In a more complex system you might have multiple separate Terraform
+configurations that collaborate together using
+[the `terraform_remote_state` data source](/docs/language/state/remote-state-data.html).
+
+In that case, it's typical for some configurations to be applied with a new
+version before others do, causing differences in the state snapshot format
+between your different configurations.
+
+If you are upgrading from Terraform v0.14 or Terraform v0.15 to Terraform v1.0
+then you can upgrade your configurations in any order, because all three of
+these versions have intercompatible state snapshot formats.
+
+Upgrading from v0.13 or earlier in a multi-configuration environment may
+require more explicit planning to ensure state snapshot compatibility. Please
+refer to the previous release upgrade guides for more information, and upgrade
+only one major version at a time until you reach Terraform v0.14.

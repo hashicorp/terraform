@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
@@ -172,6 +173,12 @@ func ResourceInstanceDrift(
 	action := plans.Update
 
 	switch {
+	case before == nil || before.Current == nil:
+		// before should never be nil, but before.Current can be if the
+		// instance was deposed. There is nothing to render for a deposed
+		// instance, since we intend to remove it.
+		return ""
+
 	case after == nil || after.Current == nil:
 		// The object was deleted
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been deleted", dispAddr)))
@@ -599,14 +606,24 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
+
 	case configschema.NestingSet:
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
 
-		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
-		allItems = append(allItems, oldItems...)
-		allItems = append(allItems, newItems...)
-		all := cty.SetVal(allItems)
+		var all cty.Value
+		if len(oldItems)+len(newItems) > 0 {
+			allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
+			allItems = append(allItems, oldItems...)
+			allItems = append(allItems, newItems...)
+
+			all = cty.SetVal(allItems)
+		} else {
+			all = cty.SetValEmpty(old.Type().ElementType())
+		}
 
 		p.buf.WriteString(" = [")
 
@@ -618,11 +635,18 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			case !val.IsKnown():
 				action = plans.Update
 				newValue = val
-			case !old.HasElement(val).True():
+			case !new.IsKnown():
+				action = plans.Delete
+				// the value must have come from the old set
+				oldValue = val
+				// Mark the new val as null, but the entire set will be
+				// displayed as "(unknown after apply)"
+				newValue = cty.NullVal(val.Type())
+			case old.IsNull() || !old.HasElement(val).True():
 				action = plans.Create
 				oldValue = cty.NullVal(val.Type())
 				newValue = val
-			case !new.HasElement(val).True():
+			case new.IsNull() || !new.HasElement(val).True():
 				action = plans.Delete
 				oldValue = val
 				newValue = cty.NullVal(val.Type())
@@ -652,9 +676,24 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
+
 	case configschema.NestingMap:
+		// For the sake of handling nested blocks, we'll treat a null map
+		// the same as an empty map since the config language doesn't
+		// distinguish these anyway.
+		old = ctyNullBlockMapAsEmpty(old)
+		new = ctyNullBlockMapAsEmpty(new)
+
 		oldItems := old.AsValueMap()
-		newItems := new.AsValueMap()
+
+		newItems := map[string]cty.Value{}
+
+		if new.IsKnown() {
+			newItems = new.AsValueMap()
+		}
 
 		allKeys := make(map[string]bool)
 		for k := range oldItems {
@@ -676,6 +715,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		for _, k := range allKeysOrder {
 			var action plans.Action
 			oldValue := oldItems[k]
+
 			newValue := newItems[k]
 			switch {
 			case oldValue == cty.NilVal:
@@ -711,6 +751,9 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.writeSkippedElems(unchanged, indent+4)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		}
 	}
 
 	return
@@ -727,7 +770,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 	// If either the old or the new value is marked,
 	// Display a special diff because it is irrelevant
 	// to list all obfuscated attributes as (sensitive)
-	if old.IsMarked() || new.IsMarked() {
+	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
 		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore, path)
 		return 0
 	}
@@ -1006,7 +1049,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
 	// Could check specifically for the sensitivity marker
-	if val.IsMarked() {
+	if val.HasMark(marks.Sensitive) {
 		p.buf.WriteString("(sensitive)")
 		return
 	}
@@ -1171,7 +1214,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// However, these specialized implementations can apply only if both
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
-		if old.IsMarked() || new.IsMarked() {
+		if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
 			p.buf.WriteString("(sensitive)")
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
@@ -1542,7 +1585,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				switch action {
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
-					if v.IsMarked() {
+					if v.HasMark(marks.Sensitive) {
 						p.buf.WriteString("(sensitive)")
 					} else {
 						p.writeValue(v, action, indent+4)
@@ -1552,7 +1595,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					newV := cty.NullVal(oldV.Type())
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
-					if oldV.IsMarked() || newV.IsMarked() {
+					if oldV.HasMark(marks.Sensitive) || newV.HasMark(marks.Sensitive) {
 						p.buf.WriteString("(sensitive)")
 					} else {
 						p.writeValueDiff(oldV, newV, indent+4, path)
@@ -1732,7 +1775,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 		}
 	}
 
-	if new.IsMarked() && !old.IsMarked() {
+	if new.HasMark(marks.Sensitive) && !old.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
@@ -1740,7 +1783,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 	}
 
 	// Note if changing this attribute will change its sensitivity
-	if old.IsMarked() && !new.IsMarked() {
+	if old.HasMark(marks.Sensitive) && !new.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
 		p.buf.WriteString(strings.Repeat(" ", indent))
@@ -1807,7 +1850,27 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	lcs := objchange.LongestCommonSubsequence(old, new)
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
+		// We first process items in the old and new sequences which are not
+		// equal to the current common sequence item.  Old items are marked as
+		// deletions, and new items are marked as additions.
+		//
+		// There is an exception for deleted & created object items, which we
+		// try to render as updates where that makes sense.
 		for oldI < len(old) && (lcsI >= len(lcs) || !old[oldI].RawEquals(lcs[lcsI])) {
+			// Render this as an object update if all of these are true:
+			//
+			// - the current old item is an object;
+			// - there's a current new item which is also an object;
+			// - either there are no common items left, or the current new item
+			//   doesn't equal the current common item.
+			//
+			// Why do we need the the last clause? If we have current items in all
+			// three sequences, and the current new item is equal to a common item,
+			// then we should just need to advance the old item list and we'll
+			// eventually find a common item matching both old and new.
+			//
+			// This combination of conditions allows us to render an object update
+			// diff instead of a combination of delete old & create new.
 			isObjectDiff := old[oldI].Type().IsObjectType() && newI < len(new) && new[newI].Type().IsObjectType() && (lcsI >= len(lcs) || !new[newI].RawEquals(lcs[lcsI]))
 			if isObjectDiff {
 				ret = append(ret, &plans.Change{
@@ -1820,6 +1883,8 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 				continue
 			}
 
+			// Otherwise, this item is not part of the common sequence, so
+			// render as a deletion.
 			ret = append(ret, &plans.Change{
 				Action: plans.Delete,
 				Before: old[oldI],
@@ -1835,6 +1900,9 @@ func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 			})
 			newI++
 		}
+
+		// When we've exhausted the old & new sequences of items which are not
+		// in the common subsequence, we render a common item and continue.
 		if lcsI < len(lcs) {
 			ret = append(ret, &plans.Change{
 				Action: plans.NoOp,

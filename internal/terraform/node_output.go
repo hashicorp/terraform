@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -281,10 +282,8 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		// statically declared as sensitive in order to dynamically return
 		// a sensitive result, to help avoid accidental exposure in the state
 		// of a sensitive value that the user doesn't want to include there.
-		_, marks := val.UnmarkDeep()
-		_, hasSensitive := marks["sensitive"]
 		if n.Addr.Module.IsRoot() {
-			if !n.Config.Sensitive && hasSensitive {
+			if !n.Config.Sensitive && marks.Contains(val, marks.Sensitive) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Output refers to sensitive values",

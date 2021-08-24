@@ -56,7 +56,7 @@ type Config struct {
 	// from, as specified in configuration.
 	//
 	// This field is meaningless for the root module, where its contents are undefined.
-	SourceAddr string
+	SourceAddr addrs.ModuleSource
 
 	// Version is the specific version that was selected for this module,
 	// based on version constraints given in configuration.

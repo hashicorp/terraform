@@ -2,9 +2,7 @@
 layout: "docs"
 page_title: "CLI Configuration"
 sidebar_current: "docs-commands-cli-config"
-description: |-
-  The general behavior of the Terraform CLI can be customized using the CLI
-  configuration file.
+description: "Learn to use the CLI configuration file to customize your CLI settings, including credentials, plugin caching, provider installation methods, etc."
 ---
 
 # CLI Configuration File (`.terraformrc` or `terraform.rc`)
@@ -13,10 +11,10 @@ The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
 [your infrastructure configuration](/docs/language/index.html).
 
-## Location
+## Locations
 
-The configuration is placed in a single file whose location depends on the
-host operating system:
+The configuration can be placed in a single file whose location depends
+on the host operating system:
 
 * On Windows, the file must be named `terraform.rc` and placed
   in the relevant user's `%APPDATA%` directory. The physical location
@@ -34,6 +32,7 @@ confirm the filename.
 
 The location of the Terraform CLI configuration file can also be specified
 using the `TF_CLI_CONFIG_FILE` [environment variable](/docs/cli/config/environment-variables.html).
+Any such file should follow the naming pattern `*.tfrc`.
 
 ## Configuration File Syntax
 
@@ -272,12 +271,13 @@ The set of directories Terraform can select as filesystem mirrors depends on
 the operating system where you are running Terraform:
 
 * **Windows:** `%APPDATA%/terraform.d/plugins` and `%APPDATA%/HashiCorp/Terraform/plugins`
-* **Mac OS X:** `$HOME/.terraform.d/plugins/`,
+* **Mac OS X:** `$HOME/.terraform.d/plugins`,
   `~/Library/Application Support/io.terraform/plugins`, and
   `/Library/Application Support/io.terraform/plugins`
-* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins/`, and
+* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins` and
+  `terraform/plugins` located within a valid
   [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-  data directories as configured, after appending `terraform/plugins`.
+  data directory such as `$XDG_DATA_HOME/terraform/plugins`.
   Without any XDG environment variables set, Terraform will use
   `~/.local/share/terraform/plugins`,
   `/usr/local/share/terraform/plugins`, and `/usr/share/terraform/plugins`.
@@ -355,6 +355,10 @@ the filesystem mirror logic when operating on the same directory.
 Terraform will never itself delete a plugin from the plugin cache once it has
 been placed there. Over time, as plugins are upgraded, the cache directory may
 grow to contain several unused versions which you must delete manually.
+
+-> **Note:** The plugin cache directory is not guaranteed to be concurrency
+safe. The provider installer's behavior in environments with multiple `terraform
+init` calls is undefined.
 
 ### Development Overrides for Provider Developers
 

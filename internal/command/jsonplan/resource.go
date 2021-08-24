@@ -1,6 +1,8 @@
 package jsonplan
 
 import (
+	"encoding/json"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -33,6 +35,10 @@ type resource struct {
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// SensitiveValues is similar to AttributeValues, but with all sensitive
+	// values replaced with true, and all non-sensitive leaf values omitted.
+	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
 }
 
 // resourceChange is a description of an individual change action that Terraform

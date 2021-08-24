@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 func TestLoadModuleCall(t *testing.T) {
@@ -26,9 +27,10 @@ func TestLoadModuleCall(t *testing.T) {
 	gotModules := file.ModuleCalls
 	wantModules := []*ModuleCall{
 		{
-			Name:       "foo",
-			SourceAddr: "./foo",
-			SourceSet:  true,
+			Name:          "foo",
+			SourceAddr:    addrs.ModuleSourceLocal("./foo"),
+			SourceAddrRaw: "./foo",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 3, Column: 12, Byte: 27},
@@ -41,9 +43,17 @@ func TestLoadModuleCall(t *testing.T) {
 			},
 		},
 		{
-			Name:       "bar",
-			SourceAddr: "hashicorp/bar/aws",
-			SourceSet:  true,
+			Name: "bar",
+			SourceAddr: addrs.ModuleSourceRegistry{
+				PackageAddr: addrs.ModuleRegistryPackage{
+					Host:         addrs.DefaultModuleRegistryHost,
+					Namespace:    "hashicorp",
+					Name:         "bar",
+					TargetSystem: "aws",
+				},
+			},
+			SourceAddrRaw: "hashicorp/bar/aws",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 8, Column: 12, Byte: 113},
@@ -56,9 +66,12 @@ func TestLoadModuleCall(t *testing.T) {
 			},
 		},
 		{
-			Name:       "baz",
-			SourceAddr: "git::https://example.com/",
-			SourceSet:  true,
+			Name: "baz",
+			SourceAddr: addrs.ModuleSourceRemote{
+				PackageAddr: addrs.ModulePackage("git::https://example.com/"),
+			},
+			SourceAddrRaw: "git::https://example.com/",
+			SourceSet:     true,
 			SourceAddrRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 15, Column: 12, Byte: 193},
@@ -129,5 +142,51 @@ func TestLoadModuleCall(t *testing.T) {
 
 	for _, problem := range deep.Equal(gotModules, wantModules) {
 		t.Error(problem)
+	}
+}
+
+func TestModuleSourceAddrEntersNewPackage(t *testing.T) {
+	tests := []struct {
+		Addr string
+		Want bool
+	}{
+		{
+			"./",
+			false,
+		},
+		{
+			"../bork",
+			false,
+		},
+		{
+			"/absolute/path",
+			true,
+		},
+		{
+			"github.com/example/foo",
+			true,
+		},
+		{
+			"hashicorp/subnets/cidr", // registry module
+			true,
+		},
+		{
+			"registry.terraform.io/hashicorp/subnets/cidr", // registry module
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.Addr, func(t *testing.T) {
+			addr, err := addrs.ParseModuleSource(test.Addr)
+			if err != nil {
+				t.Fatalf("parsing failed for %q: %s", test.Addr, err)
+			}
+
+			got := moduleSourceAddrEntersNewPackage(addr)
+			if got != test.Want {
+				t.Errorf("wrong result for %q\ngot:  %#v\nwant:  %#v", addr, got, test.Want)
+			}
+		})
 	}
 }

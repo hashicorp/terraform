@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
-description: The source argument within a module block specifies the location of the source code of a child module.
+description: "The source argument tells Terraform where to find child modules's configurations in locations like GitHub, the Terraform Registry, Bitbucket, Git, Mercurial, S3, and GCS."
 ---
 
 # Module Sources
@@ -13,6 +13,10 @@ tells Terraform where to find the source code for the desired child module.
 Terraform uses this during the module installation step of `terraform init`
 to download the source code to a directory on local disk so that it can be
 used by other Terraform commands.
+
+> **Hands-on:** Try our HashiCorp Learn tutorials to use modules from [the
+> registry](https://learn.hashicorp.com/tutorials/terraform/module-use)
+>or [locally](https://learn.hashicorp.com/tutorials/terraform/module-create).
 
 The module installer supports installation from a number of different source
 types, as listed below.
@@ -32,7 +36,7 @@ types, as listed below.
   * [S3 buckets](#s3-bucket)
 
   * [GCS buckets](#gcs-bucket)
-  
+
   * [Modules in Package Sub-directories](#modules-in-package-sub-directories)
 
 Each of these is described in the following sections. Module source addresses
@@ -73,6 +77,15 @@ Local paths are special in that they are not "installed" in the same sense
 that other sources are: the files are already present on local disk (possibly
 as a result of installing a parent module) and so can just be used directly.
 Their source code is automatically updated if the parent module is upgraded.
+
+Note that Terraform does not consider an _absolute_ filesystem path (starting
+with a slash, a drive letter, or similar) to be a local path. Instead,
+Terraform will treat that in a similar way as a remote module and copy it into
+the local module cache. An absolute path is a "package" in the sense described
+in [Modules in Package Sub-directories](#modules-in-package-sub-directories).
+We don't recommend using absolute filesystem paths to refer to Terraform
+modules, because it will tend to couple your configuration to the filesystem
+layout of a particular computer.
 
 ## Terraform Registry
 

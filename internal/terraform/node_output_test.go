@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -98,7 +99,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
-		"a": cty.StringVal("b").Mark("sensitive"),
+		"a": cty.StringVal("b").Mark(marks.Sensitive),
 	})
 	ctx.EvaluateExprResult = val
 
@@ -122,7 +123,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
 	node := &NodeApplyableOutput{Config: config, Addr: addr}
 	val := cty.MapVal(map[string]cty.Value{
-		"a": cty.StringVal("b").Mark("sensitive"),
+		"a": cty.StringVal("b").Mark(marks.Sensitive),
 	})
 	ctx.EvaluateExprResult = val
 

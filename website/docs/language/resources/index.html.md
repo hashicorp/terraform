@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "Resources Overview - Configuration Language"
+description: "Resources describe infrastructure objects in Terraform configurations. Find documentation for resource syntax, behavior, and meta-arguments."
 ---
 
 # Resources

@@ -1,214 +1,60 @@
 # terraform-bundle
 
-`terraform-bundle` is a helper program to create "bundle archives", which are
-zip files that contain both a particular version of Terraform and a number
-of provider plugins.
+`terraform-bundle` was a solution intended to help with the problem
+of distributing Terraform providers to environments where direct registry
+access is impossible or undesirable, created in response to the Terraform v0.10
+change to distribute providers separately from Terraform CLI.
 
-Normally `terraform init` will download and install the plugins necessary to
-work with a particular configuration, but sometimes Terraform is deployed in
-a network that, for one reason or another, cannot access the official
-plugin repository for automatic download.
+The Terraform v0.13 series introduced our intended longer-term solutions
+to this need:
 
-In some cases, this can be solved by installing provider plugins into the
-[user plugins directory](https://www.terraform.io/docs/configuration/providers.html#third-party-plugins).
-However, this doesn't always meet the needs of automated deployments.
+* [Alternative provider installation methods](https://www.terraform.io/docs/cli/config/config-file.html#provider-installation),
+  including the possibility of running server containing a local mirror of
+  providers you intend to use which Terraform can then use instead of the
+  origin registry.
+* [The `terraform providers mirror` command](https://www.terraform.io/docs/cli/commands/providers/mirror.html),
+  built in to Terraform v0.13.0 and later, can automatically construct a
+  suitable directory structure to serve from a local mirror based on your
+  current Terraform configuration, serving a similar (though not identical)
+  purpose than `terraform-bundle` had served.
 
-`terraform-bundle` provides an alternative, by allowing the auto-download
-process to be run out-of-band on a separate machine that _does_ have access
-to the repository. The result is a zip file that can be extracted onto the
-target system to install both the desired Terraform version and a selection
-of providers, thus avoiding the need for on-the-fly plugin installation.
+For those using Terraform CLI alone, without Terraform Cloud, we recommend
+planning to transition to the above features instead of using
+`terraform-bundle`.
 
-## Building
+## How to use `terraform-bundle`
 
-To build `terraform-bundle` from source, set up a Terraform development
-environment per [Terraform's own README](../../README.md) and then install
-this tool from within it:
+However, if you need to continue using `terraform-bundle`
+during a transitional period then you can use the version of the tool included
+in the Terraform v0.15 branch to build bundles compatible with
+Terraform v0.13.0 and later.
 
-```
-$ go install ./tools/terraform-bundle
-```
+If you have a working toolchain for the Go programming language, you can
+build a `terraform-bundle` executable as follows:
 
-This will install `terraform-bundle` in `$GOPATH/bin`, which is assumed by
-the rest of this README to be in `PATH`.
+* `git clone --single-branch --branch=v0.15 --depth=1 https://github.com/hashicorp/terraform.git`
+* `cd terraform`
+* `go build -o ../terraform-bundle ./tools/terraform-bundle`
 
-`terraform-bundle` is a repackaging of the module installation functionality
-from Terraform itself, so for best results you should build from the tag
-relating to the version of Terraform you plan to use. For example, use the v0.12
-tag to build a version of terraform-bundle compatible with Terraform v0.12*.
+After running these commands, your original working directory will have an
+executable named `terraform-bundle`, which you can then run.
 
-## Usage
 
-`terraform-bundle` uses a simple configuration file to define what should
-be included in a bundle. This is designed so that it can be checked into
-version control and used by an automated build and deploy process.
+For information
+on how to use `terraform-bundle`, see
+[the README from the v0.15 branch](https://github.com/hashicorp/terraform/blob/v0.15/tools/terraform-bundle/README.md).
 
-The configuration file format works as follows:
+You can follow a similar principle to build a `terraform-bundle` release
+compatible with Terraform v0.12 by using `--branch=v0.12` instead of
+`--branch=v0.15` in the command above. Terraform CLI versions prior to
+v0.13 have different expectations for plugin packaging due to them predating
+Terraform v0.13's introduction of automatic third-party provider installation.
 
-```hcl
-terraform {
-  # Version of Terraform to include in the bundle. An exact version number
-  # is required.
-  version = "0.10.0"
-}
+## Terraform Enterprise Users
 
-# Define which provider plugins are to be included
-providers {
-  # Include the newest "aws" provider version in the 1.0 series.
-  aws = {
-    versions = ["~> 1.0"]
-  }
+If you use Terraform Enterprise, the self-hosted distribution of
+Terraform Cloud, you can use `terraform-bundle` as described above to build
+custom Terraform packages with bundled provider plugins.
 
-  # Include both the newest 1.0 and 2.0 versions of the "google" provider.
-  # Each item in these lists allows a distinct version to be added. If the
-  # two expressions match different versions then _both_ are included in
-  # the bundle archive.
-  google = {
-    versions = ["~> 1.0", "~> 2.0"]
-  }
-
-  # Include a custom plugin to the bundle. Will search for the plugin in the
-  # plugins directory and package it with the bundle archive. Plugin must have
-  # a name of the form: terraform-provider-*, and must be built with the operating
-  # system and architecture that terraform enterprise is running, e.g. linux and amd64.
-  customplugin = {
-    versions = ["0.1"]
-    source = "myorg/customplugin"
-  }
-}
-
-```
-
-The `terraform` block defines which version of Terraform will be included
-in the bundle. An exact version is required here.
-
-The `providers` block defines zero or more providers to include in the bundle
-along with core Terraform. Each attribute is a provider name, and its value is a
-block with the list of version constraints and (optional) source. For each given
-constraint, `terraform-bundle` will find the newest available version matching
-the constraint and include it in the bundle.
-
-It is allowed to specify multiple constraints for the same provider, in which
-case multiple versions can be included in the resulting bundle. Each constraint
-string given results in a separate plugin in the bundle, unless two constraints
-resolve to the same concrete plugin.
-
-Including multiple versions of the same provider allows several configurations
-running on the same system to share an installation of the bundle and to
-choose a version using version constraints within the main Terraform
-configuration. This avoids the need to upgrade all configurations to newer
-versions in lockstep.
-
-After creating the configuration file, e.g. `terraform-bundle.hcl`, a bundle
-zip file can be produced as follows:
-
-```
-$ terraform-bundle package terraform-bundle.hcl
-```
-
-By default the bundle package will target the operating system and CPU
-architecture where the tool is being run. To override this, use the `-os` and
-`-arch` options. For example, to build a bundle for on-premises Terraform
-Enterprise:
-
-```
-$ terraform-bundle package -os=linux -arch=amd64 terraform-bundle.hcl
-```
-
-The bundle file is assigned a name that includes the core Terraform version
-number, a timestamp to the nearest hour of when the bundle was built, and the
-target OS and CPU architecture. It is recommended to refer to a bundle using
-this composite version number so that bundle archives can be easily
-distinguished from official release archives and from each other when multiple
-bundles contain the same core Terraform version.
-
-## Custom Plugins
-To include custom plugins in the bundle file, create a local directory named
-`./.plugins` and put all the plugins you want to include there, under the
-required [sub directory](#plugins-directory-layout). Optionally, you can use the
-`-plugin-dir` flag to specify a location where to find the plugins. To be
-recognized as a valid plugin, the file must have a name of the form
-`terraform-provider-<NAME>`. In addition, ensure that the plugin is built using
-the same operating system and architecture used for Terraform Enterprise.
-Typically this will be `linux` and `amd64`.
-
-### Plugins Directory Layout
-To include custom plugins in the bundle file, you must specify a "source"
-attribute in the configuration and place the plugin in the appropriate
-subdirectory under `./.plugins`. The directory must have the following layout:
-
-```
-./.plugins/$SOURCEHOST/$SOURCENAMESPACE/$NAME/$VERSION/$OS_$ARCH/
-```
-
-When installing custom plugins, you may choose any arbitrary identifier for the
-$SOURCEHOST and $SOURCENAMESPACE subdirectories. 
-
-For example, given the following configuration and a plugin built for Terraform Enterprise:
-
-```
-providers {
-  customplugin = {
-    versions = ["0.1"]
-    source = "example.com/myorg/customplugin"
-  }
-}
-```
-
-The binary must be placed in the following directory:
-
-```
-./.plugins/example.com/myorg/customplugin/0.1/linux_amd64/
-```
-
-## Provider Resolution Behavior
-
-Terraform's provider resolution behavior is such that if a given constraint
-can be resolved by any plugin already installed on the system it will use
-the newest matching plugin and not attempt automatic installation.
-
-Therefore if automatic installation is not desired, it is important to ensure
-that version constraints within Terraform configurations do not exclude all
-of the versions available from the bundle. If a suitable version cannot be
-found in the bundle, Terraform _will_ attempt to satisfy that dependency by
-automatic installation from the official repository.
-
-For full details about provider resolution, see
-[How Terraform Works: Plugin Discovery](https://www.terraform.io/docs/extend/how-terraform-works.html#discovery).
-
-The downloaded provider archives are verified using the same signature check
-that is used for auto-installed plugins, using Hashicorp's release key. At
-this time, the core Terraform archive itself is _not_ verified in this way;
-that may change in a future version of this tool.
-
-## Installing a Bundle in Terraform Enterprise
-
-If using a Terraform Enterprise instance in an "air-gapped"
-environment, this tool can produce a custom Terraform version package, which
-includes a set of provider plugins along with core Terraform.
-
-To create a suitable bundle, use the `-os` and `-arch` options as described
-above to produce a bundle targeting `linux_amd64`. You can then place this
-archive on an HTTP server reachable by the Terraform Enterprise hosts and
-install it as per
-[Administration: Managing Terraform Versions](https://www.terraform.io/docs/enterprise/admin/resources.html#managing-terraform-versions).
-
-After clicking the "Add Terraform Version" button:
-
-1. In the "Version" field, enter the generated bundle version from the bundle
-   filename, which will be of the form `N.N.N-bundleYYYYMMDDHH`.
-2. In the "URL" field, enter the URL where the generated bundle archive can be found.
-3. In the "SHA256 Checksum" field, enter the SHA256 hash of the file, which can
-   be found by running `sha256sum <FILE>` or `shasum -a256 <FILE>`.
-
-The new bundle version can then be selected as the Terraform version for
-any workspace. When selected, configurations that require only plugins
-included in the bundle will run without trying to auto-install.
-
-Note that the above does _not_ apply to Terraform Pro, or to Terraform Premium
-when not running a private install. In these packages, Terraform versions
-are managed centrally across _all_ organizations and so custom bundles are not
-supported.
-
-For more information on the available Terraform Enterprise packages, see
-[the Terraform product site](https://www.hashicorp.com/products/terraform/).
+For more information, see
+[Installing a Bundle in Terraform Enterprise](https://github.com/hashicorp/terraform/blob/v0.15/tools/terraform-bundle/README.md#installing-a-bundle-in-terraform-enterprise).

@@ -10,14 +10,15 @@ Hi there,
 
 Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
 
-If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers.
+If your issue relates to Terraform Cloud/Enterprise, please contact tf-cloud@hashicorp.support.
+If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://registry.terraform.io/browse/providers.
 
 To fix problems, we need clear reproduction cases - we need to be able to see it happen locally. A reproduction case is ideally something a Terraform Core engineer can git-clone or copy-paste and run immediately, without inventing any details or context. 
 
 * A short example can be directly copy-pasteable; longer examples should be in separate git repositories, especially if multiple files are needed
 * Please include all needed context. For example, if you figured out that an expression can cause a crash, put the expression in a variable definition or a resource
 * Set defaults on (or omit) any variables. The person reproducing it should not need to invent variable settings
-* If multiple steps are required, such as running terraform twice, consider scripting it in a simple shell script. For example, see [this case](https://github.com/danieldreier/terraform-issue-reproductions/tree/master/25719). Providing a script can be easier than explaining what changes to make to the config between runs.
+* If multiple steps are required, such as running terraform twice, consider scripting it in a simple shell script. Providing a script can be easier than explaining what changes to make to the config between runs.
 * Omit any unneeded complexity: remove variables, conditional statements, functions, modules, providers, and resources that are not needed to trigger the bug
 * When possible, use the [null resource](https://www.terraform.io/docs/providers/null/resource.html) provider rather than a real provider in order to minimize external dependencies. We know this isn't always feasible. The Terraform Core team doesn't have deep domain knowledge in every provider, or access to every cloud platform for reproduction cases.
 

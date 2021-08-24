@@ -141,6 +141,46 @@ func TestJSONView_PlannedChange(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
+func TestJSONView_ResourceDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	foo, diags := addrs.ParseModuleInstanceStr("module.foo")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
+	cs := &plans.ResourceInstanceChangeSrc{
+		Addr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Update,
+		},
+	}
+	jv.ResourceDrift(viewsjson.NewResourceInstanceChange(cs))
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "info",
+			"@message": `module.foo.test_instance.bar["boop"]: Drift detected (update)`,
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             `module.foo.test_instance.bar["boop"]`,
+					"implied_provider": "test",
+					"module":           "module.foo",
+					"resource":         `test_instance.bar["boop"]`,
+					"resource_key":     "boop",
+					"resource_name":    "bar",
+					"resource_type":    "test_instance",
+				},
+			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
 func TestJSONView_ChangeSummary(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	jv := NewJSONView(NewView(streams))
@@ -263,12 +303,16 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 	gotLines := strings.Split(output, "\n")
 
 	if len(gotLines) != len(want) {
-		t.Fatalf("unexpected number of messages. got %d, want %d", len(gotLines), len(want))
+		t.Errorf("unexpected number of messages. got %d, want %d", len(gotLines), len(want))
 	}
 
 	// Unmarshal each line and compare to the expected value
 	for i := range gotLines {
 		var gotStruct map[string]interface{}
+		if i >= len(want) {
+			t.Error("reached end of want messages too soon")
+			break
+		}
 		wantStruct := want[i]
 
 		if err := json.Unmarshal([]byte(gotLines[i]), &gotStruct); err != nil {
@@ -283,12 +327,12 @@ func testJSONViewOutputEqualsFull(t *testing.T, output string, want []map[string
 
 			// Verify the timestamp format
 			if _, err := time.Parse("2006-01-02T15:04:05.000000Z07:00", timestamp.(string)); err != nil {
-				t.Fatalf("error parsing timestamp: %s", err)
+				t.Errorf("error parsing timestamp on line %d: %s", i, err)
 			}
 		}
 
 		if !cmp.Equal(wantStruct, gotStruct) {
-			t.Fatalf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
+			t.Errorf("unexpected output on line %d:\n%s", i, cmp.Diff(wantStruct, gotStruct))
 		}
 	}
 }

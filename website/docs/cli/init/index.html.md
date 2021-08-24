@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Initializing Working Directories - Terraform CLI"
+description: "Working directories contain configurations, settings, cached plugins and modules, and state data. Learn how to initialize and manage working directories."
 ---
 
 # Initializing Working Directories

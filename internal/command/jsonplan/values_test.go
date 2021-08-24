@@ -192,7 +192,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.UnknownVal(cty.String),
 				"foozles": cty.UnknownVal(cty.String),
 			}),
-			Want: []resource{resource{
+			Want: []resource{{
 				Address:         "test_thing.example",
 				Mode:            "managed",
 				Type:            "test_thing",
@@ -201,15 +201,29 @@ func TestMarshalPlanResources(t *testing.T) {
 				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
 				AttributeValues: attributeValues{},
+				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
 		},
-		"delete": {
+		"delete with null and nil": {
 			Action: plans.Delete,
 			Before: cty.NullVal(cty.EmptyObject),
 			After:  cty.NilVal,
 			Want:   nil,
 			Err:    false,
+		},
+		"delete": {
+			Action: plans.Delete,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"woozles": cty.StringVal("foo"),
+				"foozles": cty.StringVal("bar"),
+			}),
+			After: cty.NullVal(cty.Object(map[string]cty.Type{
+				"woozles": cty.String,
+				"foozles": cty.String,
+			})),
+			Want: nil,
+			Err:  false,
 		},
 		"update without unknowns": {
 			Action: plans.Update,
@@ -221,7 +235,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.StringVal("baz"),
 				"foozles": cty.StringVal("bat"),
 			}),
-			Want: []resource{resource{
+			Want: []resource{{
 				Address:       "test_thing.example",
 				Mode:          "managed",
 				Type:          "test_thing",
@@ -230,10 +244,10 @@ func TestMarshalPlanResources(t *testing.T) {
 				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
 				AttributeValues: attributeValues{
-
 					"woozles": json.RawMessage(`"baz"`),
 					"foozles": json.RawMessage(`"bat"`),
 				},
+				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
 		},
@@ -288,6 +302,39 @@ func TestMarshalPlanResources(t *testing.T) {
 				t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
 			}
 		})
+	}
+}
+
+func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
+	dynamicNull, err := plans.NewDynamicValue(cty.NullVal(cty.DynamicPseudoType), cty.DynamicPseudoType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	testChange := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "example",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				DeposedKey: "12345678",
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.NoOp,
+					Before: dynamicNull,
+					After:  dynamicNull,
+				},
+			},
+		},
+	}
+
+	_, err = marshalPlannedValues(testChange, testSchemas())
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

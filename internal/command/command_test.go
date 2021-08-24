@@ -935,6 +935,14 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 	return addr.Config()
 }
 
+func mustProviderConfig(s string) addrs.AbsProviderConfig {
+	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
 // This map from provider type name to namespace is used by the fake registry
 // when called via LookupLegacyProvider. Providers not in this map will return
 // a 404 Not Found error.

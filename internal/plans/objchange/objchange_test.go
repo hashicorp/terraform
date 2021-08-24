@@ -1433,7 +1433,7 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"single": cty.ObjectVal(map[string]cty.Value{"bar": cty.NullVal(cty.String)}),
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{"bar": cty.String})),
 				"list":   cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"map":    cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"set":    cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{"bar": cty.String}))),
@@ -1447,7 +1447,7 @@ func TestProposedNew(t *testing.T) {
 				}))),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"single": cty.ObjectVal(map[string]cty.Value{"bar": cty.NullVal(cty.String)}),
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{"bar": cty.String})),
 				"list":   cty.NullVal(cty.List(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"map":    cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"set":    cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{"bar": cty.String}))),
@@ -1457,7 +1457,7 @@ func TestProposedNew(t *testing.T) {
 						"computed":          cty.String,
 						"optional_computed": cty.String,
 						"required":          cty.String,
-					}, []string{"optional", "optional_computed"}),
+					}, []string{"computed", "optional", "optional_computed"}),
 				}))),
 			}),
 		},

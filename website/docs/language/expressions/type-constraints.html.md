@@ -2,9 +2,7 @@
 layout: "language"
 page_title: "Type Constraints - Configuration Language"
 sidebar_current: "docs-config-types"
-description: |-
-  Terraform module authors and provider developers can use detailed type
-  constraints to validate the inputs of their modules and resources.
+description: "Learn how to use type constraints to validate user inputs to modules and resources."
 ---
 
 # Type Constraints
@@ -280,7 +278,7 @@ variable "with_optional_attribute" {
 By default, for required attributes, Terraform will return an error if the
 source value has no matching attribute. Marking an attribute as optional
 changes the behavior in that situation: Terraform will instead just silently
-insert `null` as the value of the attribute, allowing the recieving module
+insert `null` as the value of the attribute, allowing the receiving module
 to describe an appropriate fallback behavior.
 
 Because this feature is currently experimental, it requires an explicit

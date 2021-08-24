@@ -2,9 +2,8 @@
 layout: "docs"
 page_title: "Command: console"
 sidebar_current: "docs-commands-console"
-description: |-
-  The `terraform console` command provides an interactive console for
-  evaluting expressions.
+description: "The terraform console command provides an interactive console for
+  evaluating expressions."
 ---
 
 # Command: console
@@ -43,8 +42,12 @@ final command is printed unless an error occurs earlier.
 For example:
 
 ```shell
-$ echo "1 + 5" | terraform console
-6
+$ echo 'split(",", "foo,bar,baz")' | terraform console
+tolist([
+  "foo",
+  "bar",
+  "baz",
+])
 ```
 
 ## Remote State
@@ -52,3 +55,70 @@ $ echo "1 + 5" | terraform console
 If [remote state](/docs/language/state/remote.html) is used by the current backend,
 Terraform will read the state for the current workspace from the backend
 before evaluating any expressions.
+
+## Examples
+
+The `terraform console` command will read the Terraform configuration in the
+current working directory and the Terraform state file from the configured
+backend so that interpolations can be tested against both the values in the
+configuration and the state file.
+
+With the following `main.tf`:
+
+```hcl
+variable "apps" {
+  type = map(any)
+  default = {
+    "foo" = {
+      "region" = "us-east-1",
+    },
+    "bar" = {
+      "region" = "eu-west-1",
+    },
+    "baz" = {
+      "region" = "ap-south-1",
+    },
+  }
+}
+
+resource "random_pet" "example" {
+  for_each = var.apps
+}
+```
+
+Executing `terraform console` will drop you into an interactive shell where you
+can test interpolations to:
+
+Print a value from a map:
+
+```
+> var.apps.foo
+{
+  "region" = "us-east-1"
+}
+```
+
+Filter a map based on a specific value:
+
+```
+> { for key, value in var.apps : key => value if value.region == "us-east-1" }
+{
+  "foo" = {
+    "region" = "us-east-1"
+  }
+}
+```
+
+Check if certain values may not be known until apply:
+
+```
+> random_pet.example
+(known after apply)
+```
+
+Test various functions:
+
+```
+> cidrnetmask("172.16.0.0/12")
+"255.240.0.0"
+```

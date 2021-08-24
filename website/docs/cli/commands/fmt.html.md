@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: fmt"
 sidebar_current: "docs-commands-fmt"
-description: |-
-  The `terraform fmt` command is used to rewrite Terraform configuration files to a canonical format and style.
+description: "The terraform fmt command rewrites configuration files to a canonical format and style."
 ---
 
 # Command: fmt
@@ -34,7 +33,7 @@ Formatting decisions are always subjective and so you might disagree with the
 decisions that `terraform fmt` makes. This command is intentionally opinionated
 and has no customization options because its primary goal is to encourage
 consistency of style between different Terraform codebases, even though the
-chosen style can never be be everyone's favorite.
+chosen style can never be everyone's favorite.
 
 We recommend that you follow the style conventions applied by `terraform fmt`
 when writing Terraform modules, but if you find the results particularly

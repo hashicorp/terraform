@@ -1,11 +1,15 @@
 ---
 layout: "language"
 page_title: "Providers - Configuration Language"
+description: "An overview of how to install and use providers, Terraform plugins that interact with services, cloud providers, and other APIs."
 ---
 
 # Providers
 
-Terraform relies on plugins called "providers" to interact with remote systems.
+> **Hands-on:** Try the [Perform CRUD Operations with Providers](https://learn.hashicorp.com/tutorials/terraform/provider-use?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+
+Terraform relies on plugins called "providers" to interact with cloud providers,
+SaaS providers, and other APIs.
 
 Terraform configurations must declare which providers they require so that
 Terraform can install and use them. Additionally, some providers require
@@ -32,6 +36,21 @@ has its own release cadence and version numbers.
 The [Terraform Registry](https://registry.terraform.io/browse/providers)
 is the main directory of publicly available Terraform providers, and hosts
 providers for most major infrastructure platforms.
+
+## Provider Documentation
+
+Each provider has its own documentation, describing its resource
+types and their arguments.
+
+The [Terraform Registry](https://registry.terraform.io/browse/providers)
+includes documentation for a wide range of providers developed by HashiCorp, third-party vendors, and our Terraform community. Use the
+"Documentation" link in a provider's header to browse its documentation.
+
+Provider documentation in the Registry is versioned; you can use the version
+menu in the header to change which version you're viewing.
+
+For details about writing, generating, and previewing provider documentation,
+see the [provider publishing documentation](/docs/registry/providers/docs.html).
 
 ## How to Use Providers
 
@@ -117,6 +136,6 @@ develops and maintains a given provider.
 Providers are written in Go, using the Terraform Plugin SDK. For more
 information on developing providers, see:
 
-- The [Extending Terraform](/docs/extend/index.html) documentation
+- The [Plugin Development](/docs/extend/index.html) documentation
 - The [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
   collection on HashiCorp Learn

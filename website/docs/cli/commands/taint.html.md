@@ -15,7 +15,7 @@ object as "tainted" in the Terraform state, in which case Terraform will
 propose to replace it in the next plan you create.
 
 ~> *Warning:* This command is deprecated, because there are better alternatives
-available in Terraform v1.0 and later. See below for more details.
+available in Terraform v0.15.2 and later. See below for more details.
 
 If your intent is to force replacement of a particular object even though
 there are no configuration changes that would require it, we recommend instead
@@ -34,8 +34,8 @@ tainted object before you've had a chance to review the consequences of that
 change yourself.
 
 The `-replace=...` option to `terraform apply` is only available from
-Terraform v1.0 onwards, so if you are using an earlier version you will need to
-use `terraform taint` to force object replacement, while considering the
+Terraform v0.15.2 onwards, so if you are using an earlier version you will need
+to use `terraform taint` to force object replacement, while considering the
 caveats described above.
 
 ## Usage

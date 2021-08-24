@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "planned_values": {
         "root_module": {
             "resources": [
@@ -12,7 +12,8 @@
                     "schema_version": 0,
                     "values": {
                         "ami": "force-replace"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
@@ -47,7 +48,7 @@
         }
     ],
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "values": {
             "root_module": {
                 "resources": [
@@ -61,7 +62,8 @@
                         "values": {
                             "ami": "bar",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     }
                 ]
             }

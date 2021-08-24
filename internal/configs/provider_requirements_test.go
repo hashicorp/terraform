@@ -94,7 +94,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 					"my-test": {
 						Name:        "my-test",
 						Source:      "mycloud/test",
-						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
+						Type:        addrs.NewProvider(addrs.DefaultProviderRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
 						DeclRange:   mockRange,
 					},
@@ -133,7 +133,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 					"my-test": {
 						Name:        "my-test",
 						Source:      "mycloud/test",
-						Type:        addrs.NewProvider(addrs.DefaultRegistryHost, "mycloud", "test"),
+						Type:        addrs.NewProvider(addrs.DefaultProviderRegistryHost, "mycloud", "test"),
 						Requirement: testVC("2.0.0"),
 						DeclRange:   mockRange,
 					},

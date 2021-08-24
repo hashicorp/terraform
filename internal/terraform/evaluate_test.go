@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -110,7 +111,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 		VariableValues: map[string]map[string]cty.Value{
 			"": {
 				"some_var":       cty.StringVal("bar"),
-				"some_other_var": cty.StringVal("boop").Mark("sensitive"),
+				"some_other_var": cty.StringVal("boop").Mark(marks.Sensitive),
 			},
 		},
 		VariableValuesLock: &sync.Mutex{},
@@ -121,7 +122,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 	}
 	scope := evaluator.Scope(data, nil)
 
-	want := cty.StringVal("bar").Mark("sensitive")
+	want := cty.StringVal("bar").Mark(marks.Sensitive)
 	got, diags := scope.Data.GetInputVariable(addrs.InputVariable{
 		Name: "some_var",
 	}, tfdiags.SourceRange{})
@@ -133,7 +134,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 		t.Errorf("wrong result %#v; want %#v", got, want)
 	}
 
-	want = cty.StringVal("boop").Mark("sensitive")
+	want = cty.StringVal("boop").Mark(marks.Sensitive)
 	got, diags = scope.Data.GetInputVariable(addrs.InputVariable{
 		Name: "some_other_var",
 	}, tfdiags.SourceRange{})
@@ -173,7 +174,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			"id": cty.StringVal("foo"),
 		}),
 		Provider: addrs.Provider{
-			Hostname:  addrs.DefaultRegistryHost,
+			Hostname:  addrs.DefaultProviderRegistryHost,
 			Namespace: "hashicorp",
 			Type:      "test",
 		},
@@ -276,30 +277,30 @@ func TestEvaluatorGetResource(t *testing.T) {
 		"id": cty.StringVal("foo"),
 		"nesting_list": cty.ListVal([]cty.Value{
 			cty.ObjectVal(map[string]cty.Value{
-				"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+				"sensitive_value": cty.StringVal("abc").Mark(marks.Sensitive),
 				"value":           cty.NullVal(cty.String),
 			}),
 		}),
 		"nesting_map": cty.MapVal(map[string]cty.Value{
-			"foo": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("x").Mark("sensitive")}),
+			"foo": cty.ObjectVal(map[string]cty.Value{"foo": cty.StringVal("x").Mark(marks.Sensitive)}),
 		}),
 		"nesting_nesting": cty.ObjectVal(map[string]cty.Value{
 			"nesting_list": cty.ListVal([]cty.Value{
 				cty.ObjectVal(map[string]cty.Value{
-					"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+					"sensitive_value": cty.StringVal("abc").Mark(marks.Sensitive),
 					"value":           cty.NullVal(cty.String),
 				}),
 			}),
 		}),
 		"nesting_set": cty.SetVal([]cty.Value{
 			cty.ObjectVal(map[string]cty.Value{
-				"baz": cty.StringVal("abc").Mark("sensitive"),
+				"baz": cty.StringVal("abc").Mark(marks.Sensitive),
 			}),
 		}),
 		"nesting_single": cty.ObjectVal(map[string]cty.Value{
-			"boop": cty.StringVal("abc").Mark("sensitive"),
+			"boop": cty.StringVal("abc").Mark(marks.Sensitive),
 		}),
-		"value": cty.StringVal("hello").Mark("sensitive"),
+		"value": cty.StringVal("hello").Mark(marks.Sensitive),
 	})
 
 	addr := addrs.Resource{
@@ -354,7 +355,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			// Provide an After value that contains a marked value
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id":              cty.StringVal("foo"),
-				"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
+				"to_mark_val":     cty.StringVal("pizza").Mark(marks.Sensitive),
 				"sensitive_value": cty.StringVal("abc"),
 				"sensitive_collection": cty.MapVal(map[string]cty.Value{
 					"boop": cty.StringVal("beep"),
@@ -420,7 +421,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 						Type: "test_resource",
 						Name: "foo",
 						Provider: addrs.Provider{
-							Hostname:  addrs.DefaultRegistryHost,
+							Hostname:  addrs.DefaultProviderRegistryHost,
 							Namespace: "hashicorp",
 							Type:      "test",
 						},
@@ -439,11 +440,11 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id":              cty.StringVal("foo"),
-		"to_mark_val":     cty.StringVal("pizza").Mark("sensitive"),
-		"sensitive_value": cty.StringVal("abc").Mark("sensitive"),
+		"to_mark_val":     cty.StringVal("pizza").Mark(marks.Sensitive),
+		"sensitive_value": cty.StringVal("abc").Mark(marks.Sensitive),
 		"sensitive_collection": cty.MapVal(map[string]cty.Value{
 			"boop": cty.StringVal("beep"),
-		}).Mark("sensitive"),
+		}).Mark(marks.Sensitive),
 	})
 
 	got, diags := scope.Data.GetResource(addr, tfdiags.SourceRange{})
@@ -471,7 +472,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		Evaluator: evaluator,
 	}
 	scope := evaluator.Scope(data, nil)
-	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark("sensitive")})
+	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark(marks.Sensitive)})
 	got, diags := scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
 	}, tfdiags.SourceRange{})
@@ -499,7 +500,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		Evaluator: evaluator,
 	}
 	scope = evaluator.Scope(data, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark("sensitive")})
+	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
 	}, tfdiags.SourceRange{})
@@ -517,7 +518,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		Evaluator: evaluator,
 	}
 	scope = evaluator.Scope(data, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark("sensitive")})
+	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
 	}, tfdiags.SourceRange{})

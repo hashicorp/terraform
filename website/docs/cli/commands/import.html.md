@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: import"
 sidebar_current: "docs-commands-import"
-description: |-
-  The `terraform import` command is used to import existing resources into Terraform.
+description: "The terraform import command brings existing resources into Terraform state."
 ---
 
 # Command: import

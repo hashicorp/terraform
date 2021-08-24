@@ -55,10 +55,12 @@ type Config struct {
 	CallRange hcl.Range
 
 	// SourceAddr is the source address that the referenced module was requested
-	// from, as specified in configuration.
+	// from, as specified in configuration. SourceAddrRaw is the same
+	// information, but as the raw string the user originally entered.
 	//
-	// This field is meaningless for the root module, where its contents are undefined.
-	SourceAddr string
+	// These fields are meaningless for the root module, where their contents are undefined.
+	SourceAddr    addrs.ModuleSource
+	SourceAddrRaw string
 
 	// SourceAddrRange is the location in the configuration source where the
 	// SourceAddr value was set, for use in diagnostic messages.
@@ -82,7 +84,7 @@ type Config struct {
 // determine which modules require which providers.
 type ModuleRequirements struct {
 	Name         string
-	SourceAddr   string
+	SourceAddr   addrs.ModuleSource
 	SourceDir    string
 	Requirements getproviders.Requirements
 	Children     map[string]*ModuleRequirements
@@ -173,6 +175,23 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 		}
 	}
 	return current
+}
+
+// EntersNewPackage returns true if this call is to an external module, either
+// directly via a remote source address or indirectly via a registry source
+// address.
+//
+// Other behaviors in Terraform may treat package crossings as a special
+// situation, because that indicates that the caller and callee can change
+// independently of one another and thus we should disallow using any features
+// where the caller assumes anything about the callee other than its input
+// variables, required provider configurations, and output values.
+//
+// It's not meaningful to ask if the Config representing the root module enters
+// a new package because the root module is always outside of all module
+// packages, and so this function will arbitrarily return false in that case.
+func (c *Config) EntersNewPackage() bool {
+	return moduleSourceAddrEntersNewPackage(c.SourceAddr)
 }
 
 // ProviderRequirements searches the full tree of modules under the receiver

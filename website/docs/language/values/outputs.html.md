@@ -8,12 +8,15 @@ description: |-
 
 # Output Values
 
+Output values make information about your infrastructure available on the
+command line, and can expose information for other Terraform configurations to
+use. Output values are similar to return values in programming languages.
+
 > **Hands-on:** Try the [Output Data From
-Terraform](https://learn.hashicorp.com/tutorials/terraform/outputs?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+Terraform](https://learn.hashicorp.com/tutorials/terraform/outputs)
 tutorial on HashiCorp Learn.
 
-Output values are like the return values of a Terraform module, and have several
-uses:
+Output values have several uses:
 
 - A child module can use outputs to expose a subset of its resource attributes
   to a parent module.

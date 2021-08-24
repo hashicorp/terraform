@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/mitchellh/colorstring"
@@ -2634,6 +2635,56 @@ func TestResourceChange_nestedList(t *testing.T) {
     }
 `,
 		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingList),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          ~ {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        ] -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
@@ -2862,12 +2913,201 @@ func TestResourceChange_nestedSet(t *testing.T) {
     }
 `,
 		},
+		"in-place update - empty nested sets": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = [
+        ]
+        id    = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"in-place update - null insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = [
+          + {
+            + mount_point = "/var/diska"
+            + size        = "50GB"
+          },
+        ]
+        id    = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + new_field   = "new_value"
+          + volume_type = "gp2"
+        }
+      - root_block_device {
+          - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          - {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        ] -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
 
 func TestResourceChange_nestedMap(t *testing.T) {
 	testCases := map[string]testCase{
+		"creation from null": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.NullVal(cty.String),
+				"ami": cty.NullVal(cty.String),
+				"disks": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				}))),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      + ami   = "ami-AFTER"
+      + disks = {
+          + "disk_a" = {
+            + mount_point = "/var/diska"
+          },
+        }
+      + id    = "i-02ae66f368e8518a9"
+
+      + root_block_device "a" {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
 		"in-place update - creation": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
@@ -3151,6 +3391,115 @@ func TestResourceChange_nestedMap(t *testing.T) {
     }
 `,
 		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = {
+          - "disk_a" = {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        } -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
+		"in-place update - insertion sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path: cty.Path{cty.GetAttrStep{Name: "disks"},
+						cty.IndexStep{Key: cty.StringVal("disk_a")},
+						cty.GetAttrStep{Name: "mount_point"},
+					},
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = {
+          + "disk_a" = {
+            + mount_point = (sensitive)
+            + size        = "50GB"
+          },
+        }
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
@@ -3193,28 +3542,28 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			AfterValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					// Nested blocks/sets will mark the whole set/block as sensitive
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_list"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3338,35 +3687,35 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3485,23 +3834,23 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			AfterValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "tags"}, cty.IndexStep{Key: cty.StringVal("address")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_single"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3598,45 +3947,45 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			AfterValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(0)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_map"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3745,35 +4094,35 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "special"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "some_number"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(2)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3885,27 +4234,27 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "ami"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "list_field"}, cty.IndexStep{Key: cty.NumberIntVal(1)}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_key"}, cty.IndexStep{Key: cty.StringVal("dinner")}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "map_whole"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.Path{cty.GetAttrStep{Name: "nested_block_set"}},
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			RequiredReplace: cty.NewPathSet(),
@@ -3974,21 +4323,21 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			BeforeValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			AfterValMarks: []cty.PathValueMarks{
 				{
 					Path:  cty.GetAttrPath("ami"),
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 				{
 					Path:  cty.GetAttrPath("nested_block_set"),
-					Marks: cty.NewValueMarks("sensitive"),
+					Marks: cty.NewValueMarks(marks.Sensitive),
 				},
 			},
 			Schema: &configschema.Block{

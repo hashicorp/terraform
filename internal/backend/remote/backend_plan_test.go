@@ -482,10 +482,6 @@ func TestRemote_planWithTarget(t *testing.T) {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
 			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
 		}
-
-		if !strings.Contains(run.Message, "using -target") {
-			t.Errorf("incorrect Message on the created run: %s", run.Message)
-		}
 	}
 }
 

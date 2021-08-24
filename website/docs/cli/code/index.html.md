@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Writing and Modifying Code - Terraform CLI"
+description: "Learn commands that help validate, format, and upgrade code written in the Terraform Configuration Language."
 ---
 
 # Writing and Modifying Terraform Code

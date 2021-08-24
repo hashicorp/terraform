@@ -95,6 +95,10 @@ func (m Module) TargetContains(other Targetable) bool {
 	}
 }
 
+func (m Module) AddrType() TargetableAddrType {
+	return ModuleAddrType
+}
+
 // Child returns the address of a child call in the receiver, identified by the
 // given name.
 func (m Module) Child(name string) Module {
@@ -145,4 +149,8 @@ func (m Module) Ancestors() []Module {
 		ret = append(ret, m[:i])
 	}
 	return ret
+}
+
+func (m Module) configMoveableSigil() {
+	// ModuleInstance is moveable
 }

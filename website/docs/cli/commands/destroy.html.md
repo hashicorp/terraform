@@ -2,9 +2,7 @@
 layout: "docs"
 page_title: "Command: destroy"
 sidebar_current: "docs-commands-destroy"
-description: |-
-  The `terraform destroy` command is a convenient way to destroy all objects
-  managed by a particular Terraform configuration.
+description: "The terraform destroy command destroys all objects managed by a Terraform configuration."
 ---
 
 # Command: destroy
@@ -44,5 +42,5 @@ This will run [`terraform plan`](./plan.html) in _destroy_ mode, showing
 you the proposed destroy changes without executing them.
 
 -> **Note:** The `-destroy` option to `terraform apply` exists only in
-Terraform v1.0 and later. For earlier versions, you _must_ use
+Terraform v0.15.2 and later. For earlier versions, you _must_ use
 `terraform destroy` to get the effect of `terraform apply -destroy`.

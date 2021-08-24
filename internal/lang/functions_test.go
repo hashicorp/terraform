@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -715,7 +716,7 @@ func TestFunctions(t *testing.T) {
 		"sensitive": {
 			{
 				`sensitive(1)`,
-				cty.NumberIntVal(1).Mark("sensitive"),
+				cty.NumberIntVal(1).Mark(marks.Sensitive),
 			},
 		},
 

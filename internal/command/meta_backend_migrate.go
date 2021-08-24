@@ -57,7 +57,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 			errMigrateLoadStates), opts.OneType, err)
 	}
 
-	_, err = opts.Two.Workspaces()
+	twoWorkspaces, err := opts.Two.Workspaces()
 	if err == backend.ErrWorkspacesNotSupported {
 		twoSingle = true
 		err = nil
@@ -77,12 +77,14 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// as we are migrating away and will not break a remote workspace.
 	m.ignoreRemoteBackendVersionConflict(opts.One)
 
-	// Check the remote Terraform version for the state destination backend. If
-	// it's a Terraform Cloud remote backend, we want to ensure that we don't
-	// break the workspace by uploading an incompatible state file.
-	diags := m.remoteBackendVersionCheck(opts.Two, opts.twoEnv)
-	if diags.HasErrors() {
-		return diags.Err()
+	for _, twoWorkspace := range twoWorkspaces {
+		// Check the remote Terraform version for the state destination backend. If
+		// it's a Terraform Cloud remote backend, we want to ensure that we don't
+		// break the workspace by uploading an incompatible state file.
+		diags := m.remoteBackendVersionCheck(opts.Two, twoWorkspace)
+		if diags.HasErrors() {
+			return diags.Err()
+		}
 	}
 
 	// Determine migration behavior based on whether the source/destination
@@ -144,19 +146,23 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
 
-	// Ask the user if they want to migrate their existing remote state
-	migrate, err := m.confirm(&terraform.InputOpts{
-		Id: "backend-migrate-multistate-to-multistate",
-		Query: fmt.Sprintf(
-			"Do you want to migrate all workspaces to %q?",
-			opts.TwoType),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateMultiToMulti),
-			opts.OneType, opts.TwoType),
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"Error asking for state migration action: %s", err)
+	migrate := opts.force
+	if !migrate {
+		var err error
+		// Ask the user if they want to migrate their existing remote state
+		migrate, err = m.confirm(&terraform.InputOpts{
+			Id: "backend-migrate-multistate-to-multistate",
+			Query: fmt.Sprintf(
+				"Do you want to migrate all workspaces to %q?",
+				opts.TwoType),
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToMulti),
+				opts.OneType, opts.TwoType),
+		})
+		if err != nil {
+			return fmt.Errorf(
+				"Error asking for state migration action: %s", err)
+		}
 	}
 	if !migrate {
 		return fmt.Errorf("Migration aborted by user.")

@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Recovering from State Disasters - Terraform CLI"
+descriptin: "Commands that allow you to restore state backups and override Terraform state protections."
 ---
 
 # Recovering from State Disasters

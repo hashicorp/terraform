@@ -1,24 +1,26 @@
 ---
 layout: "language"
 page_title: "Provider Requirements - Configuration Language"
+description: "Providers are plugins that allow Terraform to interact with services, cloud providers, and other APIs. Learn how to declare providers in a configuration."
 ---
 
 # Provider Requirements
 
+Terraform relies on plugins called "providers" to interact with remote systems.
+Terraform configurations must declare which providers they require, so that
+Terraform can install and use them. This page documents how to declare providers
+so Terraform can install them.
+
+> **Hands-on:** Try the [Perform CRUD Operations with Providers](https://learn.hashicorp.com/tutorials/terraform/provider-use) tutorial on HashiCorp Learn.
+
+Additionally, some providers require configuration (like endpoint URLs or cloud
+regions) before they can be used. The [Provider
+Configuration](/docs/language/providers/configuration.html) page documents how
+to configure settings for providers.
+
 -> **Note:** This page is about a feature of Terraform 0.13 and later; it also
 describes how to use the more limited version of that feature that was available
 in Terraform 0.12.
-
-Terraform relies on plugins called "providers" to interact with remote systems.
-
-Terraform configurations must declare which providers they require, so that
-Terraform can install and use them. Additionally, some providers require
-configuration (like endpoint URLs or cloud regions) before they can be used.
-
-- This page documents how to declare providers so Terraform can install them.
-
-- The [Provider Configuration](/docs/language/providers/configuration.html) page documents how to configure
-  settings for providers.
 
 ## Requiring Providers
 
@@ -223,7 +225,7 @@ and commit it to version control along with your configuration. If a lock file
 is present, Terraform Cloud, CLI, and Enterprise will all obey it when
 installing providers.
 
-> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](https://learn.hashicorp.com/tutorials/terraform/provider-versioning) tutorial on HashiCorp Learn.
 
 ### Best Practices for Provider Versions
 
@@ -289,7 +291,7 @@ compatible with Terraform v0.11 or later and should never be declared in a
 ## In-house Providers
 
 Anyone can develop and distribute their own Terraform providers. See
-the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+the [Call APIs with Terraform Providers](https://learn.hashicorp.com/collections/terraform/providers)
 collection on HashiCorp Learn for more
 about provider development.
 

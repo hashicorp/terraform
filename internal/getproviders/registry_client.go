@@ -55,7 +55,7 @@ func init() {
 	configureRequestTimeout()
 }
 
-var SupportedPluginProtocols = MustParseVersionConstraints("~> 5")
+var SupportedPluginProtocols = MustParseVersionConstraints(">= 5, <7")
 
 // registryClient is a client for the provider registry protocol that is
 // specialized only for the needs of this package. It's not intended as a
@@ -478,7 +478,7 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 	// both response and error.
 	var errMsg string
 	if resp != nil {
-		errMsg = fmt.Sprintf(": %d", resp.StatusCode)
+		errMsg = fmt.Sprintf(": %s returned from %s", resp.Status, resp.Request.URL)
 	} else if err != nil {
 		errMsg = fmt.Sprintf(": %s", err)
 	}

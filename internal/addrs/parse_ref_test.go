@@ -294,7 +294,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo.bar`,
 			&Reference{
-				Subject: AbsModuleCallOutput{
+				Subject: ModuleCallInstanceOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -312,7 +312,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo.bar.baz`,
 			&Reference{
-				Subject: AbsModuleCallOutput{
+				Subject: ModuleCallInstanceOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -355,7 +355,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo["baz"].bar`,
 			&Reference{
-				Subject: AbsModuleCallOutput{
+				Subject: ModuleCallInstanceOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",
@@ -374,7 +374,7 @@ func TestParseRef(t *testing.T) {
 		{
 			`module.foo["baz"].bar.boop`,
 			&Reference{
-				Subject: AbsModuleCallOutput{
+				Subject: ModuleCallInstanceOutput{
 					Call: ModuleCallInstance{
 						Call: ModuleCall{
 							Name: "foo",

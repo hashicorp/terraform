@@ -8,6 +8,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcltest"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -54,11 +55,11 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 		},
 		"map containing sensitive values, but strings are literal": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
-				"a": cty.BoolVal(true).Mark("sensitive"),
+				"a": cty.BoolVal(true).Mark(marks.Sensitive),
 				"b": cty.BoolVal(false),
 			})),
 			map[string]cty.Value{
-				"a": cty.BoolVal(true).Mark("sensitive"),
+				"a": cty.BoolVal(true).Mark(marks.Sensitive),
 				"b": cty.BoolVal(false),
 			},
 		},
@@ -124,7 +125,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
 				"a": cty.BoolVal(true),
 				"b": cty.BoolVal(false),
-			}).Mark("sensitive")),
+			}).Mark(marks.Sensitive)),
 			"Invalid for_each argument",
 			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
 		},
@@ -149,7 +150,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"depends on resource attributes that cannot be determined until apply",
 		},
 		"set containing marked values": {
-			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark("sensitive"), cty.StringVal("boop")})),
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark(marks.Sensitive), cty.StringVal("boop")})),
 			"Invalid for_each argument",
 			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
 		},

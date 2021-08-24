@@ -2,22 +2,22 @@
 layout: "language"
 page_title: "Provider Configuration - Configuration Language"
 sidebar_current: "docs-config-providers"
-description: |-
-  Providers are responsible in Terraform for managing the lifecycle of a resource: create, read, update, delete.
+description: "Learn how to set up providers, including how to use the alias meta-argument to specify multiple configurations for a single provider."
 ---
 
 # Provider Configuration
 
-Terraform relies on plugins called "providers" to interact with remote systems.
+Providers allow Terraform to interact with cloud providers, SaaS providers, and
+other APIs.
 
-Terraform configurations must declare which providers they require, so that
-Terraform can install and use them. Additionally, some providers require
-configuration (like endpoint URLs or cloud regions) before they can be used.
+Some providers require you to configure them with endpoint URLs, cloud regions,
+or other settings before Terraform can use them. This page documents how to
+configure settings for providers.
 
-- This page documents how to configure settings for providers.
-
-- The [Provider Requirements](/docs/language/providers/requirements.html) page documents how
-  to declare providers so Terraform can install them.
+Additionally, all Terraform configurations must declare which providers they
+require so that Terraform can install and use them. The
+[Provider Requirements](/docs/language/providers/requirements.html)
+page documents how to declare providers so Terraform can install them.
 
 ## Provider Configuration
 
@@ -182,7 +182,7 @@ from their parents.
 
 <a id="provider-versions"></a>
 
-## `version`: An Older Way to Manage Provider Versions
+## `version` (Deprecated)
 
 [inpage-versions]: #provider-versions
 
@@ -193,11 +193,6 @@ constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
 **The `version` argument in provider configurations is deprecated.**
-In Terraform 0.13 and later, version constraints should always be declared in
+In Terraform 0.13 and later, always declare provider version constraints in
 [the `required_providers` block](/docs/language/providers/requirements.html). The `version`
 argument will be removed in a future version of Terraform.
-
--> **Note:** The `version` meta-argument made sense before Terraform 0.13, since
-Terraform could only install providers that were distributed by HashiCorp. Now
-that Terraform can install providers from multiple sources, it makes more sense
-to keep version constraints and provider source addresses together.

@@ -1,6 +1,8 @@
 ---
 layout: "language"
 page_title: "Overview - Configuration Language"
+description: "You can use the Terraform language to write configuration files that tell Terraform how to manage a collection of infrastructure."
+
 ---
 
 # Terraform Language Documentation
@@ -8,13 +10,14 @@ page_title: "Overview - Configuration Language"
 This is the documentation for Terraform's configuration language. It is relevant
 to users of [Terraform CLI](/docs/cli/index.html),
 [Terraform Cloud](/docs/cloud/index.html), and
-[Terraform Enterprise](/docs/enterprise/index.html).
+[Terraform Enterprise](/docs/enterprise/index.html). Terraform's language is
+its primary user interface. Configuration files you write in Terraform
+language tell Terraform what plugins to install, what infrastructure to create,
+and what data to fetch. Terraform language also lets you define dependencies
+between resources and create multiple similar resources from a single
+configuration block.
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
-
-_The Terraform language is Terraform's primary user interface._ In every edition
-of Terraform, a configuration written in the Terraform language is always at the
-heart of the workflow.
+> **Hands-on:** Try the [Write Terraform Configuration](https://learn.hashicorp.com/collections/terraform/configuration-language) tutorials on HashiCorp Learn.
 
 ## About the Terraform Language
 
@@ -115,4 +118,3 @@ resource "aws_subnet" "az" {
   cidr_block = cidrsubnet(aws_vpc.main.cidr_block, 4, count.index+1)
 }
 ```
-

@@ -9,9 +9,9 @@ const (
 	MessageDiagnostic MessageType = "diagnostic"
 
 	// Operation results
+	MessageResourceDrift MessageType = "resource_drift"
 	MessagePlannedChange MessageType = "planned_change"
 	MessageChangeSummary MessageType = "change_summary"
-	MessageDriftSummary  MessageType = "drift_summary"
 	MessageOutputs       MessageType = "outputs"
 
 	// Hook-driven messages

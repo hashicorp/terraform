@@ -311,8 +311,11 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 	var newV cty.Value
 	switch schema.Nesting {
 	case configschema.NestingSingle:
-		newAttrs := proposedNewAttributes(schema.Attributes, prior, config)
-		newV = cty.ObjectVal(newAttrs)
+		if !config.IsNull() {
+			newV = cty.ObjectVal(proposedNewAttributes(schema.Attributes, prior, config))
+		} else {
+			newV = cty.NullVal(config.Type())
+		}
 
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.

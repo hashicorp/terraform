@@ -2,23 +2,23 @@
 layout: "docs"
 page_title: "Command: plan"
 sidebar_current: "docs-commands-plan"
-description: |-
-  The terraform plan command creates an execution plan.
+description: "The terraform plan command creates an execution plan with a preview of the changes that Terraform will make to your infrastructure."
 ---
 
 # Command: plan
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
+The `terraform plan` command creates an execution plan, which lets you preview
+the changes that Terraform plans to make to your infrastructure. By default,
+when Terraform creates a plan it:
 
-The `terraform plan` command creates an execution plan. By default, creating
-a plan consists of:
-
-* Reading the current state of any already-existing remote objects to make sure
+* Reads the current state of any already-existing remote objects to make sure
   that the Terraform state is up-to-date.
-* Comparing the current configuration to the prior state and noting any
+* Compares the current configuration to the prior state and noting any
   differences.
-* Proposing a set of change actions that should, if applied, make the remote
+* Proposes a set of change actions that should, if applied, make the remote
   objects match the configuration.
+
+> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn.
 
 The plan command alone will not actually carry out the proposed changes, and
 so you can use this command to check whether the proposed changes match what
@@ -120,6 +120,11 @@ supported only by the `terraform plan` command, and not by the
 `terraform apply` command. To create and apply a plan in destroy mode in
 earlier versions you must run [`terraform destroy`](./destroy.html).
 
+-> **Note:** The `-refresh-only` option is available only in Terraform v0.15.4
+and later.
+
+> **Hands-on:** Try the [Use Refresh-Only Mode to Sync Terraform State](https://learn.hashicorp.com/tutorials/terraform/refresh) tutorial on HashiCorp Learn.
+
 ## Planning Options
 
 In addition to the planning _modes_ described above, there are also several
@@ -157,7 +162,7 @@ the previous section, are also available with the same meanings on
     This option is allowed only in the normal planning mode, so this option
     is incompatible with the `-destroy` option.
 
-    The `-replace=...` option is available only from Terraform v1.0 onwards.
+    The `-replace=...` option is available only from Terraform v0.15.2 onwards.
     For earlier versions, you can achieve a similar effect (with some caveats)
     using [`terraform taint`](./taint.html).
 
@@ -169,10 +174,12 @@ the previous section, are also available with the same meanings on
     [Resource Targeting](#resource-targeting)
     below for more information.
 
-* `-var 'NAME=VALUE` - Sets a value for a single
+* `-var 'NAME=VALUE'` - Sets a value for a single
   [input variable](/docs/language/values/variables.html) declared in the
   root module of the configuration. Use this option multiple times to set
-  more than one variable.
+  more than one variable. For more information see
+  [Input Variables on the Command Line](#input-variables-on-the-command-line),
+  below.
 
 * `-var-file=FILENAME` - Sets values for potentially many
   [input variables](/docs/language/values/variables.html) declared in the
@@ -184,6 +191,79 @@ There are several other ways to set values for input variables in the root
 module, aside from the `-var` and `-var-file` options. For more information,
 see
 [Assigning Values to Root Module Variables](/docs/language/values/variables.html#assigning-values-to-root-module-variables).
+
+### Input Variables on the Command Line
+
+You can use the `-var` command line option to specify values for
+[input variables](/docs/language/values/variables.html) declared in your
+root module.
+
+However, to do so will require writing a command line that is parsable both
+by your chosen command line shell _and_ Terraform, which can be complicated
+for expressions involving lots of quotes and escape sequences. In most cases
+we recommend using the `-var-file` option instead, and write your actual values
+in a separate file so that Terraform can parse them directly, rather than
+interpreting the result of your shell's parsing.
+
+To use `-var` on a Unix-style shell on a system like Linux or macOS we
+recommend writing the option argument in single quotes `'` to ensure the
+shell will interpret the value literally:
+
+```
+terraform plan -var 'name=value'
+```
+
+If your intended value also includes a single quote then you'll still need to
+escape that for correct interpretation by your shell, which also requires
+temporarily ending the quoted sequence so that the backslash escape character
+will be significant:
+
+```
+terraform plan -var 'name=va'\''lue'
+```
+
+When using Terraform on Windows, we recommend using the Windows Command Prompt
+(`cmd.exe`). When you pass a variable value to Terraform from the Windows
+Command Prompt, use double quotes `"` around the argument:
+
+```
+terraform plan -var "name=value"
+```
+
+If your intended value includes literal double quotes then you'll need to
+escape those with a backslash:
+
+```
+terraform plan -var "name=va\"lue"
+```
+
+PowerShell on Windows cannot correctly pass literal quotes to external programs,
+so we do not recommend using Terraform with PowerShell when you are on Windows.
+Use Windows Command Prompt instead.
+
+The appropriate syntax for writing the variable value is different depending
+on the variable's [type constraint](/docs/language/expressions/type-constraints.html).
+The primitive types `string`, `number`, and `bool` all expect a direct string
+value with no special punctuation except that required by your shell, as
+shown in the above examples. For all other type constraints, including list,
+map, and set types and the special `any` keyword, you must write a valid
+Terraform language expression representing the value, and write any necessary
+quoting or escape characters to ensure it will pass through your shell
+literally to Terraform. For example, for a `list(string)` type constraint:
+
+```
+# Unix-style shell
+terraform plan -var 'name=["a", "b", "c"]'
+
+# Windows Command Prompt (do not use PowerShell on Windows)
+terraform plan -var "name=[\"a\", \"b\", \"c\"]"
+```
+
+Similar constraints apply when setting input variables using environment
+variables. For more information on the various methods for setting root module
+input variables, see
+[Assigning Values to Root Module Variables](/docs/language/values/variables.html#assigning-values-to-root-module-variables).
+
 
 ### Resource Targeting
 
@@ -254,6 +334,12 @@ The available options are:
   input for root module input variables that have not otherwise been assigned
   a value. This option is particularly useful when running Terraform in
   non-interactive automation systems.
+
+* `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
+  This implies `-input=false`, so the configuration must have no unassigned
+  variable values to continue.
+
+  [machine-readable-ui]: /docs/internals/machine-readable-ui.html
 
 * `-lock=false` - Don't hold a state lock during the operation. This is
    dangerous if others might concurrently run commands against the same

@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -24,7 +24,8 @@
                     "values": {
                         "ami": "bar",
                         "id": "placeholder"
-                    }
+                    },
+                    "sensitive_values": {}
                 }
             ]
         }
@@ -67,7 +68,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "values": {
             "outputs": {
                 "test": {
@@ -87,7 +88,8 @@
                         "values": {
                             "ami": "bar",
                             "id": "placeholder"
-                        }
+                        },
+                        "sensitive_values": {}
                     }
                 ]
             }

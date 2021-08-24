@@ -87,9 +87,9 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 
 			// Build a full path by walking up the module tree, prepending each
 			// source address path until we hit the root
-			paths := []string{req.SourceAddr}
+			paths := []string{req.SourceAddr.String()}
 			for config := req.Parent; config != nil && config.Parent != nil; config = config.Parent {
-				paths = append([]string{config.SourceAddr}, paths...)
+				paths = append([]string{config.SourceAddr.String()}, paths...)
 			}
 			paths = append([]string{path}, paths...)
 			sourcePath := filepath.Join(paths...)

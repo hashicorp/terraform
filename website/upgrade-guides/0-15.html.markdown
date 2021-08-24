@@ -34,7 +34,7 @@ Unlike the previous few Terraform major releases, v0.15's upgrade concerns are
 largely conclusions of deprecation cycles left over from previous releases,
 many of which already had deprecation warnings in v0.14. If you previously
 responded to those while using Terraform v0.14 then you hopefully won't need
-to many any special changes to upgrade, although we still recommend reviewing
+to make any special changes to upgrade, although we still recommend reviewing
 the content below to confirm, particularly if you see new errors or unexpected
 behavior after upgrading from Terraform v0.14.
 

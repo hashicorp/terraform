@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -18,10 +19,23 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("hello"),
+			"user": cty.StringVal("hello"),
 		}),
 	}
-	provider := mockProviderWithConfigSchema(simpleTestSchema())
+
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"user": {
+				Type:     cty.String,
+				Required: true,
+			},
+			"pw": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+	provider := mockProviderWithConfigSchema(schema)
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
 		Provider: addrs.NewDefaultProvider("foo"),
@@ -34,8 +48,12 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
-	if err := n.Execute(ctx, walkApply); err != nil {
-		t.Fatalf("err: %s", err)
+	ctx.ProviderInputValues = map[string]cty.Value{
+		"pw": cty.StringVal("so secret"),
+	}
+
+	if diags := n.Execute(ctx, walkApply); diags.HasErrors() {
+		t.Fatalf("err: %s", diags.Err())
 	}
 
 	if !ctx.ConfigureProviderCalled {
@@ -43,10 +61,17 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 	}
 
 	gotObj := ctx.ConfigureProviderConfig
-	if !gotObj.Type().HasAttribute("test_string") {
-		t.Fatal("configuration object does not have \"test_string\" attribute")
+	if !gotObj.Type().HasAttribute("user") {
+		t.Fatal("configuration object does not have \"user\" attribute")
 	}
-	if got, want := gotObj.GetAttr("test_string"), cty.StringVal("hello"); !got.RawEquals(want) {
+	if got, want := gotObj.GetAttr("user"), cty.StringVal("hello"); !got.RawEquals(want) {
+		t.Errorf("wrong configuration value\ngot:  %#v\nwant: %#v", got, want)
+	}
+
+	if !gotObj.Type().HasAttribute("pw") {
+		t.Fatal("configuration object does not have \"pw\" attribute")
+	}
+	if got, want := gotObj.GetAttr("pw"), cty.StringVal("so secret"); !got.RawEquals(want) {
 		t.Errorf("wrong configuration value\ngot:  %#v\nwant: %#v", got, want)
 	}
 }
@@ -126,7 +151,7 @@ func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("hello").Mark("sensitive"),
+			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
 		}),
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
@@ -163,7 +188,7 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	config := &configs.Provider{
 		Name: "foo",
 		Config: configs.SynthBody("", map[string]cty.Value{
-			"test_string": cty.StringVal("hello").Mark("sensitive"),
+			"test_string": cty.StringVal("hello").Mark(marks.Sensitive),
 		}),
 	}
 	provider := mockProviderWithConfigSchema(simpleTestSchema())

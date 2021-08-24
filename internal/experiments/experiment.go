@@ -16,6 +16,7 @@ const (
 	VariableValidation             = Experiment("variable_validation")
 	ModuleVariableOptionalAttrs    = Experiment("module_variable_optional_attrs")
 	SuppressProviderSensitiveAttrs = Experiment("provider_sensitive_attrs")
+	ConfigDrivenMove               = Experiment("config_driven_move")
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
+	registerCurrentExperiment(ConfigDrivenMove)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value

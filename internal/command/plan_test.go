@@ -687,6 +687,98 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 	}
 }
 
+// Test that terraform properly merges provider configuration that's split
+// between config files and interactive input variables.
+// https://github.com/hashicorp/terraform/issues/28956
+func TestPlan_providerConfigMerge(t *testing.T) {
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("plan-provider-input"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// The plan command will prompt for interactive input of provider.test.region
+	defaultInputReader = bytes.NewBufferString("us-east-1\n")
+
+	p := planFixtureProvider()
+	// override the planFixtureProvider schema to include a required provider argument and a nested block
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"region": {Type: cty.String, Required: true},
+					"url":    {Type: cty.String, Required: true},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"auth": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"user":     {Type: cty.String, Required: true},
+								"password": {Type: cty.String, Required: true},
+							},
+						},
+					},
+				},
+			},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !p.ConfigureProviderCalled {
+		t.Fatal("configure provider not called")
+	}
+
+	// For this test, we want to confirm that we've sent the expected config
+	// value *to* the provider.
+	got := p.ConfigureProviderRequest.Config
+	want := cty.ObjectVal(map[string]cty.Value{
+		"auth": cty.ListVal([]cty.Value{
+			cty.ObjectVal(map[string]cty.Value{
+				"user":     cty.StringVal("one"),
+				"password": cty.StringVal("onepw"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"user":     cty.StringVal("two"),
+				"password": cty.StringVal("twopw"),
+			}),
+		}),
+		"region": cty.StringVal("us-east-1"),
+		"url":    cty.StringVal("example.com"),
+	})
+
+	if !got.RawEquals(want) {
+		t.Fatal("wrong provider config")
+	}
+
+}
+
 func TestPlan_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)

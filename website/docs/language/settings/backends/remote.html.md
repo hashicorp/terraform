@@ -139,7 +139,7 @@ terraform {
 Backend configuration file:
 
 ```hcl
-# backend.hcl
+# config.remote.tfbackend
 workspaces { name = "workspace" }
 hostname     = "app.terraform.io"
 organization = "company"
@@ -148,7 +148,7 @@ organization = "company"
 Running `terraform init` with the backend file:
 
 ```sh
-terraform init -backend-config=backend.hcl
+terraform init -backend-config=config.remote.tfbackend
 ```
 
 ### Data Source Configuration

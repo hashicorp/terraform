@@ -95,18 +95,18 @@ func (v *JSONView) PlannedChange(c *json.ResourceInstanceChange) {
 	)
 }
 
+func (v *JSONView) ResourceDrift(c *json.ResourceInstanceChange) {
+	v.log.Info(
+		fmt.Sprintf("%s: Drift detected (%s)", c.Resource.Addr, c.Action),
+		"type", json.MessageResourceDrift,
+		"change", c,
+	)
+}
+
 func (v *JSONView) ChangeSummary(cs *json.ChangeSummary) {
 	v.log.Info(
 		cs.String(),
 		"type", json.MessageChangeSummary,
-		"changes", cs,
-	)
-}
-
-func (v *JSONView) DriftSummary(cs *json.ChangeSummary) {
-	v.log.Info(
-		cs.String(),
-		"type", json.MessageDriftSummary,
 		"changes", cs,
 	)
 }

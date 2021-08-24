@@ -39,6 +39,36 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 		}, diags
 	}
 
+	riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	var subject Targetable
+	switch {
+	case riAddr.Resource.Key == NoKey:
+		// We always assume that a no-key instance is meant to
+		// be referring to the whole resource, because the distinction
+		// doesn't really matter for targets anyway.
+		subject = riAddr.ContainingResource()
+	default:
+		subject = riAddr
+	}
+
+	return &Target{
+		Subject:     subject,
+		SourceRange: rng,
+	}, diags
+}
+
+func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Traversal) (AbsResourceInstance, tfdiags.Diagnostics) {
+	// Note that this helper is used as part of both ParseTarget and
+	// ParseMoveEndpoint, so its error messages should be generic
+	// enough to suit both situations.
+
+	var diags tfdiags.Diagnostics
+
 	mode := ManagedResourceMode
 	if remain.RootName() == "data" {
 		mode = DataResourceMode
@@ -52,7 +82,7 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 			Detail:   "Resource specification must include a resource type and name.",
 			Subject:  remain.SourceRange().Ptr(),
 		})
-		return nil, diags
+		return AbsResourceInstance{}, diags
 	}
 
 	var typeName, name string
@@ -80,7 +110,7 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 		default:
 			panic("unknown mode")
 		}
-		return nil, diags
+		return AbsResourceInstance{}, diags
 	}
 
 	switch tt := remain[1].(type) {
@@ -93,14 +123,13 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 			Detail:   "A resource name is required.",
 			Subject:  remain[1].SourceRange().Ptr(),
 		})
-		return nil, diags
+		return AbsResourceInstance{}, diags
 	}
 
-	var subject Targetable
 	remain = remain[2:]
 	switch len(remain) {
 	case 0:
-		subject = path.Resource(mode, typeName, name)
+		return moduleAddr.ResourceInstance(mode, typeName, name, NoKey), diags
 	case 1:
 		if tt, ok := remain[0].(hcl.TraverseIndex); ok {
 			key, err := ParseInstanceKey(tt.Key)
@@ -111,10 +140,10 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 					Detail:   fmt.Sprintf("Invalid resource instance key: %s.", err),
 					Subject:  remain[0].SourceRange().Ptr(),
 				})
-				return nil, diags
+				return AbsResourceInstance{}, diags
 			}
 
-			subject = path.ResourceInstance(mode, typeName, name, key)
+			return moduleAddr.ResourceInstance(mode, typeName, name, key), diags
 		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -122,7 +151,7 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 				Detail:   "Resource instance key must be given in square brackets.",
 				Subject:  remain[0].SourceRange().Ptr(),
 			})
-			return nil, diags
+			return AbsResourceInstance{}, diags
 		}
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
@@ -131,13 +160,8 @@ func ParseTarget(traversal hcl.Traversal) (*Target, tfdiags.Diagnostics) {
 			Detail:   "Unexpected extra operators after address.",
 			Subject:  remain[1].SourceRange().Ptr(),
 		})
-		return nil, diags
+		return AbsResourceInstance{}, diags
 	}
-
-	return &Target{
-		Subject:     subject,
-		SourceRange: rng,
-	}, diags
 }
 
 // ParseTargetStr is a helper wrapper around ParseTarget that takes a string
@@ -315,4 +339,30 @@ func ParseAbsResourceInstanceStr(str string) (AbsResourceInstance, tfdiags.Diagn
 	addr, addrDiags := ParseAbsResourceInstance(traversal)
 	diags = diags.Append(addrDiags)
 	return addr, diags
+}
+
+// ModuleAddr returns the module address portion of the subject of
+// the recieving target.
+//
+// Regardless of specific address type, all targets always include
+// a module address. They might also include something in that
+// module, which this method always discards if so.
+func (t *Target) ModuleAddr() ModuleInstance {
+	switch addr := t.Subject.(type) {
+	case ModuleInstance:
+		return addr
+	case Module:
+		// We assume that a module address is really
+		// referring to a module path containing only
+		// single-instance modules.
+		return addr.UnkeyedInstanceShim()
+	case AbsResourceInstance:
+		return addr.Module
+	case AbsResource:
+		return addr.Module
+	default:
+		// The above cases should be exhaustive for all
+		// implementations of Targetable.
+		panic(fmt.Sprintf("unsupported target address type %T", addr))
+	}
 }

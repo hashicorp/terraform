@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: get"
 sidebar_current: "docs-commands-get"
-description: |-
-  The `terraform get` command is used to download and update modules.
+description: "The terraform get command downloads and updates modules."
 ---
 
 # Command: get

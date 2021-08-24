@@ -2,9 +2,7 @@
 layout: "language"
 page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
-description: |-
-  The "terraform" configuration section is used to configure some behaviors
-  of Terraform itself.
+description: "The terraform block allows you to configure Terraform behavior, including the Terraform version, backend, and required providers."
 ---
 
 # Terraform Settings
@@ -39,6 +37,8 @@ The syntax and behavior of the `backend` block is described in [Backend
 Configuration](/docs/language/settings/backends/configuration.html).
 
 ## Specifying a Required Terraform Version
+
+> **Hands-on:** Try the [Manage Terraform Versions](https://learn.hashicorp.com/tutorials/terraform/versions?in=terraform/configuration-language)  or [Manage Terraform Versions in Terraform Cloud](https://learn.hashicorp.com/tutorials/terraform/cloud-versions?in=terraform/cloud) tutorials on HashiCorp Learn.
 
 The `required_version` setting accepts a [version constraint
 string,](/docs/language/expressions/version-constraints.html) which specifies which versions of Terraform

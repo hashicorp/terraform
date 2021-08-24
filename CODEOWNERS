@@ -7,7 +7,7 @@
 /internal/backend/remote-state/consul            @hashicorp/consul @remilapeyre
 /internal/backend/remote-state/cos               @likexian
 /internal/backend/remote-state/etcdv2            Unmaintained
-/internal/backend/remote-state/etcdv3            @bmcustodio
+/internal/backend/remote-state/etcdv3            Unmaintained
 /internal/backend/remote-state/gcs               @hashicorp/terraform-google
 /internal/backend/remote-state/http              @hashicorp/terraform-core
 /internal/backend/remote-state/manta             Unmaintained

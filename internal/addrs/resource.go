@@ -32,6 +32,12 @@ func (r Resource) Equal(o Resource) bool {
 	return r.Mode == o.Mode && r.Name == o.Name && r.Type == o.Type
 }
 
+func (r Resource) UniqueKey() UniqueKey {
+	return r // A Resource is its own UniqueKey
+}
+
+func (r Resource) uniqueKeySigil() {}
+
 // Instance produces the address for a specific instance of the receiver
 // that is idenfied by the given key.
 func (r Resource) Instance(key InstanceKey) ResourceInstance {
@@ -93,6 +99,12 @@ func (r ResourceInstance) String() string {
 func (r ResourceInstance) Equal(o ResourceInstance) bool {
 	return r.Key == o.Key && r.Resource.Equal(o.Resource)
 }
+
+func (r ResourceInstance) UniqueKey() UniqueKey {
+	return r // A ResourceInstance is its own UniqueKey
+}
+
+func (r ResourceInstance) uniqueKeySigil() {}
 
 // Absolute returns an AbsResourceInstance from the receiver and the given module
 // instance address.
@@ -163,6 +175,10 @@ func (r AbsResource) TargetContains(other Targetable) bool {
 	}
 }
 
+func (r AbsResource) AddrType() TargetableAddrType {
+	return AbsResourceAddrType
+}
+
 func (r AbsResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -173,6 +189,18 @@ func (r AbsResource) String() string {
 func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
+
+func (r AbsResource) absMoveableSigil() {
+	// AbsResource is moveable
+}
+
+type absResourceKey string
+
+func (r AbsResource) UniqueKey() UniqueKey {
+	return absResourceInstanceKey(r.String())
+}
+
+func (rk absResourceKey) uniqueKeySigil() {}
 
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
@@ -228,6 +256,10 @@ func (r AbsResourceInstance) TargetContains(other Targetable) bool {
 	}
 }
 
+func (r AbsResourceInstance) AddrType() TargetableAddrType {
+	return AbsResourceInstanceAddrType
+}
+
 func (r AbsResourceInstance) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -266,6 +298,18 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 		return false
 
 	}
+}
+
+type absResourceInstanceKey string
+
+func (r AbsResourceInstance) UniqueKey() UniqueKey {
+	return absResourceInstanceKey(r.String())
+}
+
+func (r absResourceInstanceKey) uniqueKeySigil() {}
+
+func (r AbsResourceInstance) absMoveableSigil() {
+	// AbsResourceInstance is moveable
 }
 
 // ConfigResource is an address for a resource within a configuration.
@@ -312,6 +356,10 @@ func (r ConfigResource) TargetContains(other Targetable) bool {
 	}
 }
 
+func (r ConfigResource) AddrType() TargetableAddrType {
+	return ConfigResourceAddrType
+}
+
 func (r ConfigResource) String() string {
 	if len(r.Module) == 0 {
 		return r.Resource.String()
@@ -321,6 +369,10 @@ func (r ConfigResource) String() string {
 
 func (r ConfigResource) Equal(o ConfigResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
+}
+
+func (r ConfigResource) configMoveableSigil() {
+	// AbsResource is moveable
 }
 
 // ResourceMode defines which lifecycle applies to a given resource. Each

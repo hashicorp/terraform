@@ -2,18 +2,16 @@
 layout: "language"
 page_title: "Input Variables - Configuration Language"
 sidebar_current: "docs-config-variables"
-description: |-
-  Input variables are parameters for Terraform modules.
-  This page covers configuration syntax for variables.
+description: "Input variables allow you to customize modules without altering their source code. Learn how to declare, define, and reference variables in configurations."
 ---
 
 # Input Variables
 
 > **Hands-on:** Try the [Customize Terraform Configuration with Variables](https://learn.hashicorp.com/tutorials/terraform/variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
-Input variables serve as parameters for a Terraform module, allowing aspects
-of the module to be customized without altering the module's own source code,
-and allowing modules to be shared between different configurations.
+Input variables let you customize aspects of Terraform modules without altering
+the module's own source code. This allows you to share modules across different
+Terraform configurations, making your module composable and reusable.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.
@@ -203,6 +201,9 @@ that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
 
+Multiple `validation` blocks can be declared in which case error messages
+will be returned for _all_ failed conditions.
+
 ### Suppressing Values in CLI Output
 
 [inpage-sensitive]: #suppressing-values-in-cli-output
@@ -348,7 +349,13 @@ terraform apply -var='image_id_list=["ami-abc123","ami-def456"]' -var="instance_
 terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-def456"}'
 ```
 
-The `-var` option can be used any number of times in a single command.
+The above examples show appropriate syntax for Unix-style shells, such as on
+Linux or macOS. For more information on shell quoting, including additional
+examples for Windows Command Prompt, see
+[Input Variables on the Command Line](/docs/cli/commands/plan.html#input-variables-on-the-command-line).
+
+You can use the `-var` option multiple times in a single command to set several
+different variables.
 
 <a id="variable-files"></a>
 
@@ -423,10 +430,11 @@ to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment
 variables. For convenience, Terraform defaults to interpreting `-var` and
-environment variable values as literal strings, which do not need to be quoted:
+environment variable values as literal strings, which need only shell quoting,
+and no special quoting for Terraform. For example, in a Unix-style shell:
 
 ```
-$ export TF_VAR_image_id=ami-abc123
+$ export TF_VAR_image_id='ami-abc123'
 ```
 
 However, if a root module variable uses a [type constraint](#type-constraints)
@@ -441,6 +449,9 @@ $ export TF_VAR_availability_zone_names='["us-west-1b","us-west-1d"]'
 
 For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
+For more information on quoting and escaping for `-var` arguments,
+see
+[Input Variables on the Command Line](/docs/cli/commands/plan.html#input-variables-on-the-command-line).
 
 ### Values for Undeclared Variables
 

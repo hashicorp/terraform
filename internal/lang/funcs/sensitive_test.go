@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -38,7 +39,7 @@ func TestSensitive(t *testing.T) {
 		},
 		{
 			// A value already marked is allowed and stays marked
-			cty.NumberIntVal(1).Mark("sensitive"),
+			cty.NumberIntVal(1).Mark(marks.Sensitive),
 			``,
 		},
 		{
@@ -52,7 +53,7 @@ func TestSensitive(t *testing.T) {
 		{
 			// A value deep already marked is allowed and stays marked,
 			// _and_ we'll also mark the outer collection as sensitive.
-			cty.ListVal([]cty.Value{cty.NumberIntVal(1).Mark("sensitive")}),
+			cty.ListVal([]cty.Value{cty.NumberIntVal(1).Mark(marks.Sensitive)}),
 			``,
 		},
 	}
@@ -73,7 +74,7 @@ func TestSensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if !got.HasMark("sensitive") {
+			if !got.HasMark(marks.Sensitive) {
 				t.Errorf("result is not marked sensitive")
 			}
 
@@ -105,24 +106,24 @@ func TestNonsensitive(t *testing.T) {
 		WantErr string
 	}{
 		{
-			cty.NumberIntVal(1).Mark("sensitive"),
+			cty.NumberIntVal(1).Mark(marks.Sensitive),
 			``,
 		},
 		{
-			cty.DynamicVal.Mark("sensitive"),
+			cty.DynamicVal.Mark(marks.Sensitive),
 			``,
 		},
 		{
-			cty.UnknownVal(cty.String).Mark("sensitive"),
+			cty.UnknownVal(cty.String).Mark(marks.Sensitive),
 			``,
 		},
 		{
-			cty.NullVal(cty.EmptyObject).Mark("sensitive"),
+			cty.NullVal(cty.EmptyObject).Mark(marks.Sensitive),
 			``,
 		},
 		{
 			// The inner sensitive remains afterwards
-			cty.ListVal([]cty.Value{cty.NumberIntVal(1).Mark("sensitive")}).Mark("sensitive"),
+			cty.ListVal([]cty.Value{cty.NumberIntVal(1).Mark(marks.Sensitive)}).Mark(marks.Sensitive),
 			``,
 		},
 
@@ -166,7 +167,7 @@ func TestNonsensitive(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 
-			if got.HasMark("sensitive") {
+			if got.HasMark(marks.Sensitive) {
 				t.Errorf("result is still marked sensitive")
 			}
 			wantRaw, _ := test.Input.Unmark()

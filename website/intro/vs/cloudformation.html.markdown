@@ -3,7 +3,7 @@ layout: "intro"
 page_title: "Terraform vs. CloudFormation, Heat, etc."
 sidebar_current: "vs-other-cloudformation"
 description: |-
-  Tools like CloudFormation, Heat, etc. allow the details of an infrastructure to be codified into a configuration file. The configuration files allow the infrastructure to be elastically created, modified and destroyed. Terraform is inspired by the problems they solve.
+  How Terraform compares to other infrastructure as code tools like CloudFormation and Heat. Terraform can simultaneously manage multiple cloud providers (AWS, OpenStack, etc.) and services (Cloudflare, DNSimple, etc.).
 ---
 
 # Terraform vs. CloudFormation, Heat, etc.

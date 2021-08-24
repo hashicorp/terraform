@@ -1,5 +1,5 @@
 {
-    "format_version": "0.1",
+    "format_version": "0.2",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -25,6 +25,9 @@
                     "values": {
                         "ami": "bar",
                         "password": "secret"
+                    },
+                    "sensitive_values": {
+                        "ami": true
                     }
                 },
                 {
@@ -38,6 +41,9 @@
                     "values": {
                         "ami": "bar",
                         "password": "secret"
+                    },
+                    "sensitive_values": {
+                        "ami": true
                     }
                 },
                 {
@@ -51,13 +57,16 @@
                     "values": {
                         "ami": "bar",
                         "password": "secret"
+                    },
+                    "sensitive_values": {
+                        "ami": true
                     }
                 }
             ]
         }
     },
     "prior_state": {
-        "format_version": "0.1",
+        "format_version": "0.2",
         "values": {
             "outputs": {
                 "test": {

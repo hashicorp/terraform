@@ -55,8 +55,8 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
-		addrs.NewProvider(addrs.DefaultRegistryHost, "bar", "test"),
-		addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
+		addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test"),
+		addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test"),
 		addrs.NewDefaultProvider("test"),
 	}
 
@@ -105,7 +105,7 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
 		want := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test"),
+			Provider: addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
@@ -124,7 +124,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
 	happycloudProvider := addrs.NewProvider(
@@ -167,7 +167,7 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
 	nullProvider := addrs.NewDefaultProvider("null")
@@ -203,7 +203,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
 
 	tlsProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
 	happycloudProvider := addrs.NewProvider(
@@ -221,7 +221,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 	want := &ModuleRequirements{
 		Name:       "",
-		SourceAddr: "",
+		SourceAddr: nil,
 		SourceDir:  "testdata/provider-reqs",
 		Requirements: getproviders.Requirements{
 			// Only the root module's version is present here
@@ -235,7 +235,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 		Children: map[string]*ModuleRequirements{
 			"kinder": {
 				Name:       "kinder",
-				SourceAddr: "./child",
+				SourceAddr: addrs.ModuleSourceLocal("./child"),
 				SourceDir:  "testdata/provider-reqs/child",
 				Requirements: getproviders.Requirements{
 					nullProvider:       getproviders.MustParseVersionConstraints("= 2.0.1"),
@@ -244,7 +244,7 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 				Children: map[string]*ModuleRequirements{
 					"nested": {
 						Name:       "nested",
-						SourceAddr: "./grandchild",
+						SourceAddr: addrs.ModuleSourceLocal("./grandchild"),
 						SourceDir:  "testdata/provider-reqs/child/grandchild",
 						Requirements: getproviders.Requirements{
 							grandchildProvider: nil,
@@ -267,7 +267,7 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	got := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
-	want := addrs.NewProvider(addrs.DefaultRegistryHost, "foo", "test")
+	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}

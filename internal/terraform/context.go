@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -655,6 +656,8 @@ The -target option is not for routine use, and is provided only for exceptional 
 func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	moveStmts, _ := c.prePlanFindAndApplyMoves()
+
 	graph, graphDiags := c.Graph(GraphTypePlan, nil)
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
@@ -684,6 +687,9 @@ func (c *Context) plan() (*plans.Plan, tfdiags.Diagnostics) {
 	// to Apply work as expected.
 	c.state = refreshedState
 
+	// TODO: Record the move results in the plan
+	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
+
 	return plan, diags
 }
 
@@ -693,6 +699,8 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 		PriorState: c.state.DeepCopy(),
 	}
 	c.changes = plans.NewChanges()
+
+	moveStmts, _ := c.prePlanFindAndApplyMoves()
 
 	// A destroy plan starts by running Refresh to read any pending data
 	// sources, and remove missing managed resources. This is required because
@@ -746,11 +754,17 @@ func (c *Context) destroyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 
 	destroyPlan.UIMode = plans.DestroyMode
 	destroyPlan.Changes = c.changes
+
+	// TODO: Record the move results in the plan
+	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
+
 	return destroyPlan, diags
 }
 
 func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	moveStmts, _ := c.prePlanFindAndApplyMoves()
 
 	graph, graphDiags := c.Graph(GraphTypePlanRefreshOnly, nil)
 	diags = diags.Append(graphDiags)
@@ -802,7 +816,35 @@ func (c *Context) refreshOnlyPlan() (*plans.Plan, tfdiags.Diagnostics) {
 	// mutate
 	c.state = refreshedState
 
+	// TODO: Record the move results in the plan
+	diags = diags.Append(c.postPlanValidateMoves(moveStmts, walker.InstanceExpander.AllInstances()))
+
 	return plan, diags
+}
+
+func (c *Context) prePlanFindAndApplyMoves() ([]refactoring.MoveStatement, map[addrs.UniqueKey]refactoring.MoveResult) {
+	moveStmts := refactoring.FindMoveStatements(c.config)
+	moveResults := refactoring.ApplyMoves(moveStmts, c.prevRunState)
+	if len(c.targets) > 0 {
+		for _, result := range moveResults {
+			matchesTarget := false
+			for _, targetAddr := range c.targets {
+				if targetAddr.TargetContains(result.From) {
+					matchesTarget = true
+					break
+				}
+			}
+			if !matchesTarget {
+				// TODO: Return an error stating that a targeted plan is
+				// only valid if it includes this address that was moved.
+			}
+		}
+	}
+	return moveStmts, moveResults
+}
+
+func (c *Context) postPlanValidateMoves(stmts []refactoring.MoveStatement, allInsts instances.Set) tfdiags.Diagnostics {
+	return refactoring.ValidateMoves(stmts, c.config, allInsts)
 }
 
 // Refresh goes through all the resources in the state and refreshes them

@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Basic CLI Features"
 sidebar_current: "docs-commands"
-description: |-
-  Main usage information for the Terraform CLI tool.
+description: "An introduction to the terraform command and its available subcommands."
 ---
 
 # Basic CLI Features
@@ -19,8 +18,8 @@ We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
 in the documentation. This terminology is often used to distinguish it from
 other components you might use in the Terraform product family, such as
 [Terraform Cloud](/docs/cloud/) or
-the various [Terraform providers](/docs/providers/), which are developed and
-released separately from Terraform CLI.
+the various [Terraform providers](/docs/language/providers/index.html), which
+are developed and released separately from Terraform CLI.
 
 To view a list of the commands available in your current Terraform version,
 run `terraform` with no additional arguments:
@@ -40,6 +39,7 @@ Main commands:
   destroy       Destroy previously-created infrastructure
 
 All other commands:
+  add           Generate a resource configuration template
   console       Try Terraform expressions at an interactive command prompt
   fmt           Reformat your configuration in the standard style
   force-unlock  Release a stuck lock on the current workspace

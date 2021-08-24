@@ -237,6 +237,15 @@ func (m ModuleInstance) Child(name string, key InstanceKey) ModuleInstance {
 	})
 }
 
+// ChildCall returns the address of a module call within the receiver,
+// identified by the given name.
+func (m ModuleInstance) ChildCall(name string) AbsModuleCall {
+	return AbsModuleCall{
+		Module: m,
+		Call:   ModuleCall{Name: name},
+	}
+}
+
 // Parent returns the address of the parent module instance of the receiver, or
 // the receiver itself if there is no parent (if it's the root module address).
 func (m ModuleInstance) Parent() ModuleInstance {
@@ -274,6 +283,14 @@ func (m ModuleInstance) String() string {
 	}
 	return buf.String()
 }
+
+type moduleInstanceKey string
+
+func (m ModuleInstance) UniqueKey() UniqueKey {
+	return moduleInstanceKey(m.String())
+}
+
+func (mk moduleInstanceKey) uniqueKeySigil() {}
 
 // Equal returns true if the receiver and the given other value
 // contains the exact same parts.
@@ -484,8 +501,38 @@ func (m ModuleInstance) Module() Module {
 	return ret
 }
 
+func (m ModuleInstance) AddrType() TargetableAddrType {
+	return ModuleInstanceAddrType
+}
+
 func (m ModuleInstance) targetableSigil() {
 	// ModuleInstance is targetable
+}
+
+func (m ModuleInstance) absMoveableSigil() {
+	// ModuleInstance is moveable
+}
+
+// IsDeclaredByCall returns true if the receiver is an instance of the given
+// AbsModuleCall.
+func (m ModuleInstance) IsDeclaredByCall(other AbsModuleCall) bool {
+	// Compare len(m) to len(other.Module+1) because the final module instance
+	// step in other is stored in the AbsModuleCall.Call
+	if len(m) > len(other.Module)+1 || len(m) == 0 && len(other.Module) == 0 {
+		return false
+	}
+
+	// Verify that the other's ModuleInstance matches the receiver.
+	inst, lastStep := other.Module, other.Call
+	for i := range inst {
+		if inst[i] != m[i] {
+			return false
+		}
+	}
+
+	// Now compare the final step of the received with the other Call, where
+	// only the name needs to match.
+	return lastStep.Name == m[len(m)-1].Name
 }
 
 func (s ModuleInstanceStep) String() string {

@@ -112,6 +112,33 @@ func TestOperation_planNoChanges(t *testing.T) {
 			},
 			"No objects need to be destroyed.",
 		},
+		"no drift to display with only deposed instances": {
+			// changes in deposed instances will cause a change in state, but
+			// have nothing to display to the user
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "somewhere",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo": "ok", "bars":[]}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
+					PriorState: states.NewState(),
+				}
+			},
+			"no differences, so no changes are needed.",
+		},
 		"drift detected in normal mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
@@ -121,17 +148,80 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),
+				}
+			},
+			"to update the Terraform state to match, create and apply a refresh-only plan",
+		},
+		"drift detected with deposed": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				return &plans.Plan{
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
+					PrevRunState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "changes",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"b"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "broken",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"c"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
+					PriorState: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "changed",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"b"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+						state.SetResourceInstanceDeposed(
+							addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_resource",
+								Name: "broken",
+							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+							states.NewDeposedKey(),
+							&states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foo":"d"}`),
+							},
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+						)
+					}),
 				}
 			},
 			"to update the Terraform state to match, create and apply a refresh-only plan",
@@ -145,14 +235,14 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),
@@ -169,14 +259,14 @@ func TestOperation_planNoChanges(t *testing.T) {
 						state.SetResourceInstanceCurrent(
 							addrs.Resource{
 								Mode: addrs.ManagedResourceMode,
-								Type: "something",
+								Type: "test_resource",
 								Name: "somewhere",
 							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 							&states.ResourceInstanceObjectSrc{
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewBuiltInProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),
@@ -393,8 +483,8 @@ func TestOperationJSON_plan(t *testing.T) {
 	if len(diags) > 0 {
 		t.Fatal(diags.Err())
 	}
-	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "boop"}
-	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "beep"}
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
 	derp := addrs.Resource{Mode: addrs.DataResourceMode, Type: "test_source", Name: "derp"}
 
 	plan := &plans.Plan{
@@ -428,101 +518,101 @@ func TestOperationJSON_plan(t *testing.T) {
 			},
 		},
 	}
-	v.Plan(plan, nil)
+	v.Plan(plan, testSchemas())
 
 	want := []map[string]interface{}{
 		// Create-then-delete should result in replace
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop[0]: Plan to replace",
+			"@message": "test_resource.boop[0]: Plan to replace",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "replace",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.boop[0]`,
+					"addr":             `test_resource.boop[0]`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.boop[0]`,
+					"resource":         `test_resource.boop[0]`,
 					"resource_key":     float64(0),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple create
 		{
 			"@level":   "info",
-			"@message": "test_instance.boop[1]: Plan to create",
+			"@message": "test_resource.boop[1]: Plan to create",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "create",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.boop[1]`,
+					"addr":             `test_resource.boop[1]`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.boop[1]`,
+					"resource":         `test_resource.boop[1]`,
 					"resource_key":     float64(1),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple delete
 		{
 			"@level":   "info",
-			"@message": "module.vpc.test_instance.boop[0]: Plan to delete",
+			"@message": "module.vpc.test_resource.boop[0]: Plan to delete",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "delete",
 				"resource": map[string]interface{}{
-					"addr":             `module.vpc.test_instance.boop[0]`,
+					"addr":             `module.vpc.test_resource.boop[0]`,
 					"implied_provider": "test",
 					"module":           "module.vpc",
-					"resource":         `test_instance.boop[0]`,
+					"resource":         `test_resource.boop[0]`,
 					"resource_key":     float64(0),
 					"resource_name":    "boop",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Delete-then-create is also a replace
 		{
 			"@level":   "info",
-			"@message": "test_instance.beep: Plan to replace",
+			"@message": "test_resource.beep: Plan to replace",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "replace",
 				"resource": map[string]interface{}{
-					"addr":             `test_instance.beep`,
+					"addr":             `test_resource.beep`,
 					"implied_provider": "test",
 					"module":           "",
-					"resource":         `test_instance.beep`,
+					"resource":         `test_resource.beep`,
 					"resource_key":     nil,
 					"resource_name":    "beep",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
 		// Simple update
 		{
 			"@level":   "info",
-			"@message": "module.vpc.test_instance.beep: Plan to update",
+			"@message": "module.vpc.test_resource.beep: Plan to update",
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
 				"action": "update",
 				"resource": map[string]interface{}{
-					"addr":             `module.vpc.test_instance.beep`,
+					"addr":             `module.vpc.test_resource.beep`,
 					"implied_provider": "test",
 					"module":           "module.vpc",
-					"resource":         `test_instance.beep`,
+					"resource":         `test_resource.beep`,
 					"resource_key":     nil,
 					"resource_name":    "beep",
-					"resource_type":    "test_instance",
+					"resource_type":    "test_resource",
 				},
 			},
 		},
@@ -538,6 +628,218 @@ func TestOperationJSON_plan(t *testing.T) {
 				"add":       float64(3),
 				"change":    float64(1),
 				"remove":    float64(3),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
+	derp := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "derp"}
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+		},
+		PrevRunState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"bar"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				derp.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
+		PriorState: states.BuildState(func(state *states.SyncState) {
+			// Update
+			state.SetResourceInstanceCurrent(
+				boop.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"baz"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// Delete
+			state.SetResourceInstanceCurrent(
+				beep.Instance(addrs.NoKey).Absolute(root),
+				nil,
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+			// No-op
+			state.SetResourceInstanceCurrent(
+				derp.Instance(addrs.NoKey).Absolute(root),
+				&states.ResourceInstanceObjectSrc{
+					Status:    states.ObjectReady,
+					AttrsJSON: []byte(`{"foo":"boop"}`),
+				},
+				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+			)
+		}),
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Drift detected: delete
+		{
+			"@level":   "info",
+			"@message": "test_resource.beep: Drift detected (delete)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "delete",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.beep",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.beep",
+					"resource_key":     nil,
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: update
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Drift detected (update)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop",
+					"resource_key":     nil,
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// No changes
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(0),
+				"change":    float64(0),
+				"remove":    float64(0),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planOutputChanges(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{},
+			Outputs: []*plans.OutputChangeSrc{
+				{
+					Addr: root.OutputValue("boop"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.NoOp,
+					},
+				},
+				{
+					Addr: root.OutputValue("beep"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: root.OutputValue("bonk"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Delete,
+					},
+				},
+				{
+					Addr: root.OutputValue("honk"),
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Update,
+					},
+					Sensitive: true,
+				},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// No resource changes
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(0),
+				"change":    float64(0),
+				"remove":    float64(0),
+			},
+		},
+		// Output changes
+		{
+			"@level":   "info",
+			"@message": "Outputs: 4",
+			"@module":  "terraform.ui",
+			"type":     "outputs",
+			"outputs": map[string]interface{}{
+				"boop": map[string]interface{}{
+					"action":    "noop",
+					"sensitive": false,
+				},
+				"beep": map[string]interface{}{
+					"action":    "create",
+					"sensitive": false,
+				},
+				"bonk": map[string]interface{}{
+					"action":    "delete",
+					"sensitive": false,
+				},
+				"honk": map[string]interface{}{
+					"action":    "update",
+					"sensitive": true,
+				},
 			},
 		},
 	}

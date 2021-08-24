@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcled"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -220,12 +221,23 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 			// to the code snippet string.
 			start := highlightRange.Start.Byte - codeStartByte
 			end := start + (highlightRange.End.Byte - highlightRange.Start.Byte)
-			if start > len(codeStr) {
+
+			// We can end up with some quirky results here in edge cases like
+			// when a source range starts or ends at a newline character,
+			// so we'll cap the results at the bounds of the highlight range
+			// so that consumers of this data don't need to contend with
+			// out-of-bounds errors themselves.
+			if start < 0 {
+				start = 0
+			} else if start > len(codeStr) {
 				start = len(codeStr)
 			}
-			if end > len(codeStr) {
+			if end < 0 {
+				end = 0
+			} else if end > len(codeStr) {
 				end = len(codeStr)
 			}
+
 			diagnostic.Snippet.HighlightStartOffset = start
 			diagnostic.Snippet.HighlightEndOffset = end
 
@@ -260,7 +272,7 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							Traversal: traversalStr,
 						}
 						switch {
-						case val.IsMarked():
+						case val.HasMark(marks.Sensitive):
 							// We won't say anything at all about sensitive values,
 							// because we might give away something that was
 							// sensitive about them.
@@ -323,7 +335,7 @@ func compactValueStr(val cty.Value) string {
 	// helpful but concise messages in diagnostics. It is not comprehensive
 	// nor intended to be used for other purposes.
 
-	if val.IsMarked() {
+	if val.HasMark(marks.Sensitive) {
 		// We check this in here just to make sure, but note that the caller
 		// of compactValueStr ought to have already checked this and skipped
 		// calling into compactValueStr anyway, so this shouldn't actually

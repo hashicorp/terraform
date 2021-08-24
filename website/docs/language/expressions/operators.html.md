@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "Operators - Configuration Language"
+description: "Operators transform or combine expressions. Learn about arithmetic, logical, equality, and comparison operators."
 ---
 
 # Arithmetic and Logical Operators

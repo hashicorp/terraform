@@ -1,6 +1,7 @@
 ---
 layout: "language"
 page_title: "For Expressions - Configuration Language"
+description: "For expressions transform complex input values into complex output values. Learn how to filter inputs and how to group results."
 ---
 
 # `for` Expressions
@@ -97,7 +98,7 @@ maps with admin vs non-admin objects:
 ```hcl
 variable "users" {
   type = map(object({
-    is_admin = boolean
+    is_admin = bool
   }))
 }
 

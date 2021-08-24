@@ -30,7 +30,7 @@ func TestInstallPackage(t *testing.T) {
 		Arch: "amd64",
 	}
 	nullProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "hashicorp", "null",
+		addrs.DefaultProviderRegistryHost, "hashicorp", "null",
 	)
 
 	tmpDir := NewDirWithPlatform(tmpDirPath, linuxPlatform)
@@ -89,7 +89,7 @@ func TestLinkFromOtherCache(t *testing.T) {
 		Arch: "amd64",
 	}
 	nullProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost, "hashicorp", "null",
+		addrs.DefaultProviderRegistryHost, "hashicorp", "null",
 	)
 
 	srcDir := NewDirWithPlatform(srcDirPath, windowsPlatform)

@@ -247,7 +247,7 @@ func wrappedMain() int {
 	providerDevOverrides := providerDevOverrides(config.ProviderInstallation)
 
 	// The user can declare that certain providers are being managed on
-	// Terraform's behalf using this environment variable. Thsi is used
+	// Terraform's behalf using this environment variable. This is used
 	// primarily by the SDK's acceptance testing framework.
 	unmanagedProviders, err := parseReattachProviders(os.Getenv("TF_REATTACH_PROVIDERS"))
 	if err != nil {
