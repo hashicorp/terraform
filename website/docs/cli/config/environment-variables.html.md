@@ -173,7 +173,7 @@ Set `TF_REMOTE_STATE_ENCRYPTION` to a valid json document with two fields
 to enable client-side remote state encryption.
 
 ```shell
-export TF_REMOTE_STATE_ENCRYPTION='{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}'
+export TF_REMOTE_STATE_ENCRYPTION='{"implementation":"client-side/AES256-CFB/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}'
 ```
 
 Not setting this environment variable (or leaving it empty) disables this feature, that is Terraform sends 

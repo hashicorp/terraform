@@ -7,14 +7,14 @@ import (
 	"os"
 )
 
-const ClientSide_Aes256cfb_Sha256 = "client-side/AES256-cfb/SHA256"
+const ClientSide_Aes256cfb_Sha256 = "client-side/AES256-CFB/SHA256"
 
 // StateCryptoConfig holds the configuration for transparent client-side remote state encryption
 type StateCryptoConfig struct {
 	// Implementation selects the implementation to use
 	//
 	// supported values are
-	//   "client-side/AES256-cfb/SHA256"
+	//   "client-side/AES256-CFB/SHA256"
 	//   "" (means not encrypted, the default)
 	//
 	// supplying an unsupported value raises an error

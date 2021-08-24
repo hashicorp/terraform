@@ -55,7 +55,7 @@ func creationErrorCase(t *testing.T, jsonConfig string, expectedError string) {
 }
 
 const invalidConfigUnknownImpl = `{"implementation":"something-unknown","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}`
-const invalidConfigNoKey = `{"implementation":"client-side/AES256-cfb/SHA256","parameters":{}}`
+const invalidConfigNoKey = `{"implementation":"client-side/AES256-CFB/SHA256","parameters":{}}`
 
 func TestCreation_invalidConfigUnknownImpl(t *testing.T) {
 	creationErrorCase(t, invalidConfigUnknownImpl, "[ERROR] failed to configure remote state encryption: unsupported implementation 'something-unknown'")
@@ -67,9 +67,9 @@ func TestCreation_invalidConfigNoKey(t *testing.T) {
 
 // business scenarios
 
-const validConfigWithKey1 = `{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}`
-const validConfigWithKey2 = `{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"89346775897897a35892735ffd34723489734ee238748293741abcdef0123456"}}`
-const validConfigWithKey3 = `{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"33336775897897a35892735ffd34723489734ee238748293741abcdef0123456"}}`
+const validConfigWithKey1 = `{"implementation":"client-side/AES256-CFB/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}`
+const validConfigWithKey2 = `{"implementation":"client-side/AES256-CFB/SHA256","parameters":{"key":"89346775897897a35892735ffd34723489734ee238748293741abcdef0123456"}}`
+const validConfigWithKey3 = `{"implementation":"client-side/AES256-CFB/SHA256","parameters":{"key":"33336775897897a35892735ffd34723489734ee238748293741abcdef0123456"}}`
 
 const validPlaintext = `{"animals":[{"species":"cheetah","genus":"acinonyx"}]}`
 const validEncryptedKey1 = `{"crypted":"e93e3e7ad3434055251f695865a13c11744b97e54cb7dee8f8fb40d1fb096b728f2a00606e7109f0720aacb15008b410cf2f92dd7989c2ff10b9712b6ef7d69ecdad1dccd2f1bddd127f0f0d87c79c3c062e03c2297614e2effa2fb1f4072d86df0dda4fc061"}`

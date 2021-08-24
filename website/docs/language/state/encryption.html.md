@@ -47,7 +47,7 @@ You set each of these to a json document with two fields
 
 to enable client-side remote state encryption. To disable, either do not set the variable at all or set it to a blank value.
 
-Right now, there is only one value for `implementation`: `client-side/AES256-cfb/SHA256`. 
+Right now, there is only one value for `implementation`: `client-side/AES256-CFB/SHA256`. 
 
 In the future, more state encryption providers may be added, such as:
 
@@ -55,17 +55,17 @@ In the future, more state encryption providers may be added, such as:
 - key retrieval from [Vault](https://www.vaultproject.io/)
 - ...
 
-### client-side/AES256-cfb/SHA256
+### client-side/AES256-CFB/SHA256
 
 This state crypto provider offers pure client-side symmetric encryption. 
 
 The key is not transferred to any third party. Note that this places the burden of key management on you
 and you alone.
 
-Encryption is performed with AES256-cfb, using a fresh random initialization vector every time. Payload integrity
+Encryption is performed with AES256-CFB, using a fresh random initialization vector every time. Payload integrity
 is verified using a SHA256 hash over the plaintext, which is encrypted with the plaintext.
 
-_Implementation Name:_ `client-side/AES256-cfb/SHA256`
+_Implementation Name:_ `client-side/AES256-CFB/SHA256`
 
 _Parameters:_
 
@@ -74,7 +74,7 @@ _Parameters:_
 Example:
 
 ```shell
-export TF_REMOTE_STATE_ENCRYPTION='{"implementation":"client-side/AES256-cfb/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}'
+export TF_REMOTE_STATE_ENCRYPTION='{"implementation":"client-side/AES256-CFB/SHA256","parameters":{"key":"a0a1a2a3a4a5a6a7a8a9b0b1b2b3b4b5b6b7b8b9c0c1c2c3c4c5c6c7c8c9d0d1"}}'
 ```
 
 ## State Encryption Lifecycle

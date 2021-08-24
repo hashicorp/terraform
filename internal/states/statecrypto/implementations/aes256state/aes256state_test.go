@@ -63,7 +63,7 @@ func compareErrors(got error, expected string) string {
 
 func conf(key string) cryptoconfig.StateCryptoConfig {
 	return cryptoconfig.StateCryptoConfig{
-		Implementation: "client-side/AES256-cfb/SHA256",
+		Implementation: "client-side/AES256-CFB/SHA256",
 		Parameters: map[string]string{
 			"key": key,
 		},
