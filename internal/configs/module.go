@@ -392,6 +392,18 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
+	// TODO: This restriction is temporary. Overrides should be allowed, but have the added
+	// complexity of needing to also override a 'backend' block, so this work is being deferred
+	// for now.
+	for _, m := range file.CloudConfigs {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot override 'cloud' configuration",
+			Detail:   "Terraform Cloud configuration blocks can appear only in normal files, not in override files.",
+			Subject:  m.DeclRange.Ptr(),
+		})
+	}
+
 	for _, pc := range file.ProviderConfigs {
 		key := pc.moduleUniqueKey()
 		existing, exists := m.ProviderConfigs[key]
