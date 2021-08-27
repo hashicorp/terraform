@@ -148,7 +148,7 @@ organization = "company"
 Running `terraform init` with the backend file:
 
 ```sh
-terraform init -backend-config=config.remote.tfbackend
+terraform init --backend-config=config.remote.tfbackend
 ```
 
 ### Data Source Configuration
