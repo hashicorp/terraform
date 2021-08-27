@@ -379,6 +379,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	if len(file.Backends) != 0 {
 		switch len(file.Backends) {
 		case 1:
+			m.CloudConfig = nil // A backend block is mutually exclusive with a cloud one, and overwrites any cloud config
 			m.Backend = file.Backends[0]
 		default:
 			// An override file with multiple backends is still invalid, even
@@ -392,16 +393,21 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	// TODO: This restriction is temporary. Overrides should be allowed, but have the added
-	// complexity of needing to also override a 'backend' block, so this work is being deferred
-	// for now.
-	for _, m := range file.CloudConfigs {
-		diags = append(diags, &hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Cannot override 'cloud' configuration",
-			Detail:   "Terraform Cloud configuration blocks can appear only in normal files, not in override files.",
-			Subject:  m.DeclRange.Ptr(),
-		})
+	if len(file.CloudConfigs) != 0 {
+		switch len(file.CloudConfigs) {
+		case 1:
+			m.Backend = nil // A cloud block is mutually exclusive with a backend one, and overwrites any backend
+			m.CloudConfig = file.CloudConfigs[0]
+		default:
+			// An override file with multiple cloud blocks is still invalid, even
+			// though it can override cloud/backend blocks from _other_ files.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate Terraform Cloud configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", file.CloudConfigs[0].DeclRange),
+				Subject:  &file.CloudConfigs[1].DeclRange,
+			})
+		}
 	}
 
 	for _, pc := range file.ProviderConfigs {
