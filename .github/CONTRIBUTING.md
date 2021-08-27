@@ -4,6 +4,10 @@ This repository contains only Terraform core, which includes the command line in
 
 ---
 
+**Note:** Due to current low staffing on the Terraform Core team at HashiCorp, **we are not routinely reviewing and merging community-submitted pull requests**. We do hope to begin processing them again soon once we're back up to full staffing again, but for the moment we need to ask for patience. Thanks!
+
+---
+
 **All communication on GitHub, the community forum, and other HashiCorp-provided communication channels is subject to [the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
 
 This document provides guidance on Terraform contribution recommended practices. It covers what we're looking for in order to help set some expectations and help you get the most out of participation in this project. 
