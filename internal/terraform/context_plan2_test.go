@@ -701,8 +701,6 @@ provider "test" {
 }
 
 func TestContext2Plan_movedResourceBasic(t *testing.T) {
-	t.Skip("Context.Plan doesn't properly propagate moves into the prior state yet")
-
 	addrA := mustResourceInstanceAddr("test_object.a")
 	addrB := mustResourceInstanceAddr("test_object.b")
 	m := testModuleInline(t, map[string]string{
