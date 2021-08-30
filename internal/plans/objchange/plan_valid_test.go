@@ -1222,7 +1222,7 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			[]string{`.bloop: planned value cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"blop":cty.StringVal("ok")})}) for a non-computed attribute`},
 		},
-		"computed in nested objects": {
+		"computed within nested objects": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"map": {
@@ -1350,6 +1350,105 @@ func TestAssertPlanValid(t *testing.T) {
 				"single": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.NullVal(cty.String),
 				}),
+			}),
+			nil,
+		},
+		"computed nested objects": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type: cty.String,
+								},
+							},
+						},
+						Computed: true,
+					},
+					"list": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type: cty.String,
+								},
+							},
+						},
+						Computed: true,
+					},
+					"set": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type: cty.String,
+								},
+							},
+						},
+						Computed: true,
+					},
+					"single": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type: cty.DynamicPseudoType,
+								},
+							},
+						},
+						Computed: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"map": cty.Map(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"list": cty.List(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"set": cty.Set(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"single": cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				}),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				}))),
+				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				}))),
+				"set": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				}))),
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"one": cty.UnknownVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.UnknownVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+				}),
+				"set": cty.SetVal([]cty.Value{
+					cty.UnknownVal(cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					})),
+				}),
+				"single": cty.UnknownVal(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
 			}),
 			nil,
 		},
