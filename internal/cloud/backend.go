@@ -90,6 +90,8 @@ type Cloud struct {
 }
 
 var _ backend.Backend = (*Cloud)(nil)
+var _ backend.Enhanced = (*Cloud)(nil)
+var _ backend.Local = (*Cloud)(nil)
 
 // New creates a new initialized cloud backend.
 func New(services *disco.Disco) *Cloud {
