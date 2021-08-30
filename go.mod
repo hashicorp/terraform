@@ -56,7 +56,7 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.5
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/google/uuid v1.2.0
 	github.com/googleapis/gax-go/v2 v2.0.5 // indirect
@@ -123,7 +123,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.1
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/mozillazg/go-httpheader v0.2.1 // indirect
+	github.com/mozillazg/go-httpheader v0.3.0 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
@@ -135,8 +135,9 @@ require (
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a // indirect
 	github.com/spf13/afero v1.2.2
 	github.com/spf13/pflag v1.0.3 // indirect
-	github.com/tencentcloud/tencentcloud-sdk-go v0.0.0-20190816164403-f8fa457a3c72
-	github.com/tencentyun/cos-go-sdk-v5 v0.0.0-20190808065407-f07404cefc8c
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.232
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag v1.0.233
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.29
 	github.com/tombuildsstuff/giovanni v0.15.1
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
