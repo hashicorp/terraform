@@ -1307,7 +1307,7 @@ func TestAssertPlanValid(t *testing.T) {
 						"name": cty.NullVal(cty.String),
 					}),
 				}),
-				"map_as_obj": cty.ObjectVal(map[string]cty.Value{
+				"map_as_obj": cty.MapVal(map[string]cty.Value{
 					"one": cty.ObjectVal(map[string]cty.Value{
 						"name": cty.NullVal(cty.DynamicPseudoType),
 					}),
