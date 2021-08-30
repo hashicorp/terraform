@@ -424,7 +424,7 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 				if !prior.IsNull() && prior.HasIndex(idx).True() {
 					priorEV = prior.Index(idx)
 				}
-				moreErrs := assertPlannedObjectValid(schema, priorEV, configEV, plannedEV, path)
+				moreErrs := assertPlannedAttrsValid(schema.Attributes, priorEV, configEV, plannedEV, path)
 				errs = append(errs, moreErrs...)
 			}
 			for it := config.ElementIterator(); it.Next(); {
