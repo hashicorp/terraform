@@ -1222,8 +1222,221 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			[]string{`.bloop: planned value cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{"blop":cty.StringVal("ok")})}) for a non-computed attribute`},
 		},
+		"computed in nested objects": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					// When an object has dynamic attrs, the map may be
+					// handled as an object.
+					"map_as_obj": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					"list": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					"set": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+								},
+							},
+						},
+					},
+					"single": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.DynamicPseudoType,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"map": cty.Map(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"map_as_obj": cty.Map(cty.Object(map[string]cty.Type{
+					"name": cty.DynamicPseudoType,
+				})),
+				"list": cty.List(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"set": cty.Set(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+				"single": cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				}),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"map_as_obj": cty.ObjectVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.DynamicPseudoType),
+					}),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"map_as_obj": cty.ObjectVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("computed"),
+					}),
+				}),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+					}),
+				}),
+				"single": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+				}),
+			}),
+			nil,
+		},
 	}
 
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			errs := AssertPlanValid(test.Schema, test.Prior, test.Config, test.Planned)
+
+			wantErrs := make(map[string]struct{})
+			gotErrs := make(map[string]struct{})
+			for _, err := range errs {
+				gotErrs[tfdiags.FormatError(err)] = struct{}{}
+			}
+			for _, msg := range test.WantErrs {
+				wantErrs[msg] = struct{}{}
+			}
+
+			t.Logf(
+				"\nprior:  %sconfig:  %splanned: %s",
+				dump.Value(test.Planned),
+				dump.Value(test.Config),
+				dump.Value(test.Planned),
+			)
+			for msg := range wantErrs {
+				if _, ok := gotErrs[msg]; !ok {
+					t.Errorf("missing expected error: %s", msg)
+				}
+			}
+			for msg := range gotErrs {
+				if _, ok := wantErrs[msg]; !ok {
+					t.Errorf("unexpected extra error: %s", msg)
+				}
+			}
+		})
+	}
+}
+
+func TestAssertPlanValidTEST(t *testing.T) {
+	tests := map[string]struct {
+		Schema   *configschema.Block
+		Prior    cty.Value
+		Config   cty.Value
+		Planned  cty.Value
+		WantErrs []string
+	}{
+		"computed in map": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"items": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+						Required: true,
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"items": cty.Map(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+				})),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"items": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.NullVal(cty.String),
+						//"name": cty.StringVal("computed"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"items": cty.MapVal(map[string]cty.Value{
+					"one": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("computed"),
+					}),
+				}),
+			}),
+			nil,
+		},
+	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			errs := AssertPlanValid(test.Schema, test.Prior, test.Config, test.Planned)
