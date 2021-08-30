@@ -205,6 +205,6 @@ individual resource arguments that expect complex values.
 
 Some resource types also define _nested block types_, which typically represent
 separate objects that belong to the containing resource in some way. You can't
-dynamically generated nested blocks using `for` expressions, but you _can_
+dynamically generate nested blocks using `for` expressions, but you _can_
 generate nested blocks for a resource dynamically using
 [`dynamic` blocks](dynamic-blocks.html).
