@@ -3,6 +3,7 @@
 UPGRADE NOTES:
 
 * Terraform on macOS now requires macOS 10.13 High Sierra or later; Older macOS versions are no longer supported.
+* The `terraform graph` command no longer supports `-type=validate` and `-type=eval` options. The validate graph is always the same as the plan graph anyway, and the "eval" graph was just an implementation detail of the `terraform console` command. The default behavior of creating a plan graph should be a reasonable replacement for both of the removed graph modes. (Please note that `terraform graph` is not covered by the Terraform v1.0 compatibility promises, because its behavior inherently exposes Terraform Core implementation details, so we recommend it only for interactive debugging tasks and not for use in automation.)
 
 NEW FEATURES:
 
