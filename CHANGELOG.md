@@ -7,6 +7,8 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * cli: Suppress confirmation prompt when initializing with the `-force-copy` flag and migrating state between multiple workspaces. [GH-29438]
+* cli: Update tencentcount dependency versions to fix errors when building from source [GH-29445]
+* core: Fix panic while handling computed attributes within nested objects, and improve plan validation for unknown values [GH-29482]
 
 ## 1.0.5 (August 18, 2021)
 
