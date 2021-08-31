@@ -31,7 +31,7 @@ func TestProviderTransformer(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
+		transform := &MissingProviderTransformer{}
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -79,7 +79,7 @@ func TestProviderTransformer_ImportModuleChild(t *testing.T) {
 	}
 
 	{
-		tf := &MissingProviderTransformer{Providers: []string{"foo", "bar"}}
+		tf := &MissingProviderTransformer{}
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -108,7 +108,7 @@ func TestProviderTransformer_fqns(t *testing.T) {
 
 		g := testProviderTransformerGraph(t, mod)
 		{
-			transform := &MissingProviderTransformer{Providers: []string{"aws"}, Config: mod}
+			transform := &MissingProviderTransformer{Config: mod}
 			if err := transform.Transform(g); err != nil {
 				t.Fatalf("err: %s", err)
 			}
@@ -132,7 +132,7 @@ func TestCloseProviderTransformer(t *testing.T) {
 	g := testProviderTransformerGraph(t, mod)
 
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
+		transform := &MissingProviderTransformer{}
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -164,7 +164,7 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	transforms := []GraphTransformer{
-		&MissingProviderTransformer{Providers: []string{"aws"}},
+		&MissingProviderTransformer{},
 		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
@@ -194,7 +194,7 @@ func TestMissingProviderTransformer(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"aws", "foo", "bar"}}
+		transform := &MissingProviderTransformer{}
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -228,7 +228,7 @@ func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := TransformProviders([]string{"aws", "foo", "bar"}, concrete, mod)
+		transform := transformProviders(concrete, mod)
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -252,7 +252,7 @@ func TestPruneProviderTransformer(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		transform := &MissingProviderTransformer{Providers: []string{"foo"}}
+		transform := &MissingProviderTransformer{}
 		if err := transform.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -293,7 +293,7 @@ func TestProviderConfigTransformer_parentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		tf := transformProviders(concrete, mod)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -313,7 +313,7 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := TransformProviders([]string{"aws"}, concrete, mod)
+		tf := transformProviders(concrete, mod)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -347,7 +347,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
+		tf := transformProviders(concrete, mod)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -425,7 +425,7 @@ resource "test_object" "a" {
 
 	g := testProviderTransformerGraph(t, mod)
 	{
-		tf := TransformProviders([]string{"registry.terraform.io/hashicorp/test"}, concrete, mod)
+		tf := transformProviders(concrete, mod)
 		if err := tf.Transform(g); err != nil {
 			t.Fatalf("err: %s", err)
 		}

@@ -75,7 +75,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
