@@ -17,8 +17,9 @@ type ImportGraphBuilder struct {
 	// Module is a configuration to build the graph from. See ImportOpts.Config.
 	Config *configs.Config
 
-	// Components is the factory for our available plugin components.
-	Components contextComponentFactory
+	// Plugins is a library of plug-in components (providers and
+	// provisioners) available for use.
+	Plugins *contextPlugins
 
 	// Schemas is the repository of schemas we will draw from to analyse
 	// the configuration.

@@ -95,7 +95,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, schemas *
 		Config:       config,
 		Changes:      plan.Changes,
 		State:        plan.PriorState,
-		Components:   c.components,
+		Plugins:      c.plugins,
 		Schemas:      schemas,
 		Targets:      plan.TargetAddrs,
 		ForceReplace: plan.ForceReplaceAddrs,

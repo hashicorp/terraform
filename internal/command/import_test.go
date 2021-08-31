@@ -332,7 +332,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	// specifically, it should fail due to a missing provider
 	msg := strings.ReplaceAll(ui.ErrorWriter.String(), "\n", " ")
-	if want := `unknown provider "registry.terraform.io/hashicorp/unknown"`; !strings.Contains(msg, want) {
+	if want := `unavailable provider "registry.terraform.io/hashicorp/unknown"`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 

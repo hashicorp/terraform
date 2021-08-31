@@ -63,7 +63,7 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 	builder := &ImportGraphBuilder{
 		ImportTargets: opts.Targets,
 		Config:        config,
-		Components:    c.components,
+		Plugins:       c.plugins,
 		Schemas:       schemas,
 	}
 

@@ -66,10 +66,10 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	log.Printf("[DEBUG] Building and walking 'eval' graph")
 
 	graph, moreDiags := (&EvalGraphBuilder{
-		Config:     config,
-		State:      state,
-		Components: c.components,
-		Schemas:    schemas,
+		Config:  config,
+		State:   state,
+		Plugins: c.plugins,
+		Schemas: schemas,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
