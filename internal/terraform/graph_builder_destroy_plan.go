@@ -94,7 +94,7 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
