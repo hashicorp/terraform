@@ -67,7 +67,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
+		transformProviders(concreteProvider, config),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
