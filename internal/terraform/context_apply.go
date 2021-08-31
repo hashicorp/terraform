@@ -32,7 +32,7 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
-	graph, operation, moreDiags := c.applyGraph(plan, config, schemas, true)
+	graph, operation, moreDiags := c.applyGraph(plan, config, true)
 	if moreDiags.HasErrors() {
 		return nil, diags
 	}
@@ -90,13 +90,12 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return newState, diags
 }
 
-func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, schemas *Schemas, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
+func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	graph, diags := (&ApplyGraphBuilder{
 		Config:       config,
 		Changes:      plan.Changes,
 		State:        plan.PriorState,
 		Plugins:      c.plugins,
-		Schemas:      schemas,
 		Targets:      plan.TargetAddrs,
 		ForceReplace: plan.ForceReplaceAddrs,
 		Validate:     validate,
@@ -130,13 +129,7 @@ func (c *Context) ApplyGraphForUI(plan *plans.Plan, config *configs.Config) (*Gr
 
 	var diags tfdiags.Diagnostics
 
-	schemas, moreDiags := c.Schemas(config, plan.PriorState)
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	graph, _, moreDiags := c.applyGraph(plan, config, schemas, false)
+	graph, _, moreDiags := c.applyGraph(plan, config, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
 }

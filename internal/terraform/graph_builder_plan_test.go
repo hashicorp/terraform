@@ -34,12 +34,6 @@ func TestPlanGraphBuilder(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "graph-builder-plan-basic"),
 		Plugins: plugins,
-		Schemas: &Schemas{
-			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("aws"):       awsProvider.ProviderSchema(),
-				addrs.NewDefaultProvider("openstack"): openstackProvider.ProviderSchema(),
-			},
-		},
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -82,11 +76,6 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "graph-builder-plan-dynblock"),
 		Plugins: plugins,
-		Schemas: &Schemas{
-			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
-			},
-		},
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -145,11 +134,6 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "graph-builder-plan-attr-as-blocks"),
 		Plugins: plugins,
-		Schemas: &Schemas{
-			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
-			},
-		},
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -190,7 +174,6 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "graph-builder-plan-target-module-provider"),
 		Plugins: simpleMockPluginLibrary(),
-		Schemas: simpleTestSchemas(),
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
@@ -217,11 +200,6 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	b := &PlanGraphBuilder{
 		Config:  testModule(t, "plan-for-each"),
 		Plugins: plugins,
-		Schemas: &Schemas{
-			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("aws"): awsProvider.ProviderSchema(),
-			},
-		},
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)

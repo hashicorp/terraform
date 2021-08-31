@@ -45,11 +45,6 @@ type DestroyEdgeTransformer struct {
 	// to determine what a destroy node depends on. Any of these can be nil.
 	Config *configs.Config
 	State  *states.State
-
-	// If configuration is present then Schemas is required in order to
-	// obtain schema information from providers and provisioners in order
-	// to properly resolve implicit dependencies.
-	Schemas *Schemas
 }
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {

@@ -32,10 +32,6 @@ type PlanGraphBuilder struct {
 	// provisioners) available for use.
 	Plugins *contextPlugins
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
-
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
@@ -137,7 +133,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing

@@ -27,10 +27,6 @@ type DestroyPlanGraphBuilder struct {
 	// provisioners) available for use.
 	Plugins *contextPlugins
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
-
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
@@ -99,9 +95,8 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
 		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		&TargetsTransformer{Targets: b.Targets},

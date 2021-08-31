@@ -134,6 +134,40 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (*ProviderSchema, 
 	return s, nil
 }
 
+// ProviderConfigSchema is a helper wrapper around ProviderSchema which first
+// reads the full schema of the given provider and then extracts just the
+// provider's configuration schema, which defines what's expected in a
+// "provider" block in the configuration when configuring this provider.
+func (cp *contextPlugins) ProviderConfigSchema(providerAddr addrs.Provider) (*configschema.Block, error) {
+	providerSchema, err := cp.ProviderSchema(providerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return providerSchema.Provider, nil
+}
+
+// ResourceTypeSchema is a helper wrapper around ProviderSchema which first
+// reads the schema of the given provider and then tries to find the schema
+// for the resource type of the given resource mode in that provider.
+//
+// ResourceTypeSchema will return an error if the provider schema lookup
+// fails, but will return nil if the provider schema lookup succeeds but then
+// the provider doesn't have a resource of the requested type.
+//
+// Managed resource types have versioned schemas, so the second return value
+// is the current schema version number for the requested resource. The version
+// is irrelevant for other resource modes.
+func (cp *contextPlugins) ResourceTypeSchema(providerAddr addrs.Provider, resourceMode addrs.ResourceMode, resourceType string) (*configschema.Block, uint64, error) {
+	providerSchema, err := cp.ProviderSchema(providerAddr)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	schema, version := providerSchema.SchemaForResourceType(resourceMode, resourceType)
+	return schema, version, nil
+}
+
 // ProvisionerSchema uses a temporary instance of the provisioner with the
 // given type name to obtain the schema for that provisioner's configuration.
 //

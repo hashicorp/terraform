@@ -17,7 +17,6 @@ func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *state
 		Config:  module,
 		Changes: changes,
 		Plugins: simpleMockPluginLibrary(),
-		Schemas: simpleTestSchemas(),
 		State:   state,
 	}
 	g, err := (&BasicGraphBuilder{
