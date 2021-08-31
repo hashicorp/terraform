@@ -64,7 +64,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 	return ss.Provisioners[name]
 }
 
-// LoadSchemas searches the given configuration, state  and plan (any of which
+// loadSchemas searches the given configuration, state  and plan (any of which
 // may be nil) for constructs that have an associated schema, requests the
 // necessary schemas from the given component factory (which must _not_ be nil),
 // and returns a single object representing all of the necessary schemas.
@@ -74,7 +74,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // either misbehavior on the part of one of the providers or of the provider
 // protocol itself. When returned with errors, the returned schemas object is
 // still valid but may be incomplete.
-func LoadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
+func loadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
 	schemas := &Schemas{
 		Providers:    map[addrs.Provider]*ProviderSchema{},
 		Provisioners: map[string]*configschema.Block{},

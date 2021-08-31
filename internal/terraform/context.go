@@ -221,7 +221,7 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 		}
 	}
 
-	ret, err := LoadSchemas(config, state, c.components)
+	ret, err := loadSchemas(config, state, c.components)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
