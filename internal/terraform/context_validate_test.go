@@ -1198,10 +1198,10 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
-		Config:     fixture.Config,
-		State:      states.NewState(),
-		Components: c.components,
-		Schemas:    schemas,
+		Config:  fixture.Config,
+		State:   states.NewState(),
+		Plugins: c.plugins,
+		Schemas: schemas,
 	}).Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
 		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())

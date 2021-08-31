@@ -26,9 +26,9 @@ type ApplyGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
+	// Plugins is a library of the plug-in components (providers and
 	// provisioners) available for use.
-	Components contextComponentFactory
+	Plugins *contextPlugins
 
 	// Schemas is the repository of schemas we will draw from to analyse
 	// the configuration.

@@ -74,22 +74,22 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // either misbehavior on the part of one of the providers or of the provider
 // protocol itself. When returned with errors, the returned schemas object is
 // still valid but may be incomplete.
-func loadSchemas(config *configs.Config, state *states.State, components contextComponentFactory) (*Schemas, error) {
+func loadSchemas(config *configs.Config, state *states.State, plugins *contextPlugins) (*Schemas, error) {
 	schemas := &Schemas{
 		Providers:    map[addrs.Provider]*ProviderSchema{},
 		Provisioners: map[string]*configschema.Block{},
 	}
 	var diags tfdiags.Diagnostics
 
-	newDiags := loadProviderSchemas(schemas.Providers, config, state, components)
+	newDiags := loadProviderSchemas(schemas.Providers, config, state, plugins)
 	diags = diags.Append(newDiags)
-	newDiags = loadProvisionerSchemas(schemas.Provisioners, config, components)
+	newDiags = loadProvisionerSchemas(schemas.Provisioners, config, plugins)
 	diags = diags.Append(newDiags)
 
 	return schemas, diags.Err()
 }
 
-func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *configs.Config, state *states.State, components contextComponentFactory) tfdiags.Diagnostics {
+func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *configs.Config, state *states.State, plugins *contextPlugins) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	ensure := func(fqn addrs.Provider) {
@@ -100,7 +100,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", name)
-		provider, err := components.ResourceProvider(fqn)
+		provider, err := plugins.NewProviderInstance(fqn)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
@@ -191,7 +191,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 	return diags
 }
 
-func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *configs.Config, components contextComponentFactory) tfdiags.Diagnostics {
+func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *configs.Config, plugins *contextPlugins) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	ensure := func(name string) {
@@ -200,7 +200,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provisioner %q", name)
-		provisioner, err := components.ResourceProvisioner(name)
+		provisioner, err := plugins.NewProvisionerInstance(name)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls.
@@ -237,7 +237,7 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 
 		// Must also visit our child modules, recursively.
 		for _, cc := range config.Children {
-			childDiags := loadProvisionerSchemas(schemas, cc, components)
+			childDiags := loadProvisionerSchemas(schemas, cc, plugins)
 			diags = diags.Append(childDiags)
 		}
 	}

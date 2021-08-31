@@ -62,7 +62,7 @@ type BuiltinEvalContext struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	Components            contextComponentFactory
+	Plugins               *contextPlugins
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -134,7 +134,7 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 
 	key := addr.String()
 
-	p, err := ctx.Components.ResourceProvider(addr.Provider)
+	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) (provisioners.Interface, er
 	p, ok := ctx.ProvisionerCache[n]
 	if !ok {
 		var err error
-		p, err = ctx.Components.ResourceProvisioner(n)
+		p, err = ctx.Plugins.NewProvisionerInstance(n)
 		if err != nil {
 			return nil, err
 		}

@@ -88,7 +88,7 @@ type Context struct {
 	// operations.
 	meta *ContextMeta
 
-	components             contextComponentFactory
+	plugins                *contextPlugins
 	dependencyLocks        *depsfile.Locks
 	providersInDevelopment map[addrs.Provider]struct{}
 
@@ -144,10 +144,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		par = 10
 	}
 
-	components := &basicComponentFactory{
-		providers:    opts.Providers,
-		provisioners: opts.Provisioners,
-	}
+	plugins := newContextPlugins(opts.Providers, opts.Provisioners)
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
@@ -156,7 +153,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		meta:    opts.Meta,
 		uiInput: opts.UIInput,
 
-		components:             components,
+		plugins:                plugins,
 		dependencyLocks:        opts.LockedDependencies,
 		providersInDevelopment: opts.ProvidersInDevelopment,
 
@@ -221,7 +218,7 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 		}
 	}
 
-	ret, err := loadSchemas(config, state, c.components)
+	ret, err := loadSchemas(config, state, c.plugins)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
