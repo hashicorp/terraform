@@ -44,11 +44,11 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 	log.Printf("[DEBUG] Building and walking validate graph")
 
 	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
-		Config:     config,
-		Components: c.components,
-		Schemas:    schemas,
-		Validate:   true,
-		State:      states.NewState(),
+		Config:   config,
+		Plugins:  c.plugins,
+		Schemas:  schemas,
+		Validate: true,
+		State:    states.NewState(),
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
