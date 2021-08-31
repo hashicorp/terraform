@@ -53,7 +53,7 @@ type EvalContext interface {
 	//
 	// This method expects an _absolute_ provider configuration address, since
 	// resources in one module are able to use providers from other modules.
-	ProviderSchema(addrs.AbsProviderConfig) *ProviderSchema
+	ProviderSchema(addrs.AbsProviderConfig) (*ProviderSchema, error)
 
 	// CloseProvider closes provider connections that aren't needed anymore.
 	//
@@ -84,7 +84,7 @@ type EvalContext interface {
 	// ProvisionerSchema retrieves the main configuration schema for a
 	// particular provisioner, which must have already been initialized with
 	// InitProvisioner.
-	ProvisionerSchema(string) *configschema.Block
+	ProvisionerSchema(string) (*configschema.Block, error)
 
 	// CloseProvisioner closes all provisioner plugins.
 	CloseProvisioners() error

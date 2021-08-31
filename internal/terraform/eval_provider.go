@@ -51,6 +51,9 @@ func getProvider(ctx EvalContext, addr addrs.AbsProviderConfig) (providers.Inter
 	}
 	// Not all callers require a schema, so we will leave checking for a nil
 	// schema to the callers.
-	schema := ctx.ProviderSchema(addr)
+	schema, err := ctx.ProviderSchema(addr)
+	if err != nil {
+		return nil, &ProviderSchema{}, fmt.Errorf("failed to read schema for provider %s: %w", addr, err)
+	}
 	return provider, schema, nil
 }
