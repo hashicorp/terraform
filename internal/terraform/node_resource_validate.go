@@ -77,9 +77,12 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 	if provisioner == nil {
 		return diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
 	}
-	provisionerSchema := ctx.ProvisionerSchema(p.Type)
+	provisionerSchema, err := ctx.ProvisionerSchema(p.Type)
+	if err != nil {
+		return diags.Append(fmt.Errorf("failed to read schema for provisioner %s: %s", p.Type, err))
+	}
 	if provisionerSchema == nil {
-		return diags.Append(fmt.Errorf("provisioner %s not initialized", p.Type))
+		return diags.Append(fmt.Errorf("provisioner %s has no schema", p.Type))
 	}
 
 	// Validate the provisioner's own config first

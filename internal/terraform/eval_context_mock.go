@@ -43,6 +43,7 @@ type MockEvalContext struct {
 	ProviderSchemaCalled bool
 	ProviderSchemaAddr   addrs.AbsProviderConfig
 	ProviderSchemaSchema *ProviderSchema
+	ProviderSchemaError  error
 
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.AbsProviderConfig
@@ -71,6 +72,7 @@ type MockEvalContext struct {
 	ProvisionerSchemaCalled bool
 	ProvisionerSchemaName   string
 	ProvisionerSchemaSchema *configschema.Block
+	ProvisionerSchemaError  error
 
 	CloseProvisionersCalled bool
 
@@ -173,10 +175,10 @@ func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Inter
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
-	return c.ProviderSchemaSchema
+	return c.ProviderSchemaSchema, c.ProviderSchemaError
 }
 
 func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -214,10 +216,10 @@ func (c *MockEvalContext) Provisioner(n string) (provisioners.Interface, error) 
 	return c.ProvisionerProvisioner, nil
 }
 
-func (c *MockEvalContext) ProvisionerSchema(n string) *configschema.Block {
+func (c *MockEvalContext) ProvisionerSchema(n string) (*configschema.Block, error) {
 	c.ProvisionerSchemaCalled = true
 	c.ProvisionerSchemaName = n
-	return c.ProvisionerSchemaSchema
+	return c.ProvisionerSchemaSchema, c.ProvisionerSchemaError
 }
 
 func (c *MockEvalContext) CloseProvisioners() error {

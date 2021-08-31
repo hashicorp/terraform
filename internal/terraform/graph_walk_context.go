@@ -92,7 +92,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		InputValue:            w.Context.uiInput,
 		InstanceExpanderValue: w.InstanceExpander,
 		Plugins:               w.Context.plugins,
-		Schemas:               w.Schemas,
 		MoveResultsValue:      w.MoveResults,
 		ProviderCache:         w.providerCache,
 		ProviderInputConfig:   w.Context.providerInputConfig,

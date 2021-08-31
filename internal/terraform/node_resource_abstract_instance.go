@@ -1809,7 +1809,14 @@ func (n *NodeAbstractResourceInstance) applyProvisioners(ctx EvalContext, state 
 			return diags.Append(err)
 		}
 
-		schema := ctx.ProvisionerSchema(prov.Type)
+		schema, err := ctx.ProvisionerSchema(prov.Type)
+		if err != nil {
+			// This error probably won't be a great diagnostic, but in practice
+			// we typically catch this problem long before we get here, so
+			// it should be rare to return via this codepath.
+			diags = diags.Append(err)
+			return diags
+		}
 
 		config, configDiags := evalScope(ctx, prov.Config, self, schema)
 		diags = diags.Append(configDiags)
