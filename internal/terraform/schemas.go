@@ -100,79 +100,23 @@ func loadProviderSchemas(schemas map[addrs.Provider]*ProviderSchema, config *con
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provider type %q", name)
-		provider, err := plugins.NewProviderInstance(fqn)
+		schema, err := plugins.ProviderSchema(fqn)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
-			// future calls.
+			// future calls, which would then repeat the same error message
+			// multiple times.
 			schemas[fqn] = &ProviderSchema{}
 			diags = diags.Append(
-				fmt.Errorf("failed to instantiate provider %q to obtain schema: %s", name, err),
-			)
-			return
-		}
-		defer func() {
-			provider.Close()
-		}()
-
-		resp := provider.GetProviderSchema()
-		if resp.Diagnostics.HasErrors() {
-			// We'll put a stub in the map so we won't re-attempt this on
-			// future calls.
-			schemas[fqn] = &ProviderSchema{}
-			diags = diags.Append(
-				fmt.Errorf("failed to retrieve schema from provider %q: %s", name, resp.Diagnostics.Err()),
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to obtain provider schema",
+					fmt.Sprintf("Could not load the schema for provider %s: %s.", fqn, err),
+				),
 			)
 			return
 		}
 
-		s := &ProviderSchema{
-			Provider:      resp.Provider.Block,
-			ResourceTypes: make(map[string]*configschema.Block),
-			DataSources:   make(map[string]*configschema.Block),
-
-			ResourceTypeSchemaVersions: make(map[string]uint64),
-		}
-
-		if resp.Provider.Version < 0 {
-			// We're not using the version numbers here yet, but we'll check
-			// for validity anyway in case we start using them in future.
-			diags = diags.Append(
-				fmt.Errorf("invalid negative schema version provider configuration for provider %q", name),
-			)
-		}
-
-		for t, r := range resp.ResourceTypes {
-			if err := r.Block.InternalValidate(); err != nil {
-				diags = diags.Append(fmt.Errorf(errProviderSchemaInvalid, name, "resource", t, err))
-			}
-			s.ResourceTypes[t] = r.Block
-			s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
-			if r.Version < 0 {
-				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for resource type %s in provider %q", t, name),
-				)
-			}
-		}
-
-		for t, d := range resp.DataSources {
-			if err := d.Block.InternalValidate(); err != nil {
-				diags = diags.Append(fmt.Errorf(errProviderSchemaInvalid, name, "data source", t, err))
-			}
-			s.DataSources[t] = d.Block
-			if d.Version < 0 {
-				// We're not using the version numbers here yet, but we'll check
-				// for validity anyway in case we start using them in future.
-				diags = diags.Append(
-					fmt.Errorf("invalid negative schema version for data source %s in provider %q", t, name),
-				)
-			}
-		}
-
-		schemas[fqn] = s
-
-		if resp.ProviderMeta.Block != nil {
-			s.ProviderMeta = resp.ProviderMeta.Block
-		}
+		schemas[fqn] = schema
 	}
 
 	if config != nil {
@@ -200,32 +144,23 @@ func loadProvisionerSchemas(schemas map[string]*configschema.Block, config *conf
 		}
 
 		log.Printf("[TRACE] LoadSchemas: retrieving schema for provisioner %q", name)
-		provisioner, err := plugins.NewProvisionerInstance(name)
+		schema, err := plugins.ProvisionerSchema(name)
 		if err != nil {
 			// We'll put a stub in the map so we won't re-attempt this on
-			// future calls.
+			// future calls, which would then repeat the same error message
+			// multiple times.
 			schemas[name] = &configschema.Block{}
 			diags = diags.Append(
-				fmt.Errorf("failed to instantiate provisioner %q to obtain schema: %s", name, err),
-			)
-			return
-		}
-		defer func() {
-			provisioner.Close()
-		}()
-
-		resp := provisioner.GetSchema()
-		if resp.Diagnostics.HasErrors() {
-			// We'll put a stub in the map so we won't re-attempt this on
-			// future calls.
-			schemas[name] = &configschema.Block{}
-			diags = diags.Append(
-				fmt.Errorf("failed to retrieve schema from provisioner %q: %s", name, resp.Diagnostics.Err()),
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to obtain provisioner schema",
+					fmt.Sprintf("Could not load the schema for provisioner %q: %s.", name, err),
+				),
 			)
 			return
 		}
 
-		schemas[name] = resp.Provisioner
+		schemas[name] = schema
 	}
 
 	if config != nil {
@@ -280,11 +215,3 @@ func (ps *ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeNam
 func (ps *ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ps.SchemaForResourceType(addr.Mode, addr.Type)
 }
-
-const errProviderSchemaInvalid = `
-Internal validation of the provider failed! This is always a bug with the 
-provider itself, and not a user issue. Please report this bug to the 
-maintainers of the %q provider:
-
-%s %s: %s
-`
