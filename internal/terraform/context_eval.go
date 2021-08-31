@@ -69,7 +69,6 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 		Config:  config,
 		State:   state,
 		Plugins: c.plugins,
-		Schemas: schemas,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

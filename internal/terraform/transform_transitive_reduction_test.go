@@ -30,26 +30,24 @@ func TestTransitiveReductionTransformer(t *testing.T) {
 
 	{
 		transform := &AttachSchemaTransformer{
-			Schemas: &Schemas{
-				Providers: map[addrs.Provider]*ProviderSchema{
-					addrs.NewDefaultProvider("aws"): {
-						ResourceTypes: map[string]*configschema.Block{
-							"aws_instance": &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"A": {
-										Type:     cty.String,
-										Optional: true,
-									},
-									"B": {
-										Type:     cty.String,
-										Optional: true,
-									},
+			Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+				addrs.NewDefaultProvider("aws"): {
+					ResourceTypes: map[string]*configschema.Block{
+						"aws_instance": {
+							Attributes: map[string]*configschema.Attribute{
+								"A": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"B": {
+									Type:     cty.String,
+									Optional: true,
 								},
 							},
 						},
 					},
 				},
-			},
+			}),
 		}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)

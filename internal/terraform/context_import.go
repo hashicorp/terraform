@@ -64,7 +64,6 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		ImportTargets: opts.Targets,
 		Config:        config,
 		Plugins:       c.plugins,
-		Schemas:       schemas,
 	}
 
 	// Build the graph
