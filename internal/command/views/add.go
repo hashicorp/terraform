@@ -256,7 +256,7 @@ func (v *addHuman) writeConfigNestedBlock(buf *strings.Builder, name string, sch
 }
 
 func (v *addHuman) writeConfigNestedTypeAttribute(buf *strings.Builder, name string, schema *configschema.Attribute, indent int) error {
-	if schema.Required == false && v.optional == false {
+	if !schema.Required && !v.optional {
 		return nil
 	}
 
@@ -521,7 +521,6 @@ func writeAttrTypeConstraint(buf *strings.Builder, schema *configschema.Attribut
 	} else {
 		buf.WriteString(fmt.Sprintf("%s\n", schema.Type.FriendlyName()))
 	}
-	return
 }
 
 func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedBlock) {
@@ -530,7 +529,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	} else {
 		buf.WriteString(" # OPTIONAL block\n")
 	}
-	return
 }
 
 // copied from command/format/diff

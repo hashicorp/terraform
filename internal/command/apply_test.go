@@ -1779,6 +1779,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 			},
 		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
+			t.Fatal("error creating workspace")
 		}
 	}
 
@@ -1792,6 +1793,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 			},
 		}
 		if code := selCmd.Run(args); code != 0 {
+			t.Fatal("error switching workspace")
 		}
 	}
 

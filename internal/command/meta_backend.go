@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -244,7 +243,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("saved backend configuration is invalid: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("saved backend configuration is invalid: %w", err))
 		return nil, diags
 	}
 

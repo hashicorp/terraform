@@ -105,10 +105,6 @@ func (v *OutputHuman) Diagnostics(diags tfdiags.Diagnostics) {
 // type of an output value is not important.
 type OutputRaw struct {
 	view *View
-
-	// Unit tests may set rawPrint to capture the output from the Output
-	// method, which would normally go to stdout directly.
-	rawPrint func(string)
 }
 
 var _ Output = (*OutputRaw)(nil)

@@ -888,7 +888,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if workspace.Operations == false {
+	if !workspace.Operations {
 		return nil
 	}
 
@@ -961,22 +961,6 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 func (b *Remote) IsLocalOperations() bool {
 	return b.forceLocal
-}
-
-// Colorize returns the Colorize structure that can be used for colorizing
-// output. This is guaranteed to always return a non-nil value and so useful
-// as a helper to wrap any potentially colored strings.
-//
-// TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
-func (b *Remote) cliColorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
-
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
 }
 
 func generalError(msg string, err error) error {

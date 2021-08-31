@@ -74,6 +74,9 @@ func TestOutputsFromMap(t *testing.T) {
 func TestOutputsFromChanges(t *testing.T) {
 	root := addrs.RootModuleInstance
 	num, err := plans.NewDynamicValue(cty.NumberIntVal(1234), cty.Number)
+	if err != nil {
+		t.Fatalf("unexpected error creating dynamic value: %v", err)
+	}
 	str, err := plans.NewDynamicValue(cty.StringVal("1234"), cty.String)
 	if err != nil {
 		t.Fatalf("unexpected error creating dynamic value: %v", err)

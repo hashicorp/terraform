@@ -86,6 +86,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			continue
 		}
 
+	LOOP:
 		for _, kv := range kvs {
 			key, keyDiags := kv.Key.Value(nil)
 			if keyDiags.HasErrors() {
@@ -213,7 +214,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 					Detail:   `required_providers objects can only contain "version", "source" and "configuration_aliases" attributes. To configure a provider, use a "provider" block.`,
 					Subject:  kv.Key.Range().Ptr(),
 				})
-				break
+				break LOOP
 			}
 
 		}

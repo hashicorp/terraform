@@ -15,8 +15,6 @@ import (
 	"time"
 
 	plugin "github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -552,43 +550,6 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	m.stateLock = true
 
 	return f
-}
-
-// parseTargetFlags must be called for any commands supporting -target
-// arguments. This method attempts to parse each -target flag into an
-// addrs.Target, storing in the Meta.targets slice.
-//
-// If any flags cannot be parsed, we rewrap the first error diagnostic with a
-// custom title to clarify the source of the error. The normal approach of
-// directly returning the diags from HCL or the addrs package results in
-// confusing incorrect "source" results when presented.
-func (m *Meta) parseTargetFlags() tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-	m.targets = nil
-	for _, tf := range m.targetFlags {
-		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tf), "", hcl.Pos{Line: 1, Column: 1})
-		if syntaxDiags.HasErrors() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid target %q", tf),
-				syntaxDiags[0].Detail,
-			))
-			continue
-		}
-
-		target, targetDiags := addrs.ParseTarget(traversal)
-		if targetDiags.HasErrors() {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Invalid target %q", tf),
-				targetDiags[0].Description().Detail,
-			))
-			continue
-		}
-
-		m.targets = append(m.targets, target.Subject)
-	}
-	return diags
 }
 
 // process will process any -no-color entries out of the arguments. This

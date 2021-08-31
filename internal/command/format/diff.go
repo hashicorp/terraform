@@ -70,7 +70,7 @@ func ResourceChange(
 		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
 		if change.DeposedKey != states.NotDeposed {
 			// Some extra context about this unusual situation.
-			buf.WriteString(color.Color(fmt.Sprint("\n  # (left over from a partially-failed replacement of this instance)")))
+			buf.WriteString(color.Color("\n  # (left over from a partially-failed replacement of this instance)"))
 		}
 	default:
 		// should never happen, since the above is exhaustive
@@ -755,8 +755,6 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			p.buf.WriteString(" -> (known after apply)")
 		}
 	}
-
-	return
 }
 
 func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
