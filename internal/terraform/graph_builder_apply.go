@@ -30,10 +30,6 @@ type ApplyGraphBuilder struct {
 	// provisioners) available for use.
 	Plugins *contextPlugins
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
-
 	// Targets are resources to target. This is only required to make sure
 	// unnecessary outputs aren't included in the apply graph. The plan
 	// builder successfully handles targeting resources. In the future,
@@ -123,7 +119,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
@@ -140,14 +136,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 		&CBDEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		// We need to remove configuration nodes that are not used at all, as

@@ -1201,7 +1201,6 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 		Config:  fixture.Config,
 		State:   states.NewState(),
 		Plugins: c.plugins,
-		Schemas: schemas,
 	}).Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
 		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())
