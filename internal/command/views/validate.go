@@ -81,7 +81,7 @@ func (v *ValidateJSON) Results(diags tfdiags.Diagnostics) int {
 	// FormatVersion represents the version of the json format and will be
 	// incremented for any change to this format that requires changes to a
 	// consuming parser.
-	const FormatVersion = "0.1"
+	const FormatVersion = "1.0"
 
 	type Output struct {
 		FormatVersion string `json:"format_version"`

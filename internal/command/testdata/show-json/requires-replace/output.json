@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "planned_values": {
         "root_module": {
             "resources": [
@@ -48,7 +48,7 @@
         }
     ],
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "values": {
             "root_module": {
                 "resources": [

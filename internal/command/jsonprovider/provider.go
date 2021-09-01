@@ -9,7 +9,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "0.2"
+const FormatVersion = "1.0"
 
 // providers is the top-level object returned when exporting provider schemas
 type providers struct {
