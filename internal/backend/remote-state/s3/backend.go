@@ -43,7 +43,7 @@ func New() backend.Backend {
 
 			"region": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_REGION",
