@@ -136,7 +136,7 @@ func TestLocal_plan_context_error(t *testing.T) {
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if got, want := done(t).Stderr(), "Error: Failed to load plugin schemas"; !strings.Contains(got, want) {
+	if got, want := done(t).Stderr(), "failed to read schema for test_instance.foo in registry.terraform.io/hashicorp/test"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }

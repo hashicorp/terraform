@@ -123,6 +123,10 @@ func TestNewContextRequiredVersion(t *testing.T) {
 }
 
 func TestNewContext_lockedDependencies(t *testing.T) {
+	// TODO: Remove this test altogether once we've factored out the version
+	// and checksum verification to be exclusively the caller's responsibility.
+	t.Skip("only one step away from locked dependencies being the caller's responsibility")
+
 	configBeepGreaterThanOne := `
 terraform {
   required_providers {

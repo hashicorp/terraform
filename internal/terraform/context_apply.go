@@ -24,12 +24,6 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 	defer c.acquireRun("apply")()
 	var diags tfdiags.Diagnostics
 
-	schemas, moreDiags := c.Schemas(config, plan.PriorState)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
 	graph, operation, moreDiags := c.applyGraph(plan, config, true)
@@ -58,7 +52,6 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
 		Config:             config,
-		Schemas:            schemas,
 		InputState:         workingState,
 		Changes:            plan.Changes,
 		RootVariableValues: variables,

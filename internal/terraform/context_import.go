@@ -48,12 +48,6 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 	// Hold a lock since we can modify our own state here
 	defer c.acquireRun("import")()
 
-	schemas, moreDiags := c.Schemas(config, prevRunState)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
 	// Don't modify our caller's state
 	state := prevRunState.DeepCopy()
 
@@ -78,7 +72,6 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 	// Walk it
 	walker, walkDiags := c.walk(graph, walkImport, &graphWalkOpts{
 		Config:             config,
-		Schemas:            schemas,
 		InputState:         state,
 		RootVariableValues: variables,
 	})
