@@ -1,8 +1,8 @@
 module github.com/hashicorp/terraform
 
 require (
-	cloud.google.com/go v0.79.0 // indirect
-	cloud.google.com/go/storage v1.10.0
+	cloud.google.com/go v0.93.3 // indirect
+	cloud.google.com/go/storage v1.16.1
 	github.com/Azure/azure-sdk-for-go v52.5.0+incompatible
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.18
@@ -53,9 +53,9 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
-	github.com/golang/mock v1.5.0
-	github.com/golang/protobuf v1.4.3
-	github.com/google/go-cmp v0.5.5
+	github.com/golang/mock v1.6.0
+	github.com/golang/protobuf v1.5.2
+	github.com/google/go-cmp v0.5.6
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.0.0 // indirect
 	github.com/google/uuid v1.2.0
@@ -97,7 +97,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/klauspost/compress v1.11.2 // indirect
@@ -153,22 +152,21 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.4.2
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
-	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+	golang.org/x/oauth2 v0.0.0-20210805134026-6f1e6394065a
+	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	golang.org/x/tools v0.1.0
+	golang.org/x/tools v0.1.5
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/api v0.44.0-impersonate-preview
+	google.golang.org/api v0.54.0
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20210319143718-93e7006c17a6 // indirect
-	google.golang.org/grpc v1.36.0
+	google.golang.org/genproto v0.0.0-20210825212027-de86158e7fda // indirect
+	google.golang.org/grpc v1.40.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/inf.v0 v0.9.0 // indirect
 	gopkg.in/ini.v1 v1.42.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
