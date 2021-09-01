@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strings"
 
@@ -249,6 +250,8 @@ type blockBodyDiffResult struct {
 	skippedAttributes int
 	skippedBlocks     int
 }
+
+var minimalDiffs = os.Getenv("TF_MINIMAL_DIFFS") != ""
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
 
@@ -785,40 +788,117 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			return 0
 		}
 
-		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
-		allItems = append(allItems, oldItems...)
-		allItems = append(allItems, newItems...)
-		all := cty.SetVal(allItems)
-
 		if blankBefore {
 			p.buf.WriteRune('\n')
 		}
 
-		for it := all.ElementIterator(); it.Next(); {
-			_, val := it.Element()
-			var action plans.Action
-			var oldValue, newValue cty.Value
-			switch {
-			case !val.IsKnown():
-				action = plans.Update
-				newValue = val
-			case !old.HasElement(val).True():
-				action = plans.Create
-				oldValue = cty.NullVal(val.Type())
-				newValue = val
-			case !new.HasElement(val).True():
-				action = plans.Delete
-				oldValue = val
-				newValue = cty.NullVal(val.Type())
-			default:
-				action = plans.NoOp
-				oldValue = val
-				newValue = val
+		if minimalDiffs {
+			m := old.LengthInt()
+			n := new.LengthInt()
+
+			type pair struct {
+				distance float32
+				x        int
+				y        int
 			}
-			path := append(path, cty.IndexStep{Key: val})
-			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path)
-			if skipped {
-				skippedBlocks++
+			pairs := make([]pair, (m+1)*(n+1)-1)
+			pos := 0
+			for y := 0; y <= n; y++ {
+				for x := 0; x <= m; x++ {
+					if x == 0 && y == 0 {
+						continue
+					}
+					aVal := cty.DynamicVal
+					if x > 0 {
+						aVal = oldItems[x-1]
+					}
+					bVal := cty.DynamicVal
+					if y > 0 {
+						bVal = newItems[y-1]
+					}
+					pairs[pos] = pair{valueDistance(aVal, bVal), x, y}
+					pos++
+				}
+			}
+
+			sort.SliceStable(pairs, func(i, j int) bool {
+				return pairs[i].distance < pairs[j].distance
+			})
+
+			aUsed := make([]bool, m)
+			bUsed := make([]bool, n)
+
+			for _, pair := range pairs {
+				if pair.x > 0 && aUsed[pair.x-1] {
+					continue
+				}
+				if pair.y > 0 && bUsed[pair.y-1] {
+					continue
+				}
+				var action plans.Action
+				var val, oldValue, newValue cty.Value
+				if pair.x > 0 {
+					aUsed[pair.x-1] = true
+					oldValue = oldItems[pair.x-1]
+				}
+				if pair.y > 0 {
+					bUsed[pair.y-1] = true
+					newValue = newItems[pair.y-1]
+				}
+				switch {
+				case pair.x == 0:
+					action = plans.Create
+					val = newValue
+					oldValue = cty.NullVal(val.Type())
+				case pair.y == 0:
+					action = plans.Delete
+					val = oldValue
+					newValue = cty.NullVal(val.Type())
+				case oldValue.Equals(newValue) == cty.True:
+					action = plans.NoOp
+					val = newValue
+				default:
+					action = plans.CreateThenDelete
+					val = newValue
+				}
+				path := append(path, cty.IndexStep{Key: val})
+				skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path)
+				if skipped {
+					skippedBlocks++
+				}
+			}
+		} else {
+			allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
+			allItems = append(allItems, oldItems...)
+			allItems = append(allItems, newItems...)
+			all := cty.SetVal(allItems)
+
+			for it := all.ElementIterator(); it.Next(); {
+				_, val := it.Element()
+				var action plans.Action
+				var oldValue, newValue cty.Value
+				switch {
+				case !val.IsKnown():
+					action = plans.Update
+					newValue = val
+				case !old.HasElement(val).True():
+					action = plans.Create
+					oldValue = cty.NullVal(val.Type())
+					newValue = val
+				case !new.HasElement(val).True():
+					action = plans.Delete
+					oldValue = val
+					newValue = cty.NullVal(val.Type())
+				default:
+					action = plans.NoOp
+					oldValue = val
+					newValue = val
+				}
+				path := append(path, cty.IndexStep{Key: val})
+				skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path)
+				if skipped {
+					skippedBlocks++
+				}
 			}
 		}
 
@@ -925,8 +1005,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 	}
 
 	p.buf.WriteString("\n")
-	p.buf.WriteString(strings.Repeat(" ", indent))
-	p.writeActionSymbol(action)
+	p.buf.WriteString(strings.Repeat(" ", indent-2))
+	p.buf.WriteString(p.color.Color(DiffActionSymbol(action)) + " ")
 
 	if label != nil {
 		fmt.Fprintf(p.buf, "%s %q {", name, *label)
@@ -1915,6 +1995,8 @@ func ctyNullBlockSetAsEmpty(in cty.Value) cty.Value {
 // characters, possibly interspersed with VT100 color codes.
 func DiffActionSymbol(action plans.Action) string {
 	switch action {
+	case plans.NoOp:
+		return "   "
 	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset]"
 	case plans.CreateThenDelete:
