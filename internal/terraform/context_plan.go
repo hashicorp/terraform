@@ -306,6 +306,7 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 					break
 				}
 			}
+			//lint:ignore SA9003 TODO
 			if !matchesTarget {
 				// TODO: Return an error stating that a targeted plan is
 				// only valid if it includes this address that was moved.

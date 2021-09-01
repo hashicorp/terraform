@@ -194,13 +194,9 @@ func (r AbsResource) absMoveableSigil() {
 	// AbsResource is moveable
 }
 
-type absResourceKey string
-
 func (r AbsResource) UniqueKey() UniqueKey {
 	return absResourceInstanceKey(r.String())
 }
-
-func (rk absResourceKey) uniqueKeySigil() {}
 
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.

@@ -311,13 +311,9 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 }
 
 func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
+	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
 [green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
-`)),
-		) + "\n",
-	)
+` + "\n")))
 }
 
 func (c *LoginCommand) logMOTDError(err error) {
