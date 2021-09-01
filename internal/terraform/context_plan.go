@@ -324,16 +324,10 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
-	schemas, moreDiags := c.Schemas(config, prevRunState)
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
 	moveStmts, moveResults := c.prePlanFindAndApplyMoves(config, prevRunState, opts.Targets)
 
-	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts, schemas, true)
+	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts, true)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -344,7 +338,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:             config,
-		Schemas:            schemas,
 		InputState:         prevRunState,
 		Changes:            changes,
 		MoveResults:        moveResults,
@@ -365,7 +358,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	return plan, diags
 }
 
-func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts, schemas *Schemas, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
+func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		graph, diags := (&PlanGraphBuilder{
@@ -421,13 +414,7 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 
 	opts := &PlanOpts{Mode: mode}
 
-	schemas, moreDiags := c.Schemas(config, prevRunState)
-	diags = diags.Append(moreDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
-	graph, _, moreDiags := c.planGraph(config, prevRunState, opts, schemas, false)
+	graph, _, moreDiags := c.planGraph(config, prevRunState, opts, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
 }

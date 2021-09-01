@@ -40,12 +40,6 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	var diags tfdiags.Diagnostics
 	defer c.acquireRun("eval")()
 
-	schemas, moreDiags := c.Schemas(config, state)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return nil, diags
-	}
-
 	// Start with a copy of state so that we don't affect the instance that
 	// the caller is holding.
 	state = state.DeepCopy()
@@ -78,7 +72,6 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	walkOpts := &graphWalkOpts{
 		InputState:         state,
 		Config:             config,
-		Schemas:            schemas,
 		RootVariableValues: variables,
 	}
 

@@ -1193,10 +1193,6 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	opts := fixture.ContextOpts()
 	c := testContext2(t, opts)
 
-	state := states.NewState()
-	schemas, diags := c.Schemas(fixture.Config, state)
-	assertNoDiagnostics(t, diags)
-
 	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
 		Config:  fixture.Config,
 		State:   states.NewState(),
@@ -1207,8 +1203,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	}
 	defer c.acquireRun("validate-test")()
 	walker, diags := c.walk(graph, walkValidate, &graphWalkOpts{
-		Config:  fixture.Config,
-		Schemas: schemas,
+		Config: fixture.Config,
 	})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())

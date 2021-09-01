@@ -224,7 +224,18 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	}
 
 	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
-	schema, _ := d.Evaluator.Schemas.ResourceTypeConfig(providerFqn, addr.Mode, addr.Type)
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
+	if err != nil {
+		// Prior validation should've taken care of a schema lookup error,
+		// so we should never get here but we'll handle it here anyway for
+		// robustness.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Failed provider schema lookup`,
+			Detail:   fmt.Sprintf(`Couldn't load schema for %s resource type %q in %s: %s.`, modeAdjective, addr.Type, providerFqn.String(), err),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+	}
 
 	if schema == nil {
 		// Prior validation should've taken care of a resource block with an

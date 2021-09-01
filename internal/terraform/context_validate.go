@@ -35,12 +35,6 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 		return diags
 	}
 
-	schemas, moreDiags := c.Schemas(config, nil)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return diags
-	}
-
 	log.Printf("[DEBUG] Building and walking validate graph")
 
 	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
@@ -74,7 +68,6 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 
 	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
 		Config:             config,
-		Schemas:            schemas,
 		RootVariableValues: varValues,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)

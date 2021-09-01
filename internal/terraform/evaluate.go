@@ -46,13 +46,13 @@ type Evaluator struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	// Schemas is a repository of all of the schemas we should need to
-	// evaluate expressions. This must be constructed by the caller to
-	// include schemas for all of the providers, resource types, data sources
-	// and provisioners used by the given configuration and state.
+	// Plugins is the library of available plugin components (providers and
+	// provisioners) that we have available to help us evaluate expressions
+	// that interact with plugin-provided objects.
 	//
-	// This must not be mutated during evaluation.
-	Schemas *Schemas
+	// From this we only access the schemas of the plugins, and don't otherwise
+	// interact with plugin instances.
+	Plugins *contextPlugins
 
 	// State is the current state, embedded in a wrapper that ensures that
 	// it can be safely accessed and modified concurrently.
@@ -892,8 +892,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr.Provider, addr.Mode, addr.Type)
+	if err != nil {
+		// We have plently other codepaths that will detect and report
+		// schema lookup errors before we'd reach this point, so we'll just
+		// treat a failure here the same as having no schema.
+		return nil
+	}
 	return schema
 }
 
