@@ -23,7 +23,6 @@ type graphWalkOpts struct {
 	InputState *states.State
 	Changes    *plans.Changes
 	Config     *configs.Config
-	Schemas    *Schemas
 
 	RootVariableValues InputValues
 	MoveResults        map[addrs.UniqueKey]refactoring.MoveResult
@@ -95,12 +94,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		changes = plans.NewChanges()
 	}
 
-	if opts.Schemas == nil {
-		// Should never happen: caller must always set this one.
-		// (We catch this here, rather than later, to get a more intelligible
-		// stack trace when it _does_ panic.)
-		panic("Context.graphWalker call without Schemas")
-	}
 	if opts.Config == nil {
 		panic("Context.graphWalker call without Config")
 	}
@@ -109,7 +102,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		Context:            c,
 		State:              state,
 		Config:             opts.Config,
-		Schemas:            opts.Schemas,
 		RefreshState:       refreshState,
 		PrevRunState:       prevRunState,
 		Changes:            changes.SyncWrapper(),
