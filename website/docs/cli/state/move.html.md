@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Moving Resources - Terraform CLI"
+description: "Commands that allow you to manage the way that resources are tracked in state. They are helpful when you move or change resources."
 ---
 
 # Moving Resources

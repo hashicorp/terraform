@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Manipulating State - Terraform CLI"
+description: "State data tracks which real-world object corresponds to each resource. Inspect state, move or import resources, and more."
 ---
 
 # Manipulating Terraform State

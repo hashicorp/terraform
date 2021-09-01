@@ -197,6 +197,18 @@ func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInsta
 	return exp.repetitionData(addr.Resource.Key)
 }
 
+// AllInstances returns a set of all of the module and resource instances known
+// to the expander.
+//
+// It generally doesn't make sense to call this until everything has already
+// been fully expanded by calling the SetModule* and SetResource* functions.
+// After that, the returned set is a convenient small API only for querying
+// whether particular instance addresses appeared as a result of those
+// expansions.
+func (e *Expander) AllInstances() Set {
+	return Set{e}
+}
+
 func (e *Expander) findModule(moduleInstAddr addrs.ModuleInstance) *expanderModule {
 	// We expect that all of the modules on the path to our module instance
 	// should already have expansions registered.
@@ -239,6 +251,38 @@ func (e *Expander) setResourceExpansion(parentAddr addrs.ModuleInstance, resourc
 		panic(fmt.Sprintf("expansion already registered for %s", resourceAddr.Absolute(parentAddr)))
 	}
 	mod.resources[resourceAddr] = exp
+}
+
+func (e *Expander) knowsModuleInstance(want addrs.ModuleInstance) bool {
+	if want.IsRoot() {
+		return true // root module instance is always present
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsModuleInstance(want)
+}
+
+func (e *Expander) knowsModuleCall(want addrs.AbsModuleCall) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsModuleCall(want)
+}
+
+func (e *Expander) knowsResourceInstance(want addrs.AbsResourceInstance) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsResourceInstance(want)
+}
+
+func (e *Expander) knowsResource(want addrs.AbsResource) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.exps.knowsResource(want)
 }
 
 type expanderModule struct {
@@ -358,5 +402,56 @@ func (m *expanderModule) onlyResourceInstances(resourceAddr addrs.Resource, pare
 		copy(moduleAddr, parentAddr)
 		ret = append(ret, resourceAddr.Instance(k).Absolute(moduleAddr))
 	}
+	return ret
+}
+
+func (m *expanderModule) getModuleInstance(want addrs.ModuleInstance) *expanderModule {
+	current := m
+	for _, step := range want {
+		next := current.childInstances[step]
+		if next == nil {
+			return nil
+		}
+		current = next
+	}
+	return current
+}
+
+func (m *expanderModule) knowsModuleInstance(want addrs.ModuleInstance) bool {
+	return m.getModuleInstance(want) != nil
+}
+
+func (m *expanderModule) knowsModuleCall(want addrs.AbsModuleCall) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	_, ret := modInst.moduleCalls[want.Call]
+	return ret
+}
+
+func (m *expanderModule) knowsResourceInstance(want addrs.AbsResourceInstance) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	resourceExp := modInst.resources[want.Resource.Resource]
+	if resourceExp == nil {
+		return false
+	}
+	for _, key := range resourceExp.instanceKeys() {
+		if key == want.Resource.Key {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *expanderModule) knowsResource(want addrs.AbsResource) bool {
+	modInst := m.getModuleInstance(want.Module)
+	if modInst == nil {
+		return false
+	}
+	_, ret := modInst.resources[want.Resource]
 	return ret
 }

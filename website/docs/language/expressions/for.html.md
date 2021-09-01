@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "For Expressions - Configuration Language"
-description: "`for` expressions transform complex input values into complex output values. Learn how to filter inputs and how to group results."
+description: "For expressions transform complex input values into complex output values. Learn how to filter inputs and how to group results."
 ---
 
 # `for` Expressions
@@ -98,7 +98,7 @@ maps with admin vs non-admin objects:
 ```hcl
 variable "users" {
   type = map(object({
-    is_admin = boolean
+    is_admin = bool
   }))
 }
 
@@ -205,6 +205,6 @@ individual resource arguments that expect complex values.
 
 Some resource types also define _nested block types_, which typically represent
 separate objects that belong to the containing resource in some way. You can't
-dynamically generated nested blocks using `for` expressions, but you _can_
+dynamically generate nested blocks using `for` expressions, but you _can_
 generate nested blocks for a resource dynamically using
 [`dynamic` blocks](dynamic-blocks.html).

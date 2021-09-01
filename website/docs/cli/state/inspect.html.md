@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Inspecting State - Terraform CLI"
+description: "Commands that allow you to read and update state."
 ---
 
 # Inspecting State

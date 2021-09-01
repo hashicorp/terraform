@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/testutil"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/terraform/internal/backend"
 )
 
@@ -16,28 +16,12 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-var srv *testutil.TestServer
-
-func TestMain(m *testing.M) {
+func newConsulTestServer(t *testing.T) *testutil.TestServer {
 	if os.Getenv("TF_ACC") == "" && os.Getenv("TF_CONSUL_TEST") == "" {
-		fmt.Println("consul server tests require setting TF_ACC or TF_CONSUL_TEST")
-		return
+		t.Skipf("consul server tests require setting TF_ACC or TF_CONSUL_TEST")
 	}
 
-	var err error
-	srv, err = newConsulTestServer()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	rc := m.Run()
-	srv.Stop()
-	os.Exit(rc)
-}
-
-func newConsulTestServer() (*testutil.TestServer, error) {
-	srv, err := testutil.NewTestServerConfig(func(c *testutil.TestServerConfig) {
+	srv, err := testutil.NewTestServerConfigT(t, func(c *testutil.TestServerConfig) {
 		c.LogLevel = "warn"
 
 		if !flag.Parsed() {
@@ -50,10 +34,19 @@ func newConsulTestServer() (*testutil.TestServer, error) {
 		}
 	})
 
-	return srv, err
+	if err != nil {
+		t.Fatalf("failed to create consul test server: %s", err)
+	}
+
+	srv.WaitForSerfCheck(t)
+	srv.WaitForLeader(t)
+
+	return srv
 }
 
 func TestBackend(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend. We need two to test locking.
@@ -73,6 +66,8 @@ func TestBackend(t *testing.T) {
 }
 
 func TestBackend_lockDisabled(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend. We need two to test locking.
@@ -94,6 +89,8 @@ func TestBackend_lockDisabled(t *testing.T) {
 }
 
 func TestBackend_gzip(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	// Get the backend
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"address": srv.HTTPAddr,

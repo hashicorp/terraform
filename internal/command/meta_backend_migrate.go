@@ -146,19 +146,23 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
 
-	// Ask the user if they want to migrate their existing remote state
-	migrate, err := m.confirm(&terraform.InputOpts{
-		Id: "backend-migrate-multistate-to-multistate",
-		Query: fmt.Sprintf(
-			"Do you want to migrate all workspaces to %q?",
-			opts.TwoType),
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateMultiToMulti),
-			opts.OneType, opts.TwoType),
-	})
-	if err != nil {
-		return fmt.Errorf(
-			"Error asking for state migration action: %s", err)
+	migrate := opts.force
+	if !migrate {
+		var err error
+		// Ask the user if they want to migrate their existing remote state
+		migrate, err = m.confirm(&terraform.InputOpts{
+			Id: "backend-migrate-multistate-to-multistate",
+			Query: fmt.Sprintf(
+				"Do you want to migrate all workspaces to %q?",
+				opts.TwoType),
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToMulti),
+				opts.OneType, opts.TwoType),
+		})
+		if err != nil {
+			return fmt.Errorf(
+				"Error asking for state migration action: %s", err)
+		}
 	}
 	if !migrate {
 		return fmt.Errorf("Migration aborted by user.")

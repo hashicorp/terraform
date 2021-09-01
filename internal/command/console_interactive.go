@@ -1,3 +1,4 @@
+//go:build !solaris
 // +build !solaris
 
 // The readline library we use doesn't currently support solaris so

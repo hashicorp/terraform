@@ -1051,7 +1051,7 @@ func TestPlan_init_required(t *testing.T) {
 		t.Fatalf("expected error, got success")
 	}
 	got := output.Stderr()
-	if !strings.Contains(got, `Error: Could not load plugin`) {
+	if !strings.Contains(got, `Please run "terraform init".`) {
 		t.Fatal("wrong error message in output:", got)
 	}
 }

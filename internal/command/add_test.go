@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -59,7 +60,14 @@ func TestAdd_basic(t *testing.T) {
 			fmt.Println(output.Stderr())
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   value = null # REQUIRED string
 }
 `
@@ -85,7 +93,14 @@ func TestAdd_basic(t *testing.T) {
 			fmt.Println(output.Stderr())
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   value = null # REQUIRED string
 }
 `
@@ -117,7 +132,14 @@ func TestAdd_basic(t *testing.T) {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
 		output := done(t)
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   ami   = null # OPTIONAL string
   id    = null # OPTIONAL string
   value = null # REQUIRED string
@@ -145,9 +167,17 @@ func TestAdd_basic(t *testing.T) {
 		}
 
 		// The provider happycorp/test has a localname "othertest" in the provider configuration.
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   provider = othertest.alias
-  value    = null # REQUIRED string
+
+  value = null # REQUIRED string
 }
 `
 
@@ -317,7 +347,14 @@ func TestAdd(t *testing.T) {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
 
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   ami = null           # OPTIONAL string
   disks = [{           # OPTIONAL list of object
     mount_point = null # REQUIRED string
@@ -354,7 +391,14 @@ func TestAdd(t *testing.T) {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
 
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   value = null        # REQUIRED string
   network_interface { # REQUIRED block
   }
@@ -382,7 +426,14 @@ func TestAdd(t *testing.T) {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
 
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   id = null # REQUIRED string
 }
 `
@@ -410,7 +461,14 @@ func TestAdd(t *testing.T) {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
 
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   id = null # REQUIRED string
 }
 `
@@ -511,7 +569,14 @@ func TestAdd_from_state(t *testing.T) {
 		t.Fatalf("wrong exit status. Got %d, want 0", code)
 	}
 
-	expected := `resource "test_instance" "new" {
+	expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   ami = "ami-123456"
   disks = [
     {
@@ -528,4 +593,7 @@ func TestAdd_from_state(t *testing.T) {
 		t.Fatalf("wrong output:\n%s", cmp.Diff(expected, output.Stdout()))
 	}
 
+	if _, err := os.Stat(filepath.Join(td, ".terraform.tfstate.lock.info")); !os.IsNotExist(err) {
+		t.Fatal("state left locked after add")
+	}
 }

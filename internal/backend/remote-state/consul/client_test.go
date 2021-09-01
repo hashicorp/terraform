@@ -24,6 +24,8 @@ func TestRemoteClient_impl(t *testing.T) {
 }
 
 func TestRemoteClient(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -51,6 +53,8 @@ func TestRemoteClient(t *testing.T) {
 
 // test the gzip functionality of the client
 func TestRemoteClient_gzipUpgrade(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	statePath := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// Get the backend
@@ -89,6 +93,8 @@ func TestRemoteClient_gzipUpgrade(t *testing.T) {
 // manager, as there is a limit to the size of the values in the KV store it
 // will need to be split up before being saved and put back together when read.
 func TestConsul_largeState(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := "tf-unit/test-large-state"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -136,11 +142,6 @@ func TestConsul_largeState(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		// md5 := md5.Sum(payload)
-		// if !bytes.Equal(md5[:], remote.MD5) {
-		// 	t.Fatal("the md5 sums do not match")
-		// }
-
 		if !bytes.Equal(payload, remote.Data) {
 			t.Fatal("the data do not match")
 		}
@@ -158,6 +159,19 @@ func TestConsul_largeState(t *testing.T) {
 			"tf-unit/test-large-state",
 			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/0",
 			"tf-unit/test-large-state/tfstate.2cb96f52c9fff8e0b56cb786ec4d2bed/1",
+		},
+	)
+
+	// This payload is just short enough to be stored but will be bigger when
+	// going through the Transaction API as it will be base64 encoded
+	testPayload(
+		t,
+		map[string]string{
+			"foo": strings.Repeat("a", 524288-10),
+		},
+		[]string{
+			"tf-unit/test-large-state",
+			"tf-unit/test-large-state/tfstate.4f407ace136a86521fd0d366972fe5c7/0",
 		},
 	)
 
@@ -220,6 +234,8 @@ func TestConsul_largeState(t *testing.T) {
 }
 
 func TestConsul_stateLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -250,6 +266,8 @@ func TestConsul_stateLock(t *testing.T) {
 }
 
 func TestConsul_destroyLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	testCases := []string{
 		fmt.Sprintf("tf-unit/%s", time.Now().String()),
 		fmt.Sprintf("tf-unit/%s/", time.Now().String()),
@@ -330,6 +348,8 @@ func TestConsul_destroyLock(t *testing.T) {
 }
 
 func TestConsul_lostLock(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	path := fmt.Sprintf("tf-unit/%s", time.Now().String())
 
 	// create 2 instances to get 2 remote.Clients
@@ -377,6 +397,8 @@ func TestConsul_lostLock(t *testing.T) {
 }
 
 func TestConsul_lostLockConnection(t *testing.T) {
+	srv := newConsulTestServer(t)
+
 	// create an "unreliable" network by closing all the consul client's
 	// network connections
 	conns := &unreliableConns{}

@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: force-unlock"
 sidebar_current: "docs-commands-force-unlock"
-description: |-
-  The `terraform force-unlock`  manually unlocks the Terraform state
+description: "The terraform force-unlock command unlocks the state for a configuration. It does not modify your infrastructure."
 ---
 
 # Command: force-unlock

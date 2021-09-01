@@ -1,8 +1,13 @@
 ## 1.1.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* Terraform on macOS now requires macOS 10.13 High Sierra or later; Older macOS versions are no longer supported.
+* The `terraform graph` command no longer supports `-type=validate` and `-type=eval` options. The validate graph is always the same as the plan graph anyway, and the "eval" graph was just an implementation detail of the `terraform console` command. The default behavior of creating a plan graph should be a reasonable replacement for both of the removed graph modes. (Please note that `terraform graph` is not covered by the Terraform v1.0 compatibility promises, because its behavior inherently exposes Terraform Core implementation details, so we recommend it only for interactive debugging tasks and not for use in automation.)
+
 NEW FEATURES:
 
-* cli: `terraform add` generates resource configuration templates ([#28874](https://github.com/hashicorp/terraform/issues/28874))
+* cli: The (currently-experimental) `terraform add` generates a starting point for a particular resource configuration. ([#28874](https://github.com/hashicorp/terraform/issues/28874))
 * config: a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
@@ -12,7 +17,6 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
-* cli: Fixed a crashing bug with some edge-cases when reporting syntax errors that happen to be reported at the position of a newline. ([#29048](https://github.com/hashicorp/terraform/issues/29048))
 
 ## Previous Releases
 

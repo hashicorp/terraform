@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -18,9 +17,15 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Context implements backend.Enhanced.
-func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics) {
+// Context implements backend.Local.
+func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	ret := &backend.LocalRun{
+		PlanOpts: &terraform.PlanOpts{
+			Mode:    op.PlanMode,
+			Targets: op.Targets,
+		},
+	}
 
 	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
@@ -31,7 +36,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	log.Printf("[TRACE] backend/remote: requesting state manager for workspace %q", remoteWorkspaceName)
 	stateMgr, err := b.StateMgr(op.Workspace)
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
 		return nil, nil, diags
 	}
 
@@ -50,7 +55,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 
 	log.Printf("[TRACE] backend/remote: reading remote state for workspace %q", remoteWorkspaceName)
 	if err := stateMgr.RefreshState(); err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
 		return nil, nil, diags
 	}
 
@@ -61,15 +66,13 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	}
 
 	// Copy set options from the operation
-	opts.PlanMode = op.PlanMode
-	opts.Targets = op.Targets
 	opts.UIInput = op.UIIn
 
 	// Load the latest state. If we enter contextFromPlanFile below then the
 	// state snapshot in the plan file must match this, or else it'll return
 	// error diagnostics.
 	log.Printf("[TRACE] backend/remote: retrieving remote state snapshot for workspace %q", remoteWorkspaceName)
-	opts.State = stateMgr.State()
+	ret.InputState = stateMgr.State()
 
 	log.Printf("[TRACE] backend/remote: loading configuration for the current working directory")
 	config, configDiags := op.ConfigLoader.LoadConfig(op.ConfigDir)
@@ -77,21 +80,21 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 	if configDiags.HasErrors() {
 		return nil, nil, diags
 	}
-	opts.Config = config
+	ret.Config = config
 
 	// The underlying API expects us to use the opaque workspace id to request
 	// variables, so we'll need to look that up using our organization name
 	// and workspace name.
 	remoteWorkspaceID, err := b.getRemoteWorkspaceID(context.Background(), op.Workspace)
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error finding remote workspace: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
 		return nil, nil, diags
 	}
 
 	log.Printf("[TRACE] backend/remote: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
 	tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
 	if err != nil && err != tfe.ErrResourceNotFound {
-		diags = diags.Append(errwrap.Wrapf("Error loading variables: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
 		return nil, nil, diags
 	}
 
@@ -100,7 +103,7 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 		// more lax about them, stubbing out any unset ones as unknown.
 		// This gives us enough information to produce a consistent context,
 		// but not enough information to run a real operation (plan, apply, etc)
-		opts.Variables = stubAllVariables(op.Variables, config.Module.Variables)
+		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, config.Module.Variables)
 	} else {
 		if tfeVariables != nil {
 			if op.Variables == nil {
@@ -121,16 +124,17 @@ func (b *Remote) Context(op *backend.Operation) (*terraform.Context, statemgr.Fu
 			if diags.HasErrors() {
 				return nil, nil, diags
 			}
-			opts.Variables = variables
+			ret.PlanOpts.SetVariables = variables
 		}
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
+	ret.Core = tfCtx
 
 	log.Printf("[TRACE] backend/remote: finished building terraform.Context")
 
-	return tfCtx, stateMgr, diags
+	return ret, stateMgr, diags
 }
 
 func (b *Remote) getRemoteWorkspaceName(localWorkspaceName string) string {

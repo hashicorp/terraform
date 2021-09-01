@@ -2,9 +2,11 @@ package refactoring
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -28,6 +30,8 @@ type MoveResult struct {
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
 func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]MoveResult {
+	results := make(map[addrs.UniqueKey]MoveResult)
+
 	// The methodology here is to construct a small graph of all of the move
 	// statements where the edges represent where a particular statement
 	// is either chained from or nested inside the effect of another statement.
@@ -40,19 +44,25 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 	// at all. The separate validation step should detect this and return
 	// an error.
 	if len(g.Cycles()) != 0 {
-		return nil
+		return results
 	}
 
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := make(dag.Set, len(stmts))
 	for _, v := range g.Vertices() {
-		if len(g.UpEdges(v)) == 0 {
+		if len(g.DownEdges(v)) == 0 {
 			startNodes.Add(v)
 		}
 	}
 
-	results := make(map[addrs.UniqueKey]MoveResult)
-	g.DepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
+	if startNodes.Len() == 0 {
+		log.Println("[TRACE] refactoring.ApplyMoves: No 'moved' statements to consider in this configuration")
+		return results
+	}
+
+	log.Printf("[TRACE] refactoring.ApplyMoves: Processing 'moved' statements in the configuration\n%s", logging.Indent(g.String()))
+
+	g.ReverseDepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
 		stmt := v.(*MoveStatement)
 
 		for _, ms := range state.Modules {
@@ -68,6 +78,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 				// For a module endpoint we just try the module address
 				// directly.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
+					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
 					// We need to visit all of the resource instances in the
 					// module and record them individually as results.
 					for _, rs := range ms.Resources {
@@ -93,6 +104,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 				for _, rs := range ms.Resources {
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
+						log.Printf("[TRACE] refactoring.ApplyMoves: resource %s has moved to %s", rAddr, newAddr)
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
@@ -109,6 +121,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 					for key := range rs.Instances {
 						iAddr := rAddr.Instance(key)
 						if newAddr, matches := iAddr.MoveDestination(stmt.From, stmt.To); matches {
+							log.Printf("[TRACE] refactoring.ApplyMoves: resource instance %s has moved to %s", iAddr, newAddr)
 							result := MoveResult{From: iAddr, To: newAddr}
 							results[iAddr.UniqueKey()] = result
 							results[newAddr.UniqueKey()] = result
@@ -147,9 +160,9 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 // may contain cycles and other sorts of invalidity.
 func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 	g := &dag.AcyclicGraph{}
-	for _, stmt := range stmts {
+	for i := range stmts {
 		// The graph nodes are pointers to the actual statements directly.
-		g.Add(&stmt)
+		g.Add(&stmts[i])
 	}
 
 	// Now we'll add the edges representing chaining and nesting relationships.

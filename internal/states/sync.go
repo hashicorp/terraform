@@ -533,6 +533,16 @@ func (s *SyncState) Unlock() {
 	s.lock.Unlock()
 }
 
+// Close extracts the underlying state from inside this wrapper, making the
+// wrapper invalid for any future operations.
+func (s *SyncState) Close() *State {
+	s.lock.Lock()
+	ret := s.state
+	s.state = nil // make sure future operations can't still modify it
+	s.lock.Unlock()
+	return ret
+}
+
 // maybePruneModule will remove a module from the state altogether if it is
 // empty, unless it's the root module which must always be present.
 //

@@ -37,6 +37,10 @@ func (c ModuleCall) Absolute(moduleAddr ModuleInstance) AbsModuleCall {
 	}
 }
 
+func (c ModuleCall) Equal(other ModuleCall) bool {
+	return c.Name == other.Name
+}
+
 // AbsModuleCall is the address of a "module" block relative to the root
 // of the configuration.
 //
@@ -69,6 +73,18 @@ func (c AbsModuleCall) Instance(key InstanceKey) ModuleInstance {
 	})
 	return ret
 }
+
+func (c AbsModuleCall) Equal(other AbsModuleCall) bool {
+	return c.Module.Equal(other.Module) && c.Call.Equal(other.Call)
+}
+
+type absModuleCallInstanceKey string
+
+func (c AbsModuleCall) UniqueKey() UniqueKey {
+	return absModuleCallInstanceKey(c.String())
+}
+
+func (mk absModuleCallInstanceKey) uniqueKeySigil() {}
 
 // ModuleCallInstance is the address of one instance of a module created from
 // a module call, which might create multiple instances using "count" or

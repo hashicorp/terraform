@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Internals"
 sidebar_current: "docs-internals"
-description: |-
-  This section covers the internals of Terraform and explains how plans are generated, the lifecycle of a provider, etc. The goal of this section is to remove any notion of "magic" from Terraform. We want you to be able to trust and understand what Terraform is doing to function.
+description: "Learn the technical details of how Terraform generates and executes infrastructure plans, works with plugins, obtains credentials, etc."
 ---
 
 # Terraform Internals

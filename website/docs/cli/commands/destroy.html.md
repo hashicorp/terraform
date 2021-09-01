@@ -2,9 +2,7 @@
 layout: "docs"
 page_title: "Command: destroy"
 sidebar_current: "docs-commands-destroy"
-description: |-
-  The `terraform destroy` command is a convenient way to destroy all objects
-  managed by a particular Terraform configuration.
+description: "The terraform destroy command destroys all objects managed by a Terraform configuration."
 ---
 
 # Command: destroy

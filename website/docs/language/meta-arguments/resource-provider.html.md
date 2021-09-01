@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "The Resource provider Meta-Argument - Configuration Language"
-description: "`provider` specifies the provider configuration Terraform should use for a resource, overriding Terraform's default behavior."
+description: "The provider meta-argument specifies the provider configuration Terraform should use for a resource, overriding Terraform's default behavior."
 ---
 
 # The Resource `provider` Meta-Argument
@@ -56,4 +56,3 @@ The `provider` meta-argument expects
 which does not need to be quoted. Arbitrary expressions are not permitted for
 `provider` because it must be resolved while Terraform is constructing the
 dependency graph, before it is safe to evaluate expressions.
-

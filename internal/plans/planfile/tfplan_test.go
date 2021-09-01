@@ -57,6 +57,11 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Type: "test_thing",
 						Name: "woot",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
 						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
@@ -93,7 +98,12 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_thing",
 						Name: "woot",
-					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(1)).Absolute(addrs.RootModuleInstance),
 					DeposedKey: "foodface",
 					ProviderAddr: addrs.AbsProviderConfig{
 						Provider: addrs.NewDefaultProvider("test"),
@@ -210,6 +220,11 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
 					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+					PrevRunAddr: addrs.Resource{
 						Mode: addrs.ManagedResourceMode,
 						Type: "test_thing",
 						Name: "woot",

@@ -7,11 +7,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -23,14 +25,17 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context            *Context
-	State              *states.SyncState   // Used for safe concurrent access to state
-	RefreshState       *states.SyncState   // Used for safe concurrent access to state
-	PrevRunState       *states.SyncState   // Used for safe concurrent access to state
-	Changes            *plans.ChangesSync  // Used for safe concurrent writes to changes
-	InstanceExpander   *instances.Expander // Tracks our gradual expansion of module and resource instances
+	State              *states.SyncState                          // Used for safe concurrent access to state
+	RefreshState       *states.SyncState                          // Used for safe concurrent access to state
+	PrevRunState       *states.SyncState                          // Used for safe concurrent access to state
+	Changes            *plans.ChangesSync                         // Used for safe concurrent writes to changes
+	InstanceExpander   *instances.Expander                        // Tracks our gradual expansion of module and resource instances
+	MoveResults        map[addrs.UniqueKey]refactoring.MoveResult // Read-only record of earlier processing of move statements
 	Operation          walkOperation
 	StopContext        context.Context
 	RootVariableValues InputValues
+	Schemas            *Schemas
+	Config             *configs.Config
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -72,11 +77,11 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// different modules.
 	evaluator := &Evaluator{
 		Meta:               w.Context.meta,
-		Config:             w.Context.config,
+		Config:             w.Config,
 		Operation:          w.Operation,
 		State:              w.State,
 		Changes:            w.Changes,
-		Schemas:            w.Context.schemas,
+		Schemas:            w.Schemas,
 		VariableValues:     w.variableValues,
 		VariableValuesLock: &w.variableValuesLock,
 	}
@@ -87,7 +92,8 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		InputValue:            w.Context.uiInput,
 		InstanceExpanderValue: w.InstanceExpander,
 		Components:            w.Context.components,
-		Schemas:               w.Context.schemas,
+		Schemas:               w.Schemas,
+		MoveResultsValue:      w.MoveResults,
 		ProviderCache:         w.providerCache,
 		ProviderInputConfig:   w.Context.providerInputConfig,
 		ProviderLock:          &w.providerLock,

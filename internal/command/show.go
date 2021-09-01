@@ -101,7 +101,7 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -109,7 +109,12 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	// Get the schemas from the context
-	schemas := ctx.Schemas()
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	var planErr, stateErr error
 	var plan *plans.Plan
@@ -148,7 +153,7 @@ func (c *ShowCommand) Run(args []string) int {
 
 	if plan != nil {
 		if jsonOutput {
-			config := ctx.Config()
+			config := lr.Config
 			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
 
 			if err != nil {

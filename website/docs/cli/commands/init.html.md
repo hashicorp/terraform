@@ -2,8 +2,7 @@
 layout: "docs"
 page_title: "Command: init"
 sidebar_current: "docs-commands-init"
-description: |-
-  The `terraform init` command is used to initialize a Terraform configuration. This is the first command that should be run for any new or existing Terraform configuration. It is safe to run this command multiple times.
+description: "The terraform init command initializes a working directory containing configuration files and installs plugins for required providers."
 ---
 
 # Command: init
@@ -80,7 +79,7 @@ is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
 directory to use the new backend settings. Either `-reconfigure` or
-`-migrate-state` must be supplied to update the backend configuration. 
+`-migrate-state` must be supplied to update the backend configuration.
 
 The `-migrate-state` option will attempt to copy existing state to the new
 backend, and depending on what changed, may result in interactive prompts to

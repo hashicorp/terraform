@@ -1,7 +1,7 @@
 ---
 layout: "language"
 page_title: "The for_each Meta-Argument - Configuration Language"
-description: "`for_each` allows you to efficiently manage similar infrastructure resources without writing a separate block for each one."
+description: "The for_each meta-argument allows you to manage similar infrastructure resources without writing a separate block for each one."
 ---
 
 # The `for_each` Meta-Argument

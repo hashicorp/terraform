@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/version"
 
 	"github.com/hashicorp/terraform/internal/states"
@@ -74,6 +75,7 @@ type BuiltinEvalContext struct {
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
+	MoveResultsValue      map[addrs.UniqueKey]refactoring.MoveResult
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -366,4 +368,8 @@ func (ctx *BuiltinEvalContext) PrevRunState() *states.SyncState {
 
 func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 	return ctx.InstanceExpanderValue
+}
+
+func (ctx *BuiltinEvalContext) MoveResults() map[addrs.UniqueKey]refactoring.MoveResult {
+	return ctx.MoveResultsValue
 }

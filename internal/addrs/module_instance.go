@@ -237,6 +237,15 @@ func (m ModuleInstance) Child(name string, key InstanceKey) ModuleInstance {
 	})
 }
 
+// ChildCall returns the address of a module call within the receiver,
+// identified by the given name.
+func (m ModuleInstance) ChildCall(name string) AbsModuleCall {
+	return AbsModuleCall{
+		Module: m,
+		Call:   ModuleCall{Name: name},
+	}
+}
+
 // Parent returns the address of the parent module instance of the receiver, or
 // the receiver itself if there is no parent (if it's the root module address).
 func (m ModuleInstance) Parent() ModuleInstance {

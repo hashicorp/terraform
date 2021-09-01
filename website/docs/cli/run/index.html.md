@@ -1,6 +1,7 @@
 ---
 layout: "docs"
 page_title: "Provisioning Infrastructure - Terraform CLI"
+description: "Learn about commands for core provisioning tasks: plan, apply, and destroy."
 ---
 
 # Provisioning Infrastructure with Terraform

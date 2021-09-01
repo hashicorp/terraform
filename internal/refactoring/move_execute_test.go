@@ -15,38 +15,107 @@ import (
 )
 
 func TestApplyMoves(t *testing.T) {
-	// TODO: Renable this once we're ready to implement the intended behaviors
-	// it is describing.
-	t.Skip("ApplyMoves is not yet fully implemented")
-
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
 		Provider: addrs.MustParseProviderSourceString("example.com/foo/bar"),
 	}
-	rootNoKeyResourceAddr := [...]addrs.AbsResourceInstance{
-		addrs.Resource{
+
+	moduleBoo, _ := addrs.ParseModuleInstanceStr("module.boo")
+	moduleBarKey, _ := addrs.ParseModuleInstanceStr("module.bar[0]")
+
+	instAddrs := map[string]addrs.AbsResourceInstance{
+		"foo.from": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
 			Name: "from",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-		addrs.Resource{
+
+		"foo.mid": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "mid",
+		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+
+		"foo.to": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
 			Name: "to",
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-	}
-	rootIntKeyResourceAddr := [...]addrs.AbsResourceInstance{
-		addrs.Resource{
+
+		"foo.from[0]": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
 			Name: "from",
 		}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-		addrs.Resource{
+
+		"foo.to[0]": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
 			Name: "to",
 		}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+
+		"module.boo.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBoo),
+
+		"module.boo.foo.mid": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "mid",
+		}.Instance(addrs.NoKey).Absolute(moduleBoo),
+
+		"module.boo.foo.to": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "to",
+		}.Instance(addrs.NoKey).Absolute(moduleBoo),
+
+		"module.boo.foo.from[0]": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.IntKey(0)).Absolute(moduleBoo),
+
+		"module.boo.foo.to[0]": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "to",
+		}.Instance(addrs.IntKey(0)).Absolute(moduleBoo),
+
+		"module.bar[0].foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBarKey),
+
+		"module.bar[0].foo.mid": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "mid",
+		}.Instance(addrs.NoKey).Absolute(moduleBarKey),
+
+		"module.bar[0].foo.to": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "to",
+		}.Instance(addrs.NoKey).Absolute(moduleBarKey),
+
+		"module.bar[0].foo.from[0]": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.IntKey(0)).Absolute(moduleBarKey),
+
+		"module.bar[0].foo.to[0]": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "to",
+		}.Instance(addrs.IntKey(0)).Absolute(moduleBarKey),
 	}
+
+	emptyResults := map[addrs.UniqueKey]MoveResult{}
 
 	tests := map[string]struct {
 		Stmts []MoveStatement
@@ -58,14 +127,14 @@ func TestApplyMoves(t *testing.T) {
 		"no moves and empty state": {
 			[]MoveStatement{},
 			states.NewState(),
-			nil,
+			emptyResults,
 			nil,
 		},
 		"no moves": {
 			[]MoveStatement{},
 			states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					rootNoKeyResourceAddr[0],
+					instAddrs["foo.from"],
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
@@ -73,7 +142,7 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			nil,
+			emptyResults,
 			[]string{
 				`foo.from`,
 			},
@@ -84,7 +153,7 @@ func TestApplyMoves(t *testing.T) {
 			},
 			states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					rootNoKeyResourceAddr[0],
+					instAddrs["foo.from"],
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
@@ -93,13 +162,13 @@ func TestApplyMoves(t *testing.T) {
 				)
 			}),
 			map[addrs.UniqueKey]MoveResult{
-				rootNoKeyResourceAddr[0].UniqueKey(): {
-					From: rootNoKeyResourceAddr[0],
-					To:   rootNoKeyResourceAddr[1],
+				instAddrs["foo.from"].UniqueKey(): {
+					From: instAddrs["foo.from"],
+					To:   instAddrs["foo.to"],
 				},
-				rootNoKeyResourceAddr[1].UniqueKey(): {
-					From: rootNoKeyResourceAddr[1],
-					To:   rootNoKeyResourceAddr[1],
+				instAddrs["foo.to"].UniqueKey(): {
+					From: instAddrs["foo.from"],
+					To:   instAddrs["foo.to"],
 				},
 			},
 			[]string{
@@ -112,7 +181,7 @@ func TestApplyMoves(t *testing.T) {
 			},
 			states.BuildState(func(s *states.SyncState) {
 				s.SetResourceInstanceCurrent(
-					rootIntKeyResourceAddr[0],
+					instAddrs["foo.from[0]"],
 					&states.ResourceInstanceObjectSrc{
 						Status:    states.ObjectReady,
 						AttrsJSON: []byte(`{}`),
@@ -121,17 +190,205 @@ func TestApplyMoves(t *testing.T) {
 				)
 			}),
 			map[addrs.UniqueKey]MoveResult{
-				rootNoKeyResourceAddr[0].UniqueKey(): {
-					From: rootIntKeyResourceAddr[0],
-					To:   rootIntKeyResourceAddr[1],
+				instAddrs["foo.from[0]"].UniqueKey(): {
+					From: instAddrs["foo.from[0]"],
+					To:   instAddrs["foo.to[0]"],
 				},
-				rootNoKeyResourceAddr[1].UniqueKey(): {
-					From: rootIntKeyResourceAddr[0],
-					To:   rootIntKeyResourceAddr[1],
+				instAddrs["foo.to[0]"].UniqueKey(): {
+					From: instAddrs["foo.from[0]"],
+					To:   instAddrs["foo.to[0]"],
 				},
 			},
 			[]string{
 				`foo.to[0]`,
+			},
+		},
+		"chained move of whole singleton resource": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.mid"),
+				testMoveStatement(t, "", "foo.mid", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["foo.from"].UniqueKey(): {
+					From: instAddrs["foo.from"],
+					To:   instAddrs["foo.mid"],
+				},
+				instAddrs["foo.mid"].UniqueKey(): {
+					From: instAddrs["foo.mid"],
+					To:   instAddrs["foo.to"],
+				},
+				instAddrs["foo.to"].UniqueKey(): {
+					From: instAddrs["foo.mid"],
+					To:   instAddrs["foo.to"],
+				},
+			},
+			[]string{
+				`foo.to`,
+			},
+		},
+
+		"move whole resource into module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["foo.from[0]"].UniqueKey(): {
+					From: instAddrs["foo.from[0]"],
+					To:   instAddrs["module.boo.foo.to[0]"],
+				},
+				instAddrs["module.boo.foo.to[0]"].UniqueKey(): {
+					From: instAddrs["foo.from[0]"],
+					To:   instAddrs["module.boo.foo.to[0]"],
+				},
+			},
+			[]string{
+				`module.boo.foo.to[0]`,
+			},
+		},
+
+		"move resource instance between modules": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.to[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+			},
+			[]string{
+				`module.bar[0].foo.to[0]`,
+			},
+		},
+
+		"move whole single module to indexed module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.from[0]"],
+				},
+				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.from[0]"],
+				},
+			},
+			[]string{
+				`module.bar[0].foo.from[0]`,
+			},
+		},
+
+		"move whole module to indexed module and move instance chained": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.from[0]"],
+				},
+				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+			},
+			[]string{
+				`module.bar[0].foo.to[0]`,
+			},
+		},
+
+		"move instance to indexed module and instance chained": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo.foo.from[0]", "module.bar[0].foo.from[0]"),
+				testMoveStatement(t, "bar", "foo.from[0]", "foo.to[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.boo.foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.from[0]"],
+				},
+				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+					From: instAddrs["module.bar[0].foo.from[0]"],
+					To:   instAddrs["module.bar[0].foo.to[0]"],
+				},
+			},
+			[]string{
+				`module.bar[0].foo.to[0]`,
 			},
 		},
 	}
@@ -140,7 +397,7 @@ func TestApplyMoves(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var stmtsBuf strings.Builder
 			for _, stmt := range test.Stmts {
-				fmt.Fprintf(&stmtsBuf, "- from: %s\n  to:   %s", stmt.From, stmt.To)
+				fmt.Fprintf(&stmtsBuf, "- from: %s\n  to:   %s\n", stmt.From, stmt.To)
 			}
 			t.Logf("move statements:\n%s", stmtsBuf.String())
 
