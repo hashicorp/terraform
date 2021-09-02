@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
@@ -109,7 +108,8 @@ func (m *Meta) providerCustomLocalDirectorySource(dirs []string) getproviders.So
 // Only one object returned from this method should be live at any time,
 // because objects inside contain caches that must be maintained properly.
 func (m *Meta) providerLocalCacheDir() *providercache.Dir {
-	dir := filepath.Join(m.DataDir(), "providers")
+	m.fixupMissingWorkingDir()
+	dir := m.WorkingDir.ProviderLocalCacheDir()
 	return providercache.NewDir(dir)
 }
 
