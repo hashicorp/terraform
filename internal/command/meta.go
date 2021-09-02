@@ -18,6 +18,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
@@ -25,17 +28,15 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
-
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 )
 
 // Meta are the meta-options that are available on all or most commands.
@@ -44,16 +45,19 @@ type Meta struct {
 	// command with a Meta field. These are expected to be set externally
 	// (not from within the command itself).
 
-	// OriginalWorkingDir, if set, is the actual working directory where
-	// Terraform was run from. This might not be the _actual_ current working
-	// directory, because users can add the -chdir=... option to the beginning
-	// of their command line to ask Terraform to switch.
+	// WorkingDir is an object representing the "working directory" where we're
+	// running commands. In the normal case this literally refers to the
+	// working directory of the Terraform process, though this can take on
+	// a more symbolic meaning when the user has overridden default behavior
+	// to specify a different working directory or to override the special
+	// data directory where we'll persist settings that must survive between
+	// consecutive commands.
 	//
-	// Most things should just use the current working directory in order to
-	// respect the user's override, but we retain this for exceptional
-	// situations where we need to refer back to the original working directory
-	// for some reason.
-	OriginalWorkingDir string
+	// We're currently gradually migrating the various bits of state that
+	// must persist between consecutive commands in a session to be encapsulated
+	// in here, but we're not there yet and so there are also some methods on
+	// Meta which directly read and modify paths inside the data directory.
+	WorkingDir *workdir.Dir
 
 	// Streams tracks the raw Stdout, Stderr, and Stdin handles along with
 	// some basic metadata about them, such as whether each is connected to
@@ -104,11 +108,6 @@ type Meta struct {
 	// provider version can be obtained.
 	ProviderSource getproviders.Source
 
-	// OverrideDataDir, if non-empty, overrides the return value of the
-	// DataDir method for situations where the local .terraform/ directory
-	// is not suitable, e.g. because of a read-only filesystem.
-	OverrideDataDir string
-
 	// BrowserLauncher is used by commands that need to open a URL in a
 	// web browser.
 	BrowserLauncher webbrowser.Launcher
@@ -136,10 +135,6 @@ type Meta struct {
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------
-
-	// Modify the data directory location. This should be accessed through the
-	// DataDir method.
-	dataDir string
 
 	// pluginPath is a user defined set of directories to look for plugins.
 	// This is set during init with the `-plugin-dir` flag, saved to a file in
@@ -267,13 +262,25 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 	}
 }
 
+// fixupMissingWorkingDir is a compensation for various existing tests which
+// directly construct incomplete "Meta" objects. Specifically, it deals with
+// a test that omits a WorkingDir value by constructing one just-in-time.
+//
+// We shouldn't ever rely on this in any real codepath, because it doesn't
+// take into account the various ways users can override our default
+// directory selection behaviors.
+func (m *Meta) fixupMissingWorkingDir() {
+	if m.WorkingDir == nil {
+		log.Printf("[WARN] This 'Meta' object is missing its WorkingDir, so we're creating a default one suitable only for tests")
+		m.WorkingDir = workdir.NewDir(".")
+	}
+}
+
 // DataDir returns the directory where local data will be stored.
 // Defaults to DefaultDataDir in the current working directory.
 func (m *Meta) DataDir() string {
-	if m.OverrideDataDir != "" {
-		return m.OverrideDataDir
-	}
-	return DefaultDataDir
+	m.fixupMissingWorkingDir()
+	return m.WorkingDir.DataDir()
 }
 
 const (
@@ -501,7 +508,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 
 	opts.Meta = &terraform.ContextMeta{
 		Env:                workspace,
-		OriginalWorkingDir: m.OriginalWorkingDir,
+		OriginalWorkingDir: m.WorkingDir.OriginalWorkingDir(),
 	}
 
 	return &opts, nil
