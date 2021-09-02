@@ -237,16 +237,20 @@ only SSH key authentication is supported, and
 
 By default, Terraform will clone and use the default branch (referenced by
 `HEAD`) in the selected repository. You can override this using the
-`ref` argument:
+`ref` argument. The value of the `ref` argument can be any reference that would be accepted
+by the `git checkout` command, such as branch, SHA-1 hash (short or full), or tag names. The [Git documentation](https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection#_single_revisions) contains a complete list.
 
 ```hcl
+# referencing a specific release
 module "vpc" {
   source = "git::https://example.com/vpc.git?ref=v1.2.0"
 }
-```
 
-The value of the `ref` argument can be any reference that would be accepted
-by the `git checkout` command, including branch and tag names.
+# referencing a specific commit SHA-1 hash
+module "storage" {
+  source = "git::https://example.com/storage.git?ref=51d462976d84fdea54b47d80dcabbf680badcdb8"
+}
+```
 
 ### "scp-like" address syntax
 
