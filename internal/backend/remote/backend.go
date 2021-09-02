@@ -17,6 +17,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -49,6 +50,11 @@ type Remote struct {
 	// new Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
 	ContextOpts *terraform.ContextOpts
+
+	// BasePluginFinder is the partially-configured plugin finder, from which
+	// we must derive a final finder for each operation based on the
+	// operation-specific arguments.
+	BasePluginFinder plugins.Finder
 
 	// client is the remote backend API client.
 	client *tfe.Client

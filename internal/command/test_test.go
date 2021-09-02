@@ -2,18 +2,36 @@ package command
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 // These are the main tests for the "terraform test" command.
 func TestTest(t *testing.T) {
+
+	// Our test configurations depend on terraform.io/builtin/test. The
+	// "terraform test" environment provides its own instance of that provider
+	// in practice, so this should never be called and this is therefore only
+	// present to provide a realistic base state for the command to override
+	// itself.
+	pluginTestOverrides := &plugins.FinderTestingOverrides{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewBuiltInProvider("test"): func() (providers.Interface, error) {
+				return nil, fmt.Errorf("non-overridden test provider")
+			},
+		},
+	}
+
 	t.Run("passes", func(t *testing.T) {
 		td := tempDir(t)
 		testCopyDir(t, testFixturePath("test-passes"), td)
@@ -23,8 +41,9 @@ func TestTest(t *testing.T) {
 		streams, close := terminal.StreamsForTesting(t)
 		cmd := &TestCommand{
 			Meta: Meta{
-				Streams: streams,
-				View:    views.NewView(streams),
+				Streams:          streams,
+				View:             views.NewView(streams),
+				testingOverrides: pluginTestOverrides,
 			},
 		}
 		exitStatus := cmd.Run([]string{"-junit-xml=junit.xml", "-no-color"})
@@ -93,8 +112,9 @@ Success! All of the test assertions passed.
 		streams, close := terminal.StreamsForTesting(t)
 		cmd := &TestCommand{
 			Meta: Meta{
-				Streams: streams,
-				View:    views.NewView(streams),
+				Streams:          streams,
+				View:             views.NewView(streams),
+				testingOverrides: pluginTestOverrides,
 			},
 		}
 		exitStatus := cmd.Run([]string{"-junit-xml=junit.xml", "-no-color"})

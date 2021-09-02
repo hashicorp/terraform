@@ -306,6 +306,10 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	if err != nil {
 		return nil, err
 	}
+	pluginFinder, diags := m.pluginFinder()
+	if diags.HasErrors() {
+		return nil, diags.Err()
+	}
 	return &backend.CLIOpts{
 		CLI:                 m.Ui,
 		CLIColor:            m.Colorize(),
@@ -314,6 +318,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 		StateOutPath:        m.stateOutPath,
 		StateBackupPath:     m.backupPath,
 		ContextOpts:         contextOpts,
+		BasePluginFinder:    pluginFinder,
 		Input:               m.Input(),
 		RunningInAutomation: m.RunningInAutomation,
 	}, nil

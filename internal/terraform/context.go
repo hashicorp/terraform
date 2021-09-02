@@ -43,10 +43,6 @@ type ContextOpts struct {
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
 
-	// If non-nil, will apply as additional constraints on the provider
-	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s map[string][]byte
-
 	// If non-nil, will be verified to ensure that provider requirements from
 	// configuration can be satisfied by the set of locked dependencies.
 	LockedDependencies *depsfile.Locks
@@ -99,7 +95,6 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]cty.Value
-	providerSHA256s     map[string][]byte
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
@@ -159,7 +154,6 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
-		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
 	}, diags
 }

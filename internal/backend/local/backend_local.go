@@ -7,9 +7,12 @@ import (
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -172,6 +175,11 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	// snapshot, from the previous run.
 	run.InputState = s.State()
 
+	pluginSelections, moreDiags := b.pluginSelections(run.Config, run.InputState, run.Plan)
+	diags = diags.Append(moreDiags)
+	coreOpts.Providers = pluginSelections.ProviderFactories()
+	coreOpts.Provisioners = pluginSelections.ProvisionerFactories()
+
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -252,10 +260,10 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 	// we need to apply the plan.
 	run.Plan = plan
 
-	// When we're applying a saved plan, our context must verify that all of
-	// the providers it ends up using are identical to those which created
-	// the plan.
-	coreOpts.ProviderSHA256s = plan.ProviderSHA256s
+	pluginSelections, moreDiags := b.pluginSelections(run.Config, run.InputState, run.Plan)
+	diags = diags.Append(moreDiags)
+	coreOpts.Providers = pluginSelections.ProviderFactories()
+	coreOpts.Provisioners = pluginSelections.ProvisionerFactories()
 
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
@@ -384,6 +392,29 @@ func (b *Local) stubUnsetRequiredVariables(existing map[string]backend.UnparsedV
 		}
 	}
 	return ret
+}
+
+func (b *Local) pluginSelections(cfg *configs.Config, inputState *states.State, plan *plans.Plan) (*plugins.Selections, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	providerReqs, hclDiags := cfg.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if inputState != nil {
+		providerReqs = providerReqs.Merge(inputState.ProviderRequirements())
+	}
+	finder := b.BasePluginFinder.WithProviderRequirements(providerReqs)
+	if plan != nil {
+		finder = finder.WithForcedProviderChecksums(plan.ProviderChecksums)
+	}
+	ret, err := finder.FindPlugins()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Plugin Selection Error",
+			fmt.Sprintf("Terraform was unable to find all of the required plugins: %s.\n\nYou can automatically fix some plugin-related problems by running 'terraform init'.", err),
+		))
+	}
+	return ret, diags
 }
 
 type unparsedInteractiveVariableValue struct {

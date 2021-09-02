@@ -4,6 +4,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -71,6 +72,15 @@ type CLIOpts struct {
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
 	ContextOpts *terraform.ContextOpts
+
+	// BasePluginFinder is a partially-configured plugin finder which knows
+	// the settings based on environment variables and the CLI configuration,
+	// and also knows about the dependency lock file, but doesn't yet know
+	// what providers are needed for a particular operation. The backend
+	// should derive a final Finder from this one for each operation request,
+	// based on the configuration, state, and plan file included in that
+	// operation.
+	BasePluginFinder plugins.Finder
 
 	// Input will ask for necessary input prior to performing any operations.
 	//

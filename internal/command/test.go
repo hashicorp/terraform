@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -286,7 +287,12 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	suiteDirs.ProvidersDir = filepath.Join(configDir, ".terraform", "providers")
 	os.MkdirAll(suiteDirs.ProvidersDir, 0755) // if this fails then we'll ignore it and operations below fail instead
 	localCacheDir := providercache.NewDir(suiteDirs.ProvidersDir)
-	providerInst := c.providerInstaller().Clone(localCacheDir)
+	suiteDirs.ProviderCache = localCacheDir
+	providerInst, moreDiags := c.testSuiteProviderInstaller(suiteDirs)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return suiteDirs, diags
+	}
 	if !providerInst.HasGlobalCacheDir() {
 		// If the user already configured a global cache directory then we'll
 		// just use it for caching the test providers too, because then we
@@ -341,7 +347,6 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 		return suiteDirs, diags
 	}
 	suiteDirs.ProviderLocks = locks
-	suiteDirs.ProviderCache = localCacheDir
 
 	return suiteDirs, diags
 }
@@ -383,7 +388,7 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	// here we're associating each set of diagnostics with the specific
 	// operation it belongs to.
 
-	providerFactories, diags := c.testSuiteProviders(suiteDirs, testProvider)
+	pluginSelections, diags := c.testSuitePlugins(suiteDirs, testProvider)
 	if diags.HasErrors() {
 		// It should be unusual to get in here, because testSuiteProviders
 		// should rely only on things guaranteed by prepareSuiteDir, but
@@ -393,12 +398,12 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 		return synthError(
 			"init",
 			"terraform init",
-			"failed to resolve the required providers",
+			"failed to resolve the required plugins",
 			diags,
 		)
 	}
 
-	plan, diags := c.testSuitePlan(ctx, suiteDirs, providerFactories)
+	plan, diags := c.testSuitePlan(ctx, suiteDirs, pluginSelections)
 	if diags.HasErrors() {
 		// It should be unusual to get in here, because testSuitePlan
 		// should rely only on things guaranteed by prepareSuiteDir, but
@@ -419,7 +424,7 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	// with so the caller can generate additional loud errors if anything
 	// is left in it.
 
-	state, diags = c.testSuiteApply(ctx, plan, suiteDirs, providerFactories)
+	state, diags = c.testSuiteApply(ctx, plan, suiteDirs, pluginSelections)
 	if diags.HasErrors() {
 		// We don't return here, unlike the others above, because we want to
 		// continue to the destroy below even if there are apply errors.
@@ -437,7 +442,7 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	// the destroy operation below won't get tripped up on stale results.
 	ret = testProvider.Reset()
 
-	state, diags = c.testSuiteDestroy(ctx, state, suiteDirs, providerFactories)
+	state, diags = c.testSuiteDestroy(ctx, state, suiteDirs, pluginSelections)
 	if diags.HasErrors() {
 		synthError(
 			"destroy",
@@ -450,49 +455,88 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	return ret, state
 }
 
-func (c *TestCommand) testSuiteProviders(suiteDirs testCommandSuiteDirs, testProvider *moduletest.Provider) (map[addrs.Provider]providers.Factory, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuiteProviderInstaller(suiteDirs testCommandSuiteDirs) (*providercache.Installer, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	ret := make(map[addrs.Provider]providers.Factory)
 
-	// We can safely use the internal providers returned by Meta here because
-	// the built-in provider versions can never vary based on the configuration
-	// and thus we don't need to worry about potential version differences
-	// between main module and test suite modules.
-	for name, factory := range c.internalProviders() {
-		ret[addrs.NewBuiltInProvider(name)] = factory
+	// To configure the installer we need some values from our plugin finder.
+	// We aren't actually going to instantiate any providers from this, so
+	// we'll just pass a nil testProvider as a placeholder to get the
+	// factory populated.
+	finder, moreDiags := c.testSuitePluginFinder(suiteDirs, nil)
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
-	// For the remaining non-builtin providers, we'll just take whatever we
-	// recorded earlier in the in-memory-only "lock file". All of these should
-	// typically still be available because we would've only just installed
-	// them, but this could fail if e.g. the filesystem has been somehow
-	// damaged in the meantime.
-	for provider, lock := range suiteDirs.ProviderLocks.AllProviders() {
-		version := lock.Version()
-		cached := suiteDirs.ProviderCache.ProviderVersion(provider, version)
-		if cached == nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Required provider not found",
-				fmt.Sprintf("Although installation previously succeeded for %s v%s, it no longer seems to be present in the cache directory.", provider.ForDisplay(), version.String()),
-			))
-			continue // potentially collect up multiple errors
-		}
-
-		// NOTE: We don't consider the checksums for test suite dependencies,
-		// because we're creating a fresh "lock file" each time we run anyway
-		// and so they wouldn't actually guarantee anything useful.
-
-		ret[provider] = providerFactory(cached)
+	installSource := c.providerInstallSource()
+	targetDir := suiteDirs.ProviderCache
+	globalCacheDir := c.providerGlobalCacheDir()
+	inst := providercache.NewInstaller(targetDir, installSource)
+	if globalCacheDir != nil {
+		inst.SetGlobalCacheDir(globalCacheDir)
 	}
 
-	// We'll replace the test provider instance with the one our caller
-	// provided, so it'll be able to interrogate the test results directly.
-	ret[addrs.NewBuiltInProvider("test")] = func() (providers.Interface, error) {
-		return testProvider, nil
+	builtinProviderTypes := finder.BuiltinProviderTypes()
+	inst.SetBuiltInProviderTypes(builtinProviderTypes)
+	unmanagedProviderAddrs := finder.UnmanagedProviderAddrs()
+	// inst.SetUnmanagedProviderTypes wants a map representing a set, so
+	// we need to project the result from upstream. :(
+	unmanagedProviderAddrsSet := make(map[addrs.Provider]struct{}, len(unmanagedProviderAddrs))
+	for _, addr := range unmanagedProviderAddrs {
+		unmanagedProviderAddrsSet[addr] = struct{}{}
+	}
+	inst.SetUnmanagedProviderTypes(unmanagedProviderAddrsSet)
+
+	return inst, diags
+}
+
+func (c *TestCommand) testSuitePluginFinder(suiteDirs testCommandSuiteDirs, testProvider *moduletest.Provider) (plugins.Finder, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// We need some different settings in our plugin finder, so we'll look up
+	// the dependencies of the test suite rather than of the configuration
+	// in the current directory.
+	pluginFinder, moreDiags := c.pluginFinder()
+	diags = diags.Append(moreDiags)
+	if diags.HasErrors() {
+		return pluginFinder, diags
+	}
+	pluginFinder = pluginFinder.WithOtherProviderDir(suiteDirs.ProviderCache)
+	pluginFinder = pluginFinder.WithDependencyLocks(suiteDirs.ProviderLocks)
+	pluginFinder = pluginFinder.WithAdditionalBuiltinProviders(map[string]providers.Factory{
+		// We need to use our specific instance of the provider, so that
+		// we can interrogate the test results from it.
+		"test": func() (providers.Interface, error) {
+			return testProvider, nil
+		},
+	})
+
+	return pluginFinder, diags
+}
+
+func (c *TestCommand) testSuitePlugins(suiteDirs testCommandSuiteDirs, testProvider *moduletest.Provider) (*plugins.Selections, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	pluginFinder, moreDiags := c.testSuitePluginFinder(suiteDirs, testProvider)
+	diags = diags.Append(moreDiags)
+
+	selections, err := pluginFinder.FindPlugins()
+	if err != nil {
+		// It'd be weird to get here because an earlier step should've just
+		// installed all of the needed providers into suiteDirs.ProviderCache,
+		// and returned its own errors if that wasn't possible.
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't find required plugins",
+			fmt.Sprintf(
+				"Failed to find plugins required for the test suite: %s.",
+				err,
+			),
+		))
+		return nil, diags
 	}
 
-	return ret, diags
+	return selections, diags
 }
 
 type testSuiteRunContext struct {
@@ -504,7 +548,7 @@ type testSuiteRunContext struct {
 	Changes    *plans.Changes
 }
 
-func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory, state *states.State, plan *plans.Plan, destroy bool) (*testSuiteRunContext, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, pluginSelections *plugins.Selections, state *states.State, plan *plans.Plan, destroy bool) (*testSuiteRunContext, tfdiags.Diagnostics) {
 	var changes *plans.Changes
 	if plan != nil {
 		changes = plan.Changes
@@ -516,13 +560,13 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 	}
 
 	tfCtx, diags := terraform.NewContext(&terraform.ContextOpts{
-		Providers: providerFactories,
+		Providers: pluginSelections.ProviderFactories(),
 
 		// We just use the provisioners from the main Meta here, because
 		// unlike providers provisioner plugins are not automatically
 		// installable anyway, and so we'll need to hunt for them in the same
 		// legacy way that normal Terraform operations do.
-		Provisioners: c.provisionerFactories(),
+		Provisioners: pluginSelections.ProvisionerFactories(),
 
 		Meta: &terraform.ContextMeta{
 			Env: "test_" + suiteDirs.SuiteName,
@@ -541,9 +585,9 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 	}, diags
 }
 
-func (c *TestCommand) testSuitePlan(ctx context.Context, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuitePlan(ctx context.Context, suiteDirs testCommandSuiteDirs, pluginSelections *plugins.Selections) (*plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: create plan for suite %q", suiteDirs.SuiteName)
-	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, nil, false)
+	runCtx, diags := c.testSuiteContext(suiteDirs, pluginSelections, nil, nil, false)
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -567,9 +611,9 @@ func (c *TestCommand) testSuitePlan(ctx context.Context, suiteDirs testCommandSu
 	return plan, diags
 }
 
-func (c *TestCommand) testSuiteApply(ctx context.Context, plan *plans.Plan, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*states.State, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuiteApply(ctx context.Context, plan *plans.Plan, suiteDirs testCommandSuiteDirs, pluginSelections *plugins.Selections) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: apply plan for suite %q", suiteDirs.SuiteName)
-	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, plan, false)
+	runCtx, diags := c.testSuiteContext(suiteDirs, pluginSelections, nil, plan, false)
 	if diags.HasErrors() {
 		// To make things easier on the caller, we'll return a valid empty
 		// state even in this case.
@@ -581,9 +625,9 @@ func (c *TestCommand) testSuiteApply(ctx context.Context, plan *plans.Plan, suit
 	return state, diags
 }
 
-func (c *TestCommand) testSuiteDestroy(ctx context.Context, state *states.State, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*states.State, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuiteDestroy(ctx context.Context, state *states.State, suiteDirs testCommandSuiteDirs, pluginSelections *plugins.Selections) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: plan to destroy any existing objects for suite %q", suiteDirs.SuiteName)
-	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, state, nil, true)
+	runCtx, diags := c.testSuiteContext(suiteDirs, pluginSelections, state, nil, true)
 	if diags.HasErrors() {
 		return state, diags
 	}
@@ -597,7 +641,7 @@ func (c *TestCommand) testSuiteDestroy(ctx context.Context, state *states.State,
 	}
 
 	log.Printf("[TRACE] terraform test: apply the plan to destroy any existing objects for suite %q", suiteDirs.SuiteName)
-	runCtx, moreDiags = c.testSuiteContext(suiteDirs, providerFactories, state, plan, true)
+	runCtx, moreDiags = c.testSuiteContext(suiteDirs, pluginSelections, state, plan, true)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return state, diags

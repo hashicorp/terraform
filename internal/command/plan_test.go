@@ -1050,8 +1050,8 @@ func TestPlan_init_required(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("expected error, got success")
 	}
-	got := output.Stderr()
-	if !strings.Contains(got, `failed to read schema for test_instance.foo in registry.terraform.io/hashicorp/test`) {
+	got := strings.ReplaceAll(output.Stderr(), "\n", " ")
+	if !strings.Contains(got, `You can automatically fix some plugin-related problems by running 'terraform init'.`) {
 		t.Fatal("wrong error message in output:", got)
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
@@ -56,8 +57,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
-
-		ProviderSHA256s: map[string][]byte{},
+		ProviderChecksums: map[addrs.Provider]getproviders.Hash{},
 	}
 
 	switch rawPlan.UiMode {
@@ -114,12 +114,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.ForceReplaceAddrs = append(plan.ForceReplaceAddrs, addr)
 	}
 
-	for name, rawHashObj := range rawPlan.ProviderHashes {
-		if len(rawHashObj.Sha256) == 0 {
-			return nil, fmt.Errorf("no SHA256 hash for provider %q plugin", name)
+	for addrStr, hashStr := range rawPlan.ProviderHashes {
+		addr, diags := addrs.ParseProviderSourceString(addrStr)
+		if diags.HasErrors() {
+			return nil, fmt.Errorf("plan refers to invalid provider address %q: %w", addrStr, diags.Err())
 		}
-
-		plan.ProviderSHA256s[name] = rawHashObj.Sha256
+		hash, err := getproviders.ParseHash(hashStr)
+		if err != nil {
+			return nil, fmt.Errorf("plan has invalid hash for provider %q: %w", addrStr, err)
+		}
+		plan.ProviderChecksums[addr] = hash
 	}
 
 	for name, rawVal := range rawPlan.Variables {
@@ -337,7 +341,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	rawPlan := &planproto.Plan{
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
-		ProviderHashes:   map[string]*planproto.Hash{},
+		ProviderHashes:   map[string]string{},
 
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
@@ -396,10 +400,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.ForceReplaceAddrs = append(rawPlan.ForceReplaceAddrs, replaceAddr.String())
 	}
 
-	for name, hash := range plan.ProviderSHA256s {
-		rawPlan.ProviderHashes[name] = &planproto.Hash{
-			Sha256: hash,
-		}
+	for addr, hash := range plan.ProviderChecksums {
+		rawPlan.ProviderHashes[addr.String()] = hash.String()
 	}
 
 	for name, val := range plan.VariableValues {

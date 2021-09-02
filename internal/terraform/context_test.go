@@ -721,6 +721,14 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 // reads it back in again and produces a ContextOpts object containing the
 // planned changes, prior state and config from the plan file.
 //
+// This function is now a bit silly because ContextOpts no longer includes
+// anything that's derived from a saved plan file, and instead all of that
+// information ends up either passed in to methods of Context or handled
+// entirely outside of this package. However, we preserve this function because
+// of how many of our context tests depend on it. The returned ContextOpts
+// is always empty in practice, and it's the config and plan that are
+// the important return values.
+//
 // This is intended for testing the separated plan/apply workflow in a more
 // convenient way than spelling out all of these steps every time. Normally
 // only the command and backend packages need to deal with such things, but
@@ -779,9 +787,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 		return nil, nil, nil, err
 	}
 
-	return &ContextOpts{
-		ProviderSHA256s: plan.ProviderSHA256s,
-	}, config, plan, nil
+	return &ContextOpts{}, config, plan, nil
 }
 
 // legacyPlanComparisonString produces a string representation of the changes

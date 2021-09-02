@@ -3,20 +3,10 @@ package command
 import (
 	"fmt"
 	"log"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 
-	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
-
-	fileprovisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
-	localexec "github.com/hashicorp/terraform/internal/builtin/provisioners/local-exec"
-	remoteexec "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/logging"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin"
-	"github.com/hashicorp/terraform/internal/plugin/discovery"
-	"github.com/hashicorp/terraform/internal/provisioners"
 )
 
 // NOTE WELL: The logic in this file is primarily about plugin types OTHER THAN
@@ -91,81 +81,4 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	dirs = append(dirs, m.GlobalPluginDirs...)
 
 	return dirs
-}
-
-func (m *Meta) provisionerFactories() map[string]provisioners.Factory {
-	dirs := m.pluginDirs(true)
-	plugins := discovery.FindPlugins("provisioner", dirs)
-	plugins, _ = plugins.ValidateVersions()
-
-	// For now our goal is to just find the latest version of each plugin
-	// we have on the system. All provisioners should be at version 0.0.0
-	// currently, so there should actually only be one instance of each plugin
-	// name here, even though the discovery interface forces us to pretend
-	// that might not be true.
-
-	factories := make(map[string]provisioners.Factory)
-
-	// Wire up the internal provisioners first. These might be overridden
-	// by discovered provisioners below.
-	for name, factory := range internalProvisionerFactories() {
-		factories[name] = factory
-	}
-
-	byName := plugins.ByName()
-	for name, metas := range byName {
-		// Since we validated versions above and we partitioned the sets
-		// by name, we're guaranteed that the metas in our set all have
-		// valid versions and that there's at least one meta.
-		newest := metas.Newest()
-
-		factories[name] = provisionerFactory(newest)
-	}
-
-	return factories
-}
-
-func provisionerFactory(meta discovery.PluginMeta) provisioners.Factory {
-	return func() (provisioners.Interface, error) {
-		cfg := &plugin.ClientConfig{
-			Cmd:              exec.Command(meta.Path),
-			HandshakeConfig:  tfplugin.Handshake,
-			VersionedPlugins: tfplugin.VersionedPlugins,
-			Managed:          true,
-			Logger:           logging.NewLogger("provisioner"),
-			AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-			AutoMTLS:         enableProviderAutoMTLS,
-			SyncStdout:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stdout", meta.Name)),
-			SyncStderr:       logging.PluginOutputMonitor(fmt.Sprintf("%s:stderr", meta.Name)),
-		}
-		client := plugin.NewClient(cfg)
-		return newProvisionerClient(client)
-	}
-}
-
-func internalProvisionerFactories() map[string]provisioners.Factory {
-	return map[string]provisioners.Factory{
-		"file":        provisioners.FactoryFixed(fileprovisioner.New()),
-		"local-exec":  provisioners.FactoryFixed(localexec.New()),
-		"remote-exec": provisioners.FactoryFixed(remoteexec.New()),
-	}
-}
-
-func newProvisionerClient(client *plugin.Client) (provisioners.Interface, error) {
-	// Request the RPC client so we can get the provisioner
-	// so we can build the actual RPC-implemented provisioner.
-	rpcClient, err := client.Client()
-	if err != nil {
-		return nil, err
-	}
-
-	raw, err := rpcClient.Dispense(tfplugin.ProvisionerPluginName)
-	if err != nil {
-		return nil, err
-	}
-
-	// store the client so that the plugin can kill the child process
-	p := raw.(*tfplugin.GRPCProvisioner)
-	p.PluginClient = client
-	return p, nil
 }

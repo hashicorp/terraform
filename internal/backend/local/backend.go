@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -65,6 +66,17 @@ type Local struct {
 	// Terraform context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
 	ContextOpts *terraform.ContextOpts
+
+	// BasePluginFinder is a partially-configured plugin finder that
+	// is aware of the settings derived from the CLI configuration and the
+	// environment, and the dependency lock file, but doesn't yet know the
+	// required providers from the configuration/state nor the locked provider
+	// hashes from the saved plan file, if any.
+	//
+	// Local.LocalRun is responsible for augmenting this with the remaining
+	// run-specific settings before using it to configure Terraform Core's
+	// available plugin factories.
+	BasePluginFinder plugins.Finder
 
 	// OpInput will ask for necessary input prior to performing any operations.
 	//

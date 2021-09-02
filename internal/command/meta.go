@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	plugin "github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform-svchost/disco"
@@ -26,14 +25,13 @@ import (
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -58,6 +56,15 @@ type Meta struct {
 	// in here, but we're not there yet and so there are also some methods on
 	// Meta which directly read and modify paths inside the data directory.
 	WorkingDir *workdir.Dir
+
+	// BasePluginFinder is a partially-configured plugin finder that knows
+	// only the settings that can be determined by "package main" before we
+	// decide which subcommand we're running, etc. This is not useful directly,
+	// but Meta.pluginFinder() will extend this with a little more information
+	// to prepare for delegating into a backend, and then in turn the backend
+	// will extend it with specifics about the selected configuration, state,
+	// and plan.
+	BasePluginFinder plugins.Finder
 
 	// Streams tracks the raw Stdout, Stderr, and Stdin handles along with
 	// some basic metadata about them, such as whether each is connected to
@@ -114,23 +121,6 @@ type Meta struct {
 
 	// When this channel is closed, the command will be cancelled.
 	ShutdownCh <-chan struct{}
-
-	// ProviderDevOverrides are providers where we ignore the lock file, the
-	// configured version constraints, and the local cache directory and just
-	// always use exactly the path specified. This is intended to allow
-	// provider developers to easily test local builds without worrying about
-	// what version number they might eventually be released as, or what
-	// checksums they have.
-	ProviderDevOverrides map[addrs.Provider]getproviders.PackageLocalDir
-
-	// UnmanagedProviders are a set of providers that exist as processes
-	// predating Terraform, which Terraform should use but not worry about the
-	// lifecycle of.
-	//
-	// This is essentially a more extreme version of ProviderDevOverrides where
-	// Terraform doesn't even worry about how the provider server gets launched,
-	// just trusting that someone else did it before running Terraform.
-	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
 	//----------------------------------------------------------
 	// Protected: commands can set these
@@ -223,10 +213,11 @@ type Meta struct {
 	ignoreRemoteVersion bool
 }
 
-type testingOverrides struct {
-	Providers    map[addrs.Provider]providers.Factory
-	Provisioners map[string]provisioners.Factory
-}
+// This was formerly a struct type defined directly in here, but test
+// overrides are now the responsibility of plugins.Finder instead.
+// This alias is here just to avoid updating many existing tests that directly
+// construct values of this type; don't use it in new code.
+type testingOverrides = plugins.FinderTestingOverrides
 
 // initStatePaths is used to initialize the default values for
 // statePath, stateOutPath, and backupPath
@@ -454,64 +445,47 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	opts.UIInput = m.UIInput()
 	opts.Parallelism = m.parallelism
 
-	// If testingOverrides are set, we'll skip the plugin discovery process
-	// and just work with what we've been given, thus allowing the tests
-	// to provide mock providers and provisioners.
-	if m.testingOverrides != nil {
-		opts.Providers = m.testingOverrides.Providers
-		opts.Provisioners = m.testingOverrides.Provisioners
-	} else {
-		providerFactories, err := m.providerFactories()
-		if err != nil {
-			// providerFactories can fail if the plugin selections file is
-			// invalid in some way, but we don't have any way to report that
-			// from here so we'll just behave as if no providers are available
-			// in that case. However, we will produce a warning in case this
-			// shows up unexpectedly and prompts a bug report.
-			// This situation shouldn't arise commonly in practice because
-			// the selections file is generated programmatically.
-			log.Printf("[WARN] Failed to determine selected providers: %s", err)
-
-			// variable providerFactories may now be incomplete, which could
-			// lead to errors reported downstream from here. providerFactories
-			// tries to populate as many providers as possible even in an
-			// error case, so that operations not using problematic providers
-			// can still succeed.
-		}
-		opts.Providers = providerFactories
-		opts.Provisioners = m.provisionerFactories()
-
-		// Read the dependency locks so that they can be verified against the
-		// provider requirements in the configuration
-		lockedDependencies, diags := m.lockedDependencies()
-
-		// If the locks file is invalid, we should fail early rather than
-		// ignore it. A missing locks file will return no error.
-		if diags.HasErrors() {
-			return nil, diags.Err()
-		}
-		opts.LockedDependencies = lockedDependencies
-
-		// If any unmanaged providers or dev overrides are enabled, they must
-		// be listed in the context so that they can be ignored when verifying
-		// the locks against the configuration
-		opts.ProvidersInDevelopment = make(map[addrs.Provider]struct{})
-		for provider := range m.UnmanagedProviders {
-			opts.ProvidersInDevelopment[provider] = struct{}{}
-		}
-		for provider := range m.ProviderDevOverrides {
-			opts.ProvidersInDevelopment[provider] = struct{}{}
-		}
-	}
-
-	opts.ProviderSHA256s = m.providerPluginsLock().Read()
-
 	opts.Meta = &terraform.ContextMeta{
 		Env:                workspace,
 		OriginalWorkingDir: m.WorkingDir.OriginalWorkingDir(),
 	}
 
 	return &opts, nil
+}
+
+// pluginFinder extends the plugin finder provided by package main (or some
+// equivalent caller) with some additional information we can infer from the
+// Meta object, returning that extended Finder.
+//
+// The result is still not sufficient to actually select plugins. The final
+// configuration and selection typically happens inside Backend.LocalRun, at
+// which point we add in the provider requirements from the config/state
+// and the locked checksums from the saved plan file, if any.
+func (m *Meta) pluginFinder() (plugins.Finder, tfdiags.Diagnostics) {
+	if m.testingOverrides != nil {
+		// Testing overrides bypass all other plugin search mechanisms
+		log.Printf("[TRACE] command.Meta: pluginFinder honoring test overrides")
+		return plugins.NewFinderForTests(*m.testingOverrides), nil
+	}
+
+	var diags tfdiags.Diagnostics
+	ret := m.BasePluginFinder
+
+	lockedDependencies, moreDiags := m.lockedDependencies()
+	diags = diags.Append(moreDiags)
+	ret = ret.WithDependencyLocks(lockedDependencies)
+
+	if m.pluginPath != nil {
+		// If set, the plugin path entirely replaces our provisioner search
+		// locations.
+		ret = ret.WithProvisionerSearchDirs(m.pluginPath)
+		// NOTE: We don't use m.pluginPath to change anything about _providers_
+		// here because for providers the plugin path is an installation-time
+		// concern, not a runtime concern. (The installer copies/links the
+		// providers from the overridden path into the local cache directory.)
+	}
+
+	return m.BasePluginFinder.WithDependencyLocks(lockedDependencies), diags
 }
 
 // defaultFlagSet creates a default flag set for commands.

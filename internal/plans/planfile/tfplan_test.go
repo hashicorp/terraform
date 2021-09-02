@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -125,13 +126,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
 		},
-		ProviderSHA256s: map[string][]byte{
-			"test": []byte{
-				0xba, 0x5e, 0x1e, 0x55, 0xb0, 0x1d, 0xfa, 0xce,
-				0xef, 0xfe, 0xc7, 0xed, 0x1a, 0xbe, 0x11, 0xed,
-				0x5c, 0xa1, 0xab, 0x1e, 0xda, 0x7a, 0xba, 0x5e,
-				0x70, 0x7a, 0x11, 0xed, 0xb0, 0x07, 0xab, 0x1e,
-			},
+		ProviderChecksums: map[addrs.Provider]getproviders.Hash{
+			addrs.MustParseProviderSourceString("example.com/test/baz"): getproviders.MustParseHash("h1:placeholder"),
 		},
 		Backend: plans.Backend{
 			Type: "local",

@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -33,7 +34,7 @@ type Plan struct {
 	Changes           *Changes
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
-	ProviderSHA256s   map[string][]byte
+	ProviderChecksums map[addrs.Provider]getproviders.Hash
 	Backend           Backend
 
 	// PrevRunState and PriorState both describe the situation that the plan

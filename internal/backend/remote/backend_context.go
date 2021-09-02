@@ -10,7 +10,10 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/plugins"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -128,6 +131,11 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 		}
 	}
 
+	pluginSelections, moreDiags := b.pluginSelections(ret.Config, ret.InputState, ret.Plan)
+	diags = diags.Append(moreDiags)
+	opts.Providers = pluginSelections.ProviderFactories()
+	opts.Provisioners = pluginSelections.ProvisionerFactories()
+
 	tfCtx, ctxDiags := terraform.NewContext(&opts)
 	diags = diags.Append(ctxDiags)
 	ret.Core = tfCtx
@@ -170,6 +178,29 @@ func (b *Remote) getRemoteWorkspaceID(ctx context.Context, localWorkspaceName st
 	}
 
 	return remoteWorkspace.ID, nil
+}
+
+func (b *Remote) pluginSelections(cfg *configs.Config, inputState *states.State, plan *plans.Plan) (*plugins.Selections, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	providerReqs, hclDiags := cfg.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if inputState != nil {
+		providerReqs = providerReqs.Merge(inputState.ProviderRequirements())
+	}
+	finder := b.BasePluginFinder.WithProviderRequirements(providerReqs)
+	if plan != nil {
+		finder = finder.WithForcedProviderChecksums(plan.ProviderChecksums)
+	}
+	ret, err := finder.FindPlugins()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Plugin Selection Error",
+			fmt.Sprintf("Terraform was unable to find all of the required plugins: %s.\n\nYou can automatically fix some plugin-related problems by running 'terraform init'.", err),
+		))
+	}
+	return ret, diags
 }
 
 func stubAllVariables(vv map[string]backend.UnparsedVariableValue, decls map[string]*configs.Variable) terraform.InputValues {

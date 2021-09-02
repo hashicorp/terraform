@@ -7,7 +7,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -51,7 +53,7 @@ func TestRoundtrip(t *testing.T) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs:   []*plans.OutputChangeSrc{},
 		},
-		ProviderSHA256s: map[string][]byte{},
+		ProviderChecksums: map[addrs.Provider]getproviders.Hash{},
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": plans.DynamicValue([]byte("foo placeholder")),
 		},

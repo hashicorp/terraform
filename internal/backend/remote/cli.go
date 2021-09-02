@@ -15,6 +15,7 @@ func (b *Remote) CLIInit(opts *backend.CLIOpts) error {
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
 	b.ContextOpts = opts.ContextOpts
+	b.BasePluginFinder = opts.BasePluginFinder
 
 	return nil
 }

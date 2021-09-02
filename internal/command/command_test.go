@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -176,6 +177,12 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+
+			// Some tests also expect to have the builtin "terraform" provider
+			// available, despite not explicitly registering it.
+			addrs.NewBuiltInProvider("terraform"): func() (providers.Interface, error) {
+				return terraformProvider.NewProvider(), nil
+			},
 		},
 	}
 }

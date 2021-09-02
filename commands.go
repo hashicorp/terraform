@@ -78,11 +78,13 @@ func initCommands(
 	}
 
 	wd := WorkingDir(originalWorkingDir, os.Getenv("TF_DATA_DIR"))
+	pluginFinder := basePluginFinder(wd.ProviderLocalCacheDir(), providerDevOverrides, unmanagedProviders)
 
 	meta := command.Meta{
-		WorkingDir: wd,
-		Streams:    streams,
-		View:       views.NewView(streams).SetRunningInAutomation(inAutomation),
+		WorkingDir:       wd,
+		BasePluginFinder: pluginFinder,
+		Streams:          streams,
+		View:             views.NewView(streams).SetRunningInAutomation(inAutomation),
 
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
@@ -97,9 +99,7 @@ func initCommands(
 
 		ShutdownCh: makeShutdownCh(),
 
-		ProviderSource:       providerSrc,
-		ProviderDevOverrides: providerDevOverrides,
-		UnmanagedProviders:   unmanagedProviders,
+		ProviderSource: providerSrc,
 	}
 
 	// The command list is included in the terraform -help
@@ -407,9 +407,9 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             struct{}{},
-		"internal-plugin": struct{}{},
-		"push":            struct{}{},
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
 	}
 
 }

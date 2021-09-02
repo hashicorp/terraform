@@ -153,12 +153,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 		varVals[k] = dv
 	}
 
-	// insert the run-specific data from the context into the plan; variables,
-	// targets and provider SHAs.
+	// insert the run-specific data from the context into the plan.
 	if plan != nil {
 		plan.VariableValues = varVals
 		plan.TargetAddrs = opts.Targets
-		plan.ProviderSHA256s = c.providerSHA256s
+		// NOTE: plan.ProviderChecksums must be filled in by a caller if
+		// this plan will be saved to a file, but we don't populate it by
+		// default because it's unnecessary for an in-memory-only plan.
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}

@@ -77,6 +77,34 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		return diags
 	}
 
+	// Normally it's the backend's job to finally select providers, based on
+	// the configuration and current state. For validate though we don't
+	// require an initialized backend and only refer to the configuration,
+	// and so we need to handle this directly.
+	pluginFinder, ctxDiags := c.pluginFinder()
+	diags = diags.Append(ctxDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+	providerReqs, hclDiags := cfg.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	pluginFinder = pluginFinder.WithProviderRequirements(providerReqs)
+
+	pluginSelections, err := pluginFinder.FindPlugins()
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Can't find required plugins",
+			fmt.Sprintf(
+				"Failed to find plugins required for validation: %s.\n\nYou can resolve some plugin-related problems by running 'terraform init'.",
+				err,
+			),
+		))
+		return diags
+	}
+	opts.Providers = pluginSelections.ProviderFactories()
+	opts.Provisioners = pluginSelections.ProvisionerFactories()
+
 	tfCtx, ctxDiags := terraform.NewContext(opts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {

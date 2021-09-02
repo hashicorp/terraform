@@ -9,6 +9,7 @@ import (
 // backend.CLI impl.
 func (b *Local) CLIInit(opts *backend.CLIOpts) error {
 	b.ContextOpts = opts.ContextOpts
+	b.BasePluginFinder = opts.BasePluginFinder
 	b.OpInput = opts.Input
 	b.OpValidation = opts.Validation
 
