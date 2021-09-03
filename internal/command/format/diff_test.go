@@ -2853,11 +2853,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
         ]
         id    = "i-02ae66f368e8518a9"
 
-      + root_block_device { # forces replacement
-          + volume_type = "different"
-        }
       - root_block_device { # forces replacement
           - volume_type = "gp2" -> null
+        }
+      + root_block_device { # forces replacement
+          + volume_type = "different"
         }
     }
 `,
