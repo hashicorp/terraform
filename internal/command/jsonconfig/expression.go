@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -95,6 +96,9 @@ func marshalExpressions(body hcl.Body, schema *configschema.Block) expressions {
 	lowSchema := hcldec.ImpliedSchema(schema.DecoderSpec())
 	// (lowSchema is an hcl.BodySchema:
 	// https://godoc.org/github.com/hashicorp/hcl/v2/hcl#BodySchema )
+
+	// fix any ConfigModeAttr blocks present from legacy providers
+	body = blocktoattr.FixUpBlockAttrs(body, schema)
 
 	// Use the low-level schema with the body to decode one level We'll just
 	// ignore any additional content that's not covered by the schema, which
