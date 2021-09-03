@@ -319,6 +319,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
+			Secret:      vc.Sensitive,
 		})
 		if err != nil {
 			// Since interactive prompts are best-effort, we'll just continue
