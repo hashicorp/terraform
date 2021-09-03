@@ -1,14 +1,14 @@
-## 1.0.6 (Unreleased)
+## 1.0.6 (September 03, 2021)
 
 ENHANCEMENTS:
 
-* backend/s3: Improve SSO handling and add new endpoints in the AWS SDK [GH-29017]
+* backend/s3: Improve SSO handling and add new endpoints in the AWS SDK ([#29017](https://github.com/hashicorp/terraform/issues/29017))
 
 BUG FIXES:
 
-* cli: Suppress confirmation prompt when initializing with the `-force-copy` flag and migrating state between multiple workspaces. [GH-29438]
-* cli: Update tencentcount dependency versions to fix errors when building from source [GH-29445]
-* core: Fix panic while handling computed attributes within nested objects, and improve plan validation for unknown values [GH-29482]
+* cli: Suppress confirmation prompt when initializing with the `-force-copy` flag and migrating state between multiple workspaces. ([#29438](https://github.com/hashicorp/terraform/issues/29438))
+* cli: Update tencentcount dependency versions to fix errors when building from source ([#29445](https://github.com/hashicorp/terraform/issues/29445))
+* core: Fix panic while handling computed attributes within nested objects, and improve plan validation for unknown values ([#29482](https://github.com/hashicorp/terraform/issues/29482))
 
 ## 1.0.5 (August 18, 2021)
 
