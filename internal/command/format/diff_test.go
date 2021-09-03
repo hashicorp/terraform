@@ -4448,6 +4448,79 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_moved(t *testing.T) {
+	prevRunAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "previous",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	testCases := map[string]testCase{
+		"moved and updated": {
+			PrevRunAddr: prevRunAddr,
+			Action:      plans.Update,
+			Mode:        addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("boop"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  # (test_instance.previous has moved to test_instance.example)
+  ~ resource "test_instance" "example" {
+      ~ bar = "baz" -> "boop"
+        id  = "12345"
+        # (1 unchanged attribute hidden)
+    }
+`,
+		},
+		"moved without changes": {
+			PrevRunAddr: prevRunAddr,
+			Action:      plans.NoOp,
+			Mode:        addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.previous has moved to test_instance.example
+    resource "test_instance" "example" {
+        id  = "12345"
+        # (2 unchanged attributes hidden)
+    }
+`,
+		},
+	}
+
+	runTestCases(t, testCases)
+}
+
 type testCase struct {
 	Action          plans.Action
 	ActionReason    plans.ResourceInstanceChangeActionReason
@@ -4460,6 +4533,7 @@ type testCase struct {
 	Schema          *configschema.Block
 	RequiredReplace cty.PathSet
 	ExpectedOutput  string
+	PrevRunAddr     addrs.AbsResourceInstance
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -4493,13 +4567,23 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				t.Fatal(err)
 			}
 
+			addr := addrs.Resource{
+				Mode: tc.Mode,
+				Type: "test_instance",
+				Name: "example",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+			prevRunAddr := tc.PrevRunAddr
+			// If no previous run address is given, reuse the current address
+			// to make initialization easier
+			if prevRunAddr.Resource.Resource.Type == "" {
+				prevRunAddr = addr
+			}
+
 			change := &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: tc.Mode,
-					Type: "test_instance",
-					Name: "example",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				DeposedKey: tc.DeposedKey,
+				Addr:        addr,
+				PrevRunAddr: prevRunAddr,
+				DeposedKey:  tc.DeposedKey,
 				ProviderAddr: addrs.AbsProviderConfig{
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,

@@ -116,7 +116,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
-		if change.Action == plans.NoOp {
+		if change.Action == plans.NoOp && !change.Moved() {
 			continue // We don't show anything for no-op changes
 		}
 		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
@@ -125,7 +125,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		}
 
 		rChanges = append(rChanges, change)
-		counts[change.Action]++
+
+		// Don't count move-only changes
+		if change.Action != plans.NoOp {
+			counts[change.Action]++
+		}
 	}
 	var changedRootModuleOutputs []*plans.OutputChangeSrc
 	for _, output := range plan.Changes.Outputs {
@@ -138,7 +142,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
 	}
 
-	if len(counts) == 0 && len(changedRootModuleOutputs) == 0 {
+	if len(rChanges) == 0 && len(changedRootModuleOutputs) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -225,7 +229,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		view.streams.Println("")
 	}
 
-	if len(counts) != 0 {
+	if len(counts) > 0 {
 		headerBuf := &bytes.Buffer{}
 		fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(format.WordWrap(planHeaderIntro, view.outputColumns())))
 		if counts[plans.Create] > 0 {
@@ -247,9 +251,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 		}
 
-		view.streams.Println(view.colorize.Color(headerBuf.String()))
+		view.streams.Print(view.colorize.Color(headerBuf.String()))
+	}
 
-		view.streams.Printf("Terraform will perform the following actions:\n\n")
+	if len(rChanges) > 0 {
+		view.streams.Printf("\nTerraform will perform the following actions:\n\n")
 
 		// Note: we're modifying the backing slice of this plan object in-place
 		// here. The ordering of resource changes in a plan is not significant,
@@ -265,7 +271,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		})
 
 		for _, rcs := range rChanges {
-			if rcs.Action == plans.NoOp {
+			if rcs.Action == plans.NoOp && !rcs.Moved() {
 				continue
 			}
 

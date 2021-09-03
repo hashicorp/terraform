@@ -125,6 +125,10 @@ func (rcs *ResourceInstanceChangeSrc) DeepCopy() *ResourceInstanceChangeSrc {
 	return &ret
 }
 
+func (rcs *ResourceInstanceChangeSrc) Moved() bool {
+	return !rcs.Addr.Equal(rcs.PrevRunAddr)
+}
+
 // OutputChangeSrc describes a change to an output value.
 type OutputChangeSrc struct {
 	// Addr is the absolute address of the output value that the change

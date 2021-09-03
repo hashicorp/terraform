@@ -63,12 +63,15 @@ func testPlan(t *testing.T) *plans.Plan {
 	}
 
 	changes := plans.NewChanges()
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_resource",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
 	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
-		Addr: addrs.Resource{
-			Mode: addrs.ManagedResourceMode,
-			Type: "test_resource",
-			Name: "foo",
-		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+		Addr:        addr,
+		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{
 			Provider: addrs.NewDefaultProvider("test"),
 			Module:   addrs.RootModule,
