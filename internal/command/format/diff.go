@@ -15,11 +15,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/helper/cty-diff"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/helper/cty-diff"
 )
 
 // DiffLanguage controls the description of the resource change reasons.
@@ -758,6 +758,15 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
 
+		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
+			p.buf.WriteRune('\n')
+		}
+
+		if minimal && minimalDiffs {
+			_, editPath := cty_diff.ListDiff(old, new, true)
+			return p.writeNestedBlockEditPath(name, blockS, editPath, indent, path, minimal)
+		}
+
 		// Here we intentionally preserve the index-based correspondance
 		// between old and new, rather than trying to detect insertions
 		// and removals in the list, because this more accurately reflects
@@ -775,10 +784,6 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			commonLen = len(oldItems)
 		default:
 			commonLen = len(newItems)
-		}
-
-		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
-			p.buf.WriteRune('\n')
 		}
 
 		for i := 0; i < commonLen; i++ {
