@@ -237,10 +237,8 @@ fail, Terraform will error and rerun the provisioners again on the next
 `terraform apply`. Due to this behavior, care should be taken for destroy
 provisioners to be safe to run multiple times.
 
-Destroy provisioners will not run if the lifecycle Meta-Argument
-[`create_before_destroy`](/docs/language/meta-arguments/lifecycle.html) is used
-in the resource. This limitation may be addressed in the future, see
-[GitHub issue](https://github.com/hashicorp/terraform/issues/13549) for details.
+    Destroy provisioners of this resource will not run if `create_before_destroy`
+    is set to `true`. We may address this in the future, and this [GitHub issue](https://github.com/hashicorp/terraform/issues/13549) contains more details.
 
 Destroy-time provisioners can only run if they remain in the configuration
 at the time a resource is destroyed. If a resource block with a destroy-time
