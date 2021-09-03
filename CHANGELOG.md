@@ -1,3 +1,5 @@
+## 1.0.7 (Unreleased)
+
 ## 1.0.6 (September 03, 2021)
 
 ENHANCEMENTS:
