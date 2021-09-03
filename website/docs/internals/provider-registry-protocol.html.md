@@ -211,6 +211,9 @@ with the following properties:
     that Terraform version requires API version `5.0` or later, so in practice
     it isn't useful to list major versions 4 or earlier in a third-party
     provider registry.
+    
+    TODO: Add comment here on how one can find the supported Provider Protocols
+    
 * `platforms` (recommended): an array of objects describing platforms that have
   packages available for this version.
 
@@ -295,6 +298,8 @@ A successful result is a JSON object with the following properties:
     While this property is optional when listing available options, it is
     _required_ for describing an individual provider package so that Terraform
     CLI can avoid downloading a package that will not be compatible with it.
+    
+    TODO: Add comment here on how one can find the supported Provider Protocols
 
 * `os` (required): this must currently echo back the `os` parameter from the
   request. Other possibilities may come in later versions of this protocol.
