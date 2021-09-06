@@ -345,7 +345,7 @@ func ValueDiff(a, b cty.Value) float32 {
 	ty := a.Type()
 
 	switch {
-	case !ty.Equals(b.Type()):
+	case !ctyTypesEqual(ty, b.Type()):
 		return 1
 	case !a.IsKnown() || !b.IsKnown():
 		return 1
@@ -382,4 +382,17 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 		ret = append(ret, value)
 	}
 	return ret
+}
+
+// ctyTypesEqual checks equality of two types more loosely
+// by avoiding checks of object/tuple elements
+// as we render differences on element-by-element basis anyway
+func ctyTypesEqual(oldT, newT cty.Type) bool {
+	if oldT.IsObjectType() && newT.IsObjectType() {
+		return true
+	}
+	if oldT.IsTupleType() && newT.IsTupleType() {
+		return true
+	}
+	return oldT.Equals(newT)
 }

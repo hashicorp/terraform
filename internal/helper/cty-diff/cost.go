@@ -25,7 +25,7 @@ func valueSize(val cty.Value) float32 {
 
 // ValueDiffCost estimates the cost of calculating a diff between two cty objects using ValueDiff.
 func ValueDiffCost(a, b cty.Value) float32 {
-	if !a.Type().Equals(b.Type()) {
+	if !ctyTypesEqual(a.Type(), b.Type()) {
 		return 1
 	} else {
 		return valueSize(a) * valueSize(b)
