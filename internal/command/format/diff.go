@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
 	"sort"
 	"strings"
 
@@ -254,9 +253,8 @@ type blockBodyDiffResult struct {
 	skippedBlocks     int
 }
 
-var minimalDiffs = os.Getenv("TF_MINIMAL_DIFFS") != ""
-
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
+const minimalDiffCostThreshold = 100_000_000
 
 // writeBlockBodyDiff writes attribute or block differences
 // and returns true if any differences were found and written
@@ -762,7 +760,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			p.buf.WriteRune('\n')
 		}
 
-		if minimal && minimalDiffs {
+		if minimal && cty_diff.ValueDiffCost(old, new) < minimalDiffCostThreshold {
 			_, editPath := cty_diff.ListDiff(old, new, true)
 			return p.writeNestedBlockEditPath(name, blockS, editPath, indent, path, minimal)
 		}
@@ -836,7 +834,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			p.buf.WriteRune('\n')
 		}
 
-		if minimal && minimalDiffs {
+		if minimal && cty_diff.ValueDiffCost(old, new) < minimalDiffCostThreshold {
 			_, editPath := cty_diff.SetDiff(old, new, true)
 			return p.writeNestedBlockEditPath(name, blockS, editPath, indent, path, minimal)
 		}
