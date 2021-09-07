@@ -27,7 +27,7 @@ var (
 	// does not anchor the start or end so it can be composed into more complex
 	// RegExps below. Only lowercase chars and digits are supported in practice.
 	// Max length 64 chars.
-	providerSubRe = "[0-9a-z]{1,64}"
+	providerSubRe = "[0-9a-z](?:[0-9a-z-]{0,62}[0-9a-z])?"
 
 	// moduleSourceRe is a regular expression that matches the basic
 	// namespace/name/provider[//...] format for registry sources. It assumes

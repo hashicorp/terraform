@@ -77,6 +77,14 @@ func TestModule(t *testing.T) {
 			wantErr:     false,
 		},
 		{
+			name:        "valid host, valid provider format with hyphen",
+			source:      "foo.com/var/baz/prov-ider",
+			wantString:  "foo.com/var/baz/prov-ider",
+			wantDisplay: "foo.com/var/baz/prov-ider",
+			wantNorm:    "foo.com/var/baz/prov-ider",
+			wantErr:     false,
+		},
+		{
 			name:    "invalid host",
 			source:  "---.com/HashiCorp/Consul/aws",
 			wantErr: true,
@@ -104,6 +112,16 @@ func TestModule(t *testing.T) {
 		{
 			name:    "disallow bitbucket",
 			source:  "bitbucket.org/HashiCorp/Consul/aws",
+			wantErr: true,
+		},
+		{
+			name:    "valid host, invalid provider suffix",
+			source:  "foo.com/var/baz/provider-",
+			wantErr: true,
+		},
+		{
+			name:    "valid host, invalid provider prefix",
+			source:  "foo.com/var/baz/-provider",
 			wantErr: true,
 		},
 	}
