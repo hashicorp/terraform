@@ -17,6 +17,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
+* cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output [GH-29522]
 
 ## Previous Releases
 
