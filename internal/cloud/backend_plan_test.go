@@ -304,11 +304,11 @@ func TestCloud_planWithoutRefresh(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh set
 	// to false.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(false, run.Refresh); diff != "" {
 			t.Errorf("wrong Refresh setting in the created run\n%s", diff)
 		}
@@ -373,11 +373,11 @@ func TestCloud_planWithRefreshOnly(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh-only set
 	// to true.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(true, run.RefreshOnly); diff != "" {
 			t.Errorf("wrong RefreshOnly setting in the created run\n%s", diff)
 		}
@@ -423,7 +423,7 @@ func TestCloud_planWithTarget(t *testing.T) {
 	// When the backend code creates a new run, we'll tweak it so that it
 	// has a cost estimation object with the "skipped_due_to_targeting" status,
 	// emulating how a real server is expected to behave in that case.
-	b.client.Runs.(*mockRuns).modifyNewRun = func(client *mockClient, options tfe.RunCreateOptions, run *tfe.Run) {
+	b.client.Runs.(*MockRuns).ModifyNewRun = func(client *MockClient, options tfe.RunCreateOptions, run *tfe.Run) {
 		const fakeID = "fake"
 		// This is the cost estimate object embedded in the run itself which
 		// the backend will use to learn the ID to request from the cost
@@ -437,7 +437,7 @@ func TestCloud_planWithTarget(t *testing.T) {
 		// the same ID indicated in the object above, where we'll then return
 		// the status "skipped_due_to_targeting" to trigger the special skip
 		// message in the backend output.
-		client.CostEstimates.estimations[fakeID] = &tfe.CostEstimate{
+		client.CostEstimates.Estimations[fakeID] = &tfe.CostEstimate{
 			ID:     fakeID,
 			Status: "skipped_due_to_targeting",
 		}
@@ -474,11 +474,11 @@ func TestCloud_planWithTarget(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// target address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
 			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
 		}
@@ -549,11 +549,11 @@ func TestCloud_planWithReplace(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// refresh address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.ReplaceAddrs); diff != "" {
 			t.Errorf("wrong ReplaceAddrs in the created run\n%s", diff)
 		}

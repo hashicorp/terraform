@@ -299,11 +299,11 @@ func TestCloud_applyWithoutRefresh(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh set
 	// to false.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(false, run.Refresh); diff != "" {
 			t.Errorf("wrong Refresh setting in the created run\n%s", diff)
 		}
@@ -368,11 +368,11 @@ func TestCloud_applyWithRefreshOnly(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh-only set
 	// to true.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(true, run.RefreshOnly); diff != "" {
 			t.Errorf("wrong RefreshOnly setting in the created run\n%s", diff)
 		}
@@ -439,11 +439,11 @@ func TestCloud_applyWithTarget(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// target address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
 			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
 		}
@@ -514,11 +514,11 @@ func TestCloud_applyWithReplace(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// refresh address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.ReplaceAddrs); diff != "" {
 			t.Errorf("wrong ReplaceAddrs in the created run\n%s", diff)
 		}

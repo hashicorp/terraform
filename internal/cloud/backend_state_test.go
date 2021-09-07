@@ -39,7 +39,7 @@ func TestRemoteClient_stateLock(t *testing.T) {
 
 func TestRemoteClient_withRunID(t *testing.T) {
 	// Set the TFE_RUN_ID environment variable before creating the client!
-	if err := os.Setenv("TFE_RUN_ID", generateID("run-")); err != nil {
+	if err := os.Setenv("TFE_RUN_ID", GenerateID("run-")); err != nil {
 		t.Fatalf("error setting env var TFE_RUN_ID: %v", err)
 	}
 
