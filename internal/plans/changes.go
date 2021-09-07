@@ -33,7 +33,7 @@ func NewChanges() *Changes {
 
 func (c *Changes) Empty() bool {
 	for _, res := range c.Resources {
-		if res.Action != NoOp {
+		if res.Action != NoOp || res.Moved() {
 			return false
 		}
 	}

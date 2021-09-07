@@ -72,13 +72,27 @@ func ResourceChange(
 			// Some extra context about this unusual situation.
 			buf.WriteString(color.Color("\n  # (left over from a partially-failed replacement of this instance)"))
 		}
+	case plans.NoOp:
+		if change.Moved() {
+			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", change.PrevRunAddr.String(), dispAddr)))
+			break
+		}
+		fallthrough
 	default:
 		// should never happen, since the above is exhaustive
 		buf.WriteString(fmt.Sprintf("%s has an action the plan renderer doesn't support (this is a bug)", dispAddr))
 	}
 	buf.WriteString(color.Color("[reset]\n"))
 
-	buf.WriteString(color.Color(DiffActionSymbol(change.Action)) + " ")
+	if change.Moved() && change.Action != plans.NoOp {
+		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n", change.PrevRunAddr.String(), dispAddr)))
+	}
+
+	if change.Moved() && change.Action == plans.NoOp {
+		buf.WriteString("    ")
+	} else {
+		buf.WriteString(color.Color(DiffActionSymbol(change.Action)) + " ")
+	}
 
 	switch addr.Resource.Resource.Mode {
 	case addrs.ManagedResourceMode:
