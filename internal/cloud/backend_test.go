@@ -664,7 +664,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspace,
+		b.workspaceMapping.name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0140.String()),
 		},
@@ -681,7 +681,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspace,
+		b.workspaceMapping.name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0135.String()),
 		},
@@ -721,7 +721,7 @@ func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspace,
+		b.workspaceMapping.name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("latest"),
 		},
@@ -779,7 +779,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 			if _, err := b.client.Workspaces.Update(
 				context.Background(),
 				b.organization,
-				b.workspace,
+				b.workspaceMapping.name,
 				tfe.WorkspaceUpdateOptions{
 					Operations:       tfe.Bool(tc.operations),
 					TerraformVersion: tfe.String(tc.remote),
@@ -830,7 +830,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspace,
+		b.workspaceMapping.name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("1.0.cheetarah"),
 		},
@@ -878,7 +878,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspace,
+		b.workspaceMapping.name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(remote.String()),
 		},

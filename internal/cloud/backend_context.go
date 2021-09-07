@@ -143,9 +143,9 @@ func (b *Cloud) getRemoteWorkspaceName(localWorkspaceName string) string {
 		// The default workspace name is a special case, for when the backend
 		// is configured to with to an exact remote workspace rather than with
 		// a remote workspace _prefix_.
-		return b.workspace
-	case b.prefix != "" && !strings.HasPrefix(localWorkspaceName, b.prefix):
-		return b.prefix + localWorkspaceName
+		return b.workspaceMapping.name
+	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(localWorkspaceName, b.workspaceMapping.prefix):
+		return b.workspaceMapping.prefix + localWorkspaceName
 	default:
 		return localWorkspaceName
 	}

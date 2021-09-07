@@ -161,7 +161,7 @@ func TestCloud_planWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.prefix + "prod"),
+			Name: tfe.String(b.workspaceMapping.prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -772,7 +772,7 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.prefix + "no-operations"),
+			Name: tfe.String(b.workspaceMapping.prefix + "no-operations"),
 		},
 	)
 	if err != nil {
@@ -818,7 +818,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspace)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspaceMapping.name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -941,7 +941,7 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspace, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspaceMapping.name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}
@@ -986,7 +986,7 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspace, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspaceMapping.name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}

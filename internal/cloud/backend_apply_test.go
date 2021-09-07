@@ -143,7 +143,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.prefix + "prod"),
+			Name: tfe.String(b.workspaceMapping.prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -183,7 +183,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name:    tfe.String(b.prefix + "prod"),
+			Name:    tfe.String(b.workspaceMapping.prefix + "prod"),
 			VCSRepo: &tfe.VCSRepoOptions{},
 		},
 	)
@@ -900,7 +900,7 @@ func TestCloud_applyWithAutoApply(t *testing.T) {
 		b.organization,
 		tfe.WorkspaceCreateOptions{
 			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.prefix + "prod"),
+			Name:      tfe.String(b.workspaceMapping.prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -1015,7 +1015,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.prefix + "no-operations"),
+			Name: tfe.String(b.workspaceMapping.prefix + "no-operations"),
 		},
 	)
 	if err != nil {
@@ -1074,7 +1074,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspace)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspaceMapping.name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -1434,7 +1434,7 @@ func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
 		b.organization,
 		tfe.WorkspaceCreateOptions{
 			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.prefix + "prod"),
+			Name:      tfe.String(b.workspaceMapping.prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -1583,7 +1583,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			_, err := b.client.Workspaces.Update(
 				ctx,
 				b.organization,
-				b.workspace,
+				b.workspaceMapping.name,
 				tfe.WorkspaceUpdateOptions{
 					Operations:       tfe.Bool(tc.hasOperations),
 					TerraformVersion: tfe.String(tc.remoteVersion),

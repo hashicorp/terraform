@@ -161,9 +161,9 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	}
 
 	// Create the default workspace if required.
-	if b.workspace != "" {
+	if b.workspaceMapping.name != "" {
 		_, err = b.client.Workspaces.Create(ctx, b.organization, tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspace),
+			Name: tfe.String(b.workspaceMapping.name),
 		})
 		if err != nil {
 			t.Fatalf("error: %v", err)

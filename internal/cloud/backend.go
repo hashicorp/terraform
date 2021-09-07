@@ -63,12 +63,9 @@ type Cloud struct {
 	// organization is the organization that contains the target workspaces.
 	organization string
 
-	// workspace is used to map the default workspace to a TFC workspace.
-	workspace string
-
-	// prefix is used to filter down a set of workspaces that use a single
-	// configuration.
-	prefix string
+	// workspaceMapping contains strategies for mapping CLI workspaces in the working directory
+	// to remote Terraform Cloud workspaces.
+	workspaceMapping workspaceMapping
 
 	// services is used for service discovery
 	services *disco.Disco
@@ -183,6 +180,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if obj.IsNull() {
 		return diags
 	}
+
 	diagErr := b.setConfigurationFields(obj)
 	if diagErr.HasErrors() {
 		return diagErr
@@ -326,10 +324,10 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 		// PrepareConfig checks that you cannot set both of these.
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			b.workspace = val.AsString()
+			b.workspaceMapping.name = val.AsString()
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			b.prefix = val.AsString()
+			b.workspaceMapping.prefix = val.AsString()
 		}
 	}
 
@@ -514,7 +512,7 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 
 // Workspaces implements backend.Enhanced.
 func (b *Cloud) Workspaces() ([]string, error) {
-	if b.prefix == "" {
+	if b.workspaceMapping.prefix == "" {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 	return b.workspaces()
@@ -524,10 +522,10 @@ func (b *Cloud) Workspaces() ([]string, error) {
 func (b *Cloud) workspaces() ([]string, error) {
 	options := tfe.WorkspaceListOptions{}
 	switch {
-	case b.workspace != "":
-		options.Search = tfe.String(b.workspace)
-	case b.prefix != "":
-		options.Search = tfe.String(b.prefix)
+	case b.workspaceMapping.name != "":
+		options.Search = tfe.String(b.workspaceMapping.name)
+	case b.workspaceMapping.prefix != "":
+		options.Search = tfe.String(b.workspaceMapping.prefix)
 	}
 
 	// Create a slice to contain all the names.
@@ -540,12 +538,12 @@ func (b *Cloud) workspaces() ([]string, error) {
 		}
 
 		for _, w := range wl.Items {
-			if b.workspace != "" && w.Name == b.workspace {
+			if b.workspaceMapping.name != "" && w.Name == b.workspaceMapping.name {
 				names = append(names, backend.DefaultStateName)
 				continue
 			}
-			if b.prefix != "" && strings.HasPrefix(w.Name, b.prefix) {
-				names = append(names, strings.TrimPrefix(w.Name, b.prefix))
+			if b.workspaceMapping.prefix != "" && strings.HasPrefix(w.Name, b.workspaceMapping.prefix) {
+				names = append(names, strings.TrimPrefix(w.Name, b.workspaceMapping.prefix))
 			}
 		}
 
@@ -566,19 +564,19 @@ func (b *Cloud) workspaces() ([]string, error) {
 
 // DeleteWorkspace implements backend.Enhanced.
 func (b *Cloud) DeleteWorkspace(name string) error {
-	if b.workspace == "" && name == backend.DefaultStateName {
+	if b.workspaceMapping.name == "" && name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.prefix == "" && name != backend.DefaultStateName {
+	if b.workspaceMapping.prefix == "" && name != backend.DefaultStateName {
 		return backend.ErrWorkspacesNotSupported
 	}
 
 	// Configure the remote workspace name.
 	switch {
 	case name == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
-		name = b.prefix + name
+		name = b.workspaceMapping.name
+	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(name, b.workspaceMapping.prefix):
+		name = b.workspaceMapping.prefix + name
 	}
 
 	client := &remoteClient{
@@ -594,19 +592,19 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 
 // StateMgr implements backend.Enhanced.
 func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
-	if b.workspace == "" && name == backend.DefaultStateName {
+	if b.workspaceMapping.name == "" && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.prefix == "" && name != backend.DefaultStateName {
+	if b.workspaceMapping.prefix == "" && name != backend.DefaultStateName {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
 	// Configure the remote workspace name.
 	switch {
 	case name == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(name, b.prefix):
-		name = b.prefix + name
+		name = b.workspaceMapping.name
+	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(name, b.workspaceMapping.prefix):
+		name = b.workspaceMapping.prefix + name
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
@@ -663,9 +661,9 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	name := op.Workspace
 	switch {
 	case op.Workspace == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		name = b.prefix + op.Workspace
+		name = b.workspaceMapping.name
+	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(op.Workspace, b.workspaceMapping.prefix):
+		name = b.workspaceMapping.prefix + op.Workspace
 	}
 
 	// Retrieve the workspace for this operation.
@@ -972,6 +970,11 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
+}
+
+type workspaceMapping struct {
+	name   string
+	prefix string
 }
 
 func generalError(msg string, err error) error {
