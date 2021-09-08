@@ -421,6 +421,17 @@ Terraform matches the variable name exactly as given in configuration, and
 so the required environment variable name will usually have a mix of upper
 and lower case letters as in the above example.
 
+To use an environment variable in your Terraform code declare a variable 
+with the same name as the environment variable, without the `TF_VAR_`:
+
+```
+variable "image_id" {
+  description = "Image ID for ..."
+  type = string
+}
+```
+
+
 ### Complex-typed Values
 
 When variable values are provided in a variable definitions file, you can use
