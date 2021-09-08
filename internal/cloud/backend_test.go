@@ -39,6 +39,65 @@ func TestCloud_backendNoDefault(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
+func TestCloud_PrepareConfig(t *testing.T) {
+	cases := map[string]struct {
+		config      cty.Value
+		expectedErr string
+	}{
+		"null organization": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedErr: `Invalid organization value: The "organization" attribute value must not be empty.`,
+		},
+		"null workspace": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("org"),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			expectedErr: `Invalid workspaces configuration: Either workspace "name" or "prefix" is required.`,
+		},
+		"workspace: empty name and empty prefix": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.NullVal(cty.String),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedErr: `Invalid workspaces configuration: Either workspace "name" or "prefix" is required.`,
+		},
+		"workspace: name and prefix present": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("org"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.StringVal("app-"),
+				}),
+			}),
+			expectedErr: `Invalid workspaces configuration: Only one of workspace "name" or "prefix" is allowed.`,
+		},
+	}
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		// Validate
+		_, valDiags := b.PrepareConfig(tc.config)
+		if valDiags.Err() != nil && tc.expectedErr != "" {
+			actualErr := valDiags.Err().Error()
+			if !strings.Contains(actualErr, tc.expectedErr) {
+				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			}
+		}
+	}
+}
+
 func TestCloud_config(t *testing.T) {
 	cases := map[string]struct {
 		config  cty.Value

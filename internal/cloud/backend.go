@@ -151,12 +151,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid organization value",
-			`The "organization" attribute value must not be empty.`,
-			cty.Path{cty.GetAttrStep{Name: "organization"}},
-		))
+		diags = diags.Append(invalidOrganizationConfigMissingValue)
 	}
 
 	var name, prefix string
@@ -171,22 +166,12 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 
 	// Make sure that we have either a workspace name or a prefix.
 	if name == "" && prefix == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid workspaces configuration",
-			`Either workspace "name" or "prefix" is required.`,
-			cty.Path{cty.GetAttrStep{Name: "workspaces"}},
-		))
+		diags = diags.Append(invalidWorkspaceConfigMissingValues)
 	}
 
 	// Make sure that only one of workspace name or a prefix is configured.
 	if name != "" && prefix != "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid workspaces configuration",
-			`Only one of workspace "name" or "prefix" is allowed.`,
-			cty.Path{cty.GetAttrStep{Name: "workspaces"}},
-		))
+		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 	}
 
 	return obj, diags
