@@ -183,41 +183,14 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if obj.IsNull() {
 		return diags
 	}
-
-	// Get the hostname.
-	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
-		b.hostname = val.AsString()
-	} else {
-		b.hostname = defaultHostname
-	}
-
-	// Get the organization.
-	if val := obj.GetAttr("organization"); !val.IsNull() {
-		b.organization = val.AsString()
-	}
-
-	// Get the workspaces configuration block and retrieve the
-	// default workspace name and prefix.
-	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
-		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			b.workspace = val.AsString()
-		}
-		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			b.prefix = val.AsString()
-		}
-	}
-
-	// Determine if we are forced to use the local backend.
-	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
-
-	serviceID := tfeServiceID
-	if b.forceLocal {
-		serviceID = stateServiceID
+	diagErr := b.setConfigurationFields(obj)
+	if diagErr.HasErrors() {
+		return diagErr
 	}
 
 	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
 	// and to get the version constraints.
-	service, constraints, err := b.discover(serviceID)
+	service, constraints, err := b.discover()
 
 	// First check any contraints we might have received.
 	if constraints != nil {
@@ -332,8 +305,47 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	return diags
 }
 
+func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// Get the hostname.
+	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
+		b.hostname = val.AsString()
+	} else {
+		b.hostname = defaultHostname
+	}
+
+	// Get the organization.
+	if val := obj.GetAttr("organization"); !val.IsNull() {
+		b.organization = val.AsString()
+	}
+
+	// Get the workspaces configuration block and retrieve the
+	// default workspace name and prefix.
+	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
+
+		// PrepareConfig checks that you cannot set both of these.
+		if val := workspaces.GetAttr("name"); !val.IsNull() {
+			b.workspace = val.AsString()
+		}
+		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
+			b.prefix = val.AsString()
+		}
+	}
+
+	// Determine if we are forced to use the local backend.
+	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
+
+	return diags
+}
+
 // discover the TFC/E API service URL and version constraints.
-func (b *Cloud) discover(serviceID string) (*url.URL, *disco.Constraints, error) {
+func (b *Cloud) discover() (*url.URL, *disco.Constraints, error) {
+	serviceID := tfeServiceID
+	if b.forceLocal {
+		serviceID = stateServiceID
+	}
+
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return nil, nil, err

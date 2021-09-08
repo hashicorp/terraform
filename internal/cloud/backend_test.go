@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -208,6 +209,127 @@ func TestCloud_config(t *testing.T) {
 		if (confDiags.Err() != nil || tc.confErr != "") &&
 			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
 			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
+		}
+	}
+}
+
+func TestCloud_setConfigurationFields(t *testing.T) {
+	originalForceBackendEnv := os.Getenv("TF_FORCE_LOCAL_BACKEND")
+
+	cases := map[string]struct {
+		obj                     cty.Value
+		expectedHostname        string
+		expectedOrganziation    string
+		expectedWorkspacePrefix string
+		expectedWorkspaceName   string
+		expectedForceLocal      bool
+		setEnv                  func()
+		resetEnv                func()
+		expectedErr             string
+	}{
+		"with hostname set": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedHostname:     "hashicorp.com",
+			expectedOrganziation: "hashicorp",
+		},
+		"with hostname not set, set to default hostname": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedHostname:     defaultHostname,
+			expectedOrganziation: "hashicorp",
+		},
+		"with workspace name set": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("prod"),
+					"prefix": cty.NullVal(cty.String),
+				}),
+			}),
+			expectedHostname:      "hashicorp.com",
+			expectedOrganziation:  "hashicorp",
+			expectedWorkspaceName: "prod",
+		},
+		"with workspace prefix set": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.NullVal(cty.String),
+					"prefix": cty.StringVal("prod"),
+				}),
+			}),
+			expectedHostname:        "hashicorp.com",
+			expectedOrganziation:    "hashicorp",
+			expectedWorkspacePrefix: "prod",
+		},
+		"with force local set": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.NullVal(cty.String),
+					"prefix": cty.StringVal("prod"),
+				}),
+			}),
+			expectedHostname:        "hashicorp.com",
+			expectedOrganziation:    "hashicorp",
+			expectedWorkspacePrefix: "prod",
+			setEnv: func() {
+				os.Setenv("TF_FORCE_LOCAL_BACKEND", "1")
+			},
+			resetEnv: func() {
+				os.Setenv("TF_FORCE_LOCAL_BACKEND", originalForceBackendEnv)
+			},
+			expectedForceLocal: true,
+		},
+	}
+
+	for name, tc := range cases {
+		b := &Cloud{}
+
+		// if `setEnv` is set, then we expect `resetEnv` to also be set
+		if tc.setEnv != nil {
+			tc.setEnv()
+			defer tc.resetEnv()
+		}
+
+		errDiags := b.setConfigurationFields(tc.obj)
+		if errDiags.HasErrors() || tc.expectedErr != "" {
+			actualErr := errDiags.Err().Error()
+			if !strings.Contains(actualErr, tc.expectedErr) {
+				t.Fatalf("%s: unexpected validation result: %v", name, errDiags.Err())
+			}
+		}
+
+		if tc.expectedHostname != "" && b.hostname != tc.expectedHostname {
+			t.Fatalf("%s: expected hostname %s to match actual hostname %s", name, tc.expectedHostname, b.hostname)
+		}
+		if tc.expectedOrganziation != "" && b.organization != tc.expectedOrganziation {
+			t.Fatalf("%s: expected organization %s to match actual organization %s", name, tc.expectedOrganziation, b.organization)
+		}
+		if tc.expectedWorkspacePrefix != "" && b.prefix != tc.expectedWorkspacePrefix {
+			t.Fatalf("%s: expected workspace prefix %s to match actual workspace prefix %s", name, tc.expectedWorkspacePrefix, b.prefix)
+		}
+		if tc.expectedWorkspaceName != "" && b.workspace != tc.expectedWorkspaceName {
+			t.Fatalf("%s: expected workspace name %s to match actual workspace name %s", name, tc.expectedWorkspaceName, b.workspace)
+		}
+		if tc.expectedForceLocal != false && b.forceLocal != tc.expectedForceLocal {
+			t.Fatalf("%s: expected force local backend to be set ", name)
 		}
 	}
 }
