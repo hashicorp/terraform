@@ -6,6 +6,8 @@ This repository contains only Terraform core, which includes the command line in
 
 **Note:** Due to current low staffing on the Terraform Core team at HashiCorp, **we are not routinely reviewing and merging community-submitted pull requests**. We do hope to begin processing them again soon once we're back up to full staffing again, but for the moment we need to ask for patience. Thanks!
 
+**Additional note:**  The intent of the prior comment was to provide clarity for the community around what to expect for a small part of the work related to Terraform. This does not affect other PR reviews, such as those for Terraform providers. We expect that the relevant team will be appropriately staffed within the coming weeks, which should allow us to get back to normal community PR review practices. For the broader context and information on HashiCorp’s continued commitment to and investment in Terraform, see [this blog post](https://www.hashicorp.com/blog/terraform-community-contributions).
+
 ---
 
 **All communication on GitHub, the community forum, and other HashiCorp-provided communication channels is subject to [the HashiCorp community guidelines](https://www.hashicorp.com/community-guidelines).**
