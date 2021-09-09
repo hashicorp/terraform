@@ -35,6 +35,7 @@ When authenticating using Managed Service Identity (MSI):
 ```hcl
 terraform {
   backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"
     storage_account_name = "abcd1234"
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
@@ -125,6 +126,7 @@ When authenticating using Managed Service Identity (MSI):
 data "terraform_remote_state" "foo" {
   backend = "azurerm"
   config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
     storage_account_name = "terraform123abc"
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
@@ -214,6 +216,8 @@ The following configuration options are supported:
 ---
 
 When authenticating using the Managed Service Identity (MSI) - the following fields are also supported:
+
+* `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
 
 * `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
