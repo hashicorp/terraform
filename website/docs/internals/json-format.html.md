@@ -16,18 +16,7 @@ Since the format of plan files isn't suited for use with external tools (and lik
 
 Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/cli/commands/show.html) for more details.
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
-value `"1.0"`. The semantics of this version are:
-
-- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
-  changes or additions. Ignore any object properties with unrecognized names to
-  remain forward-compatible with future minor versions.
-- We will increment the major version, e.g. `"2.0"`, for changes that are not
-  backward-compatible. Reject any input which reports an unsupported major
-  version.
-
-We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](https://www.terraform.io/docs/language/v1-compatibility-promises.html).
+-> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
 
 ## Format Summary
 
@@ -71,7 +60,7 @@ For ease of consumption by callers, the plan representation includes a partial r
 
 ```javascript
 {
-  "format_version": "1.0",
+  "format_version": "0.2",
 
   // "prior_state" is a representation of the state that the configuration is
   // being applied to, using the state representation described above.
