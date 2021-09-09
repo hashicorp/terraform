@@ -22,7 +22,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "1.0"
+const FormatVersion = "0.2"
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
