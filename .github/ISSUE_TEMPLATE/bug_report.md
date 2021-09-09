@@ -72,7 +72,7 @@ What actually happened?
 <!--
 Please list the full steps required to reproduce the issue, for example:
 1. `terraform init`
-2. `terraform apply`
+1. `terraform apply`
 -->
 
 ### Additional Context
