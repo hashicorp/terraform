@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "variables": {
         "test_var": {
             "value": "boop"
@@ -69,7 +69,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "values": {
             "outputs": {
                 "test": {
