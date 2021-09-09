@@ -151,23 +151,22 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		diags = diags.Append(invalidOrganizationConfigMissingValue)
 	}
 
-	var name, prefix string
+	workspaceMapping := workspaceMapping{}
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			name = val.AsString()
+			workspaceMapping.name = val.AsString()
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			prefix = val.AsString()
+			workspaceMapping.prefix = val.AsString()
 		}
 	}
 
-	// Make sure that we have either a workspace name or a prefix.
-	if name == "" && prefix == "" {
+	switch workspaceMapping.strategy() {
+	// Make sure have a workspace mapping strategy present
+	case workspaceNoneStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMissingValues)
-	}
-
 	// Make sure that only one of workspace name or a prefix is configured.
-	if name != "" && prefix != "" {
+	case workspaceInvalidStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 	}
 
@@ -512,19 +511,20 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 
 // Workspaces implements backend.Enhanced.
 func (b *Cloud) Workspaces() ([]string, error) {
-	if b.workspaceMapping.prefix == "" {
+	if b.workspaceMapping.strategy() == workspaceNameStrategy {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 	return b.workspaces()
 }
 
-// workspaces returns a filtered list of remote workspace names.
+// workspaces returns a filtered list of remote workspace names according to the workspace mapping
+// strategy configured.
 func (b *Cloud) workspaces() ([]string, error) {
 	options := tfe.WorkspaceListOptions{}
-	switch {
-	case b.workspaceMapping.name != "":
+	switch b.workspaceMapping.strategy() {
+	case workspaceNameStrategy:
 		options.Search = tfe.String(b.workspaceMapping.name)
-	case b.workspaceMapping.prefix != "":
+	case workspacePrefixStrategy:
 		options.Search = tfe.String(b.workspaceMapping.prefix)
 	}
 
@@ -538,12 +538,22 @@ func (b *Cloud) workspaces() ([]string, error) {
 		}
 
 		for _, w := range wl.Items {
-			if b.workspaceMapping.name != "" && w.Name == b.workspaceMapping.name {
-				names = append(names, backend.DefaultStateName)
-				continue
-			}
-			if b.workspaceMapping.prefix != "" && strings.HasPrefix(w.Name, b.workspaceMapping.prefix) {
-				names = append(names, strings.TrimPrefix(w.Name, b.workspaceMapping.prefix))
+			switch b.workspaceMapping.strategy() {
+			case workspaceNameStrategy:
+				if w.Name == b.workspaceMapping.name {
+					names = append(names, backend.DefaultStateName)
+					continue
+				}
+			case workspacePrefixStrategy:
+				if strings.HasPrefix(w.Name, b.workspaceMapping.prefix) {
+					names = append(names, strings.TrimPrefix(w.Name, b.workspaceMapping.prefix))
+					continue
+				}
+			default:
+				// Pass-through. "name" and "prefix" strategies are naive and do
+				// client-side filtering above, but for any other future
+				// strategy this filtering should be left to the API.
+				names = append(names, w.Name)
 			}
 		}
 
@@ -564,10 +574,10 @@ func (b *Cloud) workspaces() ([]string, error) {
 
 // DeleteWorkspace implements backend.Enhanced.
 func (b *Cloud) DeleteWorkspace(name string) error {
-	if b.workspaceMapping.name == "" && name == backend.DefaultStateName {
+	if b.workspaceMapping.strategy() != workspaceNameStrategy && name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.workspaceMapping.prefix == "" && name != backend.DefaultStateName {
+	if b.workspaceMapping.strategy() == workspaceNameStrategy && name != backend.DefaultStateName {
 		return backend.ErrWorkspacesNotSupported
 	}
 
@@ -575,7 +585,7 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 	switch {
 	case name == backend.DefaultStateName:
 		name = b.workspaceMapping.name
-	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(name, b.workspaceMapping.prefix):
+	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(name, b.workspaceMapping.prefix):
 		name = b.workspaceMapping.prefix + name
 	}
 
@@ -592,10 +602,10 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 
 // StateMgr implements backend.Enhanced.
 func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
-	if b.workspaceMapping.name == "" && name == backend.DefaultStateName {
+	if b.workspaceMapping.strategy() != workspaceNameStrategy && name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.workspaceMapping.prefix == "" && name != backend.DefaultStateName {
+	if b.workspaceMapping.strategy() == workspaceNameStrategy && name != backend.DefaultStateName {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
@@ -603,7 +613,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	switch {
 	case name == backend.DefaultStateName:
 		name = b.workspaceMapping.name
-	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(name, b.workspaceMapping.prefix):
+	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(name, b.workspaceMapping.prefix):
 		name = b.workspaceMapping.prefix + name
 	}
 
@@ -662,7 +672,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	switch {
 	case op.Workspace == backend.DefaultStateName:
 		name = b.workspaceMapping.name
-	case b.workspaceMapping.prefix != "" && !strings.HasPrefix(op.Workspace, b.workspaceMapping.prefix):
+	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(op.Workspace, b.workspaceMapping.prefix):
 		name = b.workspaceMapping.prefix + op.Workspace
 	}
 
@@ -977,6 +987,29 @@ type workspaceMapping struct {
 	prefix string
 }
 
+type workspaceStrategy string
+
+const (
+	workspaceNameStrategy    workspaceStrategy = "name"
+	workspacePrefixStrategy  workspaceStrategy = "prefix"
+	workspaceNoneStrategy    workspaceStrategy = "none"
+	workspaceInvalidStrategy workspaceStrategy = "invalid"
+)
+
+func (wm workspaceMapping) strategy() workspaceStrategy {
+	switch {
+	case wm.name != "" && wm.prefix == "":
+		return workspaceNameStrategy
+	case wm.name == "" && wm.prefix != "":
+		return workspacePrefixStrategy
+	case wm.name == "" && wm.prefix == "":
+		return workspaceNoneStrategy
+	default:
+		// Any other combination is invalid as each strategy is mutually exclusive
+		return workspaceInvalidStrategy
+	}
+}
+
 func generalError(msg string, err error) error {
 	var diags tfdiags.Diagnostics
 
@@ -1042,10 +1075,17 @@ var schemaDescriptions = map[string]string{
 	"organization": "The name of the organization containing the targeted workspace(s).",
 	"token": "The token used to authenticate with Terraform Cloud/Enterprise. Typically this argument should not be set,\n" +
 		"and 'terraform login' used instead; your credentials will then be fetched from your CLI configuration file or configured credential helper.",
-	"name": "A workspace name used to map the default workspace to a named remote workspace.\n" +
-		"When configured only the default workspace can be used. This option conflicts\n" +
-		"with \"prefix\"",
-	"prefix": "A prefix used to filter workspaces using a single configuration. New workspaces\n" +
-		"will automatically be prefixed with this prefix. If omitted only the default\n" +
-		"workspace can be used. This option conflicts with \"name\"",
+	"name": "The name of a single Terraform Cloud workspace to be used with this configuration.\n" +
+		"When configured only the specified workspace can be used. This option conflicts\n" +
+		"with \"prefix\".",
+	"prefix": "A name prefix used to select remote Terraform Cloud workspaces to be used for this\n" +
+		"single configuration. New workspaces will automatically be prefixed with this prefix. This option conflicts with \"name\".",
 }
+
+var workspaceConfigurationHelp = fmt.Sprintf(`The 'workspaces' block configures how Terraform CLI maps its workspaces for this
+single configuration to workspaces within a Terraform Cloud organization. Two strategies are available:
+
+[bold]name[reset] - %s
+
+[bold]prefix[reset] - %s
+`, schemaDescriptions["name"], schemaDescriptions["prefix"])

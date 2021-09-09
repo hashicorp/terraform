@@ -322,11 +322,11 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 		if tc.expectedOrganziation != "" && b.organization != tc.expectedOrganziation {
 			t.Fatalf("%s: expected organization %s to match actual organization %s", name, tc.expectedOrganziation, b.organization)
 		}
-		if tc.expectedWorkspacePrefix != "" && b.prefix != tc.expectedWorkspacePrefix {
-			t.Fatalf("%s: expected workspace prefix %s to match actual workspace prefix %s", name, tc.expectedWorkspacePrefix, b.prefix)
+		if tc.expectedWorkspacePrefix != "" && b.workspaceMapping.prefix != tc.expectedWorkspacePrefix {
+			t.Fatalf("%s: expected workspace prefix %s to match actual workspace prefix %s", name, tc.expectedWorkspacePrefix, b.workspaceMapping.prefix)
 		}
-		if tc.expectedWorkspaceName != "" && b.workspace != tc.expectedWorkspaceName {
-			t.Fatalf("%s: expected workspace name %s to match actual workspace name %s", name, tc.expectedWorkspaceName, b.workspace)
+		if tc.expectedWorkspaceName != "" && b.workspaceMapping.name != tc.expectedWorkspaceName {
+			t.Fatalf("%s: expected workspace name %s to match actual workspace name %s", name, tc.expectedWorkspaceName, b.workspaceMapping.name)
 		}
 		if tc.expectedForceLocal != false && b.forceLocal != tc.expectedForceLocal {
 			t.Fatalf("%s: expected force local backend to be set ", name)
