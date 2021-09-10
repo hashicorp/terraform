@@ -238,7 +238,16 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.DynamicVal, diags
 	}
 
+	// wantType is the concrete value type to be returned.
 	wantType := cty.DynamicPseudoType
+
+	// converstionType is the type used for conversion, which may include
+	// optional attributes.
+	conversionType := cty.DynamicPseudoType
+
+	if config.ConstraintType != cty.NilType {
+		conversionType = config.ConstraintType
+	}
 	if config.Type != cty.NilType {
 		wantType = config.Type
 	}
@@ -282,7 +291,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	}
 
 	var err error
-	val, err = convert.Convert(val, wantType)
+	val, err = convert.Convert(val, conversionType)
 	if err != nil {
 		// We should never get here because this problem should've been caught
 		// during earlier validation, but we'll do something reasonable anyway.

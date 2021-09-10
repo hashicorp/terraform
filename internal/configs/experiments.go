@@ -198,7 +198,7 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 
 	if !m.ActiveExperiments.Has(experiments.ModuleVariableOptionalAttrs) {
 		for _, v := range m.Variables {
-			if typeConstraintHasOptionalAttrs(v.Type) {
+			if typeConstraintHasOptionalAttrs(v.ConstraintType) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Optional object type attributes are experimental",

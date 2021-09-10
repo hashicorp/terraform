@@ -7,6 +7,7 @@ import (
 	"github.com/go-test/deep"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -16,7 +17,9 @@ func TestNodeModuleVariablePath(t *testing.T) {
 	n := &nodeModuleVariable{
 		Addr: addrs.RootModuleInstance.InputVariable("foo"),
 		Config: &configs.Variable{
-			Name: "foo",
+			Name:           "foo",
+			Type:           cty.String,
+			ConstraintType: cty.String,
 		},
 	}
 
@@ -31,7 +34,9 @@ func TestNodeModuleVariableReferenceableName(t *testing.T) {
 	n := &nodeExpandModuleVariable{
 		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
-			Name: "foo",
+			Name:           "foo",
+			Type:           cty.String,
+			ConstraintType: cty.String,
 		},
 	}
 
@@ -64,7 +69,9 @@ func TestNodeModuleVariableReference(t *testing.T) {
 		Addr:   addrs.InputVariable{Name: "foo"},
 		Module: addrs.RootModule.Child("bar"),
 		Config: &configs.Variable{
-			Name: "foo",
+			Name:           "foo",
+			Type:           cty.String,
+			ConstraintType: cty.String,
 		},
 		Expr: &hclsyntax.ScopeTraversalExpr{
 			Traversal: hcl.Traversal{
@@ -90,7 +97,9 @@ func TestNodeModuleVariableReference_grandchild(t *testing.T) {
 		Addr:   addrs.InputVariable{Name: "foo"},
 		Module: addrs.RootModule.Child("bar"),
 		Config: &configs.Variable{
-			Name: "foo",
+			Name:           "foo",
+			Type:           cty.String,
+			ConstraintType: cty.String,
 		},
 		Expr: &hclsyntax.ScopeTraversalExpr{
 			Traversal: hcl.Traversal{
