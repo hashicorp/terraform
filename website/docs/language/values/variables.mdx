@@ -1,9 +1,6 @@
 ---
 page_title: Input Variables - Configuration Language
-description: |-
-  Input variables allow you to customize Terraform configuration according to 
-  set parameters. Learn about input variable syntax, including how to declare,
-  define, and reference variables in root and child modules.
+description: "Input variables allow you to customize modules without altering their source code. Learn how to declare, define, and reference variables in configurations."
 ---
 
 # Input Variables
@@ -201,6 +198,9 @@ If `condition` evaluates to `false`, Terraform will produce an error message
 that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
+
+Multiple `validation` blocks can be declared in which case error messages
+will be returned for _all_ failed conditions.
 
 ### Suppressing Values in CLI Output
 

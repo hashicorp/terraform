@@ -15,7 +15,7 @@ the `dynamodb_table` field to an existing DynamoDB table name.
 A single DynamoDB table can be used to lock multiple remote state files. Terraform generates key names that include the values of the `bucket` and `key` variables.
 
 ~> **Warning!** It is highly recommended that you enable
-[Bucket Versioning](http://docs.aws.amazon.com/AmazonS3/latest/UG/enable-bucket-versioning.html)
+[Bucket Versioning](https://docs.aws.amazon.com/AmazonS3/latest/userguide/manage-versioning-examples.html)
 on the S3 bucket to allow for state recovery in the case of accidental deletions and human error.
 
 ## Example Configuration
@@ -44,6 +44,7 @@ the target backend bucket:
 - `s3:ListBucket` on `arn:aws:s3:::mybucket`
 - `s3:GetObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 - `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
+- `s3:DeleteObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 
 This is seen in the following AWS IAM Statement:
 
@@ -58,7 +59,7 @@ This is seen in the following AWS IAM Statement:
     },
     {
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
       "Resource": "arn:aws:s3:::mybucket/path/to/my/key"
     }
   ]
@@ -70,7 +71,7 @@ attached to users/groups/roles (like the example above) or resource policies
 attached to bucket objects (which look similar but also require a `Principal` to
 indicate which entity has those permissions). For more details, see Amazon's
 documentation about
-[S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/dev/s3-access-control.html).
+[S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html).
 
 ### DynamoDB Table Permissions
 
@@ -183,12 +184,12 @@ The following configuration is required:
 
 The following configuration is optional:
 
-- `acl` - (Optional) [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to be applied to the state file.
-- `encrypt` - (Optional) Enable [server side encryption](https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingServerSideEncryption.html) of the state file.
+- `acl` - (Optional) [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl) to be applied to the state file.
+- `encrypt` - (Optional) Enable [server side encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html) of the state file.
 - `endpoint` - (Optional) Custom endpoint for the AWS S3 API. This can also be sourced from the `AWS_S3_ENDPOINT` environment variable.
 - `force_path_style` - (Optional) Enable path-style S3 URLs (`https://<HOST>/<BUCKET>` instead of `https://<BUCKET>.<HOST>`).
-- `kms_key_id` - (Optional) Amazon Resource Name (ARN) of a Key Management Service (KMS) Key to use for encrypting the state.
-- `sse_customer_key` - (Optional) The key to use for encrypting state with [Server-Side Encryption with Customer-Provided Keys (SSE-C)](https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html). This is the base64-encoded value of the key, which must decode to 256 bits. This can also be sourced from the `AWS_SSE_CUSTOMER_KEY` environment variable, which is recommended due to the sensitivity of the value. Setting it inside a terraform file will cause it to be persisted to disk in `terraform.tfstate`.
+- `kms_key_id` - (Optional) Amazon Resource Name (ARN) of a Key Management Service (KMS) Key to use for encrypting the state. Note that if this value is specified, Terraform will need `kms:Encrypt`, `kms:Decrypt` and `kms:GenerateDataKey` permissions on this KMS key.
+- `sse_customer_key` - (Optional) The key to use for encrypting state with [Server-Side Encryption with Customer-Provided Keys (SSE-C)](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html). This is the base64-encoded value of the key, which must decode to 256 bits. This can also be sourced from the `AWS_SSE_CUSTOMER_KEY` environment variable, which is recommended due to the sensitivity of the value. Setting it inside a terraform file will cause it to be persisted to disk in `terraform.tfstate`.
 - `workspace_key_prefix` - (Optional) Prefix applied to the state path inside the bucket. This is only relevant when using a non-default workspace. Defaults to `env:`.
 
 ### DynamoDB State Locking
@@ -196,7 +197,7 @@ The following configuration is optional:
 The following configuration is optional:
 
 - `dynamodb_endpoint` - (Optional) Custom endpoint for the AWS DynamoDB API. This can also be sourced from the `AWS_DYNAMODB_ENDPOINT` environment variable.
-- `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a primary key named `LockID` with type of `string`. If not configured, state locking will be disabled.
+- `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `string`. If not configured, state locking will be disabled.
 
 ## Multi-account AWS Architecture
 
@@ -236,15 +237,15 @@ gain access to the (usually more privileged) administrative infrastructure.
 
 Your administrative AWS account will contain at least the following items:
 
-- One or more [IAM user](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_users)
+- One or more [IAM user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users.html)
   for system administrators that will log in to maintain infrastructure in
   the other accounts.
-- Optionally, one or more [IAM groups](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html)
+- Optionally, one or more [IAM groups](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_groups.html)
   to differentiate between different groups of users that have different
   levels of access to the other AWS accounts.
-- An [S3 bucket](http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html)
+- An [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingBucket.html)
   that will contain the Terraform state files for each workspace.
-- A [DynamoDB table](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.TablesItemsAttributes)
+- A [DynamoDB table](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html#HowItWorks.CoreComponents.TablesItemsAttributes)
   that will be used for locking to prevent concurrent operations on a single
   workspace.
 
@@ -262,7 +263,7 @@ administrative account described above.
 
 Your environment accounts will eventually contain your own product-specific
 infrastructure. Along with this it must contain one or more
-[IAM roles](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
+[IAM roles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html)
 that grant sufficient access for Terraform to perform the desired management
 tasks.
 
@@ -270,7 +271,7 @@ tasks.
 
 Each Administrator will run Terraform using credentials for their IAM user
 in the administrative account.
-[IAM Role Delegation](http://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+[IAM Role Delegation](https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
 is used to grant these users access to the roles created in each environment
 account.
 
@@ -365,7 +366,7 @@ tend to require.
 
 When running Terraform in an automation tool running on an Amazon EC2 instance,
 consider running this instance in the administrative account and using an
-[instance profile](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html)
+[instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html)
 in place of the various administrator IAM users suggested above. An IAM
 instance profile can also be granted cross-account delegation access via
 an IAM policy, giving this instance the access it needs to run Terraform.
