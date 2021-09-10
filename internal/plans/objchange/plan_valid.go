@@ -286,11 +286,6 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 			}
 			return errs
 		}
-	} else {
-		if attrS.Computed {
-			errs = append(errs, path.NewErrorf("configuration present for computed attribute"))
-			return errs
-		}
 	}
 
 	// If this attribute has a NestedType, validate the nested object
