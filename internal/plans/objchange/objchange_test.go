@@ -1452,12 +1452,12 @@ func TestProposedNew(t *testing.T) {
 				"map":    cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"set":    cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{"bar": cty.String}))),
 				"nested_map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
-					"inner": cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+					"inner": cty.Object(map[string]cty.Type{
 						"optional":          cty.String,
 						"computed":          cty.String,
 						"optional_computed": cty.String,
 						"required":          cty.String,
-					}, []string{"computed", "optional", "optional_computed"}),
+					}),
 				}))),
 			}),
 		},
