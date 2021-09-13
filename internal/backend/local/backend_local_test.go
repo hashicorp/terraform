@@ -132,7 +132,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	stateFile := statefile.New(plan.PriorState, "boop", 2)
 
 	// Roundtrip through serialization as expected by the operation
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	if err := planfile.Create(planPath, configload.NewEmptySnapshot(), prevStateFile, stateFile, plan); err != nil {

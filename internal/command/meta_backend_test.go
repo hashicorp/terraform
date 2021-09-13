@@ -1855,8 +1855,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 
 // no config; return inmem backend stored in state
 func TestBackendFromState(t *testing.T) {
-	wd, cleanup := tempWorkingDirFixture(t, "backend-from-state")
-	defer cleanup()
+	wd := tempWorkingDirFixture(t, "backend-from-state")
 	defer testChdir(t, wd.RootModuleDir())()
 
 	// Setup the meta

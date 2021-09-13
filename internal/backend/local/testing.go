@@ -1,7 +1,6 @@
 package local
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -24,7 +23,7 @@ import (
 // public fields without any locks.
 func TestLocal(t *testing.T) (*Local, func()) {
 	t.Helper()
-	tempDir := testTempDir(t)
+	tempDir := t.TempDir()
 
 	local := New()
 	local.StatePath = filepath.Join(tempDir, "state.tfstate")
@@ -187,15 +186,6 @@ func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
 	return b.Local.StateMgr(name)
-}
-
-func testTempDir(t *testing.T) string {
-	d, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return d
 }
 
 func testStateFile(t *testing.T, path string, s *states.State) {

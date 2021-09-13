@@ -8,8 +8,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	wd, cleanup := tempWorkingDirFixture(t, "get")
-	defer cleanup()
+	wd := tempWorkingDirFixture(t, "get")
 	defer testChdir(t, wd.RootModuleDir())()
 
 	ui := cli.NewMockUi()
@@ -56,8 +55,7 @@ func TestGet_multipleArgs(t *testing.T) {
 }
 
 func TestGet_update(t *testing.T) {
-	wd, cleanup := tempWorkingDirFixture(t, "get")
-	defer cleanup()
+	wd := tempWorkingDirFixture(t, "get")
 	defer testChdir(t, wd.RootModuleDir())()
 
 	ui := cli.NewMockUi()
