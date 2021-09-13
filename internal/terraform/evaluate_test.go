@@ -94,15 +94,19 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 			Module: &configs.Module{
 				Variables: map[string]*configs.Variable{
 					"some_var": {
-						Name:      "some_var",
-						Sensitive: true,
-						Default:   cty.StringVal("foo"),
+						Name:           "some_var",
+						Sensitive:      true,
+						Default:        cty.StringVal("foo"),
+						Type:           cty.String,
+						ConstraintType: cty.String,
 					},
 					// Avoid double marking a value
 					"some_other_var": {
-						Name:      "some_other_var",
-						Sensitive: true,
-						Default:   cty.StringVal("bar"),
+						Name:           "some_other_var",
+						Sensitive:      true,
+						Default:        cty.StringVal("bar"),
+						Type:           cty.String,
+						ConstraintType: cty.String,
 					},
 				},
 			},
