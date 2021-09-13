@@ -62,7 +62,8 @@
                 },
                 "after": null,
                 "before_sensitive": {},
-                "after_sensitive": false
+                "after_sensitive": false,
+                "after_unknown": {}
             }
         }
     ],

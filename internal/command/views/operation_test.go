@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestOperation_stopping(t *testing.T) {
@@ -82,10 +83,8 @@ func TestOperation_planNoChanges(t *testing.T) {
 		"nothing at all in normal mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
-					UIMode:       plans.NormalMode,
-					Changes:      plans.NewChanges(),
-					PrevRunState: states.NewState(),
-					PriorState:   states.NewState(),
+					UIMode:  plans.NormalMode,
+					Changes: plans.NewChanges(),
 				}
 			},
 			"no differences, so no changes are needed.",
@@ -93,10 +92,8 @@ func TestOperation_planNoChanges(t *testing.T) {
 		"nothing at all in refresh-only mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
-					UIMode:       plans.RefreshOnlyMode,
-					Changes:      plans.NewChanges(),
-					PrevRunState: states.NewState(),
-					PriorState:   states.NewState(),
+					UIMode:  plans.RefreshOnlyMode,
+					Changes: plans.NewChanges(),
 				}
 			},
 			"Terraform has checked that the real remote objects still match",
@@ -104,148 +101,90 @@ func TestOperation_planNoChanges(t *testing.T) {
 		"nothing at all in destroy mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
-					UIMode:       plans.DestroyMode,
-					Changes:      plans.NewChanges(),
-					PrevRunState: states.NewState(),
-					PriorState:   states.NewState(),
+					UIMode:  plans.DestroyMode,
+					Changes: plans.NewChanges(),
 				}
 			},
 			"No objects need to be destroyed.",
 		},
-		"no drift to display with only deposed instances": {
-			// changes in deposed instances will cause a change in state, but
-			// have nothing to display to the user
-			func(schemas *terraform.Schemas) *plans.Plan {
-				return &plans.Plan{
-					UIMode:  plans.NormalMode,
-					Changes: plans.NewChanges(),
-					PrevRunState: states.BuildState(func(state *states.SyncState) {
-						state.SetResourceInstanceDeposed(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "somewhere",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							states.NewDeposedKey(),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{"foo": "ok", "bars":[]}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-					}),
-					PriorState: states.NewState(),
-				}
-			},
-			"no differences, so no changes are needed.",
-		},
 		"drift detected in normal mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
-				return &plans.Plan{
-					UIMode:  plans.NormalMode,
-					Changes: plans.NewChanges(),
-					PrevRunState: states.BuildState(func(state *states.SyncState) {
-						state.SetResourceInstanceCurrent(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "somewhere",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-					}),
-					PriorState: states.NewState(),
+				addr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "somewhere",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+				schema, _ := schemas.ResourceTypeConfig(
+					addrs.NewDefaultProvider("test"),
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				ty := schema.ImpliedType()
+				rc := &plans.ResourceInstanceChange{
+					Addr:        addr,
+					PrevRunAddr: addr,
+					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
+						addrs.NewDefaultProvider("test"),
+					),
+					Change: plans.Change{
+						Action: plans.Update,
+						Before: cty.NullVal(ty),
+						After: cty.ObjectVal(map[string]cty.Value{
+							"id":  cty.StringVal("1234"),
+							"foo": cty.StringVal("bar"),
+						}),
+					},
 				}
-			},
-			"to update the Terraform state to match, create and apply a refresh-only plan",
-		},
-		"drift detected with deposed": {
-			func(schemas *terraform.Schemas) *plans.Plan {
+				rcs, err := rc.Encode(ty)
+				if err != nil {
+					panic(err)
+				}
+				drs := []*plans.ResourceInstanceChangeSrc{rcs}
 				return &plans.Plan{
-					UIMode:  plans.NormalMode,
-					Changes: plans.NewChanges(),
-					PrevRunState: states.BuildState(func(state *states.SyncState) {
-						state.SetResourceInstanceCurrent(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "changes",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{"foo":"b"}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-						state.SetResourceInstanceDeposed(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "broken",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							states.NewDeposedKey(),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{"foo":"c"}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-					}),
-					PriorState: states.BuildState(func(state *states.SyncState) {
-						state.SetResourceInstanceCurrent(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "changed",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{"foo":"b"}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-						state.SetResourceInstanceDeposed(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "broken",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							states.NewDeposedKey(),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{"foo":"d"}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-					}),
+					UIMode:           plans.NormalMode,
+					Changes:          plans.NewChanges(),
+					DriftedResources: drs,
 				}
 			},
 			"to update the Terraform state to match, create and apply a refresh-only plan",
 		},
 		"drift detected in refresh-only mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
+				addr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "somewhere",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+				schema, _ := schemas.ResourceTypeConfig(
+					addrs.NewDefaultProvider("test"),
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				ty := schema.ImpliedType()
+				rc := &plans.ResourceInstanceChange{
+					Addr:        addr,
+					PrevRunAddr: addr,
+					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
+						addrs.NewDefaultProvider("test"),
+					),
+					Change: plans.Change{
+						Action: plans.Update,
+						Before: cty.NullVal(ty),
+						After: cty.ObjectVal(map[string]cty.Value{
+							"id":  cty.StringVal("1234"),
+							"foo": cty.StringVal("bar"),
+						}),
+					},
+				}
+				rcs, err := rc.Encode(ty)
+				if err != nil {
+					panic(err)
+				}
+				drs := []*plans.ResourceInstanceChangeSrc{rcs}
 				return &plans.Plan{
-					UIMode:  plans.RefreshOnlyMode,
-					Changes: plans.NewChanges(),
-					PrevRunState: states.BuildState(func(state *states.SyncState) {
-						state.SetResourceInstanceCurrent(
-							addrs.Resource{
-								Mode: addrs.ManagedResourceMode,
-								Type: "test_resource",
-								Name: "somewhere",
-							}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-							&states.ResourceInstanceObjectSrc{
-								Status:    states.ObjectReady,
-								AttrsJSON: []byte(`{}`),
-							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-						)
-					}),
-					PriorState: states.NewState(),
+					UIMode:           plans.RefreshOnlyMode,
+					Changes:          plans.NewChanges(),
+					DriftedResources: drs,
 				}
 			},
 			"If you were expecting these changes then you can apply this plan",
