@@ -147,16 +147,10 @@ func tempWorkingDir(t *testing.T) (*workdir.Dir, func() error) {
 // the testWorkingDir commentary for an example of how to use this function
 // along with testChdir to meet the expectations of command.Meta legacy
 // functionality.
-func tempWorkingDirFixture(t *testing.T, fixtureName string) (*workdir.Dir, func() error) {
+func tempWorkingDirFixture(t *testing.T, fixtureName string) *workdir.Dir {
 	t.Helper()
 
-	dirPath, err := os.MkdirTemp("", "tf-command-test-"+fixtureName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	done := func() error {
-		return os.RemoveAll(dirPath)
-	}
+	dirPath := testTempDir(t)
 	t.Logf("temporary directory %s with fixture %q", dirPath, fixtureName)
 
 	fixturePath := testFixturePath(fixtureName)
@@ -165,7 +159,7 @@ func tempWorkingDirFixture(t *testing.T, fixtureName string) (*workdir.Dir, func
 	// on failure, a failure to copy will prevent us from cleaning up the
 	// temporary directory. Oh well. :(
 
-	return workdir.NewDir(dirPath), done
+	return workdir.NewDir(dirPath)
 }
 
 func testFixturePath(name string) string {
@@ -550,13 +544,8 @@ func testTempFile(t *testing.T) string {
 
 func testTempDir(t *testing.T) string {
 	t.Helper()
-
-	d, err := ioutil.TempDir(testingDir, "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	d, err = filepath.EvalSymlinks(d)
+	d := t.TempDir()
+	d, err := filepath.EvalSymlinks(d)
 	if err != nil {
 		t.Fatal(err)
 	}

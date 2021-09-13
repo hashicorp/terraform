@@ -174,7 +174,7 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 		// unknown" situation because that's already common for printing out
 		// resource changes and we already have many tests for that.
 	}))
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-outputs-changed")
@@ -232,7 +232,7 @@ func TestLocal_planModuleOutputsChanged(t *testing.T) {
 			OutputValue: addrs.OutputValue{Name: "changed"},
 		}, cty.StringVal("before"), false)
 	}))
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-module-outputs-changed")
@@ -275,8 +275,7 @@ func TestLocal_planTainted(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
@@ -356,8 +355,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 			},
 		)
 	}))
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
@@ -448,8 +446,7 @@ func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
 	defer cleanup()
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-cbd")
 	defer configCleanup()
@@ -540,8 +537,7 @@ func TestLocal_planDestroy(t *testing.T) {
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -594,8 +590,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_withDataSource())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/destroy-with-ds")
@@ -670,8 +665,7 @@ func TestLocal_planOutPathNoChange(t *testing.T) {
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
