@@ -237,12 +237,6 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		})
 		return cty.DynamicVal, diags
 	}
-
-	wantType := cty.DynamicPseudoType
-	if config.Type != cty.NilType {
-		wantType = config.Type
-	}
-
 	d.Evaluator.VariableValuesLock.Lock()
 	defer d.Evaluator.VariableValuesLock.Unlock()
 
@@ -262,15 +256,15 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	if d.Operation == walkValidate {
 		// Ensure variable sensitivity is captured in the validate walk
 		if config.Sensitive {
-			return cty.UnknownVal(wantType).Mark(marks.Sensitive), diags
+			return cty.UnknownVal(config.Type).Mark(marks.Sensitive), diags
 		}
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	moduleAddrStr := d.ModulePath.String()
 	vals := d.Evaluator.VariableValues[moduleAddrStr]
 	if vals == nil {
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	val, isSet := vals[addr.Name]
@@ -278,11 +272,11 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		if config.Default != cty.NilVal {
 			return config.Default, diags
 		}
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	var err error
-	val, err = convert.Convert(val, wantType)
+	val, err = convert.Convert(val, config.ConstraintType)
 	if err != nil {
 		// We should never get here because this problem should've been caught
 		// during earlier validation, but we'll do something reasonable anyway.
@@ -294,7 +288,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		})
 		// Stub out our return value so that the semantic checker doesn't
 		// produce redundant downstream errors.
-		val = cty.UnknownVal(wantType)
+		val = cty.UnknownVal(config.Type)
 	}
 
 	// Mark if sensitive

@@ -262,10 +262,8 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 			continue
 		}
 
-		wantType := vc.Type
-
 		// A given value is valid if it can convert to the desired type.
-		_, err := convert.Convert(val.Value, wantType)
+		_, err := convert.Convert(val.Value, vc.ConstraintType)
 		if err != nil {
 			switch val.SourceType {
 			case ValueFromConfig, ValueFromAutoFile, ValueFromNamedFile:
