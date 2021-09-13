@@ -51,7 +51,8 @@ func TestRoundtrip(t *testing.T) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs:   []*plans.OutputChangeSrc{},
 		},
-		ProviderSHA256s: map[string][]byte{},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
+		ProviderSHA256s:  map[string][]byte{},
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": plans.DynamicValue([]byte("foo placeholder")),
 		},

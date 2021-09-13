@@ -56,6 +56,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 
 		ProviderSHA256s: map[string][]byte{},
 	}
@@ -96,6 +97,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 
 		plan.Changes.Resources = append(plan.Changes.Resources, change)
+	}
+
+	for _, rawRC := range rawPlan.ResourceDrift {
+		change, err := resourceChangeFromTfplan(rawRC)
+		if err != nil {
+			// errors from resourceChangeFromTfplan already include context
+			return nil, err
+		}
+
+		plan.DriftedResources = append(plan.DriftedResources, change)
 	}
 
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
@@ -342,6 +353,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
+		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
 
 	switch plan.UIMode {
@@ -386,6 +398,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.ResourceChanges = append(rawPlan.ResourceChanges, rawRC)
+	}
+
+	for _, rc := range plan.DriftedResources {
+		rawRC, err := resourceChangeToTfplan(rc)
+		if err != nil {
+			return err
+		}
+		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
 	}
 
 	for _, targetAddr := range plan.TargetAddrs {
