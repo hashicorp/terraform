@@ -11,6 +11,7 @@ BUG FIXES:
 * cli: Suppress confirmation prompt when initializing with the `-force-copy` flag and migrating state between multiple workspaces. ([#29438](https://github.com/hashicorp/terraform/issues/29438))
 * cli: Update tencentcount dependency versions to fix errors when building from source ([#29445](https://github.com/hashicorp/terraform/issues/29445))
 * core: Fix panic while handling computed attributes within nested objects, and improve plan validation for unknown values ([#29482](https://github.com/hashicorp/terraform/issues/29482))
+* core: Prevent object types with optional attributes from being instantiated as concrete values, which can lead to failures in type comparison [GH-29559]
 
 ## 1.0.5 (August 18, 2021)
 
