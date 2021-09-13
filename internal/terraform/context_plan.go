@@ -347,11 +347,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	diags = diags.Append(walkDiags)
 	diags = diags.Append(c.postPlanValidateMoves(config, moveStmts, walker.InstanceExpander.AllInstances()))
 
+	prevRunState = walker.PrevRunState.Close()
+	priorState := walker.RefreshState.Close()
+	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
+	diags = diags.Append(driftDiags)
+
 	plan := &plans.Plan{
-		UIMode:       opts.Mode,
-		Changes:      changes,
-		PriorState:   walker.RefreshState.Close(),
-		PrevRunState: walker.PrevRunState.Close(),
+		UIMode:           opts.Mode,
+		Changes:          changes,
+		DriftedResources: driftedResources,
+		PrevRunState:     prevRunState,
+		PriorState:       priorState,
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -396,6 +402,126 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		// The above should cover all plans.Mode values
 		panic(fmt.Sprintf("unsupported plan mode %s", mode))
 	}
+}
+
+func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves map[addrs.UniqueKey]refactoring.MoveResult) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if newState.ManagedResourcesEqual(oldState) {
+		// Nothing to do, because we only detect and report drift for managed
+		// resource instances.
+		return nil, diags
+	}
+
+	schemas, schemaDiags := c.Schemas(config, newState)
+	diags = diags.Append(schemaDiags)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	var drs []*plans.ResourceInstanceChangeSrc
+
+	for _, ms := range oldState.Modules {
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				// Drift reporting is only for managed resources
+				continue
+			}
+
+			provider := rs.ProviderConfig.Provider
+			for key, oldIS := range rs.Instances {
+				if oldIS.Current == nil {
+					// Not interested in instances that only have deposed objects
+					continue
+				}
+				addr := rs.Addr.Instance(key)
+				newIS := newState.ResourceInstance(addr)
+
+				schema, _ := schemas.ResourceTypeConfig(
+					provider,
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				if schema == nil {
+					// This should never happen, but just in case
+					return nil, diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Missing resource schema from provider",
+						fmt.Sprintf("No resource schema found for %s.", addr.Resource.Resource.Type),
+					))
+				}
+				ty := schema.ImpliedType()
+
+				oldObj, err := oldIS.Current.Decode(ty)
+				if err != nil {
+					// This should also never happen
+					return nil, diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to decode resource from state",
+						fmt.Sprintf("Error decoding %q from previous state: %s", addr.String(), err),
+					))
+				}
+
+				var newObj *states.ResourceInstanceObject
+				if newIS != nil && newIS.Current != nil {
+					newObj, err = newIS.Current.Decode(ty)
+					if err != nil {
+						// This should also never happen
+						return nil, diags.Append(tfdiags.Sourceless(
+							tfdiags.Error,
+							"Failed to decode resource from state",
+							fmt.Sprintf("Error decoding %q from prior state: %s", addr.String(), err),
+						))
+					}
+				}
+
+				var oldVal, newVal cty.Value
+				oldVal = oldObj.Value
+				if newObj != nil {
+					newVal = newObj.Value
+				} else {
+					newVal = cty.NullVal(ty)
+				}
+
+				if oldVal.RawEquals(newVal) {
+					// No drift if the two values are semantically equivalent
+					continue
+				}
+
+				// We can only detect updates and deletes as drift.
+				action := plans.Update
+				if newVal.IsNull() {
+					action = plans.Delete
+				}
+
+				prevRunAddr := addr
+				if move, ok := moves[addr.UniqueKey()]; ok {
+					prevRunAddr = move.From
+				}
+
+				change := &plans.ResourceInstanceChange{
+					Addr:         addr,
+					PrevRunAddr:  prevRunAddr,
+					ProviderAddr: rs.ProviderConfig,
+					Change: plans.Change{
+						Action: action,
+						Before: oldVal,
+						After:  newVal,
+					},
+				}
+
+				changeSrc, err := change.Encode(ty)
+				if err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+
+				drs = append(drs, changeSrc)
+			}
+		}
+	}
+
+	return drs, diags
 }
 
 // PlanGraphForUI is a last vestage of graphs in the public interface of Context

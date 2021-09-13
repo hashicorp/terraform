@@ -219,6 +219,10 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
@@ -295,6 +299,10 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
@@ -381,6 +389,10 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,

@@ -106,6 +106,23 @@ resource "test_object" "a" {
 		}
 	}
 
+	// This situation should result in a drifted resource change.
+	var drifted *plans.ResourceInstanceChangeSrc
+	for _, dr := range plan.DriftedResources {
+		if dr.Addr.Equal(addr) {
+			drifted = dr
+			break
+		}
+	}
+
+	if drifted == nil {
+		t.Errorf("instance %s is missing from the drifted resource changes", addr)
+	} else {
+		if got, want := drifted.Action, plans.Delete; got != want {
+			t.Errorf("unexpected instance %s drifted resource change action. got: %s, want: %s", addr, got, want)
+		}
+	}
+
 	// Because the configuration still mentions test_object.a, we should've
 	// planned to recreate it in order to fix the drift.
 	for _, c := range plan.Changes.Resources {
@@ -1036,6 +1053,11 @@ func TestContext2Plan_refreshOnlyMode_deposed(t *testing.T) {
 		if !want.RawEquals(got) {
 			t.Errorf("wrong value for output value 'out'\ngot:  %#v\nwant: %#v", got, want)
 		}
+	}
+
+	// Deposed objects should not be represented in drift.
+	if len(plan.DriftedResources) > 0 {
+		t.Errorf("unexpected drifted resources (%d)", len(plan.DriftedResources))
 	}
 }
 
