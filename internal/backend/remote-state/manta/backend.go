@@ -19,6 +19,7 @@ import (
 
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "manta",
 		Schema: map[string]*schema.Schema{
 			"account": {
 				Type:        schema.TypeString,

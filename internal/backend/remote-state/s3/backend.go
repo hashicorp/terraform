@@ -20,6 +20,7 @@ import (
 // New creates a new backend for S3 remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "s3",
 		Schema: map[string]*schema.Schema{
 			"bucket": {
 				Type:        schema.TypeString,

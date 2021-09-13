@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -436,7 +437,8 @@ func (m *Meta) backendMigrateEmptyConfirm(one, two statemgr.Full, opts *backendM
 		Query: "Do you want to copy existing state to the new backend?",
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateEmpty),
-			opts.OneType, opts.TwoType),
+			opts.OneType, opts.TwoType,
+			logging.Indent(opts.One.String()), logging.Indent(opts.Two.String())),
 	}
 
 	return m.confirm(inputOpts)
@@ -477,7 +479,8 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 		Query: "Do you want to copy existing state to the new backend?",
 		Description: fmt.Sprintf(
 			strings.TrimSpace(inputBackendMigrateNonEmpty),
-			opts.OneType, opts.TwoType, onePath, twoPath),
+			opts.OneType, opts.TwoType, onePath, twoPath,
+			logging.Indent(opts.One.String()), logging.Indent(opts.Two.String())),
 	}
 
 	// Confirm with the user that the copy should occur
@@ -520,7 +523,7 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured 
+Error copying state from the previous %q backend to the newly configured
 %q backend:
     %s
 
@@ -531,7 +534,17 @@ the error above and try again.
 const inputBackendMigrateEmpty = `
 Pre-existing state was found while migrating the previous %q backend to the
 newly configured %q backend. No existing state was found in the newly
-configured %[2]q backend. Do you want to copy this state to the new %[2]q
+configured %[2]q backend.
+
+The configuration for the previous %[1]q backend was:
+
+%[3]s
+
+The configuration for the new %[2]q backend is:
+
+%[4]s
+
+Do you want to copy this state to the new %[2]q
 backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
@@ -543,6 +556,14 @@ removed after responding to this query.
 
 Previous (type %[1]q): %[3]s
 New      (type %[2]q): %[4]s
+
+The configuration for the previous %[1]q backend was:
+
+%[5]s
+
+The configuration for the new %[2]q backend is:
+
+%[6]s
 
 Do you want to overwrite the state in the new backend with the previous state?
 Enter "yes" to copy and "no" to start with the existing state in the newly
@@ -574,7 +595,7 @@ If you answer "yes", Terraform will migrate all states. If you answer
 
 const inputBackendNewWorkspaceName = `
 Please provide a new workspace name (e.g. dev, test) that will be used
-to migrate the existing default workspace. 
+to migrate the existing default workspace.
 `
 
 const inputBackendSelectWorkspace = `

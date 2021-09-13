@@ -42,6 +42,7 @@ type Backend struct {
 // New creates a new backend for TencentCloud cos remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "cos",
 		Schema: map[string]*schema.Schema{
 			"secret_id": {
 				Type:        schema.TypeString,

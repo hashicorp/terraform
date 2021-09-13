@@ -155,10 +155,12 @@ func TestBackendConfigure(t *testing.T) {
 		B      *Backend
 		Config map[string]cty.Value
 		Err    bool
+		String string
 	}{
 		{
 			"Basic config",
 			&Backend{
+				Type: "test",
 				Schema: map[string]*Schema{
 					"foo": &Schema{
 						Type:     TypeInt,
@@ -179,6 +181,9 @@ func TestBackendConfigure(t *testing.T) {
 				"foo": cty.NumberIntVal(42),
 			},
 			false,
+			`backend "test" {
+  foo = 42
+}`,
 		},
 	}
 
@@ -187,6 +192,9 @@ func TestBackendConfigure(t *testing.T) {
 			diags := tc.B.Configure(cty.ObjectVal(tc.Config))
 			if diags.HasErrors() != tc.Err {
 				t.Errorf("wrong number of diagnostics")
+			}
+			if tc.B.String() != tc.String {
+				t.Error(tc.B.String())
 			}
 		})
 	}

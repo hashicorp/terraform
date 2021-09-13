@@ -15,6 +15,7 @@ import (
 
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "etcd",
 		Schema: map[string]*schema.Schema{
 			"path": &schema.Schema{
 				Type:        schema.TypeString,

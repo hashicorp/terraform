@@ -18,6 +18,7 @@ import (
 
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "http",
 		Schema: map[string]*schema.Schema{
 			"address": &schema.Schema{
 				Type:        schema.TypeString,

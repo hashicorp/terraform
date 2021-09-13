@@ -3,7 +3,11 @@ package schema
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
@@ -31,6 +35,8 @@ type Backend struct {
 	// This can be nil, in which case nothing will be called but the
 	// config will still be stored.
 	ConfigureFunc func(context.Context) error
+
+	Type string
 
 	config *ResourceData
 }
@@ -197,4 +203,36 @@ func (b *Backend) shimConfig(obj cty.Value) *terraform.ResourceConfig {
 // called.
 func (b *Backend) Config() *ResourceData {
 	return b.config
+}
+
+func (b *Backend) String() string {
+	// At the moment all backends only have attributes so we can skip blocks
+	f := hclwrite.NewFile()
+
+	var names []string
+	for name := range b.Schema {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	body := f.Body().AppendNewBlock("backend", []string{b.Type}).Body()
+	for _, name := range names {
+		sch := b.Schema[name]
+		switch sch.Type {
+		case TypeBool:
+			body.SetAttributeValue(name, cty.BoolVal(b.config.Get(name).(bool)))
+		case TypeInt:
+			body.SetAttributeValue(name, cty.NumberIntVal(int64(b.config.Get(name).(int))))
+		case TypeString:
+			body.SetAttributeValue(name, cty.StringVal(b.config.Get(name).(string)))
+		default:
+			body.SetAttributeRaw(name, hclwrite.Tokens{&hclwrite.Token{
+				Type:  hclsyntax.TokenIdent,
+				Bytes: []byte("(unsupported type)"),
+			}})
+
+		}
+	}
+
+	return strings.TrimSpace(string(f.Bytes()))
 }

@@ -34,6 +34,7 @@ import (
 // New creates a new backend for OSS remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "oss",
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
 				Type:        schema.TypeString,

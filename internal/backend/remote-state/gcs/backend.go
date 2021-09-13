@@ -35,6 +35,7 @@ type Backend struct {
 func New() backend.Backend {
 	b := &Backend{}
 	b.Backend = &schema.Backend{
+		Type:          "gcs",
 		ConfigureFunc: b.configure,
 		Schema: map[string]*schema.Schema{
 			"bucket": {

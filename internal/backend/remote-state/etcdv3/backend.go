@@ -25,6 +25,7 @@ const (
 
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "etcdv3",
 		Schema: map[string]*schema.Schema{
 			endpointsKey: &schema.Schema{
 				Type: schema.TypeList,

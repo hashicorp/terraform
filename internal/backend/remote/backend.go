@@ -14,6 +14,8 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -803,6 +805,25 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Return the running operation.
 	return runningOp, nil
+}
+
+func (b *Remote) String() string {
+	f := hclwrite.NewFile()
+
+	body := f.Body().AppendNewBlock("backend", []string{"remote"}).Body()
+	body.SetAttributeValue("hostname", cty.StringVal(b.hostname))
+	body.SetAttributeValue("organization", cty.StringVal(b.organization))
+	body.SetAttributeRaw("token", hclwrite.Tokens{&hclwrite.Token{
+		Type:  hclsyntax.TokenIdent,
+		Bytes: []byte("(sensitive)"),
+	}})
+	body.AppendNewline()
+
+	body = body.AppendNewBlock("workspaces", []string{}).Body()
+	body.SetAttributeValue("name", cty.StringVal(b.workspace))
+	body.SetAttributeValue("prefix", cty.StringVal(b.prefix))
+
+	return strings.TrimSpace(string(f.Bytes()))
 }
 
 func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {

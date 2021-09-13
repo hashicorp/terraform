@@ -14,6 +14,7 @@ import (
 // New creates a new backend for Consul remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "consul",
 		Schema: map[string]*schema.Schema{
 			"path": &schema.Schema{
 				Type:        schema.TypeString,

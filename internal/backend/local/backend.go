@@ -9,8 +9,10 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -323,6 +325,16 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 
 	// Return
 	return runningOp, nil
+}
+
+func (b *Local) String() string {
+	f := hclwrite.NewFile()
+
+	body := f.Body().AppendNewBlock("backend", []string{"local"}).Body()
+	body.SetAttributeValue("path", cty.StringVal(b.StatePath))
+	body.SetAttributeValue("workspace_dir", cty.StringVal(b.StateWorkspaceDir))
+
+	return strings.TrimSpace(string(f.Bytes()))
 }
 
 // opWait waits for the operation to complete, and a stop signal or a

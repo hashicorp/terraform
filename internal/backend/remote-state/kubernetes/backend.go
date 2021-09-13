@@ -26,7 +26,7 @@ import (
 const (
 	noConfigError = `
 
-[Kubernetes backend] Neither service_account nor load_config_file were set to true, 
+[Kubernetes backend] Neither service_account nor load_config_file were set to true,
 this could cause issues connecting to your Kubernetes cluster.
 `
 )
@@ -42,6 +42,7 @@ var (
 // New creates a new backend for kubernetes remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "kubernetes",
 		Schema: map[string]*schema.Schema{
 			"secret_suffix": {
 				Type:        schema.TypeString,

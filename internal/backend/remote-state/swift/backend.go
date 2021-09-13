@@ -25,6 +25,7 @@ type Config struct {
 // New creates a new backend for Swift remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "swift",
 		Schema: map[string]*schema.Schema{
 			"auth_url": {
 				Type:        schema.TypeString,

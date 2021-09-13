@@ -13,6 +13,7 @@ import (
 
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "artifactory",
 		Schema: map[string]*schema.Schema{
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
