@@ -1,6 +1,8 @@
 package cloud
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -9,21 +11,21 @@ var (
 	invalidOrganizationConfigMissingValue = tfdiags.AttributeValue(
 		tfdiags.Error,
 		"Invalid organization value",
-		`The "organization" attribute value must not be empty.`,
+		`The "organization" attribute value must not be empty.\n\n%s`,
 		cty.Path{cty.GetAttrStep{Name: "organization"}},
 	)
 
 	invalidWorkspaceConfigMissingValues = tfdiags.AttributeValue(
 		tfdiags.Error,
 		"Invalid workspaces configuration",
-		`Either workspace "name" or "prefix" is required.`,
+		fmt.Sprintf("Missing workspace mapping strategy. Either workspace \"tags\", \"name\", or \"prefix\" is required.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
 
 	invalidWorkspaceConfigMisconfiguration = tfdiags.AttributeValue(
 		tfdiags.Error,
 		"Invalid workspaces configuration",
-		`Only one of workspace "name" or "prefix" is allowed.`,
+		fmt.Sprintf("Only one of workspace \"tags\", \"name\", or \"prefix\" is allowed.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
 )

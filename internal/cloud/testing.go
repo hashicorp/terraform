@@ -72,6 +72,7 @@ func testBackendDefault(t *testing.T) (*Cloud, func()) {
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
 			"name":   cty.StringVal("prod"),
 			"prefix": cty.NullVal(cty.String),
+			"tags":   cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
 	return testBackend(t, obj)
@@ -85,6 +86,7 @@ func testBackendNoDefault(t *testing.T) (*Cloud, func()) {
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
 			"name":   cty.NullVal(cty.String),
 			"prefix": cty.StringVal("my-app-"),
+			"tags":   cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
 	return testBackend(t, obj)
@@ -98,6 +100,7 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
 			"name":   cty.StringVal("prod"),
 			"prefix": cty.NullVal(cty.String),
+			"tags":   cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
 	return testBackend(t, obj)

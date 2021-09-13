@@ -26,6 +26,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
@@ -104,17 +105,17 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 			"hostname": {
 				Type:        cty.String,
 				Optional:    true,
-				Description: schemaDescriptions["hostname"],
+				Description: schemaDescriptionHostname,
 			},
 			"organization": {
 				Type:        cty.String,
 				Required:    true,
-				Description: schemaDescriptions["organization"],
+				Description: schemaDescriptionOrganization,
 			},
 			"token": {
 				Type:        cty.String,
 				Optional:    true,
-				Description: schemaDescriptions["token"],
+				Description: schemaDescriptionToken,
 			},
 		},
 
@@ -125,12 +126,17 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 						"name": {
 							Type:        cty.String,
 							Optional:    true,
-							Description: schemaDescriptions["name"],
+							Description: schemaDescriptionName,
 						},
 						"prefix": {
 							Type:        cty.String,
 							Optional:    true,
-							Description: schemaDescriptions["prefix"],
+							Description: schemaDescriptionPrefix,
+						},
+						"tags": {
+							Type:        cty.Set(cty.String),
+							Optional:    true,
+							Description: schemaDescriptionTags,
 						},
 					},
 				},
@@ -158,6 +164,12 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
 			workspaceMapping.prefix = val.AsString()
+		}
+		if val := workspaces.GetAttr("tags"); !val.IsNull() {
+			err := gocty.FromCtyValue(val, &workspaceMapping.tags)
+			if err != nil {
+				log.Panicf("An unxpected error occurred: %s", err)
+			}
 		}
 	}
 
@@ -327,6 +339,15 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
 			b.workspaceMapping.prefix = val.AsString()
+		}
+		if val := workspaces.GetAttr("tags"); !val.IsNull() {
+			var tags []string
+			err := gocty.FromCtyValue(val, &tags)
+			if err != nil {
+				log.Panicf("An unxpected error occurred: %s", err)
+			}
+
+			b.workspaceMapping.tags = tags
 		}
 	}
 
@@ -526,6 +547,9 @@ func (b *Cloud) workspaces() ([]string, error) {
 		options.Search = tfe.String(b.workspaceMapping.name)
 	case workspacePrefixStrategy:
 		options.Search = tfe.String(b.workspaceMapping.prefix)
+	case workspaceTagsStrategy:
+		taglist := strings.Join(b.workspaceMapping.tags, ",")
+		options.Tags = &taglist
 	}
 
 	// Create a slice to contain all the names.
@@ -551,7 +575,7 @@ func (b *Cloud) workspaces() ([]string, error) {
 				}
 			default:
 				// Pass-through. "name" and "prefix" strategies are naive and do
-				// client-side filtering above, but for any other future
+				// client-side filtering above, but for tags and any other future
 				// strategy this filtering should be left to the API.
 				names = append(names, w.Name)
 			}
@@ -626,6 +650,13 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		options := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
 		}
+
+		var tags []*tfe.Tag
+		for _, tag := range b.workspaceMapping.tags {
+			t := tfe.Tag{Name: tag}
+			tags = append(tags, &t)
+		}
+		options.Tags = tags
 
 		// We only set the Terraform Version for the new workspace if this is
 		// a release candidate or a final release.
@@ -985,11 +1016,13 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 type workspaceMapping struct {
 	name   string
 	prefix string
+	tags   []string
 }
 
 type workspaceStrategy string
 
 const (
+	workspaceTagsStrategy    workspaceStrategy = "tags"
 	workspaceNameStrategy    workspaceStrategy = "name"
 	workspacePrefixStrategy  workspaceStrategy = "prefix"
 	workspaceNoneStrategy    workspaceStrategy = "none"
@@ -998,11 +1031,13 @@ const (
 
 func (wm workspaceMapping) strategy() workspaceStrategy {
 	switch {
-	case wm.name != "" && wm.prefix == "":
+	case len(wm.tags) > 0 && wm.name == "" && wm.prefix == "":
+		return workspaceTagsStrategy
+	case len(wm.tags) == 0 && wm.name != "" && wm.prefix == "":
 		return workspaceNameStrategy
-	case wm.name == "" && wm.prefix != "":
+	case len(wm.tags) == 0 && wm.name == "" && wm.prefix != "":
 		return workspacePrefixStrategy
-	case wm.name == "" && wm.prefix == "":
+	case len(wm.tags) == 0 && wm.name == "" && wm.prefix == "":
 		return workspaceNoneStrategy
 	default:
 		// Any other combination is invalid as each strategy is mutually exclusive
@@ -1070,22 +1105,33 @@ const operationNotCanceled = `
 [reset][red]The remote operation was not cancelled.[reset]
 `
 
-var schemaDescriptions = map[string]string{
-	"hostname":     "The Terraform Enterprise hostname to connect to. This optional argument defaults to app.terraform.io for use with Terraform Cloud.",
-	"organization": "The name of the organization containing the targeted workspace(s).",
-	"token": "The token used to authenticate with Terraform Cloud/Enterprise. Typically this argument should not be set,\n" +
-		"and 'terraform login' used instead; your credentials will then be fetched from your CLI configuration file or configured credential helper.",
-	"name": "The name of a single Terraform Cloud workspace to be used with this configuration.\n" +
-		"When configured only the specified workspace can be used. This option conflicts\n" +
-		"with \"prefix\".",
-	"prefix": "A name prefix used to select remote Terraform Cloud workspaces to be used for this\n" +
-		"single configuration. New workspaces will automatically be prefixed with this prefix. This option conflicts with \"name\".",
-}
+var (
+	workspaceConfigurationHelp = fmt.Sprintf(
+		`The 'workspaces' block configures how Terraform CLI maps its workspaces for this single
+configuration to workspaces within a Terraform Cloud organization. Three strategies are available:
 
-var workspaceConfigurationHelp = fmt.Sprintf(`The 'workspaces' block configures how Terraform CLI maps its workspaces for this
-single configuration to workspaces within a Terraform Cloud organization. Two strategies are available:
+[bold]tags[reset] - %s
 
 [bold]name[reset] - %s
 
-[bold]prefix[reset] - %s
-`, schemaDescriptions["name"], schemaDescriptions["prefix"])
+[bold]prefix[reset] - %s`, schemaDescriptionTags, schemaDescriptionName, schemaDescriptionPrefix)
+
+	schemaDescriptionHostname = `The Terraform Enterprise hostname to connect to. This optional argument defaults to app.terraform.io
+for use with Terraform Cloud.`
+
+	schemaDescriptionOrganization = `The name of the organization containing the targeted workspace(s).`
+
+	schemaDescriptionToken = `The token used to authenticate with Terraform Cloud/Enterprise. Typically this argument should not
+be set, and 'terraform login' used instead; your credentials will then be fetched from your CLI
+configuration file or configured credential helper.`
+
+	schemaDescriptionTags = `A set of tags used to select remote Terraform Cloud workspaces to be used for this single
+configuration.  New workspaces will automatically be tagged with these tag values.  Generally, this
+is the primary and recommended strategy to use.  This option conflicts with "prefix" and "name".`
+
+	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration When configured
+only the specified workspace can be used. This option conflicts with "tags" and "prefix".`
+
+	schemaDescriptionPrefix = `DEPRECATED. A name prefix used to select remote Terraform Cloud to be used for this single configuration. New
+workspaces will automatically be prefixed with this prefix. This option conflicts with "tags" and "name".`
+)
