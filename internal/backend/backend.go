@@ -249,7 +249,6 @@ type Operation struct {
 	// behavior of the operation.
 	PlanMode     plans.Mode
 	AutoApprove  bool
-	Parallelism  int
 	Targets      []addrs.Targetable
 	ForceReplace []addrs.AbsResourceInstance
 	Variables    map[string]UnparsedVariableValue

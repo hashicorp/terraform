@@ -42,7 +42,7 @@ func (b *Remote) opApply(stopCtx, cancelCtx context.Context, op *backend.Operati
 		return nil, diags.Err()
 	}
 
-	if op.Parallelism != defaultParallelism {
+	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",

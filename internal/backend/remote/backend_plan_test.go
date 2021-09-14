@@ -44,7 +44,6 @@ func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.D
 	return &backend.Operation{
 		ConfigDir:    configDir,
 		ConfigLoader: configLoader,
-		Parallelism:  defaultParallelism,
 		PlanRefresh:  true,
 		StateLocker:  clistate.NewLocker(timeout, stateLockerView),
 		Type:         backend.OperationTypePlan,
@@ -198,7 +197,10 @@ func TestRemote_planWithParallelism(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
-	op.Parallelism = 3
+	if b.ContextOpts == nil {
+		b.ContextOpts = &terraform.ContextOpts{}
+	}
+	b.ContextOpts.Parallelism = 3
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
