@@ -119,9 +119,24 @@ func TestLocal_plan_context_error(t *testing.T) {
 	b, cleanup := TestLocal(t)
 	defer cleanup()
 
+	// This is an intentionally-invalid value to make terraform.NewContext fail
+	// when b.Operation calls it.
+	// NOTE: This test was originally using a provider initialization failure
+	// as its forced error condition, but terraform.NewContext is no longer
+	// responsible for checking that. Invalid parallelism is the last situation
+	// where terraform.NewContext can return error diagnostics, and arguably
+	// we should be validating this argument at the UI layer anyway, so perhaps
+	// in future we'll make terraform.NewContext never return errors and then
+	// this test will become redundant, because its purpose is specifically
+	// to test that we properly unlock the state if terraform.NewContext
+	// returns an error.
+	if b.ContextOpts == nil {
+		b.ContextOpts = &terraform.ContextOpts{}
+	}
+	b.ContextOpts.Parallelism = -1
+
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
-	op.PlanRefresh = true
 
 	// we coerce a failure in Context() by omitting the provider schema
 	run, err := b.Operation(context.Background(), op)
@@ -136,7 +151,7 @@ func TestLocal_plan_context_error(t *testing.T) {
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if got, want := done(t).Stderr(), "failed to read schema for test_instance.foo in registry.terraform.io/hashicorp/test"; !strings.Contains(got, want) {
+	if got, want := done(t).Stderr(), "Error: Invalid parallelism value"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }
