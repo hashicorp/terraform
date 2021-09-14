@@ -78,7 +78,7 @@ func testBackendDefault(t *testing.T) (*Cloud, func()) {
 	return testBackend(t, obj)
 }
 
-func testBackendNoDefault(t *testing.T) (*Cloud, func()) {
+func testBackendWithPrefix(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),

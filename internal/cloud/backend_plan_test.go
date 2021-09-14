@@ -153,7 +153,7 @@ func TestCloud_planLongLine(t *testing.T) {
 }
 
 func TestCloud_planWithoutPermissions(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	// Create a named workspace without permissions.
@@ -762,7 +762,7 @@ func TestCloud_planWithoutOperationsEntitlement(t *testing.T) {
 }
 
 func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	ctx := context.Background()

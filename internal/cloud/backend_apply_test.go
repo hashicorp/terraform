@@ -135,7 +135,7 @@ func TestCloud_applyCanceled(t *testing.T) {
 }
 
 func TestCloud_applyWithoutPermissions(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	// Create a named workspace without permissions.
@@ -175,7 +175,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 }
 
 func TestCloud_applyWithVCS(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	// Create a named workspace with a VCS.
@@ -891,7 +891,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 }
 
 func TestCloud_applyWithAutoApply(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	// Create a named workspace that auto applies.
@@ -1005,7 +1005,7 @@ func TestCloud_applyForceLocal(t *testing.T) {
 }
 
 func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	ctx := context.Background()

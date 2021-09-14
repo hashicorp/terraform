@@ -33,8 +33,8 @@ func TestCloud_backendDefault(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b, b)
 }
 
-func TestCloud_backendNoDefault(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+func TestCloud_backendWithPrefix(t *testing.T) {
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	backend.TestBackendStates(t, b)
@@ -573,7 +573,7 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 }
 
 func TestCloud_addAndRemoveWorkspacesNoDefault(t *testing.T) {
-	b, bCleanup := testBackendNoDefault(t)
+	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
 	states, err := b.Workspaces()
