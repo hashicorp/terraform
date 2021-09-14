@@ -68,3 +68,39 @@ func TestProviderProtocols(t *testing.T) {
 		t.Fatalf("wrong output:\n%s", stdout)
 	}
 }
+
+func TestSchemaCapability(t *testing.T) {
+	t.Parallel()
+
+	tf := e2e.NewBinary(terraformBin, "testdata/provider-schema-capability")
+	defer tf.Close()
+
+	simple6Provider := filepath.Join(tf.WorkDir(), "terraform-provider-simple")
+	simple6ProviderExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple-v6/main", simple6Provider)
+
+	// Move the provider binaries into a directory that we will point terraform
+	// to using the -plugin-dir cli flag.
+	platform := getproviders.CurrentPlatform.String()
+	hashiDir := "cache/registry.terraform.io/hashicorp/"
+	if err := os.MkdirAll(tf.Path(hashiDir, "simple/0.0.1/", platform), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(simple6ProviderExe, tf.Path(hashiDir, "simple/0.0.1/", platform, "terraform-provider-simple")); err != nil {
+		t.Fatal(err)
+	}
+
+	//// INIT
+	_, stderr, err := tf.Run("init", "-plugin-dir=cache")
+	if err != nil {
+		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	stdout, stderr, err := tf.Run("plan")
+	if err == nil {
+		t.Fatalf("expected error but plan succeeded with:\n%s\n", stdout)
+	}
+
+	if !strings.Contains(stderr, "Unsupported block type") {
+		t.Fatalf("expected unsupported block type, got:\n%s\n", stderr)
+	}
+}

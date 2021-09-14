@@ -27,7 +27,14 @@ func Provider() providers.Interface {
 					Optional: true,
 					Type:     cty.String,
 				},
+				"list": {
+					Optional: true,
+					Type: cty.List(cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					})),
+				},
 			},
+			StructuralAttrs: true,
 		},
 	}
 
