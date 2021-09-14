@@ -308,7 +308,9 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 }
 
 func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value) cty.Value {
-	var newV cty.Value
+	// If the config is null or empty, we will be using this default value.
+	newV := config
+
 	switch schema.Nesting {
 	case configschema.NestingSingle:
 		if !config.IsNull() {
@@ -323,6 +325,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 		if config.IsKnown() && !config.IsNull() {
 			configVLen = config.LengthInt()
 		}
+
 		if configVLen > 0 {
 			newVals := make([]cty.Value, 0, configVLen)
 			for it := config.ElementIterator(); it.Next(); {
@@ -345,8 +348,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 			} else {
 				newV = cty.ListVal(newVals)
 			}
-		} else {
-			newV = cty.NullVal(schema.ImpliedType())
 		}
 
 	case configschema.NestingMap:
@@ -378,8 +379,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				// object values so that elements might have different types
 				// in case of dynamically-typed attributes.
 				newV = cty.ObjectVal(newVals)
-			} else {
-				newV = cty.NullVal(schema.ImpliedType())
 			}
 		} else {
 			configVLen := 0
@@ -403,8 +402,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 					newVals[k] = cty.ObjectVal(newEV)
 				}
 				newV = cty.MapVal(newVals)
-			} else {
-				newV = cty.NullVal(schema.ImpliedType())
 			}
 		}
 
@@ -446,8 +443,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				}
 			}
 			newV = cty.SetVal(newVals)
-		} else {
-			newV = cty.NullVal(schema.ImpliedType())
 		}
 	}
 
