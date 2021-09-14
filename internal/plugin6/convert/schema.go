@@ -93,10 +93,16 @@ func protoSchemaNestedBlock(name string, b *configschema.NestedBlock) *proto.Sch
 
 // ProtoToProviderSchema takes a proto.Schema and converts it to a providers.Schema.
 func ProtoToProviderSchema(s *proto.Schema) providers.Schema {
-	return providers.Schema{
+	ps := providers.Schema{
 		Version: s.Version,
 		Block:   ProtoToConfigSchema(s.Block),
 	}
+
+	// insert the schema capability into the top level block
+	if s.Capabilities != nil {
+		ps.Block.StructuralAttrs = s.Capabilities.StructuralAttrs
+	}
+	return ps
 }
 
 // ProtoToConfigSchema takes the GetSchcema_Block from a grpc response and converts it
