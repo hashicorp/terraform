@@ -22,8 +22,7 @@ import (
 )
 
 func TestLocal_refresh(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	testStateFile(t, b.StatePath, testRefreshState())
@@ -58,8 +57,7 @@ test_instance.foo:
 }
 
 func TestLocal_refreshInput(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	schema := &terraform.ProviderSchema{
 		Provider: &configschema.Block{
@@ -121,8 +119,7 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidate(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	testStateFile(t, b.StatePath, testRefreshState())
 	p.ReadResourceFn = nil
@@ -151,8 +148,7 @@ test_instance.foo:
 }
 
 func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	schema := &terraform.ProviderSchema{
 		Provider: &configschema.Block{
@@ -204,8 +200,7 @@ test_instance.foo:
 // This test validates the state lacking behavior when the inner call to
 // Context() fails
 func TestLocal_refresh_context_error(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	testStateFile(t, b.StatePath, testRefreshState())
 	op, configCleanup, done := testOperationRefresh(t, "./testdata/apply")
 	defer configCleanup()
@@ -225,8 +220,7 @@ func TestLocal_refresh_context_error(t *testing.T) {
 }
 
 func TestLocal_refreshEmptyState(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", refreshFixtureSchema())
 	testStateFile(t, b.StatePath, states.NewState())
