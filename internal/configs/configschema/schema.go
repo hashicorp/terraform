@@ -33,6 +33,12 @@ type Block struct {
 	DescriptionKind StringKind
 
 	Deprecated bool
+
+	// StructuralAttrs is set by the provider to indicate that this resource
+	// uses the new nested attribute type system and will not need the legacy
+	// block to attr fixup, so we can skip that entirely during decoding. This
+	// is only used on the top level Block for and entire resource.
+	StructuralAttrs bool
 }
 
 // Attribute represents a configuration attribute, within a block.
