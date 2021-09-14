@@ -129,31 +129,31 @@ func TestValidateMoves(t *testing.T) {
 			},
 			WantError: `Redundant move statement: This statement declares a move from module.a to the same address, which is the same as not declaring this move at all.`,
 		},
-		/*
-			// TODO: This test can't pass until we've implemented
-			// addrs.MoveEndpointInModule.CanChainFrom, which is what
-			// detects the chaining condition this is testing for.
-			"cyclic chain": {
-				Statements: []MoveStatement{
-					makeTestMoveStmt(t,
-						``,
-						`module.a`,
-						`module.b`,
-					),
-					makeTestMoveStmt(t,
-						``,
-						`module.b`,
-						`module.c`,
-					),
-					makeTestMoveStmt(t,
-						``,
-						`module.c`,
-						`module.a`,
-					),
-				},
-				WantError: `bad cycle`,
+		"cyclic chain": {
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t,
+					``,
+					`module.a`,
+					`module.b`,
+				),
+				makeTestMoveStmt(t,
+					``,
+					`module.b`,
+					`module.c`,
+				),
+				makeTestMoveStmt(t,
+					``,
+					`module.c`,
+					`module.a`,
+				),
 			},
-		*/
+			WantError: `Cyclic dependency in move statements: The following chained move statements form a cycle, and so there is no final location to move objects to:
+  - test:1,1: module.a[*] → module.b[*]
+  - test:1,1: module.b[*] → module.c[*]
+  - test:1,1: module.c[*] → module.a[*]
+
+A chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.`,
+		},
 		"module.single as a call still exists in configuration": {
 			Statements: []MoveStatement{
 				makeTestMoveStmt(t,
