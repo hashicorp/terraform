@@ -1103,7 +1103,7 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 	// Get all the workspaces that match the prefix.
 	var ws []*tfe.Workspace
 	for _, w := range m.workspaceIDs {
-		if strings.HasPrefix(w.Name, prefix) {
+		if strings.Contains(w.Name, prefix) {
 			ws = append(ws, w)
 		}
 	}
