@@ -1,7 +1,6 @@
 package e2etest
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,7 +82,7 @@ func TestProviderTampering(t *testing.T) {
 		defer tf.Close()
 		workDir := tf.WorkDir()
 
-		err := ioutil.WriteFile(filepath.Join(workDir, "backend.tf"), []byte(localBackendConfig), 0600)
+		err := os.WriteFile(filepath.Join(workDir, "backend.tf"), []byte(localBackendConfig), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -119,7 +118,7 @@ func TestProviderTampering(t *testing.T) {
 		defer tf.Close()
 		workDir := tf.WorkDir()
 
-		err := ioutil.WriteFile(filepath.Join(workDir, pluginExe), []byte("tamper"), 0600)
+		err := os.WriteFile(filepath.Join(workDir, pluginExe), []byte("tamper"), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -140,7 +139,7 @@ func TestProviderTampering(t *testing.T) {
 		defer tf.Close()
 		workDir := tf.WorkDir()
 
-		err := ioutil.WriteFile(filepath.Join(workDir, "provider-tampering-base.tf"), []byte(`
+		err := os.WriteFile(filepath.Join(workDir, "provider-tampering-base.tf"), []byte(`
 			terraform {
 				required_providers {
 					null = {
@@ -176,7 +175,7 @@ func TestProviderTampering(t *testing.T) {
 		// of this error message for otehr sorts of inconsistency, but those
 		// are tested more thoroughly over in the "configs" package, which is
 		// ultimately responsible for that logic.
-		err := ioutil.WriteFile(filepath.Join(workDir, ".terraform.lock.hcl"), []byte(``), 0600)
+		err := os.WriteFile(filepath.Join(workDir, ".terraform.lock.hcl"), []byte(``), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -251,7 +250,7 @@ func TestProviderTampering(t *testing.T) {
 			t.Fatalf("unexpected plan failure\nstderr:\n%s", stderr)
 		}
 
-		err = ioutil.WriteFile(filepath.Join(workDir, pluginExe), []byte("tamper"), 0600)
+		err = os.WriteFile(filepath.Join(workDir, pluginExe), []byte("tamper"), 0600)
 		if err != nil {
 			t.Fatal(err)
 		}

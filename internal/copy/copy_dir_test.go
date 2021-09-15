@@ -1,7 +1,6 @@
 package copy
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,7 +20,7 @@ import (
 //         └── main.tf
 
 func TestCopyDir_symlinks(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "copy-dir-test")
+	tmpdir, err := os.MkdirTemp("", "copy-dir-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +38,7 @@ func TestCopyDir_symlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(subModuleDir, "main.tf"), []byte("hello"), 0644)
+	err = os.WriteFile(filepath.Join(subModuleDir, "main.tf"), []byte("hello"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +66,7 @@ func TestCopyDir_symlinks(t *testing.T) {
 }
 
 func TestCopyDir_symlink_file(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "copy-file-test")
+	tmpdir, err := os.MkdirTemp("", "copy-file-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +78,7 @@ func TestCopyDir_symlink_file(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(moduleDir, "main.tf"), []byte("hello"), 0644)
+	err = os.WriteFile(filepath.Join(moduleDir, "main.tf"), []byte("hello"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

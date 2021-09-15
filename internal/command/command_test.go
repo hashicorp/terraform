@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -76,7 +75,7 @@ func init() {
 		panic(err)
 	}
 
-	testingDir, err = ioutil.TempDir(testingDir, "tf")
+	testingDir, err = os.MkdirTemp(testingDir, "tf")
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +93,7 @@ func TestMain(m *testing.M) {
 func tempDir(t *testing.T) string {
 	t.Helper()
 
-	dir, err := ioutil.TempDir(testingDir, "tf")
+	dir, err := os.MkdirTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -592,7 +591,7 @@ func testChdir(t *testing.T, new string) func() {
 func testCwd(t *testing.T) (string, string) {
 	t.Helper()
 
-	tmp, err := ioutil.TempDir(testingDir, "tf")
+	tmp, err := os.MkdirTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -868,7 +867,7 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*legacy.State, *http
 // supplied to locate the statelocker.go source.
 func testLockState(sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
-	buildDir, err := ioutil.TempDir(testingDir, "locker")
+	buildDir, err := os.MkdirTemp(testingDir, "locker")
 	if err != nil {
 		return nil, err
 	}
@@ -951,29 +950,32 @@ func testCopyDir(t *testing.T, src, dst string) {
 		t.Fatal(err)
 	}
 
-	entries, err := ioutil.ReadDir(src)
+	entries, err := os.ReadDir(src)
 	if err != nil {
 		return
 	}
 
 	for _, entry := range entries {
+		isDir := entry.IsDir()
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
 		// If the entry is a symlink, we copy the contents
-		for entry.Mode()&os.ModeSymlink != 0 {
+		for entry.Type()&os.ModeSymlink != 0 {
 			target, err := os.Readlink(srcPath)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			entry, err = os.Stat(target)
+			fileInfo, err := os.Stat(target)
 			if err != nil {
 				t.Fatal(err)
 			}
+
+			isDir = fileInfo.IsDir()
 		}
 
-		if entry.IsDir() {
+		if isDir {
 			testCopyDir(t, srcPath, dstPath)
 		} else {
 			err = copy.CopyFile(srcPath, dstPath)

@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -324,7 +323,7 @@ func TestRefresh_outPath(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(testingDir, "tf")
+	outf, err := os.CreateTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -442,7 +441,7 @@ func TestRefresh_varFile(t *testing.T) {
 	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -485,7 +484,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -566,7 +565,7 @@ func TestRefresh_backup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(testingDir, "tf")
+	outf, err := os.CreateTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -581,7 +580,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	// Backup path
-	backupf, err := ioutil.TempFile(testingDir, "tf")
+	backupf, err := os.CreateTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -652,7 +651,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(testingDir, "tf")
+	outf, err := os.CreateTemp(testingDir, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

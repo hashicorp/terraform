@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -226,7 +225,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			tmpDir, err := os.MkdirTemp("", "terraform-test")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -471,7 +470,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			tmpDir, err := os.MkdirTemp("", "terraform-test")
 			if err != nil {
 				t.Fatal(err)
 			}

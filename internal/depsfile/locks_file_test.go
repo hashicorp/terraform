@@ -2,7 +2,6 @@ package depsfile
 
 import (
 	"bufio"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,7 +24,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 	// Some of the files also have additional assertions that
 	// are encoded in the test code below. These must pass
 	// in addition to the standard diagnostics tests, if present.
-	files, err := ioutil.ReadDir("testdata/locks-files")
+	files, err := os.ReadDir("testdata/locks-files")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -220,7 +219,7 @@ func TestSaveLocksToFile(t *testing.T) {
 	locks.SetProvider(bazProvider, oneDotTwo, nil, nil)
 	locks.SetProvider(booProvider, oneDotTwo, abbreviatedOneDotTwo, nil)
 
-	dir, err := ioutil.TempDir("", "terraform-internal-depsfile-savelockstofile")
+	dir, err := os.MkdirTemp("", "terraform-internal-depsfile-savelockstofile")
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -240,7 +239,7 @@ func TestSaveLocksToFile(t *testing.T) {
 		t.Fatalf("Expected lock file to be non-executable: %o", mode)
 	}
 
-	gotContentBytes, err := ioutil.ReadFile(filename)
+	gotContentBytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

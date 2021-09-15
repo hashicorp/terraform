@@ -3,7 +3,6 @@ package providercache
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -1443,7 +1442,7 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 	source := getproviders.NewFilesystemMirrorSource("testdata/cachedir")
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
+	tmpDirPath, err := os.MkdirTemp("", "terraform-test-providercache")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1545,7 +1544,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 	defer close()
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
+	tmpDirPath, err := os.MkdirTemp("", "terraform-test-providercache")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,6 @@ package planfile
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"google.golang.org/protobuf/proto"
 
@@ -31,7 +30,7 @@ const tfplanFilename = "tfplan"
 // a plan file, which is stored in a special file in the archive called
 // "tfplan".
 func readTfplan(r io.Reader) (*plans.Plan, error) {
-	src, err := ioutil.ReadAll(r)
+	src, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

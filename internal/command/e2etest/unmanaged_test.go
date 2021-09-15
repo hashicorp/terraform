@@ -3,7 +3,7 @@ package e2etest
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -160,7 +160,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -266,7 +266,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,

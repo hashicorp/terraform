@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -236,7 +235,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			tmpDir, err := os.MkdirTemp("", "terraform-test")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -524,7 +523,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			tmpDir, err := os.MkdirTemp("", "terraform-test")
 			if err != nil {
 				t.Fatal(err)
 			}

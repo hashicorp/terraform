@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -287,7 +286,7 @@ func (s *LocalState) lockInfoPath() string {
 // lockInfo returns the data in a lock info file
 func (s *LocalState) lockInfo() (*statemgr.LockInfo, error) {
 	path := s.lockInfoPath()
-	infoData, err := ioutil.ReadFile(path)
+	infoData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +305,7 @@ func (s *LocalState) writeLockInfo(info *statemgr.LockInfo) error {
 	info.Path = s.Path
 	info.Created = time.Now().UTC()
 
-	err := ioutil.WriteFile(path, info.Marshal(), 0600)
+	err := os.WriteFile(path, info.Marshal(), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write lock info for %q: %s", s.Path, err)
 	}

@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -57,7 +56,7 @@ Success! All of the test assertions passed.
 			t.Errorf("wrong stderr\n%s", diff)
 		}
 
-		gotXMLSrc, err := ioutil.ReadFile("junit.xml")
+		gotXMLSrc, err := os.ReadFile("junit.xml")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +131,7 @@ wrong value
 			t.Errorf("wrong stderr\n%s", diff)
 		}
 
-		gotXMLSrc, err := ioutil.ReadFile("junit.xml")
+		gotXMLSrc, err := os.ReadFile("junit.xml")
 		if err != nil {
 			t.Fatal(err)
 		}

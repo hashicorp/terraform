@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +14,7 @@ import (
 )
 
 func TestLogout(t *testing.T) {
-	workDir, err := ioutil.TempDir("", "terraform-test-command-logout")
+	workDir, err := os.MkdirTemp("", "terraform-test-command-logout")
 	if err != nil {
 		t.Fatalf("cannot create temporary directory: %s", err)
 	}

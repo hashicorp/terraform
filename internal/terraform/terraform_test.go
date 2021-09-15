@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,7 +85,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	t.Helper()
 
-	cfgPath, err := ioutil.TempDir("", "tf-test")
+	cfgPath, err := os.MkdirTemp("", "tf-test")
 	if err != nil {
 		t.Errorf("Error creating temporary directory for config: %s", err)
 	}

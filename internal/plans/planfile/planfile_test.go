@@ -1,7 +1,7 @@
 package planfile
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -84,7 +84,7 @@ func TestRoundtrip(t *testing.T) {
 		},
 	)
 
-	workDir, err := ioutil.TempDir("", "tf-planfile")
+	workDir, err := os.MkdirTemp("", "tf-planfile")
 	if err != nil {
 		t.Fatal(err)
 	}

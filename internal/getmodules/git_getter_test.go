@@ -3,7 +3,6 @@ package getmodules
 import (
 	"bytes"
 	"encoding/base64"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -416,14 +415,14 @@ func TestGitGetter_gitVersion(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping on windows since the test requires sh")
 	}
-	dir, err := ioutil.TempDir("", "go-getter")
+	dir, err := os.MkdirTemp("", "go-getter")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer os.RemoveAll(dir)
 
 	script := filepath.Join(dir, "git")
-	err = ioutil.WriteFile(
+	err = os.WriteFile(
 		script,
 		[]byte("#!/bin/sh\necho \"git version 2.0 (Some Metadata Here)\n\""),
 		0700)
@@ -705,7 +704,7 @@ type gitRepo struct {
 // testGitRepo creates a new test git repository.
 func testGitRepo(t *testing.T, name string) *gitRepo {
 	t.Helper()
-	dir, err := ioutil.TempDir("", "go-getter")
+	dir, err := os.MkdirTemp("", "go-getter")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -747,7 +746,7 @@ func (r *gitRepo) git(args ...string) {
 // commitFile writes and commits a text file to the repo.
 func (r *gitRepo) commitFile(file, content string) {
 	path := filepath.Join(r.dir, file)
-	if err := ioutil.WriteFile(path, []byte(content), 0600); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		r.t.Fatal(err)
 	}
 	r.git("add", file)
@@ -799,7 +798,7 @@ Bw/uEHUCgYAFs+JPOR25oRyBs7ujrMo/OY1z/eXTVVgZxY+tYGe1FJqDeFyR7ytK
 -----END RSA PRIVATE KEY-----`
 
 func assertContents(t *testing.T, path string, contents string) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -810,7 +809,7 @@ func assertContents(t *testing.T, path string, contents string) {
 }
 
 func tempDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", "tf")
+	dir, err := os.MkdirTemp("", "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -1,7 +1,6 @@
 package e2etest
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,7 +22,7 @@ func TestTerraformProvidersMirror(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	outputDir, err := ioutil.TempDir("", "terraform-e2etest-providers-mirror")
+	outputDir, err := os.MkdirTemp("", "terraform-e2etest-providers-mirror")
 	if err != nil {
 		t.Fatal(err)
 	}

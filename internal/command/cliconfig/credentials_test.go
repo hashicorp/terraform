@@ -1,7 +1,6 @@
 package cliconfig
 
 import (
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,7 +87,7 @@ func TestCredentialsForHost(t *testing.T) {
 }
 
 func TestCredentialsStoreForget(t *testing.T) {
-	d, err := ioutil.TempDir("", "terraform-cliconfig-test")
+	d, err := os.MkdirTemp("", "terraform-cliconfig-test")
 	if err != nil {
 		t.Fatal(err)
 	}

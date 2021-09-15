@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -624,7 +623,7 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
 func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
-	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
+	dir, err := os.MkdirTemp("", "terraform-contextForPlanViaFile")
 	if err != nil {
 		return nil, nil, nil, err
 	}

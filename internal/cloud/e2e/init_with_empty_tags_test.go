@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -50,7 +49,7 @@ func Test_init_with_empty_tags(t *testing.T) {
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			tmpDir, err := os.MkdirTemp("", "terraform-test")
 			if err != nil {
 				t.Fatal(err)
 			}

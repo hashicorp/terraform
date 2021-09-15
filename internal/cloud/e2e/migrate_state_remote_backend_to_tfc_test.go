@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -73,7 +72,7 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +195,7 @@ func Test_migrate_remote_backend_name_to_tfc_same_name(t *testing.T) {
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -320,7 +319,7 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -459,7 +458,7 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -584,7 +583,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t 
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -738,7 +737,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -864,7 +863,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_single_workspace(t 
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1020,7 +1019,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_multi_workspace(t *
 	}
 	defer exp.Close()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-test")
+	tmpDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		t.Fatal(err)
 	}

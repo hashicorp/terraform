@@ -6,7 +6,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,7 +16,7 @@ import (
 // verify that we can locate public key data
 func TestFindKeyData(t *testing.T) {
 	// set up a test directory
-	td, err := ioutil.TempDir("", "ssh")
+	td, err := os.MkdirTemp("", "ssh")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +40,7 @@ func TestFindKeyData(t *testing.T) {
 	if err := os.Rename(id+".pub", "saved.pub"); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(id+".pub", []byte("not a public key"), 0600); err != nil {
+	if err := os.WriteFile(id+".pub", []byte("not a public key"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -56,7 +55,7 @@ func TestFindKeyData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := ioutil.WriteFile(id, []byte("encrypted private key"), 0600); err != nil {
+	if err := os.WriteFile(id, []byte("encrypted private key"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -96,7 +95,7 @@ func generateSSHKey(t *testing.T, idFile string) ssh.PublicKey {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(idFile+".pub", ssh.MarshalAuthorizedKey(pub), 0600)
+	err = os.WriteFile(idFile+".pub", ssh.MarshalAuthorizedKey(pub), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -18,7 +17,7 @@ func TestVersionCommand_implements(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	td, err := ioutil.TempDir("", "terraform-test-version")
+	td, err := os.MkdirTemp("", "terraform-test-version")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +115,7 @@ func TestVersion_outdated(t *testing.T) {
 }
 
 func TestVersion_json(t *testing.T) {
-	td, err := ioutil.TempDir("", "terraform-test-version")
+	td, err := os.MkdirTemp("", "terraform-test-version")
 	if err != nil {
 		t.Fatal(err)
 	}

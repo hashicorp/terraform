@@ -2,7 +2,7 @@ package arguments
 
 import (
 	"flag"
-	"io/ioutil"
+	"io"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -36,7 +36,7 @@ func ParseTest(args []string) (Test, tfdiags.Diagnostics) {
 	// command to report error diagnostics in a suitable way.
 
 	f := flag.NewFlagSet("test", flag.ContinueOnError)
-	f.SetOutput(ioutil.Discard)
+	f.SetOutput(io.Discard)
 	f.Usage = func() {}
 	f.StringVar(&ret.Output.JUnitXMLFile, "junit-xml", "", "Write a JUnit XML file describing the results")
 

@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,12 +16,12 @@ func TestFmt(t *testing.T) {
 	const inSuffix = "_in.tf"
 	const outSuffix = "_out.tf"
 	const gotSuffix = "_got.tf"
-	entries, err := ioutil.ReadDir("testdata/fmt")
+	entries, err := os.ReadDir("testdata/fmt")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	td, err := ioutil.TempDir("", "terraform-fmt-test")
+	td, err := os.MkdirTemp("", "terraform-fmt-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,15 +44,15 @@ func TestFmt(t *testing.T) {
 			inFile := filepath.Join("testdata", "fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
-			input, err := ioutil.ReadFile(inFile)
+			input, err := os.ReadFile(inFile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want, err := ioutil.ReadFile(wantFile)
+			want, err := os.ReadFile(wantFile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = ioutil.WriteFile(gotFile, input, 0700)
+			err = os.WriteFile(gotFile, input, 0700)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -70,7 +69,7 @@ func TestFmt(t *testing.T) {
 				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
 			}
 
-			got, err := ioutil.ReadFile(gotFile)
+			got, err := os.ReadFile(gotFile)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -112,7 +111,7 @@ func TestFmt_syntaxError(t *testing.T) {
 a = 1 +
 `
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.tf"), []byte(invalidSrc), 0644)
+	err := os.WriteFile(filepath.Join(tempDir, "invalid.tf"), []byte(invalidSrc), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,7 +140,7 @@ func TestFmt_snippetInError(t *testing.T) {
 
 	backendSrc := `terraform {backend "s3" {}}`
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
+	err := os.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -399,7 +398,7 @@ var fmtFixture = struct {
 func fmtFixtureWriteDir(t *testing.T) string {
 	dir := testTempDir(t)
 
-	err := ioutil.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
+	err := os.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,7 +31,7 @@ type binary struct {
 // this function will panic. Tests should be written to assume that this
 // function always succeeds.
 func NewBinary(binaryPath, workingDir string) *binary {
-	tmpDir, err := ioutil.TempDir("", "binary-e2etest")
+	tmpDir, err := os.MkdirTemp("", "binary-e2etest")
 	if err != nil {
 		panic(err)
 	}
@@ -171,7 +170,7 @@ func (b *binary) OpenFile(path ...string) (*os.File, error) {
 // directory.
 func (b *binary) ReadFile(path ...string) ([]byte, error) {
 	flatPath := b.Path(path...)
-	return ioutil.ReadFile(flatPath)
+	return os.ReadFile(flatPath)
 }
 
 // FileExists is a helper for easily testing whether a particular file
@@ -255,7 +254,7 @@ func (b *binary) Close() {
 
 func GoBuild(pkgPath, tmpPrefix string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
-	tmpFile, err := ioutil.TempFile(dir, prefix)
+	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		panic(err)
 	}

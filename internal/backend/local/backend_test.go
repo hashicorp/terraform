@@ -2,7 +2,6 @@ package local
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -228,7 +227,7 @@ func TestLocal_multiStateBackend(t *testing.T) {
 
 // change into a tmp dir and return a deferable func to change back and cleanup
 func testTmpDir(t *testing.T) func() {
-	tmp, err := ioutil.TempDir("", "tf")
+	tmp, err := os.MkdirTemp("", "tf")
 	if err != nil {
 		t.Fatal(err)
 	}
