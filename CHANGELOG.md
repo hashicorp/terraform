@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* core: Remove check for computed attributes which is no longer valid with optional structural attributes [GH-29563]
 * core: Prevent object types with optional attributes from being instantiated as concrete values, which can lead to failures in type comparison [GH-29559]
 * core: Empty containers in the configuration were not planned correctly when used with optional structural attributes [GH-29580]
 
