@@ -68,35 +68,35 @@ func ResourceChange(
 
 	switch change.Action {
 	case plans.Create:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be created", dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be created"), dispAddr))
 	case plans.Read:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)", dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)"), dispAddr))
 	case plans.Update:
 		switch language {
 		case DiffLanguageProposedChange:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be updated in-place", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be updated in-place"), dispAddr))
 		case DiffLanguageDetectedDrift:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has changed", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has changed"), dispAddr))
 		default:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] update (unknown reason %s)", dispAddr, language)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] update (unknown reason %s)"), dispAddr, language))
 		}
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		switch change.ActionReason {
 		case plans.ResourceInstanceReplaceBecauseTainted:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced"), dispAddr))
 		case plans.ResourceInstanceReplaceByRequest:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested"), dispAddr))
 		default:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] must be [bold][red]replaced"), dispAddr))
 		}
 	case plans.Delete:
 		switch language {
 		case DiffLanguageProposedChange:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]destroyed"), dispAddr))
 		case DiffLanguageDetectedDrift:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been deleted", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has been deleted"), dispAddr))
 		default:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] delete (unknown reason %s)", dispAddr, language)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] delete (unknown reason %s)"), dispAddr, language))
 		}
 		if change.DeposedKey != states.NotDeposed {
 			// Some extra context about this unusual situation.
@@ -104,7 +104,7 @@ func ResourceChange(
 		}
 	case plans.NoOp:
 		if change.Moved() {
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", change.PrevRunAddr.String(), dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has moved to [bold]%s[reset]"), change.PrevRunAddr.String(), dispAddr))
 			break
 		}
 		fallthrough
@@ -115,7 +115,7 @@ func ResourceChange(
 	buf.WriteString(color.Color("[reset]\n"))
 
 	if change.Moved() && change.Action != plans.NoOp {
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n", change.PrevRunAddr.String(), dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n"), change.PrevRunAddr.String(), dispAddr))
 	}
 
 	if change.Moved() && change.Action == plans.NoOp {
@@ -290,7 +290,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			}
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
-			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedBlocks, noun)))
+			p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), result.skippedBlocks, noun))
 		}
 	}
 
@@ -1310,7 +1310,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1371,7 +1371,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 						if hidden == 1 {
 							noun = "element"
 						}
-						p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", hidden, noun)))
+						p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), hidden, noun))
 						p.buf.WriteString("\n")
 					}
 
@@ -1513,7 +1513,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1605,7 +1605,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1678,7 +1678,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 
 	if new.HasMark(marks.Sensitive) && !old.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n", diffType)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n"), diffType))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(fmt.Sprintf("# display in UI output after applying this change.%s\n", valueUnchangedSuffix))
 	}
@@ -1686,7 +1686,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 	// Note if changing this attribute will change its sensitivity
 	if old.HasMark(marks.Sensitive) && !new.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n"), diffType))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(fmt.Sprintf("# after applying this change.%s\n", valueUnchangedSuffix))
 	}
@@ -1948,7 +1948,7 @@ func (p *blockBodyDiffPrinter) writeSkippedAttr(skipped, indent int) {
 		}
 		p.buf.WriteString("\n")
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", skipped, noun)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 	}
 }
 
@@ -1959,7 +1959,7 @@ func (p *blockBodyDiffPrinter) writeSkippedElems(skipped, indent int) {
 			noun = "element"
 		}
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", skipped, noun)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 		p.buf.WriteString("\n")
 	}
 }
