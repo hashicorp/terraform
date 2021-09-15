@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * core: Prevent object types with optional attributes from being instantiated as concrete values, which can lead to failures in type comparison [GH-29559]
+* core: Empty containers in the configuration were not planned correctly when used with optional structural attributes [GH-29580]
 
 ## 1.0.6 (September 03, 2021)
 
