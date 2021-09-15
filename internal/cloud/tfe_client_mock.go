@@ -1091,20 +1091,36 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 }
 
 func (m *MockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
-	dummyWorkspaces := 10
 	wl := &tfe.WorkspaceList{}
 
-	// Get the prefix from the search options.
-	prefix := ""
+	// Get all the workspaces that match the Search value
+	searchValue := ""
 	if options.Search != nil {
-		prefix = *options.Search
+		searchValue = *options.Search
 	}
 
-	// Get all the workspaces that match the prefix.
 	var ws []*tfe.Workspace
+	var tags []string
+
+	if options.Tags != nil {
+		tags = strings.Split(*options.Tags, ",")
+	}
 	for _, w := range m.workspaceIDs {
-		if strings.Contains(w.Name, prefix) {
-			ws = append(ws, w)
+		wTags := make(map[string]struct{})
+		for _, wTag := range w.Tags {
+			wTags[wTag.Name] = struct{}{}
+		}
+
+		if strings.Contains(w.Name, searchValue) {
+			tagsSatisfied := true
+			for _, tag := range tags {
+				if _, ok := wTags[tag]; !ok {
+					tagsSatisfied = false
+				}
+			}
+			if tagsSatisfied {
+				ws = append(ws, w)
+			}
 		}
 	}
 
@@ -1116,32 +1132,27 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 		return wl, nil
 	}
 
-	// Return dummy workspaces for the first page to test pagination.
-	if options.PageNumber <= 1 {
-		for i := 0; i < dummyWorkspaces; i++ {
-			wl.Items = append(wl.Items, &tfe.Workspace{
-				ID:   GenerateID("ws-"),
-				Name: fmt.Sprintf("dummy-workspace-%d", i),
-			})
-		}
+	numPages := (len(ws) / 20) + 1
+	currentPage := 1
+	if options.PageNumber != 0 {
+		currentPage = options.PageNumber
+	}
+	previousPage := currentPage - 1
+	nextPage := currentPage + 1
 
-		wl.Pagination = &tfe.Pagination{
-			CurrentPage: 1,
-			NextPage:    2,
-			TotalPages:  2,
-			TotalCount:  len(wl.Items) + len(ws),
+	for i := ((currentPage - 1) * 20); i < ((currentPage-1)*20)+20; i++ {
+		if i > (len(ws) - 1) {
+			break
 		}
-
-		return wl, nil
+		wl.Items = append(wl.Items, ws[i])
 	}
 
-	// Return the actual workspaces that matched as the second page.
-	wl.Items = ws
 	wl.Pagination = &tfe.Pagination{
-		CurrentPage:  2,
-		PreviousPage: 1,
-		TotalPages:   2,
-		TotalCount:   len(wl.Items) + dummyWorkspaces,
+		CurrentPage:  currentPage,
+		NextPage:     nextPage,
+		PreviousPage: previousPage,
+		TotalPages:   numPages,
+		TotalCount:   len(wl.Items),
 	}
 
 	return wl, nil
@@ -1173,6 +1184,12 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 	} else {
 		w.TerraformVersion = tfversion.String()
 	}
+	var tags []*tfe.Tag
+	for _, tag := range options.Tags {
+		tags = append(tags, tag)
+		w.TagNames = append(w.TagNames, tag.Name)
+	}
+	w.Tags = tags
 	m.workspaceIDs[w.ID] = w
 	m.workspaceNames[w.Name] = w
 	return w, nil

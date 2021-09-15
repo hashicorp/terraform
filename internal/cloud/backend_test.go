@@ -40,6 +40,30 @@ func TestCloud_backendWithPrefix(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
+func TestCloud_backendWithTags(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+
+	backend.TestBackendStates(t, b)
+
+	// Test pagination works
+	for i := 0; i < 25; i++ {
+		_, err := b.StateMgr(fmt.Sprintf("foo-%d", i+1))
+		if err != nil {
+			t.Fatalf("error: %s", err)
+		}
+	}
+
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+	actual := len(workspaces)
+	if actual != 26 {
+		t.Errorf("expected 26 workspaces (over one standard paginated response), got %d", actual)
+	}
+}
+
 func TestCloud_PrepareConfig(t *testing.T) {
 	cases := map[string]struct {
 		config      cty.Value

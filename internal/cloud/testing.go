@@ -92,6 +92,24 @@ func testBackendWithPrefix(t *testing.T) (*Cloud, func()) {
 	return testBackend(t, obj)
 }
 
+func testBackendWithTags(t *testing.T) (*Cloud, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name":   cty.NullVal(cty.String),
+			"prefix": cty.NullVal(cty.String),
+			"tags": cty.SetVal(
+				[]cty.Value{
+					cty.StringVal("billing"),
+				},
+			),
+		}),
+	})
+	return testBackend(t, obj)
+}
+
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),

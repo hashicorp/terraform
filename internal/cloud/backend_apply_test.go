@@ -767,9 +767,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{
-			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
-		},
+		tfe.WorkspaceListOptions{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
@@ -843,9 +841,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{
-			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
-		},
+		tfe.WorkspaceListOptions{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
