@@ -1,10 +1,10 @@
-## 1.0.7 (Unreleased)
+## 1.0.7 (September 15, 2021)
 
 BUG FIXES:
 
-* core: Remove check for computed attributes which is no longer valid with optional structural attributes [GH-29563]
-* core: Prevent object types with optional attributes from being instantiated as concrete values, which can lead to failures in type comparison [GH-29559]
-* core: Empty containers in the configuration were not planned correctly when used with optional structural attributes [GH-29580]
+* core: Remove check for computed attributes which is no longer valid with optional structural attributes ([#29563](https://github.com/hashicorp/terraform/issues/29563))
+* core: Prevent object types with optional attributes from being instantiated as concrete values, which can lead to failures in type comparison ([#29559](https://github.com/hashicorp/terraform/issues/29559))
+* core: Empty containers in the configuration were not planned correctly when used with optional structural attributes ([#29580](https://github.com/hashicorp/terraform/issues/29580))
 
 ## 1.0.6 (September 03, 2021)
 
