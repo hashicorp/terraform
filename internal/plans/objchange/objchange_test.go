@@ -1461,6 +1461,81 @@ func TestProposedNew(t *testing.T) {
 				}))),
 			}),
 		},
+		"expected empty NestedTypes": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+					"map": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {Type: cty.String},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+				"set": cty.SetValEmpty(cty.Object(map[string]cty.Type{"bar": cty.String})),
+			}),
+		},
+		"optional types set replacement": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("old"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("new"),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
