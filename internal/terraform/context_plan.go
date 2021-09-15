@@ -3,6 +3,8 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -113,7 +115,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 			tfdiags.Warning,
 			"Resource targeting is in effect",
 			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
-		
+
 The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 		))
 	}
@@ -297,23 +299,75 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, map[addrs.UniqueKey]refactoring.MoveResult) {
 	moveStmts := refactoring.FindMoveStatements(config)
 	moveResults := refactoring.ApplyMoves(moveStmts, prevRunState)
-	if len(targets) > 0 {
-		for _, result := range moveResults {
-			matchesTarget := false
-			for _, targetAddr := range targets {
-				if targetAddr.TargetContains(result.From) {
-					matchesTarget = true
-					break
-				}
+	return moveStmts, moveResults
+}
+
+func (c *Context) prePlanVerifyTargetedMoves(moveResults map[addrs.UniqueKey]refactoring.MoveResult, targets []addrs.Targetable) tfdiags.Diagnostics {
+	if len(targets) < 1 {
+		return nil // the following only matters when targeting
+	}
+
+	var diags tfdiags.Diagnostics
+
+	var excluded []addrs.AbsResourceInstance
+	for _, result := range moveResults {
+		fromMatchesTarget := false
+		toMatchesTarget := false
+		for _, targetAddr := range targets {
+			if targetAddr.TargetContains(result.From) {
+				fromMatchesTarget = true
 			}
-			//lint:ignore SA9003 TODO
-			if !matchesTarget {
-				// TODO: Return an error stating that a targeted plan is
-				// only valid if it includes this address that was moved.
+			if targetAddr.TargetContains(result.To) {
+				toMatchesTarget = true
 			}
 		}
+		if !fromMatchesTarget {
+			excluded = append(excluded, result.From)
+		}
+		if !toMatchesTarget {
+			excluded = append(excluded, result.To)
+		}
 	}
-	return moveStmts, moveResults
+	if len(excluded) > 0 {
+		sort.Slice(excluded, func(i, j int) bool {
+			return excluded[i].Less(excluded[j])
+		})
+
+		var listBuf strings.Builder
+		var prevResourceAddr addrs.AbsResource
+		for _, instAddr := range excluded {
+			// Targeting generally ends up selecting whole resources rather
+			// than individual instances, because we don't factor in
+			// individual instances until DynamicExpand, so we're going to
+			// always show whole resource addresses here, excluding any
+			// instance keys. (This also neatly avoids dealing with the
+			// different quoting styles required for string instance keys
+			// on different shells, which is handy.)
+			//
+			// To avoid showing duplicates when we have multiple instances
+			// of the same resource, we'll remember the most recent
+			// resource we rendered in prevResource, which is sufficient
+			// because we sorted the list of instance addresses above, and
+			// our sort order always groups together instances of the same
+			// resource.
+			resourceAddr := instAddr.ContainingResource()
+			if resourceAddr.Equal(prevResourceAddr) {
+				continue
+			}
+			fmt.Fprintf(&listBuf, "\n  -target=%q", resourceAddr.String())
+			prevResourceAddr = resourceAddr
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Moved resource instances excluded by targeting",
+			fmt.Sprintf(
+				"Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options to not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
+				listBuf.String(),
+			),
+		))
+	}
+
+	return diags
 }
 
 func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactoring.MoveStatement, allInsts instances.Set) tfdiags.Diagnostics {
@@ -326,6 +380,16 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 
 	prevRunState = prevRunState.DeepCopy() // don't modify the caller's object when we process the moves
 	moveStmts, moveResults := c.prePlanFindAndApplyMoves(config, prevRunState, opts.Targets)
+
+	// If resource targeting is in effect then it might conflict with the
+	// move result.
+	diags = diags.Append(c.prePlanVerifyTargetedMoves(moveResults, opts.Targets))
+	if diags.HasErrors() {
+		// We'll return early here, because if we have any moved resource
+		// instances excluded by targeting then planning is likely to encounter
+		// strange problems that may lead to confusing error messages.
+		return nil, diags
+	}
 
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts, true)
 	diags = diags.Append(moreDiags)
