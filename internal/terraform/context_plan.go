@@ -499,6 +499,14 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					continue
 				}
 				addr := rs.Addr.Instance(key)
+
+				// Previous run address defaults to the current address, but
+				// can differ if the resource moved before refreshing
+				prevRunAddr := addr
+				if move, ok := moves[addr.UniqueKey()]; ok {
+					prevRunAddr = move.From
+				}
+
 				newIS := newState.ResourceInstance(addr)
 
 				schema, _ := schemas.ResourceTypeConfig(
@@ -547,20 +555,30 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					newVal = cty.NullVal(ty)
 				}
 
-				if oldVal.RawEquals(newVal) {
+				if oldVal.RawEquals(newVal) && addr.Equal(prevRunAddr) {
 					// No drift if the two values are semantically equivalent
+					// and no move has happened
 					continue
 				}
 
-				// We can only detect updates and deletes as drift.
-				action := plans.Update
-				if newVal.IsNull() {
+				// We can detect three types of changes after refreshing state,
+				// only two of which are easily understood as "drift":
+				//
+				// - Resources which were deleted outside of Terraform;
+				// - Resources where the object value has changed outside of
+				//   Terraform;
+				// - Resources which have been moved without other changes.
+				//
+				// All of these are returned as drift, to allow refresh-only plans
+				// to present a full set of changes which will be applied.
+				var action plans.Action
+				switch {
+				case newVal.IsNull():
 					action = plans.Delete
-				}
-
-				prevRunAddr := addr
-				if move, ok := moves[addr.UniqueKey()]; ok {
-					prevRunAddr = move.From
+				case !oldVal.RawEquals(newVal):
+					action = plans.Update
+				default:
+					action = plans.NoOp
 				}
 
 				change := &plans.ResourceInstanceChange{
