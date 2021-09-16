@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Internals: Machine Readable UI"
+page_title: "Internals: Machine-Readable UI"
 sidebar_current: "docs-internals-machine-readable-ui"
 description: |-
   Terraform provides a machine-readable streaming JSON UI output for plan, apply, and refresh operations.
 ---
 
-# Machine Readable UI
+# Machine-Readable UI
 
 -> **Note:** This format is available in Terraform 0.15.3 and later.
 
