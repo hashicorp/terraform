@@ -471,7 +471,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves map[addrs.UniqueKey]refactoring.MoveResult) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if newState.ManagedResourcesEqual(oldState) {
+	if newState.ManagedResourcesEqual(oldState) && len(moves) == 0 {
 		// Nothing to do, because we only detect and report drift for managed
 		// resource instances.
 		return nil, diags

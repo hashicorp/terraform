@@ -189,6 +189,55 @@ func TestOperation_planNoChanges(t *testing.T) {
 			},
 			"If you were expecting these changes then you can apply this plan",
 		},
+		"move-only changes in refresh-only mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				addr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "somewhere",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+				addrPrev := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "anywhere",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+				schema, _ := schemas.ResourceTypeConfig(
+					addrs.NewDefaultProvider("test"),
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				ty := schema.ImpliedType()
+				rc := &plans.ResourceInstanceChange{
+					Addr:        addr,
+					PrevRunAddr: addrPrev,
+					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
+						addrs.NewDefaultProvider("test"),
+					),
+					Change: plans.Change{
+						Action: plans.NoOp,
+						Before: cty.ObjectVal(map[string]cty.Value{
+							"id":  cty.StringVal("1234"),
+							"foo": cty.StringVal("bar"),
+						}),
+						After: cty.ObjectVal(map[string]cty.Value{
+							"id":  cty.StringVal("1234"),
+							"foo": cty.StringVal("bar"),
+						}),
+					},
+				}
+				rcs, err := rc.Encode(ty)
+				if err != nil {
+					panic(err)
+				}
+				drs := []*plans.ResourceInstanceChangeSrc{rcs}
+				return &plans.Plan{
+					UIMode:           plans.RefreshOnlyMode,
+					Changes:          plans.NewChanges(),
+					DriftedResources: drs,
+				}
+			},
+			"test_resource.anywhere has moved to test_resource.somewhere",
+		},
 		"drift detected in destroy mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				return &plans.Plan{
