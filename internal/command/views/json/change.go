@@ -12,14 +12,22 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		Action:   changeAction(change.Action),
 		Reason:   changeReason(change.ActionReason),
 	}
+	if !change.Addr.Equal(change.PrevRunAddr) {
+		if c.Action == ActionNoOp {
+			c.Action = ActionMove
+		}
+		pr := newResourceAddr(change.PrevRunAddr)
+		c.PreviousResource = &pr
+	}
 
 	return c
 }
 
 type ResourceInstanceChange struct {
-	Resource ResourceAddr `json:"resource"`
-	Action   ChangeAction `json:"action"`
-	Reason   ChangeReason `json:"reason,omitempty"`
+	Resource         ResourceAddr  `json:"resource"`
+	PreviousResource *ResourceAddr `json:"previous_resource,omitempty"`
+	Action           ChangeAction  `json:"action"`
+	Reason           ChangeReason  `json:"reason,omitempty"`
 }
 
 func (c *ResourceInstanceChange) String() string {
@@ -30,6 +38,7 @@ type ChangeAction string
 
 const (
 	ActionNoOp    ChangeAction = "noop"
+	ActionMove    ChangeAction = "move"
 	ActionCreate  ChangeAction = "create"
 	ActionRead    ChangeAction = "read"
 	ActionUpdate  ChangeAction = "update"
