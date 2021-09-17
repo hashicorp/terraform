@@ -391,6 +391,102 @@ func TestApplyMoves(t *testing.T) {
 				`module.bar[0].foo.to[0]`,
 			},
 		},
+
+		"move module instance to already-existing module instance": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.to[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				// Nothing moved, because the module.b address is already
+				// occupied by another module.
+			},
+			[]string{
+				`module.bar[0].foo.from`,
+				`module.boo.foo.to[0]`,
+			},
+		},
+
+		"move resource to already-existing resource": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.to"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				// Nothing moved, because the module.b address is already
+				// occupied by another module.
+			},
+			[]string{
+				`foo.from`,
+				`foo.to`,
+			},
+		},
+
+		"move resource instance to already-existing resource instance": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.to[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			map[addrs.UniqueKey]MoveResult{
+				// Nothing moved, because the module.b address is already
+				// occupied by another module.
+			},
+			[]string{
+				`foo.from`,
+				`foo.to[0]`,
+			},
+		},
 	}
 
 	for name, test := range tests {
