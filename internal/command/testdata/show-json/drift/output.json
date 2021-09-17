@@ -52,6 +52,7 @@
                     "id": "placeholder"
                 },
                 "after_sensitive": {},
+                "after_unknown": {},
                 "before_sensitive": {}
             }
         }

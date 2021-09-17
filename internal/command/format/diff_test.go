@@ -4599,7 +4599,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			output := ResourceChange(change, tc.Schema, color)
+			output := ResourceChange(change, tc.Schema, color, DiffLanguageProposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
 				t.Errorf("wrong output\n%s", diff)
 			}

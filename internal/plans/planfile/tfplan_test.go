@@ -118,6 +118,46 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				},
 			},
 		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				PrevRunAddr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.DeleteThenCreate,
+					Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("foo-bar-baz"),
+						"boop": cty.ListVal([]cty.Value{
+							cty.StringVal("beep"),
+						}),
+					}), objTy),
+					After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.UnknownVal(cty.String),
+						"boop": cty.ListVal([]cty.Value{
+							cty.StringVal("beep"),
+							cty.StringVal("bonk"),
+						}),
+					}), objTy),
+					AfterValMarks: []cty.PathValueMarks{
+						{
+							Path:  cty.GetAttrPath("boop").IndexInt(1),
+							Marks: cty.NewValueMarks(marks.Sensitive),
+						},
+					},
+				},
+			},
+		},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
@@ -243,6 +283,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 				},
 			},
 		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,

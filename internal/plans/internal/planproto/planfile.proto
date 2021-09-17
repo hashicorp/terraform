@@ -33,6 +33,11 @@ message Plan {
     // each resource to determine which module it belongs to.
     repeated ResourceInstanceChange resource_changes = 3;
 
+    // An unordered set of detected drift: changes made to resources outside of
+    // Terraform, computed by comparing the previous run's state to the state
+    // after refresh.
+    repeated ResourceInstanceChange resource_drift = 18;
+
     // An unordered set of proposed changes to outputs in the root module
     // of the configuration. This set also includes "no action" changes for
     // outputs that are not changing, as context for detecting inconsistencies

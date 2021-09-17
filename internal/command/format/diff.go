@@ -20,6 +20,21 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 )
 
+// DiffLanguage controls the description of the resource change reasons.
+type DiffLanguage rune
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type=DiffLanguage diff.go
+
+const (
+	// DiffLanguageProposedChange indicates that the change is one which is
+	// planned to be applied.
+	DiffLanguageProposedChange DiffLanguage = 'P'
+
+	// DiffLanguageDetectedDrift indicates that the change is detected drift
+	// from the configuration.
+	DiffLanguageDetectedDrift DiffLanguage = 'D'
+)
+
 // ResourceChange returns a string representation of a change to a particular
 // resource, for inclusion in user-facing plan output.
 //
@@ -33,6 +48,7 @@ func ResourceChange(
 	change *plans.ResourceInstanceChangeSrc,
 	schema *configschema.Block,
 	color *colorstring.Colorize,
+	language DiffLanguage,
 ) string {
 	addr := change.Addr
 	var buf bytes.Buffer
@@ -52,29 +68,43 @@ func ResourceChange(
 
 	switch change.Action {
 	case plans.Create:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be created", dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be created"), dispAddr))
 	case plans.Read:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)", dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)"), dispAddr))
 	case plans.Update:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be updated in-place", dispAddr)))
+		switch language {
+		case DiffLanguageProposedChange:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be updated in-place"), dispAddr))
+		case DiffLanguageDetectedDrift:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has changed"), dispAddr))
+		default:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] update (unknown reason %s)"), dispAddr, language))
+		}
 	case plans.CreateThenDelete, plans.DeleteThenCreate:
 		switch change.ActionReason {
 		case plans.ResourceInstanceReplaceBecauseTainted:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced"), dispAddr))
 		case plans.ResourceInstanceReplaceByRequest:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested"), dispAddr))
 		default:
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] must be [bold][red]replaced", dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] must be [bold][red]replaced"), dispAddr))
 		}
 	case plans.Delete:
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] will be [bold][red]destroyed", dispAddr)))
+		switch language {
+		case DiffLanguageProposedChange:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]destroyed"), dispAddr))
+		case DiffLanguageDetectedDrift:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has been deleted"), dispAddr))
+		default:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] delete (unknown reason %s)"), dispAddr, language))
+		}
 		if change.DeposedKey != states.NotDeposed {
 			// Some extra context about this unusual situation.
 			buf.WriteString(color.Color("\n  # (left over from a partially-failed replacement of this instance)"))
 		}
 	case plans.NoOp:
 		if change.Moved() {
-			buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", change.PrevRunAddr.String(), dispAddr)))
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] has moved to [bold]%s[reset]"), change.PrevRunAddr.String(), dispAddr))
 			break
 		}
 		fallthrough
@@ -85,7 +115,7 @@ func ResourceChange(
 	buf.WriteString(color.Color("[reset]\n"))
 
 	if change.Moved() && change.Action != plans.NoOp {
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n", change.PrevRunAddr.String(), dispAddr)))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n"), change.PrevRunAddr.String(), dispAddr))
 	}
 
 	if change.Moved() && change.Action == plans.NoOp {
@@ -145,147 +175,6 @@ func ResourceChange(
 	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
 
 	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
-	if result.bodyWritten {
-		buf.WriteString("\n")
-		buf.WriteString(strings.Repeat(" ", 4))
-	}
-	buf.WriteString("}\n")
-
-	return buf.String()
-}
-
-// ResourceInstanceDrift returns a string representation of a change to a
-// particular resource instance that was made outside of Terraform, for
-// reporting a change that has already happened rather than one that is planned.
-//
-// The the two resource instances have equal current objects then the result
-// will be an empty string to indicate that there is no drift to render.
-//
-// The resource schema must be provided along with the change so that the
-// formatted change can reflect the configuration structure for the associated
-// resource.
-//
-// If "color" is non-nil, it will be used to color the result. Otherwise,
-// no color codes will be included.
-func ResourceInstanceDrift(
-	addr addrs.AbsResourceInstance,
-	before, after *states.ResourceInstance,
-	schema *configschema.Block,
-	color *colorstring.Colorize,
-) string {
-	var buf bytes.Buffer
-
-	if color == nil {
-		color = &colorstring.Colorize{
-			Colors:  colorstring.DefaultColors,
-			Disable: true,
-			Reset:   false,
-		}
-	}
-
-	dispAddr := addr.String()
-	action := plans.Update
-
-	switch {
-	case before == nil || before.Current == nil:
-		// before should never be nil, but before.Current can be if the
-		// instance was deposed. There is nothing to render for a deposed
-		// instance, since we intend to remove it.
-		return ""
-
-	case after == nil || after.Current == nil:
-		// The object was deleted
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been deleted", dispAddr)))
-		action = plans.Delete
-	default:
-		// The object was changed
-		buf.WriteString(color.Color(fmt.Sprintf("[bold]  # %s[reset] has been changed", dispAddr)))
-	}
-
-	buf.WriteString(color.Color("[reset]\n"))
-
-	buf.WriteString(color.Color(DiffActionSymbol(action)) + " ")
-
-	switch addr.Resource.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		buf.WriteString(fmt.Sprintf(
-			"resource %q %q",
-			addr.Resource.Resource.Type,
-			addr.Resource.Resource.Name,
-		))
-	case addrs.DataResourceMode:
-		buf.WriteString(fmt.Sprintf(
-			"data %q %q ",
-			addr.Resource.Resource.Type,
-			addr.Resource.Resource.Name,
-		))
-	default:
-		// should never happen, since the above is exhaustive
-		buf.WriteString(addr.String())
-	}
-
-	buf.WriteString(" {")
-
-	p := blockBodyDiffPrinter{
-		buf:    &buf,
-		color:  color,
-		action: action,
-	}
-
-	// Most commonly-used resources have nested blocks that result in us
-	// going at least three traversals deep while we recurse here, so we'll
-	// start with that much capacity and then grow as needed for deeper
-	// structures.
-	path := make(cty.Path, 0, 3)
-
-	ty := schema.ImpliedType()
-
-	var err error
-	var oldObj, newObj *states.ResourceInstanceObject
-	oldObj, err = before.Current.Decode(ty)
-	if err != nil {
-		// We shouldn't encounter errors here because Terraform Core should've
-		// made sure that the previous run object conforms to the current
-		// schema by having the provider upgrade it, but we'll be robust here
-		// in case there are some edges we didn't find yet.
-		return fmt.Sprintf("  # %s previous run state doesn't conform to current schema; this is a Terraform bug\n  # %s\n", addr, err)
-	}
-	if after != nil && after.Current != nil {
-		newObj, err = after.Current.Decode(ty)
-		if err != nil {
-			// We shouldn't encounter errors here because Terraform Core should've
-			// made sure that the prior state object conforms to the current
-			// schema by having the provider upgrade it, even if we skipped
-			// refreshing on this run, but we'll be robust here in case there are
-			// some edges we didn't find yet.
-			return fmt.Sprintf("  # %s refreshed state doesn't conform to current schema; this is a Terraform bug\n  # %s\n", addr, err)
-		}
-	}
-
-	oldVal := oldObj.Value
-	var newVal cty.Value
-	if newObj != nil {
-		newVal = newObj.Value
-	} else {
-		newVal = cty.NullVal(ty)
-	}
-
-	if newVal.RawEquals(oldVal) {
-		// Nothing to show, then.
-		return ""
-	}
-
-	// We currently have an opt-out that permits the legacy SDK to return values
-	// that defy our usual conventions around handling of nesting blocks. To
-	// avoid the rendering code from needing to handle all of these, we'll
-	// normalize first.
-	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
-	// but we've added it here for now to reduce risk of unexpected impacts
-	// on other code in core.)
-	oldVal = objchange.NormalizeObjectFromLegacySDK(oldVal, schema)
-	newVal = objchange.NormalizeObjectFromLegacySDK(newVal, schema)
-
-	result := p.writeBlockBodyDiff(schema, oldVal, newVal, 6, path)
 	if result.bodyWritten {
 		buf.WriteString("\n")
 		buf.WriteString(strings.Repeat(" ", 4))
@@ -401,7 +290,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			}
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
-			p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", result.skippedBlocks, noun)))
+			p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), result.skippedBlocks, noun))
 		}
 	}
 
@@ -1421,7 +1310,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1482,7 +1371,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 						if hidden == 1 {
 							noun = "element"
 						}
-						p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", hidden, noun)))
+						p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), hidden, noun))
 						p.buf.WriteString("\n")
 					}
 
@@ -1624,7 +1513,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1716,7 +1605,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				if suppressedElements == 1 {
 					noun = "element"
 				}
-				p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", suppressedElements, noun)))
+				p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), suppressedElements, noun))
 				p.buf.WriteString("\n")
 			}
 
@@ -1789,7 +1678,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 
 	if new.HasMark(marks.Sensitive) && !old.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n", diffType)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("# [yellow]Warning:[reset] this %s will be marked as sensitive and will not\n"), diffType))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(fmt.Sprintf("# display in UI output after applying this change.%s\n", valueUnchangedSuffix))
 	}
@@ -1797,7 +1686,7 @@ func (p *blockBodyDiffPrinter) writeSensitivityWarning(old, new cty.Value, inden
 	// Note if changing this attribute will change its sensitivity
 	if old.HasMark(marks.Sensitive) && !new.HasMark(marks.Sensitive) {
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n", diffType)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("# [yellow]Warning:[reset] this %s will no longer be marked as sensitive\n"), diffType))
 		p.buf.WriteString(strings.Repeat(" ", indent))
 		p.buf.WriteString(fmt.Sprintf("# after applying this change.%s\n", valueUnchangedSuffix))
 	}
@@ -2059,7 +1948,7 @@ func (p *blockBodyDiffPrinter) writeSkippedAttr(skipped, indent int) {
 		}
 		p.buf.WriteString("\n")
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", skipped, noun)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 	}
 }
 
@@ -2070,7 +1959,7 @@ func (p *blockBodyDiffPrinter) writeSkippedElems(skipped, indent int) {
 			noun = "element"
 		}
 		p.buf.WriteString(strings.Repeat(" ", indent))
-		p.buf.WriteString(p.color.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", skipped, noun)))
+		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 		p.buf.WriteString("\n")
 	}
 }
