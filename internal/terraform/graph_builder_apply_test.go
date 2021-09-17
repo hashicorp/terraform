@@ -5,10 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestApplyGraphBuilder_impl(t *testing.T) {
@@ -60,11 +62,10 @@ func TestApplyGraphBuilder(t *testing.T) {
 		t.Fatalf("wrong path %q", g.Path.String())
 	}
 
-	actual := strings.TrimSpace(g.String())
-
-	expected := strings.TrimSpace(testApplyGraphBuilderStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(testApplyGraphBuilderStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -352,10 +353,10 @@ func TestApplyGraphBuilder_destroyCount(t *testing.T) {
 		t.Fatalf("wrong module path %q", g.Path)
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testApplyGraphBuilderDestroyCountStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(testApplyGraphBuilderDestroyCountStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -699,9 +700,6 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 }
 
 const testApplyGraphBuilderStr = `
-meta.count-boundary (EachMode fixup)
-  module.child (close)
-  test_object.other
 module.child (close)
   module.child.test_object.other
 module.child (expand)
@@ -721,7 +719,7 @@ provider["registry.terraform.io/hashicorp/test"] (close)
   module.child.test_object.other
   test_object.other
 root
-  meta.count-boundary (EachMode fixup)
+  module.child (close)
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.create
   test_object.create (expand)
@@ -735,13 +733,10 @@ test_object.other (expand)
 `
 
 const testApplyGraphBuilderDestroyCountStr = `
-meta.count-boundary (EachMode fixup)
-  test_object.B
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_object.B
 root
-  meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_object.A (expand)
   provider["registry.terraform.io/hashicorp/test"]

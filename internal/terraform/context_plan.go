@@ -297,7 +297,14 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 }
 
 func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, map[addrs.UniqueKey]refactoring.MoveResult) {
-	moveStmts := refactoring.FindMoveStatements(config)
+	explicitMoveStmts := refactoring.FindMoveStatements(config)
+	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
+	var moveStmts []refactoring.MoveStatement
+	if stmtsLen := len(explicitMoveStmts) + len(implicitMoveStmts); stmtsLen > 0 {
+		moveStmts = make([]refactoring.MoveStatement, 0, stmtsLen)
+		moveStmts = append(moveStmts, explicitMoveStmts...)
+		moveStmts = append(moveStmts, implicitMoveStmts...)
+	}
 	moveResults := refactoring.ApplyMoves(moveStmts, prevRunState)
 	return moveStmts, moveResults
 }

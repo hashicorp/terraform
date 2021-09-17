@@ -152,11 +152,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
-		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{
-			Config: b.Config,
-		},
-
 		// Close opened plugin connections
 		&CloseProviderTransformer{},
 
