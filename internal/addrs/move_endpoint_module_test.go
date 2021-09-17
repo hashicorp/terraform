@@ -1457,6 +1457,133 @@ func TestSelectsModule(t *testing.T) {
 	}
 }
 
+func TestSelectsResource(t *testing.T) {
+	matchingResource := Resource{
+		Mode: ManagedResourceMode,
+		Type: "foo",
+		Name: "matching",
+	}
+	unmatchingResource := Resource{
+		Mode: ManagedResourceMode,
+		Type: "foo",
+		Name: "unmatching",
+	}
+	childMod := Module{
+		"child",
+	}
+	childModMatchingInst := ModuleInstance{
+		ModuleInstanceStep{Name: "child", InstanceKey: StringKey("matching")},
+	}
+	childModUnmatchingInst := ModuleInstance{
+		ModuleInstanceStep{Name: "child", InstanceKey: StringKey("unmatching")},
+	}
+
+	tests := []struct {
+		Endpoint *MoveEndpointInModule
+		Addr     AbsResource
+		Selects  bool
+	}{
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // exact match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: unmatchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: false, // wrong resource name
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: unmatchingResource.Instance(IntKey(1)).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: false, // wrong resource name
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(NoKey).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(IntKey(0)).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(StringKey("a")).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module:     childMod,
+				relSubject: matchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // in one of the instances of the module where the statement was written
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // exact match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(IntKey(2)).Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModUnmatchingInst),
+			Selects: false, // the containing module instance doesn't match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.foo[2]"),
+					Call:   ModuleCall{Name: "bar"},
+				},
+			},
+			Addr:    matchingResource.Absolute(mustParseModuleInstanceStr("module.foo[2]")),
+			Selects: false, // a module call can't match a resource
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseModuleInstanceStr("module.foo[2]"),
+			},
+			Addr:    matchingResource.Absolute(mustParseModuleInstanceStr("module.foo[2]")),
+			Selects: false, // a module instance can't match a resource
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]%s SelectsResource(%s)", i, test.Endpoint, test.Addr),
+			func(t *testing.T) {
+				if got, want := test.Endpoint.SelectsResource(test.Addr), test.Selects; got != want {
+					t.Errorf("wrong result\nReceiver: %s\nArgument: %s\ngot:  %t\nwant: %t", test.Endpoint, test.Addr, got, want)
+				}
+			},
+		)
+	}
+}
+
 func mustParseAbsResourceInstanceStr(s string) AbsResourceInstance {
 	r, diags := ParseAbsResourceInstanceStr(s)
 	if diags.HasErrors() {

@@ -233,6 +233,37 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 	return true
 }
 
+// SelectsResource returns true if the receiver directly selects either
+// the given resource or one of its instances.
+func (e *MoveEndpointInModule) SelectsResource(addr AbsResource) bool {
+	// Only a subset of subject types can possibly select a resource, so
+	// we'll take care of those quickly before we do anything more expensive.
+	switch e.relSubject.(type) {
+	case AbsResource, AbsResourceInstance:
+		// okay
+	default:
+		return false // can't possibly match
+	}
+
+	if !e.SelectsModule(addr.Module) {
+		return false
+	}
+
+	// If we get here then we know the module part matches, so we only need
+	// to worry about the relative resource part.
+	switch relSubject := e.relSubject.(type) {
+	case AbsResource:
+		return addr.Resource.Equal(relSubject.Resource)
+	case AbsResourceInstance:
+		// We intentionally ignore the instance key, because we consider
+		// instances to be part of the resource they belong to.
+		return addr.Resource.Equal(relSubject.Resource.Resource)
+	default:
+		// We should've filtered out all other types above
+		panic(fmt.Sprintf("unsupported relSubject type %T", relSubject))
+	}
+}
+
 // moduleInstanceCanMatch indicates that modA can match modB taking into
 // account steps with an anyKey InstanceKey as wildcards. The comparison of
 // wildcard steps is done symmetrically, because varying portions of either
