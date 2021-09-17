@@ -2,6 +2,7 @@ package addrs
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -51,6 +52,27 @@ type MoveEndpointInModule struct {
 	relSubject AbsMoveable
 }
 
+// ImpliedMoveStatementEndpoint is a special constructor for MoveEndpointInModule
+// which is suitable only for constructing "implied" move statements, which
+// means that we inferred the statement automatically rather than building it
+// from an explicit block in the configuration.
+//
+// Implied move endpoints, just as for the statements they are embedded in,
+// have somewhat-related-but-imprecise source ranges, typically referring to
+// some general configuration construct that implied the statement, because
+// by definition there is no explicit move endpoint expression in this case.
+func ImpliedMoveStatementEndpoint(addr AbsResourceInstance, rng tfdiags.SourceRange) *MoveEndpointInModule {
+	// implied move endpoints always belong to the root module, because each
+	// one refers to a single resource instance inside a specific module
+	// instance, rather than all instances of the module where the resource
+	// was declared.
+	return &MoveEndpointInModule{
+		SourceRange: rng,
+		module:      RootModule,
+		relSubject:  addr,
+	}
+}
+
 func (e *MoveEndpointInModule) ObjectKind() MoveEndpointKind {
 	return absMoveableEndpointKind(e.relSubject)
 }
@@ -83,6 +105,24 @@ func (e *MoveEndpointInModule) String() string {
 	}
 
 	return buf.String()
+}
+
+// Equal returns true if the reciever represents the same matching pattern
+// as the other given endpoint, ignoring the source location information.
+//
+// This is not an optimized function and is here primarily to help with
+// writing concise assertions in test code.
+func (e *MoveEndpointInModule) Equal(other *MoveEndpointInModule) bool {
+	if (e == nil) != (other == nil) {
+		return false
+	}
+	if !e.module.Equal(other.module) {
+		return false
+	}
+	// This assumes that all of our possible "movables" are trivially
+	// comparable with reflect, which is true for all of them at the time
+	// of writing.
+	return reflect.DeepEqual(e.relSubject, other.relSubject)
 }
 
 // Module returns the address of the module where the receiving address was
