@@ -118,6 +118,45 @@ resource "test_instance" "new" {
 		}
 	})
 
+	t.Run("basic to existing file", func(t *testing.T) {
+		view, done := testView(t)
+		c := &AddCommand{
+			Meta: Meta{
+				testingOverrides: overrides,
+				View:             view,
+			},
+		}
+		outPath := "add.tf"
+		args := []string{fmt.Sprintf("-out=%s", outPath), "test_instance.new"}
+		c.Run(args)
+		args = []string{fmt.Sprintf("-out=%s", outPath), "test_instance.new2"}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			fmt.Println(output.Stderr())
+			t.Fatalf("wrong exit status. Got %d, want 0", code)
+		}
+		expected := `resource "test_instance" "new" {
+  value = null # REQUIRED string
+}
+resource "test_instance" "new2" {
+  value = null # REQUIRED string
+}
+`
+		result, err := os.ReadFile(outPath)
+		if err != nil {
+			t.Fatalf("error reading result file %s: %s", outPath, err.Error())
+		}
+		// While the entire directory will get removed once the whole test suite
+		// is done, we remove this lest it gets in the way of another (not yet
+		// written) test.
+		os.Remove(outPath)
+
+		if !cmp.Equal(expected, string(result)) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, string(result)))
+		}
+	})
+
 	t.Run("optionals", func(t *testing.T) {
 		view, done := testView(t)
 		c := &AddCommand{
@@ -194,7 +233,8 @@ resource "test_instance" "new" {
 				View:             view,
 			},
 		}
-		args := []string{"test_instance.exists"}
+		outPath := "add.tf"
+		args := []string{fmt.Sprintf("-out=%s", outPath), "test_instance.exists"}
 		code := c.Run(args)
 		if code != 1 {
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
@@ -203,6 +243,31 @@ resource "test_instance" "new" {
 		output := done(t)
 		if !strings.Contains(output.Stderr(), "The resource test_instance.exists is already in this configuration") {
 			t.Fatalf("missing expected error message: %s", output.Stderr())
+		}
+	})
+
+	t.Run("output existing resource to stdout", func(t *testing.T) {
+		view, done := testView(t)
+		c := &AddCommand{
+			Meta: Meta{
+				testingOverrides: overrides,
+				View:             view,
+			},
+		}
+		args := []string{"test_instance.exists"}
+		code := c.Run(args)
+		output := done(t)
+		if code != 0 {
+			fmt.Println(output.Stderr())
+			t.Fatalf("wrong exit status. Got %d, want 0", code)
+		}
+		expected := `resource "test_instance" "exists" {
+  value = null # REQUIRED string
+}
+`
+
+		if !cmp.Equal(output.Stdout(), expected) {
+			t.Fatalf("wrong output:\n%s", cmp.Diff(expected, output.Stdout()))
 		}
 	})
 
