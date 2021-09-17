@@ -79,6 +79,18 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 				// directly.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
 					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
+
+					// If we already have a module at the new address then
+					// we'll skip this move and let the existing object take
+					// priority.
+					// TODO: This should probably generate a user-visible
+					// warning, but we'd need to rethink the signature of this
+					// function to achieve that.
+					if ms := state.Module(newAddr); ms != nil {
+						log.Printf("[WARN] Skipped moving %s to %s, because there's already another module instance at the destination", modAddr, newAddr)
+						continue
+					}
+
 					// We need to visit all of the resource instances in the
 					// module and record them individually as results.
 					for _, rs := range ms.Resources {
@@ -105,6 +117,18 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
 						log.Printf("[TRACE] refactoring.ApplyMoves: resource %s has moved to %s", rAddr, newAddr)
+
+						// If we already have a resource at the new address then
+						// we'll skip this move and let the existing object take
+						// priority.
+						// TODO: This should probably generate a user-visible
+						// warning, but we'd need to rethink the signature of this
+						// function to achieve that.
+						if rs := state.Resource(newAddr); rs != nil {
+							log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource at the destination", rAddr, newAddr)
+							continue
+						}
+
 						for key := range rs.Instances {
 							oldInst := rAddr.Instance(key)
 							newInst := newAddr.Instance(key)
@@ -122,6 +146,18 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) map[addrs.UniqueKey]
 						iAddr := rAddr.Instance(key)
 						if newAddr, matches := iAddr.MoveDestination(stmt.From, stmt.To); matches {
 							log.Printf("[TRACE] refactoring.ApplyMoves: resource instance %s has moved to %s", iAddr, newAddr)
+
+							// If we already have a resource instance at the new
+							// address then we'll skip this move and let the existing
+							// object take priority.
+							// TODO: This should probably generate a user-visible
+							// warning, but we'd need to rethink the signature of this
+							// function to achieve that.
+							if is := state.ResourceInstance(newAddr); is != nil {
+								log.Printf("[WARN] Skipped moving %s to %s, because there's already another resource instance at the destination", iAddr, newAddr)
+								continue
+							}
+
 							result := MoveResult{From: iAddr, To: newAddr}
 							results[iAddr.UniqueKey()] = result
 							results[newAddr.UniqueKey()] = result
