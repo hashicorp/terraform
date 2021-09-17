@@ -96,9 +96,24 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
-	haveRefreshChanges := len(plan.DriftedResources) > 0
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+	var driftedResources []*plans.ResourceInstanceChangeSrc
+	if plan.UIMode == plans.RefreshOnlyMode {
+		driftedResources = plan.DriftedResources
+	} else {
+		for _, dr := range plan.DriftedResources {
+			if dr.Action != plans.NoOp {
+				driftedResources = append(driftedResources, dr)
+			}
+		}
+	}
+
+	haveRefreshChanges := len(driftedResources) > 0
 	if haveRefreshChanges {
-		renderChangesDetectedByRefresh(plan.DriftedResources, schemas, view)
+		renderChangesDetectedByRefresh(driftedResources, schemas, view)
 		switch plan.UIMode {
 		case plans.RefreshOnlyMode:
 			view.streams.Println(format.WordWrap(
@@ -368,10 +383,6 @@ func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, sche
 	})
 
 	for _, rcs := range drs {
-		if rcs.Action == plans.NoOp && !rcs.Moved() {
-			continue
-		}
-
 		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
 		if providerSchema == nil {
 			// Should never happen

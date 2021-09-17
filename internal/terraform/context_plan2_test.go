@@ -984,7 +984,82 @@ The -target option is not for routine use, and is provided only for exceptional 
 		if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
 			t.Errorf("wrong diagnostics\n%s", diff)
 		}
+	})
+}
 
+func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr("test_object.b")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "b" {
+			}
+
+			moved {
+				from = test_object.a
+				to   = test_object.b
+			}
+
+			terraform {
+				experiments = [config_driven_move]
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		// The prior state tracks test_object.a, which we should treat as
+		// test_object.b because of the "moved" block in the config.
+		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.RefreshOnlyMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrA.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrA)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s; should've moved to %s", addrA, addrB)
+		}
+	})
+	t.Run(addrB.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrB)
+		if instPlan != nil {
+			t.Fatalf("unexpected plan for %s", addrB)
+		}
+	})
+	t.Run("drift", func(t *testing.T) {
+		var drifted *plans.ResourceInstanceChangeSrc
+		for _, dr := range plan.DriftedResources {
+			if dr.Addr.Equal(addrB) {
+				drifted = dr
+				break
+			}
+		}
+
+		if drifted == nil {
+			t.Fatalf("instance %s is missing from the drifted resource changes", addrB)
+		}
+
+		if got, want := drifted.PrevRunAddr, addrA; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := drifted.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
 	})
 }
 
