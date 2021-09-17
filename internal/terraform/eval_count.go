@@ -2,10 +2,8 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -100,33 +98,4 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 	}
 
 	return countVal, diags
-}
-
-// fixResourceCountSetTransition is a helper function to fix up the state when a
-// resource transitions its "count" from being set to unset or vice-versa,
-// treating a 0-key and a no-key instance as aliases for one another across
-// the transition.
-//
-// The correct time to call this function is in the DynamicExpand method for
-// a node representing a resource, just after evaluating the count with
-// evaluateCountExpression, and before any other analysis of the
-// state such as orphan detection.
-//
-// This function calls methods on the given EvalContext to update the current
-// state in-place, if necessary. It is a no-op if there is no count transition
-// taking place.
-//
-// Since the state is modified in-place, this function must take a writer lock
-// on the state. The caller must therefore not also be holding a state lock,
-// or this function will block forever awaiting the lock.
-func fixResourceCountSetTransition(ctx EvalContext, addr addrs.ConfigResource, countEnabled bool) {
-	state := ctx.State()
-	if state.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
-		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
-	}
-
-	refreshState := ctx.RefreshState()
-	if refreshState != nil && refreshState.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
-		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
-	}
 }

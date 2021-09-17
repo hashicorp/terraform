@@ -2073,9 +2073,22 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 
 // https://github.com/PeoplePerHour/terraform/pull/11
 //
-// This tests a case where both a "resource" and "resource.0" are in
-// the state file, which apparently is a reasonable backwards compatibility
-// concern found in the above 3rd party repo.
+// This tests a rare but possible situation where we have both a no-key and
+// a zero-key instance of the same resource in the configuration when we
+// disable count.
+//
+// The main way to get here is for a provider to fail to destroy the zero-key
+// instance but succeed in creating the no-key instance, since those two
+// can typically happen concurrently. There are various other ways to get here
+// that might be considered user error, such as using "terraform state mv"
+// to create a strange combination of different key types on the same resource.
+//
+// This test indirectly exercises an intentional interaction between
+// refactoring.ImpliedMoveStatements and refactoring.ApplyMoves: we'll first
+// generate an implied move statement from aws_instance.foo[0] to
+// aws_instance.foo, but then refactoring.ApplyMoves should notice that and
+// ignore the statement, in the same way as it would if an explicit move
+// statement specified the same situation.
 func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
