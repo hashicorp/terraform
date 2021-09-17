@@ -136,9 +136,23 @@ resource "test_instance" "new" {
 			fmt.Println(output.Stderr())
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
-		expected := `resource "test_instance" "new" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "new" {
   value = null # REQUIRED string
 }
+# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
 resource "test_instance" "new2" {
   value = null # REQUIRED string
 }
@@ -261,7 +275,14 @@ resource "test_instance" "new" {
 			fmt.Println(output.Stderr())
 			t.Fatalf("wrong exit status. Got %d, want 0", code)
 		}
-		expected := `resource "test_instance" "exists" {
+		expected := `# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+resource "test_instance" "exists" {
   value = null # REQUIRED string
 }
 `
