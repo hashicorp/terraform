@@ -98,8 +98,14 @@ For ease of consumption by callers, the plan representation includes a partial r
     {
       // "address" is the full absolute address of the resource instance this
       // change applies to, in the same format as addresses in a value
-      // representation
+      // representation.
       "address": "module.child.aws_instance.foo[0]",
+
+      // "previous_address" is the full absolute address of this resource
+      // instance as it was known after the previous Terraform run.
+      // Included only if the address has changed, e.g. by handling
+      // a "moved" block in the configuration.
+      "previous_address": "module.instances.aws_instance.foo[0]",
 
       // "module_address", if set, is the module portion of the above address.
       // Omitted if the instance is in the root module.

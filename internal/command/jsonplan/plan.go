@@ -130,9 +130,25 @@ func Marshal(
 	}
 
 	// output.ResourceDrift
-	output.ResourceDrift, err = output.marshalResourceChanges(p.DriftedResources, schemas)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
+	if len(p.DriftedResources) > 0 {
+		// In refresh-only mode, we render all resources marked as drifted,
+		// including those which have moved without other changes. In other plan
+		// modes, move-only changes will be included in the planned changes, so
+		// we skip them here.
+		var driftedResources []*plans.ResourceInstanceChangeSrc
+		if p.UIMode == plans.RefreshOnlyMode {
+			driftedResources = p.DriftedResources
+		} else {
+			for _, dr := range p.DriftedResources {
+				if dr.Action != plans.NoOp {
+					driftedResources = append(driftedResources, dr)
+				}
+			}
+		}
+		output.ResourceDrift, err = output.marshalResourceChanges(driftedResources, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
+		}
 	}
 
 	// output.ResourceChanges
@@ -197,6 +213,9 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 		var r resourceChange
 		addr := rc.Addr
 		r.Address = addr.String()
+		if !addr.Equal(rc.PrevRunAddr) {
+			r.PreviousAddress = rc.PrevRunAddr.String()
+		}
 
 		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
 		// We create "delete" actions for data resources so we can clean up
