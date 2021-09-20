@@ -111,7 +111,8 @@ func TestJSONView_PlannedChange(t *testing.T) {
 	}
 	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
 	cs := &plans.ResourceInstanceChangeSrc{
-		Addr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		Addr:        managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		PrevRunAddr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Create,
 		},
@@ -151,7 +152,8 @@ func TestJSONView_ResourceDrift(t *testing.T) {
 	}
 	managed := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_instance", Name: "bar"}
 	cs := &plans.ResourceInstanceChangeSrc{
-		Addr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		Addr:        managed.Instance(addrs.StringKey("boop")).Absolute(foo),
+		PrevRunAddr: managed.Instance(addrs.StringKey("boop")).Absolute(foo),
 		ChangeSrc: plans.ChangeSrc{
 			Action: plans.Update,
 		},

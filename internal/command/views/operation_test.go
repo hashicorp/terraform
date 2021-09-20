@@ -479,29 +479,35 @@ func TestOperationJSON_plan(t *testing.T) {
 		Changes: &plans.Changes{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
-					Addr:      boop.Instance(addrs.IntKey(0)).Absolute(root),
-					ChangeSrc: plans.ChangeSrc{Action: plans.CreateThenDelete},
+					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(root),
+					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.CreateThenDelete},
 				},
 				{
-					Addr:      boop.Instance(addrs.IntKey(1)).Absolute(root),
-					ChangeSrc: plans.ChangeSrc{Action: plans.Create},
+					Addr:        boop.Instance(addrs.IntKey(1)).Absolute(root),
+					PrevRunAddr: boop.Instance(addrs.IntKey(1)).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
 				},
 				{
-					Addr:      boop.Instance(addrs.IntKey(0)).Absolute(vpc),
-					ChangeSrc: plans.ChangeSrc{Action: plans.Delete},
+					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(vpc),
+					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(vpc),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Delete},
 				},
 				{
-					Addr:      beep.Instance(addrs.NoKey).Absolute(root),
-					ChangeSrc: plans.ChangeSrc{Action: plans.DeleteThenCreate},
+					Addr:        beep.Instance(addrs.NoKey).Absolute(root),
+					PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.DeleteThenCreate},
 				},
 				{
-					Addr:      beep.Instance(addrs.NoKey).Absolute(vpc),
-					ChangeSrc: plans.ChangeSrc{Action: plans.Update},
+					Addr:        beep.Instance(addrs.NoKey).Absolute(vpc),
+					PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(vpc),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Update},
 				},
 				// Data source deletion should not show up in the logs
 				{
-					Addr:      derp.Instance(addrs.NoKey).Absolute(root),
-					ChangeSrc: plans.ChangeSrc{Action: plans.Delete},
+					Addr:        derp.Instance(addrs.NoKey).Absolute(root),
+					PrevRunAddr: derp.Instance(addrs.NoKey).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Delete},
 				},
 			},
 		},
@@ -623,74 +629,175 @@ func TestOperationJSON_plan(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
-func TestOperationJSON_planDrift(t *testing.T) {
+func TestOperationJSON_planDriftWithMove(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	v := &OperationJSON{view: NewJSONView(NewView(streams))}
 
 	root := addrs.RootModuleInstance
 	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
 	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
-	derp := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "derp"}
+	blep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "blep"}
+	honk := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "honk"}
 
 	plan := &plans.Plan{
+		UIMode: plans.NormalMode,
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:        honk.Instance(addrs.StringKey("bonk")).Absolute(root),
+					PrevRunAddr: honk.Instance(addrs.IntKey(0)).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp},
+				},
+			},
+		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr:        beep.Instance(addrs.NoKey).Absolute(root),
+				PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.Delete},
+			},
+			{
+				Addr:        boop.Instance(addrs.NoKey).Absolute(root),
+				PrevRunAddr: blep.Instance(addrs.NoKey).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.Update},
+			},
+			// Move-only resource drift should not be present in normal mode plans
+			{
+				Addr:        honk.Instance(addrs.StringKey("bonk")).Absolute(root),
+				PrevRunAddr: honk.Instance(addrs.IntKey(0)).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Drift detected: delete
+		{
+			"@level":   "info",
+			"@message": "test_resource.beep: Drift detected (delete)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "delete",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.beep",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.beep",
+					"resource_key":     nil,
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: update with move
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop: Drift detected (update)",
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             "test_resource.boop",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.boop",
+					"resource_key":     nil,
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+				"previous_resource": map[string]interface{}{
+					"addr":             "test_resource.blep",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.blep",
+					"resource_key":     nil,
+					"resource_name":    "blep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Move-only change
+		{
+			"@level":   "info",
+			"@message": `test_resource.honk["bonk"]: Plan to move`,
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "move",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.honk["bonk"]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.honk["bonk"]`,
+					"resource_key":     "bonk",
+					"resource_name":    "honk",
+					"resource_type":    "test_resource",
+				},
+				"previous_resource": map[string]interface{}{
+					"addr":             `test_resource.honk[0]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.honk[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "honk",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// No changes
+		{
+			"@level":   "info",
+			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(0),
+				"change":    float64(0),
+				"remove":    float64(0),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
+	blep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "blep"}
+	honk := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "honk"}
+
+	plan := &plans.Plan{
+		UIMode: plans.RefreshOnlyMode,
 		Changes: &plans.Changes{
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
-		PrevRunState: states.BuildState(func(state *states.SyncState) {
-			// Update
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"bar"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// Delete
-			state.SetResourceInstanceCurrent(
-				beep.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// No-op
-			state.SetResourceInstanceCurrent(
-				derp.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-		}),
-		PriorState: states.BuildState(func(state *states.SyncState) {
-			// Update
-			state.SetResourceInstanceCurrent(
-				boop.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"baz"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// Delete
-			state.SetResourceInstanceCurrent(
-				beep.Instance(addrs.NoKey).Absolute(root),
-				nil,
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-			// No-op
-			state.SetResourceInstanceCurrent(
-				derp.Instance(addrs.NoKey).Absolute(root),
-				&states.ResourceInstanceObjectSrc{
-					Status:    states.ObjectReady,
-					AttrsJSON: []byte(`{"foo":"boop"}`),
-				},
-				root.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
-			)
-		}),
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr:        beep.Instance(addrs.NoKey).Absolute(root),
+				PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.Delete},
+			},
+			{
+				Addr:        boop.Instance(addrs.NoKey).Absolute(root),
+				PrevRunAddr: blep.Instance(addrs.NoKey).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.Update},
+			},
+			// Move-only resource drift should be present in refresh-only plans
+			{
+				Addr:        honk.Instance(addrs.StringKey("bonk")).Absolute(root),
+				PrevRunAddr: honk.Instance(addrs.IntKey(0)).Absolute(root),
+				ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp},
+			},
+		},
 	}
 	v.Plan(plan, testSchemas())
 
@@ -729,6 +836,43 @@ func TestOperationJSON_planDrift(t *testing.T) {
 					"resource":         "test_resource.boop",
 					"resource_key":     nil,
 					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+				"previous_resource": map[string]interface{}{
+					"addr":             "test_resource.blep",
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         "test_resource.blep",
+					"resource_key":     nil,
+					"resource_name":    "blep",
+					"resource_type":    "test_resource",
+				},
+			},
+		},
+		// Drift detected: Move-only change
+		{
+			"@level":   "info",
+			"@message": `test_resource.honk["bonk"]: Drift detected (move)`,
+			"@module":  "terraform.ui",
+			"type":     "resource_drift",
+			"change": map[string]interface{}{
+				"action": "move",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.honk["bonk"]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.honk["bonk"]`,
+					"resource_key":     "bonk",
+					"resource_name":    "honk",
+					"resource_type":    "test_resource",
+				},
+				"previous_resource": map[string]interface{}{
+					"addr":             `test_resource.honk[0]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.honk[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "honk",
 					"resource_type":    "test_resource",
 				},
 			},
@@ -846,20 +990,23 @@ func TestOperationJSON_plannedChange(t *testing.T) {
 	// Replace requested by user
 	v.PlannedChange(&plans.ResourceInstanceChangeSrc{
 		Addr:         boop.Instance(addrs.IntKey(0)).Absolute(root),
+		PrevRunAddr:  boop.Instance(addrs.IntKey(0)).Absolute(root),
 		ChangeSrc:    plans.ChangeSrc{Action: plans.DeleteThenCreate},
 		ActionReason: plans.ResourceInstanceReplaceByRequest,
 	})
 
 	// Simple create
 	v.PlannedChange(&plans.ResourceInstanceChangeSrc{
-		Addr:      boop.Instance(addrs.IntKey(1)).Absolute(root),
-		ChangeSrc: plans.ChangeSrc{Action: plans.Create},
+		Addr:        boop.Instance(addrs.IntKey(1)).Absolute(root),
+		PrevRunAddr: boop.Instance(addrs.IntKey(1)).Absolute(root),
+		ChangeSrc:   plans.ChangeSrc{Action: plans.Create},
 	})
 
 	// Data source deletion
 	v.PlannedChange(&plans.ResourceInstanceChangeSrc{
-		Addr:      derp.Instance(addrs.NoKey).Absolute(root),
-		ChangeSrc: plans.ChangeSrc{Action: plans.Delete},
+		Addr:        derp.Instance(addrs.NoKey).Absolute(root),
+		PrevRunAddr: derp.Instance(addrs.NoKey).Absolute(root),
+		ChangeSrc:   plans.ChangeSrc{Action: plans.Delete},
 	})
 
 	// Expect only two messages, as the data source deletion should be a no-op

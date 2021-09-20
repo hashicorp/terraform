@@ -124,7 +124,8 @@ This message does not include details about the exact changes which caused the c
 At the end of a plan or before an apply, Terraform will emit a `planned_change` message for each resource which has changes to apply. This message has an embedded `change` object with the following keys:
 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
-- `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`.
+- `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
+- `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`, `move`.
 - `reason`: an optional reason for the change, currently only used when the action is `replace`. Values:
     - `tainted`: resource was marked as tainted
     - `requested`: user requested that the resource be replaced, for example via the `-replace` plan flag
