@@ -57,7 +57,7 @@ manually do so before the packages will be available.
 To install Terraform from the new repository:
 
 ```bash
-sudo apt install terraform
+sudo apt update && sudo apt install terraform
 ```
 
 ## Supported Architectures
