@@ -64,9 +64,9 @@ type Cloud struct {
 	// organization is the organization that contains the target workspaces.
 	organization string
 
-	// workspaceMapping contains strategies for mapping CLI workspaces in the working directory
+	// WorkspaceMapping contains strategies for mapping CLI workspaces in the working directory
 	// to remote Terraform Cloud workspaces.
-	workspaceMapping workspaceMapping
+	WorkspaceMapping WorkspaceMapping
 
 	// services is used for service discovery
 	services *disco.Disco
@@ -157,28 +157,28 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		diags = diags.Append(invalidOrganizationConfigMissingValue)
 	}
 
-	workspaceMapping := workspaceMapping{}
+	WorkspaceMapping := WorkspaceMapping{}
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			workspaceMapping.name = val.AsString()
+			WorkspaceMapping.Name = val.AsString()
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			workspaceMapping.prefix = val.AsString()
+			WorkspaceMapping.Prefix = val.AsString()
 		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
-			err := gocty.FromCtyValue(val, &workspaceMapping.tags)
+			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
 			if err != nil {
 				log.Panicf("An unxpected error occurred: %s", err)
 			}
 		}
 	}
 
-	switch workspaceMapping.strategy() {
+	switch WorkspaceMapping.Strategy() {
 	// Make sure have a workspace mapping strategy present
-	case workspaceNoneStrategy:
+	case WorkspaceNoneStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMissingValues)
 	// Make sure that only one of workspace name or a prefix is configured.
-	case workspaceInvalidStrategy:
+	case WorkspaceInvalidStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 	}
 
@@ -335,10 +335,10 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 		// PrepareConfig checks that you cannot set both of these.
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
-			b.workspaceMapping.name = val.AsString()
+			b.WorkspaceMapping.Name = val.AsString()
 		}
 		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			b.workspaceMapping.prefix = val.AsString()
+			b.WorkspaceMapping.Prefix = val.AsString()
 		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			var tags []string
@@ -347,7 +347,7 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 				log.Panicf("An unxpected error occurred: %s", err)
 			}
 
-			b.workspaceMapping.tags = tags
+			b.WorkspaceMapping.Tags = tags
 		}
 	}
 
@@ -530,30 +530,29 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 	}
 }
 
-// Workspaces implements backend.Enhanced.
+// Workspaces implements backend.Enhanced, returning a filtered list of workspace names according to
+// the workspace mapping strategy configured.
 func (b *Cloud) Workspaces() ([]string, error) {
-	if b.workspaceMapping.strategy() == workspaceNameStrategy {
-		return nil, backend.ErrWorkspacesNotSupported
-	}
-	return b.workspaces()
-}
-
-// workspaces returns a filtered list of remote workspace names according to the workspace mapping
-// strategy configured.
-func (b *Cloud) workspaces() ([]string, error) {
-	options := tfe.WorkspaceListOptions{}
-	switch b.workspaceMapping.strategy() {
-	case workspaceNameStrategy:
-		options.Search = tfe.String(b.workspaceMapping.name)
-	case workspacePrefixStrategy:
-		options.Search = tfe.String(b.workspaceMapping.prefix)
-	case workspaceTagsStrategy:
-		taglist := strings.Join(b.workspaceMapping.tags, ",")
-		options.Tags = &taglist
-	}
-
 	// Create a slice to contain all the names.
 	var names []string
+
+	// If configured for a single workspace, return that exact name only.  The StateMgr for this
+	// backend will automatically create the remote workspace if it does not yet exist.
+	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
+		names = append(names, b.WorkspaceMapping.Name)
+		return names, nil
+	}
+
+	// Otherwise, multiple workspaces are being mapped. Query Terraform Cloud for all the remote
+	// workspaces by the provided mapping strategy.
+	options := tfe.WorkspaceListOptions{}
+	switch b.WorkspaceMapping.Strategy() {
+	case WorkspacePrefixStrategy:
+		options.Search = tfe.String(b.WorkspaceMapping.Prefix)
+	case WorkspaceTagsStrategy:
+		taglist := strings.Join(b.WorkspaceMapping.Tags, ",")
+		options.Tags = &taglist
+	}
 
 	for {
 		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
@@ -562,20 +561,15 @@ func (b *Cloud) workspaces() ([]string, error) {
 		}
 
 		for _, w := range wl.Items {
-			switch b.workspaceMapping.strategy() {
-			case workspaceNameStrategy:
-				if w.Name == b.workspaceMapping.name {
-					names = append(names, backend.DefaultStateName)
-					continue
-				}
-			case workspacePrefixStrategy:
-				if strings.HasPrefix(w.Name, b.workspaceMapping.prefix) {
-					names = append(names, strings.TrimPrefix(w.Name, b.workspaceMapping.prefix))
+			switch b.WorkspaceMapping.Strategy() {
+			case WorkspacePrefixStrategy:
+				if strings.HasPrefix(w.Name, b.WorkspaceMapping.Prefix) {
+					names = append(names, strings.TrimPrefix(w.Name, b.WorkspaceMapping.Prefix))
 					continue
 				}
 			default:
-				// Pass-through. "name" and "prefix" strategies are naive and do
-				// client-side filtering above, but for tags and any other future
+				// Pass-through. The "prefix" strategy is naive and does
+				// client-side filtering, but for tags and any other future
 				// strategy this filtering should be left to the API.
 				names = append(names, w.Name)
 			}
@@ -598,19 +592,18 @@ func (b *Cloud) workspaces() ([]string, error) {
 
 // DeleteWorkspace implements backend.Enhanced.
 func (b *Cloud) DeleteWorkspace(name string) error {
-	if b.workspaceMapping.strategy() != workspaceNameStrategy && name == backend.DefaultStateName {
+	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.workspaceMapping.strategy() == workspaceNameStrategy && name != backend.DefaultStateName {
+
+	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
 		return backend.ErrWorkspacesNotSupported
 	}
 
 	// Configure the remote workspace name.
 	switch {
-	case name == backend.DefaultStateName:
-		name = b.workspaceMapping.name
-	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(name, b.workspaceMapping.prefix):
-		name = b.workspaceMapping.prefix + name
+	case b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy && !strings.HasPrefix(name, b.WorkspaceMapping.Prefix):
+		name = b.WorkspaceMapping.Prefix + name
 	}
 
 	client := &remoteClient{
@@ -626,19 +619,17 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 
 // StateMgr implements backend.Enhanced.
 func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
-	if b.workspaceMapping.strategy() != workspaceNameStrategy && name == backend.DefaultStateName {
+	if name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
-	if b.workspaceMapping.strategy() == workspaceNameStrategy && name != backend.DefaultStateName {
+
+	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy && name != b.WorkspaceMapping.Name {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	// Configure the remote workspace name.
-	switch {
-	case name == backend.DefaultStateName:
-		name = b.workspaceMapping.name
-	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(name, b.workspaceMapping.prefix):
-		name = b.workspaceMapping.prefix + name
+	// If the prefix strategy is used, translate the local name to the TFC workspace name.
+	if b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy {
+		name = b.WorkspaceMapping.Prefix + name
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
@@ -652,7 +643,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		var tags []*tfe.Tag
-		for _, tag := range b.workspaceMapping.tags {
+		for _, tag := range b.WorkspaceMapping.Tags {
 			t := tfe.Tag{Name: tag}
 			tags = append(tags, &t)
 		}
@@ -698,13 +689,11 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 
 // Operation implements backend.Enhanced.
 func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	// Get the remote workspace name.
 	name := op.Workspace
-	switch {
-	case op.Workspace == backend.DefaultStateName:
-		name = b.workspaceMapping.name
-	case b.workspaceMapping.strategy() == workspacePrefixStrategy && !strings.HasPrefix(op.Workspace, b.workspaceMapping.prefix):
-		name = b.workspaceMapping.prefix + op.Workspace
+
+	// If the prefix strategy is used, translate the local name to the TFC workspace name.
+	if b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy {
+		name = b.WorkspaceMapping.Prefix + op.Workspace
 	}
 
 	// Retrieve the workspace for this operation.
@@ -1014,35 +1003,35 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 	}
 }
 
-type workspaceMapping struct {
-	name   string
-	prefix string
-	tags   []string
+type WorkspaceMapping struct {
+	Name   string
+	Prefix string
+	Tags   []string
 }
 
 type workspaceStrategy string
 
 const (
-	workspaceTagsStrategy    workspaceStrategy = "tags"
-	workspaceNameStrategy    workspaceStrategy = "name"
-	workspacePrefixStrategy  workspaceStrategy = "prefix"
-	workspaceNoneStrategy    workspaceStrategy = "none"
-	workspaceInvalidStrategy workspaceStrategy = "invalid"
+	WorkspaceTagsStrategy    workspaceStrategy = "tags"
+	WorkspaceNameStrategy    workspaceStrategy = "name"
+	WorkspacePrefixStrategy  workspaceStrategy = "prefix"
+	WorkspaceNoneStrategy    workspaceStrategy = "none"
+	WorkspaceInvalidStrategy workspaceStrategy = "invalid"
 )
 
-func (wm workspaceMapping) strategy() workspaceStrategy {
+func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 	switch {
-	case len(wm.tags) > 0 && wm.name == "" && wm.prefix == "":
-		return workspaceTagsStrategy
-	case len(wm.tags) == 0 && wm.name != "" && wm.prefix == "":
-		return workspaceNameStrategy
-	case len(wm.tags) == 0 && wm.name == "" && wm.prefix != "":
-		return workspacePrefixStrategy
-	case len(wm.tags) == 0 && wm.name == "" && wm.prefix == "":
-		return workspaceNoneStrategy
+	case len(wm.Tags) > 0 && wm.Name == "" && wm.Prefix == "":
+		return WorkspaceTagsStrategy
+	case len(wm.Tags) == 0 && wm.Name != "" && wm.Prefix == "":
+		return WorkspaceNameStrategy
+	case len(wm.Tags) == 0 && wm.Name == "" && wm.Prefix != "":
+		return WorkspacePrefixStrategy
+	case len(wm.Tags) == 0 && wm.Name == "" && wm.Prefix == "":
+		return WorkspaceNoneStrategy
 	default:
 		// Any other combination is invalid as each strategy is mutually exclusive
-		return workspaceInvalidStrategy
+		return WorkspaceInvalidStrategy
 	}
 }
 

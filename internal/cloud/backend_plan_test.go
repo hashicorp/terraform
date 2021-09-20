@@ -59,7 +59,7 @@ func TestCloud_planBasic(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestCloud_planBasic(t *testing.T) {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	// An error suggests that the state was not unlocked after the operation finished
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
@@ -97,7 +97,7 @@ func TestCloud_planCanceled(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -112,7 +112,7 @@ func TestCloud_planCanceled(t *testing.T) {
 		t.Fatal("expected plan operation to fail")
 	}
 
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	// An error suggests that the state was not unlocked after the operation finished
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatalf("unexpected error locking state after cancelled plan: %s", err.Error())
@@ -127,7 +127,7 @@ func TestCloud_planLongLine(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -160,7 +160,7 @@ func TestCloud_planWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspaceMapping.prefix + "prod"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -201,7 +201,7 @@ func TestCloud_planWithParallelism(t *testing.T) {
 		b.ContextOpts = &terraform.ContextOpts{}
 	}
 	b.ContextOpts.Parallelism = 3
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -228,7 +228,7 @@ func TestCloud_planWithPlan(t *testing.T) {
 	defer configCleanup()
 
 	op.PlanFile = &planfile.Reader{}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -258,7 +258,7 @@ func TestCloud_planWithPath(t *testing.T) {
 	defer configCleanup()
 
 	op.PlanOutPath = "./testdata/plan"
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -289,7 +289,7 @@ func TestCloud_planWithoutRefresh(t *testing.T) {
 	defer done(t)
 
 	op.PlanRefresh = false
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -327,7 +327,7 @@ func TestCloud_planWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
 	b.client.SetFakeRemoteAPIVersion("2.3")
 
 	op.PlanRefresh = false
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -358,7 +358,7 @@ func TestCloud_planWithRefreshOnly(t *testing.T) {
 	defer done(t)
 
 	op.PlanMode = plans.RefreshOnlyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -396,7 +396,7 @@ func TestCloud_planWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
 	b.client.SetFakeRemoteAPIVersion("2.3")
 
 	op.PlanMode = plans.RefreshOnlyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -452,7 +452,7 @@ func TestCloud_planWithTarget(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
 
 	op.Targets = []addrs.Targetable{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -501,7 +501,7 @@ func TestCloud_planWithTargetIncompatibleAPIVersion(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
 
 	op.Targets = []addrs.Targetable{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -534,7 +534,7 @@ func TestCloud_planWithReplace(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
 
 	op.ForceReplace = []addrs.AbsResourceInstance{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -574,7 +574,7 @@ func TestCloud_planWithReplaceIncompatibleAPIVersion(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
 
 	op.ForceReplace = []addrs.AbsResourceInstance{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -604,7 +604,7 @@ func TestCloud_planWithVariables(t *testing.T) {
 	defer configCleanup()
 
 	op.Variables = testVariables(terraform.ValueFromCLIArg, "foo", "bar")
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -630,7 +630,7 @@ func TestCloud_planNoConfig(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -660,7 +660,7 @@ func TestCloud_planNoChanges(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -699,7 +699,7 @@ func TestCloud_planForceLocal(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -735,7 +735,7 @@ func TestCloud_planWithoutOperationsEntitlement(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -774,7 +774,7 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspaceMapping.prefix + "no-operations"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "no-operations"),
 		},
 	)
 	if err != nil {
@@ -820,7 +820,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspaceMapping.name)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -851,7 +851,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	_, err = b.Operation(context.Background(), op)
 	if err != nil {
@@ -893,7 +893,7 @@ func TestCloud_planDestroy(t *testing.T) {
 	defer done(t)
 
 	op.PlanMode = plans.DestroyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -918,7 +918,7 @@ func TestCloud_planDestroyNoConfig(t *testing.T) {
 	defer done(t)
 
 	op.PlanMode = plans.DestroyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -943,7 +943,7 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspaceMapping.name, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.WorkspaceMapping.Name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}
@@ -952,7 +952,7 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -988,7 +988,7 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	}
 
 	// Configure the workspace to use a custom working directory.
-	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.workspaceMapping.name, options)
+	_, err := b.client.Workspaces.Update(context.Background(), b.organization, b.WorkspaceMapping.Name, options)
 	if err != nil {
 		t.Fatalf("error configuring working directory: %v", err)
 	}
@@ -1011,7 +1011,7 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1043,7 +1043,7 @@ func TestCloud_planCostEstimation(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1078,7 +1078,7 @@ func TestCloud_planPolicyPass(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1112,7 +1112,7 @@ func TestCloud_planPolicyHardFail(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-policy-hard-failed")
 	defer configCleanup()
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1152,7 +1152,7 @@ func TestCloud_planPolicySoftFail(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-policy-soft-failed")
 	defer configCleanup()
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1193,7 +1193,7 @@ func TestCloud_planWithRemoteError(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {

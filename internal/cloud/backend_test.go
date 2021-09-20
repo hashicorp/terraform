@@ -24,13 +24,30 @@ func TestCloud(t *testing.T) {
 	var _ backend.CLI = New(nil)
 }
 
-func TestCloud_backendDefault(t *testing.T) {
+func TestCloud_backendWithName(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	backend.TestBackendStates(t, b)
-	backend.TestBackendStateLocks(t, b, b)
-	backend.TestBackendStateForceUnlock(t, b, b)
+	workspaces, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+
+	if len(workspaces) != 1 || workspaces[0] != testBackendSingleWorkspaceName {
+		t.Fatalf("should only have a single configured workspace matching the configured 'name' strategy, but got: %#v", workspaces)
+	}
+
+	if _, err := b.StateMgr("foo"); err != backend.ErrWorkspacesNotSupported {
+		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
+	}
+
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
+		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", err)
+	}
+
+	if err := b.DeleteWorkspace("foo"); err != backend.ErrWorkspacesNotSupported {
+		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", err)
+	}
 }
 
 func TestCloud_backendWithPrefix(t *testing.T) {
@@ -428,15 +445,15 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 		if tc.expectedOrganziation != "" && b.organization != tc.expectedOrganziation {
 			t.Fatalf("%s: expected organization (%s) to match configured organization (%s)", name, b.organization, tc.expectedOrganziation)
 		}
-		if tc.expectedWorkspacePrefix != "" && b.workspaceMapping.prefix != tc.expectedWorkspacePrefix {
-			t.Fatalf("%s: expected workspace prefix mapping (%s) to match configured workspace prefix (%s)", name, b.workspaceMapping.prefix, tc.expectedWorkspacePrefix)
+		if tc.expectedWorkspacePrefix != "" && b.WorkspaceMapping.Prefix != tc.expectedWorkspacePrefix {
+			t.Fatalf("%s: expected workspace prefix mapping (%s) to match configured workspace prefix (%s)", name, b.WorkspaceMapping.Prefix, tc.expectedWorkspacePrefix)
 		}
-		if tc.expectedWorkspaceName != "" && b.workspaceMapping.name != tc.expectedWorkspaceName {
-			t.Fatalf("%s: expected workspace name mapping (%s) to match configured workspace name (%s)", name, b.workspaceMapping.name, tc.expectedWorkspaceName)
+		if tc.expectedWorkspaceName != "" && b.WorkspaceMapping.Name != tc.expectedWorkspaceName {
+			t.Fatalf("%s: expected workspace name mapping (%s) to match configured workspace name (%s)", name, b.WorkspaceMapping.Name, tc.expectedWorkspaceName)
 		}
 		if len(tc.expectedWorkspaceTags) > 0 {
 			presentSet := make(map[string]struct{})
-			for _, tag := range b.workspaceMapping.tags {
+			for _, tag := range b.WorkspaceMapping.Tags {
 				presentSet[tag] = struct{}{}
 			}
 
@@ -454,18 +471,18 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 				}
 			}
 
-			for _, actual := range b.workspaceMapping.tags {
+			for _, actual := range b.WorkspaceMapping.Tags {
 				if _, ok := expectedSet[actual]; !ok {
 					unexpected = append(missing, actual)
 				}
 			}
 
 			if len(missing) > 0 {
-				t.Fatalf("%s: expected workspace tag mapping (%s) to contain the following tags: %s", name, b.workspaceMapping.tags, missing)
+				t.Fatalf("%s: expected workspace tag mapping (%s) to contain the following tags: %s", name, b.WorkspaceMapping.Tags, missing)
 			}
 
 			if len(unexpected) > 0 {
-				t.Fatalf("%s: expected workspace tag mapping (%s) to NOT contain the following tags: %s", name, b.workspaceMapping.tags, unexpected)
+				t.Fatalf("%s: expected workspace tag mapping (%s) to NOT contain the following tags: %s", name, b.WorkspaceMapping.Tags, unexpected)
 			}
 
 		}
@@ -575,28 +592,16 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	if _, err := b.Workspaces(); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
-	}
-
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
+	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if _, err := b.StateMgr("prod"); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
-	}
-
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if err := b.DeleteWorkspace("prod"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
 
-func TestCloud_addAndRemoveWorkspacesNoDefault(t *testing.T) {
+func TestCloud_addAndRemoveWorkspacesWithPrefix(t *testing.T) {
 	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
 
@@ -808,7 +813,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspaceMapping.name,
+		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0140.String()),
 		},
@@ -817,7 +822,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	}
 
 	// This should succeed
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
+	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -825,7 +830,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspaceMapping.name,
+		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(v0135.String()),
 		},
@@ -835,7 +840,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 
 	// This should fail
 	want := `Remote workspace Terraform version "0.13.5" does not match local Terraform version "0.14.0"`
-	if _, err := b.StateMgr(backend.DefaultStateName); err.Error() != want {
+	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err.Error() != want {
 		t.Fatalf("wrong error\n got: %v\nwant: %v", err.Error(), want)
 	}
 }
@@ -865,7 +870,7 @@ func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspaceMapping.name,
+		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("latest"),
 		},
@@ -874,7 +879,7 @@ func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
 	}
 
 	// This should succeed despite not being a string match
-	if _, err := b.StateMgr(backend.DefaultStateName); err != nil {
+	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
@@ -923,7 +928,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 			if _, err := b.client.Workspaces.Update(
 				context.Background(),
 				b.organization,
-				b.workspaceMapping.name,
+				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
 					Operations:       tfe.Bool(tc.operations),
 					TerraformVersion: tfe.String(tc.remote),
@@ -974,7 +979,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspaceMapping.name,
+		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String("1.0.cheetarah"),
 		},
@@ -1022,7 +1027,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	if _, err := b.client.Workspaces.Update(
 		context.Background(),
 		b.organization,
-		b.workspaceMapping.name,
+		b.WorkspaceMapping.Name,
 		tfe.WorkspaceUpdateOptions{
 			TerraformVersion: tfe.String(remote.String()),
 		},
@@ -1041,7 +1046,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	if got, want := diags[0].Description().Summary, "Terraform version mismatch"; got != want {
 		t.Errorf("wrong summary: got %s, want %s", got, want)
 	}
-	wantDetail := "The local Terraform version (0.14.0) does not match the configured version for remote workspace hashicorp/prod (0.13.5)."
+	wantDetail := "The local Terraform version (0.14.0) does not match the configured version for remote workspace hashicorp/app-prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
 	}

@@ -38,6 +38,7 @@ var (
 	credsSrc = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
 		tfeHost: {"token": testCred},
 	})
+	testBackendSingleWorkspaceName = "app-prod"
 )
 
 // mockInput is a mock implementation of terraform.UIInput.
@@ -70,7 +71,7 @@ func testBackendDefault(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.StringVal("prod"),
+			"name":   cty.StringVal(testBackendSingleWorkspaceName),
 			"prefix": cty.NullVal(cty.String),
 			"tags":   cty.NullVal(cty.Set(cty.String)),
 		}),
@@ -116,7 +117,7 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("no-operations"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.StringVal("prod"),
+			"name":   cty.StringVal(testBackendSingleWorkspaceName),
 			"prefix": cty.NullVal(cty.String),
 			"tags":   cty.NullVal(cty.Set(cty.String)),
 		}),
@@ -128,7 +129,7 @@ func testRemoteClient(t *testing.T) remote.Client {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	raw, err := b.StateMgr(backend.DefaultStateName)
+	raw, err := b.StateMgr(testBackendSingleWorkspaceName)
 	if err != nil {
 		t.Fatalf("error: %v", err)
 	}
@@ -182,9 +183,9 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	}
 
 	// Create the default workspace if required.
-	if b.workspaceMapping.name != "" {
+	if b.WorkspaceMapping.Name != "" {
 		_, err = b.client.Workspaces.Create(ctx, b.organization, tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspaceMapping.name),
+			Name: tfe.String(b.WorkspaceMapping.Name),
 		})
 		if err != nil {
 			t.Fatalf("error: %v", err)

@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -24,12 +23,12 @@ func TestRemoteClient_stateLock(t *testing.T) {
 	b, bCleanup := testBackendDefault(t)
 	defer bCleanup()
 
-	s1, err := b.StateMgr(backend.DefaultStateName)
+	s1, err := b.StateMgr(testBackendSingleWorkspaceName)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	s2, err := b.StateMgr(backend.DefaultStateName)
+	s2, err := b.StateMgr(testBackendSingleWorkspaceName)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

@@ -67,7 +67,7 @@ func TestCloud_applyBasic(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -97,7 +97,7 @@ func TestCloud_applyBasic(t *testing.T) {
 		t.Fatalf("expected apply summery in output: %s", output)
 	}
 
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	// An error suggests that the state was not unlocked after apply
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
@@ -112,7 +112,7 @@ func TestCloud_applyCanceled(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -127,7 +127,7 @@ func TestCloud_applyCanceled(t *testing.T) {
 		t.Fatal("expected apply operation to fail")
 	}
 
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatalf("unexpected error locking state after cancelling apply: %s", err.Error())
 	}
@@ -142,7 +142,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspaceMapping.prefix + "prod"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -182,7 +182,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name:    tfe.String(b.workspaceMapping.prefix + "prod"),
+			Name:    tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 			VCSRepo: &tfe.VCSRepoOptions{},
 		},
 	)
@@ -226,7 +226,7 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 		b.ContextOpts = &terraform.ContextOpts{}
 	}
 	b.ContextOpts.Parallelism = 3
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -253,7 +253,7 @@ func TestCloud_applyWithPlan(t *testing.T) {
 	defer configCleanup()
 
 	op.PlanFile = &planfile.Reader{}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -284,7 +284,7 @@ func TestCloud_applyWithoutRefresh(t *testing.T) {
 	defer done(t)
 
 	op.PlanRefresh = false
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -322,7 +322,7 @@ func TestCloud_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
 	b.client.SetFakeRemoteAPIVersion("2.3")
 
 	op.PlanRefresh = false
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -353,7 +353,7 @@ func TestCloud_applyWithRefreshOnly(t *testing.T) {
 	defer done(t)
 
 	op.PlanMode = plans.RefreshOnlyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -391,7 +391,7 @@ func TestCloud_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
 	b.client.SetFakeRemoteAPIVersion("2.3")
 
 	op.PlanMode = plans.RefreshOnlyMode
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -424,7 +424,7 @@ func TestCloud_applyWithTarget(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
 
 	op.Targets = []addrs.Targetable{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -466,7 +466,7 @@ func TestCloud_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
 
 	op.Targets = []addrs.Targetable{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -499,7 +499,7 @@ func TestCloud_applyWithReplace(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
 
 	op.ForceReplace = []addrs.AbsResourceInstance{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -539,7 +539,7 @@ func TestCloud_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
 	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
 
 	op.ForceReplace = []addrs.AbsResourceInstance{addr}
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -569,7 +569,7 @@ func TestCloud_applyWithVariables(t *testing.T) {
 	defer configCleanup()
 
 	op.Variables = testVariables(terraform.ValueFromNamedFile, "foo", "bar")
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -595,7 +595,7 @@ func TestCloud_applyNoConfig(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
 	defer configCleanup()
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -616,7 +616,7 @@ func TestCloud_applyNoConfig(t *testing.T) {
 		t.Fatalf("expected configuration files error, got: %v", errOutput)
 	}
 
-	stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
 	// An error suggests that the state was not unlocked after apply
 	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
 		t.Fatalf("unexpected error locking state after failed apply: %s", err.Error())
@@ -631,7 +631,7 @@ func TestCloud_applyNoChanges(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -668,7 +668,7 @@ func TestCloud_applyNoApprove(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -709,7 +709,7 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	op.AutoApprove = true
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -754,7 +754,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	ctx := context.Background()
 
@@ -828,7 +828,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	ctx := context.Background()
 
@@ -898,7 +898,7 @@ func TestCloud_applyWithAutoApply(t *testing.T) {
 		b.organization,
 		tfe.WorkspaceCreateOptions{
 			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.workspaceMapping.prefix + "prod"),
+			Name:      tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -967,7 +967,7 @@ func TestCloud_applyForceLocal(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
@@ -1013,7 +1013,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.workspaceMapping.prefix + "no-operations"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "no-operations"),
 		},
 	)
 	if err != nil {
@@ -1072,7 +1072,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.workspaceMapping.name)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}
@@ -1103,7 +1103,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	_, err = b.Operation(context.Background(), op)
 	if err != nil {
@@ -1154,7 +1154,7 @@ func TestCloud_applyDestroy(t *testing.T) {
 	op.PlanMode = plans.DestroyMode
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1200,7 +1200,7 @@ func TestCloud_applyDestroyNoConfig(t *testing.T) {
 	op.PlanMode = plans.DestroyMode
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1234,7 +1234,7 @@ func TestCloud_applyPolicyPass(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1281,7 +1281,7 @@ func TestCloud_applyPolicyHardFail(t *testing.T) {
 
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1337,7 +1337,7 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 	op.AutoApprove = false
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1383,7 +1383,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	op.AutoApprove = true
 	op.UIIn = input
 	op.UIOut = b.CLI
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1432,7 +1432,7 @@ func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
 		b.organization,
 		tfe.WorkspaceCreateOptions{
 			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.workspaceMapping.prefix + "prod"),
+			Name:      tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -1492,7 +1492,7 @@ func TestCloud_applyWithRemoteError(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Workspace = backend.DefaultStateName
+	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1581,7 +1581,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			_, err := b.client.Workspaces.Update(
 				ctx,
 				b.organization,
-				b.workspaceMapping.name,
+				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
 					Operations:       tfe.Bool(tc.hasOperations),
 					TerraformVersion: tfe.String(tc.remoteVersion),
@@ -1606,7 +1606,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 
 			op.UIIn = input
 			op.UIOut = b.CLI
-			op.Workspace = backend.DefaultStateName
+			op.Workspace = testBackendSingleWorkspaceName
 
 			run, err := b.Operation(ctx, op)
 			if err != nil {
