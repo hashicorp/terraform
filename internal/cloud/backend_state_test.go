@@ -20,7 +20,7 @@ func TestRemoteClient(t *testing.T) {
 }
 
 func TestRemoteClient_stateLock(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	s1, err := b.StateMgr(testBackendSingleWorkspaceName)

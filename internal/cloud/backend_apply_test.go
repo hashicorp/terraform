@@ -54,7 +54,7 @@ func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.
 }
 
 func TestCloud_applyBasic(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -105,7 +105,7 @@ func TestCloud_applyBasic(t *testing.T) {
 }
 
 func TestCloud_applyCanceled(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -216,7 +216,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 }
 
 func TestCloud_applyWithParallelism(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -246,7 +246,7 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 }
 
 func TestCloud_applyWithPlan(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -276,7 +276,7 @@ func TestCloud_applyWithPlan(t *testing.T) {
 }
 
 func TestCloud_applyWithoutRefresh(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -313,7 +313,7 @@ func TestCloud_applyWithoutRefresh(t *testing.T) {
 }
 
 func TestCloud_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -345,7 +345,7 @@ func TestCloud_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_applyWithRefreshOnly(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -382,7 +382,7 @@ func TestCloud_applyWithRefreshOnly(t *testing.T) {
 }
 
 func TestCloud_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -414,7 +414,7 @@ func TestCloud_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_applyWithTarget(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -453,7 +453,7 @@ func TestCloud_applyWithTarget(t *testing.T) {
 }
 
 func TestCloud_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -489,7 +489,7 @@ func TestCloud_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_applyWithReplace(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -528,7 +528,7 @@ func TestCloud_applyWithReplace(t *testing.T) {
 }
 
 func TestCloud_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -562,7 +562,7 @@ func TestCloud_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_applyWithVariables(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-variables")
@@ -589,7 +589,7 @@ func TestCloud_applyWithVariables(t *testing.T) {
 }
 
 func TestCloud_applyNoConfig(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -624,7 +624,7 @@ func TestCloud_applyNoConfig(t *testing.T) {
 }
 
 func TestCloud_applyNoChanges(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-no-changes")
@@ -656,7 +656,7 @@ func TestCloud_applyNoChanges(t *testing.T) {
 }
 
 func TestCloud_applyNoApprove(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -695,7 +695,7 @@ func TestCloud_applyNoApprove(t *testing.T) {
 }
 
 func TestCloud_applyAutoApprove(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -741,7 +741,7 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 }
 
 func TestCloud_applyApprovedExternally(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -815,7 +815,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 }
 
 func TestCloud_applyDiscardedExternally(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -954,7 +954,7 @@ func TestCloud_applyForceLocal(t *testing.T) {
 	}
 	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
 
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
@@ -1066,7 +1066,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 }
 
 func TestCloud_applyLockTimeout(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	ctx := context.Background()
@@ -1140,7 +1140,7 @@ func TestCloud_applyLockTimeout(t *testing.T) {
 }
 
 func TestCloud_applyDestroy(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-destroy")
@@ -1186,7 +1186,7 @@ func TestCloud_applyDestroy(t *testing.T) {
 }
 
 func TestCloud_applyDestroyNoConfig(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	input := testInput(t, map[string]string{
@@ -1221,7 +1221,7 @@ func TestCloud_applyDestroyNoConfig(t *testing.T) {
 }
 
 func TestCloud_applyPolicyPass(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-passed")
@@ -1269,7 +1269,7 @@ func TestCloud_applyPolicyPass(t *testing.T) {
 }
 
 func TestCloud_applyPolicyHardFail(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-hard-failed")
@@ -1322,7 +1322,7 @@ func TestCloud_applyPolicyHardFail(t *testing.T) {
 }
 
 func TestCloud_applyPolicySoftFail(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-soft-failed")
@@ -1372,7 +1372,7 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 }
 
 func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-soft-failed")
@@ -1423,7 +1423,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 }
 
 func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	// Create a named workspace that auto applies.
@@ -1485,7 +1485,7 @@ func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
 }
 
 func TestCloud_applyWithRemoteError(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-with-error")
@@ -1553,7 +1553,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			b, bCleanup := testBackendDefault(t)
+			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
 			// SETUP: Save original local version state and restore afterwards

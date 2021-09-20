@@ -176,7 +176,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			configDir := "./testdata/empty"
 
-			b, bCleanup := testBackendDefault(t)
+			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
 			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)

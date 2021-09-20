@@ -65,7 +65,7 @@ func testInput(t *testing.T, answers map[string]string) *mockInput {
 	return &mockInput{answers: answers}
 }
 
-func testBackendDefault(t *testing.T) (*Cloud, func()) {
+func testBackendWithName(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -126,7 +126,7 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 }
 
 func testRemoteClient(t *testing.T) remote.Client {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	raw, err := b.StateMgr(testBackendSingleWorkspaceName)

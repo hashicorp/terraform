@@ -52,7 +52,7 @@ func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.D
 }
 
 func TestCloud_planBasic(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -90,7 +90,7 @@ func TestCloud_planBasic(t *testing.T) {
 }
 
 func TestCloud_planCanceled(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -120,7 +120,7 @@ func TestCloud_planCanceled(t *testing.T) {
 }
 
 func TestCloud_planLongLine(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-long-line")
@@ -191,7 +191,7 @@ func TestCloud_planWithoutPermissions(t *testing.T) {
 }
 
 func TestCloud_planWithParallelism(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -221,7 +221,7 @@ func TestCloud_planWithParallelism(t *testing.T) {
 }
 
 func TestCloud_planWithPlan(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -251,7 +251,7 @@ func TestCloud_planWithPlan(t *testing.T) {
 }
 
 func TestCloud_planWithPath(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -281,7 +281,7 @@ func TestCloud_planWithPath(t *testing.T) {
 }
 
 func TestCloud_planWithoutRefresh(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -318,7 +318,7 @@ func TestCloud_planWithoutRefresh(t *testing.T) {
 }
 
 func TestCloud_planWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -350,7 +350,7 @@ func TestCloud_planWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_planWithRefreshOnly(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -387,7 +387,7 @@ func TestCloud_planWithRefreshOnly(t *testing.T) {
 }
 
 func TestCloud_planWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -419,7 +419,7 @@ func TestCloud_planWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_planWithTarget(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	// When the backend code creates a new run, we'll tweak it so that it
@@ -488,7 +488,7 @@ func TestCloud_planWithTarget(t *testing.T) {
 }
 
 func TestCloud_planWithTargetIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -524,7 +524,7 @@ func TestCloud_planWithTargetIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_planWithReplace(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -563,7 +563,7 @@ func TestCloud_planWithReplace(t *testing.T) {
 }
 
 func TestCloud_planWithReplaceIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -597,7 +597,7 @@ func TestCloud_planWithReplaceIncompatibleAPIVersion(t *testing.T) {
 }
 
 func TestCloud_planWithVariables(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-variables")
@@ -624,7 +624,7 @@ func TestCloud_planWithVariables(t *testing.T) {
 }
 
 func TestCloud_planNoConfig(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
@@ -653,7 +653,7 @@ func TestCloud_planNoConfig(t *testing.T) {
 }
 
 func TestCloud_planNoChanges(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-no-changes")
@@ -692,7 +692,7 @@ func TestCloud_planForceLocal(t *testing.T) {
 	}
 	defer os.Unsetenv("TF_FORCE_LOCAL_BACKEND")
 
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -814,7 +814,7 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 }
 
 func TestCloud_planLockTimeout(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	ctx := context.Background()
@@ -885,7 +885,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 }
 
 func TestCloud_planDestroy(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -910,7 +910,7 @@ func TestCloud_planDestroy(t *testing.T) {
 }
 
 func TestCloud_planDestroyNoConfig(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
@@ -935,7 +935,7 @@ func TestCloud_planDestroyNoConfig(t *testing.T) {
 }
 
 func TestCloud_planWithWorkingDirectory(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	options := tfe.WorkspaceUpdateOptions{
@@ -980,7 +980,7 @@ func TestCloud_planWithWorkingDirectory(t *testing.T) {
 }
 
 func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	options := tfe.WorkspaceUpdateOptions{
@@ -1036,7 +1036,7 @@ func TestCloud_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 }
 
 func TestCloud_planCostEstimation(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-cost-estimation")
@@ -1071,7 +1071,7 @@ func TestCloud_planCostEstimation(t *testing.T) {
 }
 
 func TestCloud_planPolicyPass(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-policy-passed")
@@ -1106,7 +1106,7 @@ func TestCloud_planPolicyPass(t *testing.T) {
 }
 
 func TestCloud_planPolicyHardFail(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-policy-hard-failed")
@@ -1146,7 +1146,7 @@ func TestCloud_planPolicyHardFail(t *testing.T) {
 }
 
 func TestCloud_planPolicySoftFail(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-policy-soft-failed")
@@ -1186,7 +1186,7 @@ func TestCloud_planPolicySoftFail(t *testing.T) {
 }
 
 func TestCloud_planWithRemoteError(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-with-error")
@@ -1218,7 +1218,7 @@ func TestCloud_planWithRemoteError(t *testing.T) {
 }
 
 func TestCloud_planOtherError(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")

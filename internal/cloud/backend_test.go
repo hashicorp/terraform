@@ -25,7 +25,7 @@ func TestCloud(t *testing.T) {
 }
 
 func TestCloud_backendWithName(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	workspaces, err := b.Workspaces()
@@ -574,7 +574,7 @@ func TestCloud_versionConstraints(t *testing.T) {
 }
 
 func TestCloud_localBackend(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	local, ok := b.local.(*backendLocal.Local)
@@ -589,7 +589,7 @@ func TestCloud_localBackend(t *testing.T) {
 }
 
 func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	if _, err := b.StateMgr(testBackendSingleWorkspaceName); err != nil {
@@ -683,7 +683,7 @@ func TestCloud_addAndRemoveWorkspacesWithPrefix(t *testing.T) {
 }
 
 func TestCloud_checkConstraints(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	cases := map[string]struct {
@@ -785,7 +785,7 @@ func TestCloud_checkConstraints(t *testing.T) {
 }
 
 func TestCloud_StateMgr_versionCheck(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	// Some fixed versions for testing with. This logic is a simple string
@@ -846,7 +846,7 @@ func TestCloud_StateMgr_versionCheck(t *testing.T) {
 }
 
 func TestCloud_StateMgr_versionCheckLatest(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	v0140 := version.Must(version.NewSemver("0.14.0"))
@@ -903,7 +903,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("local %s, remote %s", tc.local, tc.remote), func(t *testing.T) {
-			b, bCleanup := testBackendDefault(t)
+			b, bCleanup := testBackendWithName(t)
 			defer bCleanup()
 
 			local := version.Must(version.NewSemver(tc.local))
@@ -955,7 +955,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 }
 
 func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	// Attempting to check the version against a workspace which doesn't exist
@@ -997,7 +997,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 }
 
 func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
-	b, bCleanup := testBackendDefault(t)
+	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	// If the ignore flag is set, the behaviour changes
