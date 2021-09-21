@@ -2282,13 +2282,5 @@ func (n *NodeAbstractResourceInstance) prevRunAddr(ctx EvalContext) addrs.AbsRes
 
 func resourceInstancePrevRunAddr(ctx EvalContext, currentAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
 	table := ctx.MoveResults()
-
-	result, ok := table[currentAddr.UniqueKey()]
-	if !ok {
-		// If there's no entry in the table then we'll assume it didn't move
-		// at all, and so its previous address is the same as the current one.
-		return currentAddr
-	}
-
-	return result.From
+	return table.OldAddr(currentAddr)
 }

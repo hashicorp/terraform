@@ -174,7 +174,7 @@ type EvalContext interface {
 	// This data structure is created prior to the graph walk and read-only
 	// thereafter, so callers must not modify the returned map or any other
 	// objects accessible through it.
-	MoveResults() map[addrs.UniqueKey]refactoring.MoveResult
+	MoveResults() refactoring.MoveResults
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

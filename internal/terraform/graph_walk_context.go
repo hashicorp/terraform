@@ -25,12 +25,12 @@ type ContextGraphWalker struct {
 
 	// Configurable values
 	Context            *Context
-	State              *states.SyncState                          // Used for safe concurrent access to state
-	RefreshState       *states.SyncState                          // Used for safe concurrent access to state
-	PrevRunState       *states.SyncState                          // Used for safe concurrent access to state
-	Changes            *plans.ChangesSync                         // Used for safe concurrent writes to changes
-	InstanceExpander   *instances.Expander                        // Tracks our gradual expansion of module and resource instances
-	MoveResults        map[addrs.UniqueKey]refactoring.MoveResult // Read-only record of earlier processing of move statements
+	State              *states.SyncState       // Used for safe concurrent access to state
+	RefreshState       *states.SyncState       // Used for safe concurrent access to state
+	PrevRunState       *states.SyncState       // Used for safe concurrent access to state
+	Changes            *plans.ChangesSync      // Used for safe concurrent writes to changes
+	InstanceExpander   *instances.Expander     // Tracks our gradual expansion of module and resource instances
+	MoveResults        refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation          walkOperation
 	StopContext        context.Context
 	RootVariableValues InputValues
