@@ -132,7 +132,7 @@ type MockEvalContext struct {
 	PrevRunStateState  *states.SyncState
 
 	MoveResultsCalled  bool
-	MoveResultsResults map[addrs.UniqueKey]refactoring.MoveResult
+	MoveResultsResults refactoring.MoveResults
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
@@ -353,7 +353,7 @@ func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	return c.PrevRunStateState
 }
 
-func (c *MockEvalContext) MoveResults() map[addrs.UniqueKey]refactoring.MoveResult {
+func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
 	c.MoveResultsCalled = true
 	return c.MoveResultsResults
 }

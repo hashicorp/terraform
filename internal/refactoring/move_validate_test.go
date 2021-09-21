@@ -325,29 +325,6 @@ Each resource can have moved from only one source resource.`,
 
 Each resource can have moved from only one source resource.`,
 		},
-		/*
-					// FIXME: This rule requires a deeper analysis to understand that
-					// module.single already contains a test.single and thus moving
-					// it to module.foo implicitly also moves module.single.test.single
-					// module.foo.test.single.
-					"two different moves to nested test.single by different paths": {
-						Statements: []MoveStatement{
-							makeTestMoveStmt(t,
-								``,
-								`test.beep`,
-								`module.foo.test.single`,
-							),
-							makeTestMoveStmt(t,
-								``,
-								`module.single`,
-								`module.foo`,
-							),
-						},
-						WantError: `Ambiguous move statements: A statement at test:1,1 declared that test.beep moved to module.foo.test.single, but this statement instead declares that module.single.test.single moved there.
-
-			Each resource can have moved from only one source resource.`,
-					},
-		*/
 		"move from resource in another module package": {
 			Statements: []MoveStatement{
 				makeTestMoveStmt(t,

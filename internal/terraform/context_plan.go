@@ -296,7 +296,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	return destroyPlan, diags
 }
 
-func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, map[addrs.UniqueKey]refactoring.MoveResult) {
+func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState *states.State, targets []addrs.Targetable) ([]refactoring.MoveStatement, refactoring.MoveResults) {
 	explicitMoveStmts := refactoring.FindMoveStatements(config)
 	implicitMoveStmts := refactoring.ImpliedMoveStatements(config, prevRunState, explicitMoveStmts)
 	var moveStmts []refactoring.MoveStatement
@@ -309,7 +309,7 @@ func (c *Context) prePlanFindAndApplyMoves(config *configs.Config, prevRunState 
 	return moveStmts, moveResults
 }
 
-func (c *Context) prePlanVerifyTargetedMoves(moveResults map[addrs.UniqueKey]refactoring.MoveResult, targets []addrs.Targetable) tfdiags.Diagnostics {
+func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults, targets []addrs.Targetable) tfdiags.Diagnostics {
 	if len(targets) < 1 {
 		return nil // the following only matters when targeting
 	}
@@ -317,7 +317,7 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults map[addrs.UniqueKey]ref
 	var diags tfdiags.Diagnostics
 
 	var excluded []addrs.AbsResourceInstance
-	for _, result := range moveResults {
+	for _, result := range moveResults.Changes {
 		fromMatchesTarget := false
 		toMatchesTarget := false
 		for _, targetAddr := range targets {
@@ -475,10 +475,10 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	}
 }
 
-func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves map[addrs.UniqueKey]refactoring.MoveResult) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
+func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if newState.ManagedResourcesEqual(oldState) && len(moves) == 0 {
+	if newState.ManagedResourcesEqual(oldState) && len(moves.Changes) == 0 {
 		// Nothing to do, because we only detect and report drift for managed
 		// resource instances.
 		return nil, diags
@@ -510,7 +510,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				// Previous run address defaults to the current address, but
 				// can differ if the resource moved before refreshing
 				prevRunAddr := addr
-				if move, ok := moves[addr.UniqueKey()]; ok {
+				if move, ok := moves.Changes[addr.UniqueKey()]; ok {
 					prevRunAddr = move.From
 				}
 

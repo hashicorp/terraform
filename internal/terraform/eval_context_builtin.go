@@ -69,7 +69,7 @@ type BuiltinEvalContext struct {
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
-	MoveResultsValue      map[addrs.UniqueKey]refactoring.MoveResult
+	MoveResultsValue      refactoring.MoveResults
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -368,6 +368,6 @@ func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 	return ctx.InstanceExpanderValue
 }
 
-func (ctx *BuiltinEvalContext) MoveResults() map[addrs.UniqueKey]refactoring.MoveResult {
+func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
 	return ctx.MoveResultsValue
 }

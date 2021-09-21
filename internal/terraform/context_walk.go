@@ -3,7 +3,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -25,7 +24,7 @@ type graphWalkOpts struct {
 	Config     *configs.Config
 
 	RootVariableValues InputValues
-	MoveResults        map[addrs.UniqueKey]refactoring.MoveResult
+	MoveResults        refactoring.MoveResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
