@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
@@ -697,6 +699,14 @@ func TestCloud_applyNoApprove(t *testing.T) {
 func TestCloud_applyAutoApprove(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	applyMock := tfe.NewMockApplies(ctrl)
+	// This needs three new lines because we check for a minimum of three lines
+	// in the parsing of logs in `opApply` function.
+	logs := strings.NewReader(applySuccessOneResourceAdded)
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
+	b.client.Applies = applyMock
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
@@ -888,17 +898,24 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithAutoApply(t *testing.T) {
+func TestCloud_applyWithAutoApprove(t *testing.T) {
 	b, bCleanup := testBackendWithPrefix(t)
 	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	applyMock := tfe.NewMockApplies(ctrl)
+	// This needs three new lines because we check for a minimum of three lines
+	// in the parsing of logs in `opApply` function.
+	logs := strings.NewReader(applySuccessOneResourceAdded)
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
+	b.client.Applies = applyMock
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -916,6 +933,7 @@ func TestCloud_applyWithAutoApply(t *testing.T) {
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = "prod"
+	op.AutoApprove = true
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1374,6 +1392,34 @@ func TestCloud_applyPolicySoftFail(t *testing.T) {
 func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	policyCheckMock := tfe.NewMockPolicyChecks(ctrl)
+	// This needs three new lines because we check for a minimum of three lines
+	// in the parsing of logs in `opApply` function.
+	logs := strings.NewReader(fmt.Sprintf("%s\n%s", sentinelSoftFail, applySuccessOneResourceAdded))
+
+	pc := &tfe.PolicyCheck{
+		ID: "pc-1",
+		Actions: &tfe.PolicyActions{
+			IsOverridable: true,
+		},
+		Permissions: &tfe.PolicyPermissions{
+			CanOverride: true,
+		},
+		Scope:  tfe.PolicyScopeOrganization,
+		Status: tfe.PolicySoftFailed,
+	}
+	policyCheckMock.EXPECT().Read(gomock.Any(), gomock.Any()).Return(pc, nil)
+	policyCheckMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
+	policyCheckMock.EXPECT().Override(gomock.Any(), gomock.Any()).Return(nil, nil)
+	b.client.PolicyChecks = policyCheckMock
+	applyMock := tfe.NewMockApplies(ctrl)
+	// This needs three new lines because we check for a minimum of three lines
+	// in the parsing of logs in `opApply` function.
+	logs = strings.NewReader("\n\n\n1 added, 0 changed, 0 destroyed")
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
+	b.client.Applies = applyMock
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-policy-soft-failed")
 	defer configCleanup()
@@ -1422,17 +1468,24 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	}
 }
 
-func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
+func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
+	ctrl := gomock.NewController(t)
+
+	applyMock := tfe.NewMockApplies(ctrl)
+	// This needs three new lines because we check for a minimum of three lines
+	// in the parsing of logs in `opApply` function.
+	logs := strings.NewReader(applySuccessOneResourceAdded)
+	applyMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
+	b.client.Applies = applyMock
 
 	// Create a named workspace that auto applies.
 	_, err := b.client.Workspaces.Create(
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			AutoApply: tfe.Bool(true),
-			Name:      tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
 		},
 	)
 	if err != nil {
@@ -1451,6 +1504,7 @@ func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
 	op.UIIn = input
 	op.UIOut = b.CLI
 	op.Workspace = "prod"
+	op.AutoApprove = true
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1465,7 +1519,7 @@ func TestCloud_applyPolicySoftFailAutoApply(t *testing.T) {
 		t.Fatalf("expected a non-empty plan")
 	}
 
-	if len(input.answers) != 1 {
+	if len(input.answers) != 2 {
 		t.Fatalf("expected an unused answer, got: %v", input.answers)
 	}
 
@@ -1656,3 +1710,28 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 		})
 	}
 }
+
+const applySuccessOneResourceAdded = `
+Terraform v0.11.10
+
+Initializing plugins and modules...
+null_resource.hello: Creating...
+null_resource.hello: Creation complete after 0s (ID: 8657651096157629581)
+
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+`
+
+const sentinelSoftFail = `
+Sentinel Result: false
+
+Sentinel evaluated to false because one or more Sentinel policies evaluated
+to false. This false was not due to an undefined value or runtime error.
+
+1 policies evaluated.
+
+## Policy 1: Passthrough.sentinel (soft-mandatory)
+
+Result: false
+
+FALSE - Passthrough.sentinel:1:1 - Rule "main"
+`

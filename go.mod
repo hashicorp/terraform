@@ -22,7 +22,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 	github.com/go-test/deep v1.0.3
-	github.com/golang/mock v1.5.0
+	github.com/golang/mock v1.6.0
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
@@ -40,7 +40,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/go-retryablehttp v0.5.2
-	github.com/hashicorp/go-tfe v0.18.1-0.20210902165242-26689edbfddf
+	github.com/hashicorp/go-tfe v0.19.1-0.20210922134841-a2c1784e9c00
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f

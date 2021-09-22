@@ -181,72 +181,40 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	}
 
 	// Return if the run cannot be confirmed.
-	if !w.AutoApply && !r.Actions.IsConfirmable {
+	if !op.AutoApprove && !r.Actions.IsConfirmable {
 		return r, nil
-	}
-
-	// Since we already checked the permissions before creating the run
-	// this should never happen. But it doesn't hurt to keep this in as
-	// a safeguard for any unexpected situations.
-	if !w.AutoApply && !r.Permissions.CanApply {
-		// Make sure we discard the run if possible.
-		if r.Actions.IsDiscardable {
-			err = b.client.Runs.Discard(stopCtx, r.ID, tfe.RunDiscardOptions{})
-			if err != nil {
-				switch op.PlanMode {
-				case plans.DestroyMode:
-					return r, generalError("Failed to discard destroy", err)
-				default:
-					return r, generalError("Failed to discard apply", err)
-				}
-			}
-		}
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Insufficient rights to approve the pending changes",
-			fmt.Sprintf("There are pending changes, but the provided credentials have "+
-				"insufficient rights to approve them. The run will be discarded to prevent "+
-				"it from blocking the queue waiting for external approval. To queue a run "+
-				"that can be approved by someone else, please use the 'Queue Plan' button in "+
-				"the web UI:\nhttps://%s/app/%s/%s/runs", b.hostname, b.organization, op.Workspace),
-		))
-		return r, diags.Err()
 	}
 
 	mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
 
-	if !w.AutoApply {
-		if mustConfirm {
-			opts := &terraform.InputOpts{Id: "approve"}
+	if mustConfirm {
+		opts := &terraform.InputOpts{Id: "approve"}
 
-			if op.PlanMode == plans.DestroyMode {
-				opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
-				opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
-					"There is no undo. Only 'yes' will be accepted to confirm."
-			} else {
-				opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
-				opts.Description = "Terraform will perform the actions described above.\n" +
-					"Only 'yes' will be accepted to approve."
-			}
-
-			err = b.confirm(stopCtx, op, opts, r, "yes")
-			if err != nil && err != errRunApproved {
-				return r, err
-			}
+		if op.PlanMode == plans.DestroyMode {
+			opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
+			opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+				"There is no undo. Only 'yes' will be accepted to confirm."
+		} else {
+			opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
+			opts.Description = "Terraform will perform the actions described above.\n" +
+				"Only 'yes' will be accepted to approve."
 		}
 
-		if err != errRunApproved {
-			if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
-				return r, generalError("Failed to approve the apply command", err)
-			}
+		err = b.confirm(stopCtx, op, opts, r, "yes")
+		if err != nil && err != errRunApproved {
+			return r, err
+		}
+	} else {
+		// If we don't need to ask for confirmation, insert a blank
+		// line to separate the ouputs.
+		if b.CLI != nil {
+			b.CLI.Output("")
 		}
 	}
 
-	// If we don't need to ask for confirmation, insert a blank
-	// line to separate the ouputs.
-	if w.AutoApply || !mustConfirm {
-		if b.CLI != nil {
-			b.CLI.Output("")
+	if !op.AutoApprove && err != errRunApproved {
+		if err = b.client.Runs.Apply(stopCtx, r.ID, tfe.RunApplyOptions{}); err != nil {
+			return r, generalError("Failed to approve the apply command", err)
 		}
 	}
 

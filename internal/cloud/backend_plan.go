@@ -277,6 +277,7 @@ in order to capture the filesystem context the remote workspace expects:
 		ConfigurationVersion: cv,
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
+		AutoApply:            tfe.Bool(op.AutoApprove),
 	}
 
 	switch op.PlanMode {
