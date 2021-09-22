@@ -58,6 +58,16 @@ func TestImpliedMoveStatements(t *testing.T) {
 			instObjState(),
 			providerAddr,
 		)
+		s.SetResourceInstanceCurrent(
+			resourceAddr("now_for_each_formerly_count").Instance(addrs.IntKey(0)),
+			instObjState(),
+			providerAddr,
+		)
+		s.SetResourceInstanceCurrent(
+			resourceAddr("now_for_each_formerly_no_count").Instance(addrs.NoKey),
+			instObjState(),
+			providerAddr,
+		)
 
 		// This "ambiguous" resource is representing a rare but possible
 		// situation where we end up having a mixture of different index
@@ -113,8 +123,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 42, Column: 1, Byte: 709},
-				End:      tfdiags.SourcePos{Line: 42, Column: 27, Byte: 735},
+				Start:    tfdiags.SourcePos{Line: 50, Column: 1, Byte: 858},
+				End:      tfdiags.SourcePos{Line: 50, Column: 27, Byte: 884},
 			},
 		},
 	}
