@@ -16,12 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/e2e"
 )
 
-type tfCommand struct {
-	command        []string
-	expectedOutput string
-	expectedErr    string
-}
-
 func Test_terraform_apply_autoApprove(t *testing.T) {
 	ctx := context.Background()
 	cases := map[string]struct {
@@ -218,7 +212,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 		}
 		orgName := resourceData["organization"]
 		wsName := resourceData["workspace"]
-		tfBlock := createTerraformBlock(orgName, wsName)
+		tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 		writeMainTF(t, tfBlock, tmpDir)
 		tf := e2e.NewBinary(terraformBin, tmpDir)
 		defer tf.Close()
@@ -243,28 +237,6 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 
 		tc.validations(t, orgName, wsName)
 	}
-}
-
-func createTerraformBlock(org, ws string) string {
-	return fmt.Sprintf(
-		`terraform {
-  cloud {
-    hostname = "%s"
-    organization = "%s"
-
-    workspaces {
-      name = "%s"
-    }
-  }
-}
-
-resource "random_pet" "server" {
-  keepers = {
-    uuid = uuid()
-  }
-
-  length = 3
-}`, tfeHostname, org, ws)
 }
 
 func writeMainTF(t *testing.T, block string, dir string) {

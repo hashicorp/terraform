@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -46,25 +47,18 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	log.Printf("[TRACE] backendMigrateState: need to migrate from %q to %q backend config", opts.SourceType, opts.DestinationType)
 	// We need to check what the named state status is. If we're converting
 	// from multi-state to single-state for example, we need to handle that.
-	var sourceSingleState, destinationSingleState bool
-	sourceWorkspaces, err := opts.Source.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
-		sourceSingleState = true
-		err = nil
-	}
-	if err != nil {
-		return fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), opts.SourceType, err)
-	}
+	var sourceSingleState, destinationSingleState, sourceTFC, destinationTFC bool
 
-	destinationWorkspaces, err := opts.Destination.Workspaces()
-	if err == backend.ErrWorkspacesNotSupported {
-		destinationSingleState = true
-		err = nil
-	}
+	_, sourceTFC = opts.Source.(*cloud.Cloud)
+	_, destinationTFC = opts.Destination.(*cloud.Cloud)
+
+	sourceWorkspaces, sourceSingleState, err := retrieveWorkspaces(opts.Source, opts.SourceType)
 	if err != nil {
-		return fmt.Errorf(strings.TrimSpace(
-			errMigrateLoadStates), opts.DestinationType, err)
+		return err
+	}
+	destinationWorkspaces, destinationSingleState, err := retrieveWorkspaces(opts.Destination, opts.SourceType)
+	if err != nil {
+		return err
 	}
 
 	// Set up defaults
@@ -103,6 +97,9 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Determine migration behavior based on whether the source/destination
 	// supports multi-state.
 	switch {
+	case sourceTFC || destinationTFC:
+		return m.backendMigrateTFC(opts)
+
 	// Single-state to single-state. This is the easiest case: we just
 	// copy the default state directly.
 	case sourceSingleState && destinationSingleState:
@@ -497,6 +494,91 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	return m.confirm(inputOpts)
 }
 
+func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool, error) {
+	var singleState bool
+	var err error
+	workspaces, err := back.Workspaces()
+	if err == backend.ErrWorkspacesNotSupported {
+		singleState = true
+		err = nil
+	}
+	if err != nil {
+		return nil, singleState, fmt.Errorf(strings.TrimSpace(
+			errMigrateLoadStates), sourceType, err)
+	}
+
+	return workspaces, singleState, err
+}
+
+func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
+	_, sourceTFC := opts.Source.(*cloud.Cloud)
+	cloudBackendDestination, destinationTFC := opts.Destination.(*cloud.Cloud)
+
+	sourceWorkspaces, sourceSingleState, err := retrieveWorkspaces(opts.Source, opts.SourceType)
+	if err != nil {
+		return err
+	}
+	//to be used below, not yet implamented
+	// destinationWorkspaces, destinationSingleState
+	_, _, err = retrieveWorkspaces(opts.Destination, opts.SourceType)
+	if err != nil {
+		return err
+	}
+
+	// from TFC to non-TFC backend
+	if sourceTFC && !destinationTFC {
+		// From Terraform Cloud to another backend. This is not yet implemented, and
+		// we recommend people to use the TFC API.
+		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
+	}
+
+	// from TFC to TFC
+	if sourceTFC && destinationTFC {
+		// TODO: see internal/cloud/e2e/migrate_state_tfc_to_tfc_test.go for notes
+		panic("not yet implemented")
+	}
+
+	// Everything below, by the above two conditionals, now assumes that the
+	// destination is always Terraform Cloud (TFC).
+
+	sourceSingle := sourceSingleState || (len(sourceWorkspaces) == 1 && sourceWorkspaces[0] == backend.DefaultStateName)
+	if sourceSingle {
+		if cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy {
+			// If we know the name via WorkspaceNameStrategy, then set the
+			// destinationWorkspace to the new Name and skip the user prompt. Here the
+			// destinationWorkspace is not set to `default` thereby we will create it
+			// in TFC if it does not exist.
+			opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
+		}
+		// Run normal single-to-single state migration
+		// This will handle both situations where the new cloud backend
+		// configuration is using a workspace.name strategy or workspace.tags
+		// strategy.
+		return m.backendMigrateState_s_s(opts)
+	}
+
+	destinationTagsStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
+	destinationNameStrategy := cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
+
+	multiSource := !sourceSingleState && len(sourceWorkspaces) > 1
+	if multiSource && destinationNameStrategy {
+		// we have to take the current workspace from the source and migrate that
+		// over to destination. Since there is multiple sources, and we are using a
+		// name strategy, we will only migrate the current workspace.
+		panic("not yet implemented")
+	}
+
+	// Multiple sources, and using tags strategy. So migrate every source
+	// workspace over to new one, prompt for workspace name pattern (*),
+	// and start migrating, and create tags for each workspace.
+	if multiSource && destinationTagsStrategy {
+		// TODO: see internal/cloud/e2e/migrate_state_multi_to_tfc_test.go for notes
+		panic("not yet implemented")
+	}
+
+	return nil
+}
+
 const errMigrateLoadStates = `
 Error inspecting states in the %q backend:
     %s
@@ -539,6 +621,12 @@ Error copying state from the previous %q backend to the newly configured
 
 The state in the previous backend remains intact and unmodified. Please resolve
 the error above and try again.
+`
+
+const errTFCMigrateNotYetImplemented = `
+Migrating state from Terraform Cloud to another backend is not yet implemented.
+
+Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
 `
 
 const inputBackendMigrateEmpty = `

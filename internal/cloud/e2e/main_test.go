@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -48,7 +47,6 @@ func setup() func() {
 	setTfeClient()
 	teardown := setupBinary()
 	setVersion()
-	ensureVersionExists()
 
 	return func() {
 		teardown()
@@ -141,42 +139,6 @@ func setVersion() {
 	fullVersion := data["terraform_version"].(string)
 	version := strings.Split(fullVersion, "-")[0]
 	terraformVersion = fmt.Sprintf("%s-%s", version, hash)
-}
-
-func ensureVersionExists() {
-	opts := tfe.AdminTerraformVersionsListOptions{
-		ListOptions: tfe.ListOptions{
-			PageNumber: 1,
-			PageSize:   100,
-		},
-	}
-	hasVersion := false
-
-findTfVersion:
-	for {
-		tfVersionList, err := tfeClient.Admin.TerraformVersions.List(context.Background(), opts)
-		if err != nil {
-			log.Fatalf("Could not retrieve list of terraform versions: %v", err)
-		}
-		for _, item := range tfVersionList.Items {
-			if item.Version == terraformVersion {
-				hasVersion = true
-				break findTfVersion
-			}
-		}
-
-		// Exit the loop when we've seen all pages.
-		if tfVersionList.CurrentPage >= tfVersionList.TotalPages {
-			break
-		}
-
-		// Update the page number to get the next page.
-		opts.PageNumber = tfVersionList.NextPage
-	}
-
-	if !hasVersion {
-		log.Fatalf("Terraform Version %s does not exist in the list. Please add it.", terraformVersion)
-	}
 }
 
 func writeCredRC(file string) {

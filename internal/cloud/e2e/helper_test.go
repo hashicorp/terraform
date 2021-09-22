@@ -7,10 +7,29 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/go-uuid"
 )
+
+const (
+	expectConsoleTimeout = 15 * time.Second
+)
+
+type tfCommand struct {
+	command         []string
+	expectedOutput  string
+	expectedErr     string
+	expectError     bool
+	userInput       []string
+	postInputOutput string
+}
+
+type operationSets struct {
+	commands []tfCommand
+	prep     func(t *testing.T, orgName, dir string)
+}
 
 func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 	ctx := context.Background()
@@ -47,4 +66,63 @@ func randomString(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return v
+}
+
+func terraformConfigLocalBackend() string {
+	return fmt.Sprintf(`
+terraform {
+  backend "local" {
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`)
+}
+
+func terraformConfigCloudBackendTags(org, tag string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+    organization = "%s"
+
+    workspaces {
+      tags = ["%s"]
+    }
+  }
+}
+
+resource "random_pet" "server" {
+  keepers = {
+    uuid = uuid()
+  }
+
+  length = 3
+}
+`, tfeHostname, org, tag)
+}
+
+func terraformConfigCloudBackendName(org, name string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+    organization = "%s"
+
+    workspaces {
+      name = "%s"
+    }
+  }
+}
+
+resource "random_pet" "server" {
+  keepers = {
+    uuid = uuid()
+  }
+
+  length = 3
+}
+`, tfeHostname, org, name)
 }
