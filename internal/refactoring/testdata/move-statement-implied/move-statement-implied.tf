@@ -39,6 +39,14 @@ moved {
   to   = foo.now_count_explicit[1]
 }
 
+resource "foo" "now_for_each_formerly_count" {
+  for_each = { a = 1 }
+}
+
+resource "foo" "now_for_each_formerly_no_count" {
+  for_each = { a = 1 }
+}
+
 resource "foo" "ambiguous" {
   # this one doesn't have count in the config, but the test should
   # set it up to have both no-key and zero-key instances in the

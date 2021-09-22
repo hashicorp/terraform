@@ -124,7 +124,7 @@ func impliedMoveStatements(cfg *configs.Config, prevRunState *states.State, expl
 					fromKey = addrs.NoKey
 					toKey = addrs.IntKey(0)
 				}
-			default:
+			case rCfg.Count == nil && rCfg.ForEach == nil: // no repetition at all
 				if riState := rState.Instances[addrs.IntKey(0)]; riState != nil {
 					fromKey = addrs.IntKey(0)
 					toKey = addrs.NoKey
