@@ -540,11 +540,6 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Ask input
-	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new": "no",
-	})()
-
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	c := &InitCommand{
