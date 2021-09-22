@@ -789,6 +789,84 @@ func TestMetaBackend_reconfigureChange(t *testing.T) {
 	}
 }
 
+// Initializing a backend which supports workspaces and does *not* have
+// the currently selected workspace should prompt the user with a list of
+// workspaces to choose from to select a valid one, if more than one workspace
+// is available.
+func TestMetaBackend_initSelectedWorkspaceDoesNotExist(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	defer testInputMap(t, map[string]string{
+		"select-workspace": "2",
+	})()
+
+	// Get the backend
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	expected := "foo"
+	actual, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != expected {
+		t.Fatalf("expected selected workspace to be %q, but was %q", expected, actual)
+	}
+}
+
+// Initializing a backend which supports workspaces and does *not* have the
+// currently selected workspace - and which only has a single workspace - should
+// automatically select that single workspace.
+func TestMetaBackend_initSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-single"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+
+	// this should not ask for input
+	m.input = false
+
+	// Assert test precondition: The current selected workspace is "bar"
+	previousName, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if previousName != "bar" {
+		t.Fatalf("expected test fixture to start with 'bar' as the current selected workspace")
+	}
+
+	// Get the backend
+	_, diags := m.Backend(&BackendOpts{Init: true})
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	expected := "default"
+	actual, err := m.Workspace()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual != expected {
+		t.Fatalf("expected selected workspace to be %q, but was %q", expected, actual)
+	}
+}
+
 // Changing a configured backend, copying state
 func TestMetaBackend_configuredChangeCopy(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -1267,7 +1345,6 @@ func TestMetaBackend_configuredChangeCopy_multiToNoDefaultWithoutDefault(t *test
 	// Ask input
 	defer testInputMap(t, map[string]string{
 		"backend-migrate-multistate-to-multistate": "yes",
-		"select-workspace":                         "1",
 	})()
 
 	// Setup the meta
