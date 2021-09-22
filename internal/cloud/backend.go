@@ -922,7 +922,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if workspace.Operations == false {
+	if !workspace.Operations {
 		return nil
 	}
 
@@ -1002,6 +1002,7 @@ func (b *Cloud) IsLocalOperations() bool {
 // as a helper to wrap any potentially colored strings.
 //
 // TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
+//lint:ignore U1000 see above todo
 func (b *Cloud) cliColorize() *colorstring.Colorize {
 	if b.CLIColor != nil {
 		return b.CLIColor

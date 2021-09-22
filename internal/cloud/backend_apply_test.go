@@ -1592,8 +1592,9 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 			}
 
 			// RUN: prepare the apply operation and run it
-			op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+			op, configCleanup, opDone := testOperationApply(t, "./testdata/apply")
 			defer configCleanup()
+			defer opDone(t)
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
