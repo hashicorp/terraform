@@ -12,6 +12,10 @@ import (
 // type in the schema to be written with HCL block syntax as multiple nested
 // blocks with the attribute name as the block type.
 //
+// The fixup is only applied in the absence of structural attribute types. The
+// presence of these types indicate the use of a provider which does not
+// support mapping blocks to attributes.
+//
 // This partially restores some of the block/attribute confusion from HCL 1
 // so that existing patterns that depended on that confusion can continue to
 // be used in the short term while we settle on a longer-term strategy.
@@ -28,11 +32,34 @@ func FixUpBlockAttrs(body hcl.Body, schema *configschema.Block) hcl.Body {
 		schema = &configschema.Block{}
 	}
 
+	if skipFixup(schema) {
+		return body
+	}
+
 	return &fixupBody{
 		original: body,
 		schema:   schema,
 		names:    ambiguousNames(schema),
 	}
+}
+
+// skipFixup detects any use of Attribute.NestedType. Because the fixup was
+// only supported for the legacy SDK, there is no situation where structural
+// attributes are used where the fixup is expected.
+func skipFixup(schema *configschema.Block) bool {
+	for _, attr := range schema.Attributes {
+		if attr.NestedType != nil {
+			return true
+		}
+	}
+
+	for _, block := range schema.BlockTypes {
+		if skipFixup(&block.Block) {
+			return true
+		}
+	}
+
+	return false
 }
 
 type fixupBody struct {

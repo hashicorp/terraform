@@ -400,6 +400,35 @@ container {
 			}),
 			wantErrs: true,
 		},
+		"no fixup allowed": {
+			src: `
+ container {
+   foo = "one"
+ }
+ `,
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"container": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type: cty.String,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"container": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					}),
+				)),
+			}),
+			wantErrs: true,
+		},
 	}
 
 	ctx := &hcl.EvalContext{
