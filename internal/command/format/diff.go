@@ -98,6 +98,31 @@ func ResourceChange(
 		default:
 			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] delete (unknown reason %s)"), dispAddr, language))
 		}
+		// We can sometimes give some additional detail about why we're
+		// proposing to delete. We show this as additional notes, rather than
+		// as additional wording in the main action statement, in an attempt
+		// to make the "will be destroyed" message prominent and consistent
+		// in all cases, for easier scanning of this often-risky action.
+		switch change.ActionReason {
+		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Resource.Resource))
+		case plans.ResourceInstanceDeleteBecauseNoModule:
+			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Module))
+		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+			// We have some different variations of this one
+			switch addr.Resource.Key.(type) {
+			case nil:
+				buf.WriteString("\n  # (because resource uses count or for_each)")
+			case addrs.IntKey:
+				buf.WriteString("\n  # (because resource does not use count)")
+			case addrs.StringKey:
+				buf.WriteString("\n  # (because resource does not use for_each)")
+			}
+		case plans.ResourceInstanceDeleteBecauseCountIndex:
+			buf.WriteString(fmt.Sprintf("\n  # (because index %s is out of range for count)", addr.Resource.Key))
+		case plans.ResourceInstanceDeleteBecauseEachKey:
+			buf.WriteString(fmt.Sprintf("\n  # (because key %s is not in for_each map)", addr.Resource.Key))
+		}
 		if change.DeposedKey != states.NotDeposed {
 			// Some extra context about this unusual situation.
 			buf.WriteString(color.Color("\n  # (left over from a partially-failed replacement of this instance)"))
@@ -115,7 +140,7 @@ func ResourceChange(
 	buf.WriteString(color.Color("[reset]\n"))
 
 	if change.Moved() && change.Action != plans.NoOp {
-		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # [reset]([bold]%s[reset] has moved to [bold]%s[reset])\n"), change.PrevRunAddr.String(), dispAddr))
+		buf.WriteString(fmt.Sprintf(color.Color("  # [reset](moved from %s)\n"), change.PrevRunAddr.String()))
 	}
 
 	if change.Moved() && change.Action == plans.NoOp {
