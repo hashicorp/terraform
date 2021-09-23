@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"sort"
@@ -417,6 +418,14 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
 	diags = diags.Append(c.postPlanValidateMoves(config, moveStmts, walker.InstanceExpander.AllInstances()))
+	if len(moveResults.Blocked) > 0 && !diags.HasErrors() {
+		// If we had blocked moves and we're not going to be returning errors
+		// then we'll report the blockers as a warning. We do this only in the
+		// absense of errors because invalid move statements might well be
+		// the root cause of the blockers, and so better to give an actionable
+		// error message than a less-actionable warning.
+		diags = diags.Append(blockedMovesWarningDiag(moveResults))
+	}
 
 	prevRunState = walker.PrevRunState.Close()
 	priorState := walker.RefreshState.Close()
@@ -632,4 +641,25 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 	graph, _, moreDiags := c.planGraph(config, prevRunState, opts, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
+}
+
+func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic {
+	if len(results.Blocked) < 1 {
+		// Caller should check first
+		panic("request to render blocked moves warning without any blocked moves")
+	}
+
+	var itemsBuf bytes.Buffer
+	for _, blocked := range results.Blocked {
+		fmt.Fprintf(&itemsBuf, "\n  - %s could not move to %s", blocked.Actual, blocked.Wanted)
+	}
+
+	return tfdiags.Sourceless(
+		tfdiags.Warning,
+		"Unresolved resource instance address changes",
+		fmt.Sprintf(
+			"Terraform tried to adjust resource instance addresses in the prior state based on change information recorded in the configuration, but some adjustments did not succeed due to existing objects already at the intended addresses:%s\n\nTerraform has planned to destroy these objects. If Terraform's proposed changes aren't appropriate, you must first resolve the conflicts using the \"terraform state\" subcommands and then create a new plan.",
+			itemsBuf.String(),
+		),
+	)
 }

@@ -791,6 +791,102 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 	})
 }
 
+func TestContext2Plan_movedResourceCollision(t *testing.T) {
+	addrNoKey := mustResourceInstanceAddr("test_object.a")
+	addrZeroKey := mustResourceInstanceAddr("test_object.a[0]")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test_object" "a" {
+				# No "count" set, so test_object.a[0] will want
+				# to implicitly move to test_object.a, but will get
+				# blocked by the existing object at that address.
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrNoKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		s.SetResourceInstanceCurrent(addrZeroKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	// We should have a warning, though! We'll lightly abuse the "for RPC"
+	// feature of diagnostics to get some more-readily-comparable diagnostic
+	// values.
+	gotDiags := diags.ForRPC()
+	wantDiags := tfdiags.Diagnostics{
+		tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Unresolved resource instance address changes",
+			`Terraform tried to adjust resource instance addresses in the prior state based on change information recorded in the configuration, but some adjustments did not succeed due to existing objects already at the intended addresses:
+  - test_object.a[0] could not move to test_object.a
+
+Terraform has planned to destroy these objects. If Terraform's proposed changes aren't appropriate, you must first resolve the conflicts using the "terraform state" subcommands and then create a new plan.`,
+		),
+	}.ForRPC()
+	if diff := cmp.Diff(wantDiags, gotDiags); diff != "" {
+		t.Errorf("wrong diagnostics\n%s", diff)
+	}
+
+	t.Run(addrNoKey.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrNoKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrNoKey)
+		}
+
+		if got, want := instPlan.Addr, addrNoKey; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrNoKey; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run(addrZeroKey.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrZeroKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrZeroKey)
+		}
+
+		if got, want := instPlan.Addr, addrZeroKey; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrZeroKey; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Delete; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceDeleteBecauseWrongRepetition; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
+
 func TestContext2Plan_movedResourceUntargeted(t *testing.T) {
 	addrA := mustResourceInstanceAddr("test_object.a")
 	addrB := mustResourceInstanceAddr("test_object.b")
