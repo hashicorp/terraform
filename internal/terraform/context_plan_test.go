@@ -3559,7 +3559,7 @@ func TestContext2Plan_orphan(t *testing.T) {
 			if res.Action != plans.Delete {
 				t.Fatalf("resource %s should be removed", i)
 			}
-			if got, want := ric.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			if got, want := ric.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
 				t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
 			}
 		case "aws_instance.foo":
@@ -6138,8 +6138,41 @@ resource "test_instance" "b" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
+
+	t.Run("test_instance.a[0]", func(t *testing.T) {
+		instAddr := mustResourceInstanceAddr("test_instance.a[0]")
+		change := plan.Changes.ResourceInstance(instAddr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", instAddr)
+		}
+		if got, want := change.PrevRunAddr, instAddr; !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", instAddr, got, want)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", instAddr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseWrongRepetition; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", instAddr, got, want)
+		}
+	})
+	t.Run("test_instance.b", func(t *testing.T) {
+		instAddr := mustResourceInstanceAddr("test_instance.b")
+		change := plan.Changes.ResourceInstance(instAddr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", instAddr)
+		}
+		if got, want := change.PrevRunAddr, instAddr; !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", instAddr, got, want)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", instAddr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseWrongRepetition; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", instAddr, got, want)
+		}
+	})
 }
 
 func TestContext2Plan_targetedModuleInstance(t *testing.T) {

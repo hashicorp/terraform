@@ -149,6 +149,20 @@ For ease of consumption by callers, the plan representation includes a partial r
       // - "replace_by_request": the user explicitly called for this object
       //   to be replaced as an option when creating the plan, which therefore
       //   overrode what would have been a "no-op" or "update" action otherwise.
+      // - "delete_because_no_resource_config": Terraform found no resource
+      //   configuration corresponding to this instance.
+      // - "delete_because_no_module": The resource instance belongs to a
+      //   module instance that's no longer declared, perhaps due to changing
+      //   the "count" or "for_each" argument on one of the containing modules.
+      // - "delete_because_wrong_repetition": The instance key portion of the
+      //   resource address isn't of a suitable type for the corresponding
+      //   resource's configured repetition mode (count, for_each, or neither).
+      // - "delete_because_count_index": The corresponding resource uses count,
+      //   but the instance key is out of range for the currently-configured
+      //   count value.
+      // - "delete_because_each_key": The corresponding resource uses for_each,
+      //   but the instance key doesn't match any of the keys in the
+      //   currently-configured for_each value.
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.

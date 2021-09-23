@@ -349,6 +349,40 @@ const (
 	// the ResourceInstanceChange object to give information about specifically
 	// which arguments changed in a non-updatable way.
 	ResourceInstanceReplaceBecauseCannotUpdate ResourceInstanceChangeActionReason = 'F'
+
+	// ResourceInstanceDeleteBecauseNoResourceConfig indicates that the
+	// resource instance is planned to be deleted because there's no
+	// corresponding resource configuration block in the configuration.
+	ResourceInstanceDeleteBecauseNoResourceConfig ResourceInstanceChangeActionReason = 'N'
+
+	// ResourceInstanceDeleteBecauseWrongRepetition indicates that the
+	// resource instance is planned to be deleted because the instance key
+	// type isn't consistent with the repetition mode selected in the
+	// resource configuration.
+	ResourceInstanceDeleteBecauseWrongRepetition ResourceInstanceChangeActionReason = 'W'
+
+	// ResourceInstanceDeleteBecauseCountIndex indicates that the resource
+	// instance is planned to be deleted because its integer instance key
+	// is out of range for the current configured resource "count" value.
+	ResourceInstanceDeleteBecauseCountIndex ResourceInstanceChangeActionReason = 'C'
+
+	// ResourceInstanceDeleteBecauseEachKey indicates that the resource
+	// instance is planned to be deleted because its string instance key
+	// isn't one of the keys included in the current configured resource
+	// "for_each" value.
+	ResourceInstanceDeleteBecauseEachKey ResourceInstanceChangeActionReason = 'E'
+
+	// ResourceInstanceDeleteBecauseNoModule indicates that the resource
+	// instance is planned to be deleted because it belongs to a module
+	// instance that's no longer declared in the configuration.
+	//
+	// This is less specific than the reasons we return for the various ways
+	// a resource instance itself can be no longer declared, including both
+	// the total removal of a module block and changes to its count/for_each
+	// arguments. This difference in detail is out of pragmatism, because
+	// potentially multiple nested modules could all contribute conflicting
+	// specific reasons for a particular instance to no longer be declared.
+	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
 )
 
 // OutputChange describes a change to an output value.

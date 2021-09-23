@@ -228,6 +228,16 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
 		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoResourceConfig
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseWrongRepetition
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_COUNT_INDEX:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseCountIndex
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseEachKey
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoModule
 	default:
 		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
 	}
@@ -499,6 +509,16 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
 	case plans.ResourceInstanceReplaceByRequest:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_COUNT_INDEX
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE
 	default:
 		return nil, fmt.Errorf("resource %s has unsupported action reason %s", change.Addr, change.ActionReason)
 	}
