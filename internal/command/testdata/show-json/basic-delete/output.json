@@ -60,6 +60,7 @@
             "type": "test_instance",
             "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test-delete",
+            "action_reason": "delete_because_no_resource_config",
             "change": {
                 "actions": [
                     "delete"

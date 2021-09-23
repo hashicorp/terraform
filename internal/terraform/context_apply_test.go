@@ -2127,6 +2127,30 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 			t.Fatalf("wrong plan result\ngot:\n%s\nwant:\n%s", got, want)
 		}
 	}
+	{
+		change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("aws_instance.foo[0]"))
+		if change == nil {
+			t.Fatalf("no planned change for instance zero")
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for instance zero %s; want %s", got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseWrongRepetition; got != want {
+			t.Errorf("wrong action reason for instance zero %s; want %s", got, want)
+		}
+	}
+	{
+		change := plan.Changes.ResourceInstance(mustResourceInstanceAddr("aws_instance.foo"))
+		if change == nil {
+			t.Fatalf("no planned change for no-key instance")
+		}
+		if got, want := change.Action, plans.NoOp; got != want {
+			t.Errorf("wrong action for no-key instance %s; want %s", got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason for no-key instance %s; want %s", got, want)
+		}
+	}
 
 	s, diags := ctx.Apply(plan, m)
 	if diags.HasErrors() {
@@ -2562,6 +2586,20 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	})
 	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
+	{
+		addr := mustResourceInstanceAddr("test_thing.one[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+	}
+
 	state, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 
@@ -2613,6 +2651,22 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
+	{
+		addr := mustResourceInstanceAddr("module.child.aws_instance.bar")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		// This should ideally be ResourceInstanceDeleteBecauseNoModule, but
+		// the codepath deciding this doesn't currently have enough information
+		// to differentiate, and so this is a compromise.
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseNoResourceConfig; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+	}
 
 	state, diags = ctx.Apply(plan, m)
 	if diags.HasErrors() {
@@ -8898,6 +8952,43 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 		},
 	})
 	assertNoErrors(t, diags)
+	{
+		addr := mustResourceInstanceAddr("aws_instance.one[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		// This test was originally written with Terraform v0.11 and earlier
+		// in mind, so it declares a no-key instance of aws_instance.one,
+		// but its configuration sets count (to zero) and so we end up first
+		// moving the no-key instance to the zero key and then planning to
+		// destroy the zero key.
+		if got, want := change.PrevRunAddr, mustResourceInstanceAddr("aws_instance.one"); !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseCountIndex; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", addr, got, want)
+		}
+	}
+	{
+		addr := mustResourceInstanceAddr("aws_instance.two")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.PrevRunAddr, mustResourceInstanceAddr("aws_instance.two"); !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.Action, plans.Update; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", addr, got, want)
+		}
+	}
 
 	// Applying the plan should now succeed
 	_, diags = ctx.Apply(plan, m)
@@ -10960,6 +11051,38 @@ locals {
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
+	{
+		addr := mustResourceInstanceAddr("test_instance.a[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.PrevRunAddr, mustResourceInstanceAddr("test_instance.a[0]"); !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.Action, plans.NoOp; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", addr, got, want)
+		}
+	}
+	{
+		addr := mustResourceInstanceAddr("test_instance.a[1]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.PrevRunAddr, mustResourceInstanceAddr("test_instance.a[1]"); !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseCountIndex; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", addr, got, want)
+		}
+	}
 
 	state, diags = ctx.Apply(plan, m)
 	if diags.HasErrors() {
@@ -10990,6 +11113,30 @@ locals {
 	})
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
+	}
+	{
+		addr := mustResourceInstanceAddr("test_instance.a[0]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change == nil {
+			t.Fatalf("no planned change for %s", addr)
+		}
+		if got, want := change.PrevRunAddr, mustResourceInstanceAddr("test_instance.a[0]"); !want.Equal(got) {
+			t.Errorf("wrong previous run address for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.Action, plans.Delete; got != want {
+			t.Errorf("wrong action for %s %s; want %s", addr, got, want)
+		}
+		if got, want := change.ActionReason, plans.ResourceInstanceDeleteBecauseCountIndex; got != want {
+			t.Errorf("wrong action reason for %s %s; want %s", addr, got, want)
+		}
+	}
+	{
+		addr := mustResourceInstanceAddr("test_instance.a[1]")
+		change := plan.Changes.ResourceInstance(addr)
+		if change != nil {
+			// It was already removed in the previous plan/apply
+			t.Errorf("unexpected planned change for %s", addr)
+		}
 	}
 
 	state, diags = ctx.Apply(plan, m)

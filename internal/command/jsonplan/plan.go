@@ -342,6 +342,16 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "replace_because_tainted"
 		case plans.ResourceInstanceReplaceByRequest:
 			r.ActionReason = "replace_by_request"
+		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+			r.ActionReason = "delete_because_no_resource_config"
+		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+			r.ActionReason = "delete_because_wrong_repetition"
+		case plans.ResourceInstanceDeleteBecauseCountIndex:
+			r.ActionReason = "delete_because_count_index"
+		case plans.ResourceInstanceDeleteBecauseEachKey:
+			r.ActionReason = "delete_because_each_key"
+		case plans.ResourceInstanceDeleteBecauseNoModule:
+			r.ActionReason = "delete_because_no_module"
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}
