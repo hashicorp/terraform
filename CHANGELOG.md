@@ -7,10 +7,10 @@ UPGRADE NOTES:
 
 NEW FEATURES:
 
-* cli: When Terraform plans to destroy a resource instance due to it no longer being declared in the configuration, the proposed plan output will now include a note hinting at what situation prompted that proposal, so you can more easily see what configuration change might avoid the object being destroyed. ([#29637](https://github.com/hashicorp/terraform/pull/29637))
-* cli: When Terraform automatically moves a singleton resource instance to index zero or vice-versa in response to adding or removing `count`, it'll report explicitly that it did so as part of the plan output. ([#29605](https://github.com/hashicorp/terraform/pull/29605))
-* cli: The (currently-experimental) `terraform add` generates a starting point for a particular resource configuration. ([#28874](https://github.com/hashicorp/terraform/issues/28874))
-* config: a new `type()` function, only available in `terraform console` ([#28501](https://github.com/hashicorp/terraform/issues/28501))
+* `terraform plan` and `terraform apply`: When Terraform plans to destroy a resource instance due to it no longer being declared in the configuration, the proposed plan output will now include a note hinting at what situation prompted that proposal, so you can more easily see what configuration change might avoid the object being destroyed. ([#29637](https://github.com/hashicorp/terraform/pull/29637))
+* `terraform plan` and `terraform apply`: When Terraform automatically moves a singleton resource instance to index zero or vice-versa in response to adding or removing `count`, it'll report explicitly that it did so as part of the plan output. ([#29605](https://github.com/hashicorp/terraform/pull/29605))
+* `terraform add`: The (currently-experimental) `terraform add` generates a starting point for a particular resource configuration. ([#28874](https://github.com/hashicorp/terraform/issues/28874))
+* config: a new `type()` function, available only in `terraform console`. ([#28501](https://github.com/hashicorp/terraform/issues/28501))
 
 ENHANCEMENTS:
 
