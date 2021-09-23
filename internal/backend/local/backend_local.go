@@ -288,8 +288,11 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 // means.
 func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backend.UnparsedVariableValue {
 	var needed []string
+	vars := make(map[string]*configs.Variable)
+
 	if b.OpInput && uiInput != nil {
 		for name, vc := range vcs {
+			vars[name] = vc
 			if !vc.Required() {
 				continue // We only prompt for required variables
 			}
@@ -319,6 +322,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
+			Secret:      vars[name].Sensitive,
 		})
 		if err != nil {
 			// Since interactive prompts are best-effort, we'll just continue
