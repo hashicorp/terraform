@@ -417,7 +417,18 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
-	diags = diags.Append(c.postPlanValidateMoves(config, moveStmts, walker.InstanceExpander.AllInstances()))
+	moveValidateDiags := c.postPlanValidateMoves(config, moveStmts, walker.InstanceExpander.AllInstances())
+	if moveValidateDiags.HasErrors() {
+		// If any of the move statements are invalid then those errors take
+		// precedence over any other errors because an incomplete move graph
+		// is quite likely to be the _cause_ of various errors. This oddity
+		// comes from the fact that we need to apply the moves before we
+		// actually validate them, because validation depends on the result
+		// of first trying to plan.
+		return nil, moveValidateDiags
+	}
+	diags = diags.Append(moveValidateDiags) // might just contain warnings
+
 	if len(moveResults.Blocked) > 0 && !diags.HasErrors() {
 		// If we had blocked moves and we're not going to be returning errors
 		// then we'll report the blockers as a warning. We do this only in the
