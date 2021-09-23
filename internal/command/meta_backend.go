@@ -196,13 +196,19 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	var list strings.Builder
 	for i, w := range workspaces {
 		if w == workspace {
+			log.Printf("[TRACE] Meta.selectWorkspace: the currently selected workspace is present in the configured backend (%s)", workspace)
 			return nil
 		}
 		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
 	}
 
-	// If the selected workspace doesn't exist, ask the user to select
-	// a workspace from the list of existing workspaces.
+	// If the backend only has a single workspace, select that as the current workspace
+	if len(workspaces) == 1 {
+		log.Printf("[TRACE] Meta.selectWorkspace: automatically selecting the single workspace provided by the backend (%s)", workspaces[0])
+		return m.SetWorkspace(workspaces[0])
+	}
+
+	// Otherwise, ask the user to select a workspace from the list of existing workspaces.
 	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
@@ -220,7 +226,9 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 		return fmt.Errorf("Failed to select workspace: input not a valid number")
 	}
 
-	return m.SetWorkspace(workspaces[idx-1])
+	workspace = workspaces[idx-1]
+	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workpace according to user selection (%s)", workspace)
+	return m.SetWorkspace(workspace)
 }
 
 // BackendForPlan is similar to Backend, but uses backend settings that were

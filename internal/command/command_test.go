@@ -716,12 +716,15 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 
 	// Return the cleanup
 	return func() {
-		if len(testInputResponseMap) > 0 {
-			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", testInputResponseMap)
-		}
+		var unusedAnswers = testInputResponseMap
 
+		// First, clean up!
 		test = true
 		testInputResponseMap = nil
+
+		if len(unusedAnswers) > 0 {
+			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
+		}
 	}
 }
 
