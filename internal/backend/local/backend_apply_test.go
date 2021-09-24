@@ -27,8 +27,7 @@ import (
 )
 
 func TestLocal_applyBasic(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -73,8 +72,7 @@ test_instance.foo:
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
@@ -108,8 +106,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
@@ -139,8 +136,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 }
 
 func TestLocal_applyError(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	schema := &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -208,8 +204,7 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
@@ -272,8 +267,7 @@ test_instance.foo: (tainted)
 }
 
 func TestLocal_applyRefreshFalse(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())

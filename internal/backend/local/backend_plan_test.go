@@ -23,8 +23,7 @@ import (
 )
 
 func TestLocal_planBasic(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -53,8 +52,7 @@ func TestLocal_planBasic(t *testing.T) {
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	const msg = `You didn't use the -out option`
@@ -85,8 +83,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 }
 
 func TestLocal_planNoConfig(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
@@ -116,8 +113,7 @@ func TestLocal_planNoConfig(t *testing.T) {
 // This test validates the state lacking behavior when the inner call to
 // Context() fails
 func TestLocal_plan_context_error(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	// This is an intentionally-invalid value to make terraform.NewContext fail
 	// when b.Operation calls it.
@@ -157,8 +153,7 @@ func TestLocal_plan_context_error(t *testing.T) {
 }
 
 func TestLocal_planOutputsChanged(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance,
@@ -239,8 +234,7 @@ state, without changing any real infrastructure.
 
 // Module outputs should not cause the plan to be rendered
 func TestLocal_planModuleOutputsChanged(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance.Child("mod", addrs.NoKey),
@@ -286,8 +280,7 @@ No changes. Your infrastructure matches the configuration.
 }
 
 func TestLocal_planTainted(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
 	outDir := t.TempDir()
@@ -343,8 +336,7 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planDeposedOnly(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetResourceInstanceDeposed(
@@ -457,8 +449,8 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
+
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
 	outDir := t.TempDir()
@@ -514,8 +506,7 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
@@ -546,8 +537,7 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 }
 
 func TestLocal_planDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
@@ -599,8 +589,7 @@ func TestLocal_planDestroy(t *testing.T) {
 }
 
 func TestLocal_planDestroy_withDataSources(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_withDataSource())
@@ -675,8 +664,7 @@ func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 

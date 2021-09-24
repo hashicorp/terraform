@@ -1,7 +1,6 @@
 package local
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -21,9 +20,12 @@ import (
 //
 // No operations will be called on the returned value, so you can still set
 // public fields without any locks.
-func TestLocal(t *testing.T) (*Local, func()) {
+func TestLocal(t *testing.T) *Local {
 	t.Helper()
-	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	local := New()
 	local.StatePath = filepath.Join(tempDir, "state.tfstate")
@@ -32,13 +34,7 @@ func TestLocal(t *testing.T) (*Local, func()) {
 	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
 	local.ContextOpts = &terraform.ContextOpts{}
 
-	cleanup := func() {
-		if err := os.RemoveAll(tempDir); err != nil {
-			t.Fatal("error cleanup up test:", err)
-		}
-	}
-
-	return local, cleanup
+	return local
 }
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to

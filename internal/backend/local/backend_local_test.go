@@ -25,8 +25,7 @@ import (
 
 func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -53,8 +52,7 @@ func TestLocalRun(t *testing.T) {
 
 func TestLocalRun_error(t *testing.T) {
 	configDir := "./testdata/invalid"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	// This backend will return an error when asked to RefreshState, which
 	// should then cause LocalRun to return with the state unlocked.
@@ -85,8 +83,7 @@ func TestLocalRun_error(t *testing.T) {
 
 func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
