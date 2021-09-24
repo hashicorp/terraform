@@ -400,6 +400,67 @@ container {
 			}),
 			wantErrs: true,
 		},
+		"no fixup allowed with NestedType": {
+			src: `
+ container {
+   foo = "one"
+ }
+ `,
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"container": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"foo": {
+									Type: cty.String,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"container": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					}),
+				)),
+			}),
+			wantErrs: true,
+		},
+		"no fixup allowed new types": {
+			src: `
+ container {
+   foo = "one"
+ }
+ `,
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					// This could be a ConfigModeAttr fixup
+					"container": {
+						Type: cty.List(cty.Object(map[string]cty.Type{
+							"foo": cty.String,
+						})),
+					},
+					// But the presence of this type means it must have been
+					// declared by a new SDK
+					"new_type": {
+						Type: cty.Object(map[string]cty.Type{
+							"boo": cty.String,
+						}),
+					},
+				},
+			},
+			want: cty.ObjectVal(map[string]cty.Value{
+				"container": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					}),
+				)),
+			}),
+			wantErrs: true,
+		},
 	}
 
 	ctx := &hcl.EvalContext{
