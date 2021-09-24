@@ -132,6 +132,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
 		}
 	}
 
@@ -351,6 +353,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
 		}
 	}
 
