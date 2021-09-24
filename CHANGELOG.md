@@ -1,5 +1,9 @@
 ## 1.0.8 (Unreleased)
 
+BUG FIXES:
+
+* core: Don't plan to remove orphaned resource instances in refresh-only plans ([#29640](https://github.com/hashicorp/terraform/issues/29640))
+
 ## 1.0.7 (September 15, 2021)
 
 BUG FIXES:
