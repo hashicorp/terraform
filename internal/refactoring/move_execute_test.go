@@ -491,118 +491,120 @@ func TestApplyMoves(t *testing.T) {
 				`foo.to[0]`,
 			},
 		},
-
-		// FIXME: This test seems to flap between the result the test case
-		// currently records and the "more intuitive" results included inline,
-		// which suggests we have a missing edge in our move dependency graph.
-		// (The MoveResults commented out below predates some changes to that
-		// struct, so will need updating once we uncomment this test.)
-		/*
-			"move module and then move resource into it": {
-				[]MoveStatement{
-					testMoveStatement(t, "", "module.bar[0]", "module.boo"),
-					testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+		"move resource and containing module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+				testMoveStatement(t, "boo", "foo.from", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.to"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from"],
+						To:   instAddrs["module.bar[0].foo.to"],
+					},
 				},
-				states.BuildState(func(s *states.SyncState) {
-					s.SetResourceInstanceCurrent(
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
+			},
+			[]string{
+				`module.bar[0].foo.to`,
+			},
+		},
+
+		"move module and then move resource into it": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.to"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.boo.foo.from"].UniqueKey(): {
+						instAddrs["foo.from"],
+						instAddrs["module.boo.foo.from"],
+					},
+					instAddrs["module.boo.foo.to"].UniqueKey(): {
 						instAddrs["module.bar[0].foo.to"],
-						&states.ResourceInstanceObjectSrc{
-							Status:    states.ObjectReady,
-							AttrsJSON: []byte(`{}`),
-						},
-						providerAddr,
-					)
-					s.SetResourceInstanceCurrent(
-						instAddrs["foo.from"],
-						&states.ResourceInstanceObjectSrc{
-							Status:    states.ObjectReady,
-							AttrsJSON: []byte(`{}`),
-						},
-						providerAddr,
-					)
-				}),
-				MoveResults{
-					// FIXME: This result is counter-intuitive, because ApplyMoves
-					// handled the resource move first and then the module move
-					// collided with it. It would be arguably more intuitive to
-					// complete the module move first and then let the "smaller"
-					// resource move merge into it.
-					// (The arguably-more-intuitive results are commented out
-					// in the maps below.)
-
-					Changes: map[addrs.UniqueKey]MoveSuccess{
-						//instAddrs["module.boo.foo.to"].UniqueKey():   instAddrs["module.bar[0].foo.to"],
-						//instAddrs["module.boo.foo.from"].UniqueKey(): instAddrs["foo.from"],
-						instAddrs["module.boo.foo.from"].UniqueKey(): instAddrs["foo.from"],
-					},
-					Blocked: map[addrs.UniqueKey]MoveBlocked{
-						// intuitive result: nothing blocked
-						instAddrs["module.bar[0].foo.to"].Module.UniqueKey(): instAddrs["module.boo.foo.from"].Module,
+						instAddrs["module.boo.foo.to"],
 					},
 				},
-				[]string{
-					//`foo.from`,
-					//`module.boo.foo.from`,
-					`module.bar[0].foo.to`,
-					`module.boo.foo.from`,
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
-		*/
+			[]string{
+				`module.boo.foo.from`,
+				`module.boo.foo.to`,
+			},
+		},
 
-		// FIXME: This test seems to flap between the result the test case
-		// currently records and the "more intuitive" results included inline,
-		// which suggests we have a missing edge in our move dependency graph.
-		// (The MoveResults commented out below predates some changes to that
-		// struct, so will need updating once we uncomment this test.)
-		/*
-			"module move collides with resource move": {
-				[]MoveStatement{
-					testMoveStatement(t, "", "module.bar[0]", "module.boo"),
-					testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
-				},
-				states.BuildState(func(s *states.SyncState) {
-					s.SetResourceInstanceCurrent(
+		"module move collides with resource move": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+
+					instAddrs["module.boo.foo.from"].UniqueKey(): {
 						instAddrs["module.bar[0].foo.from"],
-						&states.ResourceInstanceObjectSrc{
-							Status:    states.ObjectReady,
-							AttrsJSON: []byte(`{}`),
-						},
-						providerAddr,
-					)
-					s.SetResourceInstanceCurrent(
-						instAddrs["foo.from"],
-						&states.ResourceInstanceObjectSrc{
-							Status:    states.ObjectReady,
-							AttrsJSON: []byte(`{}`),
-						},
-						providerAddr,
-					)
-				}),
-				MoveResults{
-					// FIXME: This result is counter-intuitive, because ApplyMoves
-					// handled the resource move first and then it was the
-					// module move that collided, whereas it would arguably have
-					// been better to let the module take priority and have only
-					// the one resource move be ignored due to the collision.
-					// (The arguably-more-intuitive results are commented out
-					// in the maps below.)
-					Changes: map[addrs.UniqueKey]MoveSuccess{
-						//instAddrs["module.boo.foo.from"].UniqueKey(): instAddrs["module.bar[0].foo.from"],
-						instAddrs["module.boo.foo.from"].UniqueKey(): instAddrs["foo.from"],
-					},
-					Blocked: map[addrs.UniqueKey]MoveBlocked{
-						//instAddrs["foo.from"].UniqueKey(): instAddrs["module.bar[0].foo.from"],
-						instAddrs["module.bar[0].foo.from"].Module.UniqueKey(): instAddrs["module.boo.foo.from"].Module,
+						instAddrs["module.boo.foo.from"],
 					},
 				},
-				[]string{
-					//`foo.from`,
-					//`module.boo.foo.from`,
-					`module.bar[0].foo.from`,
-					`module.boo.foo.from`,
+				Blocked: map[addrs.UniqueKey]MoveBlocked{
+					instAddrs["foo.from"].ContainingResource().UniqueKey(): {
+						Actual: instAddrs["foo.from"].ContainingResource(),
+						Wanted: instAddrs["module.boo.foo.from"].ContainingResource(),
+					},
 				},
 			},
-		*/
+			[]string{
+				`foo.from`,
+				`module.boo.foo.from`,
+			},
+		},
 	}
 
 	for name, test := range tests {
