@@ -940,9 +940,9 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		// are aware of are:
 		//
 		// - 0.14.0 is guaranteed to be compatible with versions up to but not
-		//   including 1.1.0
-		v110 := version.Must(version.NewSemver("1.1.0"))
-		if tfversion.SemVer.LessThan(v110) && remoteVersion.LessThan(v110) {
+		//   including 1.2.0
+		v120 := version.Must(version.NewSemver("1.2.0"))
+		if tfversion.SemVer.LessThan(v120) && remoteVersion.LessThan(v120) {
 			return diags
 		}
 		// - Any new Terraform state version will require at least minor patch
