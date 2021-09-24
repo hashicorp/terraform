@@ -126,10 +126,15 @@ At the end of a plan or before an apply, Terraform will emit a `planned_change` 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
 - `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
 - `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`, `move`.
-- `reason`: an optional reason for the change, currently only used when the action is `replace`. Values:
+- `reason`: an optional reason for the change, currently only used when the action is `replace` or `delete`. Values:
     - `tainted`: resource was marked as tainted
     - `requested`: user requested that the resource be replaced, for example via the `-replace` plan flag
     - `cannot_update`: changes to configuration force the resource to be deleted and created rather than updated
+    - `delete_because_no_resource_config`: no matching resource in configuration
+    - `delete_because_wrong_repetition`: resource instance key has no corresponding `count` or `for_each` in configuration
+    - `delete_because_count_index`: resource instance key is outside the range of the `count` argument
+    - `delete_because_each_key`: resource instance key is not included in the `for_each` argument
+    - `delete_because_no_module`: enclosing module instance is not in configuration
 
 This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](./json-format.html).
 

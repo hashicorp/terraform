@@ -73,6 +73,12 @@ const (
 	ReasonRequested    ChangeReason = "requested"
 	ReasonCannotUpdate ChangeReason = "cannot_update"
 	ReasonUnknown      ChangeReason = "unknown"
+
+	ReasonDeleteBecauseNoResourceConfig ChangeReason = "delete_because_no_resource_config"
+	ReasonDeleteBecauseWrongRepetition  ChangeReason = "delete_because_wrong_repetition"
+	ReasonDeleteBecauseCountIndex       ChangeReason = "delete_because_count_index"
+	ReasonDeleteBecauseEachKey          ChangeReason = "delete_because_each_key"
+	ReasonDeleteBecauseNoModule         ChangeReason = "delete_because_no_module"
 )
 
 func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason {
@@ -85,6 +91,16 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonRequested
 	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
 		return ReasonCannotUpdate
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		return ReasonDeleteBecauseNoResourceConfig
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		return ReasonDeleteBecauseWrongRepetition
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		return ReasonDeleteBecauseCountIndex
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		return ReasonDeleteBecauseEachKey
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		return ReasonDeleteBecauseNoModule
 	default:
 		// This should never happen, but there's no good way to guarantee
 		// exhaustive handling of the enum, so a generic fall back is better
