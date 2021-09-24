@@ -742,10 +742,12 @@ func (b *Cloud) IgnoreVersionConflict() {
 }
 
 // VerifyWorkspaceTerraformVersion compares the local Terraform version against
-// the workspace's configured Terraform version. If they are equal, this means
-// that there are no compatibility concerns, so it returns no diagnostics.
+// the workspace's configured Terraform version. If they are compatible, this
+// means that there are no state compatibility concerns, so it returns no
+// diagnostics.
 //
-// If the versions differ,
+// If the versions aren't compatible, it returns an error (or, if
+// b.ignoreVersionConflict is set, a warning).
 func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
@@ -779,13 +781,55 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return nil
 	}
 
+	// Even if ignoring version conflicts, it may still be useful to call this
+	// method and warn the user about a mismatch between the local and remote
+	// Terraform versions.
+	severity := tfdiags.Error
+	if b.ignoreVersionConflict {
+		severity = tfdiags.Warning
+	}
+	suggestion := " If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
+	if b.ignoreVersionConflict {
+		suggestion = ""
+	}
+
 	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
 	if err != nil {
+		// If it's not a valid version, it might be a valid version constraint:
+		remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Error looking up workspace",
+				fmt.Sprintf("Invalid Terraform version or version constraint: %s", err),
+			))
+			return diags
+		}
+
+		// Avoiding tfversion.SemVer because it omits the prerelease prefix, and we
+		// want constraints like `~> 1.2.0-beta1` to be possible.
+		fullTfversion := version.Must(version.NewSemver(tfversion.String()))
+
+		// If it's a constraint, we only ensure that the local version meets it.
+		// This can result in both false positives and false negatives, but in the
+		// most common case (~> x.y.z) it's useful enough.
+		if remoteConstraint.Check(fullTfversion) {
+			return diags
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Error looking up workspace",
-			fmt.Sprintf("Invalid Terraform version: %s", err),
+			severity,
+			"Terraform version mismatch",
+			fmt.Sprintf(
+				"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).%s",
+				tfversion.String(),
+				b.organization,
+				workspace.Name,
+				workspace.TerraformVersion,
+				suggestion,
+			),
 		))
+
 		return diags
 	}
 
@@ -818,18 +862,6 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		}
 	}
 
-	// Even if ignoring version conflicts, it may still be useful to call this
-	// method and warn the user about a mismatch between the local and remote
-	// Terraform versions.
-	severity := tfdiags.Error
-	if b.ignoreVersionConflict {
-		severity = tfdiags.Warning
-	}
-
-	suggestion := " If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
-	if b.ignoreVersionConflict {
-		suggestion = ""
-	}
 	diags = diags.Append(tfdiags.Sourceless(
 		severity,
 		"Terraform version mismatch",
