@@ -131,17 +131,9 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 
 	if a.NestedType != nil {
 		switch a.NestedType.Nesting {
-		case NestingSingle:
-			switch {
-			case a.NestedType.MinItems != a.NestedType.MaxItems:
-				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must match in NestingSingle mode", prefix, name))
-			case a.NestedType.MinItems < 0 || a.NestedType.MinItems > 1:
-				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode", prefix, name))
-			}
+		case NestingSingle, NestingMap:
+			// no validations to perform
 		case NestingList, NestingSet:
-			if a.NestedType.MinItems > a.NestedType.MaxItems && a.NestedType.MaxItems != 0 {
-				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems must be less than or equal to MaxItems in %s mode", prefix, name, a.NestedType.Nesting))
-			}
 			if a.NestedType.Nesting == NestingSet {
 				ety := a.NestedType.ImpliedType()
 				if ety.HasDynamicTypes() {
@@ -150,10 +142,6 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 					// properly hash them, and so can't support mixed types.
 					err = multierror.Append(err, fmt.Errorf("%s%s: NestingSet blocks may not contain attributes of cty.DynamicPseudoType", prefix, name))
 				}
-			}
-		case NestingMap:
-			if a.NestedType.MinItems != 0 || a.NestedType.MaxItems != 0 {
-				err = multierror.Append(err, fmt.Errorf("%s%s: MinItems and MaxItems must both be 0 in NestingMap mode", prefix, name))
 			}
 		default:
 			err = multierror.Append(err, fmt.Errorf("%s%s: invalid nesting mode %s", prefix, name, a.NestedType.Nesting))

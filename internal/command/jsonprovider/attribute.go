@@ -22,8 +22,6 @@ type attribute struct {
 type nestedType struct {
 	Attributes  map[string]*attribute `json:"attributes,omitempty"`
 	NestingMode string                `json:"nesting_mode,omitempty"`
-	MinItems    uint64                `json:"min_items,omitempty"`
-	MaxItems    uint64                `json:"max_items,omitempty"`
 }
 
 func marshalStringKind(sk configschema.StringKind) string {
@@ -55,8 +53,6 @@ func marshalAttribute(attr *configschema.Attribute) *attribute {
 
 	if attr.NestedType != nil {
 		nestedTy := nestedType{
-			MinItems:    uint64(attr.NestedType.MinItems),
-			MaxItems:    uint64(attr.NestedType.MaxItems),
 			NestingMode: nestingModeString(attr.NestedType.Nesting),
 		}
 		attrs := make(map[string]*attribute, len(attr.NestedType.Attributes))

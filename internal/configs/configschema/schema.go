@@ -87,13 +87,6 @@ type Object struct {
 	// many instances of the Object are allowed, how many labels it expects, and
 	// how the resulting data will be converted into a data structure.
 	Nesting NestingMode
-
-	// MinItems and MaxItems set, for the NestingList and NestingSet nesting
-	// modes, lower and upper limits on the number of child blocks allowed
-	// of the given type. If both are left at zero, no limit is applied.
-	// These fields are ignored for other nesting modes and must both be left
-	// at zero.
-	MinItems, MaxItems int
 }
 
 // NestedBlock represents the embedding of one block within another.

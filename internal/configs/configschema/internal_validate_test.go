@@ -143,21 +143,6 @@ func TestBlockInternalValidate(t *testing.T) {
 		    []string{"fooBar: name may contain only lowercase letters, digits and underscores"},
 		},
 		*/
-		"attribute with invalid NestedType nesting": {
-			&Block{
-				Attributes: map[string]*Attribute{
-					"foo": {
-						NestedType: &Object{
-							Nesting:  NestingSingle,
-							MinItems: 10,
-							MaxItems: 10,
-						},
-						Optional: true,
-					},
-				},
-			},
-			[]string{"foo: MinItems and MaxItems must be set to either 0 or 1 in NestingSingle mode"},
-		},
 		"attribute with invalid NestedType attribute": {
 			&Block{
 				Attributes: map[string]*Attribute{

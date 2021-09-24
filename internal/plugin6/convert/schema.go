@@ -199,8 +199,6 @@ func protoObjectToConfigSchema(b *proto.Schema_Object) *configschema.Object {
 	object := &configschema.Object{
 		Attributes: make(map[string]*configschema.Attribute),
 		Nesting:    nesting,
-		MinItems:   int(b.MinItems),
-		MaxItems:   int(b.MaxItems),
 	}
 
 	for _, a := range b.Attributes {
@@ -295,7 +293,5 @@ func configschemaObjectToProto(b *configschema.Object) *proto.Schema_Object {
 	return &proto.Schema_Object{
 		Attributes: attributes,
 		Nesting:    nesting,
-		MinItems:   int64(b.MinItems),
-		MaxItems:   int64(b.MaxItems),
 	}
 }
