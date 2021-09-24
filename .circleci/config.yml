@@ -27,7 +27,8 @@ jobs:
       - checkout
       - run: go mod verify
       - run: go install honnef.co/go/tools/cmd/staticcheck
-      - run: make fmtcheck generate staticcheck
+      - run: go install github.com/nishanths/exhaustive/...
+      - run: make fmtcheck generate staticcheck exhaustive
       - run:
           name: verify no code was generated
           command: |
