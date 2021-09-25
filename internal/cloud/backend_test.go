@@ -605,6 +605,15 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 		{"1.2.0", "1.2.99", true, false},
 		{"1.2.0", "1.3.0", true, true},
 		{"0.15.0", "latest", true, false},
+		{"1.1.5", "~> 1.1.1", true, false},
+		{"1.1.5", "> 1.1.0, < 1.3.0", true, false},
+		{"1.1.5", "~> 1.0.1", true, true},
+		// pre-release versions are comparable within their pre-release stage (dev,
+		// alpha, beta), but not comparable to different stages and not comparable
+		// to final releases.
+		{"1.1.0-beta1", "~> 1.1.0-beta", true, false},
+		{"1.1.0", "~> 1.1.0-beta", true, true},
+		{"1.1.0-beta1", "~> 1.1.0-dev", true, true},
 	}
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("local %s, remote %s", tc.local, tc.remote), func(t *testing.T) {
