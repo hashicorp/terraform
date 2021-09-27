@@ -200,16 +200,49 @@ func buildMoveStatementGraph(stmts []MoveStatement) *dag.AcyclicGraph {
 	for dependerI := range stmts {
 		depender := &stmts[dependerI]
 		for dependeeI := range stmts {
+			if dependerI == dependeeI {
+				// skip comparing the statement to itself
+				continue
+			}
 			dependee := &stmts[dependeeI]
-			dependeeTo := dependee.To
-			dependerFrom := depender.From
-			if dependerFrom.CanChainFrom(dependeeTo) || dependerFrom.NestedWithin(dependeeTo) {
+
+			if statementDependsOn(depender, dependee) {
 				g.Connect(dag.BasicEdge(depender, dependee))
 			}
 		}
 	}
 
 	return g
+}
+
+// statementDependsOn returns true if statement a depends on statement b;
+// i.e. statement b must be executed before statement a.
+func statementDependsOn(a, b *MoveStatement) bool {
+	// chain-able moves are simple, as on the destination of one move could be
+	// equal to the source of another.
+	if a.From.CanChainFrom(b.To) {
+		return true
+	}
+
+	// Statement nesting in more complex, as we have 8 possible combinations to
+	// assess. Here we list all combinations, along with the statement which
+	// must be executed first when one address is nested within another.
+	// A.From  IsNestedWithin  B.From => A
+	// A.From  IsNestedWithin  B.To   => B
+	// A.To    IsNestedWithin  B.From => A
+	// A.To    IsNestedWithin  B.To   => B
+	// B.From  IsNestedWithin  A.From => B
+	// B.From  IsNestedWithin  A.To   => A
+	// B.To    IsNestedWithin  A.From => B
+	// B.To    IsNestedWithin  A.To   => A
+	//
+	// Since we are only interested in checking if A depends on B, we only need
+	// to check the 4 possibilities above which result in B being executed
+	// first.
+	return a.From.NestedWithin(b.To) ||
+		a.To.NestedWithin(b.To) ||
+		b.From.NestedWithin(a.From) ||
+		b.To.NestedWithin(a.From)
 }
 
 // MoveResults describes the outcome of an ApplyMoves call.
