@@ -11,6 +11,10 @@ import (
 // PlanGraphBuilder given will be modified so it shouldn't be used for anything
 // else after calling this function.
 func validateGraphBuilder(p *PlanGraphBuilder, opts *ValidateOpts) GraphBuilder {
+	if opts == nil {
+		opts = DefaultValidateOpts
+	}
+
 	// We're going to customize the concrete functions
 	p.CustomConcrete = true
 
@@ -24,6 +28,7 @@ func validateGraphBuilder(p *PlanGraphBuilder, opts *ValidateOpts) GraphBuilder 
 	p.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeValidatableResource{
 			NodeAbstractResource: a,
+			LintChecks:           opts.LintChecks,
 		}
 	}
 

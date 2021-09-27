@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,6 +19,7 @@ import (
 // only.
 type NodeValidatableResource struct {
 	*NodeAbstractResource
+	LintChecks bool
 }
 
 var (
@@ -59,6 +61,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 			}
 		}
 	}
+
 	return diags
 }
 
@@ -440,6 +443,154 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	}
+
+	if n.LintChecks {
+		diags = diags.Append(n.lintResource(ctx))
+	}
+
+	return diags
+}
+
+func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnostics {
+	// NOTE: Lint functions are only allowed to produce _warning_ diagnostics
+	var diags tfdiags.Diagnostics
+
+	if n.Config == nil {
+		// We can't do anything without a configuration.
+		return diags
+	}
+
+	// Generic expression linting first, before we do our resource-specific lints.
+	diags = diags.Append(lintExpressionGeneric(n.Config.Count))
+	diags = diags.Append(lintExpressionGeneric(n.Config.ForEach))
+	if schema := n.Schema; schema != nil {
+		// NOTE: This doesn't take into account references inside dynamic
+		// blocks, so we won't catch explicit dependencies being redundant
+		// with those for now.
+		// This also doesn't consider "attributes as blocks mode", and so
+		// we won't consider references that appear inside a block that's
+		// pretending to be an element of a list/set attribute.
+		diags = diags.Append(lintExpressionsInBodyGeneric(n.Config.Config, schema))
+	}
+
+	// We're intentionally ignoring n.forceDependsOn here because we're
+	// linting the configuration as written, not the dynamic effect of any
+	// other processing we might do during graph construction.
+	dependsOn := n.Config.DependsOn
+
+	explicitRefs := make(map[addrs.UniqueKey]*addrs.Reference)
+	for _, traversal := range dependsOn {
+		ref, refDiags := addrs.ParseRef(traversal)
+		if refDiags.HasErrors() {
+			// We'll ignore invalid references altogether
+			continue
+		}
+
+		if addr, ok := ref.Subject.(addrs.ResourceInstance); ok && addr.Key != addrs.NoKey {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Over-specified explicit dependency",
+				Detail: fmt.Sprintf(
+					"Terraform references are between resources as a whole, and don't consider individual resource instances. The %s instance key in this address has no effect.",
+					addr.Key,
+				),
+				Subject: ref.SourceRange.ToHCL().Ptr(),
+			})
+
+			// For the rest of our work here we'll pretend that this was a
+			// whole-resource reference, and thus we can potentially detect
+			// when there are redundant references to the same resource.
+			fakeRemain := make(hcl.Traversal, 0, len(ref.Remaining)+1)
+			switch key := addr.Key.(type) {
+			case addrs.IntKey:
+				fakeRemain = append(fakeRemain, hcl.TraverseIndex{
+					Key:      cty.NumberIntVal(int64(key)),
+					SrcRange: ref.SourceRange.ToHCL(),
+				})
+			case addrs.StringKey:
+				fakeRemain = append(fakeRemain, hcl.TraverseIndex{
+					Key:      cty.StringVal(string(key)),
+					SrcRange: ref.SourceRange.ToHCL(),
+				})
+			default:
+				// We're not really going to use the "remain" part for
+				// anything interesting here anyway, so we'll just stub
+				// it out to make the data structure rational.
+				fakeRemain = append(fakeRemain, hcl.TraverseIndex{
+					Key:      cty.DynamicVal,
+					SrcRange: ref.SourceRange.ToHCL(),
+				})
+			}
+			fakeRemain = append(fakeRemain, ref.Remaining...)
+
+			// A synthetic ref that we'll use for the rest of our linting work.
+			ref = &addrs.Reference{
+				Subject:     addr.ContainingResource(),
+				SourceRange: ref.SourceRange,
+				Remaining:   fakeRemain,
+			}
+		}
+
+		refKey := ref.Subject.UniqueKey()
+		if existing, exists := explicitRefs[refKey]; exists {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Redundant explicit dependency",
+				Detail: fmt.Sprintf(
+					"There is already an explicit dependency for %s at %s, so this declaration is redundant.",
+					ref.Subject, existing.SourceRange.StartString(),
+				),
+				Subject: ref.SourceRange.ToHCL().Ptr(),
+			})
+		} else {
+			explicitRefs[ref.Subject.UniqueKey()] = ref
+		}
+	}
+
+	var impliedRefsRaw []*addrs.Reference
+	moreRefs, _ := lang.ReferencesInExpr(n.Config.Count)
+	impliedRefsRaw = append(impliedRefsRaw, moreRefs...)
+	moreRefs, _ = lang.ReferencesInExpr(n.Config.ForEach)
+	impliedRefsRaw = append(impliedRefsRaw, moreRefs...)
+	if schema := n.Schema; schema != nil {
+		// NOTE: This doesn't take into account references inside dynamic
+		// blocks, so we won't catch explicit dependencies being redundant
+		// with those for now.
+		// This also doesn't consider "attributes as blocks mode", and so
+		// we won't consider references that appear inside a block that's
+		// pretending to be an element of a list/set attribute.
+		moreRefs, _ = lang.ReferencesInBlock(n.Config.Config, schema)
+		impliedRefsRaw = append(impliedRefsRaw, moreRefs...)
+	}
+	impliedRefs := make(map[addrs.UniqueKey]*addrs.Reference)
+	for _, ref := range impliedRefsRaw {
+		addrForKey := ref.Subject
+		if addr, ok := addrForKey.(addrs.ResourceInstance); ok {
+			// For graph building we only consider whole-resource instances,
+			// so we'll discard any instance key portion.
+			addrForKey = addr.ContainingResource()
+		}
+		impliedRefs[addrForKey.UniqueKey()] = ref
+	}
+
+	for explicitKey, explicitRef := range explicitRefs {
+		if implicitRef, exists := impliedRefs[explicitKey]; exists {
+			// If we have both an implied and an explicit dependency then
+			// we flag the explicit one as the suspect one, because the implied
+			// one is presumably also contributing to a configuration value and
+			// thus couldn't be so easily removed in order to to quiet this
+			// lint.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagWarning,
+				Summary:  "Redundant explicit dependency",
+				Detail: fmt.Sprintf(
+					"There is already an implied dependency for %s at %s, so this declaration is redundant.",
+					explicitRef.Subject, implicitRef.SourceRange.StartString(),
+				),
+				Subject: explicitRef.SourceRange.ToHCL().Ptr(),
+			})
+		}
 	}
 
 	return diags
