@@ -83,7 +83,7 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		return diags
 	}
 
-	validateDiags := tfCtx.Validate(cfg)
+	validateDiags := tfCtx.Validate(cfg, terraform.DefaultValidateOpts)
 	diags = diags.Append(validateDiags)
 	return diags
 }

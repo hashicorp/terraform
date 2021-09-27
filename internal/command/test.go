@@ -554,7 +554,7 @@ func (c *TestCommand) testSuitePlan(ctx context.Context, suiteDirs testCommandSu
 	// included here originally because Plan did _originally_ assume that
 	// an earlier Validate had already passed, but now does its own
 	// validation work as (mostly) a superset of validate.
-	moreDiags := runCtx.Core.Validate(runCtx.Config)
+	moreDiags := runCtx.Core.Validate(runCtx.Config, terraform.DefaultValidateOpts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags

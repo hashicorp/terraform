@@ -120,7 +120,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			validateDiags := ret.Core.Validate(ret.Config)
+			validateDiags := ret.Core.Validate(ret.Config, terraform.DefaultValidateOpts)
 			diags = diags.Append(validateDiags)
 		}
 	}

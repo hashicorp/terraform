@@ -10,6 +10,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// ValidateOpts are the various options that affect the details of how Terraform
+// will validate a configuration.
+type ValidateOpts struct {
+	// There are currently no special options for Validate. This struct is
+	// just here to allow for less-disruptive addition of new options later.
+}
+
+// DefaultValidateOpts is a reasonable default set of validate options to use
+// in common cases without any special needs.
+var DefaultValidateOpts = &ValidateOpts{}
+
 // Validate performs semantic validation of a configuration, and returns
 // any warnings or errors.
 //
@@ -21,7 +32,10 @@ import (
 // such as root module input variables. However, the Plan function includes
 // all of the same checks as Validate, in addition to the other work it does
 // to consider the previous run state and the planning options.
-func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
+//
+// Don't modify anything reachable through the arguments after calling this
+// function.
+func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.Diagnostics {
 	defer c.acquireRun("validate")()
 
 	var diags tfdiags.Diagnostics
