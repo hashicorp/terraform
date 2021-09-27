@@ -56,7 +56,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 		Plugins:  c.plugins,
 		Validate: true,
 		State:    states.NewState(),
-	}).Build(addrs.RootModuleInstance)
+	}, opts).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return diags
