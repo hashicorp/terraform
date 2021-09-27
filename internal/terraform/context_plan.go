@@ -262,8 +262,19 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		normalOpts := *opts
 		normalOpts.Mode = plans.NormalMode
 		refreshPlan, refreshDiags := c.plan(config, prevRunState, rootVariables, &normalOpts)
-		diags = diags.Append(refreshDiags)
-		if diags.HasErrors() {
+		if refreshDiags.HasErrors() {
+			// NOTE: Normally we'd append diagnostics regardless of whether
+			// there are errors, just in case there are warnings we'd want to
+			// preserve, but we're intentionally _not_ doing that here because
+			// if the first plan succeeded then we'll be running another plan
+			// in DestroyMode below, and we don't want to double-up any
+			// warnings that both plan walks would generate.
+			// (This does mean we won't show any warnings that would've been
+			// unique to only this walk, but we're assuming here that if the
+			// warnings aren't also applicable to a destroy plan then we'd
+			// rather not show them here, because this non-destroy plan for
+			// refreshing is largely an implementation detail.)
+			diags = diags.Append(refreshDiags)
 			return nil, diags
 		}
 
