@@ -1193,7 +1193,7 @@ func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	opts := fixture.ContextOpts()
 	c := testContext2(t, opts)
 
-	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
+	graph, diags := validateGraphBuilder(&PlanGraphBuilder{
 		Config:  fixture.Config,
 		State:   states.NewState(),
 		Plugins: c.plugins,

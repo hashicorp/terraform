@@ -51,7 +51,7 @@ func (c *Context) Validate(config *configs.Config, opts *ValidateOpts) tfdiags.D
 
 	log.Printf("[DEBUG] Building and walking validate graph")
 
-	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
+	graph, moreDiags := validateGraphBuilder(&PlanGraphBuilder{
 		Config:   config,
 		Plugins:  c.plugins,
 		Validate: true,
