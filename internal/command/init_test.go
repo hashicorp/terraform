@@ -1565,6 +1565,33 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	}
 }
 
+// Verify that init will error out with an invalid version constraint, even if
+// there are other invalid configuration constructs.
+func TestInit_checkRequiredVersionFirst(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-check-required-version-first"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `Unsupported Terraform Core version`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+}
+
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
