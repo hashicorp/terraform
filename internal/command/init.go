@@ -227,7 +227,7 @@ func (c *InitCommand) Run(args []string) int {
 	var back backend.Backend
 	if flagBackend {
 
-		be, backendOutput, backendDiags := c.initBackend(config.Root.Module, flagConfigExtra)
+		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			c.showDiagnostics(diags)
