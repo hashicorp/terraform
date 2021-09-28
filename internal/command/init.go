@@ -182,24 +182,6 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
-	// Using loadSingleModule will allow us to get the sniffed required_version
-	// before trying to build the complete config.
-	rootMod, _ := c.loadSingleModule(path)
-	// We can ignore the error, since we are going to reload the full config
-	// again below once we know the root module constraints are valid.
-	if rootMod != nil {
-		rootCfg := &configs.Config{
-			Module: rootMod,
-		}
-		// If our module version constraints are not valid, then there is no
-		// need to continue processing.
-		versionDiags := terraform.CheckCoreVersionRequirements(rootCfg)
-		if versionDiags.HasErrors() {
-			c.showDiagnostics(versionDiags)
-			return 1
-		}
-	}
-
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
 	config, confDiags := c.loadConfig(path)
@@ -207,9 +189,9 @@ func (c *InitCommand) Run(args []string) int {
 	// incorrect version of terraform may be producing errors for configuration
 	// constructs added in later versions.
 
-	// Check again to make sure none of the modules in the configuration
-	// declare that they don't support this Terraform version, so we can
-	// produce a version-related error message rather than
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
 	// potentially-confusing downstream errors.
 	versionDiags := terraform.CheckCoreVersionRequirements(config)
 	if versionDiags.HasErrors() {
