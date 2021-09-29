@@ -649,11 +649,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 		options.Tags = tags
 
-		// We only set the Terraform Version for the new workspace if this is
-		// a release candidate or a final release.
-		if tfversion.Prerelease == "" || strings.HasPrefix(tfversion.Prerelease, "rc") {
-			options.TerraformVersion = tfe.String(tfversion.String())
-		}
+		options.TerraformVersion = tfe.String(tfversion.String())
 
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
