@@ -1569,8 +1569,9 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 // there are other invalid configuration constructs.
 func TestInit_checkRequiredVersionFirst(t *testing.T) {
 	t.Run("root_module", func(t *testing.T) {
-		td := t.TempDir()
+		td := tempDir(t)
 		testCopyDir(t, testFixturePath("init-check-required-version-first"), td)
+		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		ui := cli.NewMockUi()
@@ -1593,8 +1594,9 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 		}
 	})
 	t.Run("sub_module", func(t *testing.T) {
-		td := t.TempDir()
+		td := tempDir(t)
 		testCopyDir(t, testFixturePath("init-check-required-version-first-module"), td)
+		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		ui := cli.NewMockUi()
