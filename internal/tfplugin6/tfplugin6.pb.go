@@ -1480,6 +1480,9 @@ type Schema_Object struct {
 
 	Attributes []*Schema_Attribute       `protobuf:"bytes,1,rep,name=attributes,proto3" json:"attributes,omitempty"`
 	Nesting    Schema_Object_NestingMode `protobuf:"varint,3,opt,name=nesting,proto3,enum=tfplugin6.Schema_Object_NestingMode" json:"nesting,omitempty"`
+	// MinItems and MaxItems were never used in the protocol, and have no
+	// effect on validation.
+	//
 	// Deprecated: Do not use.
 	MinItems int64 `protobuf:"varint,4,opt,name=min_items,json=minItems,proto3" json:"min_items,omitempty"`
 	// Deprecated: Do not use.

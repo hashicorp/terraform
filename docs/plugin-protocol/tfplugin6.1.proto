@@ -128,6 +128,9 @@ message Schema {
 
         repeated Attribute attributes = 1;
         NestingMode nesting = 3;
+
+        // MinItems and MaxItems were never used in the protocol, and have no
+        // effect on validation.
         int64 min_items = 4 [deprecated = true];
         int64 max_items = 5 [deprecated = true];
     }
