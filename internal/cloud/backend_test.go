@@ -705,7 +705,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_workspaceErrors(t *testing.T) {
 	if len(diags) != 1 {
 		t.Fatal("expected diag, but none returned")
 	}
-	if got := diags.Err().Error(); !strings.Contains(got, "Error looking up workspace: Invalid Terraform version") {
+	if got := diags.Err().Error(); !strings.Contains(got, "Terraform version error: The remote workspace specified") {
 		t.Fatalf("unexpected error: %s", got)
 	}
 }
@@ -760,7 +760,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	if got, want := diags[0].Description().Summary, "Terraform version mismatch"; got != want {
 		t.Errorf("wrong summary: got %s, want %s", got, want)
 	}
-	wantDetail := "The local Terraform version (0.14.0) does not match the configured version for remote workspace hashicorp/app-prod (0.13.5)."
+	wantDetail := "The local Terraform version (0.14.0) does not meet the version requirements for remote workspace hashicorp/app-prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
 	}

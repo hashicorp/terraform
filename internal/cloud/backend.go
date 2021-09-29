@@ -784,25 +784,15 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	// Even if ignoring version conflicts, it may still be useful to call this
 	// method and warn the user about a mismatch between the local and remote
 	// Terraform versions.
-	severity := tfdiags.Error
-	if b.ignoreVersionConflict {
-		severity = tfdiags.Warning
-	}
-	suggestion := " If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
-	if b.ignoreVersionConflict {
-		suggestion = ""
-	}
-
 	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
 	if err != nil {
+		log.Printf("[DEBUG] Invalid Terraform version (%s); will try to parse as version constraint", workspace.TerraformVersion)
+	}
+	if remoteVersion == nil {
 		// If it's not a valid version, it might be a valid version constraint:
 		remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
 		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Error looking up workspace",
-				fmt.Sprintf("Invalid Terraform version or version constraint: %s", err),
-			))
+			diags = diags.Append(terraformInvalidVersionOrConstraint(b.ignoreVersionConflict, workspace.TerraformVersion))
 			return diags
 		}
 
@@ -817,19 +807,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 			return diags
 		}
 
-		diags = diags.Append(tfdiags.Sourceless(
-			severity,
-			"Terraform version mismatch",
-			fmt.Sprintf(
-				"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).%s",
-				tfversion.String(),
-				b.organization,
-				workspace.Name,
-				workspace.TerraformVersion,
-				suggestion,
-			),
-		))
-
+		diags = diags.Append(terraformMismatchDiagnostic(b.ignoreVersionConflict, b.organization, workspace, tfversion.String()))
 		return diags
 	}
 
@@ -862,19 +840,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		}
 	}
 
-	diags = diags.Append(tfdiags.Sourceless(
-		severity,
-		"Terraform version mismatch",
-		fmt.Sprintf(
-			"The local Terraform version (%s) does not match the configured version for remote workspace %s/%s (%s).%s",
-			tfversion.String(),
-			b.organization,
-			workspace.Name,
-			workspace.TerraformVersion,
-			suggestion,
-		),
-	))
-
+	diags = diags.Append(terraformMismatchDiagnostic(b.ignoreVersionConflict, b.organization, workspace, tfversion.String()))
 	return diags
 }
 
