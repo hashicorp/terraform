@@ -43,6 +43,12 @@ func LoadLocksFromFile(filename string) (*Locks, tfdiags.Diagnostics) {
 // integration testing (avoiding creating temporary files on disk); if you
 // are writing non-test code, consider whether LoadLocksFromFile might be
 // more appropriate to call.
+//
+// It is valid to use this with dependency lock information recorded as part of
+// a plan file, in which case the given filename will typically be a
+// placeholder that will only be seen in the unusual case that the plan file
+// contains an invalid lock file, which should only be possible if the user
+// edited it directly (Terraform bugs notwithstanding).
 func LoadLocksFromBytes(src []byte, filename string) (*Locks, tfdiags.Diagnostics) {
 	return loadLocks(func(parser *hclparse.Parser) (*hcl.File, hcl.Diagnostics) {
 		return parser.ParseHCL(src, filename)
@@ -80,6 +86,27 @@ func loadLocks(loadParse func(*hclparse.Parser) (*hcl.File, hcl.Diagnostics)) (*
 // temporary files may be temporarily created in the same directory as the
 // given filename during the operation.
 func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
+	src, diags := SaveLocksToBytes(locks)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	err := replacefile.AtomicWriteFile(filename, src, 0644)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to update dependency lock file",
+			fmt.Sprintf("Error while writing new dependency lock information to %s: %s.", filename, err),
+		))
+		return diags
+	}
+
+	return diags
+}
+
+// SaveLocksToBytes writes the given locks object into a byte array,
+// using the same syntax that LoadLocksFromBytes expects to parse.
+func SaveLocksToBytes(locks *Locks) ([]byte, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// In other uses of the "hclwrite" package we typically try to make
@@ -131,19 +158,7 @@ func SaveLocksToFile(locks *Locks, filename string) tfdiags.Diagnostics {
 		}
 	}
 
-	newContent := f.Bytes()
-
-	err := replacefile.AtomicWriteFile(filename, newContent, 0644)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to update dependency lock file",
-			fmt.Sprintf("Error while writing new dependency lock information to %s: %s.", filename, err),
-		))
-		return diags
-	}
-
-	return diags
+	return f.Bytes(), diags
 }
 
 func decodeLocksFromHCL(locks *Locks, body hcl.Body) tfdiags.Diagnostics {
