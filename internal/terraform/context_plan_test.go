@@ -33,9 +33,6 @@ func TestContext2Plan_basic(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		ProviderSHA256s: map[string][]byte{
-			"aws": []byte("placeholder"),
-		},
 	})
 
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -45,10 +42,6 @@ func TestContext2Plan_basic(t *testing.T) {
 
 	if l := len(plan.Changes.Resources); l < 2 {
 		t.Fatalf("wrong number of resources %d; want fewer than two\n%s", l, spew.Sdump(plan.Changes.Resources))
-	}
-
-	if !reflect.DeepEqual(plan.ProviderSHA256s, ctx.providerSHA256s) {
-		t.Errorf("wrong ProviderSHA256s %#v; want %#v", plan.ProviderSHA256s, ctx.providerSHA256s)
 	}
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block

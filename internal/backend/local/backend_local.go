@@ -252,11 +252,6 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 	// we need to apply the plan.
 	run.Plan = plan
 
-	// When we're applying a saved plan, our context must verify that all of
-	// the providers it ends up using are identical to those which created
-	// the plan.
-	coreOpts.ProviderSHA256s = plan.ProviderSHA256s
-
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

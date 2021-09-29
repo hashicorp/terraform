@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
+	"sort"
 	"sync"
 
-	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -16,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
 	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
@@ -42,18 +39,6 @@ type ContextOpts struct {
 	Parallelism  int
 	Providers    map[addrs.Provider]providers.Factory
 	Provisioners map[string]provisioners.Factory
-
-	// If non-nil, will apply as additional constraints on the provider
-	// plugins that will be requested from the provider resolver.
-	ProviderSHA256s map[string][]byte
-
-	// If non-nil, will be verified to ensure that provider requirements from
-	// configuration can be satisfied by the set of locked dependencies.
-	LockedDependencies *depsfile.Locks
-
-	// Set of providers to exclude from the requirements check process, as they
-	// are marked as in local development.
-	ProvidersInDevelopment map[addrs.Provider]struct{}
 
 	UIInput UIInput
 }
@@ -88,9 +73,7 @@ type Context struct {
 	// operations.
 	meta *ContextMeta
 
-	plugins                *contextPlugins
-	dependencyLocks        *depsfile.Locks
-	providersInDevelopment map[addrs.Provider]struct{}
+	plugins *contextPlugins
 
 	hooks   []Hook
 	sh      *stopHook
@@ -99,7 +82,6 @@ type Context struct {
 	l                   sync.Mutex // Lock acquired during any task
 	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]cty.Value
-	providerSHA256s     map[string][]byte
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
@@ -153,13 +135,10 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 		meta:    opts.Meta,
 		uiInput: opts.UIInput,
 
-		plugins:                plugins,
-		dependencyLocks:        opts.LockedDependencies,
-		providersInDevelopment: opts.ProvidersInDevelopment,
+		plugins: plugins,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]cty.Value),
-		providerSHA256s:     opts.ProviderSHA256s,
 		sh:                  sh,
 	}, diags
 }
@@ -173,50 +152,6 @@ func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas
 	// selections can't change during the life of a *Context object.
 
 	var diags tfdiags.Diagnostics
-
-	// If we have a configuration and a set of locked dependencies, verify that
-	// the provider requirements from the configuration can be satisfied by the
-	// locked dependencies.
-	if c.dependencyLocks != nil && config != nil {
-		reqs, providerDiags := config.ProviderRequirements()
-		diags = diags.Append(providerDiags)
-
-		locked := c.dependencyLocks.AllProviders()
-		unmetReqs := make(getproviders.Requirements)
-		for provider, versionConstraints := range reqs {
-			// Builtin providers are not listed in the locks file
-			if provider.IsBuiltIn() {
-				continue
-			}
-			// Development providers must be excluded from this check
-			if _, ok := c.providersInDevelopment[provider]; ok {
-				continue
-			}
-			// If the required provider doesn't exist in the lock, or the
-			// locked version doesn't meet the constraints, mark the
-			// requirement unmet
-			acceptable := versions.MeetingConstraints(versionConstraints)
-			if lock, ok := locked[provider]; !ok || !acceptable.Has(lock.Version()) {
-				unmetReqs[provider] = versionConstraints
-			}
-		}
-
-		if len(unmetReqs) > 0 {
-			var buf strings.Builder
-			for provider, versionConstraints := range unmetReqs {
-				fmt.Fprintf(&buf, "\n- %s", provider)
-				if len(versionConstraints) > 0 {
-					fmt.Fprintf(&buf, " (%s)", getproviders.VersionConstraintsString(versionConstraints))
-				}
-			}
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Provider requirements cannot be satisfied by locked dependencies",
-				fmt.Sprintf("The following required providers are not installed:\n%s\n\nPlease run \"terraform init\".", buf.String()),
-			))
-			return nil, diags
-		}
-	}
 
 	ret, err := loadSchemas(config, state, c.plugins)
 	if err != nil {
@@ -380,4 +315,116 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 	}()
 
 	return stop, wait
+}
+
+// checkConfigDependencies checks whether the recieving context is able to
+// support the given configuration, returning error diagnostics if not.
+//
+// Currently this function checks whether the current Terraform CLI version
+// matches the version requirements of all of the modules, and whether our
+// plugin library contains all of the plugin names/addresses needed.
+//
+// This function does *not* check that external modules are installed (that's
+// the responsibility of the configuration loader) and doesn't check that the
+// plugins are of suitable versions to match any version constraints (which is
+// the responsibility of the code which installed the plugins and then
+// constructed the Providers/Provisioners maps passed in to NewContext).
+//
+// In most cases we should typically catch the problems this function detects
+// before we reach this point, but this function can come into play in some
+// unusual cases outside of the main workflow, and can avoid some
+// potentially-more-confusing errors from later operations.
+func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// This checks the Terraform CLI version constraints specified in all of
+	// the modules.
+	diags = diags.Append(CheckCoreVersionRequirements(config))
+
+	// We only check that we have a factory for each required provider, and
+	// assume the caller already assured that any separately-installed
+	// plugins are of a suitable version, match expected checksums, etc.
+	providerReqs, hclDiags := config.ProviderRequirements()
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return diags
+	}
+	for providerAddr := range providerReqs {
+		if !c.plugins.HasProvider(providerAddr) {
+			if !providerAddr.IsBuiltIn() {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This configuration requires provider %s, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+						providerAddr,
+					),
+				))
+			} else {
+				// Built-in providers can never be installed by "terraform init",
+				// so no point in confusing the user by suggesting that.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing required provider",
+					fmt.Sprintf(
+						"This configuration requires built-in provider %s, but that provider isn't available in this Terraform version.",
+						providerAddr,
+					),
+				))
+			}
+		}
+	}
+
+	// Our handling of provisioners is much less sophisticated than providers
+	// because they are in many ways a legacy system. We need to go hunting
+	// for them more directly in the configuration.
+	config.DeepEach(func(modCfg *configs.Config) {
+		if modCfg == nil || modCfg.Module == nil {
+			return // should not happen, but we'll be robust
+		}
+		for _, rc := range modCfg.Module.ManagedResources {
+			if rc.Managed == nil {
+				continue // should not happen, but we'll be robust
+			}
+			for _, pc := range rc.Managed.Provisioners {
+				if !c.plugins.HasProvisioner(pc.Type) {
+					// This is not a very high-quality error, because really
+					// the caller of terraform.NewContext should've already
+					// done equivalent checks when doing plugin discovery.
+					// This is just to make sure we return a predictable
+					// error in a central place, rather than failing somewhere
+					// later in the non-deterministically-ordered graph walk.
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Missing required provisioner plugin",
+						fmt.Sprintf(
+							"This configuration requires provisioner plugin %q, which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running Terraform.",
+							pc.Type,
+						),
+					))
+				}
+			}
+		}
+	})
+
+	// Because we were doing a lot of map iteration above, and we're only
+	// generating sourceless diagnostics anyway, our diagnostics will not be
+	// in a deterministic order. To ensure stable output when there are
+	// multiple errors to report, we'll sort these particular diagnostics
+	// so they are at least always consistent alone. This ordering is
+	// arbitrary and not a compatibility constraint.
+	sort.Slice(diags, func(i, j int) bool {
+		// Because these are sourcelss diagnostics and we know they are all
+		// errors, we know they'll only differ in their description fields.
+		descI := diags[i].Description()
+		descJ := diags[j].Description()
+		switch {
+		case descI.Summary != descJ.Summary:
+			return descI.Summary < descJ.Summary
+		default:
+			return descI.Detail < descJ.Detail
+		}
+	})
+
+	return diags
 }

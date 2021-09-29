@@ -1051,7 +1051,7 @@ func TestPlan_init_required(t *testing.T) {
 		t.Fatalf("expected error, got success")
 	}
 	got := output.Stderr()
-	if !strings.Contains(got, `failed to read schema for test_instance.foo in registry.terraform.io/hashicorp/test`) {
+	if !strings.Contains(got, "Error: Missing required provider") {
 		t.Fatal("wrong error message in output:", got)
 	}
 }

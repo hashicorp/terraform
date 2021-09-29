@@ -34,7 +34,6 @@ type Plan struct {
 	DriftedResources  []*ResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
-	ProviderSHA256s   map[string][]byte
 	Backend           Backend
 
 	// PrevRunState and PriorState both describe the situation that the plan

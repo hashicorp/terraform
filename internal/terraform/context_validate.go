@@ -26,10 +26,10 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 
 	var diags tfdiags.Diagnostics
 
-	moreDiags := CheckCoreVersionRequirements(config)
+	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
-	// If version constraints are not met then we'll bail early since otherwise
-	// we're likely to just see a bunch of other errors related to
+	// If required dependencies are not available then we'll bail early since
+	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
 	if diags.HasErrors() {
 		return diags
