@@ -11,7 +11,7 @@ description: |-
 `base32encode` applies Base32 encoding to a string.
 
 Terraform uses the "standard" Base32 alphabet as defined in
-[RFC 4648 section 6](https://tools.ietf.org/html/rfc4648#section-6).
+[RFC 4648 section 6](https://datatracker.ietf.org/doc/html/rfc4648#section-6).
 
 Strings in the Terraform language are sequences of unicode characters rather
 than bytes, so this function will first encode the characters from the string

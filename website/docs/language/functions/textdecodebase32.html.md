@@ -15,7 +15,7 @@ description: |-
 and then interprets the result as characters in a specified character encoding.
 
 Terraform uses the "standard" Base32 alphabet as defined in
-[RFC 4648 section 6](https://tools.ietf.org/html/rfc4648#section-6).
+[RFC 4648 section 6](https://datatracker.ietf.org/doc/html/rfc4648#section-6).
 
 The `encoding_name` argument must contain one of the encoding names or aliases
 recorded in
