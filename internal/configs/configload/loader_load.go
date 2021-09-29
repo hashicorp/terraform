@@ -21,7 +21,13 @@ import (
 func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil || diags.HasErrors() {
-		return nil, diags
+		// Ensure we return any parsed modules here so that required_version
+		// constraints can be verified even when encountering errors.
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+
+		return cfg, diags
 	}
 
 	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad))
