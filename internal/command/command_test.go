@@ -242,7 +242,12 @@ func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.S
 	}
 
 	path := testTempFile(t)
-	err := planfile.Create(path, configSnap, prevStateFile, stateFile, plan)
+	err := planfile.Create(path, planfile.CreateArgs{
+		ConfigSnapshot:       configSnap,
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+	})
 	if err != nil {
 		t.Fatalf("failed to create temporary plan file: %s", err)
 	}

@@ -655,7 +655,12 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	}
 
 	filename := filepath.Join(dir, "tfplan")
-	err = planfile.Create(filename, configSnap, prevStateFile, stateFile, plan)
+	err = planfile.Create(filename, planfile.CreateArgs{
+		ConfigSnapshot:       configSnap,
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+	})
 	if err != nil {
 		return nil, nil, nil, err
 	}
