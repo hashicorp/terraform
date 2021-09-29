@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* cli: Check `required_version` as early as possibly during `init` so that version incompatibility can be reported before errors about new syntax [GH-29665]
 * core: Don't plan to remove orphaned resource instances in refresh-only plans ([#29640](https://github.com/hashicorp/terraform/issues/29640))
 
 ## 1.0.7 (September 15, 2021)
