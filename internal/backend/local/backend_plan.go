@@ -133,7 +133,12 @@ func (b *Local) opPlan(
 		}
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err := planfile.Create(path, configSnap, prevStateFile, plannedStateFile, plan)
+		err := planfile.Create(path, planfile.CreateArgs{
+			ConfigSnapshot:       configSnap,
+			PreviousRunStateFile: prevStateFile,
+			StateFile:            plannedStateFile,
+			Plan:                 plan,
+		})
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

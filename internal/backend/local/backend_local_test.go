@@ -132,7 +132,13 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	if err := planfile.Create(planPath, configload.NewEmptySnapshot(), prevStateFile, stateFile, plan); err != nil {
+	planfileArgs := planfile.CreateArgs{
+		ConfigSnapshot:       configload.NewEmptySnapshot(),
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+	}
+	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
 	planFile, err := planfile.Open(planPath)

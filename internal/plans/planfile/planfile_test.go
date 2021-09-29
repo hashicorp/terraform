@@ -77,7 +77,12 @@ func TestRoundtrip(t *testing.T) {
 	}
 	planFn := filepath.Join(workDir, "tfplan")
 
-	err = Create(planFn, snapIn, prevStateFileIn, stateFileIn, planIn)
+	err = Create(planFn, CreateArgs{
+		ConfigSnapshot:       snapIn,
+		PreviousRunStateFile: prevStateFileIn,
+		StateFile:            stateFileIn,
+		Plan:                 planIn,
+	})
 	if err != nil {
 		t.Fatalf("failed to create plan file: %s", err)
 	}
