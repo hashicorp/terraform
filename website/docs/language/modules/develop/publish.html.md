@@ -28,6 +28,9 @@ If you do not wish to publish your modules in the public registry, you can
 instead use a [private registry](/docs/registry/private.html) to get
 the same benefits.
 
+We welcome contributions of Terraform modules from our community members, partners, and customers. Our ecosystem is made richer by each new module created or an existing one updated, as they reflect the wide range of experience and technical requirements of the community that uses them. Our cloud provider partners often seek to develop specific modules for popular or challenging use cases on their platform and utilize them as valuable learning experiences to empathize with their users. Similarly, our community module developers incorporate a variety of opinions and use cases from the broader Terraform community. Both types of modules have their place in the Terraform registry, accessible to practitioners who can decide which modules best fit their requirements.
+
+
 ## Distribution via other sources
 
 Although the registry is the native mechanism for distributing re-usable
