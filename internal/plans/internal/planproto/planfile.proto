@@ -58,10 +58,6 @@ message Plan {
     // The version string for the Terraform binary that created this plan.
     string terraform_version = 14;
 
-    // SHA256 digests of all of the provider plugin binaries that were used
-    // in the creation of this plan.
-    map<string, Hash> provider_hashes = 15;
-
     // Backend is a description of the backend configuration and other related
     // settings at the time the plan was created.
     Backend backend = 13;
@@ -216,18 +212,6 @@ message OutputChange {
 // for changes to the set of dynamic serialization formats.
 message DynamicValue {
     bytes msgpack = 1;
-}
-
-// Hash represents a hash value.
-//
-// At present hashes always use the SHA256 algorithm. In future other hash
-// algorithms may be used, possibly with a transitional period of including
-// both as separate attributes of this type. Consumers must ignore attributes
-// they don't support and fail if no supported attribute is present. The
-// top-level format version will not be incremented for changes to the set of
-// hash algorithms.
-message Hash {
-    bytes sha256 = 1;
 }
 
 // Path represents a set of steps to traverse into a data structure. It is

@@ -55,10 +55,10 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 		}
 	}
 
-	moreDiags := CheckCoreVersionRequirements(config)
+	moreDiags := c.checkConfigDependencies(config)
 	diags = diags.Append(moreDiags)
-	// If version constraints are not met then we'll bail early since otherwise
-	// we're likely to just see a bunch of other errors related to
+	// If required dependencies are not available then we'll bail early since
+	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
 	if diags.HasErrors() {
 		return nil, diags
@@ -161,7 +161,6 @@ The -target option is not for routine use, and is provided only for exceptional 
 	if plan != nil {
 		plan.VariableValues = varVals
 		plan.TargetAddrs = opts.Targets
-		plan.ProviderSHA256s = c.providerSHA256s
 	} else if !diags.HasErrors() {
 		panic("nil plan but no errors")
 	}

@@ -57,8 +57,6 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
-
-		ProviderSHA256s: map[string][]byte{},
 	}
 
 	switch rawPlan.UiMode {
@@ -123,14 +121,6 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid force-replace address %q: %s", addr, diags.Err())
 		}
 		plan.ForceReplaceAddrs = append(plan.ForceReplaceAddrs, addr)
-	}
-
-	for name, rawHashObj := range rawPlan.ProviderHashes {
-		if len(rawHashObj.Sha256) == 0 {
-			return nil, fmt.Errorf("no SHA256 hash for provider %q plugin", name)
-		}
-
-		plan.ProviderSHA256s[name] = rawHashObj.Sha256
 	}
 
 	for name, rawVal := range rawPlan.Variables {
@@ -358,7 +348,6 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	rawPlan := &planproto.Plan{
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
-		ProviderHashes:   map[string]*planproto.Hash{},
 
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
@@ -424,12 +413,6 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {
 		rawPlan.ForceReplaceAddrs = append(rawPlan.ForceReplaceAddrs, replaceAddr.String())
-	}
-
-	for name, hash := range plan.ProviderSHA256s {
-		rawPlan.ProviderHashes[name] = &planproto.Hash{
-			Sha256: hash,
-		}
 	}
 
 	for name, val := range plan.VariableValues {
