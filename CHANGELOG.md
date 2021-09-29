@@ -1,8 +1,8 @@
-## 1.0.8 (Unreleased)
+## 1.0.8 (September 29, 2021)
 
 BUG FIXES:
 
-* cli: Check `required_version` as early as possibly during `init` so that version incompatibility can be reported before errors about new syntax [GH-29665]
+* cli: Check `required_version` as early as possibly during `init` so that version incompatibility can be reported before errors about new syntax ([#29665](https://github.com/hashicorp/terraform/issues/29665))
 * core: Don't plan to remove orphaned resource instances in refresh-only plans ([#29640](https://github.com/hashicorp/terraform/issues/29640))
 
 ## 1.0.7 (September 15, 2021)
