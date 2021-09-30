@@ -477,7 +477,7 @@ variable "moose" {
 And the following `.tfvars` file:
 
 ```hcl
-mosse = "Moose"
+moose = "Moose"
 ```
 
 Will cause Terraform to warn you that there is no variable declared `"mosse"`, which can help
