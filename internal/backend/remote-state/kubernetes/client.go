@@ -14,8 +14,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -23,6 +21,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Import to initialize client auth plugins.
 	"k8s.io/utils/pointer"
+
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 
 	coordinationv1 "k8s.io/api/coordination/v1"
 	coordinationclientv1 "k8s.io/client-go/kubernetes/typed/coordination/v1"
@@ -34,6 +35,7 @@ const (
 	tfstateWorkspaceKey       = "tfstateWorkspace"
 	tfstateLockInfoAnnotation = "app.terraform.io/lock-info"
 	managedByKey              = "app.kubernetes.io/managed-by"
+	etcdDefaultSize           = 1048576
 )
 
 type RemoteClient struct {
@@ -46,28 +48,27 @@ type RemoteClient struct {
 }
 
 func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
-	secretName, err := c.createSecretName()
+	secretList, err := c.getSecrets()
 	if err != nil {
-		return nil, err
-	}
-	secret, err := c.kubernetesSecretClient.Get(context.Background(), secretName, metav1.GetOptions{})
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return nil, nil
-		}
 		return nil, err
 	}
 
-	secretData := getSecretData(secret)
-	stateRaw, ok := secretData[tfstateKey]
-	if !ok {
-		// The secret exists but there is no state in it
+	if len(secretList.Items) == 0 {
 		return nil, nil
 	}
 
-	stateRawString := stateRaw.(string)
+	var data []string
+	for _, secret := range secretList.Items {
+		secretData := getSecretData(&secret)
+		stateRaw, ok := secretData[tfstateKey]
+		if !ok {
+			// The secret exists but there is no state in it
+			return nil, nil
+		}
+		data = append(data, stateRaw.(string))
+	}
 
-	state, err := uncompressState(stateRawString)
+	state, err := uncompressState(data)
 	if err != nil {
 		return nil, err
 	}
@@ -81,9 +82,23 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return p, nil
 }
 
+func multiSecret(size []byte) bool {
+	// by default etcd can hold up to 1.5Mib data for secret
+	return len(size) > etcdDefaultSize
+}
+
+func (c *RemoteClient) getSecrets() (*unstructured.UnstructuredList, error) {
+	ls := metav1.SetAsLabelSelector(c.getLabels())
+	return c.kubernetesSecretClient.List(context.Background(),
+		metav1.ListOptions{
+			LabelSelector: metav1.FormatLabelSelector(ls),
+		},
+	)
+}
+
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.Background()
-	secretName, err := c.createSecretName()
+	secretName, err := c.createSecretName(0)
 	if err != nil {
 		return err
 	}
@@ -93,45 +108,89 @@ func (c *RemoteClient) Put(data []byte) error {
 		return err
 	}
 
-	secret, err := c.getSecret(secretName)
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return err
-		}
-
-		secret = &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"metadata": metav1.ObjectMeta{
-					Name:        secretName,
-					Namespace:   c.namespace,
-					Labels:      c.getLabels(),
-					Annotations: map[string]string{"encoding": "gzip"},
-				},
-			},
-		}
-
-		secret, err = c.kubernetesSecretClient.Create(ctx, secret, metav1.CreateOptions{})
-		if err != nil {
-			return err
-		}
-	}
-
-	setState(secret, payload)
-	_, err = c.kubernetesSecretClient.Update(ctx, secret, metav1.UpdateOptions{})
-	return err
-}
-
-// Delete the state secret
-func (c *RemoteClient) Delete() error {
-	secretName, err := c.createSecretName()
+	parts := split(payload, etcdDefaultSize)
+	existingSecrets, err := c.getSecrets()
 	if err != nil {
 		return err
 	}
 
-	err = c.deleteSecret(secretName)
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
+	for idx, data := range parts {
+		secretName, err := c.createSecretName(idx)
+		if err != nil {
 			return err
+		}
+
+		secret, err := c.getSecret(secretName)
+		if err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return err
+			}
+
+			secret = c.formatSecret(secretName)
+
+			secret, err = c.kubernetesSecretClient.Create(ctx, secret, metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+		}
+
+		setState(secret, data)
+		_, err = c.kubernetesSecretClient.Update(ctx, secret, metav1.UpdateOptions{})
+	}
+
+	// in case new state requires less secrets, cleanup old secrets
+	secretNum := len(existingSecrets.Items)
+	newSecretNum := len(parts)
+	for i := newSecretNum; i <= secretNum; i++ {
+		c.deleteSecret(fmt.Sprintf("%s-part%d", secretName, i))
+	}
+	return err
+}
+
+func (c *RemoteClient) formatSecret(name string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"metadata": metav1.ObjectMeta{
+				Name:        name,
+				Namespace:   c.namespace,
+				Labels:      c.getLabels(),
+				Annotations: map[string]string{"encoding": "gzip"},
+			},
+		},
+	}
+}
+
+func split(buf []byte, size int) [][]byte {
+	var chunk []byte
+	chunks := make([][]byte, 0, len(buf)/size+1)
+	for len(buf) >= size {
+		chunk, buf = buf[:size], buf[size:]
+		chunks = append(chunks, chunk)
+	}
+	if len(buf) > 0 {
+		chunks = append(chunks, buf[:len(buf)])
+	}
+	return chunks
+}
+
+// Delete the state secret
+func (c *RemoteClient) Delete() error {
+	secretList, err := c.getSecrets()
+	if err != nil {
+		return err
+	}
+
+	for i, _ := range secretList.Items {
+		secretName, err := c.createSecretName(i)
+		if err != nil {
+			return err
+		}
+
+		err = c.deleteSecret(secretName)
+		if err != nil {
+			if !k8serrors.IsNotFound(err) {
+				return err
+			}
 		}
 	}
 
@@ -323,8 +382,12 @@ func (c *RemoteClient) deleteLease(name string) error {
 	return c.kubernetesLeaseClient.Delete(context.Background(), name, delOps)
 }
 
-func (c *RemoteClient) createSecretName() (string, error) {
+func (c *RemoteClient) createSecretName(idx int) (string, error) {
 	secretName := strings.Join([]string{tfstateKey, c.workspace, c.nameSuffix}, "-")
+
+	if idx > 0 {
+		secretName = fmt.Sprintf("%s-part%d", secretName, idx)
+	}
 
 	errs := validation.IsDNS1123Subdomain(secretName)
 	if len(errs) > 0 {
@@ -339,7 +402,7 @@ The workspace name and key must adhere to Kubernetes naming conventions.`
 }
 
 func (c *RemoteClient) createLeaseName() (string, error) {
-	n, err := c.createSecretName()
+	n, err := c.createSecretName(0)
 	if err != nil {
 		return "", err
 	}
@@ -358,14 +421,18 @@ func compressState(data []byte) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func uncompressState(data string) ([]byte, error) {
-	decode, err := base64.StdEncoding.DecodeString(data)
-	if err != nil {
-		return nil, err
+func uncompressState(data []string) ([]byte, error) {
+	var rawData []byte
+	for _, chunk := range data {
+		decode, err := base64.StdEncoding.DecodeString(chunk)
+		if err != nil {
+			return nil, err
+		}
+		rawData = append(rawData, decode...)
 	}
 
 	b := new(bytes.Buffer)
-	gz, err := gzip.NewReader(bytes.NewReader(decode))
+	gz, err := gzip.NewReader(bytes.NewReader(rawData))
 	if err != nil {
 		return nil, err
 	}
