@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
@@ -33,6 +34,11 @@ type CreateArgs struct {
 	// Plan records the plan itself, which is the main artifact inside a
 	// saved plan file.
 	Plan *plans.Plan
+
+	// DependencyLocks records the dependency lock information that we
+	// checked prior to creating the plan, so we can make sure that all of the
+	// same dependencies are still available when applying the plan.
+	DependencyLocks *depsfile.Locks
 }
 
 // Create creates a new plan file with the given filename, overwriting any
@@ -105,6 +111,27 @@ func Create(filename string, args CreateArgs) error {
 		err := writeConfigSnapshot(args.ConfigSnapshot, zw)
 		if err != nil {
 			return fmt.Errorf("failed to write config snapshot: %s", err)
+		}
+	}
+
+	// .terraform.lock.hcl file, containing dependency lock information
+	if args.DependencyLocks != nil { // (this was a later addition, so not all callers set it, but main callers should)
+		src, diags := depsfile.SaveLocksToBytes(args.DependencyLocks)
+		if diags.HasErrors() {
+			return fmt.Errorf("failed to write embedded dependency lock file: %s", diags.Err().Error())
+		}
+
+		w, err := zw.CreateHeader(&zip.FileHeader{
+			Name:     dependencyLocksFilename,
+			Method:   zip.Deflate,
+			Modified: time.Now(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create embedded dependency lock file: %s", err)
+		}
+		_, err = w.Write(src)
+		if err != nil {
+			return fmt.Errorf("failed to write embedded dependency lock file: %s", err)
 		}
 	}
 
