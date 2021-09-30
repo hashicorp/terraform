@@ -29,6 +29,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
@@ -247,6 +248,7 @@ func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.S
 		PreviousRunStateFile: prevStateFile,
 		StateFile:            stateFile,
 		Plan:                 plan,
+		DependencyLocks:      depsfile.NewLocks(),
 	})
 	if err != nil {
 		t.Fatalf("failed to create temporary plan file: %s", err)

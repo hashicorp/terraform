@@ -282,6 +282,12 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 			factories[provider] = providerFactoryError(thisErr)
 		}
 
+		if locks.ProviderIsOverridden(provider) {
+			// Overridden providers we'll handle with the other separate
+			// loops below, for dev overrides etc.
+			continue
+		}
+
 		version := lock.Version()
 		cached := cacheDir.ProviderVersion(provider, version)
 		if cached == nil {
@@ -313,8 +319,6 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 		factories[provider] = providerFactory(cached)
 	}
 	for provider, localDir := range devOverrideProviders {
-		// It's likely that providers in this map will conflict with providers
-		// in providerLocks
 		factories[provider] = devOverrideProviderFactory(provider, localDir)
 	}
 	for provider, reattach := range unmanagedProviders {

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
@@ -236,6 +237,16 @@ type Operation struct {
 	// ConfigLoader is a configuration loader that can be used to load
 	// configuration from ConfigDir.
 	ConfigLoader *configload.Loader
+
+	// DependencyLocks represents the locked dependencies associated with
+	// the configuration directory given in ConfigDir.
+	//
+	// Note that if field PlanFile is set then the plan file should contain
+	// its own dependency locks. The backend is responsible for correctly
+	// selecting between these two sets of locks depending on whether it
+	// will be using ConfigDir or PlanFile to get the configuration for
+	// this operation.
+	DependencyLocks *depsfile.Locks
 
 	// Hooks can be used to perform actions triggered by various events during
 	// the operation's lifecycle.

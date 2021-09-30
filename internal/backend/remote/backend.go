@@ -710,6 +710,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
+		log.Printf("[DEBUG] Remote backend is delegating %s to the local backend", op.Type)
 		return b.local.Operation(ctx, op)
 	}
 

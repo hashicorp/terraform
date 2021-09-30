@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -41,13 +42,19 @@ func testOperationPlanWithTimeout(t *testing.T, configDir string, timeout time.D
 	stateLockerView := views.NewStateLocker(arguments.ViewHuman, view)
 	operationView := views.NewOperation(arguments.ViewHuman, false, view)
 
+	// Many of our tests use an overridden "null" provider that's just in-memory
+	// inside the test process, not a separate plugin on disk.
+	depLocks := depsfile.NewLocks()
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/null"))
+
 	return &backend.Operation{
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		PlanRefresh:  true,
-		StateLocker:  clistate.NewLocker(timeout, stateLockerView),
-		Type:         backend.OperationTypePlan,
-		View:         operationView,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		PlanRefresh:     true,
+		StateLocker:     clistate.NewLocker(timeout, stateLockerView),
+		Type:            backend.OperationTypePlan,
+		View:            operationView,
+		DependencyLocks: depLocks,
 	}, configCleanup, done
 }
 
