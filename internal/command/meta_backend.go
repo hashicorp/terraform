@@ -355,13 +355,24 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
 	}
 
+	depLocks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		// We can't actually report errors from here, but m.lockedDependencies
+		// should always have been called earlier to prepare the "ContextOpts"
+		// for the backend anyway, so we should never actually get here in
+		// a real situation. If we do get here then the backend will inevitably
+		// fail downstream somwhere if it tries to use the empty depLocks.
+		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
+	}
+
 	return &backend.Operation{
-		PlanOutBackend: planOutBackend,
-		Targets:        m.targets,
-		UIIn:           m.UIInput(),
-		UIOut:          m.Ui,
-		Workspace:      workspace,
-		StateLocker:    stateLocker,
+		PlanOutBackend:  planOutBackend,
+		Targets:         m.targets,
+		UIIn:            m.UIInput(),
+		UIOut:           m.Ui,
+		Workspace:       workspace,
+		StateLocker:     stateLocker,
+		DependencyLocks: depLocks,
 	}
 }
 

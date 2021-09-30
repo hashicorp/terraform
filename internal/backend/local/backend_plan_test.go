@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -716,12 +717,18 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
+	// Many of our tests use an overridden "test" provider that's just in-memory
+	// inside the test process, not a separate plugin on disk.
+	depLocks := depsfile.NewLocks()
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
+
 	return &backend.Operation{
-		Type:         backend.OperationTypePlan,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		StateLocker:  clistate.NewNoopLocker(),
-		View:         view,
+		Type:            backend.OperationTypePlan,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		StateLocker:     clistate.NewNoopLocker(),
+		View:            view,
+		DependencyLocks: depLocks,
 	}, configCleanup, done
 }
 

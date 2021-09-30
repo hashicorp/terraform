@@ -1,6 +1,7 @@
 package command
 
 import (
+	"log"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/depsfile"
@@ -48,10 +49,11 @@ func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
 	// promising to support two concurrent dependency installation processes.
 	_, err := os.Stat(dependencyLockFilename)
 	if os.IsNotExist(err) {
-		return depsfile.NewLocks(), nil
+		return m.annotateDependencyLocksWithOverrides(depsfile.NewLocks()), nil
 	}
 
-	return depsfile.LoadLocksFromFile(dependencyLockFilename)
+	ret, diags := depsfile.LoadLocksFromFile(dependencyLockFilename)
+	return m.annotateDependencyLocksWithOverrides(ret), diags
 }
 
 // replaceLockedDependencies creates or overwrites the lock file in the
@@ -59,4 +61,33 @@ func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
 // locks object.
 func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostics {
 	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
+}
+
+// annotateDependencyLocksWithOverrides modifies the given Locks object in-place
+// to track as overridden any provider address that's subject to testing
+// overrides, development overrides, or "unmanaged provider" status.
+//
+// This is just an implementation detail of the lockedDependencies method,
+// not intended for use anywhere else.
+func (m *Meta) annotateDependencyLocksWithOverrides(ret *depsfile.Locks) *depsfile.Locks {
+	if ret == nil {
+		return ret
+	}
+
+	for addr := range m.ProviderDevOverrides {
+		log.Printf("[DEBUG] Provider %s is overridden by dev_overrides", addr)
+		ret.SetProviderOverridden(addr)
+	}
+	for addr := range m.UnmanagedProviders {
+		log.Printf("[DEBUG] Provider %s is overridden as an \"unmanaged provider\"", addr)
+		ret.SetProviderOverridden(addr)
+	}
+	if m.testingOverrides != nil {
+		for addr := range m.testingOverrides.Providers {
+			log.Printf("[DEBUG] Provider %s is overridden in Meta.testingOverrides", addr)
+			ret.SetProviderOverridden(addr)
+		}
+	}
+
+	return ret
 }

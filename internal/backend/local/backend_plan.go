@@ -138,6 +138,7 @@ func (b *Local) opPlan(
 			PreviousRunStateFile: prevStateFile,
 			StateFile:            plannedStateFile,
 			Plan:                 plan,
+			DependencyLocks:      op.DependencyLocks,
 		})
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
