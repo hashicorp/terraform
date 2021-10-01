@@ -461,20 +461,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 	} else {
 		providerFactories, err := m.providerFactories()
 		if err != nil {
-			// providerFactories can fail if the plugin selections file is
-			// invalid in some way, but we don't have any way to report that
-			// from here so we'll just behave as if no providers are available
-			// in that case. However, we will produce a warning in case this
-			// shows up unexpectedly and prompts a bug report.
-			// This situation shouldn't arise commonly in practice because
-			// the selections file is generated programmatically.
-			log.Printf("[WARN] Failed to determine selected providers: %s", err)
-
-			// variable providerFactories may now be incomplete, which could
-			// lead to errors reported downstream from here. providerFactories
-			// tries to populate as many providers as possible even in an
-			// error case, so that operations not using problematic providers
-			// can still succeed.
+			return nil, err
 		}
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
