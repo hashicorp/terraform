@@ -12,7 +12,7 @@ The main function of [Terraform state](/docs/language/state/index.html) is
 to track the bindings between resource instance addresses in your configuration
 and the remote objects they represent. Normally Terraform automatically
 updates the state in response to actions taken when applying a plan, such as
-removing a binding for an remote object that has now been deleted.
+removing a binding for a remote object that has now been deleted.
 
 You can use `terraform state rm` in the less common situation where you wish
 to remove a binding to an existing remote object without first destroying it,
