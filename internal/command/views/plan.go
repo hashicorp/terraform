@@ -325,7 +325,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			}
 		}
 		view.streams.Printf(
-			view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+			view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to update, %d to destroy.\n"),
 			stats[plans.Create], stats[plans.Update], stats[plans.Delete],
 		)
 	}

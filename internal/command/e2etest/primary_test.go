@@ -55,7 +55,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 	}
 
-	if !strings.Contains(stdout, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(stdout, "1 to add, 0 to update, 0 to destroy") {
 		t.Errorf("incorrect plan tally; want 1 to add:\n%s", stdout)
 	}
 

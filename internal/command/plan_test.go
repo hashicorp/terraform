@@ -1099,7 +1099,7 @@ func TestPlan_targeted(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	if got, want := output.Stdout(), "3 to add, 0 to change, 0 to destroy"; !strings.Contains(got, want) {
+	if got, want := output.Stdout(), "3 to add, 0 to update, 0 to destroy"; !strings.Contains(got, want) {
 		t.Fatalf("bad change summary, want %q, got:\n%s", want, got)
 	}
 }
@@ -1207,7 +1207,7 @@ func TestPlan_replace(t *testing.T) {
 	}
 
 	stdout := output.Stdout()
-	if got, want := stdout, "1 to add, 0 to change, 1 to destroy"; !strings.Contains(got, want) {
+	if got, want := stdout, "1 to add, 0 to update, 1 to destroy"; !strings.Contains(got, want) {
 		t.Errorf("wrong plan summary\ngot output:\n%s\n\nwant substring: %s", got, want)
 	}
 	if got, want := stdout, "test_instance.a will be replaced, as requested"; !strings.Contains(got, want) {

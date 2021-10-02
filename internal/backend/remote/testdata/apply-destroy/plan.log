@@ -19,4 +19,4 @@ Terraform will perform the following actions:
   - null_resource.hello
 
 
-Plan: 0 to add, 0 to change, 1 to destroy.
+Plan: 0 to add, 0 to update, 1 to destroy.

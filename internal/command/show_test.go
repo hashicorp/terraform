@@ -259,7 +259,7 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 	if want := `test_instance.foo will be replaced, as requested`; !strings.Contains(got, want) {
 		t.Errorf("wrong output\ngot:\n%s\n\nwant substring: %s", got, want)
 	}
-	if want := `Plan: 1 to add, 0 to change, 1 to destroy.`; !strings.Contains(got, want) {
+	if want := `Plan: 1 to add, 0 to update, 1 to destroy.`; !strings.Contains(got, want) {
 		t.Errorf("wrong output\ngot:\n%s\n\nwant substring: %s", got, want)
 	}
 

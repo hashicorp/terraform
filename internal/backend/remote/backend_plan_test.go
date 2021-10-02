@@ -86,7 +86,7 @@ func TestRemote_planBasic(t *testing.T) {
 	if !strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("expected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 
@@ -154,7 +154,7 @@ func TestRemote_planLongLine(t *testing.T) {
 	if !strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("expected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -730,7 +730,7 @@ func TestRemote_planForceLocal(t *testing.T) {
 	if strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("unexpected remote backend header in output: %s", output)
 	}
-	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -766,7 +766,7 @@ func TestRemote_planWithoutOperationsEntitlement(t *testing.T) {
 	if strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("unexpected remote backend header in output: %s", output)
 	}
-	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -816,7 +816,7 @@ func TestRemote_planWorkspaceWithoutOperations(t *testing.T) {
 	if strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("unexpected remote backend header in output: %s", output)
 	}
-	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -887,7 +887,7 @@ func TestRemote_planLockTimeout(t *testing.T) {
 	if !strings.Contains(output, "Lock timeout exceeded") {
 		t.Fatalf("expected lock timout error in output: %s", output)
 	}
-	if strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("unexpected plan summary in output: %s", output)
 	}
 }
@@ -982,7 +982,7 @@ func TestRemote_planWithWorkingDirectory(t *testing.T) {
 	if !strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("expected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -1038,7 +1038,7 @@ func TestRemote_planWithWorkingDirectoryFromCurrentPath(t *testing.T) {
 	if !strings.Contains(output, "Running plan in the remote backend") {
 		t.Fatalf("expected remote backend header in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -1073,7 +1073,7 @@ func TestRemote_planCostEstimation(t *testing.T) {
 	if !strings.Contains(output, "Resources: 1 of 1 estimated") {
 		t.Fatalf("expected cost estimate result in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -1108,7 +1108,7 @@ func TestRemote_planPolicyPass(t *testing.T) {
 	if !strings.Contains(output, "Sentinel Result: true") {
 		t.Fatalf("expected policy check result in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -1148,7 +1148,7 @@ func TestRemote_planPolicyHardFail(t *testing.T) {
 	if !strings.Contains(output, "Sentinel Result: false") {
 		t.Fatalf("expected policy check result in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }
@@ -1188,7 +1188,7 @@ func TestRemote_planPolicySoftFail(t *testing.T) {
 	if !strings.Contains(output, "Sentinel Result: false") {
 		t.Fatalf("expected policy check result in output: %s", output)
 	}
-	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+	if !strings.Contains(output, "1 to add, 0 to update, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
 }

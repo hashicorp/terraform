@@ -27,7 +27,7 @@ func (cs *ChangeSummary) String() string {
 	case OperationDestroyed:
 		return fmt.Sprintf("Destroy complete! Resources: %d destroyed.", cs.Remove)
 	case OperationPlanned:
-		return fmt.Sprintf("Plan: %d to add, %d to change, %d to destroy.", cs.Add, cs.Change, cs.Remove)
+		return fmt.Sprintf("Plan: %d to add, %d to update, %d to destroy.", cs.Add, cs.Change, cs.Remove)
 	default:
 		return fmt.Sprintf("%s: %d add, %d change, %d destroy", cs.Operation, cs.Add, cs.Change, cs.Remove)
 	}

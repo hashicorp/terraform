@@ -252,7 +252,7 @@ Terraform will perform the following actions:
       + address = (sensitive)
     }
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.
 ```
 
 In some cases where you use a sensitive variable inside a nested block, Terraform
@@ -296,7 +296,7 @@ If a resource attribute is used as, or part of, the provider-defined resource id
       + separator = "-"
     }
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.
 
 ...
 

@@ -18,4 +18,4 @@ Terraform will perform the following actions:
       id: <computed>
 
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.

@@ -330,7 +330,7 @@ Terraform will perform the following actions:
         # (1 unchanged block hidden)
     }
 
-Plan: 1 to add, 0 to change, 1 to destroy.`
+Plan: 1 to add, 0 to update, 1 to destroy.`
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output\ngot\n%s\n\nwant:\n%s", output, expectedOutput)
 	}
@@ -443,7 +443,7 @@ Terraform will perform the following actions:
         }
     }
 
-Plan: 1 to add, 0 to change, 1 to destroy.`
+Plan: 1 to add, 0 to update, 1 to destroy.`
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output:\n%s", output)
 	}
@@ -500,7 +500,7 @@ Terraform will perform the following actions:
         # (1 unchanged block hidden)
     }
 
-Plan: 1 to add, 0 to change, 1 to destroy.`
+Plan: 1 to add, 0 to update, 1 to destroy.`
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output:\n%s", output)
 	}
@@ -649,7 +649,7 @@ func TestLocal_planDestroy_withDataSources(t *testing.T) {
         }
     }
 
-Plan: 0 to add, 0 to change, 1 to destroy.`
+Plan: 0 to add, 0 to update, 1 to destroy.`
 
 	if output := done(t).Stdout(); !strings.Contains(output, expectedOutput) {
 		t.Fatalf("Unexpected output:\n%s", output)

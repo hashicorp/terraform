@@ -144,7 +144,7 @@ Terraform will perform the following actions:
       + some_attribute    = (sensitive)
     }
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.
 
 Changes to Outputs:
   + out = (sensitive value)

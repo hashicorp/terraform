@@ -300,7 +300,7 @@ Terraform will perform the following actions:
       + id  = (known after apply)
     }
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.
 `
 
 	if got := done(t).Stdout(); got != want {
@@ -447,7 +447,7 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@message": "Plan: 0 to add, 0 to update, 0 to destroy.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
@@ -614,7 +614,7 @@ func TestOperationJSON_plan(t *testing.T) {
 		// changes result in both add and destroy counts.
 		{
 			"@level":   "info",
-			"@message": "Plan: 3 to add, 1 to change, 3 to destroy.",
+			"@message": "Plan: 3 to add, 1 to update, 3 to destroy.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
@@ -750,7 +750,7 @@ func TestOperationJSON_planDriftWithMove(t *testing.T) {
 		// No changes
 		{
 			"@level":   "info",
-			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@message": "Plan: 0 to add, 0 to update, 0 to destroy.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
@@ -880,7 +880,7 @@ func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
 		// No changes
 		{
 			"@level":   "info",
-			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@message": "Plan: 0 to add, 0 to update, 0 to destroy.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
@@ -939,7 +939,7 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 		// No resource changes
 		{
 			"@level":   "info",
-			"@message": "Plan: 0 to add, 0 to change, 0 to destroy.",
+			"@message": "Plan: 0 to add, 0 to update, 0 to destroy.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{

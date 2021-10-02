@@ -267,7 +267,7 @@ Refreshing Terraform state in-memory prior to plan...
 
 # ...
 
-Plan: 1 to add, 0 to change, 0 to destroy.
+Plan: 1 to add, 0 to update, 0 to destroy.
 ```
 
 With the assistance of this plan output, team members can each work on
