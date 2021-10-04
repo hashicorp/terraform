@@ -59,10 +59,10 @@ func setTfeClient() {
 	hostname := os.Getenv("TFE_HOSTNAME")
 	token := os.Getenv("TFE_TOKEN")
 	if hostname == "" {
-		log.Fatalf("hostname cannot be empty")
+		log.Fatal("hostname cannot be empty")
 	}
 	if token == "" {
-		log.Fatalf("token cannot be empty")
+		log.Fatal("token cannot be empty")
 	}
 	tfeHostname = hostname
 	tfeToken = token
@@ -138,7 +138,9 @@ func setVersion() {
 
 	hash := string(out)[0:8]
 
-	terraformVersion = fmt.Sprintf("%s-%s", data["terraform_version"].(string), hash)
+	fullVersion := data["terraform_version"].(string)
+	version := strings.Split(fullVersion, "-")[0]
+	terraformVersion = fmt.Sprintf("%s-%s", version, hash)
 }
 
 func ensureVersionExists() {
