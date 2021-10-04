@@ -125,6 +125,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mozillazg/go-httpheader v0.3.0 // indirect
+	github.com/nishanths/exhaustive v0.2.3
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
@@ -158,11 +159,11 @@ require (
 	golang.org/x/mod v0.4.2
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
-	golang.org/x/sys v0.0.0-20210423082822-04245dca01da
+	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	golang.org/x/text v0.3.6
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
-	golang.org/x/tools v0.1.0
+	golang.org/x/tools v0.1.4
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/appengine v1.6.7 // indirect
