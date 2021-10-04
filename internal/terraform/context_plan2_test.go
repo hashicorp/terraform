@@ -1971,3 +1971,111 @@ func TestContext2Plan_forceReplaceIncompleteAddr(t *testing.T) {
 		}
 	})
 }
+
+// Verify that adding a module instance does force existing module data sources
+// to be deferred
+func TestContext2Plan_noChangeDataSourceAddingModuleInstance(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  data = {
+    a = "a"
+    b = "b"
+  }
+}
+
+module "one" {
+  source   = "./mod"
+  for_each = local.data
+  input = each.value
+}
+
+module "two" {
+  source   = "./mod"
+  for_each = module.one
+  input = each.value.output
+}
+`,
+		"mod/main.tf": `
+variable "input" {
+}
+
+resource "test_resource" "x" {
+  value = var.input
+}
+
+data "test_data_source" "d" {
+  foo = test_resource.x.id
+}
+
+output "output" {
+  value = test_resource.x.id
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("data"),
+			"foo": cty.StringVal("foo"),
+		}),
+	}
+	state := states.NewState()
+	modOne := addrs.RootModuleInstance.Child("one", addrs.StringKey("a"))
+	modTwo := addrs.RootModuleInstance.Child("two", addrs.StringKey("a"))
+	one := state.EnsureModule(modOne)
+	two := state.EnsureModule(modTwo)
+	one.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`test_resource.x`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","value":"a"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	one.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`data.test_data_source.d`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	two.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`test_resource.x`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","value":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	two.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr(`data.test_data_source.d`).Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"data"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	for _, res := range plan.Changes.Resources {
+		// both existing data sources should be read during plan
+		if res.Addr.Module[0].InstanceKey == addrs.StringKey("b") {
+			continue
+		}
+
+		if res.Addr.Resource.Resource.Mode == addrs.DataResourceMode && res.Action != plans.NoOp {
+			t.Errorf("unexpected %s plan for %s", res.Action, res.Addr)
+		}
+	}
+}
