@@ -34,8 +34,7 @@ import (
 const (
 	defaultHostname    = "app.terraform.io"
 	defaultParallelism = 10
-	stateServiceID     = "state.v2"
-	tfeServiceID       = "tfe.v2.1"
+	tfeServiceID       = "tfe.v2"
 )
 
 // Cloud is an implementation of EnhancedBackend in service of the Terraform Cloud/Enterprise
@@ -349,11 +348,6 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 // discover the TFC/E API service URL and version constraints.
 func (b *Cloud) discover() (*url.URL, error) {
-	serviceID := tfeServiceID
-	if b.forceLocal {
-		serviceID = stateServiceID
-	}
-
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return nil, err
@@ -364,7 +358,7 @@ func (b *Cloud) discover() (*url.URL, error) {
 		return nil, err
 	}
 
-	service, err := host.ServiceURL(serviceID)
+	service, err := host.ServiceURL(tfeServiceID)
 	// Return the error, unless its a disco.ErrVersionNotSupported error.
 	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
 		return nil, err
