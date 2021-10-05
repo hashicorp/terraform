@@ -10,7 +10,6 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -492,87 +491,6 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 	}
 }
 
-func TestCloud_versionConstraints(t *testing.T) {
-	cases := map[string]struct {
-		config     cty.Value
-		prerelease string
-		version    string
-		result     string
-	}{
-		"compatible version": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.NullVal(cty.String),
-				"organization": cty.StringVal("hashicorp"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":   cty.StringVal("prod"),
-					"prefix": cty.NullVal(cty.String),
-					"tags":   cty.NullVal(cty.Set(cty.String)),
-				}),
-			}),
-			version: "0.11.1",
-		},
-		"version too old": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.NullVal(cty.String),
-				"organization": cty.StringVal("hashicorp"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":   cty.StringVal("prod"),
-					"prefix": cty.NullVal(cty.String),
-					"tags":   cty.NullVal(cty.Set(cty.String)),
-				}),
-			}),
-			version: "0.0.1",
-			result:  "upgrade Terraform to >= 0.1.0",
-		},
-		"version too new": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.NullVal(cty.String),
-				"organization": cty.StringVal("hashicorp"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name":   cty.StringVal("prod"),
-					"prefix": cty.NullVal(cty.String),
-					"tags":   cty.NullVal(cty.Set(cty.String)),
-				}),
-			}),
-			version: "10.0.1",
-			result:  "downgrade Terraform to <= 10.0.0",
-		},
-	}
-
-	// Save and restore the actual version.
-	p := tfversion.Prerelease
-	v := tfversion.Version
-	defer func() {
-		tfversion.Prerelease = p
-		tfversion.Version = v
-	}()
-
-	for name, tc := range cases {
-		s := testServer(t)
-		b := New(testDisco(s))
-
-		// Set the version for this test.
-		tfversion.Prerelease = tc.prerelease
-		tfversion.Version = tc.version
-
-		// Validate
-		_, valDiags := b.PrepareConfig(tc.config)
-		if valDiags.HasErrors() {
-			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
-		}
-
-		// Configure
-		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() != nil || tc.result != "") &&
-			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.result)) {
-			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
-		}
-	}
-}
-
 func TestCloud_localBackend(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -679,108 +597,6 @@ func TestCloud_addAndRemoveWorkspacesWithPrefix(t *testing.T) {
 	expectedWorkspaces = []string(nil)
 	if !reflect.DeepEqual(states, expectedWorkspaces) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
-	}
-}
-
-func TestCloud_checkConstraints(t *testing.T) {
-	b, bCleanup := testBackendWithName(t)
-	defer bCleanup()
-
-	cases := map[string]struct {
-		constraints *disco.Constraints
-		prerelease  string
-		version     string
-		result      string
-	}{
-		"compatible version": {
-			constraints: &disco.Constraints{
-				Minimum: "0.11.0",
-				Maximum: "0.11.11",
-			},
-			version: "0.11.1",
-			result:  "",
-		},
-		"version too old": {
-			constraints: &disco.Constraints{
-				Minimum: "0.11.0",
-				Maximum: "0.11.11",
-			},
-			version: "0.10.1",
-			result:  "upgrade Terraform to >= 0.11.0",
-		},
-		"version too new": {
-			constraints: &disco.Constraints{
-				Minimum: "0.11.0",
-				Maximum: "0.11.11",
-			},
-			version: "0.12.0",
-			result:  "downgrade Terraform to <= 0.11.11",
-		},
-		"version excluded - ordered": {
-			constraints: &disco.Constraints{
-				Minimum:   "0.11.0",
-				Excluding: []string{"0.11.7", "0.11.8"},
-				Maximum:   "0.11.11",
-			},
-			version: "0.11.7",
-			result:  "upgrade Terraform to > 0.11.8",
-		},
-		"version excluded - unordered": {
-			constraints: &disco.Constraints{
-				Minimum:   "0.11.0",
-				Excluding: []string{"0.11.8", "0.11.6"},
-				Maximum:   "0.11.11",
-			},
-			version: "0.11.6",
-			result:  "upgrade Terraform to > 0.11.8",
-		},
-		"list versions": {
-			constraints: &disco.Constraints{
-				Minimum: "0.11.0",
-				Maximum: "0.11.11",
-			},
-			version: "0.10.1",
-			result:  "versions >= 0.11.0, <= 0.11.11.",
-		},
-		"list exclusion": {
-			constraints: &disco.Constraints{
-				Minimum:   "0.11.0",
-				Excluding: []string{"0.11.6"},
-				Maximum:   "0.11.11",
-			},
-			version: "0.11.6",
-			result:  "excluding version 0.11.6.",
-		},
-		"list exclusions": {
-			constraints: &disco.Constraints{
-				Minimum:   "0.11.0",
-				Excluding: []string{"0.11.8", "0.11.6"},
-				Maximum:   "0.11.11",
-			},
-			version: "0.11.6",
-			result:  "excluding versions 0.11.6, 0.11.8.",
-		},
-	}
-
-	// Save and restore the actual version.
-	p := tfversion.Prerelease
-	v := tfversion.Version
-	defer func() {
-		tfversion.Prerelease = p
-		tfversion.Version = v
-	}()
-
-	for name, tc := range cases {
-		// Set the version for this test.
-		tfversion.Prerelease = tc.prerelease
-		tfversion.Version = tc.version
-
-		// Check the constraints.
-		diags := b.checkConstraints(tc.constraints)
-		if (diags.Err() != nil || tc.result != "") &&
-			(diags.Err() == nil || !strings.Contains(diags.Err().Error(), tc.result)) {
-			t.Fatalf("%s: unexpected constraints result: %v", name, diags.Err())
-		}
 	}
 }
 

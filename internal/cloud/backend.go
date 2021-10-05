@@ -198,19 +198,9 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
-	// and to get the version constraints.
-	service, constraints, err := b.discover()
+	service, err := b.discover()
 
-	// First check any contraints we might have received.
-	if constraints != nil {
-		diags = diags.Append(b.checkConstraints(constraints))
-		if diags.HasErrors() {
-			return diags
-		}
-	}
-
-	// When we don't have any constraints errors, also check for discovery
-	// errors before we continue.
+	// Check for errors before we continue.
 	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -358,7 +348,7 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 }
 
 // discover the TFC/E API service URL and version constraints.
-func (b *Cloud) discover() (*url.URL, *disco.Constraints, error) {
+func (b *Cloud) discover() (*url.URL, error) {
 	serviceID := tfeServiceID
 	if b.forceLocal {
 		serviceID = stateServiceID
@@ -366,124 +356,21 @@ func (b *Cloud) discover() (*url.URL, *disco.Constraints, error) {
 
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	host, err := b.services.Discover(hostname)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	service, err := host.ServiceURL(serviceID)
 	// Return the error, unless its a disco.ErrVersionNotSupported error.
 	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	// We purposefully ignore the error and return the previous error, as
-	// checking for version constraints is considered optional.
-	constraints, _ := host.VersionConstraints(serviceID, "terraform")
-
-	return service, constraints, err
-}
-
-// checkConstraints checks service version constrains against our own
-// version and returns rich and informational diagnostics in case any
-// incompatibilities are detected.
-func (b *Cloud) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	if c == nil || c.Minimum == "" || c.Maximum == "" {
-		return diags
-	}
-
-	// Generate a parsable constraints string.
-	excluding := ""
-	if len(c.Excluding) > 0 {
-		excluding = fmt.Sprintf(", != %s", strings.Join(c.Excluding, ", != "))
-	}
-	constStr := fmt.Sprintf(">= %s%s, <= %s", c.Minimum, excluding, c.Maximum)
-
-	// Create the constraints to check against.
-	constraints, err := version.NewConstraint(constStr)
-	if err != nil {
-		return diags.Append(checkConstraintsWarning(err))
-	}
-
-	// Create the version to check.
-	v, err := version.NewVersion(tfversion.Version)
-	if err != nil {
-		return diags.Append(checkConstraintsWarning(err))
-	}
-
-	// Return if we satisfy all constraints.
-	if constraints.Check(v) {
-		return diags
-	}
-
-	// Find out what action (upgrade/downgrade) we should advice.
-	minimum, err := version.NewVersion(c.Minimum)
-	if err != nil {
-		return diags.Append(checkConstraintsWarning(err))
-	}
-
-	maximum, err := version.NewVersion(c.Maximum)
-	if err != nil {
-		return diags.Append(checkConstraintsWarning(err))
-	}
-
-	var excludes []*version.Version
-	for _, exclude := range c.Excluding {
-		v, err := version.NewVersion(exclude)
-		if err != nil {
-			return diags.Append(checkConstraintsWarning(err))
-		}
-		excludes = append(excludes, v)
-	}
-
-	// Sort all the excludes.
-	sort.Sort(version.Collection(excludes))
-
-	var action, toVersion string
-	switch {
-	case minimum.GreaterThan(v):
-		action = "upgrade"
-		toVersion = ">= " + minimum.String()
-	case maximum.LessThan(v):
-		action = "downgrade"
-		toVersion = "<= " + maximum.String()
-	case len(excludes) > 0:
-		// Get the latest excluded version.
-		action = "upgrade"
-		toVersion = "> " + excludes[len(excludes)-1].String()
-	}
-
-	switch {
-	case len(excludes) == 1:
-		excluding = fmt.Sprintf(", excluding version %s", excludes[0].String())
-	case len(excludes) > 1:
-		var vs []string
-		for _, v := range excludes {
-			vs = append(vs, v.String())
-		}
-		excluding = fmt.Sprintf(", excluding versions %s", strings.Join(vs, ", "))
-	default:
-		excluding = ""
-	}
-
-	summary := fmt.Sprintf("Incompatible Terraform version v%s", v.String())
-	details := fmt.Sprintf(
-		"The configured Terraform Enterprise backend is compatible with Terraform "+
-			"versions >= %s, <= %s%s.", c.Minimum, c.Maximum, excluding,
-	)
-
-	if action != "" && toVersion != "" {
-		summary = fmt.Sprintf("Please %s Terraform to %s", action, toVersion)
-		details += fmt.Sprintf(" Please %s to a supported version and try again.", action)
-	}
-
-	// Return the customized and informational error message.
-	return diags.Append(tfdiags.Sourceless(tfdiags.Error, summary, details))
+	return service, err
 }
 
 // token returns the token for this host as configured in the credentials
@@ -1061,15 +948,6 @@ func generalError(msg string, err error) error {
 		))
 		return diags.Err()
 	}
-}
-
-func checkConstraintsWarning(err error) tfdiags.Diagnostic {
-	return tfdiags.Sourceless(
-		tfdiags.Warning,
-		fmt.Sprintf("Failed to check version constraints: %v", err),
-		"Checking version constraints is considered optional, but this is an"+
-			"unexpected error which should be reported.",
-	)
 }
 
 // The newline in this error is to make it look good in the CLI!
