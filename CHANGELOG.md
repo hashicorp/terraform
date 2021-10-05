@@ -1,5 +1,9 @@
 ## 1.0.9 (Unreleased)
 
+BUG FIXES:
+
+core: Fix panic when planning new resources with nested object attributes [GH-29701]
+
 ## 1.0.8 (September 29, 2021)
 
 BUG FIXES:
