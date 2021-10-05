@@ -1640,6 +1640,54 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+
+		// data sources are planned with an unknown value
+		"unknown prior nested objects": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"list": {
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingList,
+										Attributes: map[string]*configschema.Attribute{
+											"foo": {
+												Type: cty.String,
+											},
+										},
+									},
+									Computed: true,
+								},
+							},
+						},
+						Computed: true,
+					},
+				},
+			},
+			cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"List": cty.List(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					})),
+				})),
+			})),
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"List": cty.List(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					})),
+				})),
+			})),
+			cty.UnknownVal(cty.Object(map[string]cty.Type{
+				"List": cty.List(cty.Object(map[string]cty.Type{
+					"list": cty.List(cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					})),
+				})),
+			})),
+		},
 	}
 
 	for name, test := range tests {
