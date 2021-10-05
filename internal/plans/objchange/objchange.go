@@ -37,7 +37,10 @@ func ProposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value 
 		// similar to the result of decoding an empty configuration block,
 		// which simplifies our handling of the top-level attributes/blocks
 		// below by giving us one non-null level of object to pull values from.
-		prior = AllBlockAttributesNull(schema)
+		//
+		// "All attributes null" happens to be the definition of EmptyValue for
+		// a Block, so we can just delegate to that
+		prior = schema.EmptyValue()
 	}
 	return proposedNew(schema, prior, config)
 }
@@ -258,12 +261,15 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 }
 
 func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, config cty.Value) map[string]cty.Value {
-	if prior.IsNull() {
-		prior = AllAttributesNull(attrs)
-	}
 	newAttrs := make(map[string]cty.Value, len(attrs))
 	for name, attr := range attrs {
-		priorV := prior.GetAttr(name)
+		var priorV cty.Value
+		if prior.IsNull() {
+			priorV = cty.NullVal(prior.Type().AttributeType(name))
+		} else {
+			priorV = prior.GetAttr(name)
+		}
+
 		configV := config.GetAttr(name)
 		var newV cty.Value
 		switch {
