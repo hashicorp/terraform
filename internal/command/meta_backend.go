@@ -753,10 +753,10 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
-		OneType: s.Backend.Type,
-		TwoType: "local",
-		One:     b,
-		Two:     localB,
+		SourceType:      s.Backend.Type,
+		DestinationType: "local",
+		Source:          b,
+		Destination:     localB,
 	})
 	if err != nil {
 		diags = diags.Append(err)
@@ -829,10 +829,10 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	if len(localStates) > 0 {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: "local",
-			TwoType: c.Type,
-			One:     localB,
-			Two:     b,
+			SourceType:      "local",
+			DestinationType: c.Type,
+			Source:          localB,
+			Destination:     b,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -944,10 +944,10 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
-		OneType: s.Backend.Type,
-		TwoType: c.Type,
-		One:     oldB,
-		Two:     b,
+		SourceType:      s.Backend.Type,
+		DestinationType: c.Type,
+		Source:          oldB,
+		Destination:     b,
 	})
 	if err != nil {
 		diags = diags.Append(err)
