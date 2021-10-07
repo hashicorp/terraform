@@ -141,6 +141,10 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
 
+		if !strings.HasPrefix(contents, "{") {
+			return fmt.Errorf("contents of credentials are invalid")
+		}
+
 		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
 	}
 
