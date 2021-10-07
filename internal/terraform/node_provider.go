@@ -37,6 +37,9 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	case walkValidate:
 		return diags.Append(n.ValidateProvider(ctx, provider))
 	case walkPlan, walkApply, walkDestroy:
+		// walkPlanDestroy is purposely skipped here, since the config is not
+		// evaluated, and the provider is not needed to create delete actions
+		// for all instances.
 		return diags.Append(n.ConfigureProvider(ctx, provider, false))
 	case walkImport:
 		return diags.Append(n.ConfigureProvider(ctx, provider, true))
