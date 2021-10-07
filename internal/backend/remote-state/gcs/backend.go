@@ -4,6 +4,7 @@ package gcs
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -141,7 +142,7 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error loading credentials: %s", err)
 		}
 
-		if !strings.HasPrefix(contents, "{") {
+		if !json.Valid([]byte(contents)) {
 			return fmt.Errorf("contents of credentials are invalid")
 		}
 
