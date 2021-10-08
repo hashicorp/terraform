@@ -33,6 +33,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 	)
 
 	p := simpleMockProvider()
+	p.ConfigureProvider(providers.ConfigureProviderRequest{})
 	ctx := &MockEvalContext{
 		StateState:               state.SyncWrapper(),
 		RefreshStateState:        state.DeepCopy().SyncWrapper(),
@@ -93,6 +94,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 	changes := plans.NewChanges()
 
 	p := simpleMockProvider()
+	p.ConfigureProvider(providers.ConfigureProviderRequest{})
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
 	}

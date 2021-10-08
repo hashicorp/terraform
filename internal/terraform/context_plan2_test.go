@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -419,7 +420,12 @@ resource "test_object" "a" {
 			},
 		},
 	}
+
+	// This is called from the first instance of this provider, so we can't
+	// check p.ReadResourceCalled after plan.
+	readResourceCalled := false
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		readResourceCalled = true
 		newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
 			if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "arg"}) {
 				return cty.StringVal("current"), nil
@@ -435,7 +441,10 @@ resource "test_object" "a" {
 			NewState: newVal,
 		}
 	}
+
+	upgradeResourceStateCalled := false
 	p.UpgradeResourceStateFn = func(req providers.UpgradeResourceStateRequest) (resp providers.UpgradeResourceStateResponse) {
+		upgradeResourceStateCalled = true
 		t.Logf("UpgradeResourceState %s", req.RawStateJSON)
 
 		// In the destroy-with-refresh codepath we end up calling
@@ -479,10 +488,10 @@ resource "test_object" "a" {
 	})
 	assertNoErrors(t, diags)
 
-	if !p.UpgradeResourceStateCalled {
+	if !upgradeResourceStateCalled {
 		t.Errorf("Provider's UpgradeResourceState wasn't called; should've been")
 	}
-	if !p.ReadResourceCalled {
+	if !readResourceCalled {
 		t.Errorf("Provider's ReadResource wasn't called; should've been")
 	}
 
@@ -682,7 +691,7 @@ func TestContext2Plan_destroyNoProviderConfig(t *testing.T) {
 	p.ValidateProviderConfigFn = func(req providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
 		v := req.Config.GetAttr("test_string")
 		if v.IsNull() || !v.IsKnown() || v.AsString() != "ok" {
-			resp.Diagnostics = resp.Diagnostics.Append(errors.New("invalid provider configuration"))
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("invalid provider configuration: %#v", req.Config))
 		}
 		return resp
 	}
