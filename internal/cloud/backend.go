@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -643,9 +644,16 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	case backend.OperationTypeApply:
 		f = b.opApply
 	case backend.OperationTypeRefresh:
-		return nil, fmt.Errorf(
-			"\n\nThe \"refresh\" operation is not supported when using Terraform Cloud. " +
-				"Use \"terraform apply -refresh-only\" instead.")
+		// The `terraform refresh` command has been deprecated in favor of `terraform apply -refresh-state`.
+		// Rather than respond with an error telling the user to run the other command we can just run
+		// that command instead. We will tell the user what we are doing, and then do it.
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(refreshToApplyRefresh) + "\n"))
+		}
+		op.PlanMode = plans.RefreshOnlyMode
+		op.PlanRefresh = true
+		op.AutoApprove = true
+		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
 			"\n\nTerraform Cloud does not support the %q operation.", op.Type)
@@ -981,6 +989,8 @@ const operationCanceled = `
 const operationNotCanceled = `
 [reset][red]The remote operation was not cancelled.[reset]
 `
+
+const refreshToApplyRefresh = `[bold][yellow]Proceeding with 'terraform apply -refresh-only -auto-approve'.[reset]`
 
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(

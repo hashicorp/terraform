@@ -87,7 +87,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
 	if b.CLI != nil {
 		header := planDefaultHeader
-		if op.Type == backend.OperationTypeApply {
+		if op.Type == backend.OperationTypeApply || op.Type == backend.OperationTypeRefresh {
 			header = applyDefaultHeader
 		}
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
