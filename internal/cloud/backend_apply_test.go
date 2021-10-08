@@ -321,38 +321,6 @@ func TestCloud_applyWithoutRefresh(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithoutRefreshIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendWithName(t)
-	defer bCleanup()
-
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
-	defer configCleanup()
-
-	b.client.SetFakeRemoteAPIVersion("2.3")
-
-	op.PlanRefresh = false
-	op.Workspace = testBackendSingleWorkspaceName
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("error starting operation: %v", err)
-	}
-
-	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
-	}
-
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "Planning without refresh is not supported") {
-		t.Fatalf("expected a not supported error, got: %v", errOutput)
-	}
-}
-
 func TestCloud_applyWithRefreshOnly(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -387,38 +355,6 @@ func TestCloud_applyWithRefreshOnly(t *testing.T) {
 		if diff := cmp.Diff(true, run.RefreshOnly); diff != "" {
 			t.Errorf("wrong RefreshOnly setting in the created run\n%s", diff)
 		}
-	}
-}
-
-func TestCloud_applyWithRefreshOnlyIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendWithName(t)
-	defer bCleanup()
-
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
-	defer configCleanup()
-
-	b.client.SetFakeRemoteAPIVersion("2.3")
-
-	op.PlanMode = plans.RefreshOnlyMode
-	op.Workspace = testBackendSingleWorkspaceName
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("error starting operation: %v", err)
-	}
-
-	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
-	}
-
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "Refresh-only mode is not supported") {
-		t.Fatalf("expected a not supported error, got: %v", errOutput)
 	}
 }
 
@@ -461,42 +397,6 @@ func TestCloud_applyWithTarget(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithTargetIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendWithName(t)
-	defer bCleanup()
-
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
-	defer configCleanup()
-
-	// Set the tfe client's RemoteAPIVersion to an empty string, to mimic
-	// API versions prior to 2.3.
-	b.client.SetFakeRemoteAPIVersion("")
-
-	addr, _ := addrs.ParseAbsResourceStr("null_resource.foo")
-
-	op.Targets = []addrs.Targetable{addr}
-	op.Workspace = testBackendSingleWorkspaceName
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("error starting operation: %v", err)
-	}
-
-	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
-	}
-
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "Resource targeting is not supported") {
-		t.Fatalf("expected a targeting error, got: %v", errOutput)
-	}
-}
-
 func TestCloud_applyWithReplace(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -533,40 +433,6 @@ func TestCloud_applyWithReplace(t *testing.T) {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.ReplaceAddrs); diff != "" {
 			t.Errorf("wrong ReplaceAddrs in the created run\n%s", diff)
 		}
-	}
-}
-
-func TestCloud_applyWithReplaceIncompatibleAPIVersion(t *testing.T) {
-	b, bCleanup := testBackendWithName(t)
-	defer bCleanup()
-
-	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
-	defer configCleanup()
-
-	b.client.SetFakeRemoteAPIVersion("2.3")
-
-	addr, _ := addrs.ParseAbsResourceInstanceStr("null_resource.foo")
-
-	op.ForceReplace = []addrs.AbsResourceInstance{addr}
-	op.Workspace = testBackendSingleWorkspaceName
-
-	run, err := b.Operation(context.Background(), op)
-	if err != nil {
-		t.Fatalf("error starting operation: %v", err)
-	}
-
-	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected apply operation to fail")
-	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
-	}
-
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "Planning resource replacements is not supported") {
-		t.Fatalf("expected a not supported error, got: %v", errOutput)
 	}
 }
 

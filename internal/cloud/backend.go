@@ -265,10 +265,10 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Failed to create the Terraform Enterprise client",
+			"Failed to create the Terraform Cloud/Enterprise client",
 			fmt.Sprintf(
 				`Encountered an unexpected error while creating the `+
-					`Terraform Enterprise client: %s.`, err,
+					`Terraform Cloud/Enterprise client: %s.`, err,
 			),
 		))
 		return diags
@@ -291,6 +291,25 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 			cty.Path{cty.GetAttrStep{Name: "organization"}},
 		))
 		return diags
+	}
+
+	// Check for the minimum version of Terraform Enterprise required.
+	//
+	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
+	// so if there's an error when parsing the RemoteAPIVersion, it's handled as
+	// equivalent to an API version < 2.3.
+	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
+	desiredAPIVersion, _ := version.NewVersion("2.5")
+
+	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported Terraform Enterprise version",
+			fmt.Sprintf(
+				`The 'cloud' option requires Terraform Enterprise %s or later.`,
+				apiToMinimumTFEVersion["2.5"],
+			),
+		))
 	}
 
 	// Configure a local backend for when we need to run operations locally.

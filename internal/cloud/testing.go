@@ -144,13 +144,13 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	// Configure the backend so the client is created.
 	newObj, valDiags := b.PrepareConfig(obj)
 	if len(valDiags) != 0 {
-		t.Fatal(valDiags.ErrWithWarnings())
+		t.Fatalf("testBackend: backend.PrepareConfig() failed: %s", valDiags.ErrWithWarnings())
 	}
 	obj = newObj
 
 	confDiags := b.Configure(obj)
 	if len(confDiags) != 0 {
-		t.Fatal(confDiags.ErrWithWarnings())
+		t.Fatalf("testBackend: backend.Configure() failed: %s", confDiags.ErrWithWarnings())
 	}
 
 	// Get a new mock client.
@@ -215,22 +215,42 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backend.Enhanced {
 	return b
 }
 
-// testServer returns a *httptest.Server used for local testing.
+// testServer returns a started *httptest.Server used for local testing with the default set of
+// request handlers.
 func testServer(t *testing.T) *httptest.Server {
-	mux := http.NewServeMux()
+	return testServerWithHandlers(testDefaultRequestHandlers)
+}
 
+// testServerWithHandlers returns a started *httptest.Server with the given set of request handlers
+// overriding any default request handlers (testDefaultRequestHandlers).
+func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.Request)) *httptest.Server {
+	mux := http.NewServeMux()
+	for route, handler := range handlers {
+		mux.HandleFunc(route, handler)
+	}
+	for route, handler := range testDefaultRequestHandlers {
+		if handlers[route] == nil {
+			mux.HandleFunc(route, handler)
+		}
+	}
+
+	return httptest.NewServer(mux)
+}
+
+// testDefaultRequestHandlers is a map of request handlers intended to be used in a request
+// multiplexer for a test server. A caller may use testServerWithHandlers to start a server with
+// this base set of routes, and override a particular route for whatever edge case is being tested.
+var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Request){
 	// Respond to service discovery calls.
-	mux.HandleFunc("/well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
+	"/well-known/terraform.json": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{
-  "state.v2": "/api/v2/",
-  "tfe.v2.1": "/api/v2/",
-  "versions.v1": "/v1/versions/"
+  "tfe.v2": "/api/v2/",
 }`)
-	})
+	},
 
 	// Respond to service version constraints calls.
-	mux.HandleFunc("/v1/versions/", func(w http.ResponseWriter, r *http.Request) {
+	"/v1/versions/": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, fmt.Sprintf(`{
   "service": "%s",
@@ -238,16 +258,16 @@ func testServer(t *testing.T) *httptest.Server {
   "minimum": "0.1.0",
   "maximum": "10.0.0"
 }`, path.Base(r.URL.Path)))
-	})
+	},
 
 	// Respond to pings to get the API version header.
-	mux.HandleFunc("/api/v2/ping", func(w http.ResponseWriter, r *http.Request) {
+	"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("TFP-API-Version", "2.4")
-	})
+		w.Header().Set("TFP-API-Version", "2.5")
+	},
 
 	// Respond to the initial query to read the hashicorp org entitlements.
-	mux.HandleFunc("/api/v2/organizations/hashicorp/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
+	"/api/v2/organizations/hashicorp/entitlement-set": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
 		io.WriteString(w, `{
   "data": {
@@ -263,10 +283,10 @@ func testServer(t *testing.T) *httptest.Server {
     }
   }
 }`)
-	})
+	},
 
 	// Respond to the initial query to read the no-operations org entitlements.
-	mux.HandleFunc("/api/v2/organizations/no-operations/entitlement-set", func(w http.ResponseWriter, r *http.Request) {
+	"/api/v2/organizations/no-operations/entitlement-set": func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.api+json")
 		io.WriteString(w, `{
   "data": {
@@ -282,11 +302,11 @@ func testServer(t *testing.T) *httptest.Server {
     }
   }
 }`)
-	})
+	},
 
 	// All tests that are assumed to pass will use the hashicorp organization,
 	// so for all other organization requests we will return a 404.
-	mux.HandleFunc("/api/v2/organizations/", func(w http.ResponseWriter, r *http.Request) {
+	"/api/v2/organizations/": func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		io.WriteString(w, `{
   "errors": [
@@ -296,18 +316,14 @@ func testServer(t *testing.T) *httptest.Server {
     }
   ]
 }`)
-	})
-
-	return httptest.NewServer(mux)
+	},
 }
 
 // testDisco returns a *disco.Disco mapping app.terraform.io and
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
-		"state.v2":    fmt.Sprintf("%s/api/v2/", s.URL),
-		"tfe.v2.1":    fmt.Sprintf("%s/api/v2/", s.URL),
-		"versions.v1": fmt.Sprintf("%s/v1/versions/", s.URL),
+		"tfe.v2": fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
 	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -91,75 +90,6 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				`flag or create a single empty configuration file. Otherwise, please create `+
 				`a Terraform configuration file in the path being executed and try again.`,
 		))
-	}
-
-	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
-	// so if there's an error when parsing the RemoteAPIVersion, it's handled as
-	// equivalent to an API version < 2.3.
-	currentAPIVersion, parseErr := version.NewVersion(b.client.RemoteAPIVersion())
-
-	if len(op.Targets) != 0 {
-		desiredAPIVersion, _ := version.NewVersion("2.3")
-
-		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Resource targeting is not supported",
-				fmt.Sprintf(
-					`The Terraform Enterprise installation at %s does not support the -target option for `+
-						`remote plans.`,
-					b.hostname,
-				),
-			))
-		}
-	}
-
-	if !op.PlanRefresh {
-		desiredAPIVersion, _ := version.NewVersion("2.4")
-
-		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Planning without refresh is not supported",
-				fmt.Sprintf(
-					`The Terraform Enterprise installation at %s does not support the -refresh=false option for `+
-						`remote plans.`,
-					b.hostname,
-				),
-			))
-		}
-	}
-
-	if len(op.ForceReplace) != 0 {
-		desiredAPIVersion, _ := version.NewVersion("2.4")
-
-		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Planning resource replacements is not supported",
-				fmt.Sprintf(
-					`The Terraform Enterprise installation at %s does not support the -replace option for `+
-						`remote plans.`,
-					b.hostname,
-				),
-			))
-		}
-	}
-
-	if op.PlanMode == plans.RefreshOnlyMode {
-		desiredAPIVersion, _ := version.NewVersion("2.4")
-
-		if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Refresh-only mode is not supported",
-				fmt.Sprintf(
-					`The Terraform Enterprise installation at %s does not support -refresh-only mode for `+
-						`remote plans.`,
-					b.hostname,
-				),
-			))
-		}
 	}
 
 	// Return if there are any errors.
