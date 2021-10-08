@@ -143,7 +143,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 
 		if !json.Valid([]byte(contents)) {
-			return fmt.Errorf("contents of credentials are invalid")
+			return fmt.Errorf("contents of credentials are invalid json")
 		}
 
 		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
