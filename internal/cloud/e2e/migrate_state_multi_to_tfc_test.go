@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -168,7 +167,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		fmt.Println("Test: ", name)
+		t.Log("Test: ", name)
 		organization, cleanup := createOrganization(t)
 		defer cleanup()
 		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
@@ -192,6 +191,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			op.prep(t, organization.Name, tf.WorkDir())
 			for _, tfCmd := range op.commands {
 				t.Log("Running commands: ", tfCmd.command)
+				tfCmd.command = append(tfCmd.command, "-ignore-remote-version")
 				cmd := tf.Cmd(tfCmd.command...)
 				cmd.Stdin = exp.Tty()
 				cmd.Stdout = exp.Tty()
@@ -357,7 +357,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		fmt.Println("Test: ", name)
+		t.Log("Test: ", name)
 		organization, cleanup := createOrganization(t)
 		t.Log(organization.Name)
 		defer cleanup()

@@ -56,14 +56,23 @@ func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 	}
 }
 
-func createWorkspace(t *testing.T, org *tfe.Organization, wOpts tfe.WorkspaceCreateOptions) *tfe.Workspace {
+func createWorkspace(t *testing.T, orgName string, wOpts tfe.WorkspaceCreateOptions) *tfe.Workspace {
 	ctx := context.Background()
-	w, err := tfeClient.Workspaces.Create(ctx, org.Name, wOpts)
+	w, err := tfeClient.Workspaces.Create(ctx, orgName, wOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	return w
+}
+
+func getWorkspace(workspaces []*tfe.Workspace, workspace string) (*tfe.Workspace, bool) {
+	for _, ws := range workspaces {
+		if ws.Name == workspace {
+			return ws, false
+		}
+	}
+	return nil, true
 }
 
 func randomString(t *testing.T) string {
@@ -85,6 +94,44 @@ output "val" {
   value = "${terraform.workspace}"
 }
 `)
+}
+
+func terraformConfigRemoteBackendName(org, name string) string {
+	return fmt.Sprintf(`
+terraform {
+  backend "remote" {
+    hostname = "%s"
+    organization = "%s"
+
+    workspaces {
+      name = "%s"
+    }
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, org, name)
+}
+
+func terraformConfigRemoteBackendPrefix(org, prefix string) string {
+	return fmt.Sprintf(`
+terraform {
+  backend "remote" {
+    hostname = "%s"
+    organization = "%s"
+
+    workspaces {
+      prefix = "%s"
+    }
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, org, prefix)
 }
 
 func terraformConfigCloudBackendTags(org, tag string) string {

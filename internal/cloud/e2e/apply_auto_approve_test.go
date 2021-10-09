@@ -29,7 +29,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					TerraformVersion: tfe.String(terraformVersion),
 					AutoApply:        tfe.Bool(false),
 				}
-				workspace := createWorkspace(t, org, wOpts)
+				workspace := createWorkspace(t, org.Name, wOpts)
 				cleanup := func() {
 					defer orgCleanup()
 				}
@@ -73,7 +73,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					TerraformVersion: tfe.String(terraformVersion),
 					AutoApply:        tfe.Bool(true),
 				}
-				workspace := createWorkspace(t, org, wOpts)
+				workspace := createWorkspace(t, org.Name, wOpts)
 				cleanup := func() {
 					defer orgCleanup()
 				}
@@ -117,7 +117,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					TerraformVersion: tfe.String(terraformVersion),
 					AutoApply:        tfe.Bool(false),
 				}
-				workspace := createWorkspace(t, org, wOpts)
+				workspace := createWorkspace(t, org.Name, wOpts)
 				cleanup := func() {
 					defer orgCleanup()
 				}
@@ -162,7 +162,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					TerraformVersion: tfe.String(terraformVersion),
 					AutoApply:        tfe.Bool(true),
 				}
-				workspace := createWorkspace(t, org, wOpts)
+				workspace := createWorkspace(t, org.Name, wOpts)
 				cleanup := func() {
 					defer orgCleanup()
 				}
