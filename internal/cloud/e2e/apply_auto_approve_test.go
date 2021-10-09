@@ -42,14 +42,14 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:        []string{"init"},
-					expectedOutput: "Terraform has been successfully initialized",
-					expectedErr:    "",
+					command:           []string{"init"},
+					expectedCmdOutput: "Terraform has been successfully initialized",
+					expectedErr:       "",
 				},
 				{
-					command:        []string{"apply"},
-					expectedOutput: "Do you want to perform these actions in workspace",
-					expectedErr:    "Error asking approve",
+					command:           []string{"apply"},
+					expectedCmdOutput: "Do you want to perform these actions in workspace",
+					expectedErr:       "Error asking approve",
 				},
 			},
 			validations: func(t *testing.T, orgName, wsName string) {
@@ -86,14 +86,14 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:        []string{"init"},
-					expectedOutput: "Terraform has been successfully initialized",
-					expectedErr:    "",
+					command:           []string{"init"},
+					expectedCmdOutput: "Terraform has been successfully initialized",
+					expectedErr:       "",
 				},
 				{
-					command:        []string{"apply"},
-					expectedOutput: "Do you want to perform these actions in workspace",
-					expectedErr:    "Error asking approve",
+					command:           []string{"apply"},
+					expectedCmdOutput: "Do you want to perform these actions in workspace",
+					expectedErr:       "Error asking approve",
 				},
 			},
 			validations: func(t *testing.T, orgName, wsName string) {
@@ -130,14 +130,14 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:        []string{"init"},
-					expectedOutput: "Terraform has been successfully initialized",
-					expectedErr:    "",
+					command:           []string{"init"},
+					expectedCmdOutput: "Terraform has been successfully initialized",
+					expectedErr:       "",
 				},
 				{
-					command:        []string{"apply", "-auto-approve"},
-					expectedOutput: "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
-					expectedErr:    "",
+					command:           []string{"apply", "-auto-approve"},
+					expectedCmdOutput: "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+					expectedErr:       "",
 				},
 			},
 			validations: func(t *testing.T, orgName, wsName string) {
@@ -175,14 +175,14 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:        []string{"init"},
-					expectedOutput: "Terraform has been successfully initialized",
-					expectedErr:    "",
+					command:           []string{"init"},
+					expectedCmdOutput: "Terraform has been successfully initialized",
+					expectedErr:       "",
 				},
 				{
-					command:        []string{"apply", "-auto-approve"},
-					expectedOutput: "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
-					expectedErr:    "",
+					command:           []string{"apply", "-auto-approve"},
+					expectedCmdOutput: "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+					expectedErr:       "",
 				},
 			},
 			validations: func(t *testing.T, orgName, wsName string) {
@@ -228,8 +228,8 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				}
 			}
 
-			if cmd.expectedOutput != "" && !strings.Contains(stdout, cmd.expectedOutput) {
-				t.Fatalf("Expected to find output %s, but did not find in\n%s", cmd.expectedOutput, stdout)
+			if cmd.expectedCmdOutput != "" && !strings.Contains(stdout, cmd.expectedCmdOutput) {
+				t.Fatalf("Expected to find output %s, but did not find in\n%s", cmd.expectedCmdOutput, stdout)
 			}
 		}
 

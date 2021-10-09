@@ -1,3 +1,6 @@
+//go:build e2e
+// +build e2e
+
 package main
 
 import (
@@ -23,9 +26,34 @@ import (
 
 */
 func Test_migrate_remote_backend_name_to_tfc(t *testing.T) {
-	t.Skip("todo: see comments")
+	t.Skip("TODO: see comments")
+	_ = map[string]struct {
+		operations  []operationSets
+		validations func(t *testing.T, orgName string)
+	}{
+		"single workspace with backend name strategy, to cloud with name strategy": {},
+		"single workspace with backend name strategy, to cloud with tags strategy": {},
+	}
 }
 
-func Test_migrate_remote_backend_prefix_to_tfc(t *testing.T) {
-	t.Skip("todo: see comments")
+func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
+	t.Skip("TODO: see comments")
+	_ = map[string]struct {
+		operations  []operationSets
+		validations func(t *testing.T, orgName string)
+	}{
+		"single workspace with backend prefix strategy, to cloud with name strategy":    {},
+		"multiple workspaces with backend prefix strategy, to cloud with name strategy": {},
+	}
+}
+
+func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
+	t.Skip("TODO: see comments")
+	_ = map[string]struct {
+		operations  []operationSets
+		validations func(t *testing.T, orgName string)
+	}{
+		"single workspace with backend prefix strategy, to cloud with tags strategy":    {},
+		"multiple workspaces with backend prefix strategy, to cloud with tags strategy": {},
+	}
 }

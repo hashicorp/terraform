@@ -19,12 +19,12 @@ const (
 )
 
 type tfCommand struct {
-	command         []string
-	expectedOutput  string
-	expectedErr     string
-	expectError     bool
-	userInput       []string
-	postInputOutput string
+	command           []string
+	expectedCmdOutput string
+	expectedErr       string
+	expectError       bool
+	userInput         []string
+	postInputOutput   []string
 }
 
 type operationSets struct {

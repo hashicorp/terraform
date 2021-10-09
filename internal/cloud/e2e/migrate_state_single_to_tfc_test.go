@@ -31,14 +31,14 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:        []string{"init"},
-							expectedOutput: `Successfully configured the backend "local"!`,
+							command:           []string{"init"},
+							expectedCmdOutput: `Successfully configured the backend "local"!`,
 						},
 						{
-							command:         []string{"apply"},
-							userInput:       []string{"yes"},
-							expectedOutput:  `Do you want to perform these actions?`,
-							postInputOutput: `Apply complete!`,
+							command:           []string{"apply"},
+							expectedCmdOutput: `Do you want to perform these actions?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Apply complete!`},
 						},
 					},
 				},
@@ -50,14 +50,14 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:         []string{"init", "-migrate-state"},
-							expectedOutput:  `Do you want to copy existing state to the new backend?`,
-							userInput:       []string{"yes"},
-							postInputOutput: `Successfully configured the backend "cloud"!`,
+							command:           []string{"init", "-migrate-state"},
+							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Successfully configured the backend "cloud"!`},
 						},
 						{
-							command:        []string{"workspace", "list"},
-							expectedOutput: `new-workspace`,
+							command:           []string{"workspace", "list"},
+							expectedCmdOutput: `new-workspace`,
 						},
 					},
 				},
@@ -82,14 +82,14 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:        []string{"init"},
-							expectedOutput: `Successfully configured the backend "local"!`,
+							command:           []string{"init"},
+							expectedCmdOutput: `Successfully configured the backend "local"!`,
 						},
 						{
-							command:         []string{"apply"},
-							userInput:       []string{"yes"},
-							expectedOutput:  `Do you want to perform these actions?`,
-							postInputOutput: `Apply complete!`,
+							command:           []string{"apply"},
+							expectedCmdOutput: `Do you want to perform these actions?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Apply complete!`},
 						},
 					},
 				},
@@ -101,14 +101,14 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:         []string{"init", "-migrate-state"},
-							expectedOutput:  `The "cloud" backend configuration only allows named workspaces!`,
-							userInput:       []string{"new-workspace", "yes"},
-							postInputOutput: `Successfully configured the backend "cloud"!`,
+							command:           []string{"init", "-migrate-state"},
+							expectedCmdOutput: `The "cloud" backend configuration only allows named workspaces!`,
+							userInput:         []string{"new-workspace", "yes"},
+							postInputOutput:   []string{`Successfully configured the backend "cloud"!`},
 						},
 						{
-							command:        []string{"workspace", "list"},
-							expectedOutput: `new-workspace`,
+							command:           []string{"workspace", "list"},
+							expectedCmdOutput: `new-workspace`,
 						},
 					},
 				},
@@ -162,23 +162,28 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				if tfCmd.expectedOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedOutput)
+				if tfCmd.expectedCmdOutput != "" {
+					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 					if err != nil {
 						t.Fatal(err)
 					}
 				}
 
-				if len(tfCmd.userInput) > 0 {
-					for _, input := range tfCmd.userInput {
+				lenInput := len(tfCmd.userInput)
+				lenInputOutput := len(tfCmd.postInputOutput)
+				if lenInput > 0 {
+					for i := 0; i <= lenInput; i++ {
+						input := tfCmd.userInput[i]
 						exp.SendLine(input)
-					}
-				}
-
-				if tfCmd.postInputOutput != "" {
-					_, err := exp.ExpectString(tfCmd.postInputOutput)
-					if err != nil {
-						t.Fatal(err)
+						// use the index to find the corresponding
+						// output that matches the input.
+						if lenInputOutput-1 >= i {
+							output := tfCmd.postInputOutput[i]
+							_, err := exp.ExpectString(output)
+							if err != nil {
+								t.Fatal(err)
+							}
+						}
 					}
 				}
 
