@@ -159,7 +159,7 @@ func TestCloud_planLongLine(t *testing.T) {
 }
 
 func TestCloud_planWithoutPermissions(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	// Create a named workspace without permissions.
@@ -167,7 +167,7 @@ func TestCloud_planWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String("prod"),
 		},
 	)
 	if err != nil {
@@ -639,7 +639,7 @@ func TestCloud_planWithoutOperationsEntitlement(t *testing.T) {
 }
 
 func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	ctx := context.Background()
@@ -649,7 +649,7 @@ func TestCloud_planWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "no-operations"),
+			Name: tfe.String("no-operations"),
 		},
 	)
 	if err != nil {

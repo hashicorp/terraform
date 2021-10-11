@@ -143,7 +143,7 @@ func TestCloud_applyCanceled(t *testing.T) {
 }
 
 func TestCloud_applyWithoutPermissions(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	// Create a named workspace without permissions.
@@ -151,7 +151,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String("prod"),
 		},
 	)
 	if err != nil {
@@ -183,7 +183,7 @@ func TestCloud_applyWithoutPermissions(t *testing.T) {
 }
 
 func TestCloud_applyWithVCS(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	// Create a named workspace with a VCS.
@@ -191,7 +191,7 @@ func TestCloud_applyWithVCS(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name:    tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name:    tfe.String("prod"),
 			VCSRepo: &tfe.VCSRepoOptions{},
 		},
 	)
@@ -774,7 +774,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 }
 
 func TestCloud_applyWithAutoApprove(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
@@ -790,7 +790,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String("prod"),
 		},
 	)
 	if err != nil {
@@ -896,7 +896,7 @@ func TestCloud_applyForceLocal(t *testing.T) {
 }
 
 func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
-	b, bCleanup := testBackendWithPrefix(t)
+	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	ctx := context.Background()
@@ -906,7 +906,7 @@ func TestCloud_applyWorkspaceWithoutOperations(t *testing.T) {
 		ctx,
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "no-operations"),
+			Name: tfe.String("no-operations"),
 		},
 	)
 	if err != nil {
@@ -1360,7 +1360,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 		context.Background(),
 		b.organization,
 		tfe.WorkspaceCreateOptions{
-			Name: tfe.String(b.WorkspaceMapping.Prefix + "prod"),
+			Name: tfe.String("prod"),
 		},
 	)
 	if err != nil {

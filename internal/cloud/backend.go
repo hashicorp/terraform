@@ -128,11 +128,6 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 							Optional:    true,
 							Description: schemaDescriptionName,
 						},
-						"prefix": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: schemaDescriptionPrefix,
-						},
 						"tags": {
 							Type:        cty.Set(cty.String),
 							Optional:    true,
@@ -162,9 +157,6 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
 			WorkspaceMapping.Name = val.AsString()
 		}
-		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			WorkspaceMapping.Prefix = val.AsString()
-		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
 			if err != nil {
@@ -177,7 +169,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// Make sure have a workspace mapping strategy present
 	case WorkspaceNoneStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMissingValues)
-	// Make sure that only one of workspace name or a prefix is configured.
+	// Make sure that a workspace name is configured.
 	case WorkspaceInvalidStrategy:
 		diags = diags.Append(invalidWorkspaceConfigMisconfiguration)
 	}
@@ -339,15 +331,12 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Get the workspaces configuration block and retrieve the
-	// default workspace name and prefix.
+	// default workspace name.
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 
 		// PrepareConfig checks that you cannot set both of these.
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
 			b.WorkspaceMapping.Name = val.AsString()
-		}
-		if val := workspaces.GetAttr("prefix"); !val.IsNull() {
-			b.WorkspaceMapping.Prefix = val.AsString()
 		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			var tags []string
@@ -447,10 +436,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 	// Otherwise, multiple workspaces are being mapped. Query Terraform Cloud for all the remote
 	// workspaces by the provided mapping strategy.
 	options := tfe.WorkspaceListOptions{}
-	switch b.WorkspaceMapping.Strategy() {
-	case WorkspacePrefixStrategy:
-		options.Search = tfe.String(b.WorkspaceMapping.Prefix)
-	case WorkspaceTagsStrategy:
+	if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
 		taglist := strings.Join(b.WorkspaceMapping.Tags, ",")
 		options.Tags = &taglist
 	}
@@ -462,18 +448,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		}
 
 		for _, w := range wl.Items {
-			switch b.WorkspaceMapping.Strategy() {
-			case WorkspacePrefixStrategy:
-				if strings.HasPrefix(w.Name, b.WorkspaceMapping.Prefix) {
-					names = append(names, strings.TrimPrefix(w.Name, b.WorkspaceMapping.Prefix))
-					continue
-				}
-			default:
-				// Pass-through. The "prefix" strategy is naive and does
-				// client-side filtering, but for tags and any other future
-				// strategy this filtering should be left to the API.
-				names = append(names, w.Name)
-			}
+			names = append(names, w.Name)
 		}
 
 		// Exit the loop when we've seen all pages.
@@ -502,11 +477,6 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 	}
 
 	// Configure the remote workspace name.
-	switch {
-	case b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy && !strings.HasPrefix(name, b.WorkspaceMapping.Prefix):
-		name = b.WorkspaceMapping.Prefix + name
-	}
-
 	client := &remoteClient{
 		client:       b.client,
 		organization: b.organization,
@@ -526,11 +496,6 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy && name != b.WorkspaceMapping.Name {
 		return nil, backend.ErrWorkspacesNotSupported
-	}
-
-	// If the prefix strategy is used, translate the local name to the TFC workspace name.
-	if b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy {
-		name = b.WorkspaceMapping.Prefix + name
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
@@ -587,11 +552,6 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 // Operation implements backend.Enhanced.
 func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
 	name := op.Workspace
-
-	// If the prefix strategy is used, translate the local name to the TFC workspace name.
-	if b.WorkspaceMapping.Strategy() == WorkspacePrefixStrategy {
-		name = b.WorkspaceMapping.Prefix + op.Workspace
-	}
 
 	// Retrieve the workspace for this operation.
 	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
@@ -908,9 +868,8 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 }
 
 type WorkspaceMapping struct {
-	Name   string
-	Prefix string
-	Tags   []string
+	Name string
+	Tags []string
 }
 
 type workspaceStrategy string
@@ -918,20 +877,17 @@ type workspaceStrategy string
 const (
 	WorkspaceTagsStrategy    workspaceStrategy = "tags"
 	WorkspaceNameStrategy    workspaceStrategy = "name"
-	WorkspacePrefixStrategy  workspaceStrategy = "prefix"
 	WorkspaceNoneStrategy    workspaceStrategy = "none"
 	WorkspaceInvalidStrategy workspaceStrategy = "invalid"
 )
 
 func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 	switch {
-	case len(wm.Tags) > 0 && wm.Name == "" && wm.Prefix == "":
+	case len(wm.Tags) > 0 && wm.Name == "":
 		return WorkspaceTagsStrategy
-	case len(wm.Tags) == 0 && wm.Name != "" && wm.Prefix == "":
+	case len(wm.Tags) == 0 && wm.Name != "":
 		return WorkspaceNameStrategy
-	case len(wm.Tags) == 0 && wm.Name == "" && wm.Prefix != "":
-		return WorkspacePrefixStrategy
-	case len(wm.Tags) == 0 && wm.Name == "" && wm.Prefix == "":
+	case len(wm.Tags) == 0 && wm.Name == "":
 		return WorkspaceNoneStrategy
 	default:
 		// Any other combination is invalid as each strategy is mutually exclusive
@@ -999,9 +955,7 @@ configuration to workspaces within a Terraform Cloud organization. Three strateg
 
 [bold]tags[reset] - %s
 
-[bold]name[reset] - %s
-
-[bold]prefix[reset] - %s`, schemaDescriptionTags, schemaDescriptionName, schemaDescriptionPrefix)
+[bold]name[reset] - %s`, schemaDescriptionTags, schemaDescriptionName)
 
 	schemaDescriptionHostname = `The Terraform Enterprise hostname to connect to. This optional argument defaults to app.terraform.io
 for use with Terraform Cloud.`
@@ -1014,11 +968,8 @@ configuration file or configured credential helper.`
 
 	schemaDescriptionTags = `A set of tags used to select remote Terraform Cloud workspaces to be used for this single
 configuration.  New workspaces will automatically be tagged with these tag values.  Generally, this
-is the primary and recommended strategy to use.  This option conflicts with "prefix" and "name".`
+is the primary and recommended strategy to use.  This option conflicts with "name".`
 
 	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration When configured
-only the specified workspace can be used. This option conflicts with "tags" and "prefix".`
-
-	schemaDescriptionPrefix = `DEPRECATED. A name prefix used to select remote Terraform Cloud to be used for this single configuration. New
-workspaces will automatically be prefixed with this prefix. This option conflicts with "tags" and "name".`
+only the specified workspace can be used. This option conflicts with "tags".`
 )

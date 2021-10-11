@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2"
@@ -140,12 +139,8 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 func (b *Cloud) getRemoteWorkspaceName(localWorkspaceName string) string {
 	switch {
 	case localWorkspaceName == backend.DefaultStateName:
-		// The default workspace name is a special case, for when the backend
-		// is configured to with to an exact remote workspace rather than with
-		// a remote workspace _prefix_.
+		// The default workspace name is a special case
 		return b.WorkspaceMapping.Name
-	case b.WorkspaceMapping.Prefix != "" && !strings.HasPrefix(localWorkspaceName, b.WorkspaceMapping.Prefix):
-		return b.WorkspaceMapping.Prefix + localWorkspaceName
 	default:
 		return localWorkspaceName
 	}

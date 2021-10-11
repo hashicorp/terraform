@@ -18,14 +18,14 @@ var (
 	invalidWorkspaceConfigMissingValues = tfdiags.AttributeValue(
 		tfdiags.Error,
 		"Invalid workspaces configuration",
-		fmt.Sprintf("Missing workspace mapping strategy. Either workspace \"tags\", \"name\", or \"prefix\" is required.\n\n%s", workspaceConfigurationHelp),
+		fmt.Sprintf("Missing workspace mapping strategy. Either workspace \"tags\" or \"name\" is required.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
 
 	invalidWorkspaceConfigMisconfiguration = tfdiags.AttributeValue(
 		tfdiags.Error,
 		"Invalid workspaces configuration",
-		fmt.Sprintf("Only one of workspace \"tags\", \"name\", or \"prefix\" is allowed.\n\n%s", workspaceConfigurationHelp),
+		fmt.Sprintf("Only one of workspace \"tags\" or \"name\" is allowed.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
 )

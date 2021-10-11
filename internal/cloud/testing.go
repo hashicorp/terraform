@@ -71,23 +71,8 @@ func testBackendWithName(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.StringVal(testBackendSingleWorkspaceName),
-			"prefix": cty.NullVal(cty.String),
-			"tags":   cty.NullVal(cty.Set(cty.String)),
-		}),
-	})
-	return testBackend(t, obj)
-}
-
-func testBackendWithPrefix(t *testing.T) (*Cloud, func()) {
-	obj := cty.ObjectVal(map[string]cty.Value{
-		"hostname":     cty.NullVal(cty.String),
-		"organization": cty.StringVal("hashicorp"),
-		"token":        cty.NullVal(cty.String),
-		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.NullVal(cty.String),
-			"prefix": cty.StringVal("my-app-"),
-			"tags":   cty.NullVal(cty.Set(cty.String)),
+			"name": cty.StringVal(testBackendSingleWorkspaceName),
+			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
 	return testBackend(t, obj)
@@ -99,8 +84,7 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.NullVal(cty.String),
-			"prefix": cty.NullVal(cty.String),
+			"name": cty.NullVal(cty.String),
 			"tags": cty.SetVal(
 				[]cty.Value{
 					cty.StringVal("billing"),
@@ -117,9 +101,8 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("no-operations"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name":   cty.StringVal(testBackendSingleWorkspaceName),
-			"prefix": cty.NullVal(cty.String),
-			"tags":   cty.NullVal(cty.Set(cty.String)),
+			"name": cty.StringVal(testBackendSingleWorkspaceName),
+			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
 	return testBackend(t, obj)
