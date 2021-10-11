@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -29,6 +30,11 @@ type tfCommand struct {
 type operationSets struct {
 	commands []tfCommand
 	prep     func(t *testing.T, orgName, dir string)
+}
+
+type testCases map[string]struct {
+	operations  []operationSets
+	validations func(t *testing.T, orgName string)
 }
 
 func createOrganization(t *testing.T) (*tfe.Organization, func()) {
@@ -125,4 +131,16 @@ resource "random_pet" "server" {
   length = 3
 }
 `, tfeHostname, org, name)
+}
+
+func writeMainTF(t *testing.T, block string, dir string) {
+	f, err := os.Create(fmt.Sprintf("%s/main.tf", dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = f.WriteString(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
 }

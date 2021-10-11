@@ -5,10 +5,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"strings"
 	"testing"
 
@@ -237,16 +235,4 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 
 		tc.validations(t, orgName, wsName)
 	}
-}
-
-func writeMainTF(t *testing.T, block string, dir string) {
-	f, err := os.Create(fmt.Sprintf("%s/main.tf", dir))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = f.WriteString(block)
-	if err != nil {
-		t.Fatal(err)
-	}
-	f.Close()
 }
