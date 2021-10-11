@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -104,7 +103,9 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 							command:           []string{"init", "-migrate-state"},
 							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"new-workspace", "yes"},
-							postInputOutput:   []string{`Successfully configured Terraform Cloud!`},
+							postInputOutput: []string{
+								`Do you want to copy existing state to the new backend?`,
+								`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -129,7 +130,7 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		fmt.Println("Test: ", name)
+		t.Log("Test: ", name)
 		organization, cleanup := createOrganization(t)
 		defer cleanup()
 		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))

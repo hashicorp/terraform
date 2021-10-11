@@ -67,7 +67,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
+								`Do you want to copy existing state to Terraform Cloud?`,
 								`Successfully configured Terraform Cloud!`},
 						},
 						{
@@ -138,8 +138,8 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured Terraform Cloud!`},
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},

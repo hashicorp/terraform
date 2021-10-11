@@ -4,7 +4,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,7 +15,6 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 )
 
-var terraformVersion string
 var terraformBin string
 var cliConfigFileEnv string
 
@@ -46,7 +44,6 @@ func accTest() bool {
 func setup() func() {
 	setTfeClient()
 	teardown := setupBinary()
-	setVersion()
 
 	return func() {
 		teardown()
@@ -115,30 +112,6 @@ func setupBinary() func() {
 	return func() {
 		os.RemoveAll(tmpTerraformBinaryDir)
 	}
-}
-
-func setVersion() {
-	log.Println("Retrieving version")
-	cmd := exec.Command(terraformBin, "version", "-json")
-	out, err := cmd.Output()
-	if err != nil {
-		log.Fatal(fmt.Sprintf("Could not output terraform version: %v", err))
-	}
-	var data map[string]interface{}
-	if err := json.Unmarshal(out, &data); err != nil {
-		log.Fatal(fmt.Sprintf("Could not unmarshal version output: %v", err))
-	}
-
-	out, err = exec.Command("git", "rev-parse", "HEAD").Output()
-	if err != nil {
-		log.Fatal(fmt.Sprintf("Could not execute go build command: %v", err))
-	}
-
-	hash := string(out)[0:8]
-
-	fullVersion := data["terraform_version"].(string)
-	version := strings.Split(fullVersion, "-")[0]
-	terraformVersion = fmt.Sprintf("%s-%s", version, hash)
 }
 
 func writeCredRC(file string) {

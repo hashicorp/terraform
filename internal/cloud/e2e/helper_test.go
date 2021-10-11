@@ -47,6 +47,18 @@ func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 		t.Fatal(err)
 	}
 
+	// TODO: remove this when we are ready to release. This should not need beta
+	// or internal access as the release will be. Also, we won't be able to access
+	// admin in production.
+	opts := tfe.AdminOrganizationUpdateOptions{
+		AccessBetaTools:     tfe.Bool(true),
+		AccessInternalTools: tfe.Bool(true),
+	}
+	_, err = tfeClient.Admin.Organizations.Update(ctx, org.Name, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return org, func() {
 		if err := tfeClient.Organizations.Delete(ctx, org.Name); err != nil {
 			t.Errorf("Error destroying organization! WARNING: Dangling resources\n"+
@@ -147,14 +159,10 @@ terraform {
   }
 }
 
-resource "random_pet" "server" {
-  keepers = {
-    uuid = uuid()
-  }
-
-  length = 3
+output "tag_val" {
+  value = "%s"
 }
-`, tfeHostname, org, tag)
+`, tfeHostname, org, tag, tag)
 }
 
 func terraformConfigCloudBackendName(org, name string) string {
@@ -170,12 +178,8 @@ terraform {
   }
 }
 
-resource "random_pet" "server" {
-  keepers = {
-    uuid = uuid()
-  }
-
-  length = 3
+output "val" {
+  value = "${terraform.workspace}"
 }
 `, tfeHostname, org, name)
 }
@@ -190,4 +194,41 @@ func writeMainTF(t *testing.T, block string, dir string) {
 		t.Fatal(err)
 	}
 	f.Close()
+}
+
+// Ensure that TFC/E has a particular terraform version.
+func hasTerraformVersion(version string) bool {
+	opts := tfe.AdminTerraformVersionsListOptions{
+		ListOptions: tfe.ListOptions{
+			PageNumber: 1,
+			PageSize:   100,
+		},
+	}
+	hasVersion := false
+
+findTfVersion:
+	for {
+		// TODO: update go-tfe Read() to retrieve a terraform version by name.
+		// Currently you can only retrieve by ID.
+		tfVersionList, err := tfeClient.Admin.TerraformVersions.List(context.Background(), opts)
+		if err != nil {
+			t.Fatalf("Could not retrieve list of terraform versions: %v", err)
+		}
+		for _, item := range tfVersionList.Items {
+			if item.Version == version {
+				hasVersion = true
+				break findTfVersion
+			}
+		}
+
+		// Exit the loop when we've seen all pages.
+		if tfVersionList.CurrentPage >= tfVersionList.TotalPages {
+			break
+		}
+
+		// Update the page number to get the next page.
+		opts.PageNumber = tfVersionList.NextPage
+	}
+
+	return hasVersion
 }

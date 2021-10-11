@@ -545,12 +545,6 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
 	}
 
-	// from TFC to TFC
-	if sourceTFC && destinationTFC {
-		// TODO: see internal/cloud/e2e/migrate_state_tfc_to_tfc_test.go for notes
-		panic("not yet implemented")
-	}
-
 	// Everything below, by the above two conditionals, now assumes that the
 	// destination is always Terraform Cloud (TFC).
 
@@ -657,6 +651,13 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 			return fmt.Errorf(strings.TrimSpace(
 				errMigrateMulti), name, opts.SourceType, opts.DestinationType, err)
 		}
+	}
+
+	// After migrating multiple workspaces, we want to ensure that a workspace is
+	// set or we prompt the user to set a workspace.
+	err = m.selectWorkspace(opts.Destination)
+	if err != nil {
+		return err
 	}
 
 	return nil
