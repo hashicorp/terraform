@@ -85,8 +85,7 @@ func TestContext2Input_provider(t *testing.T) {
 func TestContext2Input_providerMulti(t *testing.T) {
 	m := testModule(t, "input-provider-multi")
 
-	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+	getProviderSchemaResponse := getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		Provider: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
 				"foo": {
@@ -108,6 +107,17 @@ func TestContext2Input_providerMulti(t *testing.T) {
 		},
 	})
 
+	// In order to update the provider to check only the configure calls during
+	// apply, we will need to inject a new factory function after plan. We must
+	// use a closure around the factory, because in order for the inputs to
+	// work during apply we need to maintain the same context value, preventing
+	// us from assigning a new Providers map.
+	providerFactory := func() (providers.Interface, error) {
+		p := testProvider("aws")
+		p.GetProviderSchemaResponse = getProviderSchemaResponse
+		return p, nil
+	}
+
 	inp := &MockUIInput{
 		InputReturnMap: map[string]string{
 			"provider.aws.foo":      "bar",
@@ -118,7 +128,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
-				return p, nil
+				return providerFactory()
 			},
 		},
 		UIInput: inp,
@@ -134,12 +144,18 @@ func TestContext2Input_providerMulti(t *testing.T) {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
-		lock.Lock()
-		defer lock.Unlock()
-		actual = append(actual, req.Config.GetAttr("foo").AsString())
-		return
+	providerFactory = func() (providers.Interface, error) {
+		p := testProvider("aws")
+		p.GetProviderSchemaResponse = getProviderSchemaResponse
+		p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+			lock.Lock()
+			defer lock.Unlock()
+			actual = append(actual, req.Config.GetAttr("foo").AsString())
+			return
+		}
+		return p, nil
 	}
+
 	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}

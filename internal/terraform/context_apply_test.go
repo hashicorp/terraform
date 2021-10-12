@@ -577,14 +577,18 @@ func TestContext2Apply_refCount(t *testing.T) {
 
 func TestContext2Apply_providerAlias(t *testing.T) {
 	m := testModule(t, "apply-provider-alias")
-	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
-	p.ApplyResourceChangeFn = testApplyFn
+
+	// Each provider instance must be completely independent to ensure that we
+	// are verifying the correct state of each.
+	p := func() (providers.Interface, error) {
+		p := testProvider("aws")
+		p.PlanResourceChangeFn = testDiffFn
+		p.ApplyResourceChangeFn = testApplyFn
+		return p, nil
+	}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
-				return p, nil
-			},
+			addrs.NewDefaultProvider("aws"): p,
 		},
 	})
 
@@ -612,15 +616,18 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 	m := testModule(t, "apply-provider-alias-configure")
 
-	p2 := testProvider("another")
-	p2.ApplyResourceChangeFn = testApplyFn
-	p2.PlanResourceChangeFn = testDiffFn
+	// Each provider instance must be completely independent to ensure that we
+	// are verifying the correct state of each.
+	p := func() (providers.Interface, error) {
+		p := testProvider("another")
+		p.ApplyResourceChangeFn = testApplyFn
+		p.PlanResourceChangeFn = testDiffFn
+		return p, nil
+	}
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("another"): func() (providers.Interface, error) {
-				return p2, nil
-			},
+			addrs.NewDefaultProvider("another"): p,
 		},
 	})
 
@@ -633,16 +640,28 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 
 	// Configure to record calls AFTER Plan above
 	var configCount int32
-	p2.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
-		atomic.AddInt32(&configCount, 1)
+	p = func() (providers.Interface, error) {
+		p := testProvider("another")
+		p.ApplyResourceChangeFn = testApplyFn
+		p.PlanResourceChangeFn = testDiffFn
+		p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+			atomic.AddInt32(&configCount, 1)
 
-		foo := req.Config.GetAttr("foo").AsString()
-		if foo != "bar" {
-			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("foo: %#v", foo))
+			foo := req.Config.GetAttr("foo").AsString()
+			if foo != "bar" {
+				resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("foo: %#v", foo))
+			}
+
+			return
 		}
-
-		return
+		return p, nil
 	}
+
+	ctx = testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("another"): p,
+		},
+	})
 
 	state, diags := ctx.Apply(plan, m)
 	if diags.HasErrors() {
@@ -1544,8 +1563,11 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 
 func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	m := testModule(t, "apply-destroy-mod-var-provider-config")
-	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
+	p := func() (providers.Interface, error) {
+		p := testProvider("aws")
+		p.PlanResourceChangeFn = testDiffFn
+		return p, nil
+	}
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	root.SetResourceInstanceCurrent(
@@ -1558,9 +1580,7 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
-				return p, nil
-			},
+			addrs.NewDefaultProvider("aws"): p,
 		},
 	})
 
