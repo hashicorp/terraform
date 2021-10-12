@@ -117,7 +117,9 @@ func TestContext2Input_providerMulti(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				return p, nil
+			},
 		},
 		UIInput: inp,
 	})

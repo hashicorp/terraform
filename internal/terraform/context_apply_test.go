@@ -582,7 +582,9 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				return p, nil
+			},
 		},
 	})
 
@@ -616,7 +618,9 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("another"): testProviderFuncFixed(p2),
+			addrs.NewDefaultProvider("another"): func() (providers.Interface, error) {
+				return p2, nil
+			},
 		},
 	})
 
@@ -1554,7 +1558,9 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+				return p, nil
+			},
 		},
 	})
 
