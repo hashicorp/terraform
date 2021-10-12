@@ -23,7 +23,7 @@ require (
 	github.com/dylanmei/winrmtest v0.0.0-20190225150635-99b7fe2fddf1
 	github.com/go-test/deep v1.0.3
 	github.com/golang/mock v1.5.0
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.0
 	github.com/google/go-cmp v0.5.5
 	github.com/google/uuid v1.2.0
 	github.com/gophercloud/gophercloud v0.10.1-0.20200424014253-c3bfe50899e5
@@ -93,7 +93,7 @@ require (
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/protobuf v1.27.1
 	honnef.co/go/tools v0.0.1-2020.1.4
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
