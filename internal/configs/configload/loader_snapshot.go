@@ -258,7 +258,7 @@ func (fs snapshotFS) Open(name string) (afero.File, error) {
 				filenames = append(filenames, n)
 			}
 			sort.Strings(filenames)
-			return snapshotDir{
+			return &snapshotDir{
 				filenames: filenames,
 			}, nil
 		}
@@ -310,7 +310,7 @@ func (fs snapshotFS) Stat(name string) (os.FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, isDir := f.(snapshotDir)
+	_, isDir := f.(*snapshotDir)
 	return snapshotFileInfo{
 		name:  filepath.Base(name),
 		isDir: isDir,
@@ -377,9 +377,9 @@ type snapshotDir struct {
 	at        int
 }
 
-var _ afero.File = snapshotDir{}
+var _ afero.File = (*snapshotDir)(nil)
 
-func (f snapshotDir) Readdir(count int) ([]os.FileInfo, error) {
+func (f *snapshotDir) Readdir(count int) ([]os.FileInfo, error) {
 	names, err := f.Readdirnames(count)
 	if err != nil {
 		return nil, err
@@ -394,7 +394,7 @@ func (f snapshotDir) Readdir(count int) ([]os.FileInfo, error) {
 	return ret, nil
 }
 
-func (f snapshotDir) Readdirnames(count int) ([]string, error) {
+func (f *snapshotDir) Readdirnames(count int) ([]string, error) {
 	var outLen int
 	names := f.filenames[f.at:]
 	if count > 0 {
