@@ -50,7 +50,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
-	github.com/lib/pq v1.8.0
+	github.com/lib/pq v1.10.3
 	github.com/likexian/gokit v0.20.15
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
 	github.com/masterzen/winrm v0.0.0-20200615185753-c42b5136ff88
