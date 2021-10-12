@@ -38,7 +38,7 @@ require (
 	github.com/hashicorp/go-getter v1.5.2
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-plugin v1.4.1
+	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/go-retryablehttp v0.5.2
 	github.com/hashicorp/go-tfe v0.15.0
 	github.com/hashicorp/go-uuid v1.0.1
@@ -94,7 +94,7 @@ require (
 	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
 	google.golang.org/protobuf v1.27.1
-	honnef.co/go/tools v0.0.1-2020.1.4
+	honnef.co/go/tools v0.3.0-0.dev
 	k8s.io/api v0.0.0-20190620084959-7cf5895f2711
 	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
 	k8s.io/client-go v10.0.0+incompatible
