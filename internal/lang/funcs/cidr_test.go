@@ -246,7 +246,7 @@ func TestCidrSubnet(t *testing.T) {
 		},
 		{ // fractions are Not Ok
 			cty.StringVal("10.256.0.0/8"),
-			cty.NumberFloatVal(2 / 3),
+			cty.NumberFloatVal(2.0 / 3.0),
 			cty.NumberFloatVal(.75),
 			cty.UnknownVal(cty.String),
 			true,

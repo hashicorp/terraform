@@ -13,4 +13,4 @@ packages=$(go list ./... | egrep -v ${skip})
 # We are skipping style-related checks, since terraform intentionally breaks
 # some of these. The goal here is to find issues that reduce code clarity, or
 # may result in bugs.
-staticcheck -checks 'all,-ST*' ${packages}
+go run honnef.co/go/tools/cmd/staticcheck -checks 'all,-ST*' ${packages}
