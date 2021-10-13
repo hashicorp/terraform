@@ -229,15 +229,21 @@ func testPlan(t *testing.T) *plans.Plan {
 }
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
+	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
+}
+
+func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
 	t.Helper()
 
 	stateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
 	prevStateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state, // we just assume no changes detected during refresh
 		TerraformVersion: version.SemVer,
 	}
