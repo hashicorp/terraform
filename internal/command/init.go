@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -304,12 +305,25 @@ func (c *InitCommand) Run(args []string) int {
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
 	c.showDiagnostics(diags)
-	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
+	_, cloud := back.(*cloud.Cloud)
+	output := ""
+	if cloud {
+		output = outputInitSuccessCloud
+	} else {
+		output = outputInitSuccess
+	}
+
+	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(output)))
+
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
-		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessCLI)))
+		output = outputInitSuccessCLI
+		if cloud {
+			output = outputInitSuccessCLICloud
+		}
+		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(output)))
 	}
 	return 0
 }
@@ -1087,6 +1101,10 @@ const outputInitSuccess = `
 [reset][bold][green]Terraform has been successfully initialized![reset][green]
 `
 
+const outputInitSuccessCloud = `
+[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+`
+
 const outputInitSuccessCLI = `[reset][green]
 You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
@@ -1095,6 +1113,14 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
+`
+
+const outputInitSuccessCLICloud = `[reset][green]
+You may now begin working with Terraform Cloud. Try running "terraform plan" to
+see any changes that are required for your infrastructure.
+
+If you ever set or change modules or configuration for Terraform, run
+"terraform init" again to reinitialize your working directory.
 `
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's

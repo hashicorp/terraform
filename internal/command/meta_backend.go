@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -921,9 +922,12 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		return nil, diags
 	}
 
-	// By now the backend is successfully configured.
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+	// By now the backend is successfully configured.  If using Terraform Cloud, the success
+	// message is handled as part of the final init message
+	if _, ok := b.(*cloud.Cloud); !ok {
+		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+	}
 
 	return b, diags
 }
