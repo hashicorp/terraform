@@ -781,66 +781,66 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return nil
 	}
 
-	// Even if ignoring version conflicts, it may still be useful to call this
-	// method and warn the user about a mismatch between the local and remote
-	// Terraform versions.
-	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
+	remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
 	if err != nil {
-		log.Printf("[DEBUG] Invalid Terraform version (%s); will try to parse as version constraint", workspace.TerraformVersion)
-	}
-	if remoteVersion == nil {
-		// If it's not a valid version, it might be a valid version constraint:
-		remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
-		if err != nil {
-			diags = diags.Append(terraformInvalidVersionOrConstraint(b.ignoreVersionConflict, workspace.TerraformVersion))
-			return diags
-		}
-
-		// Avoiding tfversion.SemVer because it omits the prerelease prefix, and we
-		// want constraints like `~> 1.2.0-beta1` to be possible.
-		fullTfversion := version.Must(version.NewSemver(tfversion.String()))
-
-		// If it's a constraint, we only ensure that the local version meets it.
-		// This can result in both false positives and false negatives, but in the
-		// most common case (~> x.y.z) it's useful enough.
-		if remoteConstraint.Check(fullTfversion) {
-			return diags
-		}
-
-		diags = diags.Append(terraformMismatchDiagnostic(b.ignoreVersionConflict, b.organization, workspace, tfversion.String()))
+		message := fmt.Sprintf(
+			"The remote workspace specified an invalid Terraform version or constraint (%s), "+
+				"and it isn't possible to determine whether the local Terraform version (%s) is compatible.",
+			workspace.TerraformVersion,
+			tfversion.String(),
+		)
+		diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
 		return diags
 	}
 
-	v014 := version.Must(version.NewSemver("0.14.0"))
-	if tfversion.SemVer.LessThan(v014) || remoteVersion.LessThan(v014) {
-		// Versions of Terraform prior to 0.14.0 will refuse to load state files
-		// written by a newer version of Terraform, even if it is only a patch
-		// level difference. As a result we require an exact match.
-		if tfversion.SemVer.Equal(remoteVersion) {
-			return diags
-		}
-	}
-	if tfversion.SemVer.GreaterThanOrEqual(v014) && remoteVersion.GreaterThanOrEqual(v014) {
-		// Versions of Terraform after 0.14.0 should be compatible with each
-		// other.  At the time this code was written, the only constraints we
-		// are aware of are:
-		//
-		// - 0.14.0 is guaranteed to be compatible with versions up to but not
-		//   including 1.2.0
+	// If the workspace has a literal Terraform version, see if we can use a
+	// looser version constraint.
+	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
+	if remoteVersion != nil {
+		v014 := version.Must(version.NewSemver("0.14.0"))
 		v120 := version.Must(version.NewSemver("1.2.0"))
-		if tfversion.SemVer.LessThan(v120) && remoteVersion.LessThan(v120) {
-			return diags
+
+		// Versions from 0.14 through the early 1.x series should be compatible
+		// (though we don't know about 1.2 yet).
+		if remoteVersion.GreaterThanOrEqual(v014) && remoteVersion.LessThan(v120) {
+			early1xCompatible, err := version.NewConstraint(fmt.Sprintf(">= 0.14.0, < %s", v120.String()))
+			if err != nil {
+				panic(err)
+			}
+			remoteConstraint = early1xCompatible
 		}
-		// - Any new Terraform state version will require at least minor patch
-		//   increment, so x.y.* will always be compatible with each other
-		tfvs := tfversion.SemVer.Segments64()
-		rwvs := remoteVersion.Segments64()
-		if len(tfvs) == 3 && len(rwvs) == 3 && tfvs[0] == rwvs[0] && tfvs[1] == rwvs[1] {
-			return diags
+
+		// Any future new state format will require at least a minor version
+		// increment, so x.y.* will always be compatible with each other.
+		if remoteVersion.GreaterThanOrEqual(v120) {
+			rwvs := remoteVersion.Segments64()
+			if len(rwvs) >= 3 {
+				// ~> x.y.0
+				minorVersionCompatible, err := version.NewConstraint(fmt.Sprintf("~> %d.%d.0", rwvs[0], rwvs[1]))
+				if err != nil {
+					panic(err)
+				}
+				remoteConstraint = minorVersionCompatible
+			}
 		}
 	}
 
-	diags = diags.Append(terraformMismatchDiagnostic(b.ignoreVersionConflict, b.organization, workspace, tfversion.String()))
+	// Re-parsing tfversion.String because tfversion.SemVer omits the prerelease
+	// prefix, and we want to allow constraints like `~> 1.2.0-beta1`.
+	fullTfversion := version.Must(version.NewSemver(tfversion.String()))
+
+	if remoteConstraint.Check(fullTfversion) {
+		return diags
+	}
+
+	message := fmt.Sprintf(
+		"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).",
+		tfversion.String(),
+		b.organization,
+		workspace.Name,
+		workspace.TerraformVersion,
+	)
+	diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
 	return diags
 }
 
