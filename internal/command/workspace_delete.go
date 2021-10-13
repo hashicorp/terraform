@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
@@ -124,12 +125,32 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 		return 1
 	}
 
-	hasResources := stateMgr.State().HasResources()
+	hasResources := stateMgr.State().HasManagedResourceInstanceObjects()
 
 	if hasResources && !force {
+		// We'll collect a list of what's being managed here as extra context
+		// for the message.
+		var buf strings.Builder
+		for _, obj := range stateMgr.State().AllResourceInstanceObjectAddrs() {
+			if obj.DeposedKey == states.NotDeposed {
+				fmt.Fprintf(&buf, "\n  - %s", obj.Instance.String())
+			} else {
+				fmt.Fprintf(&buf, "\n  - %s (deposed object %s)", obj.Instance.String(), obj.DeposedKey)
+			}
+		}
+
 		// We need to release the lock before exit
 		stateLocker.Unlock()
-		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envNotEmpty), workspace))
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Workspace is not empty",
+			fmt.Sprintf(
+				"Workspace %q is currently tracking the following resource instances:%s\n\nDeleting this workspace would cause Terraform to lose track of any associated remote objects, which would then require you to delete them manually outside of Terraform. You should destroy these objects with Terraform before deleting the workspace.\n\nIf you want to delete this workspace anyway, and have Terraform forget about these managed objects, use the -force option to disable this safety check.",
+				workspace, buf.String(),
+			),
+		))
+		c.showDiagnostics(diags)
 		return 1
 	}
 

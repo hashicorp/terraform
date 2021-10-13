@@ -34,10 +34,10 @@ func (s *State) ManagedResourcesEqual(other *State) bool {
 		return true
 	}
 	if s == nil {
-		return !other.HasResources()
+		return !other.HasManagedResourceInstanceObjects()
 	}
 	if other == nil {
-		return !s.HasResources()
+		return !s.HasManagedResourceInstanceObjects()
 	}
 
 	// If we get here then both states are non-nil.

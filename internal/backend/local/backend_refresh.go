@@ -64,11 +64,11 @@ func (b *Local) opRefresh(
 	// If we succeed then we'll overwrite this with the resulting state below,
 	// but otherwise the resulting state is just the input state.
 	runningOp.State = lr.InputState
-	if !runningOp.State.HasResources() {
+	if !runningOp.State.HasManagedResourceInstanceObjects() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Empty or non-existent state",
-			"There are currently no resources tracked in the state, so there is nothing to refresh.",
+			"There are currently no remote objects tracked in the state, so there is nothing to refresh.",
 		))
 	}
 

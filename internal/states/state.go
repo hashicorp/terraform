@@ -151,15 +151,27 @@ func (s *State) EnsureModule(addr addrs.ModuleInstance) *Module {
 	return ms
 }
 
-// HasResources returns true if there is at least one resource (of any mode)
-// present in the receiving state.
-func (s *State) HasResources() bool {
+// HasManagedResourceInstanceObjects returns true if there is at least one
+// resource instance object (current or deposed) associated with a managed
+// resource in the receiving state.
+//
+// A true result would suggest that just discarding this state without first
+// destroying these objects could leave "dangling" objects in remote systems,
+// no longer tracked by any Terraform state.
+func (s *State) HasManagedResourceInstanceObjects() bool {
 	if s == nil {
 		return false
 	}
 	for _, ms := range s.Modules {
-		if len(ms.Resources) > 0 {
-			return true
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+			for _, is := range rs.Instances {
+				if is.Current != nil || len(is.Deposed) != 0 {
+					return true
+				}
+			}
 		}
 	}
 	return false
@@ -184,6 +196,74 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 			ret = append(ret, r)
 		}
 	}
+	return ret
+}
+
+// AllManagedResourceInstanceObjectAddrs returns a set of addresses for all of
+// the leaf resource instance objects associated with managed resources that
+// are tracked in this state.
+//
+// This result is the set of objects that would be effectively "forgotten"
+// (like "terraform state rm") if this state were totally discarded, such as
+// by deleting a workspace. This function is intended only for reporting
+// context in error messages, such as when we reject deleting a "non-empty"
+// workspace as detected by s.HasManagedResourceInstanceObjects.
+//
+// The ordering of the result is meaningless but consistent. DeposedKey will
+// be NotDeposed (the zero value of DeposedKey) for any "current" objects.
+// This method is guaranteed to return at least one item if
+// s.HasManagedResourceInstanceObjects returns true for the same state, and
+// to return a zero-length slice if it returns false.
+func (s *State) AllResourceInstanceObjectAddrs() []struct {
+	Instance   addrs.AbsResourceInstance
+	DeposedKey DeposedKey
+} {
+	if s == nil {
+		return nil
+	}
+
+	// We use an unnamed return type here just because we currently have no
+	// general need to return pairs of instance address and deposed key aside
+	// from this method, and this method itself is only of marginal value
+	// when producing some error messages.
+	//
+	// If that need ends up arising more in future then it might make sense to
+	// name this as addrs.AbsResourceInstanceObject, although that would require
+	// moving DeposedKey into the addrs package too.
+	type ResourceInstanceObject = struct {
+		Instance   addrs.AbsResourceInstance
+		DeposedKey DeposedKey
+	}
+	var ret []ResourceInstanceObject
+
+	for _, ms := range s.Modules {
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+
+			for instKey, is := range rs.Instances {
+				instAddr := rs.Addr.Instance(instKey)
+				if is.Current != nil {
+					ret = append(ret, ResourceInstanceObject{instAddr, NotDeposed})
+				}
+				for deposedKey := range is.Deposed {
+					ret = append(ret, ResourceInstanceObject{instAddr, deposedKey})
+				}
+			}
+		}
+	}
+
+	sort.SliceStable(ret, func(i, j int) bool {
+		objI, objJ := ret[i], ret[j]
+		switch {
+		case !objI.Instance.Equal(objJ.Instance):
+			return objI.Instance.Less(objJ.Instance)
+		default:
+			return objI.DeposedKey < objJ.DeposedKey
+		}
+	})
+
 	return ret
 }
 

@@ -1008,7 +1008,7 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
-	if !run.State.HasResources() {
+	if !run.State.HasManagedResourceInstanceObjects() {
 		t.Fatalf("expected resources in state")
 	}
 }
@@ -1071,7 +1071,7 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
-	if !run.State.HasResources() {
+	if !run.State.HasManagedResourceInstanceObjects() {
 		t.Fatalf("expected resources in state")
 	}
 }
@@ -1646,7 +1646,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()
 				hasRemote := strings.Contains(output, "Running apply in the remote backend")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
-				hasResources := run.State.HasResources()
+				hasResources := run.State.HasManagedResourceInstanceObjects()
 				if !tc.forceLocal && tc.hasOperations {
 					if !hasRemote {
 						t.Errorf("missing remote backend header in output: %s", output)

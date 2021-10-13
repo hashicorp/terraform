@@ -391,10 +391,10 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	// create a non-empty state
 	originalState := &legacy.State{
 		Modules: []*legacy.ModuleState{
-			&legacy.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*legacy.ResourceState{
-					"test_instance.foo": &legacy.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &legacy.InstanceState{
 							ID: "bar",
@@ -414,7 +414,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui, View: view},
@@ -422,6 +422,13 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	args := []string{"test"}
 	if code := delCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure without -force.\noutput: %s", ui.OutputWriter)
+	}
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `Workspace "test" is currently tracking the following resource instances`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+	if want, got := `- test_instance.foo`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("error message doesn't mention the remaining instance\nwant substring: %s\ngot:\n%s", want, got)
 	}
 
 	ui = new(cli.MockUi)

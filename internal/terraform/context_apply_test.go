@@ -5743,7 +5743,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 	}
 
 	//Test that things were destroyed
-	if state.HasResources() {
+	if state.HasManagedResourceInstanceObjects() {
 		t.Fatal("expected empty state, got:", state)
 	}
 }
@@ -8661,7 +8661,7 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
-	if state.HasResources() {
+	if state.HasManagedResourceInstanceObjects() {
 		t.Fatal("expected no state, got:", state)
 	}
 
