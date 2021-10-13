@@ -4,6 +4,7 @@ BUG FIXES:
 
 * core: Fix panic when planning new resources with nested object attributes [GH-29701]
 * core: Do not refresh deposed instances when the provider is not configured during destroy [GH-29720]
+* core: Prevent panic when encountering a missing change when destroying a resource [GH-29734]
 
 ## 1.0.8 (September 29, 2021)
 
