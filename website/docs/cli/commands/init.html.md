@@ -36,11 +36,11 @@ The following options apply to all of (or several of) the initialization steps:
 * `-input=true` Ask for input if necessary. If false, will error if
   input was required.
 
-* `-lock=false` Disable locking of state files during state-related operations.
+* `-lock=false` ([removed in Terraform 0.15](/upgrade-guides/0-15.html#other-minor-command-line-behavior-changes)) Disable locking of state files during state-related operations.
 
-* `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
+* `-lock-timeout=<duration>` ([removed in Terraform 0.15](/upgrade-guides/0-15.html#other-minor-command-line-behavior-changes)) Override the time Terraform will wait to acquire
   a state lock. The default is `0s` (zero seconds), which causes immediate
-  failure if the lock is already held by another process.
+  failure if the lock is already held by another process. (Removed since version 0.15.0)
 
 * `-no-color` Disable color codes in the command output.
 
@@ -80,7 +80,7 @@ is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
 directory to use the new backend settings. Either `-reconfigure` or
-`-migrate-state` must be supplied to update the backend configuration. 
+`-migrate-state` must be supplied to update the backend configuration.
 
 The `-migrate-state` option will attempt to copy existing state to the new
 backend, and depending on what changed, may result in interactive prompts to
