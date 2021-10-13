@@ -42,7 +42,7 @@ func TestNodeDataDestroyExecute(t *testing.T) {
 	}
 
 	// verify resource removed from state
-	if state.HasResources() {
+	if state.HasManagedResourceInstanceObjects() {
 		t.Fatal("resources still in state after NodeDataDestroy.Execute")
 	}
 }
