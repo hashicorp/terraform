@@ -290,14 +290,27 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 		// has changed since the plan was created. (All of the "real-world"
 		// state manager implementations support this, but simpler test backends
 		// may not.)
-		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
-			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Saved plan is stale",
-					"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
-				))
-			}
+
+		// Because the plan always contains a state, even if it is empty, the
+		// first plan to be applied will have empty snapshot metadata. In this
+		// case we compare only the serial in order to provide a more correct
+		// error.
+		firstPlan := priorStateFile.Lineage == "" && priorStateFile.Serial == 0
+
+		switch {
+		case !firstPlan && priorStateFile.Lineage != currentStateMeta.Lineage:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan does not match the given state",
+				"The given plan file can not be applied because it was created from a different state lineage.",
+			))
+
+		case priorStateFile.Serial != currentStateMeta.Serial:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is stale",
+				"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
+			))
 		}
 	}
 	// When we're applying a saved plan, the input state is the "prior state"
