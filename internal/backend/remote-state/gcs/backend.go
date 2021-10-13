@@ -143,7 +143,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 
 		if !json.Valid([]byte(contents)) {
-			return fmt.Errorf("contents of credentials are invalid json")
+			return fmt.Errorf("the string provided in credentials is neither valid json nor a valid file path")
 		}
 
 		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
