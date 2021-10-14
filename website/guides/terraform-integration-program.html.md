@@ -63,9 +63,9 @@ Logging & Monitoring: Monitoring and logging partners that offer the capability 
 
 Infrastructure partners integrate by building and publishing a plugin called a Terraform [provider](https://www.terraform.io/docs/language/providers/index.html). Providers are executable binaries written in Go that communicate with Terraform Core over an RPC interface. Terraform provider represents an integration that is responsible for understanding API interactions with the underlying infrastructure, such as a public cloud service (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS service (DNSimple, CloudFlare), or on-prem resources (vSphere). The Provider then exposes these as resources that Terraform users can interface with, from within a Terraform configuration. Providers work across Terraform OSS, Terraform Cloud and Terraform Enterprise. To learn more [click here](https://www.terraform.io/guides/terraform-integration-program.html#terraform-provider-integrations).
 
-```
-Note: partners could be either workflow and/or infrastructure partners depending on their use cases. 
-```
+
+-> **Note:** Partners could be either workflow and/or infrastructure partners depending on their use cases. 
+
 ## Terraform Provider Integrations
 
 The Terraform provider integration portion of this program is divided into five steps below. By following these steps, integration can be developed alongside HashiCorp to ensure new plugins are able to be published with Terraform as quickly as possible.
