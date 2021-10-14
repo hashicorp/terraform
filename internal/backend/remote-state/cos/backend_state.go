@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/likexian/gokit/assert"
 )
 
 // Define file suffix
@@ -88,7 +87,15 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		return nil, err
 	}
 
-	if !assert.IsContains(ws, name) {
+	exists := false
+	for _, candidate := range ws {
+		if candidate == name {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
 		log.Printf("[DEBUG] workspace %v not exists", name)
 
 		// take a lock on this state while we write it
