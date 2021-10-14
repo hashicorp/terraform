@@ -25,7 +25,9 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
+* core: Reduce scope of dependencies that may defer reading of data sources when using `depends_on` or directly referencing managed resources [GH-29682]
 * cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output ([#29522](https://github.com/hashicorp/terraform/issues/29522))
+* cli: Prevent applying a stale planfile when there was no previous state [GH-29755]
 
 ## Previous Releases
 
