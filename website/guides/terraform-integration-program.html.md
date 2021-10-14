@@ -38,7 +38,7 @@ As shown below, **Workflow Partners** use cases currently defined are:
 - **CI/CD:** Continuous integration and continuous delivery/deployment partners
 - **VCS:** Partners who focus on tracking and managing software code changes.
 
-Most workflow partners integrate with the Terraform workflow itself. Run tasks allow Terraform Cloud to execute tasks in external systems at specific points in the Terraform Cloud run lifecycle. This offers much more extensibility to Terraform Cloud customers, enabling them to integrate your services into the Terraform Cloud workflow. The beta release of this feature allows users to add and execute these tasks during the new pre-apply stage which exists in between the plan and apply stages. Eventually, HashiCorp will be opening up the entire workflow to Terraform Cloud users, including the pre-plan and post apply stages. To learn more [click here]()
+Most workflow partners integrate with the Terraform workflow itself. Run tasks allow Terraform Cloud to execute tasks in external systems at specific points in the Terraform Cloud run lifecycle. This offers much more extensibility to Terraform Cloud customers, enabling them to integrate your services into the Terraform Cloud workflow. The beta release of this feature allows users to add and execute these tasks during the new pre-apply stage which exists in between the plan and apply stages. Eventually, HashiCorp will be opening up the entire workflow to Terraform Cloud users, including the pre-plan and post apply stages. To learn more [click here](https://www.terraform.io/guides/terraform-integration-program.html#terraform-cloud-integrations)
 
 ![Integration program diagram](/assets/images/docs/terraform-integration-program-diagram.png)
 
@@ -61,7 +61,7 @@ Logging & Monitoring: Monitoring and logging partners that offer the capability 
 - **PaaS (Platform-as-a-Service):** Platform and PaaS providers offering a range of hardware, software, and application development tools. This category includes smaller-scale providers and those with more specialized offerings
 - **Web Services:** Partners that focus on Web hosting, web performance, CDN and DNS based services.
 
-Infrastructure partners integrate by building and publishing a plugin called a Terraform [provider](https://www.terraform.io/docs/language/providers/index.html). Providers are executable binaries written in Go that communicate with Terraform Core over an RPC interface. Terraform provider represents an integration that is responsible for understanding API interactions with the underlying infrastructure, such as a public cloud service (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS service (DNSimple, CloudFlare), or on-prem resources (vSphere). The Provider then exposes these as resources that Terraform users can interface with, from within a Terraform configuration. Providers work across Terraform OSS, Terraform Cloud and Terraform Enterprise. To learn more [click here]().
+Infrastructure partners integrate by building and publishing a plugin called a Terraform [provider](https://www.terraform.io/docs/language/providers/index.html). Providers are executable binaries written in Go that communicate with Terraform Core over an RPC interface. Terraform provider represents an integration that is responsible for understanding API interactions with the underlying infrastructure, such as a public cloud service (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS service (DNSimple, CloudFlare), or on-prem resources (vSphere). The Provider then exposes these as resources that Terraform users can interface with, from within a Terraform configuration. Providers work across Terraform OSS, Terraform Cloud and Terraform Enterprise. To learn more [click here](https://www.terraform.io/guides/terraform-integration-program.html#terraform-provider-integrations).
 
 ```
 Note: partners could be either workflow and/or infrastructure partners depending on their use cases. 
@@ -119,10 +119,15 @@ In order to get started with the Terraform provider development we recommend rev
 #### Provider Development Kit
 
 a) Writing custom providers [guide](https://www.terraform.io/guides/writing-custom-terraform-providers.html)
+
 b) Creating a Terraform Provider for Just About Anything: [video](https://www.youtube.com/watch?v=noxwUVet5RE)
+
 c) Sample provider developed by [partner](http://container-solutions.com/write-terraform-provider-part-1/)
+
 d) Example provider for reference: [AWS](https://github.com/terraform-providers/terraform-provider-aws), [OPC](https://github.com/terraform-providers/terraform-provider-opc)
+
 e) Contributing to Terraform [guidelines](https://github.com/hashicorp/terraform/blob/master/.github/CONTRIBUTING.md)
+
 f) HashiCorp developer [forum](https://discuss.hashicorp.com/c/terraform-providers/tf-plugin-sdk/43)
 
 We’ve found the provider development process to be fairly straightforward and simple when you pay close attention and follow the resources below. If you have not developed a provider before and are looking for some help in developing one, you may choose to leverage one of the following development agencies which have developed Terraform providers in the past and are familiar with the requirements and process:
@@ -135,6 +140,7 @@ We’ve found the provider development process to be fairly straightforward and 
 | OpenCredo          | hashicorp@opencredo.com      | www.opencredo.com    |
 
 -> **Important:** All Terraform providers listed as Verified must contain one of the following open source licenses:
+
 - CDDL 1.0, 2.0
 - CPL 1.0
 - Eclipse Public License (EPL) 1.0
@@ -151,9 +157,9 @@ We’ve found the provider development process to be fairly straightforward and 
 - Microsoft Public License (MS-PL)
 - MIT
 
-```
-Note: If you have questions or suggestions about the Terraform SDK and the development of the Terraform provider, please submit your request to the HashiCorp Terraform plugin SDK forum
-```
+
+-> **Note:** If you have questions or suggestions about the Terraform SDK and the development of the Terraform provider, please submit your request to the HashiCorp Terraform plugin SDK forum
+
 
 ### 2. Publish
 
@@ -161,9 +167,9 @@ After your provider development is complete and ready to release, vendors will p
 
 Once completed, your provider should be visible in the Terraform Registry and usable in Terraform. Please confirm that everything looks good, and that documentation is rendering properly.
 
-```
-Note: If your company has multiple products with separate providers, we recommend publishing them under the same Github organization to help with the discoverability.
-```
+
+-> **Note:** If your company has multiple products with separate providers, we recommend publishing them under the same Github organization to help with the discoverability.
+
 ### 3. Apply
 
 Vendors should now connect with HashiCorp Alliances to onboard your integration to the HashiCorp technology ecosystem or apply to become a technology partner through [this form](https://www.hashicorp.com/ecosystem/become-a-partner/#technology).
@@ -232,6 +238,5 @@ Many vendors view the release step to be the end of the journey, while at HashiC
 
 The expectation from the partner is to create a mechanism for them to track and resolve all critical issues as soon as possible within 48 hours and all other issues within 5 business days. This is a requirement given the critical nature of Terraform Cloud to customer’s operation. Vendors who choose to not support their integration will not be considered a verified integration and cannot be listed on the website.
 
-```
-Contact us at [technologypartners@hashicorp.com](technologypartners@hashicorp.com) with any questions, or feedback if you have other integration ideas. 
-```
+
+-> Contact us at [technologypartners@hashicorp.com](technologypartners@hashicorp.com) with any questions, or feedback if you have other integration ideas. 
