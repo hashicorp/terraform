@@ -2,8 +2,8 @@ module github.com/hashicorp/terraform
 
 require (
 	cloud.google.com/go/storage v1.10.0
-	github.com/Azure/azure-sdk-for-go v52.5.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.11.18
+	github.com/Azure/azure-sdk-for-go v56.0.0+incompatible
+	github.com/Azure/go-autorest/autorest v0.11.19
 	github.com/agext/levenshtein v1.2.3
 	github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190329064014-6e358769c32a
 	github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190103054945-8205d1f41e70
@@ -75,7 +75,7 @@ require (
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.232
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag v1.0.233
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.29
-	github.com/tombuildsstuff/giovanni v0.15.1
+	github.com/tombuildsstuff/giovanni v0.16.0
 	github.com/xanzy/ssh-agent v0.3.1
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
 	github.com/zclconf/go-cty v1.9.1
@@ -104,7 +104,7 @@ require (
 require (
 	cloud.google.com/go v0.79.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.13 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.14 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.2 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -131,7 +131,7 @@ require (
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
+	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
