@@ -102,7 +102,7 @@ All providers integrate into and operate with Terraform exactly the same way. Th
 <tr style="height: 21px;">
 <td style="width: 12.4839%; height: 21px;"><img src="/docs/registry/providers/images/community-tier.png" alt="" /></td>
 <td style="width: 55.7271%; height: 21px;">Community providers are published to the Terraform Registry by individual maintainers, groups of maintainers, or other members of the Terraform community.</td>
-<td style="width: 31.7889%; height: 21px;"><br />Maintainer&rsquo;s individual or organization account, e.g. <code>DeviaVir/gsuite</code></td>
+<td style="width: 31.7889%; height: 21px;"><br />Maintainer&rsquo;s individual or organization account, e.g. <code>cyrilgdn/postgresql</code></td>
 </tr>
 <tr style="height: 21px;">
 <td style="width: 12.4839%; height: 21px;"><img src="/docs/registry/providers/images/archived-tier.png" alt="" /></td>
@@ -115,7 +115,6 @@ All providers integrate into and operate with Terraform exactly the same way. Th
 
 ### 1. Prepare
 In order to get started with the Terraform provider development we recommend reviewing and following the articles.
-
 #### Provider Development Kit
 
 a) Writing custom providers [guide](https://www.terraform.io/guides/writing-custom-terraform-providers.html)
