@@ -138,7 +138,9 @@ We’ve found the provider development process to be fairly straightforward and 
 | Akava              | bd@akava.io                  | www.akava.io         |
 | OpenCredo          | hashicorp@opencredo.com      | www.opencredo.com    |
 
--> **Important:** All Terraform providers listed as Verified must contain one of the following open source licenses:
+#### Provider License
+
+All Terraform providers listed as Verified must contain one of the following open source licenses:
 
 - CDDL 1.0, 2.0
 - CPL 1.0
