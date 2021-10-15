@@ -112,7 +112,7 @@ All providers integrate into and operate with Terraform exactly the same way. Th
 
 
 ### 1. Prepare
-In order to get started with the Terraform provider development we recommend reviewing and following the articles.
+To get started with the Terraform provider development, we recommend reviewing and following the articles listed below.
 #### Provider Development Kit
 
 a) Writing custom providers [guide](https://www.terraform.io/guides/writing-custom-terraform-providers.html)
