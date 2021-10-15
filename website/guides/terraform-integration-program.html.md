@@ -43,22 +43,22 @@ Most workflow partners integrate with the Terraform workflow itself. Run tasks a
 
 Our Infrastructure Partners typically have the following use cases:
 
-- **Public Cloud:** Large-scale, global cloud providers that offer a range of services including IaaS, SaaS, and PaaS
-- **Container Orchestration:** Partners that help with provisioning, and deployment of containers
-- **IaaS (Infrastructure-as-a-Service):** Infrastructure and IaaS providers, offering solutions such as storage, networking, and virtualization
-- **Security & Authentication:** Partners with authentication and security monitoring platforms
-- **Asset Management:** Partners offering Asset Management of key organization and IT resources including software licenses, hardware assets, and cloud resources
-- **CI/CD:** Continuous integration and continuous delivery/deployment partners
-Logging & Monitoring: Monitoring and logging partners that offer the capability to configure and manage services such as loggers, metric tools, and monitoring services
-- **Utility:** Partners that offer helper functionality, such as random value generation, file creation, http interactions and time-based resources, to name a few
-- **Cloud Automation:** Partners offering specialized cloud infrastructure automation management capabilities such as configuration management
-- **Data Management:** Partners that focus on data center storage, backup, and recovery solutions
-- **Networking:** Partners that integrate with network-specific hardware and virtualized products such as routing, switching, firewalling and SD-WAN solutions
-- **VCS (Version Control Systems):** Partners focused on VCS (Version Control System) projects, teams and repositories from within Terraform
-- **Comms & Messaging:** Partners that integrate with communication, email, and messaging platforms
-- **Database:** Partners offering capabilities to provision and configure your database resources
-- **PaaS (Platform-as-a-Service):** Platform and PaaS providers offering a range of hardware, software, and application development tools. This category includes smaller-scale providers and those with more specialized offerings
-- **Web Services:** Partners that focus on Web hosting, web performance, CDN and DNS based services.
+- **Public Cloud:** These are large-scale, global cloud providers that offer a range of services including IaaS, SaaS, and PaaS.
+- **Container Orchestration:** These partners help with container provisioning and deployment.
+- **IaaS (Infrastructure-as-a-Service):** These are infrastructure and IaaS providers that offer solutions such as storage, networking, and virtualization.
+- **Security & Authentication:** These are partners with authentication and security monitoring platforms.
+- **Asset Management:** These partners offer asset management of key organization and IT resources, including software licenses, hardware assets, and cloud resources.
+- **CI/CD:** These partners focus on continuous integration and continuous delivery/deployment.
+- **Logging & Monitoring:** These partners offer the capability to configure and manage services such as loggers, metric tools, and monitoring services.
+- **Utility:** These partners offer helper functionality, such as random value generation, file creation, http interactions, and time-based resources.
+- **Cloud Automation:** These partners offer specialized cloud infrastructure automation management capabilities such as configuration management.
+- **Data Management:** These partners focus on data center storage, backup, and recovery solutions.
+- **Networking:** These partners integrate with network-specific hardware and virtualized products such as routing, switching, firewalls, and SD-WAN solutions.
+- **VCS (Version Control Systems):** These partners focus on VCS (Version Control System) projects, teams, and repositories from within Terraform.
+- **Comms & Messaging:** These partners integrate with communication, email, and messaging platforms.
+- **Database:** These partners offer capabilities to provision and configure your database resources.
+- **PaaS (Platform-as-a-Service):** These are platform and PaaS providers that offer a range of hardware, software, and application development tools. This category includes smaller-scale providers and those with more specialized offerings.
+- **Web Services:** These partners  focus on web hosting, web performance, CDN and DNS services.
 
 Infrastructure partners integrate by building and publishing a plugin called a Terraform [provider](https://www.terraform.io/docs/language/providers/index.html). Providers are executable binaries written in Go that communicate with Terraform Core over an RPC interface. Terraform provider represents an integration that is responsible for understanding API interactions with the underlying infrastructure, such as a public cloud service (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS service (DNSimple, CloudFlare), or on-prem resources (vSphere). The Provider then exposes these as resources that Terraform users can interface with, from within a Terraform configuration. Providers work across Terraform OSS, Terraform Cloud and Terraform Enterprise. To learn more [click here](https://www.terraform.io/guides/terraform-integration-program.html#terraform-provider-integrations).
 
