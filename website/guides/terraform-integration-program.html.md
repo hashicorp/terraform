@@ -157,10 +157,6 @@ All Terraform providers listed as Verified must contain one of the following ope
 - CC-BY
 - Microsoft Public License (MS-PL)
 - MIT
-
-
-
-
 ### 2. Publish
 
 After your provider is complete and ready to release, you can publish it the integration to the [Terraform Registry](https://registry.terraform.io/). This makes it publicly available for all Terraform users.
