@@ -26,7 +26,7 @@ The Terraform ecosystem is designed around being able to use Terraform across di
 - **Workflow Partners** build integrations for Terraform Cloud and/or Terraform Enterprise.  Ideally, these partners are seeking to enable customers to use their existing platform within a Terraform Run. 
 - **Infrastructure Partners** empower customers to leverage Terraform to manage resources exposed by their platform APIs. These are accessible to users of all Terraform editions.
 
-As shown below, **Workflow Partners** use cases currently defined are:
+Our Workflow Partners typically have the following use cases:
 
 - **Code Scanning:** Partners that provide tooling to review IaC configurations to prevent errors or security issues
 - **Cost Estimation:** Partners that drive cost estimation of new deployment based on historical deployments
