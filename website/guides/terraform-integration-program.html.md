@@ -41,7 +41,7 @@ Most workflow partners integrate with the Terraform workflow itself. Run tasks a
 
 ![Integration program diagram](/assets/images/docs/terraform-integration-program-diagram.png)
 
-As shown above, Infrastructure Partners are categorized as:
+Our Infrastructure Partners typically have the following use cases:
 
 - **Public Cloud:** Large-scale, global cloud providers that offer a range of services including IaaS, SaaS, and PaaS
 - **Container Orchestration:** Partners that help with provisioning, and deployment of containers
