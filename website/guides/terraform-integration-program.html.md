@@ -220,13 +220,13 @@ Partners should build an integration using [Run Task APIs in Terraform Cloud](ht
 
 ### 3. Review
 
-Schedule time with your Partner Alliance manager to review your integration. Demonstration of the integration will include but not limited to enabling the integration on the partner’s platform and Terraform Cloud, understanding of the use case for the integration as well as seeing the integration demonstrated live.  Alternatively, partners could also reach out to [technologypartners@hashicorp.com](technologypartners@hashicorp.com) if for some reason they are unable to engage with their Partner Alliances manager.
+Schedule time with your Partner Alliance manager to review your integration. The review should include enabling the integration on the partner’s platform and Terraform Cloud, explaining the use case for the integration, and a live demonstration of the functionality. If you are unable to engage with your Partner Alliances manager, you can also reach out to [technologypartners@hashicorp.com](technologypartners@hashicorp.com).
 
 ### 4. Release
 
-Once demonstration has been completed and the documentation has been shared and verified. Partners will be added to the [Terraform Run Task page](https://www.terraform.io/docs/cloud/integrations/run-tasks/index.html#run-tasks-technology-partners).  On this page, partners will provide a two-line summary about their integration(s). If you have multiple integrations, we highly recommend creating a summary that highlights all potential integration options.  
+We add new partners to the [Terraform Run Task page](https://www.terraform.io/docs/cloud/integrations/run-tasks/index.html#run-tasks-technology-partners) after the integration review and documentation is complete. On this page, you will provide a two-line summary about your integration(s). If you have multiple integrations, we highly recommend creating a summary that highlights all potential integration options.
 
-Partners will provide documentation for end users to get started using their integration. [BridgeCrew](https://docs.bridgecrew.io/docs/integrate-with-terraform-cloud#introduction) embedded their documentation into their site and we also link to the documentation as well.   Also, partners will need to provide documentation for our support team including points of contact, email address, FAQ and/or best practices. With integrations, we want to ensure the end users are able to reach the right contacts for internal HashiCorp support when working with customers.
+You must provide documentation that helps users get started with your integration. You also need to provide documentation for our support team, including points of contact, email address, FAQ and/or best practices. We want to ensure end users are able to reach the right contacts for internal HashiCorp support when working with customers.
 
 ### 5. Support
 
@@ -234,4 +234,4 @@ At HashiCorp, we view the release step to be the beginning of the journey. Getti
 
 We expect that partners will create a mechanism to track and resolve all critical issues as soon as possible (ideally within 48 hours) and all other issues within 5 business days. This is a requirement given the critical nature of Terraform Cloud to a customer’s operation. If you choose not to support your integration, we cannot consider it Verified and will not list it on the Terraform documentation website.
 
--> Contact us at [technologypartners@hashicorp.com](technologypartners@hashicorp.com) with any questions or feedback. 
+-> Contact us at technologypartners@hashicorp.com with any questions or feedback. 
