@@ -76,7 +76,7 @@ You can follow the five steps. below to develop your provider alongside HashiCor
 4. **Verify**: Verify integration with HashiCorp Alliances team
 5. **Support**: Vendor provides ongoing maintenance and support
 
-Each of these steps are described in detail below. Partners are encouraged to follow the tasks associated with each step to the fullest as it helps streamline the process and minimize rework.
+We encourage you to follow the tasks associated with each step fully to streamline the development process and minimize rework.
 
 All providers integrate into and operate with Terraform exactly the same way. The table below is intended to help users understand who develops, and maintains a particular provider.
 
