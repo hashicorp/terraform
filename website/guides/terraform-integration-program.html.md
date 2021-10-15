@@ -191,11 +191,11 @@ The external system can then use this run information and respond back to Terraf
 
 Partners who successfully complete the Terraform Cloud Integration Checklist obtain a Terraform Cloud badge. This signifies HashiCorp has verified the integration and the partner is a member of the HashiCorp Technology Partner Program. 
 
+- Note: Currently, pre-apply is the only integration phase available at this time. As of September 2021, run tasks are available only as a beta feature, are subject to change, and not all customers will see this functionality in their Terraform Cloud organization since this is currently enabled by default for our business tier customers of Terraform Cloud. If you have a customer that is interested in run tasks and are not a current Terraform Cloud for Business customer, customers can [sign up here](https://docs.google.com/forms/d/e/1FAIpQLSf3JJIkU05bKWov2wXa9c-QV524WNaHuGIk7xjHnwl5ceGw2A/viewform). 
+
 ![TFC Badge](/assets/images/docs/tfc-badge.png)
 
-The above badge will help drive visibility for the partner as well as provide better differentiation for joint customers. This badge will be available for partners to use at their digital properties (as per guidelines in the technology partner guide that partners receive when they join HashiCorp’s technology partner program).  
-
-- Note: Currently, pre-apply is the only integration phase available at this time. As of September 2021, run tasks are available only as a beta feature, are subject to change, and not all customers will see this functionality in their Terraform Cloud organization since this is currently enabled by default for our business tier customers of Terraform Cloud. If you have a customer that is interested in run tasks and are not a current Terraform Cloud for Business customer, customers can [sign up here](https://docs.google.com/forms/d/e/1FAIpQLSf3JJIkU05bKWov2wXa9c-QV524WNaHuGIk7xjHnwl5ceGw2A/viewform). 
+The above badge will help drive visibility for the partner as well as provide better differentiation for joint customers. This badge will be available for partners to use at their digital properties (as per guidelines in the technology partner guide that partners receive when they join HashiCorp’s technology partner program). 
 
 The Terraform Cloud Integration program has the following five steps.
 
