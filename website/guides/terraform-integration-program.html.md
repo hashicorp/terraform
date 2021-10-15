@@ -210,8 +210,7 @@ Program
 2. **Develop & Test**: Understand and build using the API integration for Run Tasks 
 3. **Review**: Review integration with HashiCorp Alliances team
 4. **Release**: Provide documentation for your Integration
-5. **Support**: Ongoing maintenance and support of the integration by the
-vendor
+5. **Support**: Vendor provides ongoing maintanance and support
 
 ### 1. Engage
 
