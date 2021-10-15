@@ -161,12 +161,11 @@ All Terraform providers listed as Verified must contain one of the following ope
 
 ### 2. Publish
 
-After your provider development is complete and ready to release, vendors will publish the integration to the [Terraform Registry](https://registry.terraform.io/) for all Terraform users to discover by following the [publishing documentation](https://www.terraform.io/docs/registry/providers/publishing.html), or reviewing the [provider publishing learn guide](https://learn.hashicorp.com/tutorials/terraform/provider-release-publish?in=terraform/providers).
+After your provider is complete and ready to release, you can publish it the integration to the [Terraform Registry](https://registry.terraform.io/). This makes it publicly available for all Terraform users.
 
-Once completed, your provider should be visible in the Terraform Registry and usable in Terraform. Please confirm that everything looks good, and that documentation is rendering properly.
+Follow the [Terraform Registry publishing documentation](https://www.terraform.io/docs/registry/providers/publishing.html) and review the [provider publishing learn guide](https://learn.hashicorp.com/tutorials/terraform/provider-release-publish?in=terraform/providers). If your company has multiple products with separate providers, we recommend publishing them under the same Github organization to help with discoverability.
 
-
--> **Note:** If your company has multiple products with separate providers, we recommend publishing them under the same Github organization to help with the discoverability.
+Once completed, your provider will be visible in the Terraform Registry and available to use in Terraform. Please confirm that everything looks correct and that documentation is rendering properly.
 
 ### 3. Apply
 
