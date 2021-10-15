@@ -181,11 +181,11 @@ Once the provider is published, vendors should work with their HashiCorp Allianc
 
 ### 5. Support
 
-Getting a new provider built and published to the Terraform Registry is just the first step towards enabling your users with a quality Terraform integration. Once a verified provider has been published, on-going effort is required to maintain the provider. It is expected that all verified provider publishers will continue to maintain the provider and address any issues your users report in a timely manner. HashiCorp reserves the right to remove verified status from any integration that is no longer being maintained.
+Getting a new provider built and published to the Terraform Registry is just the first step towards enabling your users with a quality Terraform integration. Once a verified provider has been published, on-going effort is required to maintain the provider. 
 
-The expectation is to resolve all critical issues within 48 hours and all other issues within 5 business days. HashiCorp Terraform has an extremely wide community of users and contributors and we encourage everyone to report issues however small, as well as help resolve them when possible.
+HashiCorp Terraform has an extremely wide community of users and contributors and we encourage everyone to report issues however small, as well as help resolve them when possible. We expect that all verified provider publishers will continue to maintain the provider and address any issues users report in a timely manner. This includes resolving all critical issues within 48 hours and all other issues within 5 business days. HashiCorp reserves the right to remove verified status from any integration that is no longer being maintained.
 
-Vendors who choose to not support their provider and prefer to make it a community supported provider will no longer be listed as Verified.
+Vendors who choose not to support their provider and prefer to make it a community-supported provider will no longer be listed as Verified.
 
 ## Terraform Cloud Integrations
 
