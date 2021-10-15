@@ -197,7 +197,7 @@ The above badge will help drive visibility for the partner as well as provide be
 
 - Note: Currently, pre-apply is the only integration phase available at this time. As of September 2021, run tasks are available only as a beta feature, are subject to change, and not all customers will see this functionality in their Terraform Cloud organization since this is currently enabled by default for our business tier customers of Terraform Cloud. If you have a customer that is interested in run tasks and are not a current Terraform Cloud for Business customer, customers can [sign up here](https://docs.google.com/forms/d/e/1FAIpQLSf3JJIkU05bKWov2wXa9c-QV524WNaHuGIk7xjHnwl5ceGw2A/viewform). 
 
-The Terraform Cloud Integration portion of this program is divided into five steps below.
+The Terraform Cloud Integration program has the following five steps.
 
 ![RunTask Program Process](/assets/images/docs/runtask-program-steps.png)
 
