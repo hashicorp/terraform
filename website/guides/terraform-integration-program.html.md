@@ -230,9 +230,8 @@ Partners will provide documentation for end users to get started using their int
 
 ### 5. Support
 
-Many vendors view the release step to be the end of the journey, while at HashiCorp we view it to be the beginning of the journey. Getting the integration built is just the first step in enabling users to leverage it against their infrastructure. Once development is completed, on-going effort is required to support the developed integration, maintain the integration and address any issues in a timely manner.
+At HashiCorp, we view the release step to be the beginning of the journey. Getting the integration built is just the first step in enabling users to leverage it against their infrastructure. On-going effort is required to support and maintain it after you complete the initial development.
 
-The expectation from the partner is to create a mechanism for them to track and resolve all critical issues as soon as possible within 48 hours and all other issues within 5 business days. This is a requirement given the critical nature of Terraform Cloud to customer’s operation. Vendors who choose to not support their integration will not be considered a verified integration and cannot be listed on the website.
+We expect that partners will create a mechanism to track and resolve all critical issues as soon as possible (ideally within 48 hours) and all other issues within 5 business days. This is a requirement given the critical nature of Terraform Cloud to a customer’s operation. If you choose not to support your integration, we cannot consider it Verified and will not list it on the Terraform documentation website.
 
-
--> Contact us at [technologypartners@hashicorp.com](technologypartners@hashicorp.com) with any questions, or feedback if you have other integration ideas. 
+-> Contact us at [technologypartners@hashicorp.com](technologypartners@hashicorp.com) with any questions or feedback. 
