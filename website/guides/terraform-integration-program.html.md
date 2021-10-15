@@ -111,7 +111,7 @@ All providers integrate into and operate with Terraform exactly the same way. Th
 </tr>
 </tbody>
 </table>
-<p></p>
+
 
 ### 1. Prepare
 In order to get started with the Terraform provider development we recommend reviewing and following the articles.
@@ -197,7 +197,7 @@ Partners who successfully complete the Terraform Cloud Integration Checklist wil
 
 The above badge will help drive visibility for the partner as well as provide better differentiation for joint customers. This badge will be available for partners to use at their digital properties (as per guidelines in the technology partner guide that partners receive when they join HashiCorp’s technology partner program).  
 
-- Note: Currently, pre-apply is the only integration phase available at this time.  As of September 2021, run tasks are available only as a beta feature, are subject to change, and not all customers will see this functionality in their Terraform Cloud organization since this is currently enabled by default for our business tier customers of Terraform Cloud.  If you have a customer that is interested in run tasks and are not a current Terraform Cloud for Business customer, customers can [sign up here](https://docs.google.com/forms/d/e/1FAIpQLSf3JJIkU05bKWov2wXa9c-QV524WNaHuGIk7xjHnwl5ceGw2A/viewform). 
+- Note: Currently, pre-apply is the only integration phase available at this time. As of September 2021, run tasks are available only as a beta feature, are subject to change, and not all customers will see this functionality in their Terraform Cloud organization since this is currently enabled by default for our business tier customers of Terraform Cloud. If you have a customer that is interested in run tasks and are not a current Terraform Cloud for Business customer, customers can [sign up here](https://docs.google.com/forms/d/e/1FAIpQLSf3JJIkU05bKWov2wXa9c-QV524WNaHuGIk7xjHnwl5ceGw2A/viewform). 
 
 The Terraform Cloud Integration portion of this program is divided into five steps below.
 
@@ -213,23 +213,23 @@ vendor
 
 ### 1. Engage
 
-For partners who are new to working with Hashicorp, we recommend [signing up for our Technology Partner Program](https://www.hashicorp.com/go/tech-partner).  To understand more about the program, check out our “[Become a Partner](https://www.hashicorp.com/partners/become-a-partner)” page.
+For partners who are new to working with Hashicorp, we recommend [signing up for our Technology Partner Program](https://www.hashicorp.com/go/tech-partner). To understand more about the program, check out our “[Become a Partner](https://www.hashicorp.com/partners/become-a-partner)” page.
 
 ### 2. Develop & Test
-Partners should build an integration using [Run Task APIs in Terraform Cloud](https://www.terraform.io/docs/cloud/api/run-tasks.html).  To better understand how run Task enhances the workflow, see diagram listed below and check out our [announcement about Terraform run Task](https://www.hashicorp.com/blog/terraform-cloud-run-tasks-beta-now-available).  [Snyk](https://docs.snyk.io/features/integrations/ci-cd-integrations/integrating-snyk-with-terraform-cloud), for example, created an integration to detect configuration anomalies in code while reducing risk to the infrastructure.  For additional API resources, [click here](https://www.terraform.io/docs/cloud/api/index.html).
+Partners should build an integration using [Run Task APIs in Terraform Cloud](https://www.terraform.io/docs/cloud/api/run-tasks.html). To better understand how run Task enhances the workflow, see diagram listed below and check out our [announcement about Terraform run Task](https://www.hashicorp.com/blog/terraform-cloud-run-tasks-beta-now-available). [Snyk](https://docs.snyk.io/features/integrations/ci-cd-integrations/integrating-snyk-with-terraform-cloud), for example, created an integration to detect configuration anomalies in code while reducing risk to the infrastructure. For additional API resources, [click here](https://www.terraform.io/docs/cloud/api/index.html).
 **Currently, pre-apply is the only integration phase available.** 
 
 ![RunTask Diagram](/assets/images/docs/runtask-diagram.png)
 
 ### 3. Review
 
-Schedule time with your Partner Alliance manager to review your integration.  Demonstration of the integration will include but not limited to enabling the integration on the partner’s platform and Terraform Cloud, understanding of the use case for the integration as well as seeing the integration demonstrated live.  Alternatively, partners could also reach out to [technologypartners@hashicorp.com](technologypartners@hashicorp.com) if for some reason they are unable to engage with their Partner Alliances manager.
+Schedule time with your Partner Alliance manager to review your integration. Demonstration of the integration will include but not limited to enabling the integration on the partner’s platform and Terraform Cloud, understanding of the use case for the integration as well as seeing the integration demonstrated live.  Alternatively, partners could also reach out to [technologypartners@hashicorp.com](technologypartners@hashicorp.com) if for some reason they are unable to engage with their Partner Alliances manager.
 
 ### 4. Release
 
-Once demonstration has been completed and the documentation has been shared and verified.  Partners will be added to the [Terraform Run Task page](https://www.terraform.io/docs/cloud/integrations/run-tasks/index.html#run-tasks-technology-partners).  On this page, partners will provide a two-line summary about their integration(s).  If you have multiple integrations, we highly recommend creating a summary that highlights all potential integration options.  
+Once demonstration has been completed and the documentation has been shared and verified. Partners will be added to the [Terraform Run Task page](https://www.terraform.io/docs/cloud/integrations/run-tasks/index.html#run-tasks-technology-partners).  On this page, partners will provide a two-line summary about their integration(s). If you have multiple integrations, we highly recommend creating a summary that highlights all potential integration options.  
 
-Partners will provide documentation for end users to get started using their integration.  [BridgeCrew](https://docs.bridgecrew.io/docs/integrate-with-terraform-cloud#introduction) embedded their documentation into their site and we also link to the documentation as well.   Also, partners will need to provide documentation for our support team including points of contact, email address, FAQ and/or best practices.  With integrations, we want to ensure the end users are able to reach the right contacts for internal HashiCorp support when working with customers.
+Partners will provide documentation for end users to get started using their integration. [BridgeCrew](https://docs.bridgecrew.io/docs/integrate-with-terraform-cloud#introduction) embedded their documentation into their site and we also link to the documentation as well.   Also, partners will need to provide documentation for our support team including points of contact, email address, FAQ and/or best practices. With integrations, we want to ensure the end users are able to reach the right contacts for internal HashiCorp support when working with customers.
 
 ### 5. Support
 
