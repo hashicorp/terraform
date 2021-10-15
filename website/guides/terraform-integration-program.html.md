@@ -63,7 +63,6 @@ Our Infrastructure Partners typically have the following use cases:
 Infrastructure partners integrate by building and publishing a plugin called a Terraform [provider](https://www.terraform.io/docs/language/providers/index.html). Providers are executable binaries written in Go that communicate with Terraform Core over an RPC interface. The provider acts as a translation layer for transactions with external APIs, such as a public cloud service (AWS, GCP, Azure), a PaaS service (Heroku), a SaaS service (DNSimple, CloudFlare), or on-prem resources (vSphere). Providers work across Terraform OSS, Terraform Cloud and Terraform Enterprise. Refer to the [Terraform Provider Integrations documentation](https://www.terraform.io/guides/terraform-integration-program.html#terraform-provider-integrations) for more detail.
 
 
--> **Note:** Partners could be either workflow and/or infrastructure partners depending on their use cases. 
 
 ## Terraform Provider Integrations
 
