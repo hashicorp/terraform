@@ -201,7 +201,7 @@ The Terraform Cloud Integration program has the following five steps.
 
 ![RunTask Program Process](/assets/images/docs/runtask-program-steps.png)
 
-1. **Engage**: Interested partner should sign up for the Technology Partner
+1. **Engage**: Sign up for the Technology Partner
 Program
 2. **Develop & Test**: Understand and build using the API integration for Run Tasks 
 3. **Review**: Review integration with HashiCorp Alliances team
