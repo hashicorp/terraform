@@ -434,12 +434,21 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 }
 
 func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opts *backendMigrateOpts) (bool, error) {
-	inputOpts := &terraform.InputOpts{
-		Id:    "backend-migrate-copy-to-empty",
-		Query: "Do you want to copy existing state to the new backend?",
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateEmpty),
-			opts.SourceType, opts.DestinationType),
+	var inputOpts *terraform.InputOpts
+	if opts.DestinationType == "cloud" {
+		inputOpts = &terraform.InputOpts{
+			Id:          "backend-migrate-copy-to-empty-cloud",
+			Query:       "Do you want to copy existing state to Terraform Cloud?",
+			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateEmptyCloud), opts.SourceType),
+		}
+	} else {
+		inputOpts = &terraform.InputOpts{
+			Id:    "backend-migrate-copy-to-empty",
+			Query: "Do you want to copy existing state to the new backend?",
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateEmpty),
+				opts.SourceType, opts.DestinationType),
+		}
 	}
 
 	return m.confirm(inputOpts)
@@ -475,12 +484,23 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	}
 
 	// Ask for confirmation
-	inputOpts := &terraform.InputOpts{
-		Id:    "backend-migrate-to-backend",
-		Query: "Do you want to copy existing state to the new backend?",
-		Description: fmt.Sprintf(
-			strings.TrimSpace(inputBackendMigrateNonEmpty),
-			opts.SourceType, opts.DestinationType, sourcePath, destinationPath),
+	var inputOpts *terraform.InputOpts
+	if opts.DestinationType == "cloud" {
+		inputOpts = &terraform.InputOpts{
+			Id:    "backend-migrate-to-tfc",
+			Query: "Do you want to copy existing state to Terraform Cloud?",
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateNonEmptyCloud),
+				opts.SourceType, sourcePath, destinationPath),
+		}
+	} else {
+		inputOpts = &terraform.InputOpts{
+			Id:    "backend-migrate-to-backend",
+			Query: "Do you want to copy existing state to the new backend?",
+			Description: fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateNonEmpty),
+				opts.SourceType, opts.DestinationType, sourcePath, destinationPath),
+		}
 	}
 
 	// Confirm with the user that the copy should occur
@@ -807,6 +827,12 @@ configured %[2]q backend. Do you want to copy this state to the new %[2]q
 backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
+const inputBackendMigrateEmptyCloud = `
+Pre-existing state was found while migrating the previous %q backend to Terraform Cloud.
+No existing state was found in Terraform Cloud. Do you want to copy this state to Terraform Cloud?
+Enter "yes" to copy and "no" to start with an empty state.
+`
+
 const inputBackendMigrateNonEmpty = `
 Pre-existing state was found while migrating the previous %q backend to the
 newly configured %q backend. An existing non-empty state already exists in
@@ -819,6 +845,19 @@ New      (type %[2]q): %[4]s
 Do you want to overwrite the state in the new backend with the previous state?
 Enter "yes" to copy and "no" to start with the existing state in the newly
 configured %[2]q backend.
+`
+
+const inputBackendMigrateNonEmptyCloud = `
+Pre-existing state was found while migrating the previous %q backend to
+Terraform Cloud. An existing non-empty state already exists in Terraform Cloud.
+The two states have been saved to temporary files that will be removed after
+responding to this query.
+
+Previous (type %[1]q): %[2]s
+New      (Terraform Cloud): %[3]s
+
+Do you want to overwrite the state in Terraform Cloud with the previous state?
+Enter "yes" to copy and "no" to start with the existing state in Terraform Cloud.
 `
 
 const inputBackendMigrateMultiToSingle = `
