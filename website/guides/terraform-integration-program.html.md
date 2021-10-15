@@ -157,7 +157,6 @@ All Terraform providers listed as Verified must contain one of the following ope
 - MIT
 
 
--> **Note:** If you have questions or suggestions about the Terraform SDK and the development of the Terraform provider, please submit your request to the HashiCorp Terraform plugin SDK forum
 
 
 ### 2. Publish
