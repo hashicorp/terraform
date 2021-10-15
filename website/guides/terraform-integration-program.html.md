@@ -217,7 +217,7 @@ For partners who are new to working with Hashicorp, we recommend [signing up for
 
 ### 2. Develop & Test
 Partners should build an integration using [Run Task APIs in Terraform Cloud](https://www.terraform.io/docs/cloud/api/run-tasks.html).  To better understand how run Task enhances the workflow, see diagram listed below and check out our [announcement about Terraform run Task](https://www.hashicorp.com/blog/terraform-cloud-run-tasks-beta-now-available).  [Snyk](https://docs.snyk.io/features/integrations/ci-cd-integrations/integrating-snyk-with-terraform-cloud), for example, created an integration to detect configuration anomalies in code while reducing risk to the infrastructure.  For additional API resources, [click here](https://www.terraform.io/docs/cloud/api/index.html).
-***Currently, pre-apply is the only integration phase available.** 
+**Currently, pre-apply is the only integration phase available.** 
 
 ![RunTask Diagram](/assets/images/docs/runtask-diagram.png)
 
