@@ -74,7 +74,7 @@ You can follow the five steps. below to develop your provider alongside HashiCor
 2. **Publish**: Publish provider to the Registry or plugin documentation
 3. **Apply**: Apply to Technology Partnership Program
 4. **Verify**: Verify integration with HashiCorp Alliances team
-5. **Support**: Ongoing maintenance and support of the integration by the vendor
+5. **Support**: Vendor provides ongoing maintenance and support
 
 Each of these steps are described in detail below. Partners are encouraged to follow the tasks associated with each step to the fullest as it helps streamline the process and minimize rework.
 
