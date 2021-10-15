@@ -66,7 +66,7 @@ Infrastructure partners integrate by building and publishing a plugin called a T
 
 ## Terraform Provider Integrations
 
-The Terraform provider integration portion of this program is divided into five steps below. By following these steps, integration can be developed alongside HashiCorp to ensure new plugins are able to be published with Terraform as quickly as possible.
+You can follow the five steps. below to develop your provider alongside HashiCorp. This ensures that you can publish new versions with Terraform quickly and efficiently. 
 
 ![Provider Development Process](/assets/images/docs/provider-program-steps.png)
 
