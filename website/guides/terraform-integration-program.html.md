@@ -173,7 +173,7 @@ After your provider is published, connect with HashiCorp Alliances to onboard yo
 
 ### 4. Verify
 
-Once the provider is published, vendors should work with their HashiCorp Alliances representative to verify the plugin within the Registry and listed as an HashiCorp technology partner integration on HashiCorp website.
+Work with your HashiCorp Alliances representative to verify the plugin within the Registry and become listed as an HashiCorp technology partner integration on HashiCorp website.
 
 ### 5. Support
 
