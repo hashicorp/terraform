@@ -127,7 +127,7 @@ e) Contributing to Terraform [guidelines](https://github.com/hashicorp/terraform
 
 f) HashiCorp developer [forum](https://discuss.hashicorp.com/c/terraform-providers/tf-plugin-sdk/43)
 
-We’ve found the provider development process to be fairly straightforward and simple when you pay close attention and follow the resources below. If you have not developed a provider before and are looking for some help in developing one, you may choose to leverage one of the following development agencies which have developed Terraform providers in the past and are familiar with the requirements and process:
+Please submit questions or suggestions about the Terraform SDK and provider development to the HashiCorp Terraform plugin SDK forum. If you are new to provider development and would like assistance, you can leverage one of the following development agencies that have developed Terraform providers in the past:
 
 | Partner            | Email                        | Website              |
 |--------------------|:-----------------------------|:---------------------|
