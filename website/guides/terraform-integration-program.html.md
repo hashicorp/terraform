@@ -27,15 +27,15 @@ The Terraform ecosystem is designed to enable users to apply Terraform across di
 
 Our Workflow Partners typically have the following use cases:
 
-- **Code Scanning:** Partners that provide tooling to review IaC configurations to prevent errors or security issues
-- **Cost Estimation:** Partners that drive cost estimation of new deployment based on historical deployments
-- **Monitoring:** Partners that focus on providing visibility of performance
-- **Zero Trust Security:** Partners focused on helping user written configurations to verify any connections prior to providing access to any organization’s systems
-- **Audit:** Partners focused on maintaining code formatting, preventing security threats as well perform additional code analysis
-- **ITSM (Information Technology Service Management):** Partners focused on implementing, deployment and delivery of IT workflows
-- **SSO (Single Sign On):** Partners focused on Authentication for end users to securely sign on
-- **CI/CD:** Continuous integration and continuous delivery/deployment partners
-- **VCS:** Partners who focus on tracking and managing software code changes.
+- **Code Scanning:** These partners provide tooling to review infrastructure as code configurations to prevent errors or security issues.
+- **Cost Estimation:** These partners drive cost estimation of new deployment based on historical deployments.
+- **Monitoring:** These partners provide performance visibility.
+- **Zero Trust Security:** These partners help users create configurations to verify connections prior to providing access to an organization’s systems.
+- **Audit:** These partners focus on maintaining code formatting, preventing security threats, and performing additional code analysis.
+- **ITSM (Information Technology Service Management):** These partners focus on implementation, deployment, and delivery of IT workflows.
+- **SSO (Single Sign On):** These partners focus on authentication for end users to securely sign on.
+- **CI/CD:** These partners focus on continuous integration and continuous delivery/deployment.
+- **VCS:** These partners focus on tracking and managing software code changes.
 
 Most workflow partners integrate with the Terraform workflow itself. Run tasks allow Terraform Cloud to execute tasks in external systems at specific points in the Terraform Cloud run lifecycle. This offers much more extensibility to Terraform Cloud customers, enabling them to integrate your services into the Terraform Cloud workflow. The beta release of this feature allows users to add and execute these tasks during the new pre-apply stage which exists in between the plan and apply stages. Eventually, HashiCorp will be opening up the entire workflow to Terraform Cloud users, including the pre-plan and post apply stages. To learn more [click here](https://www.terraform.io/guides/terraform-integration-program.html#terraform-cloud-integrations)
 
