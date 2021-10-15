@@ -169,7 +169,7 @@ Once completed, your provider will be visible in the Terraform Registry and avai
 
 ### 3. Apply
 
-Vendors should now connect with HashiCorp Alliances to onboard your integration to the HashiCorp technology ecosystem or apply to become a technology partner through [this form](https://www.hashicorp.com/ecosystem/become-a-partner/#technology).
+After your provider is published, connect with HashiCorp Alliances to onboard your integration to the HashiCorp technology ecosystem or [apply to become a technology partner](https://www.hashicorp.com/ecosystem/become-a-partner/#technology).
 
 ### 4. Verify
 
