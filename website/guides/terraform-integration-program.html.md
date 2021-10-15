@@ -21,8 +21,7 @@ HashiCorp offers three editions of Terraform: Open Source, Terraform Cloud, and 
 
 ## Types of Terraform Integrations
 
-The Terraform ecosystem is designed around being able to use Terraform across different use cases and environments. There are two broad types of partners currently supported through this Terraform Integration Program. 
-
+The Terraform ecosystem is designed to enable users to apply Terraform across different use cases and environments. The Terraform Integration Program current supports both workflow and integration partners (details below). Some partners can be both, depending on their use cases.  
 - **Workflow Partners** build integrations for Terraform Cloud and/or Terraform Enterprise.  Ideally, these partners are seeking to enable customers to use their existing platform within a Terraform Run. 
 - **Infrastructure Partners** empower customers to leverage Terraform to manage resources exposed by their platform APIs. These are accessible to users of all Terraform editions.
 
