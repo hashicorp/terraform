@@ -2,7 +2,7 @@
 layout: "extend"
 page_title: "Terraform Integration Program"
 sidebar_current: "guides-terraform-integration-program"
-description: This guide is intended for vendors who're interested in having their platform supported by Terraform. The guide walks vendors through the steps involved in creating a provider and applying for it to be included with Terraform.
+description: The Terraform Integration Program allows prospect partners to create and publish Terraform integrations that have been verified by HashiCorp.
 ---
 
 # Terraform Integration Program
