@@ -306,11 +306,9 @@ func (c *InitCommand) Run(args []string) int {
 	// still the final thing shown.
 	c.showDiagnostics(diags)
 	_, cloud := back.(*cloud.Cloud)
-	output := ""
+	output := outputInitSuccess
 	if cloud {
 		output = outputInitSuccessCloud
-	} else {
-		output = outputInitSuccess
 	}
 
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(output)))
