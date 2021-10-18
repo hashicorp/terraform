@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -52,7 +53,7 @@ type EvalContext interface {
 	//
 	// This method expects an _absolute_ provider configuration address, since
 	// resources in one module are able to use providers from other modules.
-	ProviderSchema(addrs.AbsProviderConfig) *ProviderSchema
+	ProviderSchema(addrs.AbsProviderConfig) (*ProviderSchema, error)
 
 	// CloseProvider closes provider connections that aren't needed anymore.
 	//
@@ -83,7 +84,7 @@ type EvalContext interface {
 	// ProvisionerSchema retrieves the main configuration schema for a
 	// particular provisioner, which must have already been initialized with
 	// InitProvisioner.
-	ProvisionerSchema(string) *configschema.Block
+	ProvisionerSchema(string) (*configschema.Block, error)
 
 	// CloseProvisioner closes all provisioner plugins.
 	CloseProvisioners() error
@@ -164,6 +165,16 @@ type EvalContext interface {
 	// The InstanceExpander is a global object that is shared across all of the
 	// EvalContext objects for a given configuration.
 	InstanceExpander() *instances.Expander
+
+	// MoveResults returns a map describing the results of handling any
+	// resource instance move statements prior to the graph walk, so that
+	// the graph walk can then record that information appropriately in other
+	// artifacts produced by the graph walk.
+	//
+	// This data structure is created prior to the graph walk and read-only
+	// thereafter, so callers must not modify the returned map or any other
+	// objects accessible through it.
+	MoveResults() refactoring.MoveResults
 
 	// WithPath returns a copy of the context with the internal path set to the
 	// path argument.

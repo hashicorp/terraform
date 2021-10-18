@@ -149,7 +149,7 @@ The following configuration options are supported:
 * `swauth` - (Optional) Set to `true` to authenticate against Swauth, a
   Swift-native authentication system. If omitted, the `OS_SWAUTH` environment
   variable is used. You must also set `username` to the Swauth/Swift username
-  such as `username:project`. Set the `password` to the Swauth/Swift key.
+  such as `username:project`. Set the `password` to the Swauth/Swift key. This feature supports v1.0 of the Swauth system.
   Finally, set `auth_url` as the location of the Swift service.
 
 * `disable_no_cache_header` - (Optional) If set to `true`, the HTTP

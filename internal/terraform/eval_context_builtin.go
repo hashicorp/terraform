@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/version"
 
 	"github.com/hashicorp/terraform/internal/states"
@@ -43,15 +44,6 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
-	// Schemas is a repository of all of the schemas we should need to
-	// decode configuration blocks and expressions. This must be constructed by
-	// the caller to include schemas for all of the providers, resource types,
-	// data sources and provisioners used by the given configuration and
-	// state.
-	//
-	// This must not be mutated during evaluation.
-	Schemas *Schemas
-
 	// VariableValues contains the variable values across all modules. This
 	// structure is shared across the entire containing context, and so it
 	// may be accessed only when holding VariableValuesLock.
@@ -61,7 +53,10 @@ type BuiltinEvalContext struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	Components            contextComponentFactory
+	// Plugins is a library of plugin components (providers and provisioners)
+	// available for use during a graph walk.
+	Plugins *contextPlugins
+
 	Hooks                 []Hook
 	InputValue            UIInput
 	ProviderCache         map[string]providers.Interface
@@ -74,6 +69,7 @@ type BuiltinEvalContext struct {
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
+	MoveResultsValue      refactoring.MoveResults
 }
 
 // BuiltinEvalContext implements EvalContext
@@ -132,7 +128,7 @@ func (ctx *BuiltinEvalContext) InitProvider(addr addrs.AbsProviderConfig) (provi
 
 	key := addr.String()
 
-	p, err := ctx.Components.ResourceProvider(addr.Provider)
+	p, err := ctx.Plugins.NewProviderInstance(addr.Provider)
 	if err != nil {
 		return nil, err
 	}
@@ -150,8 +146,8 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
-	return ctx.Schemas.ProviderSchema(addr.Provider)
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -182,7 +178,11 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		return diags
 	}
 
-	providerSchema := ctx.ProviderSchema(addr)
+	providerSchema, err := ctx.ProviderSchema(addr)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("failed to read schema for %s: %s", addr, err))
+		return diags
+	}
 	if providerSchema == nil {
 		diags = diags.Append(fmt.Errorf("schema for %s is not available", addr))
 		return diags
@@ -236,7 +236,7 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) (provisioners.Interface, er
 	p, ok := ctx.ProvisionerCache[n]
 	if !ok {
 		var err error
-		p, err = ctx.Components.ResourceProvisioner(n)
+		p, err = ctx.Plugins.NewProvisionerInstance(n)
 		if err != nil {
 			return nil, err
 		}
@@ -247,8 +247,8 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) (provisioners.Interface, er
 	return p, nil
 }
 
-func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) *configschema.Block {
-	return ctx.Schemas.ProvisionerConfig(n)
+func (ctx *BuiltinEvalContext) ProvisionerSchema(n string) (*configschema.Block, error) {
+	return ctx.Plugins.ProvisionerSchema(n)
 }
 
 func (ctx *BuiltinEvalContext) CloseProvisioners() error {
@@ -366,4 +366,8 @@ func (ctx *BuiltinEvalContext) PrevRunState() *states.SyncState {
 
 func (ctx *BuiltinEvalContext) InstanceExpander() *instances.Expander {
 	return ctx.InstanceExpanderValue
+}
+
+func (ctx *BuiltinEvalContext) MoveResults() refactoring.MoveResults {
+	return ctx.MoveResultsValue
 }

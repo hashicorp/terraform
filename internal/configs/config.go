@@ -2,11 +2,13 @@ package configs
 
 import (
 	"fmt"
+	"log"
 	"sort"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -192,6 +194,89 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // packages, and so this function will arbitrarily return false in that case.
 func (c *Config) EntersNewPackage() bool {
 	return moduleSourceAddrEntersNewPackage(c.SourceAddr)
+}
+
+// VerifyDependencySelections checks whether the given locked dependencies
+// are acceptable for all of the version constraints reported in the
+// configuration tree represented by the reciever.
+//
+// This function will errors only if any of the locked dependencies are out of
+// range for corresponding constraints in the configuration. If there are
+// multiple inconsistencies then it will attempt to describe as many of them
+// as possible, rather than stopping at the first problem.
+//
+// It's typically the responsibility of "terraform init" to change the locked
+// dependencies to conform with the configuration, and so
+// VerifyDependencySelections is intended for other commands to check whether
+// it did so correctly and to catch if anything has changed in configuration
+// since the last "terraform init" which requires re-initialization. However,
+// it's up to the caller to decide how to advise users recover from these
+// errors, because the advise can vary depending on what operation the user
+// is attempting.
+func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
+	var errs []error
+
+	reqs, diags := c.ProviderRequirements()
+	if diags.HasErrors() {
+		// It should be very unusual to get here, but unfortunately we can
+		// end up here in some edge cases where the config loader doesn't
+		// process version constraint strings in exactly the same way as
+		// the requirements resolver. (See the addProviderRequirements method
+		// for more information.)
+		errs = append(errs, fmt.Errorf("failed to determine the configuration's provider requirements: %s", diags.Error()))
+	}
+
+	for providerAddr, constraints := range reqs {
+		if !depsfile.ProviderIsLockable(providerAddr) {
+			continue // disregard builtin providers, and such
+		}
+		if depLocks != nil && depLocks.ProviderIsOverridden(providerAddr) {
+			// The "overridden" case is for unusual special situations like
+			// dev overrides, so we'll explicitly note it in the logs just in
+			// case we see bug reports with these active and it helps us
+			// understand why we ended up using the "wrong" plugin.
+			log.Printf("[DEBUG] Config.VerifyDependencySelections: skipping %s because it's overridden by a special configuration setting", providerAddr)
+			continue
+		}
+
+		var lock *depsfile.ProviderLock
+		if depLocks != nil { // Should always be true in main code, but unfortunately sometimes not true in old tests that don't fill out arguments completely
+			lock = depLocks.Provider(providerAddr)
+		}
+		if lock == nil {
+			log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has no lock file entry to satisfy %q", providerAddr, getproviders.VersionConstraintsString(constraints))
+			errs = append(errs, fmt.Errorf("provider %s: required by this configuration but no version is selected", providerAddr))
+			continue
+		}
+
+		selectedVersion := lock.Version()
+		allowedVersions := getproviders.MeetingConstraints(constraints)
+		log.Printf("[TRACE] Config.VerifyDependencySelections: provider %s has %s to satisfy %q", providerAddr, selectedVersion.String(), getproviders.VersionConstraintsString(constraints))
+		if !allowedVersions.Has(selectedVersion) {
+			// The most likely cause of this is that the author of a module
+			// has changed its constraints, but this could also happen in
+			// some other unusual situations, such as the user directly
+			// editing the lock file to record something invalid. We'll
+			// distinguish those cases here in order to avoid the more
+			// specific error message potentially being a red herring in
+			// the edge-cases.
+			currentConstraints := getproviders.VersionConstraintsString(constraints)
+			lockedConstraints := getproviders.VersionConstraintsString(lock.VersionConstraints())
+			switch {
+			case currentConstraints != lockedConstraints:
+				errs = append(errs, fmt.Errorf("provider %s: locked version selection %s doesn't match the updated version constraints %q", providerAddr, selectedVersion.String(), currentConstraints))
+			default:
+				errs = append(errs, fmt.Errorf("provider %s: version constraints %q don't match the locked version selection %s", providerAddr, currentConstraints, selectedVersion.String()))
+			}
+		}
+	}
+
+	// Return multiple errors in an arbitrary-but-deterministic order.
+	sort.Slice(errs, func(i, j int) bool {
+		return errs[i].Error() < errs[j].Error()
+	})
+
+	return errs
 }
 
 // ProviderRequirements searches the full tree of modules under the receiver

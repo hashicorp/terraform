@@ -82,14 +82,18 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Get the context (required to get the schemas)
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(ctxDiags)
 		return 1
 	}
 
 	// Get the schemas from the context
-	schemas := ctx.Schemas()
+	schemas, diags := lr.Core.Schemas(lr.Config, lr.InputState)
+	if diags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
 
 	// Get the state
 	env, err := c.Workspace()

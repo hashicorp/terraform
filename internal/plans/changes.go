@@ -33,7 +33,7 @@ func NewChanges() *Changes {
 
 func (c *Changes) Empty() bool {
 	for _, res := range c.Resources {
-		if res.Action != NoOp {
+		if res.Action != NoOp || res.Moved() {
 			return false
 		}
 	}
@@ -147,6 +147,19 @@ type ResourceInstanceChange struct {
 	// will apply to.
 	Addr addrs.AbsResourceInstance
 
+	// PrevRunAddr is the absolute address that this resource instance had at
+	// the conclusion of a previous run.
+	//
+	// This will typically be the same as Addr, but can be different if the
+	// previous resource instance was subject to a "moved" block that we
+	// handled in the process of creating this plan.
+	//
+	// For the initial creation of a resource instance there isn't really any
+	// meaningful "previous run address", but PrevRunAddr will still be set
+	// equal to Addr in that case in order to simplify logic elsewhere which
+	// aims to detect and react to the movement of instances between addresses.
+	PrevRunAddr addrs.AbsResourceInstance
+
 	// DeposedKey is the identifier for a deposed object associated with the
 	// given instance, or states.NotDeposed if this change applies to the
 	// current object.
@@ -203,8 +216,15 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 	if err != nil {
 		return nil, err
 	}
+	prevRunAddr := rc.PrevRunAddr
+	if prevRunAddr.Resource.Resource.Type == "" {
+		// Suggests an old caller that hasn't been properly updated to
+		// populate this yet.
+		prevRunAddr = rc.Addr
+	}
 	return &ResourceInstanceChangeSrc{
 		Addr:            rc.Addr,
+		PrevRunAddr:     prevRunAddr,
 		DeposedKey:      rc.DeposedKey,
 		ProviderAddr:    rc.ProviderAddr,
 		ChangeSrc:       *cs,
@@ -329,6 +349,40 @@ const (
 	// the ResourceInstanceChange object to give information about specifically
 	// which arguments changed in a non-updatable way.
 	ResourceInstanceReplaceBecauseCannotUpdate ResourceInstanceChangeActionReason = 'F'
+
+	// ResourceInstanceDeleteBecauseNoResourceConfig indicates that the
+	// resource instance is planned to be deleted because there's no
+	// corresponding resource configuration block in the configuration.
+	ResourceInstanceDeleteBecauseNoResourceConfig ResourceInstanceChangeActionReason = 'N'
+
+	// ResourceInstanceDeleteBecauseWrongRepetition indicates that the
+	// resource instance is planned to be deleted because the instance key
+	// type isn't consistent with the repetition mode selected in the
+	// resource configuration.
+	ResourceInstanceDeleteBecauseWrongRepetition ResourceInstanceChangeActionReason = 'W'
+
+	// ResourceInstanceDeleteBecauseCountIndex indicates that the resource
+	// instance is planned to be deleted because its integer instance key
+	// is out of range for the current configured resource "count" value.
+	ResourceInstanceDeleteBecauseCountIndex ResourceInstanceChangeActionReason = 'C'
+
+	// ResourceInstanceDeleteBecauseEachKey indicates that the resource
+	// instance is planned to be deleted because its string instance key
+	// isn't one of the keys included in the current configured resource
+	// "for_each" value.
+	ResourceInstanceDeleteBecauseEachKey ResourceInstanceChangeActionReason = 'E'
+
+	// ResourceInstanceDeleteBecauseNoModule indicates that the resource
+	// instance is planned to be deleted because it belongs to a module
+	// instance that's no longer declared in the configuration.
+	//
+	// This is less specific than the reasons we return for the various ways
+	// a resource instance itself can be no longer declared, including both
+	// the total removal of a module block and changes to its count/for_each
+	// arguments. This difference in detail is out of pragmatism, because
+	// potentially multiple nested modules could all contribute conflicting
+	// specific reasons for a particular instance to no longer be declared.
+	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
 )
 
 // OutputChange describes a change to an output value.

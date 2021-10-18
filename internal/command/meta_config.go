@@ -27,27 +27,8 @@ import (
 // paths used to load configuration, because we want to prefer recording
 // relative paths in source code references within the configuration.
 func (m *Meta) normalizePath(path string) string {
-	var err error
-
-	// First we will make it absolute so that we have a consistent place
-	// to start.
-	path, err = filepath.Abs(path)
-	if err != nil {
-		// We'll just accept what we were given, then.
-		return path
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil || !filepath.IsAbs(cwd) {
-		return path
-	}
-
-	ret, err := filepath.Rel(cwd, path)
-	if err != nil {
-		return path
-	}
-
-	return ret
+	m.fixupMissingWorkingDir()
+	return m.WorkingDir.NormalizePath(path)
 }
 
 // loadConfig reads a configuration from the given directory, which should

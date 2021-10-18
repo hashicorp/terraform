@@ -51,6 +51,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	}
 	if ov.Type != cty.NilType {
 		v.Type = ov.Type
+		v.ConstraintType = ov.ConstraintType
 	}
 	if ov.ParsingMode != 0 {
 		v.ParsingMode = ov.ParsingMode
@@ -67,7 +68,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	// constraint but the converted value cannot. In practice, this situation
 	// should be rare since most of our conversions are interchangable.
 	if v.Default != cty.NilVal {
-		val, err := convert.Convert(v.Default, v.Type)
+		val, err := convert.Convert(v.Default, v.ConstraintType)
 		if err != nil {
 			// What exactly we'll say in the error message here depends on whether
 			// it was Default or Type that was overridden here.

@@ -1,3 +1,4 @@
+//go:build linux || darwin || openbsd || netbsd || solaris || dragonfly
 // +build linux darwin openbsd netbsd solaris dragonfly
 
 package configload

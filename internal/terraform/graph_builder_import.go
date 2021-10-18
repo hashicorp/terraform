@@ -17,12 +17,9 @@ type ImportGraphBuilder struct {
 	// Module is a configuration to build the graph from. See ImportOpts.Config.
 	Config *configs.Config
 
-	// Components is the factory for our available plugin components.
-	Components contextComponentFactory
-
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	// Plugins is a library of plug-in components (providers and
+	// provisioners) available for use.
+	Plugins *contextPlugins
 }
 
 // Build builds the graph according to the steps returned by Steps.
@@ -67,11 +64,11 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
+		transformProviders(concreteProvider, config),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing

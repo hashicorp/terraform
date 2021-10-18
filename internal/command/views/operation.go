@@ -3,7 +3,6 @@ package views
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -11,11 +10,9 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type Operation interface {
@@ -163,10 +160,14 @@ func (v *OperationJSON) EmergencyDumpState(stateFile *statefile.File) error {
 // Log a change summary and a series of "planned" messages for the changes in
 // the plan.
 func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	if err := v.resourceDrift(plan.PrevRunState, plan.PriorState, schemas); err != nil {
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(err)
-		v.Diagnostics(diags)
+	for _, dr := range plan.DriftedResources {
+		// In refresh-only mode, we output all resources marked as drifted,
+		// including those which have moved without other changes. In other plan
+		// modes, move-only changes will be included in the planned changes, so
+		// we skip them here.
+		if dr.Action != plans.NoOp || plan.UIMode == plans.RefreshOnlyMode {
+			v.view.ResourceDrift(json.NewResourceInstanceChange(dr))
+		}
 	}
 
 	cs := &json.ChangeSummary{
@@ -189,98 +190,23 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			cs.Remove++
 		}
 
-		if change.Action != plans.NoOp {
+		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}
 
 	v.view.ChangeSummary(cs)
-}
 
-func (v *OperationJSON) resourceDrift(oldState, newState *states.State, schemas *terraform.Schemas) error {
-	if newState.ManagedResourcesEqual(oldState) {
-		// Nothing to do, because we only detect and report drift for managed
-		// resource instances.
-		return nil
-	}
-	var changes []*json.ResourceInstanceChange
-	for _, ms := range oldState.Modules {
-		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				// Drift reporting is only for managed resources
-				continue
-			}
-
-			provider := rs.ProviderConfig.Provider
-			for key, oldIS := range rs.Instances {
-				if oldIS.Current == nil {
-					// Not interested in instances that only have deposed objects
-					continue
-				}
-				addr := rs.Addr.Instance(key)
-				newIS := newState.ResourceInstance(addr)
-
-				schema, _ := schemas.ResourceTypeConfig(
-					provider,
-					addr.Resource.Resource.Mode,
-					addr.Resource.Resource.Type,
-				)
-				if schema == nil {
-					return fmt.Errorf("no schema found for %s (in provider %s)", addr, provider)
-				}
-				ty := schema.ImpliedType()
-
-				oldObj, err := oldIS.Current.Decode(ty)
-				if err != nil {
-					return fmt.Errorf("failed to decode previous run data for %s: %s", addr, err)
-				}
-
-				var newObj *states.ResourceInstanceObject
-				if newIS != nil && newIS.Current != nil {
-					newObj, err = newIS.Current.Decode(ty)
-					if err != nil {
-						return fmt.Errorf("failed to decode refreshed data for %s: %s", addr, err)
-					}
-				}
-
-				var oldVal, newVal cty.Value
-				oldVal = oldObj.Value
-				if newObj != nil {
-					newVal = newObj.Value
-				} else {
-					newVal = cty.NullVal(ty)
-				}
-
-				if oldVal.RawEquals(newVal) {
-					// No drift if the two values are semantically equivalent
-					continue
-				}
-
-				// We can only detect updates and deletes as drift.
-				action := plans.Update
-				if newVal.IsNull() {
-					action = plans.Delete
-				}
-
-				change := &plans.ResourceInstanceChangeSrc{
-					Addr: addr,
-					ChangeSrc: plans.ChangeSrc{
-						Action: action,
-					},
-				}
-				changes = append(changes, json.NewResourceInstanceChange(change))
-			}
+	var rootModuleOutputs []*plans.OutputChangeSrc
+	for _, output := range plan.Changes.Outputs {
+		if !output.Addr.Module.IsRoot() {
+			continue
 		}
+		rootModuleOutputs = append(rootModuleOutputs, output)
 	}
-
-	// Sort the change structs lexically by address to give stable output
-	sort.Slice(changes, func(i, j int) bool { return changes[i].Resource.Addr < changes[j].Resource.Addr })
-
-	for _, change := range changes {
-		v.view.ResourceDrift(change)
+	if len(rootModuleOutputs) > 0 {
+		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
 	}
-
-	return nil
 }
 
 func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

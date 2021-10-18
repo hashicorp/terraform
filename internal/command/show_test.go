@@ -103,8 +103,6 @@ func TestShow_aliasedProvider(t *testing.T) {
 		},
 	}
 
-	fmt.Println(os.Getwd())
-
 	// the statefile created by testStateFile is named state.tfstate
 	args := []string{"state.tfstate"}
 	if code := c.Run(args); code != 0 {

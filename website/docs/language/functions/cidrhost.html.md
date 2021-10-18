@@ -34,12 +34,17 @@ situations, such as point-to-point links.
 This function accepts both IPv6 and IPv4 prefixes, and the result always uses
 the same addressing scheme as the given prefix.
 
+-> **Note:** As a historical accident, this function interprets IPv4 address
+octets that have leading zeros as decimal numbers, which is contrary to some
+other systems which interpret them as octal. We have preserved this behavior
+for backward compatibility, but recommend against relying on this behavior.
+
 ## Examples
 
 ```
-> cidrhost("10.12.127.0/20", 16)
+> cidrhost("10.12.112.0/20", 16)
 10.12.112.16
-> cidrhost("10.12.127.0/20", 268)
+> cidrhost("10.12.112.0/20", 268)
 10.12.113.12
 > cidrhost("fd00:fd12:3456:7890:00a2::/72", 34)
 fd00:fd12:3456:7890::22

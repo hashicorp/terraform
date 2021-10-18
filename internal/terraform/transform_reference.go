@@ -353,11 +353,19 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 			}
 			res = append(res, rv)
 
-			// and check any ancestors for transitive dependencies
-			ans, _ := g.Ancestors(rv)
-			for _, v := range ans {
-				if isDependableResource(v) {
-					res = append(res, v)
+			// Check any ancestors for transitive dependencies when we're
+			// not pointed directly at a resource. We can't be much more
+			// precise here, since in order to maintain our guarantee that data
+			// sources will wait for explicit dependencies, if those dependencies
+			// happen to be a module, output, or variable, we have to find some
+			// upstream managed resource in order to check for a planned
+			// change.
+			if _, ok := rv.(GraphNodeConfigResource); !ok {
+				ans, _ := g.Ancestors(rv)
+				for _, v := range ans {
+					if isDependableResource(v) {
+						res = append(res, v)
+					}
 				}
 			}
 		}

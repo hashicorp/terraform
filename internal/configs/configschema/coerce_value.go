@@ -27,16 +27,19 @@ func (b *Block) CoerceValue(in cty.Value) (cty.Value, error) {
 }
 
 func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
+	convType := b.specType()
+	impliedType := convType.WithoutOptionalAttributesDeep()
+
 	switch {
 	case in.IsNull():
-		return cty.NullVal(b.ImpliedType()), nil
+		return cty.NullVal(impliedType), nil
 	case !in.IsKnown():
-		return cty.UnknownVal(b.ImpliedType()), nil
+		return cty.UnknownVal(impliedType), nil
 	}
 
 	ty := in.Type()
 	if !ty.IsObjectType() {
-		return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("an object is required")
+		return cty.UnknownVal(impliedType), path.NewErrorf("an object is required")
 	}
 
 	for name := range ty.AttributeTypes() {
@@ -46,29 +49,32 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 		if _, defined := b.BlockTypes[name]; defined {
 			continue
 		}
-		return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("unexpected attribute %q", name)
+		return cty.UnknownVal(impliedType), path.NewErrorf("unexpected attribute %q", name)
 	}
 
 	attrs := make(map[string]cty.Value)
 
 	for name, attrS := range b.Attributes {
+		attrType := impliedType.AttributeType(name)
+		attrConvType := convType.AttributeType(name)
+
 		var val cty.Value
 		switch {
 		case ty.HasAttribute(name):
 			val = in.GetAttr(name)
 		case attrS.Computed || attrS.Optional:
-			val = cty.NullVal(attrS.Type)
+			val = cty.NullVal(attrType)
 		default:
-			return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("attribute %q is required", name)
+			return cty.UnknownVal(impliedType), path.NewErrorf("attribute %q is required", name)
 		}
 
-		val, err := attrS.coerceValue(val, append(path, cty.GetAttrStep{Name: name}))
+		val, err := convert.Convert(val, attrConvType)
 		if err != nil {
-			return cty.UnknownVal(b.ImpliedType()), err
+			return cty.UnknownVal(impliedType), append(path, cty.GetAttrStep{Name: name}).NewError(err)
 		}
-
 		attrs[name] = val
 	}
+
 	for typeName, blockS := range b.BlockTypes {
 		switch blockS.Nesting {
 
@@ -79,7 +85,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				val := in.GetAttr(typeName)
 				attrs[typeName], err = blockS.coerceValue(val, append(path, cty.GetAttrStep{Name: typeName}))
 				if err != nil {
-					return cty.UnknownVal(b.ImpliedType()), err
+					return cty.UnknownVal(impliedType), err
 				}
 			default:
 				attrs[typeName] = blockS.EmptyValue()
@@ -100,7 +106,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a list")
+					return cty.UnknownVal(impliedType), path.NewErrorf("must be a list")
 				}
 				l := coll.LengthInt()
 
@@ -116,7 +122,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						idx, val := it.Element()
 						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: idx}))
 						if err != nil {
-							return cty.UnknownVal(b.ImpliedType()), err
+							return cty.UnknownVal(impliedType), err
 						}
 						elems = append(elems, val)
 					}
@@ -141,7 +147,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a set")
+					return cty.UnknownVal(impliedType), path.NewErrorf("must be a set")
 				}
 				l := coll.LengthInt()
 
@@ -157,7 +163,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						idx, val := it.Element()
 						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: idx}))
 						if err != nil {
-							return cty.UnknownVal(b.ImpliedType()), err
+							return cty.UnknownVal(impliedType), err
 						}
 						elems = append(elems, val)
 					}
@@ -182,7 +188,7 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 				}
 
 				if !coll.CanIterateElements() {
-					return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a map")
+					return cty.UnknownVal(impliedType), path.NewErrorf("must be a map")
 				}
 				l := coll.LengthInt()
 				if l == 0 {
@@ -196,11 +202,11 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 						var err error
 						key, val := it.Element()
 						if key.Type() != cty.String || key.IsNull() || !key.IsKnown() {
-							return cty.UnknownVal(b.ImpliedType()), path.NewErrorf("must be a map")
+							return cty.UnknownVal(impliedType), path.NewErrorf("must be a map")
 						}
 						val, err = blockS.coerceValue(val, append(path, cty.IndexStep{Key: key}))
 						if err != nil {
-							return cty.UnknownVal(b.ImpliedType()), err
+							return cty.UnknownVal(impliedType), err
 						}
 						elems[key.AsString()] = val
 					}
@@ -239,12 +245,4 @@ func (b *Block) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
 	}
 
 	return cty.ObjectVal(attrs), nil
-}
-
-func (a *Attribute) coerceValue(in cty.Value, path cty.Path) (cty.Value, error) {
-	val, err := convert.Convert(in, a.Type)
-	if err != nil {
-		return cty.UnknownVal(a.Type), path.NewError(err)
-	}
-	return val, nil
 }

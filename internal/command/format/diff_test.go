@@ -2635,6 +2635,56 @@ func TestResourceChange_nestedList(t *testing.T) {
     }
 `,
 		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.List(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingList),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          ~ {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        ] -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
 	}
 	runTestCases(t, testCases)
 }
@@ -2860,6 +2910,148 @@ func TestResourceChange_nestedSet(t *testing.T) {
           - new_field   = "new_value" -> null
           - volume_type = "gp2" -> null
         }
+    }
+`,
+		},
+		"in-place update - empty nested sets": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = [
+        ]
+        id    = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"in-place update - null insertion": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      + disks = [
+          + {
+            + mount_point = "/var/diska"
+            + size        = "50GB"
+          },
+        ]
+        id    = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + new_field   = "new_value"
+          + volume_type = "gp2"
+        }
+      - root_block_device {
+          - volume_type = "gp2" -> null
+        }
+    }
+`,
+		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          - {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        ] -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
     }
 `,
 		},
@@ -3199,7 +3391,339 @@ func TestResourceChange_nestedMap(t *testing.T) {
     }
 `,
 		},
+		"in-place update - unknown": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				}))),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = {
+          - "disk_a" = {
+            - mount_point = "/var/diska" -> null
+            - size        = "50GB" -> null
+          },
+        } -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
+		"in-place update - insertion sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.MapVal(map[string]cty.Value{
+					"disk_a": cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path: cty.Path{cty.GetAttrStep{Name: "disks"},
+						cty.IndexStep{Key: cty.StringVal("disk_a")},
+						cty.GetAttrStep{Name: "mount_point"},
+					},
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingMap),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = {
+          + "disk_a" = {
+            + mount_point = (sensitive)
+            + size        = "50GB"
+          },
+        }
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
 	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_actionReason(t *testing.T) {
+	emptySchema := &configschema.Block{}
+	nullVal := cty.NullVal(cty.EmptyObject)
+	emptyVal := cty.EmptyObjectVal
+
+	testCases := map[string]testCase{
+		"delete for no particular reason": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceChangeNoReason,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because of wrong repetition mode (NoKey)": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseWrongRepetition,
+			Mode:            addrs.ManagedResourceMode,
+			InstanceKey:     addrs.NoKey,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be destroyed
+  # (because resource uses count or for_each)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because of wrong repetition mode (IntKey)": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseWrongRepetition,
+			Mode:            addrs.ManagedResourceMode,
+			InstanceKey:     addrs.IntKey(1),
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example[1] will be destroyed
+  # (because resource does not use count)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because of wrong repetition mode (StringKey)": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseWrongRepetition,
+			Mode:            addrs.ManagedResourceMode,
+			InstanceKey:     addrs.StringKey("a"),
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example["a"] will be destroyed
+  # (because resource does not use for_each)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because no resource configuration": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseNoResourceConfig,
+			ModuleInst:      addrs.RootModuleInstance.Child("foo", addrs.NoKey),
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # module.foo.test_instance.example will be destroyed
+  # (because test_instance.example is not in configuration)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because no module": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseNoModule,
+			ModuleInst:      addrs.RootModuleInstance.Child("foo", addrs.IntKey(1)),
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # module.foo[1].test_instance.example will be destroyed
+  # (because module.foo[1] is not in configuration)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because out of range for count": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseCountIndex,
+			Mode:            addrs.ManagedResourceMode,
+			InstanceKey:     addrs.IntKey(1),
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example[1] will be destroyed
+  # (because index [1] is out of range for count)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"delete because out of range for for_each": {
+			Action:          plans.Delete,
+			ActionReason:    plans.ResourceInstanceDeleteBecauseEachKey,
+			Mode:            addrs.ManagedResourceMode,
+			InstanceKey:     addrs.StringKey("boop"),
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example["boop"] will be destroyed
+  # (because key ["boop"] is not in for_each map)
+  - resource "test_instance" "example" {}
+`,
+		},
+		"replace for no particular reason (delete first)": {
+			Action:          plans.DeleteThenCreate,
+			ActionReason:    plans.ResourceInstanceChangeNoReason,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {}
+`,
+		},
+		"replace for no particular reason (create first)": {
+			Action:          plans.CreateThenDelete,
+			ActionReason:    plans.ResourceInstanceChangeNoReason,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example must be replaced
++/- resource "test_instance" "example" {}
+`,
+		},
+		"replace by request (delete first)": {
+			Action:          plans.DeleteThenCreate,
+			ActionReason:    plans.ResourceInstanceReplaceByRequest,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be replaced, as requested
+-/+ resource "test_instance" "example" {}
+`,
+		},
+		"replace by request (create first)": {
+			Action:          plans.CreateThenDelete,
+			ActionReason:    plans.ResourceInstanceReplaceByRequest,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be replaced, as requested
++/- resource "test_instance" "example" {}
+`,
+		},
+		"replace because tainted (delete first)": {
+			Action:          plans.DeleteThenCreate,
+			ActionReason:    plans.ResourceInstanceReplaceBecauseTainted,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
+-/+ resource "test_instance" "example" {}
+`,
+		},
+		"replace because tainted (create first)": {
+			Action:          plans.CreateThenDelete,
+			ActionReason:    plans.ResourceInstanceReplaceBecauseTainted,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
++/- resource "test_instance" "example" {}
+`,
+		},
+		"replace because cannot update (delete first)": {
+			Action:          plans.DeleteThenCreate,
+			ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			// This one has no special message, because the fuller explanation
+			// typically appears inline as a "# forces replacement" comment.
+			// (not shown here)
+			ExpectedOutput: `  # test_instance.example must be replaced
+-/+ resource "test_instance" "example" {}
+`,
+		},
+		"replace because cannot update (create first)": {
+			Action:          plans.CreateThenDelete,
+			ActionReason:    plans.ResourceInstanceReplaceBecauseCannotUpdate,
+			Mode:            addrs.ManagedResourceMode,
+			Before:          emptyVal,
+			After:           nullVal,
+			Schema:          emptySchema,
+			RequiredReplace: cty.NewPathSet(),
+			// This one has no special message, because the fuller explanation
+			// typically appears inline as a "# forces replacement" comment.
+			// (not shown here)
+			ExpectedOutput: `  # test_instance.example must be replaced
++/- resource "test_instance" "example" {}
+`,
+		},
+	}
+
 	runTestCases(t, testCases)
 }
 
@@ -4147,10 +4671,85 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_moved(t *testing.T) {
+	prevRunAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "previous",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	testCases := map[string]testCase{
+		"moved and updated": {
+			PrevRunAddr: prevRunAddr,
+			Action:      plans.Update,
+			Mode:        addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("boop"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  # (moved from test_instance.previous)
+  ~ resource "test_instance" "example" {
+      ~ bar = "baz" -> "boop"
+        id  = "12345"
+        # (1 unchanged attribute hidden)
+    }
+`,
+		},
+		"moved without changes": {
+			PrevRunAddr: prevRunAddr,
+			Action:      plans.NoOp,
+			Mode:        addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("12345"),
+				"foo": cty.StringVal("hello"),
+				"bar": cty.StringVal("baz"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
+					"foo": {Type: cty.String, Optional: true},
+					"bar": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.previous has moved to test_instance.example
+    resource "test_instance" "example" {
+        id  = "12345"
+        # (2 unchanged attributes hidden)
+    }
+`,
+		},
+	}
+
+	runTestCases(t, testCases)
+}
+
 type testCase struct {
 	Action          plans.Action
 	ActionReason    plans.ResourceInstanceChangeActionReason
+	ModuleInst      addrs.ModuleInstance
 	Mode            addrs.ResourceMode
+	InstanceKey     addrs.InstanceKey
 	DeposedKey      states.DeposedKey
 	Before          cty.Value
 	BeforeValMarks  []cty.PathValueMarks
@@ -4159,6 +4758,7 @@ type testCase struct {
 	Schema          *configschema.Block
 	RequiredReplace cty.PathSet
 	ExpectedOutput  string
+	PrevRunAddr     addrs.AbsResourceInstance
 }
 
 func runTestCases(t *testing.T, testCases map[string]testCase) {
@@ -4192,13 +4792,23 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				t.Fatal(err)
 			}
 
+			addr := addrs.Resource{
+				Mode: tc.Mode,
+				Type: "test_instance",
+				Name: "example",
+			}.Instance(tc.InstanceKey).Absolute(tc.ModuleInst)
+
+			prevRunAddr := tc.PrevRunAddr
+			// If no previous run address is given, reuse the current address
+			// to make initialization easier
+			if prevRunAddr.Resource.Resource.Type == "" {
+				prevRunAddr = addr
+			}
+
 			change := &plans.ResourceInstanceChangeSrc{
-				Addr: addrs.Resource{
-					Mode: tc.Mode,
-					Type: "test_instance",
-					Name: "example",
-				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
-				DeposedKey: tc.DeposedKey,
+				Addr:        addr,
+				PrevRunAddr: prevRunAddr,
+				DeposedKey:  tc.DeposedKey,
 				ProviderAddr: addrs.AbsProviderConfig{
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
@@ -4214,7 +4824,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			output := ResourceChange(change, tc.Schema, color)
+			output := ResourceChange(change, tc.Schema, color, DiffLanguageProposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
 				t.Errorf("wrong output\n%s", diff)
 			}

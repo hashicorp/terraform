@@ -25,6 +25,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			DescriptionSet: true,
 			Default:        cty.StringVal("b_override"),
 			Type:           cty.String,
+			ConstraintType: cty.String,
 			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "testdata/valid-modules/override-variable/primary.tf",
@@ -46,6 +47,7 @@ func TestModuleOverrideVariable(t *testing.T) {
 			DescriptionSet: true,
 			Default:        cty.StringVal("b_override partial"),
 			Type:           cty.String,
+			ConstraintType: cty.String,
 			ParsingMode:    VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "testdata/valid-modules/override-variable/primary.tf",

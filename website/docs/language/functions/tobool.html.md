@@ -14,7 +14,7 @@ Explicit type conversions are rarely necessary in Terraform because it will
 convert types automatically where required. Use the explicit type conversion
 functions only to normalize types returned in module outputs.
 
-Only boolean values and the exact strings `"true"` and `"false"` can be
+Only boolean values, `null`, and the exact strings `"true"` and `"false"` can be
 converted to boolean. All other values will produce an error.
 
 ## Examples
@@ -24,6 +24,8 @@ converted to boolean. All other values will produce an error.
 true
 > tobool("true")
 true
+> tobool(null)
+null
 > tobool("no")
 Error: Invalid function argument
 

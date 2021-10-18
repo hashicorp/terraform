@@ -4,15 +4,16 @@ package command
 // exported and private.
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -106,7 +107,32 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 	// Set up the CLI opts we pass into backends that support it.
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
-		diags = diags.Append(err)
+		if errs := providerPluginErrors(nil); errors.As(err, &errs) {
+			// This is a special type returned by m.providerFactories, which
+			// indicates one or more inconsistencies between the dependency
+			// lock file and the provider plugins actually available in the
+			// local cache directory.
+			var buf bytes.Buffer
+			for addr, err := range errs {
+				fmt.Fprintf(&buf, "\n  - %s: %s", addr, err)
+			}
+			suggestion := "To download the plugins required for this configuration, run:\n  terraform init"
+			if m.RunningInAutomation {
+				// Don't mention "terraform init" specifically if we're running in an automation wrapper
+				suggestion = "You must install the required plugins before running Terraform operations."
+			}
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Required plugins are not installed",
+				fmt.Sprintf(
+					"The installed provider plugins are not consistent with the packages selected in the dependency lock file:%s\n\nTerraform uses external plugins to integrate with a variety of different infrastructure services. %s",
+					buf.String(), suggestion,
+				),
+			))
+		} else {
+			// All other errors just get generic handling.
+			diags = diags.Append(err)
+		}
 		return nil, diags
 	}
 	cliOpts.Validation = true
@@ -197,13 +223,19 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	var list strings.Builder
 	for i, w := range workspaces {
 		if w == workspace {
+			log.Printf("[TRACE] Meta.selectWorkspace: the currently selected workspace is present in the configured backend (%s)", workspace)
 			return nil
 		}
 		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
 	}
 
-	// If the selected workspace doesn't exist, ask the user to select
-	// a workspace from the list of existing workspaces.
+	// If the backend only has a single workspace, select that as the current workspace
+	if len(workspaces) == 1 {
+		log.Printf("[TRACE] Meta.selectWorkspace: automatically selecting the single workspace provided by the backend (%s)", workspaces[0])
+		return m.SetWorkspace(workspaces[0])
+	}
+
+	// Otherwise, ask the user to select a workspace from the list of existing workspaces.
 	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
@@ -221,7 +253,9 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 		return fmt.Errorf("Failed to select workspace: input not a valid number")
 	}
 
-	return m.SetWorkspace(workspaces[idx-1])
+	workspace = workspaces[idx-1]
+	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workpace according to user selection (%s)", workspace)
+	return m.SetWorkspace(workspace)
 }
 
 // BackendForPlan is similar to Backend, but uses backend settings that were
@@ -244,7 +278,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("saved backend configuration is invalid: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("saved backend configuration is invalid: %w", err))
 		return nil, diags
 	}
 
@@ -348,14 +382,24 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
 	}
 
+	depLocks, diags := m.lockedDependencies()
+	if diags.HasErrors() {
+		// We can't actually report errors from here, but m.lockedDependencies
+		// should always have been called earlier to prepare the "ContextOpts"
+		// for the backend anyway, so we should never actually get here in
+		// a real situation. If we do get here then the backend will inevitably
+		// fail downstream somwhere if it tries to use the empty depLocks.
+		log.Printf("[WARN] Failed to load dependency locks while preparing backend operation (ignored): %s", diags.Err().Error())
+	}
+
 	return &backend.Operation{
-		PlanOutBackend: planOutBackend,
-		Parallelism:    m.parallelism,
-		Targets:        m.targets,
-		UIIn:           m.UIInput(),
-		UIOut:          m.Ui,
-		Workspace:      workspace,
-		StateLocker:    stateLocker,
+		PlanOutBackend:  planOutBackend,
+		Targets:         m.targets,
+		UIIn:            m.UIInput(),
+		UIOut:           m.Ui,
+		Workspace:       workspace,
+		StateLocker:     stateLocker,
+		DependencyLocks: depLocks,
 	}
 }
 
@@ -709,10 +753,10 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
-		OneType: s.Backend.Type,
-		TwoType: "local",
-		One:     b,
-		Two:     localB,
+		SourceType:      s.Backend.Type,
+		DestinationType: "local",
+		Source:          b,
+		Destination:     localB,
 	})
 	if err != nil {
 		diags = diags.Append(err)
@@ -785,10 +829,10 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	if len(localStates) > 0 {
 		// Perform the migration
 		err = m.backendMigrateState(&backendMigrateOpts{
-			OneType: "local",
-			TwoType: c.Type,
-			One:     localB,
-			Two:     b,
+			SourceType:      "local",
+			DestinationType: c.Type,
+			Source:          localB,
+			Destination:     b,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -900,10 +944,10 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	// Perform the migration
 	err := m.backendMigrateState(&backendMigrateOpts{
-		OneType: s.Backend.Type,
-		TwoType: c.Type,
-		One:     oldB,
-		Two:     b,
+		SourceType:      s.Backend.Type,
+		DestinationType: c.Type,
+		Source:          oldB,
+		Destination:     b,
 	})
 	if err != nil {
 		diags = diags.Append(err)

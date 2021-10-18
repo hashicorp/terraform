@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -97,8 +96,24 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
-	haveRefreshChanges := renderChangesDetectedByRefresh(plan.PrevRunState, plan.PriorState, schemas, view)
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+	var driftedResources []*plans.ResourceInstanceChangeSrc
+	if plan.UIMode == plans.RefreshOnlyMode {
+		driftedResources = plan.DriftedResources
+	} else {
+		for _, dr := range plan.DriftedResources {
+			if dr.Action != plans.NoOp {
+				driftedResources = append(driftedResources, dr)
+			}
+		}
+	}
+
+	haveRefreshChanges := len(driftedResources) > 0
 	if haveRefreshChanges {
+		renderChangesDetectedByRefresh(driftedResources, schemas, view)
 		switch plan.UIMode {
 		case plans.RefreshOnlyMode:
 			view.streams.Println(format.WordWrap(
@@ -116,7 +131,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
 	for _, change := range plan.Changes.Resources {
-		if change.Action == plans.NoOp {
+		if change.Action == plans.NoOp && !change.Moved() {
 			continue // We don't show anything for no-op changes
 		}
 		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
@@ -125,7 +140,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		}
 
 		rChanges = append(rChanges, change)
-		counts[change.Action]++
+
+		// Don't count move-only changes
+		if change.Action != plans.NoOp {
+			counts[change.Action]++
+		}
 	}
 	var changedRootModuleOutputs []*plans.OutputChangeSrc
 	for _, output := range plan.Changes.Outputs {
@@ -138,7 +157,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		changedRootModuleOutputs = append(changedRootModuleOutputs, output)
 	}
 
-	if len(counts) == 0 && len(changedRootModuleOutputs) == 0 {
+	if len(rChanges) == 0 && len(changedRootModuleOutputs) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -225,7 +244,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		view.streams.Println("")
 	}
 
-	if len(counts) != 0 {
+	if len(counts) > 0 {
 		headerBuf := &bytes.Buffer{}
 		fmt.Fprintf(headerBuf, "\n%s\n", strings.TrimSpace(format.WordWrap(planHeaderIntro, view.outputColumns())))
 		if counts[plans.Create] > 0 {
@@ -247,9 +266,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			fmt.Fprintf(headerBuf, "%s read (data resources)\n", format.DiffActionSymbol(plans.Read))
 		}
 
-		view.streams.Println(view.colorize.Color(headerBuf.String()))
+		view.streams.Print(view.colorize.Color(headerBuf.String()))
+	}
 
-		view.streams.Printf("Terraform will perform the following actions:\n\n")
+	if len(rChanges) > 0 {
+		view.streams.Printf("\nTerraform will perform the following actions:\n\n")
 
 		// Note: we're modifying the backing slice of this plan object in-place
 		// here. The ordering of resource changes in a plan is not significant,
@@ -265,7 +286,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		})
 
 		for _, rcs := range rChanges {
-			if rcs.Action == plans.NoOp {
+			if rcs.Action == plans.NoOp && !rcs.Moved() {
 				continue
 			}
 
@@ -286,6 +307,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 				rcs,
 				rSchema,
 				view.colorize,
+				format.DiffLanguageProposedChange,
 			))
 		}
 
@@ -338,82 +360,49 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // renderChangesDetectedByRefresh returns true if it produced at least one
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
-func renderChangesDetectedByRefresh(before, after *states.State, schemas *terraform.Schemas, view *View) bool {
-	// ManagedResourceEqual checks that the state is exactly equal for all
-	// managed resources; but semantically equivalent states, or changes to
-	// deposed instances may not actually represent changes we need to present
-	// to the user, so for now this only serves as a short-circuit to skip
-	// attempting to render the diffs below.
-	if after.ManagedResourcesEqual(before) {
-		return false
-	}
+func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas, view *View) {
+	view.streams.Print(
+		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
+	)
+	view.streams.Print(format.WordWrap(
+		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
+		view.outputColumns(),
+	))
 
-	var diffs []string
-
-	for _, bms := range before.Modules {
-		for _, brs := range bms.Resources {
-			if brs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				continue // only managed resources can "drift"
-			}
-			addr := brs.Addr
-			prs := after.Resource(brs.Addr)
-
-			provider := brs.ProviderConfig.Provider
-			providerSchema := schemas.ProviderSchema(provider)
-			if providerSchema == nil {
-				// Should never happen
-				view.streams.Printf("(schema missing for %s)\n", provider)
-				continue
-			}
-			rSchema, _ := providerSchema.SchemaForResourceAddr(addr.Resource)
-			if rSchema == nil {
-				// Should never happen
-				view.streams.Printf("(schema missing for %s)\n", addr)
-				continue
-			}
-
-			for key, bis := range brs.Instances {
-				if bis.Current == nil {
-					// No current instance to render here
-					continue
-				}
-				var pis *states.ResourceInstance
-				if prs != nil {
-					pis = prs.Instance(key)
-				}
-
-				diff := format.ResourceInstanceDrift(
-					addr.Instance(key),
-					bis, pis,
-					rSchema,
-					view.colorize,
-				)
-				if diff != "" {
-					diffs = append(diffs, diff)
-				}
-			}
+	// Note: we're modifying the backing slice of this plan object in-place
+	// here. The ordering of resource changes in a plan is not significant,
+	// but we can only do this safely here because we can assume that nobody
+	// is concurrently modifying our changes while we're trying to print it.
+	sort.Slice(drs, func(i, j int) bool {
+		iA := drs[i].Addr
+		jA := drs[j].Addr
+		if iA.String() == jA.String() {
+			return drs[i].DeposedKey < drs[j].DeposedKey
 		}
-	}
+		return iA.Less(jA)
+	})
 
-	// If we only have changes regarding deposed instances, or the diff
-	// renderer is suppressing irrelevant changes from the legacy SDK, there
-	// may not have been anything to display to the user.
-	if len(diffs) > 0 {
-		view.streams.Print(
-			view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
-		)
-		view.streams.Print(format.WordWrap(
-			"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
-			view.outputColumns(),
+	for _, rcs := range drs {
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
+		if providerSchema == nil {
+			// Should never happen
+			view.streams.Printf("(schema missing for %s)\n\n", rcs.ProviderAddr)
+			continue
+		}
+		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		if rSchema == nil {
+			// Should never happen
+			view.streams.Printf("(schema missing for %s)\n\n", rcs.Addr)
+			continue
+		}
+
+		view.streams.Println(format.ResourceChange(
+			rcs,
+			rSchema,
+			view.colorize,
+			format.DiffLanguageDetectedDrift,
 		))
-
-		for _, diff := range diffs {
-			view.streams.Print(diff)
-		}
-		return true
 	}
-
-	return false
 }
 
 const planHeaderIntro = `

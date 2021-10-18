@@ -248,60 +248,6 @@ func (s *SyncState) RemoveResourceIfEmpty(addr addrs.AbsResource) bool {
 	return true
 }
 
-// MaybeFixUpResourceInstanceAddressForCount deals with the situation where a
-// resource has changed from having "count" set to not set, or vice-versa, and
-// so we need to rename the zeroth instance key to no key at all, or vice-versa.
-//
-// Set countEnabled to true if the resource has count set in its new
-// configuration, or false if it does not.
-//
-// The state is modified in-place if necessary, moving a resource instance
-// between the two addresses. The return value is true if a change was made,
-// and false otherwise.
-func (s *SyncState) MaybeFixUpResourceInstanceAddressForCount(addr addrs.ConfigResource, countEnabled bool) bool {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	// get all modules instances that may match this state
-	modules := s.state.ModuleInstances(addr.Module)
-	if len(modules) == 0 {
-		return false
-	}
-
-	changed := false
-
-	for _, ms := range modules {
-		relAddr := addr.Resource
-		rs := ms.Resource(relAddr)
-		if rs == nil {
-			continue
-		}
-
-		huntKey := addrs.NoKey
-		replaceKey := addrs.InstanceKey(addrs.IntKey(0))
-		if !countEnabled {
-			huntKey, replaceKey = replaceKey, huntKey
-		}
-
-		is, exists := rs.Instances[huntKey]
-		if !exists {
-			continue
-		}
-
-		if _, exists := rs.Instances[replaceKey]; exists {
-			// If the replacement key also exists then we'll do nothing and keep both.
-			continue
-		}
-
-		// If we get here then we need to "rename" from hunt to replace
-		rs.Instances[replaceKey] = is
-		delete(rs.Instances, huntKey)
-		changed = true
-	}
-
-	return changed
-}
-
 // SetResourceInstanceCurrent saves the given instance object as the current
 // generation of the resource instance with the given address, simultaneously
 // updating the recorded provider configuration address, dependencies, and
@@ -531,6 +477,16 @@ func (s *SyncState) Lock() *State {
 // is undefined.
 func (s *SyncState) Unlock() {
 	s.lock.Unlock()
+}
+
+// Close extracts the underlying state from inside this wrapper, making the
+// wrapper invalid for any future operations.
+func (s *SyncState) Close() *State {
+	s.lock.Lock()
+	ret := s.state
+	s.state = nil // make sure future operations can't still modify it
+	s.lock.Unlock()
+	return ret
 }
 
 // maybePruneModule will remove a module from the state altogether if it is

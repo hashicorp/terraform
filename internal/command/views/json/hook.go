@@ -314,6 +314,10 @@ func startActionVerb(action plans.Action) string {
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacing"
+	case plans.NoOp:
+		// This should never be possible: a no-op planned change should not
+		// be applied. We'll fall back to "Applying".
+		fallthrough
 	default:
 		return "Applying"
 	}
@@ -336,6 +340,10 @@ func progressActionVerb(action plans.Action) string {
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "replacing"
+	case plans.NoOp:
+		// This should never be possible: a no-op planned change should not
+		// be applied. We'll fall back to "applying".
+		fallthrough
 	default:
 		return "applying"
 	}
@@ -358,6 +366,10 @@ func actionNoun(action plans.Action) string {
 		// This is not currently possible to reach, as we receive separate
 		// passes for create and delete
 		return "Replacement"
+	case plans.NoOp:
+		// This should never be possible: a no-op planned change should not
+		// be applied. We'll fall back to "Apply".
+		fallthrough
 	default:
 		return "Apply"
 	}

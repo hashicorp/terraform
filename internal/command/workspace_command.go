@@ -82,15 +82,6 @@ for this configuration.
 
 	envDeleted = `[reset][green]Deleted workspace %q!`
 
-	envNotEmpty = `
-Workspace %[1]q is not empty.
-
-Deleting %[1]q can result in dangling resources: resources that
-exist but are no longer manageable by Terraform. Please destroy
-these resources first.  If you want to delete this workspace
-anyway and risk dangling resources, use the '-force' flag.
-`
-
 	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty.
 The resources managed by the deleted workspace may still exist,
 but are no longer manageable by Terraform since the state has

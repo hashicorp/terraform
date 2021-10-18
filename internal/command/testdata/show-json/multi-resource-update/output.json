@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "terraform_version": "0.13.0",
     "variables": {
         "test_var": {
@@ -45,27 +45,6 @@
             ]
         }
     },
-    "resource_drift": [
-        {
-            "address": "test_instance.test",
-            "mode": "managed",
-            "type": "test_instance",
-            "provider_name": "registry.terraform.io/hashicorp/test",
-            "name": "test",
-            "change": {
-                "actions": [
-                    "delete"
-                ],
-                "before": {
-                    "ami": "bar",
-                    "id": "placeholder"
-                },
-                "after": null,
-                "before_sensitive": {},
-                "after_sensitive": false
-            }
-        }
-    ],
     "resource_changes": [
         {
             "address": "test_instance.test[0]",
@@ -73,6 +52,7 @@
             "type": "test_instance",
             "name": "test",
             "index": 0,
+            "previous_address": "test_instance.test",
             "provider_name": "registry.terraform.io/hashicorp/test",
             "change": {
                 "actions": [
@@ -127,7 +107,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "terraform_version": "0.13.0",
         "values": {
             "outputs": {

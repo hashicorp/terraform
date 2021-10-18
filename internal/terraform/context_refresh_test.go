@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"reflect"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -34,11 +34,9 @@ func TestContext2Refresh(t *testing.T) {
 	)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -52,7 +50,7 @@ func TestContext2Refresh(t *testing.T) {
 		NewState: readState,
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -123,17 +121,15 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: startingState,
 	})
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["test_instance"].Block
 	ty := schema.ImpliedType()
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, startingState, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -200,13 +196,12 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -223,6 +218,10 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
@@ -261,15 +260,8 @@ func TestContext2Refresh_targeted(t *testing.T) {
 
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		State: state,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "me",
-			),
 		},
 	})
 
@@ -281,7 +273,14 @@ func TestContext2Refresh_targeted(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "me",
+			),
+		},
+	})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -299,6 +298,10 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
@@ -339,15 +342,8 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		State: state,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "me",
-			),
 		},
 	})
 
@@ -359,7 +355,14 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.Resource(
+				addrs.ManagedResourceMode, "aws_instance", "me",
+			),
+		},
+	})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -385,6 +388,10 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_elb": {
 				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
 					"instances": {
 						Type:     cty.Set(cty.String),
 						Optional: true,
@@ -425,15 +432,8 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		State: state,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.ResourceInstance(
-				addrs.ManagedResourceMode, "aws_instance", "me", addrs.IntKey(0),
-			),
 		},
 	})
 
@@ -445,7 +445,14 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 		}
 	}
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+		Targets: []addrs.Targetable{
+			addrs.RootModuleInstance.ResourceInstance(
+				addrs.ManagedResourceMode, "aws_instance", "me", addrs.IntKey(0),
+			),
+		},
+	})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -478,7 +485,6 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -486,7 +492,7 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 
 	// This was failing (see GH-2188) at some point, so this test just
 	// verifies that the failure goes away.
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -500,18 +506,16 @@ func TestContext2Refresh_delete(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
 		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block.ImpliedType()),
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -526,11 +530,9 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: nil,
 	})
 
 	p.ReadResourceResponse = &providers.ReadResourceResponse{
@@ -539,7 +541,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 		}),
 	}
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -558,15 +560,13 @@ func TestContext2Refresh_hook(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-		Hooks:  []Hook{h},
+		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	if _, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 	if !h.PreRefreshCalled {
@@ -588,11 +588,9 @@ func TestContext2Refresh_modules(t *testing.T) {
 	testSetResourceInstanceCurrent(child, "aws_instance.web", `{"id":"baz"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -613,7 +611,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -648,13 +646,12 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -663,13 +660,12 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	m := testModule(t, "refresh-module-var-module")
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -679,7 +675,6 @@ func TestContext2Refresh_noState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-no-state")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -691,7 +686,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 		}),
 	}
 
-	if _, diags := ctx.Refresh(); diags.HasErrors() {
+	if _, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode}); diags.HasErrors() {
 		t.Fatalf("refresh errs: %s", diags.Err())
 	}
 }
@@ -726,14 +721,12 @@ func TestContext2Refresh_output(t *testing.T) {
 	root.SetOutputValue("foo", cty.StringVal("foo"), false)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -776,14 +769,12 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -804,11 +795,9 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	schema := p.GetProviderSchemaResponse.ResourceTypes["aws_instance"].Block
@@ -825,7 +814,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 		NewState: readStateVal,
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -879,10 +868,9 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		Config: m,
 	})
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
@@ -912,11 +900,9 @@ func TestContext2Refresh_dataState(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	var readStateVal cty.Value
@@ -930,7 +916,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -978,11 +964,9 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	m := testModule(t, "refresh-data-ref-data")
 	state := states.NewState()
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
@@ -995,7 +979,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1016,11 +1000,9 @@ func TestContext2Refresh_tainted(t *testing.T) {
 	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		// add the required id
@@ -1032,7 +1014,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1058,18 +1040,18 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
-	_, diags := NewContext(&ContextOpts{
-		Config:    m,
+	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{},
-		State:     state,
 	})
+	assertNoDiagnostics(t, diags)
 
+	_, diags = c.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if !diags.HasErrors() {
-		t.Fatal("successfully created context; want error")
+		t.Fatal("successfully refreshed; want error")
 	}
 
-	if !regexp.MustCompile(`failed to instantiate provider ".+"`).MatchString(diags.Err().Error()) {
-		t.Fatalf("wrong error: %s", diags.Err())
+	if got, want := diags.Err().Error(), "Missing required provider"; !strings.Contains(got, want) {
+		t.Errorf("missing expected error\nwant substring: %s\ngot:\n%s", want, got)
 	}
 }
 
@@ -1100,11 +1082,9 @@ func TestContext2Refresh_vars(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	readStateVal, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
@@ -1124,7 +1104,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 		}
 	}
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
@@ -1176,8 +1156,8 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"i-abc123"}`),
 			Dependencies: []addrs.ConfigResource{
-				addrs.ConfigResource{Module: addrs.Module{"module.child"}},
-				addrs.ConfigResource{Module: addrs.Module{"module.child"}},
+				{Module: addrs.Module{"module.child"}},
+				{Module: addrs.Module{"module.child"}},
 			},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
@@ -1188,7 +1168,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 		&states.ResourceInstanceObjectSrc{
 			Status:       states.ObjectReady,
 			AttrsJSON:    []byte(`{"id":"i-bcd23"}`),
-			Dependencies: []addrs.ConfigResource{addrs.ConfigResource{Module: addrs.Module{"module.grandchild"}}},
+			Dependencies: []addrs.ConfigResource{{Module: addrs.Module{"module.grandchild"}}},
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
@@ -1196,15 +1176,13 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 	testSetResourceInstanceCurrent(grandchild, "aws_instance.baz", `{"id":"i-cde345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	testCheckDeadlock(t, func() {
-		_, err := ctx.Refresh()
+		_, err := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 		if err != nil {
 			t.Fatalf("err: %s", err.Err())
 		}
@@ -1239,13 +1217,12 @@ func TestContext2Validate(t *testing.T) {
 
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if len(diags) != 0 {
 		t.Fatalf("unexpected error: %#v", diags.ErrWithWarnings())
 	}
@@ -1260,11 +1237,9 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"].baz`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	expected := strings.TrimSpace(`
@@ -1272,7 +1247,7 @@ aws_instance.bar:
   ID = foo
   provider = provider["registry.terraform.io/hashicorp/aws"].foo`)
 
-	s, diags := ctx.Refresh()
+	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1329,14 +1304,12 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: s,
 	})
 
-	state, diags := ctx.Refresh()
+	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1413,14 +1386,12 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 	})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: s,
 	})
 
-	state, diags := ctx.Refresh()
+	state, diags := ctx.Refresh(m, s, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1471,13 +1442,12 @@ data "aws_data_source" "foo" {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		// Should get this error:
 		// Unsupported attribute: This object does not have an attribute named "missing"
@@ -1520,14 +1490,12 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "test_resource.a", `{"id":"a"}`, `provider["registry.terraform.io/hashicorp/test"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -1566,14 +1534,12 @@ resource "aws_instance" "bar" {
 	p := testProvider("aws")
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	state, diags := ctx.Refresh()
+	state, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
@@ -1614,14 +1580,12 @@ func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
-	_, diags := ctx.Refresh()
+	_, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

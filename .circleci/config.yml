@@ -10,7 +10,7 @@ references:
 executors:
   go:
     docker:
-      - image: docker.mirror.hashicorp.services/cimg/go:1.16
+      - image: docker.mirror.hashicorp.services/cimg/go:1.17.2
     environment:
       CONSUL_VERSION: 1.7.2
       GOMAXPROCS: 4
@@ -26,7 +26,9 @@ jobs:
     steps:
       - checkout
       - run: go mod verify
-      - run: make fmtcheck generate
+      - run: go install honnef.co/go/tools/cmd/staticcheck
+      - run: go install github.com/nishanths/exhaustive/...
+      - run: make fmtcheck generate staticcheck exhaustive
       - run:
           name: verify no code was generated
           command: |
@@ -37,6 +39,20 @@ jobs:
               git status --porcelain
               exit 1
             fi
+      - run:
+          name: verify go.mod and go.sum are correct
+          command: |
+            go mod tidy
+            git diff --quiet && exit 0
+            echo "please run 'go mod tidy' to ensure go.mod and go.sum are up to date"
+            exit 1
+      - run:
+          name: verify that our protobuf stubs are up-to-date
+          command: |
+            make protobuf
+            git diff --quiet && exit 0
+            echo "Run 'make protobuf' to ensure that the protobuf stubs are up-to-date."
+            exit 1
 
   go-test:
     executor:

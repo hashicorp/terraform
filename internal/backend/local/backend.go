@@ -284,7 +284,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"Unsupported operation type: %s\n\n"+
+			"unsupported operation type: %s\n\n"+
 				"This is a bug in Terraform and should be reported. The local backend\n"+
 				"is built-in to Terraform and should always support all operations.",
 			op.Type)

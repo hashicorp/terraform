@@ -39,11 +39,21 @@ type addHuman struct {
 
 func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema.Block, pc addrs.LocalProviderConfig, stateVal cty.Value) error {
 	var buf strings.Builder
+
+	buf.WriteString(`# NOTE: The "terraform add" command is currently experimental and offers only a
+# starting point for your resource configuration, with some limitations.
+#
+# The behavior of this command may change in future based on feedback, possibly
+# in incompatible ways. We don't recommend building automation around this
+# command at this time. If you have feedback about this command, please open
+# a feature request issue in the Terraform GitHub repository.
+`)
+
 	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
 
 	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
 		buf.WriteString(strings.Repeat(" ", 2))
-		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
+		buf.WriteString(fmt.Sprintf("provider = %s\n\n", pc.StringCompact()))
 	}
 
 	if stateVal.RawEquals(cty.NilVal) {
@@ -74,7 +84,14 @@ func (v *addHuman) Resource(addr addrs.AbsResourceInstance, schema *configschema
 	} else {
 		// The Println call above adds this final newline automatically; we add it manually here.
 		formatted = append(formatted, '\n')
-		return os.WriteFile(v.outPath, formatted, 0600)
+
+		f, err := os.OpenFile(v.outPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(formatted)
+		return err
 	}
 }
 
@@ -246,7 +263,7 @@ func (v *addHuman) writeConfigNestedBlock(buf *strings.Builder, name string, sch
 }
 
 func (v *addHuman) writeConfigNestedTypeAttribute(buf *strings.Builder, name string, schema *configschema.Attribute, indent int) error {
-	if schema.Required == false && v.optional == false {
+	if !schema.Required && !v.optional {
 		return nil
 	}
 
@@ -511,7 +528,6 @@ func writeAttrTypeConstraint(buf *strings.Builder, schema *configschema.Attribut
 	} else {
 		buf.WriteString(fmt.Sprintf("%s\n", schema.Type.FriendlyName()))
 	}
-	return
 }
 
 func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedBlock) {
@@ -520,7 +536,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	} else {
 		buf.WriteString(" # OPTIONAL block\n")
 	}
-	return
 }
 
 // copied from command/format/diff

@@ -10,6 +10,23 @@ description: |-
 
 This page lists a subset of use cases for [Terraform](/intro/index.html).
 
+## Multi-Cloud Deployment
+
+It's often attractive to spread infrastructure across multiple clouds to
+increase fault-tolerance. By using only a single region or cloud provider,
+fault tolerance is limited by the availability of that provider. Multi-cloud
+deployment allows for more graceful recovery of the loss of a region or entire
+provider.
+
+Realizing multi-cloud deployments can be very challenging as many existing
+tools for infrastructure management are cloud-specific. Terraform is
+cloud-agnostic and allows a single configuration to be used to manage multiple
+providers, and to even handle cross-cloud dependencies. This simplifies
+management and orchestration, helping operators build large-scale multi-cloud
+infrastructures.
+
+> **Hands-on:** Try the [Deploy Federated Multi-Cloud Kubernetes Clusters](https://learn.hashicorp.com/tutorials/terraform/multicloud-kubernetes) tutorial on HashiCorp Learn.
+
 ## Heroku App Setup
 
 Heroku is a popular PaaS for hosting web apps. Developers create an app, and then attach add-ons, such as a database, or email provider. One of the best features is the ability to elastically scale the number of dynos or workers. However, most non-trivial applications quickly need many add-ons and external services.
@@ -82,12 +99,3 @@ Terraform is not limited to physical providers like AWS. Resource schedulers
 can be treated as a provider, enabling Terraform to request resources from them.
 This allows Terraform to be used in layers: to setup the physical infrastructure
 running the schedulers as well as provisioning onto the scheduled grid.
-
-## Multi-Cloud Deployment
-
-It's often attractive to spread infrastructure across multiple clouds to increase fault-tolerance. By using only a single region or cloud provider, fault tolerance is limited by the availability of that provider. Multi-cloud deployment allows for more graceful recovery of the loss of a region or entire provider.
-
-Realizing multi-cloud deployments can be very challenging as many existing tools
-for infrastructure management are cloud-specific. Terraform is cloud-agnostic
-and allows a single configuration to be used to manage multiple providers, and
-to even handle cross-cloud dependencies. This simplifies management and orchestration, helping operators build large-scale multi-cloud infrastructures.

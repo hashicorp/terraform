@@ -227,6 +227,19 @@ func (vv InputValues) Identical(other InputValues) bool {
 	return true
 }
 
+func mergeDefaultInputVariableValues(setVals InputValues, rootVarsConfig map[string]*configs.Variable) InputValues {
+	var variables InputValues
+
+	// Default variables from the configuration seed our map.
+	variables = DefaultVariableValues(rootVarsConfig)
+
+	// Variables provided by the caller (from CLI, environment, etc) can
+	// override the defaults.
+	variables = variables.Override(setVals)
+
+	return variables
+}
+
 // checkInputVariables ensures that variable values supplied at the UI conform
 // to their corresponding declarations in configuration.
 //
@@ -249,10 +262,8 @@ func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdia
 			continue
 		}
 
-		wantType := vc.Type
-
 		// A given value is valid if it can convert to the desired type.
-		_, err := convert.Convert(val.Value, wantType)
+		_, err := convert.Convert(val.Value, vc.ConstraintType)
 		if err != nil {
 			switch val.SourceType {
 			case ValueFromConfig, ValueFromAutoFile, ValueFromNamedFile:

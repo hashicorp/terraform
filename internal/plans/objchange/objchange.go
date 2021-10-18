@@ -37,7 +37,10 @@ func ProposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value 
 		// similar to the result of decoding an empty configuration block,
 		// which simplifies our handling of the top-level attributes/blocks
 		// below by giving us one non-null level of object to pull values from.
-		prior = AllBlockAttributesNull(schema)
+		//
+		// "All attributes null" happens to be the definition of EmptyValue for
+		// a Block, so we can just delegate to that
+		prior = schema.EmptyValue()
 	}
 	return proposedNew(schema, prior, config)
 }
@@ -258,12 +261,15 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 }
 
 func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, config cty.Value) map[string]cty.Value {
-	if prior.IsNull() {
-		prior = AllAttributesNull(attrs)
-	}
 	newAttrs := make(map[string]cty.Value, len(attrs))
 	for name, attr := range attrs {
-		priorV := prior.GetAttr(name)
+		var priorV cty.Value
+		if prior.IsNull() {
+			priorV = cty.NullVal(prior.Type().AttributeType(name))
+		} else {
+			priorV = prior.GetAttr(name)
+		}
+
 		configV := config.GetAttr(name)
 		var newV cty.Value
 		switch {
@@ -308,11 +314,16 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 }
 
 func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value) cty.Value {
-	var newV cty.Value
+	// If the config is null or empty, we will be using this default value.
+	newV := config
+
 	switch schema.Nesting {
 	case configschema.NestingSingle:
-		newAttrs := proposedNewAttributes(schema.Attributes, prior, config)
-		newV = cty.ObjectVal(newAttrs)
+		if !config.IsNull() {
+			newV = cty.ObjectVal(proposedNewAttributes(schema.Attributes, prior, config))
+		} else {
+			newV = cty.NullVal(config.Type())
+		}
 
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.
@@ -320,6 +331,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 		if config.IsKnown() && !config.IsNull() {
 			configVLen = config.LengthInt()
 		}
+
 		if configVLen > 0 {
 			newVals := make([]cty.Value, 0, configVLen)
 			for it := config.ElementIterator(); it.Next(); {
@@ -342,8 +354,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 			} else {
 				newV = cty.ListVal(newVals)
 			}
-		} else {
-			newV = cty.NullVal(schema.ImpliedType())
 		}
 
 	case configschema.NestingMap:
@@ -375,8 +385,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				// object values so that elements might have different types
 				// in case of dynamically-typed attributes.
 				newV = cty.ObjectVal(newVals)
-			} else {
-				newV = cty.NullVal(schema.ImpliedType())
 			}
 		} else {
 			configVLen := 0
@@ -400,8 +408,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 					newVals[k] = cty.ObjectVal(newEV)
 				}
 				newV = cty.MapVal(newVals)
-			} else {
-				newV = cty.NullVal(schema.ImpliedType())
 			}
 		}
 
@@ -443,8 +449,6 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 				}
 			}
 			newV = cty.SetVal(newVals)
-		} else {
-			newV = cty.NullVal(schema.ImpliedType())
 		}
 	}
 

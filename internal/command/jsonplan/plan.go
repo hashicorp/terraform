@@ -22,7 +22,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "0.2"
+const FormatVersion = "1.0"
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
@@ -130,15 +130,33 @@ func Marshal(
 	}
 
 	// output.ResourceDrift
-	err = output.marshalResourceDrift(p.PrevRunState, p.PriorState, schemas)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshalResourceDrift: %s", err)
+	if len(p.DriftedResources) > 0 {
+		// In refresh-only mode, we render all resources marked as drifted,
+		// including those which have moved without other changes. In other plan
+		// modes, move-only changes will be included in the planned changes, so
+		// we skip them here.
+		var driftedResources []*plans.ResourceInstanceChangeSrc
+		if p.UIMode == plans.RefreshOnlyMode {
+			driftedResources = p.DriftedResources
+		} else {
+			for _, dr := range p.DriftedResources {
+				if dr.Action != plans.NoOp {
+					driftedResources = append(driftedResources, dr)
+				}
+			}
+		}
+		output.ResourceDrift, err = output.marshalResourceChanges(driftedResources, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
+		}
 	}
 
 	// output.ResourceChanges
-	err = output.marshalResourceChanges(p.Changes, schemas)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshalResourceChanges: %s", err)
+	if p.Changes != nil {
+		output.ResourceChanges, err = output.marshalResourceChanges(p.Changes.Resources, schemas)
+		if err != nil {
+			return nil, fmt.Errorf("error in marshaling resource changes: %s", err)
+		}
 	}
 
 	// output.OutputChanges
@@ -188,152 +206,16 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas 
 	return nil
 }
 
-func (p *plan) marshalResourceDrift(oldState, newState *states.State, schemas *terraform.Schemas) error {
-	// Our goal here is to build a data structure of the same shape as we use
-	// to describe planned resource changes, but in this case we'll be
-	// taking the old and new values from different state snapshots rather
-	// than from a real "Changes" object.
-	//
-	// In doing this we make an assumption that drift detection can only
-	// ever show objects as updated or removed, and will never show anything
-	// as created because we only refresh objects we were already tracking
-	// after the previous run. This means we can use oldState as our baseline
-	// for what resource instances we might include, and check for each item
-	// whether it's present in newState. If we ever have some mechanism to
-	// detect "additive drift" later then we'll need to take a different
-	// approach here, but we have no plans for that at the time of writing.
-	//
-	// We also assume that both states have had all managed resource objects
-	// upgraded to match the current schemas given in schemas, so we shouldn't
-	// need to contend with oldState having old-shaped objects even if the
-	// user changed provider versions since the last run.
+func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]resourceChange, error) {
+	var ret []resourceChange
 
-	if newState.ManagedResourcesEqual(oldState) {
-		// Nothing to do, because we only detect and report drift for managed
-		// resource instances.
-		return nil
-	}
-	for _, ms := range oldState.Modules {
-		for _, rs := range ms.Resources {
-			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
-				// Drift reporting is only for managed resources
-				continue
-			}
-
-			provider := rs.ProviderConfig.Provider
-			for key, oldIS := range rs.Instances {
-				if oldIS.Current == nil {
-					// Not interested in instances that only have deposed objects
-					continue
-				}
-				addr := rs.Addr.Instance(key)
-				newIS := newState.ResourceInstance(addr)
-
-				schema, _ := schemas.ResourceTypeConfig(
-					provider,
-					addr.Resource.Resource.Mode,
-					addr.Resource.Resource.Type,
-				)
-				if schema == nil {
-					return fmt.Errorf("no schema found for %s (in provider %s)", addr, provider)
-				}
-				ty := schema.ImpliedType()
-
-				oldObj, err := oldIS.Current.Decode(ty)
-				if err != nil {
-					return fmt.Errorf("failed to decode previous run data for %s: %s", addr, err)
-				}
-
-				var newObj *states.ResourceInstanceObject
-				if newIS != nil && newIS.Current != nil {
-					newObj, err = newIS.Current.Decode(ty)
-					if err != nil {
-						return fmt.Errorf("failed to decode refreshed data for %s: %s", addr, err)
-					}
-				}
-
-				var oldVal, newVal cty.Value
-				oldVal = oldObj.Value
-				if newObj != nil {
-					newVal = newObj.Value
-				} else {
-					newVal = cty.NullVal(ty)
-				}
-
-				if oldVal.RawEquals(newVal) {
-					// No drift if the two values are semantically equivalent
-					continue
-				}
-
-				oldSensitive := jsonstate.SensitiveAsBool(oldVal)
-				newSensitive := jsonstate.SensitiveAsBool(newVal)
-				oldVal, _ = oldVal.UnmarkDeep()
-				newVal, _ = newVal.UnmarkDeep()
-
-				var before, after []byte
-				var beforeSensitive, afterSensitive []byte
-				before, err = ctyjson.Marshal(oldVal, oldVal.Type())
-				if err != nil {
-					return fmt.Errorf("failed to encode previous run data for %s as JSON: %s", addr, err)
-				}
-				after, err = ctyjson.Marshal(newVal, oldVal.Type())
-				if err != nil {
-					return fmt.Errorf("failed to encode refreshed data for %s as JSON: %s", addr, err)
-				}
-				beforeSensitive, err = ctyjson.Marshal(oldSensitive, oldSensitive.Type())
-				if err != nil {
-					return fmt.Errorf("failed to encode previous run data sensitivity for %s as JSON: %s", addr, err)
-				}
-				afterSensitive, err = ctyjson.Marshal(newSensitive, newSensitive.Type())
-				if err != nil {
-					return fmt.Errorf("failed to encode refreshed data sensitivity for %s as JSON: %s", addr, err)
-				}
-
-				// We can only detect updates and deletes as drift.
-				action := plans.Update
-				if newVal.IsNull() {
-					action = plans.Delete
-				}
-
-				change := resourceChange{
-					Address:       addr.String(),
-					ModuleAddress: addr.Module.String(),
-					Mode:          "managed", // drift reporting is only for managed resources
-					Name:          addr.Resource.Resource.Name,
-					Type:          addr.Resource.Resource.Type,
-					ProviderName:  provider.String(),
-
-					Change: change{
-						Actions:         actionString(action.String()),
-						Before:          json.RawMessage(before),
-						BeforeSensitive: json.RawMessage(beforeSensitive),
-						After:           json.RawMessage(after),
-						AfterSensitive:  json.RawMessage(afterSensitive),
-						// AfterUnknown is never populated here because
-						// values in a state are always fully known.
-					},
-				}
-				p.ResourceDrift = append(p.ResourceDrift, change)
-			}
-		}
-	}
-
-	sort.Slice(p.ResourceChanges, func(i, j int) bool {
-		return p.ResourceChanges[i].Address < p.ResourceChanges[j].Address
-	})
-
-	return nil
-}
-
-func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform.Schemas) error {
-	if changes == nil {
-		// Nothing to do!
-		return nil
-	}
-	for _, rc := range changes.Resources {
+	for _, rc := range resources {
 		var r resourceChange
 		addr := rc.Addr
 		r.Address = addr.String()
+		if !addr.Equal(rc.PrevRunAddr) {
+			r.PreviousAddress = rc.PrevRunAddr.String()
+		}
 
 		dataSource := addr.Resource.Resource.Mode == addrs.DataResourceMode
 		// We create "delete" actions for data resources so we can clean up
@@ -349,12 +231,12 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			addr.Resource.Resource.Type,
 		)
 		if schema == nil {
-			return fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
+			return nil, fmt.Errorf("no schema found for %s (in provider %s)", r.Address, rc.ProviderAddr.Provider)
 		}
 
 		changeV, err := rc.Decode(schema.ImpliedType())
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// We drop the marks from the change, as decoding is only an
 		// intermediate step to re-encode the values as json
@@ -368,7 +250,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
-				return err
+				return nil, err
 			}
 			marks := rc.BeforeValMarks
 			if schema.ContainsSensitive() {
@@ -377,14 +259,14 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			bs := jsonstate.SensitiveAsBool(changeV.Before.MarkWithPaths(marks))
 			beforeSensitive, err = ctyjson.Marshal(bs, bs.Type())
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
 				if err != nil {
-					return err
+					return nil, err
 				}
 				afterUnknown = cty.EmptyObjectVal
 			} else {
@@ -394,7 +276,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 				} else {
 					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
 					if err != nil {
-						return err
+						return nil, err
 					}
 				}
 				afterUnknown = unknownAsBool(changeV.After)
@@ -406,17 +288,17 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			as := jsonstate.SensitiveAsBool(changeV.After.MarkWithPaths(marks))
 			afterSensitive, err = ctyjson.Marshal(as, as.Type())
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		a, err := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 		if err != nil {
-			return err
+			return nil, err
 		}
 		replacePaths, err := encodePaths(rc.RequiredReplace)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		r.Change = change{
@@ -444,7 +326,7 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 		case addrs.DataResourceMode:
 			r.Mode = "data"
 		default:
-			return fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
+			return nil, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
 		}
 		r.ModuleAddress = addr.Module.String()
 		r.Name = addr.Resource.Resource.Name
@@ -460,19 +342,29 @@ func (p *plan) marshalResourceChanges(changes *plans.Changes, schemas *terraform
 			r.ActionReason = "replace_because_tainted"
 		case plans.ResourceInstanceReplaceByRequest:
 			r.ActionReason = "replace_by_request"
+		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+			r.ActionReason = "delete_because_no_resource_config"
+		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+			r.ActionReason = "delete_because_wrong_repetition"
+		case plans.ResourceInstanceDeleteBecauseCountIndex:
+			r.ActionReason = "delete_because_count_index"
+		case plans.ResourceInstanceDeleteBecauseEachKey:
+			r.ActionReason = "delete_because_each_key"
+		case plans.ResourceInstanceDeleteBecauseNoModule:
+			r.ActionReason = "delete_because_no_module"
 		default:
-			return fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
+			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}
 
-		p.ResourceChanges = append(p.ResourceChanges, r)
+		ret = append(ret, r)
 
 	}
 
-	sort.Slice(p.ResourceChanges, func(i, j int) bool {
-		return p.ResourceChanges[i].Address < p.ResourceChanges[j].Address
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].Address < ret[j].Address
 	})
 
-	return nil
+	return ret, nil
 }
 
 func (p *plan) marshalOutputChanges(changes *plans.Changes) error {

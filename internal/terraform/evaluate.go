@@ -46,13 +46,13 @@ type Evaluator struct {
 	VariableValues     map[string]map[string]cty.Value
 	VariableValuesLock *sync.Mutex
 
-	// Schemas is a repository of all of the schemas we should need to
-	// evaluate expressions. This must be constructed by the caller to
-	// include schemas for all of the providers, resource types, data sources
-	// and provisioners used by the given configuration and state.
+	// Plugins is the library of available plugin components (providers and
+	// provisioners) that we have available to help us evaluate expressions
+	// that interact with plugin-provided objects.
 	//
-	// This must not be mutated during evaluation.
-	Schemas *Schemas
+	// From this we only access the schemas of the plugins, and don't otherwise
+	// interact with plugin instances.
+	Plugins *contextPlugins
 
 	// State is the current state, embedded in a wrapper that ensures that
 	// it can be safely accessed and modified concurrently.
@@ -237,12 +237,6 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		})
 		return cty.DynamicVal, diags
 	}
-
-	wantType := cty.DynamicPseudoType
-	if config.Type != cty.NilType {
-		wantType = config.Type
-	}
-
 	d.Evaluator.VariableValuesLock.Lock()
 	defer d.Evaluator.VariableValuesLock.Unlock()
 
@@ -262,15 +256,15 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	if d.Operation == walkValidate {
 		// Ensure variable sensitivity is captured in the validate walk
 		if config.Sensitive {
-			return cty.UnknownVal(wantType).Mark(marks.Sensitive), diags
+			return cty.UnknownVal(config.Type).Mark(marks.Sensitive), diags
 		}
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	moduleAddrStr := d.ModulePath.String()
 	vals := d.Evaluator.VariableValues[moduleAddrStr]
 	if vals == nil {
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	val, isSet := vals[addr.Name]
@@ -278,11 +272,11 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		if config.Default != cty.NilVal {
 			return config.Default, diags
 		}
-		return cty.UnknownVal(wantType), diags
+		return cty.UnknownVal(config.Type), diags
 	}
 
 	var err error
-	val, err = convert.Convert(val, wantType)
+	val, err = convert.Convert(val, config.ConstraintType)
 	if err != nil {
 		// We should never get here because this problem should've been caught
 		// during earlier validation, but we'll do something reasonable anyway.
@@ -294,7 +288,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		})
 		// Stub out our return value so that the semantic checker doesn't
 		// produce redundant downstream errors.
-		val = cty.UnknownVal(wantType)
+		val = cty.UnknownVal(config.Type)
 	}
 
 	// Mark if sensitive
@@ -892,8 +886,13 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 }
 
 func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	schemas := d.Evaluator.Schemas
-	schema, _ := schemas.ResourceTypeConfig(providerAddr.Provider, addr.Mode, addr.Type)
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr.Provider, addr.Mode, addr.Type)
+	if err != nil {
+		// We have plently other codepaths that will detect and report
+		// schema lookup errors before we'd reach this point, so we'll just
+		// treat a failure here the same as having no schema.
+		return nil
+	}
 	return schema
 }
 
@@ -912,7 +911,7 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid "terraform" attribute`,
-			Detail:   `The terraform.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" concept was rename to "workspace" in v0.12, and so the workspace name can now be accessed using the terraform.workspace attribute.`,
+			Detail:   `The terraform.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" concept was renamed to "workspace" in v0.12, and so the workspace name can now be accessed using the terraform.workspace attribute.`,
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags

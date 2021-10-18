@@ -14,11 +14,10 @@ func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *state
 	module := testModule(t, mod)
 
 	applyBuilder := &ApplyGraphBuilder{
-		Config:     module,
-		Changes:    changes,
-		Components: simpleMockComponentFactory(),
-		Schemas:    simpleTestSchemas(),
-		State:      state,
+		Config:  module,
+		Changes: changes,
+		Plugins: simpleMockPluginLibrary(),
+		State:   state,
 	}
 	g, err := (&BasicGraphBuilder{
 		Steps: cbdTestSteps(applyBuilder.Steps()),

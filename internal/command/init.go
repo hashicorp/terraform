@@ -150,19 +150,7 @@ func (c *InitCommand) Run(args []string) int {
 	// initialization functionality remains built around "earlyconfig" and
 	// so we need to still load the module via that mechanism anyway until we
 	// can do some more invasive refactoring here.
-	rootMod, confDiags := c.loadSingleModule(path)
 	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	if confDiags.HasErrors() {
-		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
-		// TODO: It would be nice to check the version constraints in
-		// rootModEarly.RequiredCore and print out a hint if the module is
-		// declaring that it's not compatible with this version of Terraform,
-		// though we're deferring that for now because we're intending to
-		// refactor our use of "earlyconfig" here anyway and so whatever we
-		// might do here right now would likely be invalidated by that.
-		c.showDiagnostics(confDiags)
-		return 1
-	}
 	// If _only_ the early loader encountered errors then that's unusual
 	// (it should generally be a superset of the normal loader) but we'll
 	// return those errors anyway since otherwise we'll probably get
@@ -172,7 +160,12 @@ func (c *InitCommand) Run(args []string) int {
 		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		// Errors from the early loader are generally not as high-quality since
 		// it has less context to work with.
-		diags = diags.Append(confDiags)
+
+		// TODO: It would be nice to check the version constraints in
+		// rootModEarly.RequiredCore and print out a hint if the module is
+		// declaring that it's not compatible with this version of Terraform,
+		// and that may be what caused earlyconfig to fail.
+		diags = diags.Append(earlyConfDiags)
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -192,6 +185,20 @@ func (c *InitCommand) Run(args []string) int {
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
 	config, confDiags := c.loadConfig(path)
+	// configDiags will be handled after the version constraint check, since an
+	// incorrect version of terraform may be producing errors for configuration
+	// constructs added in later versions.
+
+	// Before we go further, we'll check to make sure none of the modules in
+	// the configuration declare that they don't support this Terraform
+	// version, so we can produce a version-related error message rather than
+	// potentially-confusing downstream errors.
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		c.showDiagnostics(versionDiags)
+		return 1
+	}
+
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
@@ -199,21 +206,10 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Before we go further, we'll check to make sure none of the modules in the
-	// configuration declare that they don't support this Terraform version, so
-	// we can produce a version-related error message rather than
-	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	diags = diags.Append(versionDiags)
-	if versionDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	var back backend.Backend
 	if flagBackend {
 
-		be, backendOutput, backendDiags := c.initBackend(rootMod, flagConfigExtra)
+		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			c.showDiagnostics(diags)

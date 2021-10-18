@@ -33,6 +33,19 @@ func TestCidrHost(t *testing.T) {
 			false,
 		},
 		{
+			// We inadvertently inherited a pre-Go1.17 standard library quirk
+			// if parsing zero-prefix parts as decimal rather than octal.
+			// Go 1.17 resolved that quirk by making zero-prefix invalid, but
+			// we've preserved our existing behavior for backward compatibility,
+			// on the grounds that these functions are for generating addresses
+			// rather than validating or processing them. We do always generate
+			// a canonical result regardless of the input, though.
+			cty.StringVal("010.001.0.0/24"),
+			cty.NumberIntVal(6),
+			cty.StringVal("10.1.0.6"),
+			false,
+		},
+		{
 			cty.StringVal("192.168.1.0/30"),
 			cty.NumberIntVal(255),
 			cty.UnknownVal(cty.String),
@@ -111,6 +124,17 @@ func TestCidrNetmask(t *testing.T) {
 			false,
 		},
 		{
+			// We inadvertently inherited a pre-Go1.17 standard library quirk
+			// if parsing zero-prefix parts as decimal rather than octal.
+			// Go 1.17 resolved that quirk by making zero-prefix invalid, but
+			// we've preserved our existing behavior for backward compatibility,
+			// on the grounds that these functions are for generating addresses
+			// rather than validating or processing them.
+			cty.StringVal("010.001.0.0/24"),
+			cty.StringVal("255.255.255.0"),
+			false,
+		},
+		{
 			cty.StringVal("not-a-cidr"),
 			cty.UnknownVal(cty.String),
 			true, // not a valid CIDR mask
@@ -178,6 +202,20 @@ func TestCidrSubnet(t *testing.T) {
 			cty.StringVal("fe80::3:0:0:0/81"),
 			false,
 		},
+		{
+			// We inadvertently inherited a pre-Go1.17 standard library quirk
+			// if parsing zero-prefix parts as decimal rather than octal.
+			// Go 1.17 resolved that quirk by making zero-prefix invalid, but
+			// we've preserved our existing behavior for backward compatibility,
+			// on the grounds that these functions are for generating addresses
+			// rather than validating or processing them. We do always generate
+			// a canonical result regardless of the input, though.
+			cty.StringVal("010.001.0.0/24"),
+			cty.NumberIntVal(4),
+			cty.NumberIntVal(1),
+			cty.StringVal("10.1.0.16/28"),
+			false,
+		},
 		{ // not enough bits left
 			cty.StringVal("192.168.0.0/30"),
 			cty.NumberIntVal(4),
@@ -208,7 +246,7 @@ func TestCidrSubnet(t *testing.T) {
 		},
 		{ // fractions are Not Ok
 			cty.StringVal("10.256.0.0/8"),
-			cty.NumberFloatVal(2 / 3),
+			cty.NumberFloatVal(2.0 / 3.0),
 			cty.NumberFloatVal(.75),
 			cty.UnknownVal(cty.String),
 			true,
@@ -264,6 +302,23 @@ func TestCidrSubnets(t *testing.T) {
 				cty.StringVal("10.0.4.128/28"),
 				cty.StringVal("10.0.4.144/28"),
 				cty.StringVal("10.0.4.160/28"),
+			}),
+			``,
+		},
+		{
+			// We inadvertently inherited a pre-Go1.17 standard library quirk
+			// if parsing zero-prefix parts as decimal rather than octal.
+			// Go 1.17 resolved that quirk by making zero-prefix invalid, but
+			// we've preserved our existing behavior for backward compatibility,
+			// on the grounds that these functions are for generating addresses
+			// rather than validating or processing them. We do always generate
+			// a canonical result regardless of the input, though.
+			cty.StringVal("010.0.0.0/21"),
+			[]cty.Value{
+				cty.NumberIntVal(3),
+			},
+			cty.ListVal([]cty.Value{
+				cty.StringVal("10.0.0.0/24"),
 			}),
 			``,
 		},

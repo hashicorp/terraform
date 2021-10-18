@@ -200,7 +200,6 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validation, and we will not have any expansion module instance
 // repetition data.
 func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
-	wantType := n.Config.Type
 	name := n.Addr.Variable.Name
 	expr := n.Expr
 
@@ -238,7 +237,7 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 	// now we can do our own local type conversion and produce an error message
 	// with better context if it fails.
 	var convErr error
-	val, convErr = convert.Convert(val, wantType)
+	val, convErr = convert.Convert(val, n.Config.ConstraintType)
 	if convErr != nil {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
@@ -251,7 +250,7 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 		})
 		// We'll return a placeholder unknown value to avoid producing
 		// redundant downstream errors.
-		val = cty.UnknownVal(wantType)
+		val = cty.UnknownVal(n.Config.Type)
 	}
 
 	vals := make(map[string]cty.Value)

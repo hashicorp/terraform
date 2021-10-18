@@ -1,12 +1,12 @@
 ---
 layout: "docs"
-page_title: "Internals: Machine Readable UI"
+page_title: "Internals: Machine-Readable UI"
 sidebar_current: "docs-internals-machine-readable-ui"
 description: |-
   Terraform provides a machine-readable streaming JSON UI output for plan, apply, and refresh operations.
 ---
 
-# Machine Readable UI
+# Machine-Readable UI
 
 -> **Note:** This format is available in Terraform 0.15.3 and later.
 
@@ -14,7 +14,18 @@ By default, many Terraform commands display UI output as unstructured text, inte
 
 For long-running commands such as `plan`, `apply`, and `refresh`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
 
--> **Note:** The first message output has type `version`, and includes a `ui` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
+The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
+value `"1.0"`. The semantics of this version are:
+
+- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
+  changes or additions. Ignore any object properties with unrecognized names to
+  remain forward-compatible with future minor versions.
+- We will increment the major version, e.g. `"2.0"`, for changes that are not
+  backward-compatible. Reject any input which reports an unsupported major
+  version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](https://www.terraform.io/docs/language/v1-compatibility-promises.html).
 
 ## Sample JSON Output
 
@@ -124,11 +135,17 @@ This message does not include details about the exact changes which caused the c
 At the end of a plan or before an apply, Terraform will emit a `planned_change` message for each resource which has changes to apply. This message has an embedded `change` object with the following keys:
 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
-- `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`.
-- `reason`: an optional reason for the change, currently only used when the action is `replace`. Values:
+- `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
+- `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`, `move`.
+- `reason`: an optional reason for the change, currently only used when the action is `replace` or `delete`. Values:
     - `tainted`: resource was marked as tainted
     - `requested`: user requested that the resource be replaced, for example via the `-replace` plan flag
     - `cannot_update`: changes to configuration force the resource to be deleted and created rather than updated
+    - `delete_because_no_resource_config`: no matching resource in configuration
+    - `delete_because_wrong_repetition`: resource instance key has no corresponding `count` or `for_each` in configuration
+    - `delete_because_count_index`: resource instance key is outside the range of the `count` argument
+    - `delete_because_each_key`: resource instance key is not included in the `for_each` argument
+    - `delete_because_no_module`: enclosing module instance is not in configuration
 
 This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](./json-format.html).
 
@@ -185,10 +202,11 @@ Terraform outputs a change summary when a plan or apply operation completes. Bot
 
 ## Outputs
 
-After a successful apply, a message with type `outputs` contains the values of all root module output values. This message contains an `outputs` object, the keys of which are the output names. The outputs values are objects with the following keys:
+After a successful plan or apply, a message with type `outputs` contains the values of all root module output values. This message contains an `outputs` object, the keys of which are the output names. The outputs values are objects with the following keys:
 
-- `value:` the value of the output, encoded in JSON
-- `type`: the detected HCL type of the output value
+- `action`: for planned outputs, the action which will be taken for the output. Values: `noop`, `create`, `update`, `delete`
+- `value`: for applied outputs, the value of the output, encoded in JSON
+- `type`: for applied outputs, the detected HCL type of the output value
 - `sensitive`: boolean value, `true` if the output is sensitive and should be hidden from UI by default
 
 Note that `sensitive` outputs still include the `value` field, and integrating software should respect the sensitivity value as appropriate for the given use case.

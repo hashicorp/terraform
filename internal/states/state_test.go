@@ -294,6 +294,125 @@ func TestStateDeepCopy(t *testing.T) {
 	}
 }
 
+func TestStateHasResourceInstanceObjects(t *testing.T) {
+	providerConfig := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.MustParseProviderSourceString("test/test"),
+	}
+	childModuleProviderConfig := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule.Child("child"),
+		Provider: addrs.MustParseProviderSourceString("test/test"),
+	}
+
+	tests := map[string]struct {
+		Setup func(ss *SyncState)
+		Want  bool
+	}{
+		"empty": {
+			func(ss *SyncState) {},
+			false,
+		},
+		"one current, ready object in root module": {
+			func(ss *SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustAbsResourceAddr("test.foo").Instance(addrs.NoKey),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectReady,
+					},
+					providerConfig,
+				)
+			},
+			true,
+		},
+		"one current, ready object in child module": {
+			func(ss *SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustAbsResourceAddr("module.child.test.foo").Instance(addrs.NoKey),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectReady,
+					},
+					childModuleProviderConfig,
+				)
+			},
+			true,
+		},
+		"one current, tainted object in root module": {
+			func(ss *SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustAbsResourceAddr("test.foo").Instance(addrs.NoKey),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectTainted,
+					},
+					providerConfig,
+				)
+			},
+			true,
+		},
+		"one deposed, ready object in root module": {
+			func(ss *SyncState) {
+				ss.SetResourceInstanceDeposed(
+					mustAbsResourceAddr("test.foo").Instance(addrs.NoKey),
+					DeposedKey("uhoh"),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectTainted,
+					},
+					providerConfig,
+				)
+			},
+			true,
+		},
+		"one empty resource husk in root module": {
+			func(ss *SyncState) {
+				// Current Terraform doesn't actually create resource husks
+				// as part of its everyday work, so this is a "should never
+				// happen" case but we'll test to make sure we're robust to
+				// it anyway, because this was a historical bug blocking
+				// "terraform workspace delete" and similar.
+				ss.SetResourceInstanceCurrent(
+					mustAbsResourceAddr("test.foo").Instance(addrs.NoKey),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectTainted,
+					},
+					providerConfig,
+				)
+				s := ss.Lock()
+				delete(s.Modules[""].Resources["test.foo"].Instances, addrs.NoKey)
+				ss.Unlock()
+			},
+			false,
+		},
+		"one current data resource object in root module": {
+			func(ss *SyncState) {
+				ss.SetResourceInstanceCurrent(
+					mustAbsResourceAddr("data.test.foo").Instance(addrs.NoKey),
+					&ResourceInstanceObjectSrc{
+						AttrsJSON: []byte(`{}`),
+						Status:    ObjectReady,
+					},
+					providerConfig,
+				)
+			},
+			false, // data resources aren't managed resources, so they don't count
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			state := BuildState(test.Setup)
+			got := state.HasManagedResourceInstanceObjects()
+			if got != test.Want {
+				t.Errorf("wrong result\nstate content: (using legacy state string format; might not be comprehensive)\n%s\n\ngot:  %t\nwant: %t", state, got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestState_MoveAbsResource(t *testing.T) {
 	// Set up a starter state for the embedded tests, which should start from a copy of this state.
 	state := NewState()

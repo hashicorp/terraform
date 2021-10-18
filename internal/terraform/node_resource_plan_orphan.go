@@ -134,6 +134,11 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 			return diags
 		}
 
+		// We might be able to offer an approximate reason for why we are
+		// planning to delete this object. (This is best-effort; we might
+		// sometimes not have a reason.)
+		change.ActionReason = n.deleteActionReason(ctx)
+
 		diags = diags.Append(n.writeChange(ctx, change, ""))
 		if diags.HasErrors() {
 			return diags
@@ -147,4 +152,111 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	}
 
 	return diags
+}
+
+func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {
+	cfg := n.Config
+	if cfg == nil {
+		// NOTE: We'd ideally detect if the containing module is what's missing
+		// and then use ResourceInstanceDeleteBecauseNoModule for that case,
+		// but we don't currently have access to the full configuration here,
+		// so we need to be less specific.
+		return plans.ResourceInstanceDeleteBecauseNoResourceConfig
+	}
+
+	switch n.Addr.Resource.Key.(type) {
+	case nil: // no instance key at all
+		if cfg.Count != nil || cfg.ForEach != nil {
+			return plans.ResourceInstanceDeleteBecauseWrongRepetition
+		}
+	case addrs.IntKey:
+		if cfg.Count == nil {
+			// This resource isn't using "count" at all, then
+			return plans.ResourceInstanceDeleteBecauseWrongRepetition
+		}
+
+		expander := ctx.InstanceExpander()
+		if expander == nil {
+			break // only for tests that produce an incomplete MockEvalContext
+		}
+		insts := expander.ExpandResource(n.Addr.ContainingResource())
+
+		declared := false
+		for _, inst := range insts {
+			if n.Addr.Equal(inst) {
+				declared = true
+			}
+		}
+		if !declared {
+			// This instance key is outside of the configured range
+			return plans.ResourceInstanceDeleteBecauseCountIndex
+		}
+	case addrs.StringKey:
+		if cfg.ForEach == nil {
+			// This resource isn't using "for_each" at all, then
+			return plans.ResourceInstanceDeleteBecauseWrongRepetition
+		}
+
+		expander := ctx.InstanceExpander()
+		if expander == nil {
+			break // only for tests that produce an incomplete MockEvalContext
+		}
+		insts := expander.ExpandResource(n.Addr.ContainingResource())
+
+		declared := false
+		for _, inst := range insts {
+			if n.Addr.Equal(inst) {
+				declared = true
+			}
+		}
+		if !declared {
+			// This instance key is outside of the configured range
+			return plans.ResourceInstanceDeleteBecauseEachKey
+		}
+	}
+
+	// If we get here then the instance key type matches the configured
+	// repetition mode, and so we need to consider whether the key itself
+	// is within the range of the repetition construct.
+	if expander := ctx.InstanceExpander(); expander != nil { // (sometimes nil in MockEvalContext in tests)
+		// First we'll check whether our containing module instance still
+		// exists, so we can talk about that differently in the reason.
+		declared := false
+		for _, inst := range expander.ExpandModule(n.Addr.Module.Module()) {
+			if n.Addr.Module.Equal(inst) {
+				declared = true
+				break
+			}
+		}
+		if !declared {
+			return plans.ResourceInstanceDeleteBecauseNoModule
+		}
+
+		// Now we've proven that we're in a still-existing module instance,
+		// we'll see if our instance key matches something actually declared.
+		declared = false
+		for _, inst := range expander.ExpandResource(n.Addr.ContainingResource()) {
+			if n.Addr.Equal(inst) {
+				declared = true
+				break
+			}
+		}
+		if !declared {
+			// Because we already checked that the key _type_ was correct
+			// above, we can assume that any mismatch here is a range error,
+			// and thus we just need to decide which of the two range
+			// errors we're going to return.
+			switch n.Addr.Resource.Key.(type) {
+			case addrs.IntKey:
+				return plans.ResourceInstanceDeleteBecauseCountIndex
+			case addrs.StringKey:
+				return plans.ResourceInstanceDeleteBecauseEachKey
+			}
+		}
+	}
+
+	// If we didn't find any specific reason to report, we'll report "no reason"
+	// as a fallback, which means the UI should just state it'll be deleted
+	// without any explicit reasoning.
+	return plans.ResourceInstanceChangeNoReason
 }

@@ -160,7 +160,9 @@ func marshalVertexID(v Vertex) string {
 	case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
 		return strconv.Itoa(int(val.Pointer()))
 	case reflect.Interface:
-		return strconv.Itoa(int(val.InterfaceData()[1]))
+		// A vertex shouldn't contain another layer of interface, but handle
+		// this just in case.
+		return fmt.Sprintf("%#v", val.Interface())
 	}
 
 	if v, ok := v.(Hashable); ok {

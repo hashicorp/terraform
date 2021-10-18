@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/apparentlymart/go-shquot/shquot"
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/zclconf/go-cty/cty"
@@ -192,7 +191,7 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 	log.Printf("[DEBUG] Connection established. Handshaking for user %v", c.connInfo.User)
 	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, hostAndPort, c.config.config)
 	if err != nil {
-		err = errwrap.Wrapf(fmt.Sprintf("SSH authentication failed (%s@%s): {{err}}", c.connInfo.User, hostAndPort), err)
+		err = fmt.Errorf("SSH authentication failed (%s@%s): %w", c.connInfo.User, hostAndPort, err)
 
 		// While in theory this should be a fatal error, some hosts may start
 		// the ssh service before it is properly configured, or before user

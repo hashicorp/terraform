@@ -30,13 +30,9 @@ type EvalGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
+	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
-	Components contextComponentFactory
-
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	Plugins *contextPlugins
 }
 
 // See GraphBuilder
@@ -75,11 +71,11 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		// Attach the state
 		&AttachStateTransformer{State: b.State},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing

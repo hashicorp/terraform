@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -61,6 +63,98 @@ func TestOutputsFromMap(t *testing.T) {
 			Sensitive: false,
 			Type:      json.RawMessage(`["map","bool"]`),
 			Value:     json.RawMessage(`null`),
+		},
+	}
+
+	if !cmp.Equal(want, got) {
+		t.Fatalf("unexpected result\n%s", cmp.Diff(want, got))
+	}
+}
+
+func TestOutputsFromChanges(t *testing.T) {
+	root := addrs.RootModuleInstance
+	num, err := plans.NewDynamicValue(cty.NumberIntVal(1234), cty.Number)
+	if err != nil {
+		t.Fatalf("unexpected error creating dynamic value: %v", err)
+	}
+	str, err := plans.NewDynamicValue(cty.StringVal("1234"), cty.String)
+	if err != nil {
+		t.Fatalf("unexpected error creating dynamic value: %v", err)
+	}
+
+	got := OutputsFromChanges([]*plans.OutputChangeSrc{
+		// Unchanged output "boop", value 1234
+		{
+			Addr: root.OutputValue("boop"),
+			ChangeSrc: plans.ChangeSrc{
+				Action: plans.NoOp,
+				Before: num,
+				After:  num,
+			},
+			Sensitive: false,
+		},
+		// New output "beep", value 1234
+		{
+			Addr: root.OutputValue("beep"),
+			ChangeSrc: plans.ChangeSrc{
+				Action: plans.Create,
+				Before: nil,
+				After:  num,
+			},
+			Sensitive: false,
+		},
+		// Deleted output "blorp", prior value 1234
+		{
+			Addr: root.OutputValue("blorp"),
+			ChangeSrc: plans.ChangeSrc{
+				Action: plans.Delete,
+				Before: num,
+				After:  nil,
+			},
+			Sensitive: false,
+		},
+		// Updated output "honk", prior value 1234, new value "1234"
+		{
+			Addr: root.OutputValue("honk"),
+			ChangeSrc: plans.ChangeSrc{
+				Action: plans.Update,
+				Before: num,
+				After:  str,
+			},
+			Sensitive: false,
+		},
+		// New sensitive output "secret", value "1234"
+		{
+			Addr: root.OutputValue("secret"),
+			ChangeSrc: plans.ChangeSrc{
+				Action: plans.Create,
+				Before: nil,
+				After:  str,
+			},
+			Sensitive: true,
+		},
+	})
+
+	want := Outputs{
+		"boop": {
+			Action:    "noop",
+			Sensitive: false,
+		},
+		"beep": {
+			Action:    "create",
+			Sensitive: false,
+		},
+		"blorp": {
+			Action:    "delete",
+			Sensitive: false,
+		},
+		"honk": {
+			Action:    "update",
+			Sensitive: false,
+		},
+		"secret": {
+			Action:    "create",
+			Sensitive: true,
 		},
 	}
 

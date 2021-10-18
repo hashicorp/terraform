@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "planned_values": {
         "outputs": {
             "test": {
@@ -74,7 +74,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "values": {
             "outputs": {
                 "test": {

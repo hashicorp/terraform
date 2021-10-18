@@ -16,7 +16,18 @@ Since the format of plan files isn't suited for use with external tools (and lik
 
 Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/docs/cli/commands/show.html) for more details.
 
--> **Note:** The output includes a `format_version` key, which currently has major version zero to indicate that the format is experimental and subject to change. A future version will assign a non-zero major version and make stronger promises about compatibility. We do not anticipate any significant breaking changes to the format before its first major version, however.
+The output includes a `format_version` key, which as of Terraform 1.1.0 has
+value `"1.0"`. The semantics of this version are:
+
+- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
+  changes or additions. Ignore any object properties with unrecognized names to
+  remain forward-compatible with future minor versions.
+- We will increment the major version, e.g. `"2.0"`, for changes that are not
+  backward-compatible. Reject any input which reports an unsupported major
+  version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](https://www.terraform.io/docs/language/v1-compatibility-promises.html).
 
 ## Format Summary
 
@@ -60,7 +71,7 @@ For ease of consumption by callers, the plan representation includes a partial r
 
 ```javascript
 {
-  "format_version": "0.2",
+  "format_version": "1.0",
 
   // "prior_state" is a representation of the state that the configuration is
   // being applied to, using the state representation described above.
@@ -98,8 +109,14 @@ For ease of consumption by callers, the plan representation includes a partial r
     {
       // "address" is the full absolute address of the resource instance this
       // change applies to, in the same format as addresses in a value
-      // representation
+      // representation.
       "address": "module.child.aws_instance.foo[0]",
+
+      // "previous_address" is the full absolute address of this resource
+      // instance as it was known after the previous Terraform run.
+      // Included only if the address has changed, e.g. by handling
+      // a "moved" block in the configuration.
+      "previous_address": "module.instances.aws_instance.foo[0]",
 
       // "module_address", if set, is the module portion of the above address.
       // Omitted if the instance is in the root module.
@@ -143,6 +160,20 @@ For ease of consumption by callers, the plan representation includes a partial r
       // - "replace_by_request": the user explicitly called for this object
       //   to be replaced as an option when creating the plan, which therefore
       //   overrode what would have been a "no-op" or "update" action otherwise.
+      // - "delete_because_no_resource_config": Terraform found no resource
+      //   configuration corresponding to this instance.
+      // - "delete_because_no_module": The resource instance belongs to a
+      //   module instance that's no longer declared, perhaps due to changing
+      //   the "count" or "for_each" argument on one of the containing modules.
+      // - "delete_because_wrong_repetition": The instance key portion of the
+      //   resource address isn't of a suitable type for the corresponding
+      //   resource's configured repetition mode (count, for_each, or neither).
+      // - "delete_because_count_index": The corresponding resource uses count,
+      //   but the instance key is out of range for the currently-configured
+      //   count value.
+      // - "delete_because_each_key": The corresponding resource uses for_each,
+      //   but the instance key doesn't match any of the keys in the
+      //   currently-configured for_each value.
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.

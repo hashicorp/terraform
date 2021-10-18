@@ -201,6 +201,9 @@ that includes the sentences given in `error_message`. The error message string
 should be at least one full sentence explaining the constraint that failed,
 using a sentence structure similar to the above examples.
 
+Multiple `validation` blocks can be declared in which case error messages
+will be returned for _all_ failed conditions.
+
 ### Suppressing Values in CLI Output
 
 [inpage-sensitive]: #suppressing-values-in-cli-output

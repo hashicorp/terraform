@@ -48,6 +48,18 @@ type resourceChange struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
 
+	// PreviousAddress is the absolute address that this resource instance had
+	// at the conclusion of a previous run.
+	//
+	// This will typically be omitted, but will be present if the previous
+	// resource instance was subject to a "moved" block that we handled in the
+	// process of creating this plan.
+	//
+	// Note that this behavior diverges from the internal plan data structure,
+	// where the previous address is set equal to the current address in the
+	// common case, rather than being omitted.
+	PreviousAddress string `json:"previous_address,omitempty"`
+
 	// ModuleAddress is the module portion of the above address. Omitted if the
 	// instance is in the root module.
 	ModuleAddress string `json:"module_address,omitempty"`

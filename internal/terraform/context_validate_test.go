@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
@@ -29,13 +28,12 @@ func TestContext2Validate_badCount(t *testing.T) {
 
 	m := testModule(t, "validate-bad-count")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -53,13 +51,12 @@ func TestContext2Validate_badResource_reference(t *testing.T) {
 
 	m := testModule(t, "validate-bad-resource-count")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -80,52 +77,33 @@ func TestContext2Validate_badVar(t *testing.T) {
 
 	m := testModule(t, "validate-bad-var")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
-		t.Fatalf("succeeded; want error")
-	}
-}
-
-func TestContext2Validate_varMapOverrideOld(t *testing.T) {
-	m := testModule(t, "validate-module-pc-vars")
-	p := testProvider("aws")
-	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
-		Provider: &configschema.Block{
-			Attributes: map[string]*configschema.Attribute{
-				"foo": {Type: cty.String, Optional: true},
-			},
-		},
-		ResourceTypes: map[string]*configschema.Block{
-			"aws_instance": {
-				Attributes: map[string]*configschema.Attribute{},
-			},
-		},
-	})
-
-	_, diags := NewContext(&ContextOpts{
-		Config: m,
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		Variables: InputValues{},
-	})
-	if !diags.HasErrors() {
-		// Error should be: The input variable "provider_var" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
 	}
 }
 
 func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 	m := testModule(t, "validate-var-no-default-explicit-type")
-	_, diags := NewContext(&ContextOpts{
-		Config: m,
-	})
+	c, diags := NewContext(&ContextOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected NewContext errors: %s", diags.Err())
+	}
+
+	// NOTE: This test has grown idiosyncratic because originally Terraform
+	// would (optionally) check variables during validation, and then in
+	// Terraform v0.12 we switched to checking variables during NewContext,
+	// and now most recently we've switched to checking variables only during
+	// planning because root variables are a plan option. Therefore this has
+	// grown into a plan test rather than a validate test, but it lives on
+	// here in order to make it easier to navigate through that history in
+	// version control.
+	_, diags = c.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		// Error should be: The input variable "maybe_a_map" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
@@ -166,7 +144,6 @@ func TestContext2Validate_computedVar(t *testing.T) {
 
 	m := testModule(t, "validate-computed-var")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(p),
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(pt),
@@ -182,7 +159,7 @@ func TestContext2Validate_computedVar(t *testing.T) {
 		return
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -217,13 +194,12 @@ func TestContext2Validate_computedInFunction(t *testing.T) {
 
 	m := testModule(t, "validate-computed-in-function")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -256,13 +232,12 @@ func TestContext2Validate_countComputed(t *testing.T) {
 
 	m := testModule(t, "validate-count-computed")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -281,13 +256,12 @@ func TestContext2Validate_countNegative(t *testing.T) {
 	}
 	m := testModule(t, "validate-count-negative")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -308,13 +282,12 @@ func TestContext2Validate_countVariable(t *testing.T) {
 	}
 	m := testModule(t, "apply-count-variable")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -334,12 +307,14 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 			},
 		},
 	}
-	_, diags := NewContext(&ContextOpts{
-		Config: m,
+	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
+	assertNoDiagnostics(t, diags)
+
+	_, diags = c.Plan(m, nil, &PlanOpts{})
 	if !diags.HasErrors() {
 		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
@@ -361,13 +336,12 @@ func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	}
 	m := testModule(t, "validate-bad-module-output")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -388,13 +362,12 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 	}
 	m := testModule(t, "validate-good-module")
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -414,7 +387,6 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -424,7 +396,7 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -446,13 +418,12 @@ func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -481,15 +452,8 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		Variables: InputValues{
-			"provider_var": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
 		},
 	})
 
@@ -500,7 +464,7 @@ func TestContext2Validate_moduleProviderVar(t *testing.T) {
 		return
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -529,7 +493,6 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -542,7 +505,7 @@ func TestContext2Validate_moduleProviderInheritUnused(t *testing.T) {
 		return
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -565,16 +528,10 @@ func TestContext2Validate_orphans(t *testing.T) {
 
 	m := testModule(t, "validate-good")
 
-	state := states.NewState()
-	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
@@ -587,7 +544,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 		}
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -614,7 +571,6 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -624,7 +580,7 @@ func TestContext2Validate_providerConfig_bad(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if len(diags) != 1 {
 		t.Fatalf("wrong number of diagnostics %d; want %d", len(diags), 1)
 	}
@@ -654,7 +610,6 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -664,7 +619,7 @@ func TestContext2Validate_providerConfig_skippedEmpty(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("should not be called")),
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -691,13 +646,12 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -727,13 +681,12 @@ func TestContext2Validate_requiredProviderConfig(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -757,7 +710,6 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 	pr := simpleMockProvisioner()
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -770,7 +722,7 @@ func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -794,7 +746,6 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 	pr := simpleMockProvisioner()
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -803,7 +754,7 @@ func TestContext2Validate_badResourceConnection(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	t.Log(diags.Err())
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
@@ -828,7 +779,6 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 	pr := simpleMockProvisioner()
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -837,7 +787,7 @@ func TestContext2Validate_badProvisionerConnection(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	t.Log(diags.Err())
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
@@ -878,7 +828,6 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 	}
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -887,7 +836,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -907,12 +856,22 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 			},
 		},
 	}
-	_, diags := NewContext(&ContextOpts{
-		Config: m,
+	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
+	assertNoDiagnostics(t, diags)
+
+	// NOTE: This test has grown idiosyncratic because originally Terraform
+	// would (optionally) check variables during validation, and then in
+	// Terraform v0.12 we switched to checking variables during NewContext,
+	// and now most recently we've switched to checking variables only during
+	// planning because root variables are a plan option. Therefore this has
+	// grown into a plan test rather than a validate test, but it lives on
+	// here in order to make it easier to navigate through that history in
+	// version control.
+	_, diags = c.Plan(m, states.NewState(), DefaultPlanOpts)
 	if !diags.HasErrors() {
 		// Error should be: The input variable "foo" has not been assigned a value.
 		t.Fatalf("succeeded; want error")
@@ -934,7 +893,6 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		},
 	}
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -944,7 +902,7 @@ func TestContext2Validate_resourceConfig_bad(t *testing.T) {
 		Diagnostics: tfdiags.Diagnostics{}.Append(fmt.Errorf("bad")),
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatalf("succeeded; want error")
 	}
@@ -965,13 +923,12 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 		},
 	}
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -993,16 +950,10 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 
 	m := testModule(t, "validate-good")
-	state := states.NewState()
-	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceTainted(root, "aws_instance.foo", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		State: state,
 	})
 
 	p.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
@@ -1015,7 +966,7 @@ func TestContext2Validate_tainted(t *testing.T) {
 		}
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -1044,23 +995,15 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: state,
-		Targets: []addrs.Targetable{
-			addrs.RootModuleInstance.Resource(
-				addrs.ManagedResourceMode, "aws_instance", "foo",
-			),
-		},
-		PlanMode: plans.DestroyMode,
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -1081,15 +1024,8 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 		},
 	}
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-		Variables: InputValues{
-			"foo": &InputValue{
-				Value:      cty.StringVal("bar"),
-				SourceType: ValueFromCaller,
-			},
 		},
 	})
 
@@ -1099,7 +1035,7 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 		return providers.ValidateResourceConfigResponse{}
 	}
 
-	c.Validate()
+	c.Validate(m)
 
 	// Input variables are always unknown during the validate walk, because
 	// we're checking for validity of all possible input values. Validity
@@ -1129,14 +1065,13 @@ func TestContext2Validate_interpolateVar(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -1162,14 +1097,13 @@ func TestContext2Validate_interpolateComputedModuleVarDef(t *testing.T) {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -1183,14 +1117,13 @@ func TestContext2Validate_interpolateMap(t *testing.T) {
 	p := testProvider("template")
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -1235,19 +1168,12 @@ resource "aws_instance" "foo" {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
-		Variables: InputValues{
-			"bar": &InputValue{
-				Value:      cty.StringVal("boop"),
-				SourceType: ValueFromCaller,
-			},
-		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1265,47 +1191,20 @@ resource "aws_instance" "foo" {
 func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
 	fixture := contextFixtureApplyVars(t)
 	opts := fixture.ContextOpts()
-	opts.Variables = InputValues{
-		"foo": &InputValue{
-			Value:      cty.StringVal("us-east-1"),
-			SourceType: ValueFromCaller,
-		},
-		"test_list": &InputValue{
-			Value: cty.ListVal([]cty.Value{
-				cty.StringVal("Hello"),
-				cty.StringVal("World"),
-			}),
-			SourceType: ValueFromCaller,
-		},
-		"test_map": &InputValue{
-			Value: cty.MapVal(map[string]cty.Value{
-				"Hello": cty.StringVal("World"),
-				"Foo":   cty.StringVal("Bar"),
-				"Baz":   cty.StringVal("Foo"),
-			}),
-			SourceType: ValueFromCaller,
-		},
-		"amis": &InputValue{
-			Value: cty.MapVal(map[string]cty.Value{
-				"us-east-1": cty.StringVal("override"),
-			}),
-			SourceType: ValueFromCaller,
-		},
-	}
 	c := testContext2(t, opts)
 
-	graph, diags := (&PlanGraphBuilder{
-		Config:     c.config,
-		State:      states.NewState(),
-		Components: c.components,
-		Schemas:    c.schemas,
-		Targets:    c.targets,
+	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
+		Config:  fixture.Config,
+		State:   states.NewState(),
+		Plugins: c.plugins,
 	}).Build(addrs.RootModuleInstance)
 	if diags.HasErrors() {
 		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())
 	}
 	defer c.acquireRun("validate-test")()
-	walker, diags := c.walk(graph, walkValidate)
+	walker, diags := c.walk(graph, walkValidate, &graphWalkOpts{
+		Config: fixture.Config,
+	})
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1326,13 +1225,12 @@ output "out" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1363,13 +1261,12 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1402,11 +1299,9 @@ output "root" {
 }`,
 	})
 
-	ctx := testContext2(t, &ContextOpts{
-		Config: m,
-	})
+	ctx := testContext2(t, &ContextOpts{})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1424,13 +1319,12 @@ output "out" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1455,13 +1349,12 @@ output "out" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1486,13 +1379,12 @@ output "out" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1516,13 +1408,12 @@ resource "test_instance" "bar" {
 
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1549,13 +1440,12 @@ resource "test_instance" "bar" {
 
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1574,13 +1464,12 @@ func TestContext2Validate_variableCustomValidationsFail(t *testing.T) {
 
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1609,19 +1498,12 @@ variable "test" {
 
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
-		Variables: InputValues{
-			"test": &InputValue{
-				Value:      cty.UnknownVal(cty.String),
-				SourceType: ValueFromCLIArg,
-			},
-		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error\ngot: %s", diags.Err().Error())
 	}
@@ -1677,13 +1559,12 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -1705,13 +1586,12 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1736,13 +1616,12 @@ resource "aws_instance" "foo" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1818,13 +1697,12 @@ output "out" {
 
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -1851,9 +1729,7 @@ output "out" {
 `,
 	})
 
-	diags := testContext2(t, &ContextOpts{
-		Config: m,
-	}).Validate()
+	diags := testContext2(t, &ContextOpts{}).Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1891,9 +1767,7 @@ output "out" {
 `,
 	})
 
-	diags := testContext2(t, &ContextOpts{
-		Config: m,
-	}).Validate()
+	diags := testContext2(t, &ContextOpts{}).Validate(m)
 	if !diags.HasErrors() {
 		t.Fatal("succeeded; want errors")
 	}
@@ -1937,12 +1811,11 @@ resource "test_instance" "a" {
 	}
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1977,7 +1850,6 @@ func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
 	pr := simpleMockProvisioner()
 
 	c := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
@@ -1993,7 +1865,7 @@ func TestContext2Validate_sensitiveProvisionerConfig(t *testing.T) {
 		return pr.ValidateProvisionerConfigResponse
 	}
 
-	diags := c.Validate()
+	diags := c.Validate(m)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err())
 	}
@@ -2082,13 +1954,12 @@ resource "test_instance" "c" {
 `})
 
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -2150,13 +2021,12 @@ resource "test_object" "t" {
 
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
-		Config: m,
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
-	diags := ctx.Validate()
+	diags := ctx.Validate(m)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}

@@ -478,7 +478,7 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 	// both response and error.
 	var errMsg string
 	if resp != nil {
-		errMsg = fmt.Sprintf(": %d", resp.StatusCode)
+		errMsg = fmt.Sprintf(": %s returned from %s", resp.Status, resp.Request.URL)
 	} else if err != nil {
 		errMsg = fmt.Sprintf(": %s", err)
 	}

@@ -3,9 +3,9 @@ package funcs
 import (
 	"fmt"
 	"math/big"
-	"net"
 
 	"github.com/apparentlymart/go-cidr/cidr"
+	"github.com/hashicorp/terraform/internal/ipaddr"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -30,7 +30,7 @@ var CidrHostFunc = function.New(&function.Spec{
 		if err := gocty.FromCtyValue(args[1], &hostNum); err != nil {
 			return cty.UnknownVal(cty.String), err
 		}
-		_, network, err := net.ParseCIDR(args[0].AsString())
+		_, network, err := ipaddr.ParseCIDR(args[0].AsString())
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
@@ -55,12 +55,12 @@ var CidrNetmaskFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		_, network, err := net.ParseCIDR(args[0].AsString())
+		_, network, err := ipaddr.ParseCIDR(args[0].AsString())
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
 
-		return cty.StringVal(net.IP(network.Mask).String()), nil
+		return cty.StringVal(ipaddr.IP(network.Mask).String()), nil
 	},
 })
 
@@ -92,7 +92,7 @@ var CidrSubnetFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), err
 		}
 
-		_, network, err := net.ParseCIDR(args[0].AsString())
+		_, network, err := ipaddr.ParseCIDR(args[0].AsString())
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
@@ -121,7 +121,7 @@ var CidrSubnetsFunc = function.New(&function.Spec{
 	},
 	Type: function.StaticReturnType(cty.List(cty.String)),
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
-		_, network, err := net.ParseCIDR(args[0].AsString())
+		_, network, err := ipaddr.ParseCIDR(args[0].AsString())
 		if err != nil {
 			return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "invalid CIDR expression: %s", err)
 		}

@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -31,6 +32,43 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
+	}
+
+	// In case the output configuration path is specified, we should ensure the
+	// target resource address doesn't exist in the module tree indicated by
+	// the existing configuration files.
+	if args.OutPath != "" {
+		// Ensure the directory to the path exists and is accessible.
+		outDir := filepath.Dir(args.OutPath)
+		if _, err := os.Stat(outDir); os.IsNotExist(err) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"The out path doesn't exist or is not accessible",
+				err.Error(),
+			))
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		config, loadDiags := c.loadConfig(outDir)
+		diags = diags.Append(loadDiags)
+		if diags.HasErrors() {
+			view.Diagnostics(diags)
+			return 1
+		}
+
+		if config != nil && config.Module != nil {
+			if rs, ok := config.Module.ManagedResources[args.Addr.ContainingResource().Config().String()]; ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource already in configuration",
+					Detail:   fmt.Sprintf("The resource %s is already in this configuration at %s. Resource names must be unique per type in each module.", args.Addr, rs.DeclRange),
+					Subject:  &rs.DeclRange,
+				})
+				c.View.Diagnostics(diags)
+				return 1
+			}
+		}
 	}
 
 	// Check for user-supplied plugin path
@@ -99,43 +137,41 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		view.Diagnostics(diags)
 		return 1
 	}
 
+	// Successfully creating the context can result in a lock, so ensure we release it
+	defer func() {
+		diags := opReq.StateLocker.Unlock()
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
+		}
+	}()
+
 	// load the configuration to verify that the resource address doesn't
 	// already exist in the config.
 	var module *configs.Module
 	if args.Addr.Module.IsRoot() {
-		module = ctx.Config().Module
+		module = lr.Config.Module
 	} else {
 		// This is weird, but users can potentially specify non-existant module names
-		cfg := ctx.Config().Root.Descendent(args.Addr.Module.Module())
+		cfg := lr.Config.Root.Descendent(args.Addr.Module.Module())
 		if cfg != nil {
 			module = cfg.Module
 		}
 	}
 
-	if module == nil {
-		// It's fine if the module doesn't actually exist; we don't need to check if the resource exists.
-	} else {
-		if rs, ok := module.ManagedResources[args.Addr.ContainingResource().Config().String()]; ok {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Resource already in configuration",
-				Detail:   fmt.Sprintf("The resource %s is already in this configuration at %s. Resource names must be unique per type in each module.", args.Addr, rs.DeclRange),
-				Subject:  &rs.DeclRange,
-			})
-			c.View.Diagnostics(diags)
-			return 1
-		}
-	}
-
 	// Get the schemas from the context
-	schemas := ctx.Schemas()
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		view.Diagnostics(diags)
+		return 1
+	}
 
 	// Determine the correct provider config address. The provider-related
 	// variables may get updated below
@@ -146,7 +182,6 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	// If we are getting the values from state, get the AbsProviderConfig
 	// directly from state as well.
 	var resource *states.Resource
-	var moreDiags tfdiags.Diagnostics
 	if args.FromState {
 		resource, moreDiags = c.getResource(b, args.Addr.ContainingResource())
 		if moreDiags.HasErrors() {
@@ -248,11 +283,10 @@ func (c *AddCommand) Run(rawArgs []string) int {
 	}
 
 	diags = diags.Append(view.Resource(args.Addr, schema, localProviderConfig, stateVal))
+	c.View.Diagnostics(diags)
 	if diags.HasErrors() {
-		c.View.Diagnostics(diags)
 		return 1
 	}
-
 	return 0
 }
 
@@ -260,21 +294,27 @@ func (c *AddCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] add [options] ADDRESS
 
-  Generates a blank resource template. With no additional options,
-  the template will be displayed in the terminal. 
+  Generates a blank resource template. With no additional options, Terraform
+  will write the result to standard output.
 
 Options:
 
--from-state=true		Fill the template with values from an existing resource.
-                        Defaults to false.
+  -from-state         Fill the template with values from an existing resource
+                      instance tracked in the state. By default, Terraform will
+                      emit only placeholder values based on the resource type.
 
--out=string 			Write the template to a file. If the file already
-                        exists, the template will be appended to the file.
+  -out=string         Write the template to a file, instead of to standard
+                      output.
 
--optional=true          Include optional attributes. Defaults to false.
+  -optional           Include optional arguments. By default, the result will
+                      include only required arguments.
 
--provider=provider		Override the configured provider for the resource. Conflicts
-                        with -from-state
+  -provider=provider  Override the provider configuration for the resource,
+                      using the absolute provider configuration address syntax.
+
+                      This is incompatible with -from-state, because in that
+                      case Terraform will use the provider configuration already
+                      selected in the state.
 `
 	return strings.TrimSpace(helpText)
 }

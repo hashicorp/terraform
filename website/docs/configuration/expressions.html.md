@@ -23,7 +23,7 @@ Terraform's types are `string`, `number`, `bool`, `list`, `tuple`, `map`,
 This information has moved to
 [Types and Values](/docs/language/expressions/types.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -42,7 +42,7 @@ You can refer to certain values by name, like `var.some_variable` or
 This information has moved to
 [References to Values](/docs/language/expressions/references.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -57,9 +57,9 @@ Operators are expressions that transform other expressions, like adding two
 numbers (`+`) or comparing two values to get a bool (`==`, `>=`, etc.).
 
 This information has moved to
-[Operators](/docs/language/expressions/references.html).
+[Operators](/docs/language/expressions/operators.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -71,7 +71,7 @@ expressions based on a bool condition.
 This information has moved to
 [Conditional Expressions](/docs/language/expressions/conditionals.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -85,7 +85,7 @@ Terraform's functions can be called like `function_name(arg1, arg2)`.
 This information has moved to
 [Function Calls](/docs/language/expressions/function-calls.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -99,7 +99,7 @@ value into another complex type value.
 This information has moved to
 [For Expressions](/docs/language/expressions/for.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -114,7 +114,7 @@ collections.
 This information has moved to
 [Splat Expressions](/docs/language/expressions/splat.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -129,7 +129,7 @@ except it creates multiple repeatable nested blocks instead of a complex value.
 This information has moved to
 [Dynamic Blocks](/docs/language/expressions/dynamic-blocks.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>
 
 
 
@@ -154,4 +154,4 @@ Strings can also include escape sequences like `\n`, interpolation sequences
 This information has moved to
 [Strings and Templates](/docs/language/expressions/strings.html).
 
-<div style="height: 100vh; margin: 0; padding: 0;"></div>
+<div style="height: 30vh; margin: 0; padding: 0;"></div>

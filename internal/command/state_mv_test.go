@@ -9,16 +9,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
-	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 )
-
-var disabledColorize = &colorstring.Colorize{
-	Colors:  colorstring.DefaultColors,
-	Disable: true,
-}
 
 func TestStateMv(t *testing.T) {
 	state := states.BuildState(func(s *states.SyncState) {

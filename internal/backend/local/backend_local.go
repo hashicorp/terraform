@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -18,25 +18,29 @@ import (
 )
 
 // backend.Local implementation.
-func (b *Local) Context(op *backend.Operation) (*terraform.Context, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Full, tfdiags.Diagnostics) {
 	// Make sure the type is invalid. We use this as a way to know not
-	// to ask for input/validate.
+	// to ask for input/validate. We're modifying this through a pointer,
+	// so we're mutating an object that belongs to the caller here, which
+	// seems bad but we're preserving it for now until we have time to
+	// properly design this API, vs. just preserving whatever it currently
+	// happens to do.
 	op.Type = backend.OperationTypeInvalid
 
 	op.StateLocker = op.StateLocker.WithContext(context.Background())
 
-	ctx, _, stateMgr, diags := b.context(op)
-	return ctx, stateMgr, diags
+	lr, _, stateMgr, diags := b.localRun(op)
+	return lr, stateMgr, diags
 }
 
-func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
+func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.Snapshot, statemgr.Full, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Get the latest state.
 	log.Printf("[TRACE] backend/local: requesting state manager for workspace %q", op.Workspace)
 	s, err := b.StateMgr(op.Workspace)
 	if err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
 		return nil, nil, nil, diags
 	}
 	log.Printf("[TRACE] backend/local: requesting state lock for workspace %q", op.Workspace)
@@ -54,35 +58,20 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 
 	log.Printf("[TRACE] backend/local: reading remote state for workspace %q", op.Workspace)
 	if err := s.RefreshState(); err != nil {
-		diags = diags.Append(errwrap.Wrapf("Error loading state: {{err}}", err))
+		diags = diags.Append(fmt.Errorf("error loading state: %w", err))
 		return nil, nil, nil, diags
 	}
 
+	ret := &backend.LocalRun{}
+
 	// Initialize our context options
-	var opts terraform.ContextOpts
+	var coreOpts terraform.ContextOpts
 	if v := b.ContextOpts; v != nil {
-		opts = *v
+		coreOpts = *v
 	}
+	coreOpts.UIInput = op.UIIn
+	coreOpts.Hooks = op.Hooks
 
-	// Copy set options from the operation
-	opts.PlanMode = op.PlanMode
-	opts.Targets = op.Targets
-	opts.ForceReplace = op.ForceReplace
-	opts.UIInput = op.UIIn
-	opts.Hooks = op.Hooks
-
-	opts.SkipRefresh = op.Type != backend.OperationTypeRefresh && !op.PlanRefresh
-	if opts.SkipRefresh {
-		log.Printf("[DEBUG] backend/local: skipping refresh of managed resources")
-	}
-
-	// Load the latest state. If we enter contextFromPlanFile below then the
-	// state snapshot in the plan file must match this, or else it'll return
-	// error diagnostics.
-	log.Printf("[TRACE] backend/local: retrieving local state snapshot for workspace %q", op.Workspace)
-	opts.State = s.State()
-
-	var tfCtx *terraform.Context
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
 	if op.PlanFile != nil {
@@ -94,8 +83,8 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 			m := sm.StateSnapshotMeta()
 			stateMeta = &m
 		}
-		log.Printf("[TRACE] backend/local: building context from plan file")
-		tfCtx, configSnap, ctxDiags = b.contextFromPlanFile(op.PlanFile, opts, stateMeta)
+		log.Printf("[TRACE] backend/local: populating backend.LocalRun from plan file")
+		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, op.PlanFile, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
 			return nil, nil, nil, diags
@@ -105,14 +94,13 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// available if we need to generate diagnostic message snippets.
 		op.ConfigLoader.ImportSourcesFromSnapshot(configSnap)
 	} else {
-		log.Printf("[TRACE] backend/local: building context for current working directory")
-		tfCtx, configSnap, ctxDiags = b.contextDirect(op, opts)
+		log.Printf("[TRACE] backend/local: populating backend.LocalRun for current working directory")
+		ret, configSnap, ctxDiags = b.localRunDirect(op, ret, &coreOpts, s)
 	}
 	diags = diags.Append(ctxDiags)
 	if diags.HasErrors() {
 		return nil, nil, nil, diags
 	}
-	log.Printf("[TRACE] backend/local: finished building terraform.Context")
 
 	// If we have an operation, then we automatically do the input/validate
 	// here since every option requires this.
@@ -122,7 +110,7 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 			mode := terraform.InputModeProvider
 
 			log.Printf("[TRACE] backend/local: requesting interactive input, if necessary")
-			inputDiags := tfCtx.Input(mode)
+			inputDiags := ret.Core.Input(ret.Config, mode)
 			diags = diags.Append(inputDiags)
 			if inputDiags.HasErrors() {
 				return nil, nil, nil, diags
@@ -132,15 +120,15 @@ func (b *Local) context(op *backend.Operation) (*terraform.Context, *configload.
 		// If validation is enabled, validate
 		if b.OpValidation {
 			log.Printf("[TRACE] backend/local: running validation operation")
-			validateDiags := tfCtx.Validate()
+			validateDiags := ret.Core.Validate(ret.Config)
 			diags = diags.Append(validateDiags)
 		}
 	}
 
-	return tfCtx, configSnap, s, diags
+	return ret, configSnap, s, diags
 }
 
-func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts) (*terraform.Context, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Load the configuration using the caller-provided configuration loader.
@@ -149,7 +137,33 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	if configDiags.HasErrors() {
 		return nil, nil, diags
 	}
-	opts.Config = config
+	run.Config = config
+
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		var suggestion string
+		switch {
+		case op.DependencyLocks == nil:
+			// If we get here then it suggests that there's a caller that we
+			// didn't yet update to populate DependencyLocks, which is a bug.
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+		case op.DependencyLocks.Empty():
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+		default:
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+				buf.String(), suggestion,
+			),
+		))
+	}
 
 	var rawVariables map[string]backend.UnparsedVariableValue
 	if op.AllowUnsetVariables {
@@ -163,7 +177,7 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 		// values through interactive prompts.
 		// TODO: Need to route the operation context through into here, so that
 		// the interactive prompts can be sensitive to its timeouts/etc.
-		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, opts.UIInput)
+		rawVariables = b.interactiveCollectVariables(context.TODO(), op.Variables, config.Module.Variables, op.UIIn)
 	}
 
 	variables, varDiags := backend.ParseVariableValues(rawVariables, config.Module.Variables)
@@ -171,14 +185,30 @@ func (b *Local) contextDirect(op *backend.Operation, opts terraform.ContextOpts)
 	if diags.HasErrors() {
 		return nil, nil, diags
 	}
-	opts.Variables = variables
 
-	tfCtx, ctxDiags := terraform.NewContext(&opts)
-	diags = diags.Append(ctxDiags)
-	return tfCtx, configSnap, diags
+	planOpts := &terraform.PlanOpts{
+		Mode:         op.PlanMode,
+		Targets:      op.Targets,
+		ForceReplace: op.ForceReplace,
+		SetVariables: variables,
+		SkipRefresh:  op.Type != backend.OperationTypeRefresh && !op.PlanRefresh,
+	}
+	run.PlanOpts = planOpts
+
+	// For a "direct" local run, the input state is the most recently stored
+	// snapshot, from the previous run.
+	run.InputState = s.State()
+
+	tfCtx, moreDiags := terraform.NewContext(coreOpts)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
+	}
+	run.Core = tfCtx
+	return run, configSnap, diags
 }
 
-func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*terraform.Context, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, run *backend.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	const errSummary = "Invalid plan file"
@@ -201,7 +231,47 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 	if configDiags.HasErrors() {
 		return nil, snap, diags
 	}
-	opts.Config = config
+	run.Config = config
+
+	// NOTE: We're intentionally comparing the current locks with the
+	// configuration snapshot, rather than the lock snapshot in the plan file,
+	// because it's the current locks which dictate our plugin selections
+	// in coreOpts below. However, we'll also separately check that the
+	// plan file has identical locked plugins below, and thus we're effectively
+	// checking consistency with both here.
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				buf.String(),
+			),
+		))
+	}
+
+	// This check is an important complement to the check above: the locked
+	// dependencies in the configuration must match the configuration, and
+	// the locked dependencies in the plan must match the locked dependencies
+	// in the configuration, and so transitively we ensure that the locked
+	// dependencies in the plan match the configuration too. However, this
+	// additionally catches any inconsistency between the two sets of locks
+	// even if they both happen to be valid per the current configuration,
+	// which is one of several ways we try to catch the mistake of applying
+	// a saved plan file in a different place than where we created it.
+	depLocksFromPlan, moreDiags := pf.ReadDependencyLocks()
+	diags = diags.Append(moreDiags)
+	if depLocksFromPlan != nil && !op.DependencyLocks.Equal(depLocksFromPlan) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			"The given plan file was created with a different set of external dependency selections than the current configuration. A saved plan can be applied only to the same configuration it was created from.\n\nCreate a new plan from the updated configuration.",
+		))
+	}
 
 	// A plan file also contains a snapshot of the prior state the changes
 	// are intended to apply to.
@@ -220,21 +290,33 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		// has changed since the plan was created. (All of the "real-world"
 		// state manager implementations support this, but simpler test backends
 		// may not.)
-		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
-			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Saved plan is stale",
-					"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
-				))
-			}
+
+		// Because the plan always contains a state, even if it is empty, the
+		// first plan to be applied will have empty snapshot metadata. In this
+		// case we compare only the serial in order to provide a more correct
+		// error.
+		firstPlan := priorStateFile.Lineage == "" && priorStateFile.Serial == 0
+
+		switch {
+		case !firstPlan && priorStateFile.Lineage != currentStateMeta.Lineage:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan does not match the given state",
+				"The given plan file can not be applied because it was created from a different state lineage.",
+			))
+
+		case priorStateFile.Serial != currentStateMeta.Serial:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is stale",
+				"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
+			))
 		}
 	}
-	// The caller already wrote the "current state" here, but we're overriding
-	// it here with the prior state. These two should actually be identical in
-	// normal use, particularly if we validated the state meta above, but
-	// we do this here anyway to ensure consistent behavior.
-	opts.State = priorStateFile.State
+	// When we're applying a saved plan, the input state is the "prior state"
+	// recorded in the plan, which incorporates the result of all of the
+	// refreshing we did while building the plan.
+	run.InputState = priorStateFile.State
 
 	plan, err := pf.ReadPlan()
 	if err != nil {
@@ -245,33 +327,18 @@ func (b *Local) contextFromPlanFile(pf *planfile.Reader, opts terraform.ContextO
 		))
 		return nil, snap, diags
 	}
+	// When we're applying a saved plan, we populate Plan instead of PlanOpts,
+	// because a plan object incorporates the subset of data from PlanOps that
+	// we need to apply the plan.
+	run.Plan = plan
 
-	variables := terraform.InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				errSummary,
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-
-		variables[name] = &terraform.InputValue{
-			Value:      val,
-			SourceType: terraform.ValueFromPlan,
-		}
+	tfCtx, moreDiags := terraform.NewContext(coreOpts)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, diags
 	}
-	opts.Variables = variables
-	opts.Changes = plan.Changes
-	opts.Targets = plan.TargetAddrs
-	opts.ForceReplace = plan.ForceReplaceAddrs
-	opts.ProviderSHA256s = plan.ProviderSHA256s
-
-	tfCtx, ctxDiags := terraform.NewContext(&opts)
-	diags = diags.Append(ctxDiags)
-	return tfCtx, snap, diags
+	run.Core = tfCtx
+	return run, snap, diags
 }
 
 // interactiveCollectVariables attempts to complete the given existing

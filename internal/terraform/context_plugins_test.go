@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 )
 
-// simpleMockComponentFactory returns a component factory pre-configured with
+// simpleMockPluginLibrary returns a plugin library pre-configured with
 // one provider and one provisioner, both called "test".
 //
 // The provider is built with simpleMockProvider and the provisioner with
@@ -19,26 +19,27 @@ import (
 // Each call to this function produces an entirely-separate set of objects,
 // so the caller can feel free to modify the returned value to further
 // customize the mocks contained within.
-func simpleMockComponentFactory() *basicComponentFactory {
+func simpleMockPluginLibrary() *contextPlugins {
 	// We create these out here, rather than in the factory functions below,
 	// because we want each call to the factory to return the _same_ instance,
 	// so that test code can customize it before passing this component
 	// factory into real code under test.
 	provider := simpleMockProvider()
 	provisioner := simpleMockProvisioner()
-	return &basicComponentFactory{
-		providers: map[addrs.Provider]providers.Factory{
+	ret := &contextPlugins{
+		providerFactories: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},
-		provisioners: map[string]provisioners.Factory{
+		provisionerFactories: map[string]provisioners.Factory{
 			"test": func() (provisioners.Interface, error) {
 				return provisioner, nil
 			},
 		},
 	}
-
+	ret.init() // prepare the internal cache data structures
+	return ret
 }
 
 // simpleTestSchema returns a block schema that contains a few optional

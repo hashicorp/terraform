@@ -57,11 +57,18 @@ to the JSON output setting. For that reason, external software consuming
 Terraform's output should be prepared to find data on stdout that _isn't_ valid
 JSON, which it should then treat as a generic error case.
 
-**Note:** The output includes a `format_version` key, which currently has major
-version zero to indicate that the format is experimental and subject to change.
-A future version will assign a non-zero major version and make stronger
-promises about compatibility. We do not anticipate any significant breaking
-changes to the format before its first major version, however.
+The output includes a `format_version` key, which as of Terraform 1.1.0 has
+value `"1.0"`. The semantics of this version are:
+
+- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
+  changes or additions. Ignore any object properties with unrecognized names to
+  remain forward-compatible with future minor versions.
+- We will increment the major version, e.g. `"2.0"`, for changes that are not
+  backward-compatible. Reject any input which reports an unsupported major
+  version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](https://www.terraform.io/docs/language/v1-compatibility-promises.html).
 
 In the normal case, Terraform will print a JSON object to the standard output
 stream. The top-level JSON object will have the following properties:

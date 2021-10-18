@@ -25,7 +25,6 @@ type contextTestFixture struct {
 // _shallow_ modifications to the options as needed.
 func (f *contextTestFixture) ContextOpts() *ContextOpts {
 	return &ContextOpts{
-		Config:       f.Config,
 		Providers:    f.Providers,
 		Provisioners: f.Provisioners,
 	}

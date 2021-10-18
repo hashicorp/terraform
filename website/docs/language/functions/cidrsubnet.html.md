@@ -34,6 +34,11 @@ allows you to give a specific network number to use. `cidrsubnets` can allocate
 multiple network addresses at once, but numbers them automatically starting
 with zero.
 
+-> **Note:** As a historical accident, this function interprets IPv4 address
+octets that have leading zeros as decimal numbers, which is contrary to some
+other systems which interpret them as octal. We have preserved this behavior
+for backward compatibility, but recommend against relying on this behavior.
+
 ## Examples
 
 ```

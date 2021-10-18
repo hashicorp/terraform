@@ -18,6 +18,20 @@ import (
 type Locks struct {
 	providers map[addrs.Provider]*ProviderLock
 
+	// overriddenProviders is a subset of providers which we might be tracking
+	// in field providers but whose lock information we're disregarding for
+	// this particular run due to some feature that forces Terraform to not
+	// use a normally-installed plugin for it. For example, the "provider dev
+	// overrides" feature means that we'll be using an arbitrary directory on
+	// disk as the package, regardless of what might be selected in "providers".
+	//
+	// overriddenProviders is an in-memory-only annotation, never stored as
+	// part of a lock file and thus not persistent between Terraform runs.
+	// The CLI layer is generally the one responsible for populating this,
+	// by calling SetProviderOverridden in response to CLI Configuration
+	// settings, environment variables, or whatever similar sources.
+	overriddenProviders map[addrs.Provider]struct{}
+
 	// TODO: In future we'll also have module locks, but the design of that
 	// still needs some more work and we're deferring that to get the
 	// provider locking capability out sooner, because it's more common to
@@ -82,6 +96,48 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 	new := NewProviderLock(addr, version, constraints, hashes)
 	l.providers[new.addr] = new
 	return new
+}
+
+// SetProviderOverridden records that this particular Terraform process will
+// not pay attention to the recorded lock entry for the given provider, and
+// will instead access that provider's functionality in some other special
+// way that isn't sensitive to provider version selections or checksums.
+//
+// This is an in-memory-only annotation which lives only inside a particular
+// Locks object, and is never persisted as part of a saved lock file on disk.
+// It's valid to still use other methods of the reciever to access
+// already-stored lock information and to update lock information for an
+// overridden provider, but some callers may need to use ProviderIsOverridden
+// to selectively disregard stored lock information for overridden providers,
+// depending on what they intended to use the lock information for.
+func (l *Locks) SetProviderOverridden(addr addrs.Provider) {
+	if l.overriddenProviders == nil {
+		l.overriddenProviders = make(map[addrs.Provider]struct{})
+	}
+	l.overriddenProviders[addr] = struct{}{}
+}
+
+// ProviderIsOverridden returns true only if the given provider address was
+// previously registered as overridden by calling SetProviderOverridden.
+func (l *Locks) ProviderIsOverridden(addr addrs.Provider) bool {
+	_, ret := l.overriddenProviders[addr]
+	return ret
+}
+
+// SetSameOverriddenProviders updates the receiver to mark as overridden all
+// of the same providers already marked as overridden in the other given locks.
+//
+// This allows propagating override information between different lock objects,
+// as if calling SetProviderOverridden for each address already overridden
+// in the other given locks. If the reciever already has overridden providers,
+// SetSameOverriddenProviders will preserve them.
+func (l *Locks) SetSameOverriddenProviders(other *Locks) {
+	if other == nil {
+		return
+	}
+	for addr := range other.overriddenProviders {
+		l.SetProviderOverridden(addr)
+	}
 }
 
 // NewProviderLock creates a new ProviderLock object that isn't associated

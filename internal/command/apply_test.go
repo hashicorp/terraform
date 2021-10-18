@@ -710,7 +710,6 @@ func TestApply_plan(t *testing.T) {
 }
 
 func TestApply_plan_backup(t *testing.T) {
-	planPath := applyFixturePlanFile(t)
 	statePath := testTempFile(t)
 	backupPath := testTempFile(t)
 
@@ -724,10 +723,16 @@ func TestApply_plan_backup(t *testing.T) {
 	}
 
 	// create a state file that needs to be backed up
-	err := statemgr.NewFilesystem(statePath).WriteState(states.NewState())
+	fs := statemgr.NewFilesystem(statePath)
+	fs.StateSnapshotMeta()
+	err := fs.WriteState(states.NewState())
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// the plan file must contain the metadata from the prior state to be
+	// backed up
+	planPath := applyFixturePlanFileMatchState(t, fs.StateSnapshotMeta())
 
 	args := []string{
 		"-state", statePath,
@@ -1779,6 +1784,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 			},
 		}
 		if code := newCmd.Run([]string{"test"}); code != 0 {
+			t.Fatal("error creating workspace")
 		}
 	}
 
@@ -1792,6 +1798,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 			},
 		}
 		if code := selCmd.Run(args); code != 0 {
+			t.Fatal("error switching workspace")
 		}
 	}
 
@@ -2278,6 +2285,13 @@ func applyFixtureProvider() *terraform.MockProvider {
 // a single change to create the test_instance.foo that is included in the
 // "apply" test fixture, returning the location of that plan file.
 func applyFixturePlanFile(t *testing.T) string {
+	return applyFixturePlanFileMatchState(t, statemgr.SnapshotMeta{})
+}
+
+// applyFixturePlanFileMatchState creates a planfile like applyFixturePlanFile,
+// but inserts the state meta information if that plan must match a preexisting
+// state.
+func applyFixturePlanFileMatchState(t *testing.T, stateMeta statemgr.SnapshotMeta) string {
 	_, snap := testModuleWithSnapshot(t, "apply")
 	plannedVal := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.UnknownVal(cty.String),
@@ -2308,11 +2322,12 @@ func applyFixturePlanFile(t *testing.T) string {
 			After:  plannedValRaw,
 		},
 	})
-	return testPlanFile(
+	return testPlanFileMatchState(
 		t,
 		snap,
 		states.NewState(),
 		plan,
+		stateMeta,
 	)
 }
 

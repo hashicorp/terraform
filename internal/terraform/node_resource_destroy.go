@@ -166,7 +166,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 
 	changeApply, err = n.readDiff(ctx, providerSchema)
 	diags = diags.Append(err)
-	if diags.HasErrors() {
+	if changeApply == nil || diags.HasErrors() {
 		return diags
 	}
 

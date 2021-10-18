@@ -23,13 +23,9 @@ type DestroyPlanGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
+	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
-	Components contextComponentFactory
-
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	Plugins *contextPlugins
 
 	// Targets are resources to target
 	Targets []addrs.Targetable
@@ -94,14 +90,13 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
 		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		&TargetsTransformer{Targets: b.Targets},

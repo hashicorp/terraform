@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "terraform_version": "0.13.1-dev",
     "planned_values": {
         "root_module": {

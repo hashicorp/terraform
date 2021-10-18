@@ -30,5 +30,5 @@ Hello%20World
 > urlencode("☃")
 %E2%98%83
 > "http://example.com/search?q=${urlencode("terraform urlencode")}"
-http://example.com/search?q=terraform%20urlencode
+http://example.com/search?q=terraform+urlencode
 ```

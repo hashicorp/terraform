@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -42,6 +43,7 @@ type MockEvalContext struct {
 	ProviderSchemaCalled bool
 	ProviderSchemaAddr   addrs.AbsProviderConfig
 	ProviderSchemaSchema *ProviderSchema
+	ProviderSchemaError  error
 
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.AbsProviderConfig
@@ -70,6 +72,7 @@ type MockEvalContext struct {
 	ProvisionerSchemaCalled bool
 	ProvisionerSchemaName   string
 	ProvisionerSchemaSchema *configschema.Block
+	ProvisionerSchemaError  error
 
 	CloseProvisionersCalled bool
 
@@ -128,6 +131,9 @@ type MockEvalContext struct {
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
 
+	MoveResultsCalled  bool
+	MoveResultsResults refactoring.MoveResults
+
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
 }
@@ -169,10 +175,10 @@ func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Inter
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
-	return c.ProviderSchemaSchema
+	return c.ProviderSchemaSchema, c.ProviderSchemaError
 }
 
 func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -210,10 +216,10 @@ func (c *MockEvalContext) Provisioner(n string) (provisioners.Interface, error) 
 	return c.ProvisionerProvisioner, nil
 }
 
-func (c *MockEvalContext) ProvisionerSchema(n string) *configschema.Block {
+func (c *MockEvalContext) ProvisionerSchema(n string) (*configschema.Block, error) {
 	c.ProvisionerSchemaCalled = true
 	c.ProvisionerSchemaName = n
-	return c.ProvisionerSchemaSchema
+	return c.ProvisionerSchemaSchema, c.ProvisionerSchemaError
 }
 
 func (c *MockEvalContext) CloseProvisioners() error {
@@ -345,6 +351,11 @@ func (c *MockEvalContext) RefreshState() *states.SyncState {
 func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	c.PrevRunStateCalled = true
 	return c.PrevRunStateState
+}
+
+func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
+	c.MoveResultsCalled = true
+	return c.MoveResultsResults
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

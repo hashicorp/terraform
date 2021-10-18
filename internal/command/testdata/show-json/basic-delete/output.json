@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -60,6 +60,7 @@
             "type": "test_instance",
             "provider_name": "registry.terraform.io/hashicorp/test",
             "name": "test-delete",
+            "action_reason": "delete_because_no_resource_config",
             "change": {
                 "actions": [
                     "delete"
@@ -88,7 +89,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "values": {
             "outputs": {
                 "test": {

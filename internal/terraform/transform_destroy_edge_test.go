@@ -38,8 +38,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 	}
 
 	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-basic"),
-		Schemas: simpleTestSchemas(),
+		Config: testModule(t, "transform-destroy-edge-basic"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -95,8 +94,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 	}
 
 	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-multi"),
-		Schemas: simpleTestSchemas(),
+		Config: testModule(t, "transform-destroy-edge-multi"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -113,8 +111,7 @@ func TestDestroyEdgeTransformer_selfRef(t *testing.T) {
 	g := Graph{Path: addrs.RootModuleInstance}
 	g.Add(testDestroyNode("test_object.A"))
 	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-self-ref"),
-		Schemas: simpleTestSchemas(),
+		Config: testModule(t, "transform-destroy-edge-self-ref"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -157,8 +154,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 	}
 
 	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-module"),
-		Schemas: simpleTestSchemas(),
+		Config: testModule(t, "transform-destroy-edge-module"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -219,8 +215,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 	}
 
 	tf := &DestroyEdgeTransformer{
-		Config:  testModule(t, "transform-destroy-edge-module-only"),
-		Schemas: simpleTestSchemas(),
+		Config: testModule(t, "transform-destroy-edge-module-only"),
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -297,8 +292,7 @@ resource "test_instance" "a" {
 `,
 	})
 	tf := &DestroyEdgeTransformer{
-		Config:  m,
-		Schemas: simpleTestSchemas(),
+		Config: m,
 	}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)

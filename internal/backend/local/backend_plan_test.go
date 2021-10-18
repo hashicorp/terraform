@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -23,8 +24,7 @@ import (
 )
 
 func TestLocal_planBasic(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -53,8 +53,7 @@ func TestLocal_planBasic(t *testing.T) {
 }
 
 func TestLocal_planInAutomation(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 
 	const msg = `You didn't use the -out option`
@@ -85,8 +84,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 }
 
 func TestLocal_planNoConfig(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
@@ -116,12 +114,26 @@ func TestLocal_planNoConfig(t *testing.T) {
 // This test validates the state lacking behavior when the inner call to
 // Context() fails
 func TestLocal_plan_context_error(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
+
+	// This is an intentionally-invalid value to make terraform.NewContext fail
+	// when b.Operation calls it.
+	// NOTE: This test was originally using a provider initialization failure
+	// as its forced error condition, but terraform.NewContext is no longer
+	// responsible for checking that. Invalid parallelism is the last situation
+	// where terraform.NewContext can return error diagnostics, and arguably
+	// we should be validating this argument at the UI layer anyway, so perhaps
+	// in future we'll make terraform.NewContext never return errors and then
+	// this test will become redundant, because its purpose is specifically
+	// to test that we properly unlock the state if terraform.NewContext
+	// returns an error.
+	if b.ContextOpts == nil {
+		b.ContextOpts = &terraform.ContextOpts{}
+	}
+	b.ContextOpts.Parallelism = -1
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
-	op.PlanRefresh = true
 
 	// we coerce a failure in Context() by omitting the provider schema
 	run, err := b.Operation(context.Background(), op)
@@ -136,14 +148,13 @@ func TestLocal_plan_context_error(t *testing.T) {
 	// the backend should be unlocked after a run
 	assertBackendStateUnlocked(t, b)
 
-	if got, want := done(t).Stderr(), "Error: Could not load plugin"; !strings.Contains(got, want) {
+	if got, want := done(t).Stderr(), "Error: Invalid parallelism value"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected error output:\n%s\nwant: %s", got, want)
 	}
 }
 
 func TestLocal_planOutputsChanged(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance,
@@ -174,7 +185,7 @@ func TestLocal_planOutputsChanged(t *testing.T) {
 		// unknown" situation because that's already common for printing out
 		// resource changes and we already have many tests for that.
 	}))
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-outputs-changed")
@@ -224,15 +235,14 @@ state, without changing any real infrastructure.
 
 // Module outputs should not cause the plan to be rendered
 func TestLocal_planModuleOutputsChanged(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetOutputValue(addrs.AbsOutputValue{
 			Module:      addrs.RootModuleInstance.Child("mod", addrs.NoKey),
 			OutputValue: addrs.OutputValue{Name: "changed"},
 		}, cty.StringVal("before"), false)
 	}))
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-module-outputs-changed")
@@ -271,12 +281,10 @@ No changes. Your infrastructure matches the configuration.
 }
 
 func TestLocal_planTainted(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
@@ -329,8 +337,7 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planDeposedOnly(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, states.BuildState(func(ss *states.SyncState) {
 		ss.SetResourceInstanceDeposed(
@@ -356,8 +363,7 @@ func TestLocal_planDeposedOnly(t *testing.T) {
 			},
 		)
 	}))
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
@@ -444,12 +450,11 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planTainted_createBeforeDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
+
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_tainted())
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-cbd")
 	defer configCleanup()
@@ -502,8 +507,7 @@ Plan: 1 to add, 0 to change, 1 to destroy.`
 }
 
 func TestLocal_planRefreshFalse(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
@@ -534,14 +538,12 @@ func TestLocal_planRefreshFalse(t *testing.T) {
 }
 
 func TestLocal_planDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -588,14 +590,12 @@ func TestLocal_planDestroy(t *testing.T) {
 }
 
 func TestLocal_planDestroy_withDataSources(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState_withDataSource())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/destroy-with-ds")
@@ -665,13 +665,11 @@ func getAddrs(resources []*plans.ResourceInstanceChangeSrc) []string {
 }
 
 func TestLocal_planOutPathNoChange(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 	TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
 
-	outDir := testTempDir(t)
-	defer os.RemoveAll(outDir)
+	outDir := t.TempDir()
 	planPath := filepath.Join(outDir, "plan.tfplan")
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
@@ -719,12 +717,18 @@ func testOperationPlan(t *testing.T, configDir string) (*backend.Operation, func
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
+	// Many of our tests use an overridden "test" provider that's just in-memory
+	// inside the test process, not a separate plugin on disk.
+	depLocks := depsfile.NewLocks()
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
+
 	return &backend.Operation{
-		Type:         backend.OperationTypePlan,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		StateLocker:  clistate.NewNoopLocker(),
-		View:         view,
+		Type:            backend.OperationTypePlan,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		StateLocker:     clistate.NewNoopLocker(),
+		View:            view,
+		DependencyLocks: depLocks,
 	}, configCleanup, done
 }
 
@@ -737,7 +741,7 @@ func testPlanState() *states.State {
 			Mode: addrs.ManagedResourceMode,
 			Type: "test_instance",
 			Name: "foo",
-		}.Instance(addrs.IntKey(0)),
+		}.Instance(addrs.NoKey),
 		&states.ResourceInstanceObjectSrc{
 			Status: states.ObjectReady,
 			AttrsJSON: []byte(`{

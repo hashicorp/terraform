@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeRootVariableExecute(t *testing.T) {
@@ -13,7 +14,9 @@ func TestNodeRootVariableExecute(t *testing.T) {
 	n := &NodeRootVariable{
 		Addr: addrs.InputVariable{Name: "foo"},
 		Config: &configs.Variable{
-			Name: "foo",
+			Name:           "foo",
+			Type:           cty.String,
+			ConstraintType: cty.String,
 		},
 	}
 

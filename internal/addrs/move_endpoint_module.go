@@ -2,10 +2,32 @@ package addrs
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
+
+// anyKeyImpl is the InstanceKey representation indicating a wildcard, which
+// matches all possible keys. This is only used internally for matching
+// combinations of address types, where only portions of the path contain key
+// information.
+type anyKeyImpl rune
+
+func (k anyKeyImpl) instanceKeySigil() {
+}
+
+func (k anyKeyImpl) String() string {
+	return fmt.Sprintf("[%s]", string(k))
+}
+
+func (k anyKeyImpl) Value() cty.Value {
+	return cty.StringVal(string(k))
+}
+
+// anyKey is the only valid value of anyKeyImpl
+var anyKey = anyKeyImpl('*')
 
 // MoveEndpointInModule annotates a MoveEndpoint with the address of the
 // module where it was declared, which is the form we use for resolving
@@ -28,6 +50,27 @@ type MoveEndpointInModule struct {
 	// address types that implement AbsMoveable.
 	module     Module
 	relSubject AbsMoveable
+}
+
+// ImpliedMoveStatementEndpoint is a special constructor for MoveEndpointInModule
+// which is suitable only for constructing "implied" move statements, which
+// means that we inferred the statement automatically rather than building it
+// from an explicit block in the configuration.
+//
+// Implied move endpoints, just as for the statements they are embedded in,
+// have somewhat-related-but-imprecise source ranges, typically referring to
+// some general configuration construct that implied the statement, because
+// by definition there is no explicit move endpoint expression in this case.
+func ImpliedMoveStatementEndpoint(addr AbsResourceInstance, rng tfdiags.SourceRange) *MoveEndpointInModule {
+	// implied move endpoints always belong to the root module, because each
+	// one refers to a single resource instance inside a specific module
+	// instance, rather than all instances of the module where the resource
+	// was declared.
+	return &MoveEndpointInModule{
+		SourceRange: rng,
+		module:      RootModule,
+		relSubject:  addr,
+	}
 }
 
 func (e *MoveEndpointInModule) ObjectKind() MoveEndpointKind {
@@ -62,6 +105,24 @@ func (e *MoveEndpointInModule) String() string {
 	}
 
 	return buf.String()
+}
+
+// Equal returns true if the reciever represents the same matching pattern
+// as the other given endpoint, ignoring the source location information.
+//
+// This is not an optimized function and is here primarily to help with
+// writing concise assertions in test code.
+func (e *MoveEndpointInModule) Equal(other *MoveEndpointInModule) bool {
+	if (e == nil) != (other == nil) {
+		return false
+	}
+	if !e.module.Equal(other.module) {
+		return false
+	}
+	// This assumes that all of our possible "movables" are trivially
+	// comparable with reflect, which is true for all of them at the time
+	// of writing.
+	return reflect.DeepEqual(e.relSubject, other.relSubject)
 }
 
 // Module returns the address of the module where the receiving address was
@@ -149,6 +210,36 @@ func (e *MoveEndpointInModule) ModuleCallTraversals() (Module, []ModuleCall) {
 	return e.module, ret
 }
 
+// synthModuleInstance constructs a module instance out of the module path and
+// any module portion of the relSubject, substituting Module and Call segments
+// with ModuleInstanceStep using the anyKey value.
+// This is only used internally for comparison of these complete paths, but
+// does not represent how the individual parts are handled elsewhere in the
+// code.
+func (e *MoveEndpointInModule) synthModuleInstance() ModuleInstance {
+	var inst ModuleInstance
+
+	for _, mod := range e.module {
+		inst = append(inst, ModuleInstanceStep{Name: mod, InstanceKey: anyKey})
+	}
+
+	switch sub := e.relSubject.(type) {
+	case ModuleInstance:
+		inst = append(inst, sub...)
+	case AbsModuleCall:
+		inst = append(inst, sub.Module...)
+		inst = append(inst, ModuleInstanceStep{Name: sub.Call.Name, InstanceKey: anyKey})
+	case AbsResource:
+		inst = append(inst, sub.Module...)
+	case AbsResourceInstance:
+		inst = append(inst, sub.Module...)
+	default:
+		panic(fmt.Sprintf("unhandled relative address type %T", sub))
+	}
+
+	return inst
+}
+
 // SelectsModule returns true if the reciever directly selects either
 // the given module or a resource nested directly inside that module.
 //
@@ -158,54 +249,78 @@ func (e *MoveEndpointInModule) ModuleCallTraversals() (Module, []ModuleCall) {
 // resource move indicates that we should search each of the resources in
 // the given module to see if they match.
 func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
-	// In order to match the given module path should be at least as
-	// long as the path to the module where the move endpoint was defined.
-	if len(addr) < len(e.module) {
+	synthInst := e.synthModuleInstance()
+
+	// In order to match the given module instance, our combined path must be
+	// equal in length.
+	if len(synthInst) != len(addr) {
 		return false
 	}
 
-	containerPart := addr[:len(e.module)]
-	relPart := addr[len(e.module):]
-
-	// The names of all of the steps that align with e.module must match,
-	// though the instance keys are wildcards for this part.
-	for i := range e.module {
-		if containerPart[i].Name != e.module[i] {
-			return false
+	for i, step := range synthInst {
+		switch step.InstanceKey {
+		case anyKey:
+			// we can match any key as long as the name matches
+			if step.Name != addr[i].Name {
+				return false
+			}
+		default:
+			if step != addr[i] {
+				return false
+			}
 		}
 	}
+	return true
+}
 
-	// The remaining module address steps must match both name and key.
-	// The logic for all of these is similar but we will retrieve the
-	// module address differently for each type.
-	var relMatch ModuleInstance
-	switch relAddr := e.relSubject.(type) {
-	case ModuleInstance:
-		relMatch = relAddr
-	case AbsModuleCall:
-		// This one requires a little more fuss because the call effectively
-		// slices in two the final step of the module address.
-		if len(relPart) != len(relAddr.Module)+1 {
-			return false
-		}
-		callPart := relPart[len(relPart)-1]
-		if callPart.Name != relAddr.Call.Name {
-			return false
-		}
-	case AbsResource:
-		relMatch = relAddr.Module
-	case AbsResourceInstance:
-		relMatch = relAddr.Module
+// SelectsResource returns true if the receiver directly selects either
+// the given resource or one of its instances.
+func (e *MoveEndpointInModule) SelectsResource(addr AbsResource) bool {
+	// Only a subset of subject types can possibly select a resource, so
+	// we'll take care of those quickly before we do anything more expensive.
+	switch e.relSubject.(type) {
+	case AbsResource, AbsResourceInstance:
+		// okay
 	default:
-		panic(fmt.Sprintf("unhandled relative address type %T", relAddr))
+		return false // can't possibly match
 	}
 
-	if len(relPart) != len(relMatch) {
+	if !e.SelectsModule(addr.Module) {
 		return false
 	}
-	for i := range relMatch {
-		if relPart[i] != relMatch[i] {
-			return false
+
+	// If we get here then we know the module part matches, so we only need
+	// to worry about the relative resource part.
+	switch relSubject := e.relSubject.(type) {
+	case AbsResource:
+		return addr.Resource.Equal(relSubject.Resource)
+	case AbsResourceInstance:
+		// We intentionally ignore the instance key, because we consider
+		// instances to be part of the resource they belong to.
+		return addr.Resource.Equal(relSubject.Resource.Resource)
+	default:
+		// We should've filtered out all other types above
+		panic(fmt.Sprintf("unsupported relSubject type %T", relSubject))
+	}
+}
+
+// moduleInstanceCanMatch indicates that modA can match modB taking into
+// account steps with an anyKey InstanceKey as wildcards. The comparison of
+// wildcard steps is done symmetrically, because varying portions of either
+// instance's path could have been derived from configuration vs evaluation.
+// The length of modA must be equal or shorter than the length of modB.
+func moduleInstanceCanMatch(modA, modB ModuleInstance) bool {
+	for i, step := range modA {
+		switch {
+		case step.InstanceKey == anyKey || modB[i].InstanceKey == anyKey:
+			// we can match any key as long as the names match
+			if step.Name != modB[i].Name {
+				return false
+			}
+		default:
+			if step != modB[i] {
+				return false
+			}
 		}
 	}
 	return true
@@ -218,7 +333,43 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 // the reciever is the "to" from one statement and the other given address
 // is the "from" of another statement.
 func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
-	// TODO: implement
+	eMod := e.synthModuleInstance()
+	oMod := other.synthModuleInstance()
+
+	// if the complete paths are different lengths, these cannot refer to the
+	// same value.
+	if len(eMod) != len(oMod) {
+		return false
+	}
+	if !moduleInstanceCanMatch(oMod, eMod) {
+		return false
+	}
+
+	eSub := e.relSubject
+	oSub := other.relSubject
+
+	switch oSub := oSub.(type) {
+	case AbsModuleCall, ModuleInstance:
+		switch eSub.(type) {
+		case AbsModuleCall, ModuleInstance:
+			// we already know the complete module path including any final
+			// module call name is equal.
+			return true
+		}
+
+	case AbsResource:
+		switch eSub := eSub.(type) {
+		case AbsResource:
+			return eSub.Resource.Equal(oSub.Resource)
+		}
+
+	case AbsResourceInstance:
+		switch eSub := eSub.(type) {
+		case AbsResourceInstance:
+			return eSub.Resource.Equal(oSub.Resource)
+		}
+	}
+
 	return false
 }
 
@@ -226,7 +377,55 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
-	// TODO: implement
+	eMod := e.synthModuleInstance()
+	oMod := other.synthModuleInstance()
+
+	// In order to be nested within the given endpoint, the module path must be
+	// shorter or equal.
+	if len(oMod) > len(eMod) {
+		return false
+	}
+
+	if !moduleInstanceCanMatch(oMod, eMod) {
+		return false
+	}
+
+	eSub := e.relSubject
+	oSub := other.relSubject
+
+	switch oSub := oSub.(type) {
+	case AbsModuleCall:
+		switch eSub.(type) {
+		case AbsModuleCall:
+			// we know the other endpoint selects our module, but if we are
+			// also a module call our path must be longer to be nested.
+			return len(eMod) > len(oMod)
+		}
+
+		return true
+
+	case ModuleInstance:
+		switch eSub.(type) {
+		case ModuleInstance, AbsModuleCall:
+			// a nested module must have a longer path
+			return len(eMod) > len(oMod)
+		}
+
+		return true
+
+	case AbsResource:
+		if len(eMod) != len(oMod) {
+			// these resources are from different modules
+			return false
+		}
+
+		// A resource can only contain a resource instance.
+		switch eSub := eSub.(type) {
+		case AbsResourceInstance:
+			return eSub.Resource.Resource.Equal(oSub.Resource)
+		}
+	}
+
 	return false
 }
 

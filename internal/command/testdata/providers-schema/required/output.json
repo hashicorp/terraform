@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "provider_schemas": {
         "registry.terraform.io/hashicorp/test": {
             "provider": {

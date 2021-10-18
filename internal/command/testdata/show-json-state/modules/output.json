@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "terraform_version": "0.12.0",
     "values": {
         "outputs": {

@@ -132,6 +132,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
 		}
 	}
 
@@ -304,10 +306,6 @@ func (n *NodePlannableResource) ModifyCreateBeforeDestroy(v bool) error {
 func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	var diags tfdiags.Diagnostics
 
-	// We need to potentially rename an instance address in the state
-	// if we're transitioning whether "count" is set at all.
-	fixResourceCountSetTransition(ctx, n.Addr.Config(), n.Config.Count != nil)
-
 	// Our instance expander should already have been informed about the
 	// expansion of this resource and of all of its containing modules, so
 	// it can tell us which instance addresses we need to process.
@@ -355,6 +353,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		return &NodePlannableResourceInstanceOrphan{
 			NodeAbstractResourceInstance: a,
 			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
 		}
 	}
 

@@ -28,13 +28,9 @@ type PlanGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
+	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
-	Components contextComponentFactory
-
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	Plugins *contextPlugins
 
 	// Targets are resources to target
 	Targets []addrs.Targetable
@@ -130,14 +126,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		TransformProviders(b.Components.ResourceProviders(), b.ConcreteProvider, b.Config),
+		transformProviders(b.ConcreteProvider, b.Config),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
@@ -159,11 +155,6 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
-
-		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{
-			Config: b.Config,
-		},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

@@ -24,9 +24,10 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 	}
 	decls := map[string]*configs.Variable{
 		"declared1": {
-			Name:        "declared1",
-			Type:        cty.String,
-			ParsingMode: configs.VariableParseLiteral,
+			Name:           "declared1",
+			Type:           cty.String,
+			ConstraintType: cty.String,
+			ParsingMode:    configs.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
 				Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -34,9 +35,10 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 			},
 		},
 		"missing1": {
-			Name:        "missing1",
-			Type:        cty.String,
-			ParsingMode: configs.VariableParseLiteral,
+			Name:           "missing1",
+			Type:           cty.String,
+			ConstraintType: cty.String,
+			ParsingMode:    configs.VariableParseLiteral,
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
 				Start:    hcl.Pos{Line: 3, Column: 1, Byte: 0},
@@ -44,10 +46,11 @@ func TestParseVariableValuesUndeclared(t *testing.T) {
 			},
 		},
 		"missing2": {
-			Name:        "missing1",
-			Type:        cty.String,
-			ParsingMode: configs.VariableParseLiteral,
-			Default:     cty.StringVal("default for missing2"),
+			Name:           "missing1",
+			Type:           cty.String,
+			ConstraintType: cty.String,
+			ParsingMode:    configs.VariableParseLiteral,
+			Default:        cty.StringVal("default for missing2"),
 			DeclRange: hcl.Range{
 				Filename: "fake.tf",
 				Start:    hcl.Pos{Line: 4, Column: 1, Byte: 0},

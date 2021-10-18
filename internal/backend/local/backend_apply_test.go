@@ -11,11 +11,13 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -27,8 +29,7 @@ import (
 )
 
 func TestLocal_applyBasic(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{
@@ -73,8 +74,7 @@ test_instance.foo:
 }
 
 func TestLocal_applyEmptyDir(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
@@ -108,8 +108,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 }
 
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
@@ -139,8 +138,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 }
 
 func TestLocal_applyError(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	schema := &terraform.ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
@@ -208,8 +206,7 @@ test_instance.foo:
 }
 
 func TestLocal_applyBackendFail(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", applyFixtureSchema())
 
@@ -272,8 +269,7 @@ test_instance.foo: (tainted)
 }
 
 func TestLocal_applyRefreshFalse(t *testing.T) {
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	p := TestLocalProvider(t, b, "test", planFixtureSchema())
 	testStateFile(t, b.StatePath, testPlanState())
@@ -325,12 +321,18 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 	streams, done := terminal.StreamsForTesting(t)
 	view := views.NewOperation(arguments.ViewHuman, false, views.NewView(streams))
 
+	// Many of our tests use an overridden "test" provider that's just in-memory
+	// inside the test process, not a separate plugin on disk.
+	depLocks := depsfile.NewLocks()
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
+
 	return &backend.Operation{
-		Type:         backend.OperationTypeApply,
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		StateLocker:  clistate.NewNoopLocker(),
-		View:         view,
+		Type:            backend.OperationTypeApply,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		StateLocker:     clistate.NewNoopLocker(),
+		View:            view,
+		DependencyLocks: depLocks,
 	}, configCleanup, done
 }
 

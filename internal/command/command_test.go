@@ -24,10 +24,12 @@ import (
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/workdir"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
@@ -108,6 +110,59 @@ func tempDir(t *testing.T) string {
 	return dir
 }
 
+// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
+// temporary directory, and returns that object along with a cleanup function
+// to call once the calling test is complete.
+//
+// Although workdir.Dir is built to support arbitrary base directories, the
+// not-yet-migrated behaviors in command.Meta tend to expect the root module
+// directory to be the real process working directory, and so if you intend
+// to use the result inside a command.Meta object you must use a pattern
+// similar to the following when initializing your test:
+//
+//     wd, cleanup := tempWorkingDir(t)
+//     defer cleanup()
+//     defer testChdir(t, wd.RootModuleDir())()
+//
+// Note that testChdir modifies global state for the test process, and so a
+// test using this pattern must never call t.Parallel().
+func tempWorkingDir(t *testing.T) (*workdir.Dir, func() error) {
+	t.Helper()
+
+	dirPath, err := os.MkdirTemp("", "tf-command-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := func() error {
+		return os.RemoveAll(dirPath)
+	}
+	t.Logf("temporary directory %s", dirPath)
+
+	return workdir.NewDir(dirPath), done
+}
+
+// tempWorkingDirFixture is like tempWorkingDir but it also copies the content
+// from a fixture directory into the temporary directory before returning it.
+//
+// The same caveats about working directory apply as for testWorkingDir. See
+// the testWorkingDir commentary for an example of how to use this function
+// along with testChdir to meet the expectations of command.Meta legacy
+// functionality.
+func tempWorkingDirFixture(t *testing.T, fixtureName string) *workdir.Dir {
+	t.Helper()
+
+	dirPath := testTempDir(t)
+	t.Logf("temporary directory %s with fixture %q", dirPath, fixtureName)
+
+	fixturePath := testFixturePath(fixtureName)
+	testCopyDir(t, fixturePath, dirPath)
+	// NOTE: Unfortunately because testCopyDir immediately aborts the test
+	// on failure, a failure to copy will prevent us from cleaning up the
+	// temporary directory. Oh well. :(
+
+	return workdir.NewDir(dirPath)
+}
+
 func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
@@ -174,21 +229,33 @@ func testPlan(t *testing.T) *plans.Plan {
 }
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
+	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
+}
+
+func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
 	t.Helper()
 
 	stateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
 	prevStateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state, // we just assume no changes detected during refresh
 		TerraformVersion: version.SemVer,
 	}
 
 	path := testTempFile(t)
-	err := planfile.Create(path, configSnap, prevStateFile, stateFile, plan)
+	err := planfile.Create(path, planfile.CreateArgs{
+		ConfigSnapshot:       configSnap,
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+		DependencyLocks:      depsfile.NewLocks(),
+	})
 	if err != nil {
 		t.Fatalf("failed to create temporary plan file: %s", err)
 	}
@@ -490,13 +557,8 @@ func testTempFile(t *testing.T) string {
 
 func testTempDir(t *testing.T) string {
 	t.Helper()
-
-	d, err := ioutil.TempDir(testingDir, "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	d, err = filepath.EvalSymlinks(d)
+	d := t.TempDir()
+	d, err := filepath.EvalSymlinks(d)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -667,8 +729,15 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 
 	// Return the cleanup
 	return func() {
+		var unusedAnswers = testInputResponseMap
+
+		// First, clean up!
 		test = true
 		testInputResponseMap = nil
+
+		if len(unusedAnswers) > 0 {
+			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
+		}
 	}
 }
 
@@ -853,8 +922,10 @@ func testLockState(sourceDir, path string) (func(), error) {
 }
 
 // testCopyDir recursively copies a directory tree, attempting to preserve
-// permissions. Source directory must exist, destination directory must *not*
-// exist. Symlinks are ignored and skipped.
+// permissions. Source directory must exist, destination directory may exist
+// but will be created if not; it should typically be a temporary directory,
+// and thus already created using os.MkdirTemp or similar.
+// Symlinks are ignored and skipped.
 func testCopyDir(t *testing.T, src, dst string) {
 	t.Helper()
 
@@ -872,9 +943,6 @@ func testCopyDir(t *testing.T, src, dst string) {
 	_, err = os.Stat(dst)
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
-	}
-	if err == nil {
-		t.Fatal("destination already exists")
 	}
 
 	err = os.MkdirAll(dst, si.Mode())

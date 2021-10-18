@@ -11,15 +11,20 @@ generate:
 # Terraform do not involve changing protobuf files and protoc is not a
 # go-gettable dependency and so getting it installed can be inconvenient.
 #
-# If you are working on changes to protobuf interfaces you may either use
-# this target or run the individual scripts below directly.
+# If you are working on changes to protobuf interfaces, run this Makefile
+# target to be sure to regenerate all of the protobuf stubs using the expected
+# versions of protoc and the protoc Go plugins.
 protobuf:
-	bash scripts/protobuf-check.sh
-	bash internal/tfplugin5/generate.sh
-	bash internal/plans/internal/planproto/generate.sh
+	go run ./tools/protobuf-compile .
 
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+
+staticcheck:
+	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
+
+exhaustive:
+	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
 
 website:
 ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
@@ -47,4 +52,4 @@ endif
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test
+.PHONY: fmtcheck generate protobuf website website-test staticcheck
