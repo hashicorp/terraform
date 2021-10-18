@@ -172,7 +172,7 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 				lenInput := len(tfCmd.userInput)
 				lenInputOutput := len(tfCmd.postInputOutput)
 				if lenInput > 0 {
-					for i := 0; i <= lenInput; i++ {
+					for i := 0; i < lenInput; i++ {
 						input := tfCmd.userInput[i]
 						exp.SendLine(input)
 						// use the index to find the corresponding
