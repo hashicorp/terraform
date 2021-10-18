@@ -24,32 +24,84 @@ import (
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-cleanhttp"
+	"github.com/jmespath/go-jmespath"
+	"github.com/mitchellh/go-homedir"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/version"
-	"github.com/jmespath/go-jmespath"
-	"github.com/mitchellh/go-homedir"
 )
+
+// deprecated in favor to flatten parameters
+func deprecatedAssumeRoleSchema() *schema.Schema {
+	return &schema.Schema{
+		Type:          schema.TypeSet,
+		Optional:      true,
+		ConflictsWith: []string{"assume_role_role_arn", "assume_role_session_name", "assume_role_policy", "assume_role_session_expiration"},
+		MaxItems:      1,
+		Deprecated:    "use flatten assume_role_* instead",
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"role_arn": {
+					Type:        schema.TypeString,
+					Required:    true,
+					Description: "The ARN of a RAM role to assume prior to making API calls.",
+					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+				},
+				"session_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The session name to use when assuming the role.",
+					DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+				},
+				"policy": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+				},
+				"session_expiration": {
+					Type:        schema.TypeInt,
+					Optional:    true,
+					Description: "The time after which the established session for assuming role expires.",
+					ValidateFunc: func(v interface{}, k string) ([]string, []error) {
+						min := 900
+						max := 3600
+						value, ok := v.(int)
+						if !ok {
+							return nil, []error{fmt.Errorf("expected type of %s to be int", k)}
+						}
+
+						if value < min || value > max {
+							return nil, []error{fmt.Errorf("expected %s to be in the range (%d - %d), got %d", k, min, max, v)}
+						}
+
+						return nil, nil
+					},
+				},
+			},
+		},
+	}
+}
 
 // New creates a new backend for OSS remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
 		Schema: map[string]*schema.Schema{
-			"access_key": &schema.Schema{
+			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Access Key ID",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ACCESS_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_ID")),
 			},
 
-			"secret_key": &schema.Schema{
+			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Access Secret Key",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_SECRET_KEY", os.Getenv("ALICLOUD_ACCESS_KEY_SECRET")),
 			},
 
-			"security_token": &schema.Schema{
+			"security_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Alibaba Cloud Security Token",
@@ -63,7 +115,7 @@ func New() backend.Backend {
 				Description: "The RAM Role Name attached on a ECS instance for API operations. You can retrieve this from the 'Access Control' section of the Alibaba Cloud console.",
 			},
 
-			"region": &schema.Schema{
+			"region": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The region of the OSS bucket.",
@@ -82,13 +134,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_OSS_ENDPOINT", os.Getenv("OSS_ENDPOINT")),
 			},
 
-			"bucket": &schema.Schema{
+			"bucket": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the OSS bucket",
 			},
 
-			"prefix": &schema.Schema{
+			"prefix": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The directory where state files will be saved inside the bucket",
@@ -102,7 +154,7 @@ func New() backend.Backend {
 				},
 			},
 
-			"key": &schema.Schema{
+			"key": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The path of the state file inside the bucket",
@@ -122,14 +174,14 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
-			"encrypt": &schema.Schema{
+			"encrypt": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Whether to enable server side encryption of the state file",
 				Default:     false,
 			},
 
-			"acl": &schema.Schema{
+			"acl": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Object ACL to be applied to the state file",
@@ -158,27 +210,32 @@ func New() backend.Backend {
 				Description: "This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_PROFILE", ""),
 			},
+			"assume_role": deprecatedAssumeRoleSchema(),
 			"assume_role_role_arn": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The ARN of a RAM role to assume prior to making API calls.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"assume_role"},
+				Description:   "The ARN of a RAM role to assume prior to making API calls.",
+				DefaultFunc:   schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
 			},
 			"assume_role_session_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"assume_role"},
+				Description:   "The session name to use when assuming the role.",
+				DefaultFunc:   schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
 			},
 			"assume_role_policy": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"assume_role"},
+				Description:   "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
 			},
 			"assume_role_session_expiration": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The time after which the established session for assuming role expires.",
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ConflictsWith: []string{"assume_role"},
+				Description:   "The time after which the established session for assuming role expires.",
 				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
 					min := 900
 					max := 3600
@@ -214,7 +271,6 @@ type Backend struct {
 	stateKey             string
 	serverSideEncryption bool
 	acl                  string
-	endpoint             string
 	otsEndpoint          string
 	otsTable             string
 }
@@ -260,13 +316,29 @@ func (b *Backend) configure(ctx context.Context) error {
 		sessionExpiration = (int)(expiredSeconds.(float64))
 	}
 
-	roleArn = d.Get("assume_role_role_arn").(string)
-	sessionName = d.Get("assume_role_session_name").(string)
+	if v, ok := d.GetOk("assume_role"); ok {
+		// deprecated assume_role block
+		for _, v := range v.(*schema.Set).List() {
+			assumeRole := v.(map[string]interface{})
+			if assumeRole["role_arn"].(string) != "" {
+				roleArn = assumeRole["role_arn"].(string)
+			}
+			if assumeRole["session_name"].(string) != "" {
+				sessionName = assumeRole["session_name"].(string)
+			}
+			policy = assumeRole["policy"].(string)
+			sessionExpiration = assumeRole["session_expiration"].(int)
+		}
+	} else {
+		roleArn = d.Get("assume_role_role_arn").(string)
+		sessionName = d.Get("assume_role_session_name").(string)
+		policy = d.Get("assume_role_policy").(string)
+		sessionExpiration = d.Get("assume_role_session_expiration").(int)
+	}
+
 	if sessionName == "" {
 		sessionName = "terraform"
 	}
-	policy = d.Get("assume_role_policy").(string)
-	sessionExpiration = d.Get("assume_role_session_expiration").(int)
 	if sessionExpiration == 0 {
 		if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
 			if expiredSeconds, err := strconv.Atoi(v); err == nil {
@@ -346,13 +418,13 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 
 	locationClient, err := location.NewClientWithOptions(region, getSdkConfig(), credentials.NewStsTokenCredential(access_key, secret_key, security_token))
 	if err != nil {
-		return nil, fmt.Errorf("Unable to initialize the location client: %#v", err)
+		return nil, fmt.Errorf("unable to initialize the location client: %#v", err)
 
 	}
 	locationClient.AppendUserAgent(TerraformUA, TerraformVersion)
 	endpointsResponse, err := locationClient.DescribeEndpoints(args)
 	if err != nil {
-		return nil, fmt.Errorf("Describe oss endpoint using region: %#v got an error: %#v.", region, err)
+		return nil, fmt.Errorf("describe oss endpoint using region: %#v got an error: %#v", region, err)
 	}
 	return endpointsResponse, nil
 }
@@ -442,7 +514,7 @@ func (a *Invoker) Run(f func() error) error {
 			catcher.RetryCount--
 
 			if catcher.RetryCount <= 0 {
-				return fmt.Errorf("Retry timeout and got an error: %#v.", err)
+				return fmt.Errorf("retry timeout and got an error: %#v", err)
 			} else {
 				time.Sleep(time.Duration(catcher.RetryWaitSeconds) * time.Second)
 				return a.Run(f)
@@ -552,7 +624,7 @@ func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, t
 	response := responses.NewCommonResponse()
 	err = responses.Unmarshal(response, httpResponse, "")
 	if err != nil {
-		err = fmt.Errorf("Unmarshal Ecs sts token response err : %s", err.Error())
+		err = fmt.Errorf("unmarshal Ecs sts token response err : %s", err.Error())
 		return
 	}
 

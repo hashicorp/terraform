@@ -3,22 +3,21 @@ package oss
 import (
 	"bytes"
 	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-
-	"encoding/hex"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 	"github.com/hashicorp/go-multierror"
 	uuid "github.com/hashicorp/go-uuid"
+	"github.com/pkg/errors"
+
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -48,8 +47,6 @@ type RemoteClient struct {
 	lockFile             string
 	serverSideEncryption bool
 	acl                  string
-	info                 *statemgr.LockInfo
-	mu                   sync.Mutex
 	otsTable             string
 }
 
@@ -99,7 +96,7 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 func (c *RemoteClient) Put(data []byte) error {
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
-		return fmt.Errorf("Error getting bucket: %#v", err)
+		return fmt.Errorf("error getting bucket: %#v", err)
 	}
 
 	body := bytes.NewReader(data)
@@ -116,7 +113,7 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	if body != nil {
 		if err := bucket.PutObject(c.stateFile, body, options...); err != nil {
-			return fmt.Errorf("Failed to upload state %s: %#v", c.stateFile, err)
+			return fmt.Errorf("failed to upload state %s: %#v", c.stateFile, err)
 		}
 	}
 
@@ -124,7 +121,7 @@ func (c *RemoteClient) Put(data []byte) error {
 	if err := c.putMD5(sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
 		// since the next Get will inevitably fail.
-		return fmt.Errorf("Failed to store state MD5: %s", err)
+		return fmt.Errorf("failed to store state MD5: %s", err)
 	}
 	return nil
 }
@@ -132,13 +129,13 @@ func (c *RemoteClient) Put(data []byte) error {
 func (c *RemoteClient) Delete() error {
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
-		return fmt.Errorf("Error getting bucket %s: %#v", c.bucketName, err)
+		return fmt.Errorf("error getting bucket %s: %#v", c.bucketName, err)
 	}
 
 	log.Printf("[DEBUG] Deleting remote state from OSS: %#v", c.stateFile)
 
 	if err := bucket.DeleteObject(c.stateFile); err != nil {
-		return fmt.Errorf("Error deleting state %s: %#v", c.stateFile, err)
+		return fmt.Errorf("error deleting state %s: %#v", c.stateFile, err)
 	}
 
 	if err := c.deleteMD5(); err != nil {
@@ -413,11 +410,11 @@ func (c *RemoteClient) lockPath() string {
 func (c *RemoteClient) getObj() (*remote.Payload, error) {
 	bucket, err := c.ossClient.Bucket(c.bucketName)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting bucket %s: %#v", c.bucketName, err)
+		return nil, fmt.Errorf("error getting bucket %s: %#v", c.bucketName, err)
 	}
 
 	if exist, err := bucket.IsObjectExist(c.stateFile); err != nil {
-		return nil, fmt.Errorf("Estimating object %s is exist got an error: %#v", c.stateFile, err)
+		return nil, fmt.Errorf("estimating object %s is exist got an error: %#v", c.stateFile, err)
 	} else if !exist {
 		return nil, nil
 	}
@@ -425,12 +422,12 @@ func (c *RemoteClient) getObj() (*remote.Payload, error) {
 	var options []oss.Option
 	output, err := bucket.GetObject(c.stateFile, options...)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting object: %#v", err)
+		return nil, fmt.Errorf("error getting object: %#v", err)
 	}
 
 	buf := bytes.NewBuffer(nil)
 	if _, err := io.Copy(buf, output); err != nil {
-		return nil, fmt.Errorf("Failed to read remote state: %s", err)
+		return nil, fmt.Errorf("failed to read remote state: %s", err)
 	}
 	sum := md5.Sum(buf.Bytes())
 	payload := &remote.Payload{
@@ -452,5 +449,4 @@ This may be caused by unusually long delays in OSS processing a previous state
 update.  Please wait for a minute or two and try again. If this problem
 persists, and neither OSS nor TableStore are experiencing an outage, you may need
 to manually verify the remote state and update the Digest value stored in the
-TableStore table to the following value: %x
-`
+TableStore table to the following value: %x`
