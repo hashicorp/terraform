@@ -32,14 +32,14 @@ import (
 	"github.com/hashicorp/terraform/version"
 )
 
-// deprecated in favor to flatten parameters
+// Deprecated in favor of flattening assume_role_* options
 func deprecatedAssumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:          schema.TypeSet,
 		Optional:      true,
 		ConflictsWith: []string{"assume_role_role_arn", "assume_role_session_name", "assume_role_policy", "assume_role_session_expiration"},
 		MaxItems:      1,
-		Deprecated:    "use flatten assume_role_* instead",
+		Deprecated:    "use assume_role_* options instead",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"role_arn": {
