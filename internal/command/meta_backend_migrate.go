@@ -686,12 +686,15 @@ func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error
 }
 
 func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
+	message := fmt.Sprintf("[reset][bold][yellow]The %q backend configuration only allows "+
+		"named workspaces![reset]", destinationType)
+	if destinationType == "cloud" {
+		message = fmt.Sprintf("[reset][bold][yellow]The Terraform Cloud configuration only allows " +
+			"named workspaces![reset]")
+	}
 	name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
-		Id: "new-state-name",
-		Query: fmt.Sprintf(
-			"[reset][bold][yellow]The %q backend configuration only allows "+
-				"named workspaces![reset]",
-			destinationType),
+		Id:          "new-state-name",
+		Query:       message,
 		Description: strings.TrimSpace(inputBackendNewWorkspaceName),
 	})
 	if err != nil {

@@ -52,7 +52,7 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
 							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Successfully configured the backend "cloud"!`},
+							postInputOutput:   []string{`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -234,7 +234,7 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
 							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Successfully configured the backend "cloud"!`},
+							postInputOutput:   []string{`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -373,7 +373,7 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `The "cloud" backend configuration only allows named workspaces!`,
+							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"cloud-workspace", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to the new backend?`,
@@ -516,7 +516,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
 							userInput:         []string{"yes"},
 							postInputOutput: []string{
-								`Successfully configured the backend "cloud"!`},
+								`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "show"},

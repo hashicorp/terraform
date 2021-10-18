@@ -68,7 +68,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured the backend "cloud"!`},
+								`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -139,7 +139,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured the backend "cloud"!`},
+								`Successfully configured Terraform Cloud!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -191,7 +191,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			op.prep(t, organization.Name, tf.WorkDir())
 			for _, tfCmd := range op.commands {
 				t.Log("Running commands: ", tfCmd.command)
-				tfCmd.command = append(tfCmd.command, "-ignore-remote-version")
+				tfCmd.command = append(tfCmd.command)
 				cmd := tf.Cmd(tfCmd.command...)
 				cmd.Stdin = exp.Tty()
 				cmd.Stdout = exp.Tty()
@@ -303,7 +303,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `The "cloud" backend configuration only allows named workspaces!`,
+							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"dev", "1", "app-*", "1"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,

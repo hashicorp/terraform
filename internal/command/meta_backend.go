@@ -952,7 +952,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	// no need to confuse the user if the backend types are the same
 	if s.Backend.Type != c.Type {
-		m.Ui.Output(strings.TrimSpace(fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)))
+		output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
+		if c.Type == "cloud" {
+			output = fmt.Sprintf(outputBackendMigrateChangeCloud, s.Backend.Type)
+		}
+		m.Ui.Output(strings.TrimSpace(output))
 	}
 
 	// Grab the existing backend
@@ -1011,8 +1015,12 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if output {
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		// By now the backend is successfully configured.  If using Terraform Cloud, the success
+		// message is handled as part of the final init message
+		if _, ok := b.(*cloud.Cloud); !ok {
+			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+				"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		}
 	}
 
 	return b, diags
@@ -1304,6 +1312,10 @@ above, resolve it, and try again.
 
 const outputBackendMigrateChange = `
 Terraform detected that the backend type changed from %q to %q.
+`
+
+const outputBackendMigrateChangeCloud = `
+Terraform detected that the backend type changed from %q to Terraform Cloud.
 `
 
 const outputBackendMigrateLocal = `
