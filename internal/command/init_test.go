@@ -562,6 +562,60 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	}
 }
 
+func TestInit_backendMigrateWhileLocked(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-migrate-while-locked"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			ProviderSource:   providerSource,
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	// Create some state, so the backend has something to migrate from
+	f, err := os.Create("local-state.tfstate")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = writeStateForTesting(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lock the source state
+	unlock, err := testLockState(testDataDir, "local-state.tfstate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	// Attempt to migrate
+	args := []string{"-backend-config", "input.config", "-migrate-state", "-force-copy"}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected nonzero exit code: %s", ui.OutputWriter.String())
+	}
+
+	// Disabling locking should work
+	args = []string{"-backend-config", "input.config", "-migrate-state", "-force-copy", "-lock=false"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("expected zero exit code, got %d: %s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestInit_backendConfigKV(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
