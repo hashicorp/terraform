@@ -1372,14 +1372,12 @@ func TestInit_cancel(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	providerSource, closeSrc := newMockProviderSource(t, map[string][]string{
-		"test":      {"1.2.3", "1.2.4"},
-		"test-beta": {"1.2.4"},
-		"source":    {"1.2.2", "1.2.3", "1.2.1"},
-	})
-	defer closeSrc()
+	// Use a provider source implementation which is designed to hang indefinitely,
+	// to avoid a race between the closed shutdown channel and the provider source
+	// operations.
+	providerSource := &getproviders.HangingSource{}
 
-	// our shutdown channel is pre-closed so init will exit as soon as it
+	// Our shutdown channel is pre-closed so init will exit as soon as it
 	// starts a cancelable portion of the process.
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
@@ -1401,7 +1399,7 @@ func TestInit_cancel(t *testing.T) {
 	args := []string{}
 
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("succeeded; wanted error")
+		t.Fatalf("succeeded; wanted error\n%s", ui.OutputWriter.String())
 	}
 	// Currently the first operation that is cancelable is provider
 	// installation, so our error message comes from there. If we
