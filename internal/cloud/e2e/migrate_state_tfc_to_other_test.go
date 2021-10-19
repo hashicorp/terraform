@@ -28,7 +28,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 					},
 				},

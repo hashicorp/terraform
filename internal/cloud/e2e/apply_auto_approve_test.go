@@ -18,7 +18,7 @@ import (
 func Test_terraform_apply_autoApprove(t *testing.T) {
 	ctx := context.Background()
 	tfVersion := "1.1.0-tfc-integration"
-	if !hasTerraformVersion(version) {
+	if !hasTerraformVersion(t, tfVersion) {
 		t.Skip("Skipping test because TFC does not have current terraform version.")
 	}
 
@@ -42,7 +42,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply"},
@@ -82,7 +82,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply"},
@@ -122,7 +122,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},
@@ -160,7 +160,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},

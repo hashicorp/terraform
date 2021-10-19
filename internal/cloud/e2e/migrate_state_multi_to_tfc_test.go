@@ -68,7 +68,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to Terraform Cloud?`,
-								`Successfully configured Terraform Cloud!`},
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -309,7 +309,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 								`Would you like to rename your workspaces?`,
 								"What pattern would you like to add to all your workspaces?",
 								"The currently selected workspace (prod) does not exist.",
-								"Terraform has been successfully initialized!"},
+								"Terraform Cloud has been successfully initialized!"},
 						},
 						{
 							command:           []string{"workspace", "select", "app-prod"},

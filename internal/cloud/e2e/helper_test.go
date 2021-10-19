@@ -197,7 +197,7 @@ func writeMainTF(t *testing.T, block string, dir string) {
 }
 
 // Ensure that TFC/E has a particular terraform version.
-func hasTerraformVersion(version string) bool {
+func hasTerraformVersion(t *testing.T, version string) bool {
 	opts := tfe.AdminTerraformVersionsListOptions{
 		ListOptions: tfe.ListOptions{
 			PageNumber: 1,

@@ -17,7 +17,7 @@ import (
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 	ctx := context.Background()
 	tfVersion := "1.1.0-tfc-integration"
-	if !hasTerraformVersion(version) {
+	if !hasTerraformVersion(t, tfVersion) {
 		t.Skip("Skipping test because TFC does not have current terraform version.")
 	}
 
@@ -49,7 +49,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -76,9 +76,9 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Successfully configured the backend "cloud"!`},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -117,7 +117,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"apply"},
@@ -136,11 +136,11 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `The "cloud" backend configuration only allows named workspaces!`,
+							expectedCmdOutput: `The Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"new-workspace", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured the backend "cloud"!`},
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -240,7 +240,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 	ctx := context.Background()
 	tfVersion := "1.1.0-tfc-integration"
-	if !hasTerraformVersion(version) {
+	if !hasTerraformVersion(t, tfVersion) {
 		t.Skip("Skipping test because TFC does not have current terraform version.")
 	}
 
@@ -276,7 +276,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform has been successfully initialized!`},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"apply"},
@@ -319,8 +319,8 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
-								`Terraform has been successfully initialized!`},
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -370,7 +370,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform has been successfully initialized!`},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"apply", "-auto-approve"},
@@ -401,7 +401,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							postInputOutput: []string{
 								`What pattern would you like to add to all your workspaces?`,
 								`The currently selected workspace (app-staging) does not exist.`,
-								`Successfully configured the backend "cloud"!`},
+								`Terraform Cloud has been successfully initialized!`},
 						},
 					},
 				},

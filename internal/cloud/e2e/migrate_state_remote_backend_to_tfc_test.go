@@ -50,9 +50,9 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Successfully configured Terraform Cloud!`},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -102,7 +102,7 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Terraform has been successfully initialized!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -232,9 +232,9 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Successfully configured Terraform Cloud!`},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -376,8 +376,8 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"cloud-workspace", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured the backend "cloud"!`},
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -513,10 +513,10 @@ func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
 							userInput:         []string{"yes"},
 							postInputOutput: []string{
-								`Successfully configured Terraform Cloud!`},
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -581,7 +581,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
 							postInputOutput: []string{
-								`Successfully configured the backend "cloud"!`},
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -731,11 +731,11 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `The "cloud" backend configuration only allows named workspaces!`,
+							expectedCmdOutput: `The Terraform Cloud configuration only allows named workspaces!`,
 							userInput:         []string{"cloud-workspace", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to the new backend?`,
-								`Successfully configured the backend "cloud"!`},
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -801,7 +801,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
 							expectedCmdOutput: `Would you like to rename your workspaces?`,
 							userInput:         []string{"1", "*"},
 							postInputOutput: []string{`What pattern would you like to add to all your workspaces?`,
-								`Successfully configured the backend "cloud"!`},
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
