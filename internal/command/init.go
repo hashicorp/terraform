@@ -44,6 +44,8 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
+	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
+	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.BoolVar(&c.reconfigure, "reconfigure", false, "reconfigure")
 	cmdFlags.BoolVar(&c.migrateState, "migrate-state", false, "migrate state")
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
@@ -932,6 +934,8 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 		"-from-module":    completePredictModuleSource,
 		"-get":            completePredictBoolean,
 		"-input":          completePredictBoolean,
+		"-lock":           completePredictBoolean,
+		"-lock-timeout":   complete.PredictAnything,
 		"-no-color":       complete.PredictNothing,
 		"-plugin-dir":     complete.PredictDirs(""),
 		"-reconfigure":    complete.PredictNothing,
@@ -959,7 +963,8 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=true           Configure the backend for this configuration.
+  -backend=false          Disable backend initialization for this configuration
+                          and use the previously initialized backend instead.
 
   -backend-config=path    This can be either a path to an HCL file with key/value
                           assignments (same format as terraform.tfvars) or a
@@ -975,10 +980,17 @@ Options:
   -from-module=SOURCE     Copy the contents of the given module into the target
                           directory before initialization.
 
-  -get=true               Download any modules for this configuration.
+  -get=false              Disable downloading modules for this configuration.
 
-  -input=true             Ask for input if necessary. If false, will error if
-                          input was required.
+  -input=false            Disable prompting for missing backend configuration
+                          values. This will result in an error if the backend
+                          configuration is not fully specified.
+
+  -lock=false             Don't hold a state lock during backend migration.
+                          This is dangerous if others might concurrently run
+                          commands against the same workspace.
+
+  -lock-timeout=0s        Duration to retry a state lock.
 
   -no-color               If specified, output won't contain any color.
 
@@ -993,9 +1005,10 @@ Options:
   -migrate-state          Reconfigure the backend, and attempt to migrate any
                           existing state.
 
-  -upgrade=false          If installing modules (-get) or plugins, ignore
-                          previously-downloaded objects and install the
-                          latest version allowed within configured constraints.
+  -upgrade                Install the latest module and provider versions
+                          allowed within configured constraints, overriding the
+                          default behavior of selecting exactly the version
+                          recorded in the dependency lockfile.
 
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
