@@ -1,5 +1,9 @@
 ## 1.0.10 (Unreleased)
 
+BUG FIXES:
+
+* cli: Restore `-lock` and `-lock-timeout` flags for the `init` command, which were removed in 0.15.0 [GH-29773]
+
 ## 1.0.9 (October 13, 2021)
 
 BUG FIXES:
