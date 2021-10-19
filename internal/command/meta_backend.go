@@ -592,6 +592,20 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		return m.backend_c_r_S(c, cHash, sMgr, true)
 
+	// Configuring Terraform Cloud for the first time.
+	case c != nil && c.Type == "cloud" && s.Backend.Empty():
+		log.Printf("[TRACE] Meta.Backend: moving from default local state only to Terraform Cloud")
+		if !opts.Init {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Terraform Cloud has been configured but needs to be initialized.",
+				"Run \"terraform init\" to initialize Terraform Cloud.",
+			))
+			return nil, diags
+		}
+
+		return m.backend_C_r_s(c, cHash, sMgr)
+
 	// Configuring a backend for the first time.
 	case c != nil && s.Backend.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
