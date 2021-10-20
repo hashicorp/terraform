@@ -339,6 +339,12 @@ func initCommands(
 			}, nil
 		},
 
+		"rpcplugin": func() (cli.Command, error) {
+			return &command.RPCPluginCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"state": func() (cli.Command, error) {
 			return &command.StateCommand{}, nil
 		},
@@ -401,9 +407,10 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             struct{}{},
-		"internal-plugin": struct{}{},
-		"push":            struct{}{},
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
+		"rpcplugin":       {},
 	}
 
 }
