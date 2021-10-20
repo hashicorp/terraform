@@ -426,23 +426,15 @@ moved {
 
 ## Removing `moved` Blocks
 
-Over time, a long-lasting module may accumulate many `moved` blocks.
+Over time, a long-lasting module may accumulate many `moved` blocks. 
 
-It can be safe to remove `moved` blocks in later versions of your module when
-you are maintaining private modules within an organization and you know that
-all module users have successfully run `terraform apply` with your new module
-version.
+Removing a `moved` block is a generally breaking change because any configurations that refer to the old address will plan to delete that existing object instead of move it. We strongly recommend that you retain all historical `moved` blocks from earlier versions of your modules to preserve the upgrade path for users of any previous version. 
 
-However, removing a `moved` block is a generally breaking change
-to your module because any configurations whose state refers to the old
-address will then plan to delete that existing object instead of move it.
+If you do decide to remove `moved` blocks, proceed with caution. It can be safe to remove `moved` blocks when you are maintaining private modules within an organization and you are certain that all users have successfully run `terraform apply` with your new module version.
 
-We recommend that by default module authors retain all historical `moved`
-blocks from earlier versions of their modules, in order to preserve the
-upgrade path for users of any old version. If later maintence causes you
-to rename or move the same object twice, you can document that full history
-using _chained_ `moved` blocks, where the new block refers to the existing
-block:
+If you need to rename or move the same object twice, we recommend documenting the full history
+using _chained_ `moved` blocks, where the new block refers to the existing block:
+
 
 ```hcl
 moved {
