@@ -319,7 +319,10 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if endpoint == "" {
-		endpointsResponse, _ := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
+		endpointsResponse, err := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
+		if err != nil {
+			return err
+		}
 		for _, endpointItem := range endpointsResponse.Endpoints.Endpoint {
 			if endpointItem.Type == "openAPI" {
 				endpoint = endpointItem.Endpoint
