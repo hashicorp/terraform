@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/rpcapi"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/version"
 	"github.com/mattn/go-shellwords"
@@ -58,11 +60,21 @@ func main() {
 	os.Exit(realMain())
 }
 
+func shouldSkipPanicwrap(ctx context.Context) bool {
+	// TF_FORK=0 can disable panicwrap explicitly, which is primarily for
+	// debugging purposes.
+	// We also skip panicwrap if we seem to be running as an an "rpcapi"
+	// plugin, because in that case we're talking directly to a specialized
+	// parent process that wouldn't get any value from panicwrap's special
+	// error message anyway.
+	return os.Getenv("TF_FORK") == "0" || rpcapi.RunningAsPlugin(ctx)
+}
+
 func realMain() int {
 	var wrapConfig panicwrap.WrapConfig
 
-	// don't re-exec terraform as a child process for easier debugging
-	if os.Getenv("TF_FORK") == "0" {
+	// In some special situations we skip panicwrap and just run directly
+	if shouldSkipPanicwrap(context.Background()) {
 		return wrappedMain()
 	}
 
