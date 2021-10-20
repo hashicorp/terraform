@@ -1,0 +1,7 @@
+syntax = "proto3";
+package tfcore1;
+
+option go_package = "github.com/hashicorp/terraform/internal/rpcapi/tfcore1";
+
+service Terraform {
+}

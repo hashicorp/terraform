@@ -41,6 +41,11 @@ type protocStep struct {
 
 var protocSteps = []protocStep{
 	{
+		"tfcore (RPC API to Terraform Core)",
+		"internal/rpcapi/tfcore1",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "tfcore.proto"},
+	},
+	{
 		"tfplugin5 (provider wire protocol version 5)",
 		"internal/tfplugin5",
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "./tfplugin5.proto"},
