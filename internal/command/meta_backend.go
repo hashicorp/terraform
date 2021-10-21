@@ -112,28 +112,34 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 			// indicates one or more inconsistencies between the dependency
 			// lock file and the provider plugins actually available in the
 			// local cache directory.
-			var buf bytes.Buffer
-			for addr, err := range errs {
-				fmt.Fprintf(&buf, "\n  - %s: %s", addr, err)
+			//
+			// If initialization is allowed, we ignore this error, as it may
+			// be resolved by the later step where providers are fetched.
+			if !opts.Init {
+				var buf bytes.Buffer
+				for addr, err := range errs {
+					fmt.Fprintf(&buf, "\n  - %s: %s", addr, err)
+				}
+				suggestion := "To download the plugins required for this configuration, run:\n  terraform init"
+				if m.RunningInAutomation {
+					// Don't mention "terraform init" specifically if we're running in an automation wrapper
+					suggestion = "You must install the required plugins before running Terraform operations."
+				}
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Required plugins are not installed",
+					fmt.Sprintf(
+						"The installed provider plugins are not consistent with the packages selected in the dependency lock file:%s\n\nTerraform uses external plugins to integrate with a variety of different infrastructure services. %s",
+						buf.String(), suggestion,
+					),
+				))
+				return nil, diags
 			}
-			suggestion := "To download the plugins required for this configuration, run:\n  terraform init"
-			if m.RunningInAutomation {
-				// Don't mention "terraform init" specifically if we're running in an automation wrapper
-				suggestion = "You must install the required plugins before running Terraform operations."
-			}
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Required plugins are not installed",
-				fmt.Sprintf(
-					"The installed provider plugins are not consistent with the packages selected in the dependency lock file:%s\n\nTerraform uses external plugins to integrate with a variety of different infrastructure services. %s",
-					buf.String(), suggestion,
-				),
-			))
 		} else {
 			// All other errors just get generic handling.
 			diags = diags.Append(err)
+			return nil, diags
 		}
-		return nil, diags
 	}
 	cliOpts.Validation = true
 
@@ -337,7 +343,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 // a backend that supports local CLI operations.
 func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 	contextOpts, err := m.contextOpts()
-	if err != nil {
+	if contextOpts == nil && err != nil {
 		return nil, err
 	}
 	return &backend.CLIOpts{
@@ -350,7 +356,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 		ContextOpts:         contextOpts,
 		Input:               m.Input(),
 		RunningInAutomation: m.RunningInAutomation,
-	}, nil
+	}, err
 }
 
 // Operation initializes a new backend.Operation struct.

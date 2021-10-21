@@ -459,10 +459,8 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		opts.Providers = m.testingOverrides.Providers
 		opts.Provisioners = m.testingOverrides.Provisioners
 	} else {
-		providerFactories, err := m.providerFactories()
-		if err != nil {
-			return nil, err
-		}
+		var providerFactories map[addrs.Provider]providers.Factory
+		providerFactories, err = m.providerFactories()
 		opts.Providers = providerFactories
 		opts.Provisioners = m.provisionerFactories()
 	}
@@ -472,7 +470,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 		OriginalWorkingDir: m.WorkingDir.OriginalWorkingDir(),
 	}
 
-	return &opts, nil
+	return &opts, err
 }
 
 // defaultFlagSet creates a default flag set for commands.

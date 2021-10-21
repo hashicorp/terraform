@@ -238,7 +238,7 @@ func (c *InitCommand) Run(args []string) int {
 		// by a previous run, so we must still expect that "back" may be nil
 		// in code that follows.
 		var backDiags tfdiags.Diagnostics
-		back, backDiags = c.Backend(nil)
+		back, backDiags = c.Backend(&BackendOpts{Init: true})
 		if backDiags.HasErrors() {
 			// This is fine. We'll proceed with no backend, then.
 			back = nil
