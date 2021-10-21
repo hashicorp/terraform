@@ -59,7 +59,7 @@ func (s *tfcore1PluginServer) OpenConfigCwd(ctx context.Context, req *tfcore1.Op
 		return resp, nil
 	}
 
-	config, hclDiags := loader.LoadConfig(".")
+	config, hclDiags := loader.LoadConfig(s.cwd)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		resp.Diagnostics = protoDiagnotics(diags)
@@ -86,6 +86,18 @@ func (s *tfcore1PluginServer) CloseConfig(ctx context.Context, req *tfcore1.Clos
 	delete(s.configs, req.ConfigId)
 
 	return &tfcore1.CloseConfig_Response{}, nil
+}
+
+func (s *tfcore1PluginServer) ValidateConfig(ctx context.Context, req *tfcore1.ValidateConfig_Request) (*tfcore1.ValidateConfig_Response, error) {
+	config := s.getOpenConfig(req.ConfigId)
+	if config == nil {
+		return nil, status.Errorf(codes.NotFound, "no open configuration has id %d", req.ConfigId)
+	}
+
+	diags := s.core.Validate(config)
+	return &tfcore1.ValidateConfig_Response{
+		Diagnostics: protoDiagnotics(diags),
+	}, nil
 }
 
 func (s *tfcore1PluginServer) getOpenConfig(id uint64) *configs.Config {

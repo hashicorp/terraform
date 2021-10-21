@@ -21,6 +21,11 @@ service Terraform {
     // correspond with a currently-open configuration. If CloseConfig returns
     // successfully then the given configuration ID becomes invalid.
     rpc CloseConfig(CloseConfig.Request) returns (CloseConfig.Response);
+
+    // ValidateConfig checks the given open configuration against both the
+    // core language validation rules and any plugin-specified validation
+    // rules.
+    rpc ValidateConfig(ValidateConfig.Request) returns (ValidateConfig.Response);
 }
 
 message OpenConfigCwd {
@@ -49,6 +54,15 @@ message CloseConfig {
     }
     message Response {
         // Intentionally empty, for now.
+    }
+}
+
+message ValidateConfig {
+    message Request {
+        uint64 config_id = 1;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 2;
     }
 }
 
