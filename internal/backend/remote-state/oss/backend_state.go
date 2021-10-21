@@ -84,7 +84,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 			} else {
 				options = append(options, oss.Marker(lastObj))
 			}
-			bucket.ListObjects(options...)
+			resp, err = bucket.ListObjects(options...)
 		} else {
 			break
 		}
