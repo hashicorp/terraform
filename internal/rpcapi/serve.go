@@ -34,6 +34,19 @@ type ServeOpts struct {
 	// about to construct a new Terraform Core instance, in order to get
 	// the options to pass to terraform.NewContext.
 	GetCoreOpts func() *terraform.ContextOpts
+
+	// WorkingDir is the directory that we'll treat as the current working
+	// directory for our operations. This should always be "." in normal
+	// code, but might be overridden in tests.
+	WorkingDir string
+
+	// ModulesDir is the directory into which the external module installer
+	// should already have installed any modules needed for the configuration
+	// in the current working directory.
+	//
+	// This would not be a suitable module directory to use for any
+	// configuration in any other directory.
+	ModulesDir string
 }
 
 // RunningAsPlugin checks the process environment to see if it contains the

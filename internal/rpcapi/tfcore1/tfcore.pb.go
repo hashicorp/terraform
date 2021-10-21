@@ -9,9 +9,12 @@ package tfcore1
 import (
 	context "context"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -21,25 +24,638 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Diagnostic_Severity int32
+
+const (
+	Diagnostic_INVALID Diagnostic_Severity = 0
+	Diagnostic_ERROR   Diagnostic_Severity = 1
+	Diagnostic_WARNING Diagnostic_Severity = 2
+)
+
+// Enum value maps for Diagnostic_Severity.
+var (
+	Diagnostic_Severity_name = map[int32]string{
+		0: "INVALID",
+		1: "ERROR",
+		2: "WARNING",
+	}
+	Diagnostic_Severity_value = map[string]int32{
+		"INVALID": 0,
+		"ERROR":   1,
+		"WARNING": 2,
+	}
+)
+
+func (x Diagnostic_Severity) Enum() *Diagnostic_Severity {
+	p := new(Diagnostic_Severity)
+	*p = x
+	return p
+}
+
+func (x Diagnostic_Severity) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Diagnostic_Severity) Descriptor() protoreflect.EnumDescriptor {
+	return file_tfcore_proto_enumTypes[0].Descriptor()
+}
+
+func (Diagnostic_Severity) Type() protoreflect.EnumType {
+	return &file_tfcore_proto_enumTypes[0]
+}
+
+func (x Diagnostic_Severity) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Diagnostic_Severity.Descriptor instead.
+func (Diagnostic_Severity) EnumDescriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{2, 0}
+}
+
+type OpenConfigCwd struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *OpenConfigCwd) Reset() {
+	*x = OpenConfigCwd{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OpenConfigCwd) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenConfigCwd) ProtoMessage() {}
+
+func (x *OpenConfigCwd) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenConfigCwd.ProtoReflect.Descriptor instead.
+func (*OpenConfigCwd) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{0}
+}
+
+type CloseConfig struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *CloseConfig) Reset() {
+	*x = CloseConfig{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CloseConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseConfig) ProtoMessage() {}
+
+func (x *CloseConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseConfig.ProtoReflect.Descriptor instead.
+func (*CloseConfig) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{1}
+}
+
+type Diagnostic struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Severity Diagnostic_Severity `protobuf:"varint,1,opt,name=severity,proto3,enum=tfcore1.Diagnostic_Severity" json:"severity,omitempty"`
+	Summary  string              `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	Detail   string              `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
+	Address  string              `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
+	Subject  *SourceRange        `protobuf:"bytes,5,opt,name=subject,proto3" json:"subject,omitempty"`
+	Context  *SourceRange        `protobuf:"bytes,6,opt,name=context,proto3" json:"context,omitempty"`
+}
+
+func (x *Diagnostic) Reset() {
+	*x = Diagnostic{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Diagnostic) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Diagnostic) ProtoMessage() {}
+
+func (x *Diagnostic) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
+func (*Diagnostic) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Diagnostic) GetSeverity() Diagnostic_Severity {
+	if x != nil {
+		return x.Severity
+	}
+	return Diagnostic_INVALID
+}
+
+func (x *Diagnostic) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *Diagnostic) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+func (x *Diagnostic) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Diagnostic) GetSubject() *SourceRange {
+	if x != nil {
+		return x.Subject
+	}
+	return nil
+}
+
+func (x *Diagnostic) GetContext() *SourceRange {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+type SourceRange struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Filename string           `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	Start    *SourceRange_Pos `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	End      *SourceRange_Pos `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
+}
+
+func (x *SourceRange) Reset() {
+	*x = SourceRange{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SourceRange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SourceRange) ProtoMessage() {}
+
+func (x *SourceRange) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SourceRange.ProtoReflect.Descriptor instead.
+func (*SourceRange) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SourceRange) GetFilename() string {
+	if x != nil {
+		return x.Filename
+	}
+	return ""
+}
+
+func (x *SourceRange) GetStart() *SourceRange_Pos {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *SourceRange) GetEnd() *SourceRange_Pos {
+	if x != nil {
+		return x.End
+	}
+	return nil
+}
+
+type OpenConfigCwd_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *OpenConfigCwd_Request) Reset() {
+	*x = OpenConfigCwd_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OpenConfigCwd_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenConfigCwd_Request) ProtoMessage() {}
+
+func (x *OpenConfigCwd_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenConfigCwd_Request.ProtoReflect.Descriptor instead.
+func (*OpenConfigCwd_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{0, 0}
+}
+
+type OpenConfigCwd_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// An opaque identifier that will represent this configuration in
+	// other RPC calls that require an open configuration.
+	//
+	// If the response also has error diagnostics then this will be unset
+	// and should not be used.
+	ConfigId uint64 `protobuf:"varint,1,opt,name=config_id,json=configId,proto3" json:"config_id,omitempty"`
+	// A set of diagnostics detected during configuration loading. This
+	// will include only surface-level problems such as syntax errors,
+	// and so the absense of diagnostics here does not necessarily mean
+	// that the configuration is valid.
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *OpenConfigCwd_Response) Reset() {
+	*x = OpenConfigCwd_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *OpenConfigCwd_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenConfigCwd_Response) ProtoMessage() {}
+
+func (x *OpenConfigCwd_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenConfigCwd_Response.ProtoReflect.Descriptor instead.
+func (*OpenConfigCwd_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{0, 1}
+}
+
+func (x *OpenConfigCwd_Response) GetConfigId() uint64 {
+	if x != nil {
+		return x.ConfigId
+	}
+	return 0
+}
+
+func (x *OpenConfigCwd_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+type CloseConfig_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConfigId uint64 `protobuf:"varint,1,opt,name=config_id,json=configId,proto3" json:"config_id,omitempty"`
+}
+
+func (x *CloseConfig_Request) Reset() {
+	*x = CloseConfig_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CloseConfig_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseConfig_Request) ProtoMessage() {}
+
+func (x *CloseConfig_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseConfig_Request.ProtoReflect.Descriptor instead.
+func (*CloseConfig_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{1, 0}
+}
+
+func (x *CloseConfig_Request) GetConfigId() uint64 {
+	if x != nil {
+		return x.ConfigId
+	}
+	return 0
+}
+
+type CloseConfig_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *CloseConfig_Response) Reset() {
+	*x = CloseConfig_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CloseConfig_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseConfig_Response) ProtoMessage() {}
+
+func (x *CloseConfig_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseConfig_Response.ProtoReflect.Descriptor instead.
+func (*CloseConfig_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{1, 1}
+}
+
+type SourceRange_Pos struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Line   int64 `protobuf:"varint,1,opt,name=line,proto3" json:"line,omitempty"`
+	Column int64 `protobuf:"varint,2,opt,name=column,proto3" json:"column,omitempty"`
+	Byte   int64 `protobuf:"varint,3,opt,name=byte,proto3" json:"byte,omitempty"`
+}
+
+func (x *SourceRange_Pos) Reset() {
+	*x = SourceRange_Pos{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SourceRange_Pos) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SourceRange_Pos) ProtoMessage() {}
+
+func (x *SourceRange_Pos) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SourceRange_Pos.ProtoReflect.Descriptor instead.
+func (*SourceRange_Pos) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *SourceRange_Pos) GetLine() int64 {
+	if x != nil {
+		return x.Line
+	}
+	return 0
+}
+
+func (x *SourceRange_Pos) GetColumn() int64 {
+	if x != nil {
+		return x.Column
+	}
+	return 0
+}
+
+func (x *SourceRange_Pos) GetByte() int64 {
+	if x != nil {
+		return x.Byte
+	}
+	return 0
+}
+
 var File_tfcore_proto protoreflect.FileDescriptor
 
 var file_tfcore_proto_rawDesc = []byte{
 	0x0a, 0x0c, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x07,
-	0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x32, 0x0b, 0x0a, 0x09, 0x54, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x42, 0x38, 0x5a, 0x36, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f,
-	0x72, 0x70, 0x63, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x22, 0x7a, 0x0a, 0x0d, 0x4f, 0x70, 0x65, 0x6e, 0x43,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x5e, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x1b, 0x0a, 0x09, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x08, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x49, 0x64, 0x12, 0x35, 0x0a, 0x0b,
+	0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x13, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67,
+	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
+	0x69, 0x63, 0x73, 0x22, 0x41, 0x0a, 0x0b, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66,
+	0x69, 0x67, 0x1a, 0x26, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b, 0x0a,
+	0x09, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x08, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x49, 0x64, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0xa3, 0x02, 0x0a, 0x0a, 0x44, 0x69, 0x61, 0x67, 0x6e,
+	0x6f, 0x73, 0x74, 0x69, 0x63, 0x12, 0x38, 0x0a, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74,
+	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
+	0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x2e, 0x53, 0x65, 0x76,
+	0x65, 0x72, 0x69, 0x74, 0x79, 0x52, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12,
+	0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x65, 0x74,
+	0x61, 0x69, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69,
+	0x6c, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x04, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x2e, 0x0a, 0x07, 0x73,
+	0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74,
+	0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e,
+	0x67, 0x65, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x2e, 0x0a, 0x07, 0x63,
+	0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74,
+	0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e,
+	0x67, 0x65, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x22, 0x2f, 0x0a, 0x08, 0x53,
+	0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56, 0x41, 0x4c,
+	0x49, 0x44, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x01, 0x12,
+	0x0b, 0x0a, 0x07, 0x57, 0x41, 0x52, 0x4e, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x22, 0xcc, 0x01, 0x0a,
+	0x0b, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x1a, 0x0a, 0x08,
+	0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08,
+	0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x2e, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x72,
+	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
+	0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f,
+	0x73, 0x52, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x2a, 0x0a, 0x03, 0x65, 0x6e, 0x64, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e,
+	0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f, 0x73, 0x52,
+	0x03, 0x65, 0x6e, 0x64, 0x1a, 0x45, 0x0a, 0x03, 0x50, 0x6f, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x6c,
+	0x69, 0x6e, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x12,
+	0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x79, 0x74, 0x65, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x62, 0x79, 0x74, 0x65, 0x32, 0xa9, 0x01, 0x0a, 0x09,
+	0x54, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x12, 0x50, 0x0a, 0x0d, 0x4f, 0x70, 0x65,
+	0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x12, 0x1e, 0x2e, 0x74, 0x66, 0x63,
+	0x6f, 0x72, 0x65, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43,
+	0x77, 0x64, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x74, 0x66, 0x63,
+	0x6f, 0x72, 0x65, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43,
+	0x77, 0x64, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4a, 0x0a, 0x0b, 0x43,
+	0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1c, 0x2e, 0x74, 0x66, 0x63,
+	0x6f, 0x72, 0x65, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x38, 0x5a, 0x36, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e,
+	0x61, 0x6c, 0x2f, 0x72, 0x70, 0x63, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
+	0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
-var file_tfcore_proto_goTypes = []interface{}{}
+var (
+	file_tfcore_proto_rawDescOnce sync.Once
+	file_tfcore_proto_rawDescData = file_tfcore_proto_rawDesc
+)
+
+func file_tfcore_proto_rawDescGZIP() []byte {
+	file_tfcore_proto_rawDescOnce.Do(func() {
+		file_tfcore_proto_rawDescData = protoimpl.X.CompressGZIP(file_tfcore_proto_rawDescData)
+	})
+	return file_tfcore_proto_rawDescData
+}
+
+var file_tfcore_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_tfcore_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_tfcore_proto_goTypes = []interface{}{
+	(Diagnostic_Severity)(0),       // 0: tfcore1.Diagnostic.Severity
+	(*OpenConfigCwd)(nil),          // 1: tfcore1.OpenConfigCwd
+	(*CloseConfig)(nil),            // 2: tfcore1.CloseConfig
+	(*Diagnostic)(nil),             // 3: tfcore1.Diagnostic
+	(*SourceRange)(nil),            // 4: tfcore1.SourceRange
+	(*OpenConfigCwd_Request)(nil),  // 5: tfcore1.OpenConfigCwd.Request
+	(*OpenConfigCwd_Response)(nil), // 6: tfcore1.OpenConfigCwd.Response
+	(*CloseConfig_Request)(nil),    // 7: tfcore1.CloseConfig.Request
+	(*CloseConfig_Response)(nil),   // 8: tfcore1.CloseConfig.Response
+	(*SourceRange_Pos)(nil),        // 9: tfcore1.SourceRange.Pos
+}
 var file_tfcore_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: tfcore1.Diagnostic.severity:type_name -> tfcore1.Diagnostic.Severity
+	4, // 1: tfcore1.Diagnostic.subject:type_name -> tfcore1.SourceRange
+	4, // 2: tfcore1.Diagnostic.context:type_name -> tfcore1.SourceRange
+	9, // 3: tfcore1.SourceRange.start:type_name -> tfcore1.SourceRange.Pos
+	9, // 4: tfcore1.SourceRange.end:type_name -> tfcore1.SourceRange.Pos
+	3, // 5: tfcore1.OpenConfigCwd.Response.diagnostics:type_name -> tfcore1.Diagnostic
+	5, // 6: tfcore1.Terraform.OpenConfigCwd:input_type -> tfcore1.OpenConfigCwd.Request
+	7, // 7: tfcore1.Terraform.CloseConfig:input_type -> tfcore1.CloseConfig.Request
+	6, // 8: tfcore1.Terraform.OpenConfigCwd:output_type -> tfcore1.OpenConfigCwd.Response
+	8, // 9: tfcore1.Terraform.CloseConfig:output_type -> tfcore1.CloseConfig.Response
+	8, // [8:10] is the sub-list for method output_type
+	6, // [6:8] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_tfcore_proto_init() }
@@ -47,18 +663,130 @@ func file_tfcore_proto_init() {
 	if File_tfcore_proto != nil {
 		return
 	}
+	if !protoimpl.UnsafeEnabled {
+		file_tfcore_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConfigCwd); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseConfig); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Diagnostic); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SourceRange); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConfigCwd_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConfigCwd_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseConfig_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseConfig_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SourceRange_Pos); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tfcore_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   0,
+			NumEnums:      1,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_tfcore_proto_goTypes,
 		DependencyIndexes: file_tfcore_proto_depIdxs,
+		EnumInfos:         file_tfcore_proto_enumTypes,
+		MessageInfos:      file_tfcore_proto_msgTypes,
 	}.Build()
 	File_tfcore_proto = out.File
 	file_tfcore_proto_rawDesc = nil
@@ -78,6 +806,22 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type TerraformClient interface {
+	// OpenConfigCwd opens a new configuration by reading from the current
+	// working directory of the RPC server process, in a similar way that
+	// a "terraform validate" (or similar) CLI command would.
+	//
+	// This will succeed only if the working directory was already initialized
+	// to contain local copies of any external modules the configuration
+	// depends on, which would typically be achieved by running "terraform init"
+	// prior to starting the RPC server.
+	OpenConfigCwd(ctx context.Context, in *OpenConfigCwd_Request, opts ...grpc.CallOption) (*OpenConfigCwd_Response, error)
+	// CloseConfig discards a previously-opened configuration, invalidating
+	// its configuration ID.
+	//
+	// Will return a "not found" error if the given configuration id doesn't
+	// correspond with a currently-open configuration. If CloseConfig returns
+	// successfully then the given configuration ID becomes invalid.
+	CloseConfig(ctx context.Context, in *CloseConfig_Request, opts ...grpc.CallOption) (*CloseConfig_Response, error)
 }
 
 type terraformClient struct {
@@ -88,22 +832,108 @@ func NewTerraformClient(cc grpc.ClientConnInterface) TerraformClient {
 	return &terraformClient{cc}
 }
 
+func (c *terraformClient) OpenConfigCwd(ctx context.Context, in *OpenConfigCwd_Request, opts ...grpc.CallOption) (*OpenConfigCwd_Response, error) {
+	out := new(OpenConfigCwd_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/OpenConfigCwd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *terraformClient) CloseConfig(ctx context.Context, in *CloseConfig_Request, opts ...grpc.CallOption) (*CloseConfig_Response, error) {
+	out := new(CloseConfig_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/CloseConfig", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TerraformServer is the server API for Terraform service.
 type TerraformServer interface {
+	// OpenConfigCwd opens a new configuration by reading from the current
+	// working directory of the RPC server process, in a similar way that
+	// a "terraform validate" (or similar) CLI command would.
+	//
+	// This will succeed only if the working directory was already initialized
+	// to contain local copies of any external modules the configuration
+	// depends on, which would typically be achieved by running "terraform init"
+	// prior to starting the RPC server.
+	OpenConfigCwd(context.Context, *OpenConfigCwd_Request) (*OpenConfigCwd_Response, error)
+	// CloseConfig discards a previously-opened configuration, invalidating
+	// its configuration ID.
+	//
+	// Will return a "not found" error if the given configuration id doesn't
+	// correspond with a currently-open configuration. If CloseConfig returns
+	// successfully then the given configuration ID becomes invalid.
+	CloseConfig(context.Context, *CloseConfig_Request) (*CloseConfig_Response, error)
 }
 
 // UnimplementedTerraformServer can be embedded to have forward compatible implementations.
 type UnimplementedTerraformServer struct {
 }
 
+func (*UnimplementedTerraformServer) OpenConfigCwd(context.Context, *OpenConfigCwd_Request) (*OpenConfigCwd_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OpenConfigCwd not implemented")
+}
+func (*UnimplementedTerraformServer) CloseConfig(context.Context, *CloseConfig_Request) (*CloseConfig_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloseConfig not implemented")
+}
+
 func RegisterTerraformServer(s *grpc.Server, srv TerraformServer) {
 	s.RegisterService(&_Terraform_serviceDesc, srv)
+}
+
+func _Terraform_OpenConfigCwd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenConfigCwd_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).OpenConfigCwd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/OpenConfigCwd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).OpenConfigCwd(ctx, req.(*OpenConfigCwd_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Terraform_CloseConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseConfig_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).CloseConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/CloseConfig",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).CloseConfig(ctx, req.(*CloseConfig_Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _Terraform_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "tfcore1.Terraform",
 	HandlerType: (*TerraformServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "tfcore.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "OpenConfigCwd",
+			Handler:    _Terraform_OpenConfigCwd_Handler,
+		},
+		{
+			MethodName: "CloseConfig",
+			Handler:    _Terraform_CloseConfig_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "tfcore.proto",
 }
