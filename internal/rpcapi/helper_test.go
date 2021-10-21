@@ -5,12 +5,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/tfcore1"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"google.golang.org/grpc"
+
+	// This quiet import magically makes our TF_LOG environment variable
+	// work for tests.
+	_ "github.com/hashicorp/terraform/internal/logging"
 )
+
+var protoCmpOpt = protocmp.Transform()
 
 // inProcessV1Client is an implementation of tfcore1.TerraformClient that just
 // directly wraps a tfcore1.TerraformServer, so that we can write most of our
@@ -31,6 +39,10 @@ func (c inProcessV1Client) OpenConfigCwd(ctx context.Context, in *tfcore1.OpenCo
 
 func (c inProcessV1Client) CloseConfig(ctx context.Context, in *tfcore1.CloseConfig_Request, opts ...grpc.CallOption) (*tfcore1.CloseConfig_Response, error) {
 	return c.server.CloseConfig(ctx, in)
+}
+
+func (c inProcessV1Client) ValidateConfig(ctx context.Context, in *tfcore1.ValidateConfig_Request, opts ...grpc.CallOption) (*tfcore1.ValidateConfig_Response, error) {
+	return c.server.ValidateConfig(ctx, in)
 }
 
 func newV1ClientForTests(t *testing.T, workingDir string, opts *terraform.ContextOpts) tfcore1.TerraformClient {
