@@ -4,4 +4,81 @@ package tfcore1;
 option go_package = "github.com/hashicorp/terraform/internal/rpcapi/tfcore1";
 
 service Terraform {
+    // OpenConfigCwd opens a new configuration by reading from the current
+    // working directory of the RPC server process, in a similar way that
+    // a "terraform validate" (or similar) CLI command would.
+    //
+    // This will succeed only if the working directory was already initialized
+    // to contain local copies of any external modules the configuration
+    // depends on, which would typically be achieved by running "terraform init"
+    // prior to starting the RPC server.
+    rpc OpenConfigCwd(OpenConfigCwd.Request) returns (OpenConfigCwd.Response);
+
+    // CloseConfig discards a previously-opened configuration, invalidating
+    // its configuration ID.
+    //
+    // Will return a "not found" error if the given configuration id doesn't
+    // correspond with a currently-open configuration. If CloseConfig returns
+    // successfully then the given configuration ID becomes invalid.
+    rpc CloseConfig(CloseConfig.Request) returns (CloseConfig.Response);
 }
+
+message OpenConfigCwd {
+    message Request {
+        // Intentionally empty, for now.
+    }
+    message Response {
+        // An opaque identifier that will represent this configuration in
+        // other RPC calls that require an open configuration.
+        //
+        // If the response also has error diagnostics then this will be unset
+        // and should not be used.
+        uint64 config_id = 1;
+
+        // A set of diagnostics detected during configuration loading. This
+        // will include only surface-level problems such as syntax errors,
+        // and so the absense of diagnostics here does not necessarily mean
+        // that the configuration is valid.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message CloseConfig {
+    message Request {
+        uint64 config_id = 1;
+    }
+    message Response {
+        // Intentionally empty, for now.
+    }
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    string address = 4;
+    SourceRange subject = 5;
+    SourceRange context = 6;
+
+    // Should we include the snippet in here too? That's tricky because it's
+    // a CLI-view-level concern rather than a core-level concern, so we'll
+    // consider that out of scope for now. Callers could calculate it themselves
+    // based on "subject" and "context" anyway.
+}
+
+message SourceRange {
+    message Pos {
+        int64 line = 1;
+        int64 column = 2;
+        int64 byte = 3;
+    }
+    string filename = 1;
+    Pos start = 2;
+    Pos end = 3;
+}
+

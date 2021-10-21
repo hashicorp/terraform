@@ -70,6 +70,8 @@ func (c *RPCPluginCommand) Run(args []string) int {
 		GetCoreOpts: func() *terraform.ContextOpts {
 			return coreOpts
 		},
+		ModulesDir: c.modulesDir(),
+		WorkingDir: c.normalizePath("."),
 	})
 	if err != nil { // Should _always_ have an error if Serve returns
 		diags = diags.Append(tfdiags.Sourceless(

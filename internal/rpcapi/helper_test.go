@@ -1,12 +1,15 @@
 package rpcapi
 
 import (
+	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/tfcore1"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"google.golang.org/grpc"
 )
 
 // inProcessV1Client is an implementation of tfcore1.TerraformClient that just
@@ -22,19 +25,28 @@ type inProcessV1Client struct {
 
 var _ tfcore1.TerraformClient = inProcessV1Client{}
 
-func newV1ClientForTests(t *testing.T, opts *terraform.ContextOpts) tfcore1.TerraformClient {
+func (c inProcessV1Client) OpenConfigCwd(ctx context.Context, in *tfcore1.OpenConfigCwd_Request, opts ...grpc.CallOption) (*tfcore1.OpenConfigCwd_Response, error) {
+	return c.server.OpenConfigCwd(ctx, in)
+}
+
+func (c inProcessV1Client) CloseConfig(ctx context.Context, in *tfcore1.CloseConfig_Request, opts ...grpc.CallOption) (*tfcore1.CloseConfig_Response, error) {
+	return c.server.CloseConfig(ctx, in)
+}
+
+func newV1ClientForTests(t *testing.T, workingDir string, opts *terraform.ContextOpts) tfcore1.TerraformClient {
 	t.Helper()
+	modulesDir := filepath.Join(workingDir, ".terraform/modules")
 
 	core, diags := terraform.NewContext(opts)
 	if diags.HasErrors() {
 		t.Fatalf("failed to instantiate Terraform Core: %s", diags.Err().Error())
 	}
 
-	server := newV1PluginServer(core)
+	server := newV1PluginServer(core, workingDir, modulesDir)
 	return inProcessV1Client{server}
 }
 
-func contextOptsWithTestProvider(factory providers.Factory) *terraform.ContextOpts {
+func coreOptsWithTestProvider(factory providers.Factory) *terraform.ContextOpts {
 	return &terraform.ContextOpts{
 		Meta: &terraform.ContextMeta{
 			Env: "default",
