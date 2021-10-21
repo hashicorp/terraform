@@ -593,13 +593,14 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		return m.backend_c_r_S(c, cHash, sMgr, true)
 
 	// Configuring Terraform Cloud for the first time.
+	// NOTE: There may be an implicit local backend with state that is not visible to this block.
 	case c != nil && c.Type == "cloud" && s.Backend.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to Terraform Cloud")
 		if !opts.Init {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Terraform Cloud has been configured but needs to be initialized.",
-				"Run \"terraform init\" to initialize Terraform Cloud.",
+				strings.TrimSpace(errBackendInitCloud),
 			))
 			return nil, diags
 		}
@@ -640,17 +641,30 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
-		initReason := fmt.Sprintf("Backend configuration changed for %q", c.Type)
-		if s.Backend.Type != c.Type {
+		initReason := ""
+		switch {
+		case c.Type == "cloud":
+			initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", s.Backend.Type)
+		case s.Backend.Type != c.Type:
 			initReason = fmt.Sprintf("Backend configuration changed from %q to %q", s.Backend.Type, c.Type)
+		default:
+			initReason = fmt.Sprintf("Backend configuration changed for %q", c.Type)
 		}
 
 		if !opts.Init {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
-				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-			))
+			if c.Type == "cloud" {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Terraform Cloud has been configured but needs to be initialized.",
+					strings.TrimSpace(errBackendInitCloud),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Backend initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+				))
+			}
 			return nil, diags
 		}
 
@@ -1309,6 +1323,24 @@ Changes to backend configurations require reinitialization. This allows
 Terraform to set up the new configuration, copy existing state, etc. Please run
 "terraform init" with either the "-reconfigure" or "-migrate-state" flags to
 use the current configuration.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.
+`
+
+const errBackendInitCloud = `
+Changes to the Terraform Cloud configuration block require reinitialization.
+This allows Terraform to set up the new configuration, copy existing state,
+etc. Learn more about Terraform Settings:
+https://www.terraform.io/docs/language/settings/index.html
+
+Please run "terraform init" with either the "-reconfigure" or "-migrate-state"
+flags. The "-reconfigure" option disregards any existing configuration,
+preventing migration of any existing state. The "-migrate-state" option
+will attempt to copy existing state to Terraform Cloud. Learn more about
+using "terraform init":
+https://www.terraform.io/docs/cli/commands/init.html#backend-initialization
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
