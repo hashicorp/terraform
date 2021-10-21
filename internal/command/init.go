@@ -1117,8 +1117,8 @@ const outputInitSuccessCLICloud = `[reset][green]
 You may now begin working with Terraform Cloud. Try running "terraform plan" to
 see any changes that are required for your infrastructure.
 
-If you ever set or change modules or configuration for Terraform, run
-"terraform init" again to reinitialize your working directory.
+If you ever set or change modules or Terraform Settings, run "terraform init"
+again to reinitialize your working directory.
 `
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
