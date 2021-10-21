@@ -592,31 +592,25 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		return m.backend_c_r_S(c, cHash, sMgr, true)
 
-	// Configuring Terraform Cloud for the first time.
-	// NOTE: There may be an implicit local backend with state that is not visible to this block.
-	case c != nil && c.Type == "cloud" && s.Backend.Empty():
-		log.Printf("[TRACE] Meta.Backend: moving from default local state only to Terraform Cloud")
-		if !opts.Init {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Terraform Cloud has been configured but needs to be initialized.",
-				strings.TrimSpace(errBackendInitCloud),
-			))
-			return nil, diags
-		}
-
-		return m.backend_C_r_s(c, cHash, sMgr)
-
 	// Configuring a backend for the first time.
 	case c != nil && s.Backend.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
-			initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
-				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-			))
+			if c.Type == "cloud" {
+				// NOTE: There may be an implicit local backend with state that is not visible to this block.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Terraform Cloud has been configured but needs to be initialized.",
+					strings.TrimSpace(errBackendInitCloud),
+				))
+			} else {
+				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Backend initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+				))
+			}
 			return nil, diags
 		}
 
