@@ -57,7 +57,7 @@ func TestProviderTampering(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		_, stderr, err := tf.Run("plan")
+		stdout, stderr, err := tf.Run("plan")
 		if err == nil {
 			t.Fatalf("unexpected plan success\nstdout:\n%s", stdout)
 		}
@@ -66,6 +66,16 @@ func TestProviderTampering(t *testing.T) {
 		}
 		if want := `terraform init`; !strings.Contains(stderr, want) {
 			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
+		}
+
+		// Running init as suggested resolves the problem
+		_, stderr, err = tf.Run("init")
+		if err != nil {
+			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+		}
+		_, stderr, err = tf.Run("plan")
+		if err != nil {
+			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 		}
 	})
 	t.Run("null plugin package modified before plan", func(t *testing.T) {
