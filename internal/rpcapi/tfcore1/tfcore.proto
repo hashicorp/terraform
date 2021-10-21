@@ -26,6 +26,31 @@ service Terraform {
     // core language validation rules and any plugin-specified validation
     // rules.
     rpc ValidateConfig(ValidateConfig.Request) returns (ValidateConfig.Response);
+
+    // CreatePlan calculates a new plan by comparing an open configuration with
+    // a previous run state snapshot.
+    rpc CreatePlan(CreatePlan.Request) returns (CreatePlan.Response);
+
+    // DiscardPlan discards a plan currently cached in memory, which would've
+    // been placed there either by CreatePlan or by ImportPlan.
+    rpc DiscardPlan(DiscardPlan.Request) returns (DiscardPlan.Response);
+
+    // ExportPlan returns an opaque blob serialization of a plan currently
+    // cached in memory, which can be re-imported later -- possibly to another
+    // RPC API instances as long as it's the same Terraform Core version and
+    // working directory -- using ImportPlan.
+    rpc ExportPlan(ExportPlan.Request) returns (ExportPlan.Response);
+
+    // ImportPlan re-imports an opaque plan blob serialization previously
+    // produced by ExportPlan on another RPC API instance connected to the
+    // same working directory and Terraform Core version.
+    rpc ImportPlan(ImportPlan.Request) returns (ImportPlan.Response);
+
+    // ApplyPlan applies a previously-created plan to real infrastructure,
+    // using provider operations, and returns the resulting new state snapshot,
+    // which the caller should then save to use as the previous run state for
+    // the next call to CreatePlan.
+    rpc ApplyPlan(ApplyPlan.Request) returns (ApplyPlan.Response);
 }
 
 message OpenConfigCwd {
@@ -66,6 +91,132 @@ message ValidateConfig {
     }
 }
 
+message CreatePlan {
+    message Request {
+        uint64 config_id = 1;
+        bytes prev_run_state = 2;
+        PlanOptions options = 3;
+    }
+    message Response {
+        // Opaque unique id for an in-memory plan. The plan will be lost once
+        // the RPC server exits, but callers can export it to use in a later
+        // operation using the ExportPlan and ImportPlan operations.
+        //
+        // If plan_id is zero (unset) then the input was invalid or one of
+        // the resource planning operations failed, and so there should be
+        // error diagnostics explaining what went wrong. Zero is never a valid
+        // plan id.
+        uint64 plan_id = 1;
+        repeated Diagnostic diagnostics = 2;
+
+        // An approximation of the expected output values that should result
+        // from applying this plan.
+        //
+        // Some of the planned output values might be unknown value
+        // placeholders, if they are derived from resource instance attributes
+        // that a provider won't know until the apply step.
+        map<string, DynamicValue> planned_output_values = 3;
+    }
+}
+
+message DiscardPlan {
+    message Request {
+        uint64 plan_id = 1;
+    }
+    message Response {
+    }
+}
+
+message ExportPlan {
+    message Request {
+        uint64 plan_id = 1;
+    }
+    message Response {
+        // An opaque serialization of the plan, which the caller
+        // can store verbatim and then submit back to ImportPlan of a
+        // subsequent RPC server of the same Terraform Core version
+        // running against the same working directory.
+        bytes raw_plan = 1;
+    }
+}
+
+message ImportPlan {
+    message Request {
+        // An unmodified byte stream previously returned from a call
+        // to ExportPlan, possibly from another RPC server instance but
+        // still of the same Terraform Core version running against
+        // the same working directory.
+        bytes raw_plan = 1;
+    }
+    message Response {
+        uint64 plan_id = 1;
+    }
+}
+
+message ApplyPlan {
+    message Request {
+        uint64 plan_id = 1;
+    }
+    message Response {
+        bytes new_state = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message PlanOptions {
+    enum Mode {
+        NORMAL = 0;
+        REFRESH_ONLY = 1;
+        DESTROY = 2;
+    }
+    Mode mode = 1;
+    map<string, DynamicValue> variable_defs = 2;
+    bool skip_refresh = 3;
+    repeated AbsResourceInstance force_replace = 4;
+}
+
+enum ResourceMode {
+    INVALID = 0;
+    MANAGED = 1;
+    DATA = 2;
+}
+
+message AbsResource {
+    repeated ModuleInstanceStep module = 1;
+    ResourceMode mode = 2;
+    string type = 3;
+    string name = 4;
+}
+
+message AbsResourceInstance {
+    AbsResource resource = 1;
+    InstanceKey key = 2;
+}
+
+message ModuleInstanceStep {
+    string name = 1;
+    InstanceKey key = 2;
+}
+
+message InstanceKey {
+    // A totally unset InstanceKey represents the third possibility: no key at all
+    oneof key {
+        string string = 1;
+        int64 int = 2;
+    }
+}
+
+// DynamicValue represents an arbitrary value in the Terraform language type
+// system, such as the value of an input variable or an output value.
+message DynamicValue {
+    bytes msgpack = 1;
+
+    // Set to true if the value is considered sensitive, either because it
+    // was explicitly declared as such or because it was derived from some
+    // other value marked as sensitive.
+    bool sensitive = 2;
+}
+
 message Diagnostic {
     enum Severity {
         INVALID = 0;
@@ -95,4 +246,3 @@ message SourceRange {
     Pos start = 2;
     Pos end = 3;
 }
-
