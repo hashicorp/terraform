@@ -24,6 +24,104 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ResourceMode int32
+
+const (
+	ResourceMode_INVALID ResourceMode = 0
+	ResourceMode_MANAGED ResourceMode = 1
+	ResourceMode_DATA    ResourceMode = 2
+)
+
+// Enum value maps for ResourceMode.
+var (
+	ResourceMode_name = map[int32]string{
+		0: "INVALID",
+		1: "MANAGED",
+		2: "DATA",
+	}
+	ResourceMode_value = map[string]int32{
+		"INVALID": 0,
+		"MANAGED": 1,
+		"DATA":    2,
+	}
+)
+
+func (x ResourceMode) Enum() *ResourceMode {
+	p := new(ResourceMode)
+	*p = x
+	return p
+}
+
+func (x ResourceMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ResourceMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_tfcore_proto_enumTypes[0].Descriptor()
+}
+
+func (ResourceMode) Type() protoreflect.EnumType {
+	return &file_tfcore_proto_enumTypes[0]
+}
+
+func (x ResourceMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ResourceMode.Descriptor instead.
+func (ResourceMode) EnumDescriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{0}
+}
+
+type PlanOptions_Mode int32
+
+const (
+	PlanOptions_NORMAL       PlanOptions_Mode = 0
+	PlanOptions_REFRESH_ONLY PlanOptions_Mode = 1
+	PlanOptions_DESTROY      PlanOptions_Mode = 2
+)
+
+// Enum value maps for PlanOptions_Mode.
+var (
+	PlanOptions_Mode_name = map[int32]string{
+		0: "NORMAL",
+		1: "REFRESH_ONLY",
+		2: "DESTROY",
+	}
+	PlanOptions_Mode_value = map[string]int32{
+		"NORMAL":       0,
+		"REFRESH_ONLY": 1,
+		"DESTROY":      2,
+	}
+)
+
+func (x PlanOptions_Mode) Enum() *PlanOptions_Mode {
+	p := new(PlanOptions_Mode)
+	*p = x
+	return p
+}
+
+func (x PlanOptions_Mode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PlanOptions_Mode) Descriptor() protoreflect.EnumDescriptor {
+	return file_tfcore_proto_enumTypes[1].Descriptor()
+}
+
+func (PlanOptions_Mode) Type() protoreflect.EnumType {
+	return &file_tfcore_proto_enumTypes[1]
+}
+
+func (x PlanOptions_Mode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PlanOptions_Mode.Descriptor instead.
+func (PlanOptions_Mode) EnumDescriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{8, 0}
+}
+
 type Diagnostic_Severity int32
 
 const (
@@ -57,11 +155,11 @@ func (x Diagnostic_Severity) String() string {
 }
 
 func (Diagnostic_Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_tfcore_proto_enumTypes[0].Descriptor()
+	return file_tfcore_proto_enumTypes[2].Descriptor()
 }
 
 func (Diagnostic_Severity) Type() protoreflect.EnumType {
-	return &file_tfcore_proto_enumTypes[0]
+	return &file_tfcore_proto_enumTypes[2]
 }
 
 func (x Diagnostic_Severity) Number() protoreflect.EnumNumber {
@@ -70,7 +168,7 @@ func (x Diagnostic_Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Diagnostic_Severity.Descriptor instead.
 func (Diagnostic_Severity) EnumDescriptor() ([]byte, []int) {
-	return file_tfcore_proto_rawDescGZIP(), []int{3, 0}
+	return file_tfcore_proto_rawDescGZIP(), []int{14, 0}
 }
 
 type OpenConfigCwd struct {
@@ -187,6 +285,590 @@ func (*ValidateConfig) Descriptor() ([]byte, []int) {
 	return file_tfcore_proto_rawDescGZIP(), []int{2}
 }
 
+type CreatePlan struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *CreatePlan) Reset() {
+	*x = CreatePlan{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreatePlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePlan) ProtoMessage() {}
+
+func (x *CreatePlan) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePlan.ProtoReflect.Descriptor instead.
+func (*CreatePlan) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{3}
+}
+
+type DiscardPlan struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *DiscardPlan) Reset() {
+	*x = DiscardPlan{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DiscardPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardPlan) ProtoMessage() {}
+
+func (x *DiscardPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardPlan.ProtoReflect.Descriptor instead.
+func (*DiscardPlan) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{4}
+}
+
+type ExportPlan struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ExportPlan) Reset() {
+	*x = ExportPlan{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExportPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportPlan) ProtoMessage() {}
+
+func (x *ExportPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportPlan.ProtoReflect.Descriptor instead.
+func (*ExportPlan) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{5}
+}
+
+type ImportPlan struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ImportPlan) Reset() {
+	*x = ImportPlan{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ImportPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportPlan) ProtoMessage() {}
+
+func (x *ImportPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportPlan.ProtoReflect.Descriptor instead.
+func (*ImportPlan) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{6}
+}
+
+type ApplyPlan struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *ApplyPlan) Reset() {
+	*x = ApplyPlan{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ApplyPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyPlan) ProtoMessage() {}
+
+func (x *ApplyPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyPlan.ProtoReflect.Descriptor instead.
+func (*ApplyPlan) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{7}
+}
+
+type PlanOptions struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Mode         PlanOptions_Mode         `protobuf:"varint,1,opt,name=mode,proto3,enum=tfcore1.PlanOptions_Mode" json:"mode,omitempty"`
+	VariableDefs map[string]*DynamicValue `protobuf:"bytes,2,rep,name=variable_defs,json=variableDefs,proto3" json:"variable_defs,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	SkipRefresh  bool                     `protobuf:"varint,3,opt,name=skip_refresh,json=skipRefresh,proto3" json:"skip_refresh,omitempty"`
+	ForceReplace []*AbsResourceInstance   `protobuf:"bytes,4,rep,name=force_replace,json=forceReplace,proto3" json:"force_replace,omitempty"`
+}
+
+func (x *PlanOptions) Reset() {
+	*x = PlanOptions{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PlanOptions) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanOptions) ProtoMessage() {}
+
+func (x *PlanOptions) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanOptions.ProtoReflect.Descriptor instead.
+func (*PlanOptions) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PlanOptions) GetMode() PlanOptions_Mode {
+	if x != nil {
+		return x.Mode
+	}
+	return PlanOptions_NORMAL
+}
+
+func (x *PlanOptions) GetVariableDefs() map[string]*DynamicValue {
+	if x != nil {
+		return x.VariableDefs
+	}
+	return nil
+}
+
+func (x *PlanOptions) GetSkipRefresh() bool {
+	if x != nil {
+		return x.SkipRefresh
+	}
+	return false
+}
+
+func (x *PlanOptions) GetForceReplace() []*AbsResourceInstance {
+	if x != nil {
+		return x.ForceReplace
+	}
+	return nil
+}
+
+type AbsResource struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Module []*ModuleInstanceStep `protobuf:"bytes,1,rep,name=module,proto3" json:"module,omitempty"`
+	Mode   ResourceMode          `protobuf:"varint,2,opt,name=mode,proto3,enum=tfcore1.ResourceMode" json:"mode,omitempty"`
+	Type   string                `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Name   string                `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *AbsResource) Reset() {
+	*x = AbsResource{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AbsResource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbsResource) ProtoMessage() {}
+
+func (x *AbsResource) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AbsResource.ProtoReflect.Descriptor instead.
+func (*AbsResource) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AbsResource) GetModule() []*ModuleInstanceStep {
+	if x != nil {
+		return x.Module
+	}
+	return nil
+}
+
+func (x *AbsResource) GetMode() ResourceMode {
+	if x != nil {
+		return x.Mode
+	}
+	return ResourceMode_INVALID
+}
+
+func (x *AbsResource) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *AbsResource) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type AbsResourceInstance struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Resource *AbsResource `protobuf:"bytes,1,opt,name=resource,proto3" json:"resource,omitempty"`
+	Key      *InstanceKey `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *AbsResourceInstance) Reset() {
+	*x = AbsResourceInstance{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *AbsResourceInstance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbsResourceInstance) ProtoMessage() {}
+
+func (x *AbsResourceInstance) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AbsResourceInstance.ProtoReflect.Descriptor instead.
+func (*AbsResourceInstance) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AbsResourceInstance) GetResource() *AbsResource {
+	if x != nil {
+		return x.Resource
+	}
+	return nil
+}
+
+func (x *AbsResourceInstance) GetKey() *InstanceKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+type ModuleInstanceStep struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string       `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Key  *InstanceKey `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *ModuleInstanceStep) Reset() {
+	*x = ModuleInstanceStep{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ModuleInstanceStep) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleInstanceStep) ProtoMessage() {}
+
+func (x *ModuleInstanceStep) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleInstanceStep.ProtoReflect.Descriptor instead.
+func (*ModuleInstanceStep) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ModuleInstanceStep) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ModuleInstanceStep) GetKey() *InstanceKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+type InstanceKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// A totally unset InstanceKey represents the third possibility: no key at all
+	//
+	// Types that are assignable to Key:
+	//	*InstanceKey_String_
+	//	*InstanceKey_Int
+	Key isInstanceKey_Key `protobuf_oneof:"key"`
+}
+
+func (x *InstanceKey) Reset() {
+	*x = InstanceKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InstanceKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstanceKey) ProtoMessage() {}
+
+func (x *InstanceKey) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstanceKey.ProtoReflect.Descriptor instead.
+func (*InstanceKey) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{12}
+}
+
+func (m *InstanceKey) GetKey() isInstanceKey_Key {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (x *InstanceKey) GetString_() string {
+	if x, ok := x.GetKey().(*InstanceKey_String_); ok {
+		return x.String_
+	}
+	return ""
+}
+
+func (x *InstanceKey) GetInt() int64 {
+	if x, ok := x.GetKey().(*InstanceKey_Int); ok {
+		return x.Int
+	}
+	return 0
+}
+
+type isInstanceKey_Key interface {
+	isInstanceKey_Key()
+}
+
+type InstanceKey_String_ struct {
+	String_ string `protobuf:"bytes,1,opt,name=string,proto3,oneof"`
+}
+
+type InstanceKey_Int struct {
+	Int int64 `protobuf:"varint,2,opt,name=int,proto3,oneof"`
+}
+
+func (*InstanceKey_String_) isInstanceKey_Key() {}
+
+func (*InstanceKey_Int) isInstanceKey_Key() {}
+
+// DynamicValue represents an arbitrary value in the Terraform language type
+// system, such as the value of an input variable or an output value.
+type DynamicValue struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Msgpack []byte `protobuf:"bytes,1,opt,name=msgpack,proto3" json:"msgpack,omitempty"`
+	// Set to true if the value is considered sensitive, either because it
+	// was explicitly declared as such or because it was derived from some
+	// other value marked as sensitive.
+	Sensitive bool `protobuf:"varint,2,opt,name=sensitive,proto3" json:"sensitive,omitempty"`
+}
+
+func (x *DynamicValue) Reset() {
+	*x = DynamicValue{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DynamicValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DynamicValue) ProtoMessage() {}
+
+func (x *DynamicValue) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DynamicValue.ProtoReflect.Descriptor instead.
+func (*DynamicValue) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *DynamicValue) GetMsgpack() []byte {
+	if x != nil {
+		return x.Msgpack
+	}
+	return nil
+}
+
+func (x *DynamicValue) GetSensitive() bool {
+	if x != nil {
+		return x.Sensitive
+	}
+	return false
+}
+
 type Diagnostic struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -203,7 +885,7 @@ type Diagnostic struct {
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[3]
+		mi := &file_tfcore_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -216,7 +898,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[3]
+	mi := &file_tfcore_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +911,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_tfcore_proto_rawDescGZIP(), []int{3}
+	return file_tfcore_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Diagnostic) GetSeverity() Diagnostic_Severity {
@@ -287,7 +969,7 @@ type SourceRange struct {
 func (x *SourceRange) Reset() {
 	*x = SourceRange{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[4]
+		mi := &file_tfcore_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -300,7 +982,7 @@ func (x *SourceRange) String() string {
 func (*SourceRange) ProtoMessage() {}
 
 func (x *SourceRange) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[4]
+	mi := &file_tfcore_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -313,7 +995,7 @@ func (x *SourceRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceRange.ProtoReflect.Descriptor instead.
 func (*SourceRange) Descriptor() ([]byte, []int) {
-	return file_tfcore_proto_rawDescGZIP(), []int{4}
+	return file_tfcore_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *SourceRange) GetFilename() string {
@@ -346,7 +1028,7 @@ type OpenConfigCwd_Request struct {
 func (x *OpenConfigCwd_Request) Reset() {
 	*x = OpenConfigCwd_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[5]
+		mi := &file_tfcore_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -359,7 +1041,7 @@ func (x *OpenConfigCwd_Request) String() string {
 func (*OpenConfigCwd_Request) ProtoMessage() {}
 
 func (x *OpenConfigCwd_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[5]
+	mi := &file_tfcore_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +1078,7 @@ type OpenConfigCwd_Response struct {
 func (x *OpenConfigCwd_Response) Reset() {
 	*x = OpenConfigCwd_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[6]
+		mi := &file_tfcore_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -409,7 +1091,7 @@ func (x *OpenConfigCwd_Response) String() string {
 func (*OpenConfigCwd_Response) ProtoMessage() {}
 
 func (x *OpenConfigCwd_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[6]
+	mi := &file_tfcore_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,7 +1132,7 @@ type CloseConfig_Request struct {
 func (x *CloseConfig_Request) Reset() {
 	*x = CloseConfig_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[7]
+		mi := &file_tfcore_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -463,7 +1145,7 @@ func (x *CloseConfig_Request) String() string {
 func (*CloseConfig_Request) ProtoMessage() {}
 
 func (x *CloseConfig_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[7]
+	mi := &file_tfcore_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +1177,7 @@ type CloseConfig_Response struct {
 func (x *CloseConfig_Response) Reset() {
 	*x = CloseConfig_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[8]
+		mi := &file_tfcore_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -508,7 +1190,7 @@ func (x *CloseConfig_Response) String() string {
 func (*CloseConfig_Response) ProtoMessage() {}
 
 func (x *CloseConfig_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[8]
+	mi := &file_tfcore_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -535,7 +1217,7 @@ type ValidateConfig_Request struct {
 func (x *ValidateConfig_Request) Reset() {
 	*x = ValidateConfig_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[9]
+		mi := &file_tfcore_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -548,7 +1230,7 @@ func (x *ValidateConfig_Request) String() string {
 func (*ValidateConfig_Request) ProtoMessage() {}
 
 func (x *ValidateConfig_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[9]
+	mi := &file_tfcore_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -582,7 +1264,7 @@ type ValidateConfig_Response struct {
 func (x *ValidateConfig_Response) Reset() {
 	*x = ValidateConfig_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[10]
+		mi := &file_tfcore_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -595,7 +1277,7 @@ func (x *ValidateConfig_Response) String() string {
 func (*ValidateConfig_Response) ProtoMessage() {}
 
 func (x *ValidateConfig_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[10]
+	mi := &file_tfcore_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,6 +1300,529 @@ func (x *ValidateConfig_Response) GetDiagnostics() []*Diagnostic {
 	return nil
 }
 
+type CreatePlan_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ConfigId     uint64       `protobuf:"varint,1,opt,name=config_id,json=configId,proto3" json:"config_id,omitempty"`
+	PrevRunState []byte       `protobuf:"bytes,2,opt,name=prev_run_state,json=prevRunState,proto3" json:"prev_run_state,omitempty"`
+	Options      *PlanOptions `protobuf:"bytes,3,opt,name=options,proto3" json:"options,omitempty"`
+}
+
+func (x *CreatePlan_Request) Reset() {
+	*x = CreatePlan_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[22]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreatePlan_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePlan_Request) ProtoMessage() {}
+
+func (x *CreatePlan_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[22]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePlan_Request.ProtoReflect.Descriptor instead.
+func (*CreatePlan_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *CreatePlan_Request) GetConfigId() uint64 {
+	if x != nil {
+		return x.ConfigId
+	}
+	return 0
+}
+
+func (x *CreatePlan_Request) GetPrevRunState() []byte {
+	if x != nil {
+		return x.PrevRunState
+	}
+	return nil
+}
+
+func (x *CreatePlan_Request) GetOptions() *PlanOptions {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+type CreatePlan_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Opaque unique id for an in-memory plan. The plan will be lost once
+	// the RPC server exits, but callers can export it to use in a later
+	// operation using the ExportPlan and ImportPlan operations.
+	//
+	// If plan_id is zero (unset) then the input was invalid or one of
+	// the resource planning operations failed, and so there should be
+	// error diagnostics explaining what went wrong. Zero is never a valid
+	// plan id.
+	PlanId      uint64        `protobuf:"varint,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+	// An approximation of the expected output values that should result
+	// from applying this plan.
+	//
+	// Some of the planned output values might be unknown value
+	// placeholders, if they are derived from resource instance attributes
+	// that a provider won't know until the apply step.
+	PlannedOutputValues map[string]*DynamicValue `protobuf:"bytes,3,rep,name=planned_output_values,json=plannedOutputValues,proto3" json:"planned_output_values,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+}
+
+func (x *CreatePlan_Response) Reset() {
+	*x = CreatePlan_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[23]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreatePlan_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePlan_Response) ProtoMessage() {}
+
+func (x *CreatePlan_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[23]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePlan_Response.ProtoReflect.Descriptor instead.
+func (*CreatePlan_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{3, 1}
+}
+
+func (x *CreatePlan_Response) GetPlanId() uint64 {
+	if x != nil {
+		return x.PlanId
+	}
+	return 0
+}
+
+func (x *CreatePlan_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
+func (x *CreatePlan_Response) GetPlannedOutputValues() map[string]*DynamicValue {
+	if x != nil {
+		return x.PlannedOutputValues
+	}
+	return nil
+}
+
+type DiscardPlan_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlanId uint64 `protobuf:"varint,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+}
+
+func (x *DiscardPlan_Request) Reset() {
+	*x = DiscardPlan_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[25]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DiscardPlan_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardPlan_Request) ProtoMessage() {}
+
+func (x *DiscardPlan_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[25]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardPlan_Request.ProtoReflect.Descriptor instead.
+func (*DiscardPlan_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *DiscardPlan_Request) GetPlanId() uint64 {
+	if x != nil {
+		return x.PlanId
+	}
+	return 0
+}
+
+type DiscardPlan_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *DiscardPlan_Response) Reset() {
+	*x = DiscardPlan_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[26]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DiscardPlan_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardPlan_Response) ProtoMessage() {}
+
+func (x *DiscardPlan_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[26]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardPlan_Response.ProtoReflect.Descriptor instead.
+func (*DiscardPlan_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{4, 1}
+}
+
+type ExportPlan_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlanId uint64 `protobuf:"varint,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+}
+
+func (x *ExportPlan_Request) Reset() {
+	*x = ExportPlan_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[27]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExportPlan_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportPlan_Request) ProtoMessage() {}
+
+func (x *ExportPlan_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[27]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportPlan_Request.ProtoReflect.Descriptor instead.
+func (*ExportPlan_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{5, 0}
+}
+
+func (x *ExportPlan_Request) GetPlanId() uint64 {
+	if x != nil {
+		return x.PlanId
+	}
+	return 0
+}
+
+type ExportPlan_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// An opaque serialization of the plan, which the caller
+	// can store verbatim and then submit back to ImportPlan of a
+	// subsequent RPC server of the same Terraform Core version
+	// running against the same working directory.
+	RawPlan []byte `protobuf:"bytes,1,opt,name=raw_plan,json=rawPlan,proto3" json:"raw_plan,omitempty"`
+}
+
+func (x *ExportPlan_Response) Reset() {
+	*x = ExportPlan_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[28]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExportPlan_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportPlan_Response) ProtoMessage() {}
+
+func (x *ExportPlan_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[28]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportPlan_Response.ProtoReflect.Descriptor instead.
+func (*ExportPlan_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{5, 1}
+}
+
+func (x *ExportPlan_Response) GetRawPlan() []byte {
+	if x != nil {
+		return x.RawPlan
+	}
+	return nil
+}
+
+type ImportPlan_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// An unmodified byte stream previously returned from a call
+	// to ExportPlan, possibly from another RPC server instance but
+	// still of the same Terraform Core version running against
+	// the same working directory.
+	RawPlan []byte `protobuf:"bytes,1,opt,name=raw_plan,json=rawPlan,proto3" json:"raw_plan,omitempty"`
+}
+
+func (x *ImportPlan_Request) Reset() {
+	*x = ImportPlan_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[29]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ImportPlan_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportPlan_Request) ProtoMessage() {}
+
+func (x *ImportPlan_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[29]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportPlan_Request.ProtoReflect.Descriptor instead.
+func (*ImportPlan_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{6, 0}
+}
+
+func (x *ImportPlan_Request) GetRawPlan() []byte {
+	if x != nil {
+		return x.RawPlan
+	}
+	return nil
+}
+
+type ImportPlan_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlanId uint64 `protobuf:"varint,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+}
+
+func (x *ImportPlan_Response) Reset() {
+	*x = ImportPlan_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[30]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ImportPlan_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportPlan_Response) ProtoMessage() {}
+
+func (x *ImportPlan_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[30]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportPlan_Response.ProtoReflect.Descriptor instead.
+func (*ImportPlan_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{6, 1}
+}
+
+func (x *ImportPlan_Response) GetPlanId() uint64 {
+	if x != nil {
+		return x.PlanId
+	}
+	return 0
+}
+
+type ApplyPlan_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlanId uint64 `protobuf:"varint,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+}
+
+func (x *ApplyPlan_Request) Reset() {
+	*x = ApplyPlan_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[31]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ApplyPlan_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyPlan_Request) ProtoMessage() {}
+
+func (x *ApplyPlan_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[31]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyPlan_Request.ProtoReflect.Descriptor instead.
+func (*ApplyPlan_Request) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{7, 0}
+}
+
+func (x *ApplyPlan_Request) GetPlanId() uint64 {
+	if x != nil {
+		return x.PlanId
+	}
+	return 0
+}
+
+type ApplyPlan_Response struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	NewState    []byte        `protobuf:"bytes,1,opt,name=new_state,json=newState,proto3" json:"new_state,omitempty"`
+	Diagnostics []*Diagnostic `protobuf:"bytes,2,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
+}
+
+func (x *ApplyPlan_Response) Reset() {
+	*x = ApplyPlan_Response{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_tfcore_proto_msgTypes[32]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ApplyPlan_Response) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyPlan_Response) ProtoMessage() {}
+
+func (x *ApplyPlan_Response) ProtoReflect() protoreflect.Message {
+	mi := &file_tfcore_proto_msgTypes[32]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyPlan_Response.ProtoReflect.Descriptor instead.
+func (*ApplyPlan_Response) Descriptor() ([]byte, []int) {
+	return file_tfcore_proto_rawDescGZIP(), []int{7, 1}
+}
+
+func (x *ApplyPlan_Response) GetNewState() []byte {
+	if x != nil {
+		return x.NewState
+	}
+	return nil
+}
+
+func (x *ApplyPlan_Response) GetDiagnostics() []*Diagnostic {
+	if x != nil {
+		return x.Diagnostics
+	}
+	return nil
+}
+
 type SourceRange_Pos struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -631,7 +1836,7 @@ type SourceRange_Pos struct {
 func (x *SourceRange_Pos) Reset() {
 	*x = SourceRange_Pos{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_tfcore_proto_msgTypes[11]
+		mi := &file_tfcore_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -644,7 +1849,7 @@ func (x *SourceRange_Pos) String() string {
 func (*SourceRange_Pos) ProtoMessage() {}
 
 func (x *SourceRange_Pos) ProtoReflect() protoreflect.Message {
-	mi := &file_tfcore_proto_msgTypes[11]
+	mi := &file_tfcore_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -657,7 +1862,7 @@ func (x *SourceRange_Pos) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceRange_Pos.ProtoReflect.Descriptor instead.
 func (*SourceRange_Pos) Descriptor() ([]byte, []int) {
-	return file_tfcore_proto_rawDescGZIP(), []int{4, 0}
+	return file_tfcore_proto_rawDescGZIP(), []int{15, 0}
 }
 
 func (x *SourceRange_Pos) GetLine() int64 {
@@ -705,58 +1910,190 @@ var file_tfcore_proto_rawDesc = []byte{
 	0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28,
 	0x0b, 0x32, 0x13, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67,
 	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
-	0x69, 0x63, 0x73, 0x22, 0xa3, 0x02, 0x0a, 0x0a, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
-	0x69, 0x63, 0x12, 0x38, 0x0a, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0e, 0x32, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44,
-	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x2e, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69,
-	0x74, 0x79, 0x52, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x18, 0x0a, 0x07,
-	0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73,
-	0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c,
-	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x12, 0x18,
-	0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x2e, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a,
-	0x65, 0x63, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f,
-	0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52,
-	0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x2e, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74,
-	0x65, 0x78, 0x74, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f,
-	0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52,
-	0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x22, 0x2f, 0x0a, 0x08, 0x53, 0x65, 0x76, 0x65,
-	0x72, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56, 0x41, 0x4c, 0x49, 0x44, 0x10,
-	0x00, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07,
-	0x57, 0x41, 0x52, 0x4e, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x22, 0xcc, 0x01, 0x0a, 0x0b, 0x53, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c,
-	0x65, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c,
-	0x65, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x2e, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f, 0x73, 0x52, 0x05,
-	0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x2a, 0x0a, 0x03, 0x65, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x18, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75,
-	0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f, 0x73, 0x52, 0x03, 0x65, 0x6e,
-	0x64, 0x1a, 0x45, 0x0a, 0x03, 0x50, 0x6f, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x69, 0x6e, 0x65,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x16, 0x0a, 0x06,
-	0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x63, 0x6f,
-	0x6c, 0x75, 0x6d, 0x6e, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x79, 0x74, 0x65, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x03, 0x52, 0x04, 0x62, 0x79, 0x74, 0x65, 0x32, 0xfe, 0x01, 0x0a, 0x09, 0x54, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x12, 0x50, 0x0a, 0x0d, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x12, 0x1e, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
-	0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x2e,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
-	0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x2e,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4a, 0x0a, 0x0b, 0x43, 0x6c, 0x6f, 0x73,
-	0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
-	0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e,
-	0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x53, 0x0a, 0x0e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65,
-	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1f, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
+	0x69, 0x63, 0x73, 0x22, 0xb1, 0x03, 0x0a, 0x0a, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x6c,
+	0x61, 0x6e, 0x1a, 0x7c, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b, 0x0a,
+	0x09, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x08, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x49, 0x64, 0x12, 0x24, 0x0a, 0x0e, 0x70, 0x72,
+	0x65, 0x76, 0x5f, 0x72, 0x75, 0x6e, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0c, 0x52, 0x0c, 0x70, 0x72, 0x65, 0x76, 0x52, 0x75, 0x6e, 0x53, 0x74, 0x61, 0x74, 0x65,
+	0x12, 0x2e, 0x0a, 0x07, 0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e,
+	0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x52, 0x07, 0x6f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x1a, 0xa4, 0x02, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x17, 0x0a,
+	0x07, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x06,
+	0x70, 0x6c, 0x61, 0x6e, 0x49, 0x64, 0x12, 0x35, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f,
+	0x73, 0x74, 0x69, 0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x74, 0x66,
+	0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63,
+	0x52, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x12, 0x69, 0x0a,
+	0x15, 0x70, 0x6c, 0x61, 0x6e, 0x6e, 0x65, 0x64, 0x5f, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x5f,
+	0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x35, 0x2e, 0x74,
+	0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x61,
+	0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x6e,
+	0x65, 0x64, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x45, 0x6e,
+	0x74, 0x72, 0x79, 0x52, 0x13, 0x70, 0x6c, 0x61, 0x6e, 0x6e, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x70,
+	0x75, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x1a, 0x5d, 0x0a, 0x18, 0x50, 0x6c, 0x61, 0x6e,
+	0x6e, 0x65, 0x64, 0x4f, 0x75, 0x74, 0x70, 0x75, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x45,
+	0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x2b, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e,
+	0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69, 0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22, 0x3d, 0x0a, 0x0b, 0x44, 0x69, 0x73, 0x63, 0x61,
+	0x72, 0x64, 0x50, 0x6c, 0x61, 0x6e, 0x1a, 0x22, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x17, 0x0a, 0x07, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x06, 0x70, 0x6c, 0x61, 0x6e, 0x49, 0x64, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x57, 0x0a, 0x0a, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74,
+	0x50, 0x6c, 0x61, 0x6e, 0x1a, 0x22, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12,
+	0x17, 0x0a, 0x07, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x06, 0x70, 0x6c, 0x61, 0x6e, 0x49, 0x64, 0x1a, 0x25, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x19, 0x0a, 0x08, 0x72, 0x61, 0x77, 0x5f, 0x70, 0x6c, 0x61, 0x6e,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x72, 0x61, 0x77, 0x50, 0x6c, 0x61, 0x6e, 0x22,
+	0x57, 0x0a, 0x0a, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e, 0x1a, 0x24, 0x0a,
+	0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x19, 0x0a, 0x08, 0x72, 0x61, 0x77, 0x5f,
+	0x70, 0x6c, 0x61, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x72, 0x61, 0x77, 0x50,
+	0x6c, 0x61, 0x6e, 0x1a, 0x23, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x17, 0x0a, 0x07, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x06, 0x70, 0x6c, 0x61, 0x6e, 0x49, 0x64, 0x22, 0x8f, 0x01, 0x0a, 0x09, 0x41, 0x70, 0x70,
+	0x6c, 0x79, 0x50, 0x6c, 0x61, 0x6e, 0x1a, 0x22, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x17, 0x0a, 0x07, 0x70, 0x6c, 0x61, 0x6e, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x06, 0x70, 0x6c, 0x61, 0x6e, 0x49, 0x64, 0x1a, 0x5e, 0x0a, 0x08, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1b, 0x0a, 0x09, 0x6e, 0x65, 0x77, 0x5f, 0x73, 0x74,
+	0x61, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x08, 0x6e, 0x65, 0x77, 0x53, 0x74,
+	0x61, 0x74, 0x65, 0x12, 0x35, 0x0a, 0x0b, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69,
+	0x63, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x52, 0x0b, 0x64,
+	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x73, 0x22, 0xfa, 0x02, 0x0a, 0x0b, 0x50,
+	0x6c, 0x61, 0x6e, 0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x12, 0x2d, 0x0a, 0x04, 0x6d, 0x6f,
+	0x64, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x19, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x4f, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x4d,
+	0x6f, 0x64, 0x65, 0x52, 0x04, 0x6d, 0x6f, 0x64, 0x65, 0x12, 0x4b, 0x0a, 0x0d, 0x76, 0x61, 0x72,
+	0x69, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x64, 0x65, 0x66, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x26, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x4f,
+	0x70, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x56, 0x61, 0x72, 0x69, 0x61, 0x62, 0x6c, 0x65, 0x44,
+	0x65, 0x66, 0x73, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x52, 0x0c, 0x76, 0x61, 0x72, 0x69, 0x61, 0x62,
+	0x6c, 0x65, 0x44, 0x65, 0x66, 0x73, 0x12, 0x21, 0x0a, 0x0c, 0x73, 0x6b, 0x69, 0x70, 0x5f, 0x72,
+	0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x18, 0x03, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0b, 0x73, 0x6b,
+	0x69, 0x70, 0x52, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68, 0x12, 0x41, 0x0a, 0x0d, 0x66, 0x6f, 0x72,
+	0x63, 0x65, 0x5f, 0x72, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x41, 0x62, 0x73, 0x52, 0x65,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x52, 0x0c,
+	0x66, 0x6f, 0x72, 0x63, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65, 0x1a, 0x56, 0x0a, 0x11,
+	0x56, 0x61, 0x72, 0x69, 0x61, 0x62, 0x6c, 0x65, 0x44, 0x65, 0x66, 0x73, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03,
+	0x6b, 0x65, 0x79, 0x12, 0x2b, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x79, 0x6e,
+	0x61, 0x6d, 0x69, 0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x3a, 0x02, 0x38, 0x01, 0x22, 0x31, 0x0a, 0x04, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x0a, 0x0a, 0x06,
+	0x4e, 0x4f, 0x52, 0x4d, 0x41, 0x4c, 0x10, 0x00, 0x12, 0x10, 0x0a, 0x0c, 0x52, 0x45, 0x46, 0x52,
+	0x45, 0x53, 0x48, 0x5f, 0x4f, 0x4e, 0x4c, 0x59, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07, 0x44, 0x45,
+	0x53, 0x54, 0x52, 0x4f, 0x59, 0x10, 0x02, 0x22, 0x95, 0x01, 0x0a, 0x0b, 0x41, 0x62, 0x73, 0x52,
+	0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x33, 0x0a, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c,
+	0x65, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
+	0x31, 0x2e, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65,
+	0x53, 0x74, 0x65, 0x70, 0x52, 0x06, 0x6d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x12, 0x29, 0x0a, 0x04,
+	0x6d, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x15, 0x2e, 0x74, 0x66, 0x63,
+	0x6f, 0x72, 0x65, 0x31, 0x2e, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4d, 0x6f, 0x64,
+	0x65, 0x52, 0x04, 0x6d, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22,
+	0x6f, 0x0a, 0x13, 0x41, 0x62, 0x73, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x6e,
+	0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x12, 0x30, 0x0a, 0x08, 0x72, 0x65, 0x73, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x41, 0x62, 0x73, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x08,
+	0x72, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x26, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e,
+	0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4b, 0x65, 0x79, 0x52, 0x03, 0x6b, 0x65, 0x79,
+	0x22, 0x50, 0x0a, 0x12, 0x4d, 0x6f, 0x64, 0x75, 0x6c, 0x65, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e,
+	0x63, 0x65, 0x53, 0x74, 0x65, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x26, 0x0a, 0x03, 0x6b, 0x65,
+	0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
+	0x31, 0x2e, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4b, 0x65, 0x79, 0x52, 0x03, 0x6b,
+	0x65, 0x79, 0x22, 0x42, 0x0a, 0x0b, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6e, 0x63, 0x65, 0x4b, 0x65,
+	0x79, 0x12, 0x18, 0x0a, 0x06, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x48, 0x00, 0x52, 0x06, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x12, 0x12, 0x0a, 0x03, 0x69,
+	0x6e, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52, 0x03, 0x69, 0x6e, 0x74, 0x42,
+	0x05, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x46, 0x0a, 0x0c, 0x44, 0x79, 0x6e, 0x61, 0x6d, 0x69,
+	0x63, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x6d, 0x73, 0x67, 0x70, 0x61, 0x63,
+	0x6b, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x6d, 0x73, 0x67, 0x70, 0x61, 0x63, 0x6b,
+	0x12, 0x1c, 0x0a, 0x09, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x08, 0x52, 0x09, 0x73, 0x65, 0x6e, 0x73, 0x69, 0x74, 0x69, 0x76, 0x65, 0x22, 0xa3,
+	0x02, 0x0a, 0x0a, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x12, 0x38, 0x0a,
+	0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32,
+	0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f,
+	0x73, 0x74, 0x69, 0x63, 0x2e, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x52, 0x08, 0x73,
+	0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61,
+	0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72,
+	0x79, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64,
+	0x72, 0x65, 0x73, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72,
+	0x65, 0x73, 0x73, 0x12, 0x2e, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x05,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6a,
+	0x65, 0x63, 0x74, 0x12, 0x2e, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x14, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74,
+	0x65, 0x78, 0x74, 0x22, 0x2f, 0x0a, 0x08, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12,
+	0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56, 0x41, 0x4c, 0x49, 0x44, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05,
+	0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07, 0x57, 0x41, 0x52, 0x4e, 0x49,
+	0x4e, 0x47, 0x10, 0x02, 0x22, 0xcc, 0x01, 0x0a, 0x0b, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52,
+	0x61, 0x6e, 0x67, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x66, 0x69, 0x6c, 0x65, 0x6e, 0x61, 0x6d, 0x65,
+	0x12, 0x2e, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x18, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x52, 0x61, 0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f, 0x73, 0x52, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74,
+	0x12, 0x2a, 0x0a, 0x03, 0x65, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x18, 0x2e,
+	0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61,
+	0x6e, 0x67, 0x65, 0x2e, 0x50, 0x6f, 0x73, 0x52, 0x03, 0x65, 0x6e, 0x64, 0x1a, 0x45, 0x0a, 0x03,
+	0x50, 0x6f, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x03, 0x52, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d,
+	0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x12,
+	0x12, 0x0a, 0x04, 0x62, 0x79, 0x74, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x62,
+	0x79, 0x74, 0x65, 0x2a, 0x32, 0x0a, 0x0c, 0x52, 0x65, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x4d,
+	0x6f, 0x64, 0x65, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56, 0x41, 0x4c, 0x49, 0x44, 0x10, 0x00,
+	0x12, 0x0b, 0x0a, 0x07, 0x4d, 0x41, 0x4e, 0x41, 0x47, 0x45, 0x44, 0x10, 0x01, 0x12, 0x08, 0x0a,
+	0x04, 0x44, 0x41, 0x54, 0x41, 0x10, 0x02, 0x32, 0xeb, 0x04, 0x0a, 0x09, 0x54, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x12, 0x50, 0x0a, 0x0d, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x12, 0x1e, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
+	0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1f, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
+	0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x43, 0x77, 0x64, 0x2e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x4a, 0x0a, 0x0b, 0x43, 0x6c, 0x6f, 0x73, 0x65,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
+	0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x43,
+	0x6c, 0x6f, 0x73, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x53, 0x0a, 0x0e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x43,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1f, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e,
+	0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x20, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
 	0x2e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x20, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65,
-	0x31, 0x2e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x61, 0x74, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
-	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x38, 0x5a, 0x36, 0x67, 0x69, 0x74,
-	0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72,
-	0x70, 0x2f, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x69, 0x6e, 0x74, 0x65,
-	0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x72, 0x70, 0x63, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x66, 0x63, 0x6f,
-	0x72, 0x65, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x47, 0x0a, 0x0a, 0x43, 0x72, 0x65, 0x61,
+	0x74, 0x65, 0x50, 0x6c, 0x61, 0x6e, 0x12, 0x1b, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31,
+	0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x43, 0x72,
+	0x65, 0x61, 0x74, 0x65, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x4a, 0x0a, 0x0b, 0x44, 0x69, 0x73, 0x63, 0x61, 0x72, 0x64, 0x50, 0x6c, 0x61, 0x6e,
+	0x12, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x73, 0x63, 0x61,
+	0x72, 0x64, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d,
+	0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x44, 0x69, 0x73, 0x63, 0x61, 0x72, 0x64,
+	0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x47, 0x0a,
+	0x0a, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e, 0x12, 0x1b, 0x2e, 0x74, 0x66,
+	0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e,
+	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x45, 0x78, 0x70, 0x6f, 0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x47, 0x0a, 0x0a, 0x49, 0x6d, 0x70, 0x6f, 0x72, 0x74,
+	0x50, 0x6c, 0x61, 0x6e, 0x12, 0x1b, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x49,
+	0x6d, 0x70, 0x6f, 0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x1c, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x49, 0x6d, 0x70, 0x6f,
+	0x72, 0x74, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x44, 0x0a, 0x09, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x50, 0x6c, 0x61, 0x6e, 0x12, 0x1a, 0x2e, 0x74,
+	0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x50, 0x6c, 0x61, 0x6e,
+	0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x74, 0x66, 0x63, 0x6f, 0x72,
+	0x65, 0x31, 0x2e, 0x41, 0x70, 0x70, 0x6c, 0x79, 0x50, 0x6c, 0x61, 0x6e, 0x2e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x38, 0x5a, 0x36, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x68, 0x61, 0x73, 0x68, 0x69, 0x63, 0x6f, 0x72, 0x70, 0x2f, 0x74, 0x65,
+	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c,
+	0x2f, 0x72, 0x70, 0x63, 0x61, 0x70, 0x69, 0x2f, 0x74, 0x66, 0x63, 0x6f, 0x72, 0x65, 0x31, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -771,42 +2108,91 @@ func file_tfcore_proto_rawDescGZIP() []byte {
 	return file_tfcore_proto_rawDescData
 }
 
-var file_tfcore_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tfcore_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_tfcore_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_tfcore_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_tfcore_proto_goTypes = []interface{}{
-	(Diagnostic_Severity)(0),        // 0: tfcore1.Diagnostic.Severity
-	(*OpenConfigCwd)(nil),           // 1: tfcore1.OpenConfigCwd
-	(*CloseConfig)(nil),             // 2: tfcore1.CloseConfig
-	(*ValidateConfig)(nil),          // 3: tfcore1.ValidateConfig
-	(*Diagnostic)(nil),              // 4: tfcore1.Diagnostic
-	(*SourceRange)(nil),             // 5: tfcore1.SourceRange
-	(*OpenConfigCwd_Request)(nil),   // 6: tfcore1.OpenConfigCwd.Request
-	(*OpenConfigCwd_Response)(nil),  // 7: tfcore1.OpenConfigCwd.Response
-	(*CloseConfig_Request)(nil),     // 8: tfcore1.CloseConfig.Request
-	(*CloseConfig_Response)(nil),    // 9: tfcore1.CloseConfig.Response
-	(*ValidateConfig_Request)(nil),  // 10: tfcore1.ValidateConfig.Request
-	(*ValidateConfig_Response)(nil), // 11: tfcore1.ValidateConfig.Response
-	(*SourceRange_Pos)(nil),         // 12: tfcore1.SourceRange.Pos
+	(ResourceMode)(0),               // 0: tfcore1.ResourceMode
+	(PlanOptions_Mode)(0),           // 1: tfcore1.PlanOptions.Mode
+	(Diagnostic_Severity)(0),        // 2: tfcore1.Diagnostic.Severity
+	(*OpenConfigCwd)(nil),           // 3: tfcore1.OpenConfigCwd
+	(*CloseConfig)(nil),             // 4: tfcore1.CloseConfig
+	(*ValidateConfig)(nil),          // 5: tfcore1.ValidateConfig
+	(*CreatePlan)(nil),              // 6: tfcore1.CreatePlan
+	(*DiscardPlan)(nil),             // 7: tfcore1.DiscardPlan
+	(*ExportPlan)(nil),              // 8: tfcore1.ExportPlan
+	(*ImportPlan)(nil),              // 9: tfcore1.ImportPlan
+	(*ApplyPlan)(nil),               // 10: tfcore1.ApplyPlan
+	(*PlanOptions)(nil),             // 11: tfcore1.PlanOptions
+	(*AbsResource)(nil),             // 12: tfcore1.AbsResource
+	(*AbsResourceInstance)(nil),     // 13: tfcore1.AbsResourceInstance
+	(*ModuleInstanceStep)(nil),      // 14: tfcore1.ModuleInstanceStep
+	(*InstanceKey)(nil),             // 15: tfcore1.InstanceKey
+	(*DynamicValue)(nil),            // 16: tfcore1.DynamicValue
+	(*Diagnostic)(nil),              // 17: tfcore1.Diagnostic
+	(*SourceRange)(nil),             // 18: tfcore1.SourceRange
+	(*OpenConfigCwd_Request)(nil),   // 19: tfcore1.OpenConfigCwd.Request
+	(*OpenConfigCwd_Response)(nil),  // 20: tfcore1.OpenConfigCwd.Response
+	(*CloseConfig_Request)(nil),     // 21: tfcore1.CloseConfig.Request
+	(*CloseConfig_Response)(nil),    // 22: tfcore1.CloseConfig.Response
+	(*ValidateConfig_Request)(nil),  // 23: tfcore1.ValidateConfig.Request
+	(*ValidateConfig_Response)(nil), // 24: tfcore1.ValidateConfig.Response
+	(*CreatePlan_Request)(nil),      // 25: tfcore1.CreatePlan.Request
+	(*CreatePlan_Response)(nil),     // 26: tfcore1.CreatePlan.Response
+	nil,                             // 27: tfcore1.CreatePlan.Response.PlannedOutputValuesEntry
+	(*DiscardPlan_Request)(nil),     // 28: tfcore1.DiscardPlan.Request
+	(*DiscardPlan_Response)(nil),    // 29: tfcore1.DiscardPlan.Response
+	(*ExportPlan_Request)(nil),      // 30: tfcore1.ExportPlan.Request
+	(*ExportPlan_Response)(nil),     // 31: tfcore1.ExportPlan.Response
+	(*ImportPlan_Request)(nil),      // 32: tfcore1.ImportPlan.Request
+	(*ImportPlan_Response)(nil),     // 33: tfcore1.ImportPlan.Response
+	(*ApplyPlan_Request)(nil),       // 34: tfcore1.ApplyPlan.Request
+	(*ApplyPlan_Response)(nil),      // 35: tfcore1.ApplyPlan.Response
+	nil,                             // 36: tfcore1.PlanOptions.VariableDefsEntry
+	(*SourceRange_Pos)(nil),         // 37: tfcore1.SourceRange.Pos
 }
 var file_tfcore_proto_depIdxs = []int32{
-	0,  // 0: tfcore1.Diagnostic.severity:type_name -> tfcore1.Diagnostic.Severity
-	5,  // 1: tfcore1.Diagnostic.subject:type_name -> tfcore1.SourceRange
-	5,  // 2: tfcore1.Diagnostic.context:type_name -> tfcore1.SourceRange
-	12, // 3: tfcore1.SourceRange.start:type_name -> tfcore1.SourceRange.Pos
-	12, // 4: tfcore1.SourceRange.end:type_name -> tfcore1.SourceRange.Pos
-	4,  // 5: tfcore1.OpenConfigCwd.Response.diagnostics:type_name -> tfcore1.Diagnostic
-	4,  // 6: tfcore1.ValidateConfig.Response.diagnostics:type_name -> tfcore1.Diagnostic
-	6,  // 7: tfcore1.Terraform.OpenConfigCwd:input_type -> tfcore1.OpenConfigCwd.Request
-	8,  // 8: tfcore1.Terraform.CloseConfig:input_type -> tfcore1.CloseConfig.Request
-	10, // 9: tfcore1.Terraform.ValidateConfig:input_type -> tfcore1.ValidateConfig.Request
-	7,  // 10: tfcore1.Terraform.OpenConfigCwd:output_type -> tfcore1.OpenConfigCwd.Response
-	9,  // 11: tfcore1.Terraform.CloseConfig:output_type -> tfcore1.CloseConfig.Response
-	11, // 12: tfcore1.Terraform.ValidateConfig:output_type -> tfcore1.ValidateConfig.Response
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	1,  // 0: tfcore1.PlanOptions.mode:type_name -> tfcore1.PlanOptions.Mode
+	36, // 1: tfcore1.PlanOptions.variable_defs:type_name -> tfcore1.PlanOptions.VariableDefsEntry
+	13, // 2: tfcore1.PlanOptions.force_replace:type_name -> tfcore1.AbsResourceInstance
+	14, // 3: tfcore1.AbsResource.module:type_name -> tfcore1.ModuleInstanceStep
+	0,  // 4: tfcore1.AbsResource.mode:type_name -> tfcore1.ResourceMode
+	12, // 5: tfcore1.AbsResourceInstance.resource:type_name -> tfcore1.AbsResource
+	15, // 6: tfcore1.AbsResourceInstance.key:type_name -> tfcore1.InstanceKey
+	15, // 7: tfcore1.ModuleInstanceStep.key:type_name -> tfcore1.InstanceKey
+	2,  // 8: tfcore1.Diagnostic.severity:type_name -> tfcore1.Diagnostic.Severity
+	18, // 9: tfcore1.Diagnostic.subject:type_name -> tfcore1.SourceRange
+	18, // 10: tfcore1.Diagnostic.context:type_name -> tfcore1.SourceRange
+	37, // 11: tfcore1.SourceRange.start:type_name -> tfcore1.SourceRange.Pos
+	37, // 12: tfcore1.SourceRange.end:type_name -> tfcore1.SourceRange.Pos
+	17, // 13: tfcore1.OpenConfigCwd.Response.diagnostics:type_name -> tfcore1.Diagnostic
+	17, // 14: tfcore1.ValidateConfig.Response.diagnostics:type_name -> tfcore1.Diagnostic
+	11, // 15: tfcore1.CreatePlan.Request.options:type_name -> tfcore1.PlanOptions
+	17, // 16: tfcore1.CreatePlan.Response.diagnostics:type_name -> tfcore1.Diagnostic
+	27, // 17: tfcore1.CreatePlan.Response.planned_output_values:type_name -> tfcore1.CreatePlan.Response.PlannedOutputValuesEntry
+	16, // 18: tfcore1.CreatePlan.Response.PlannedOutputValuesEntry.value:type_name -> tfcore1.DynamicValue
+	17, // 19: tfcore1.ApplyPlan.Response.diagnostics:type_name -> tfcore1.Diagnostic
+	16, // 20: tfcore1.PlanOptions.VariableDefsEntry.value:type_name -> tfcore1.DynamicValue
+	19, // 21: tfcore1.Terraform.OpenConfigCwd:input_type -> tfcore1.OpenConfigCwd.Request
+	21, // 22: tfcore1.Terraform.CloseConfig:input_type -> tfcore1.CloseConfig.Request
+	23, // 23: tfcore1.Terraform.ValidateConfig:input_type -> tfcore1.ValidateConfig.Request
+	25, // 24: tfcore1.Terraform.CreatePlan:input_type -> tfcore1.CreatePlan.Request
+	28, // 25: tfcore1.Terraform.DiscardPlan:input_type -> tfcore1.DiscardPlan.Request
+	30, // 26: tfcore1.Terraform.ExportPlan:input_type -> tfcore1.ExportPlan.Request
+	32, // 27: tfcore1.Terraform.ImportPlan:input_type -> tfcore1.ImportPlan.Request
+	34, // 28: tfcore1.Terraform.ApplyPlan:input_type -> tfcore1.ApplyPlan.Request
+	20, // 29: tfcore1.Terraform.OpenConfigCwd:output_type -> tfcore1.OpenConfigCwd.Response
+	22, // 30: tfcore1.Terraform.CloseConfig:output_type -> tfcore1.CloseConfig.Response
+	24, // 31: tfcore1.Terraform.ValidateConfig:output_type -> tfcore1.ValidateConfig.Response
+	26, // 32: tfcore1.Terraform.CreatePlan:output_type -> tfcore1.CreatePlan.Response
+	29, // 33: tfcore1.Terraform.DiscardPlan:output_type -> tfcore1.DiscardPlan.Response
+	31, // 34: tfcore1.Terraform.ExportPlan:output_type -> tfcore1.ExportPlan.Response
+	33, // 35: tfcore1.Terraform.ImportPlan:output_type -> tfcore1.ImportPlan.Response
+	35, // 36: tfcore1.Terraform.ApplyPlan:output_type -> tfcore1.ApplyPlan.Response
+	29, // [29:37] is the sub-list for method output_type
+	21, // [21:29] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_tfcore_proto_init() }
@@ -852,7 +2238,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Diagnostic); i {
+			switch v := v.(*CreatePlan); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -864,7 +2250,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SourceRange); i {
+			switch v := v.(*DiscardPlan); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -876,7 +2262,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenConfigCwd_Request); i {
+			switch v := v.(*ExportPlan); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -888,7 +2274,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenConfigCwd_Response); i {
+			switch v := v.(*ImportPlan); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -900,7 +2286,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseConfig_Request); i {
+			switch v := v.(*ApplyPlan); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -912,7 +2298,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseConfig_Response); i {
+			switch v := v.(*PlanOptions); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -924,7 +2310,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ValidateConfig_Request); i {
+			switch v := v.(*AbsResource); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -936,7 +2322,7 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ValidateConfig_Response); i {
+			switch v := v.(*AbsResourceInstance); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -948,6 +2334,258 @@ func file_tfcore_proto_init() {
 			}
 		}
 		file_tfcore_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ModuleInstanceStep); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InstanceKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DynamicValue); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Diagnostic); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SourceRange); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConfigCwd_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*OpenConfigCwd_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseConfig_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CloseConfig_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ValidateConfig_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ValidateConfig_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreatePlan_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreatePlan_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DiscardPlan_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DiscardPlan_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExportPlan_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExportPlan_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ImportPlan_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ImportPlan_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ApplyPlan_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ApplyPlan_Response); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_tfcore_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SourceRange_Pos); i {
 			case 0:
 				return &v.state
@@ -960,13 +2598,17 @@ func file_tfcore_proto_init() {
 			}
 		}
 	}
+	file_tfcore_proto_msgTypes[12].OneofWrappers = []interface{}{
+		(*InstanceKey_String_)(nil),
+		(*InstanceKey_Int)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_tfcore_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   12,
+			NumEnums:      3,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -1013,6 +2655,26 @@ type TerraformClient interface {
 	// core language validation rules and any plugin-specified validation
 	// rules.
 	ValidateConfig(ctx context.Context, in *ValidateConfig_Request, opts ...grpc.CallOption) (*ValidateConfig_Response, error)
+	// CreatePlan calculates a new plan by comparing an open configuration with
+	// a previous run state snapshot.
+	CreatePlan(ctx context.Context, in *CreatePlan_Request, opts ...grpc.CallOption) (*CreatePlan_Response, error)
+	// DiscardPlan discards a plan currently cached in memory, which would've
+	// been placed there either by CreatePlan or by ImportPlan.
+	DiscardPlan(ctx context.Context, in *DiscardPlan_Request, opts ...grpc.CallOption) (*DiscardPlan_Response, error)
+	// ExportPlan returns an opaque blob serialization of a plan currently
+	// cached in memory, which can be re-imported later -- possibly to another
+	// RPC API instances as long as it's the same Terraform Core version and
+	// working directory -- using ImportPlan.
+	ExportPlan(ctx context.Context, in *ExportPlan_Request, opts ...grpc.CallOption) (*ExportPlan_Response, error)
+	// ImportPlan re-imports an opaque plan blob serialization previously
+	// produced by ExportPlan on another RPC API instance connected to the
+	// same working directory and Terraform Core version.
+	ImportPlan(ctx context.Context, in *ImportPlan_Request, opts ...grpc.CallOption) (*ImportPlan_Response, error)
+	// ApplyPlan applies a previously-created plan to real infrastructure,
+	// using provider operations, and returns the resulting new state snapshot,
+	// which the caller should then save to use as the previous run state for
+	// the next call to CreatePlan.
+	ApplyPlan(ctx context.Context, in *ApplyPlan_Request, opts ...grpc.CallOption) (*ApplyPlan_Response, error)
 }
 
 type terraformClient struct {
@@ -1050,6 +2712,51 @@ func (c *terraformClient) ValidateConfig(ctx context.Context, in *ValidateConfig
 	return out, nil
 }
 
+func (c *terraformClient) CreatePlan(ctx context.Context, in *CreatePlan_Request, opts ...grpc.CallOption) (*CreatePlan_Response, error) {
+	out := new(CreatePlan_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/CreatePlan", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *terraformClient) DiscardPlan(ctx context.Context, in *DiscardPlan_Request, opts ...grpc.CallOption) (*DiscardPlan_Response, error) {
+	out := new(DiscardPlan_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/DiscardPlan", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *terraformClient) ExportPlan(ctx context.Context, in *ExportPlan_Request, opts ...grpc.CallOption) (*ExportPlan_Response, error) {
+	out := new(ExportPlan_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/ExportPlan", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *terraformClient) ImportPlan(ctx context.Context, in *ImportPlan_Request, opts ...grpc.CallOption) (*ImportPlan_Response, error) {
+	out := new(ImportPlan_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/ImportPlan", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *terraformClient) ApplyPlan(ctx context.Context, in *ApplyPlan_Request, opts ...grpc.CallOption) (*ApplyPlan_Response, error) {
+	out := new(ApplyPlan_Response)
+	err := c.cc.Invoke(ctx, "/tfcore1.Terraform/ApplyPlan", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TerraformServer is the server API for Terraform service.
 type TerraformServer interface {
 	// OpenConfigCwd opens a new configuration by reading from the current
@@ -1072,6 +2779,26 @@ type TerraformServer interface {
 	// core language validation rules and any plugin-specified validation
 	// rules.
 	ValidateConfig(context.Context, *ValidateConfig_Request) (*ValidateConfig_Response, error)
+	// CreatePlan calculates a new plan by comparing an open configuration with
+	// a previous run state snapshot.
+	CreatePlan(context.Context, *CreatePlan_Request) (*CreatePlan_Response, error)
+	// DiscardPlan discards a plan currently cached in memory, which would've
+	// been placed there either by CreatePlan or by ImportPlan.
+	DiscardPlan(context.Context, *DiscardPlan_Request) (*DiscardPlan_Response, error)
+	// ExportPlan returns an opaque blob serialization of a plan currently
+	// cached in memory, which can be re-imported later -- possibly to another
+	// RPC API instances as long as it's the same Terraform Core version and
+	// working directory -- using ImportPlan.
+	ExportPlan(context.Context, *ExportPlan_Request) (*ExportPlan_Response, error)
+	// ImportPlan re-imports an opaque plan blob serialization previously
+	// produced by ExportPlan on another RPC API instance connected to the
+	// same working directory and Terraform Core version.
+	ImportPlan(context.Context, *ImportPlan_Request) (*ImportPlan_Response, error)
+	// ApplyPlan applies a previously-created plan to real infrastructure,
+	// using provider operations, and returns the resulting new state snapshot,
+	// which the caller should then save to use as the previous run state for
+	// the next call to CreatePlan.
+	ApplyPlan(context.Context, *ApplyPlan_Request) (*ApplyPlan_Response, error)
 }
 
 // UnimplementedTerraformServer can be embedded to have forward compatible implementations.
@@ -1086,6 +2813,21 @@ func (*UnimplementedTerraformServer) CloseConfig(context.Context, *CloseConfig_R
 }
 func (*UnimplementedTerraformServer) ValidateConfig(context.Context, *ValidateConfig_Request) (*ValidateConfig_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateConfig not implemented")
+}
+func (*UnimplementedTerraformServer) CreatePlan(context.Context, *CreatePlan_Request) (*CreatePlan_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePlan not implemented")
+}
+func (*UnimplementedTerraformServer) DiscardPlan(context.Context, *DiscardPlan_Request) (*DiscardPlan_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DiscardPlan not implemented")
+}
+func (*UnimplementedTerraformServer) ExportPlan(context.Context, *ExportPlan_Request) (*ExportPlan_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportPlan not implemented")
+}
+func (*UnimplementedTerraformServer) ImportPlan(context.Context, *ImportPlan_Request) (*ImportPlan_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportPlan not implemented")
+}
+func (*UnimplementedTerraformServer) ApplyPlan(context.Context, *ApplyPlan_Request) (*ApplyPlan_Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ApplyPlan not implemented")
 }
 
 func RegisterTerraformServer(s *grpc.Server, srv TerraformServer) {
@@ -1146,6 +2888,96 @@ func _Terraform_ValidateConfig_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Terraform_CreatePlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePlan_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).CreatePlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/CreatePlan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).CreatePlan(ctx, req.(*CreatePlan_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Terraform_DiscardPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscardPlan_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).DiscardPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/DiscardPlan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).DiscardPlan(ctx, req.(*DiscardPlan_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Terraform_ExportPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExportPlan_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).ExportPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/ExportPlan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).ExportPlan(ctx, req.(*ExportPlan_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Terraform_ImportPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportPlan_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).ImportPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/ImportPlan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).ImportPlan(ctx, req.(*ImportPlan_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Terraform_ApplyPlan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyPlan_Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TerraformServer).ApplyPlan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/tfcore1.Terraform/ApplyPlan",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TerraformServer).ApplyPlan(ctx, req.(*ApplyPlan_Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _Terraform_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "tfcore1.Terraform",
 	HandlerType: (*TerraformServer)(nil),
@@ -1161,6 +2993,26 @@ var _Terraform_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ValidateConfig",
 			Handler:    _Terraform_ValidateConfig_Handler,
+		},
+		{
+			MethodName: "CreatePlan",
+			Handler:    _Terraform_CreatePlan_Handler,
+		},
+		{
+			MethodName: "DiscardPlan",
+			Handler:    _Terraform_DiscardPlan_Handler,
+		},
+		{
+			MethodName: "ExportPlan",
+			Handler:    _Terraform_ExportPlan_Handler,
+		},
+		{
+			MethodName: "ImportPlan",
+			Handler:    _Terraform_ImportPlan_Handler,
+		},
+		{
+			MethodName: "ApplyPlan",
+			Handler:    _Terraform_ApplyPlan_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

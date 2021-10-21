@@ -100,6 +100,26 @@ func (s *tfcore1PluginServer) ValidateConfig(ctx context.Context, req *tfcore1.V
 	}, nil
 }
 
+func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, in *tfcore1.CreatePlan_Request) (*tfcore1.CreatePlan_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+}
+
+func (s *tfcore1PluginServer) DiscardPlan(ctx context.Context, in *tfcore1.DiscardPlan_Request) (*tfcore1.DiscardPlan_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+}
+
+func (s *tfcore1PluginServer) ExportPlan(ctx context.Context, in *tfcore1.ExportPlan_Request) (*tfcore1.ExportPlan_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+}
+
+func (s *tfcore1PluginServer) ImportPlan(ctx context.Context, in *tfcore1.ImportPlan_Request) (*tfcore1.ImportPlan_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+}
+
+func (s *tfcore1PluginServer) ApplyPlan(ctx context.Context, in *tfcore1.ApplyPlan_Request) (*tfcore1.ApplyPlan_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+}
+
 func (s *tfcore1PluginServer) getOpenConfig(id uint64) *configs.Config {
 	s.configsMu.Lock()
 	ret := s.configs[id]

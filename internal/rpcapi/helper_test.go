@@ -45,6 +45,26 @@ func (c inProcessV1Client) ValidateConfig(ctx context.Context, in *tfcore1.Valid
 	return c.server.ValidateConfig(ctx, in)
 }
 
+func (c inProcessV1Client) CreatePlan(ctx context.Context, in *tfcore1.CreatePlan_Request, opts ...grpc.CallOption) (*tfcore1.CreatePlan_Response, error) {
+	return c.server.CreatePlan(ctx, in)
+}
+
+func (c inProcessV1Client) DiscardPlan(ctx context.Context, in *tfcore1.DiscardPlan_Request, opts ...grpc.CallOption) (*tfcore1.DiscardPlan_Response, error) {
+	return c.server.DiscardPlan(ctx, in)
+}
+
+func (c inProcessV1Client) ExportPlan(ctx context.Context, in *tfcore1.ExportPlan_Request, opts ...grpc.CallOption) (*tfcore1.ExportPlan_Response, error) {
+	return c.server.ExportPlan(ctx, in)
+}
+
+func (c inProcessV1Client) ImportPlan(ctx context.Context, in *tfcore1.ImportPlan_Request, opts ...grpc.CallOption) (*tfcore1.ImportPlan_Response, error) {
+	return c.server.ImportPlan(ctx, in)
+}
+
+func (c inProcessV1Client) ApplyPlan(ctx context.Context, in *tfcore1.ApplyPlan_Request, opts ...grpc.CallOption) (*tfcore1.ApplyPlan_Response, error) {
+	return c.server.ApplyPlan(ctx, in)
+}
+
 func newV1ClientForTests(t *testing.T, workingDir string, opts *terraform.ContextOpts) tfcore1.TerraformClient {
 	t.Helper()
 	modulesDir := filepath.Join(workingDir, ".terraform/modules")
