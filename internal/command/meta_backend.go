@@ -663,7 +663,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 
 		if !m.migrateState {
-			diags = diags.Append(migrateOrReconfigDiag)
+			if c.Type == "cloud" {
+				diags = diags.Append(migrateOrReconfigDiagCloud)
+			} else {
+				diags = diags.Append(migrateOrReconfigDiag)
+			}
 			return nil, diags
 		}
 
@@ -1382,5 +1386,12 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
+		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+
+var migrateOrReconfigDiagCloud = tfdiags.Sourceless(
+	tfdiags.Error,
+	"Terraform Cloud configuration changed",
+	"A change in the Terraform Cloud configuration has been detected, which may require migrating existing state.\n\n"+
 		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
 		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
