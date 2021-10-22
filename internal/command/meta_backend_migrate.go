@@ -729,7 +729,7 @@ func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, erro
 	pattern, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc-pattern",
 		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "What pattern would you like to add to all your workspaces?"),
-		Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateMultiToMultiPattern), sourceType),
+		Description: strings.TrimSpace(tfcInputBackendMigrateMultiToMultiPattern),
 	})
 	if err != nil {
 		return "", fmt.Errorf("Error asking for state migration action: %s", err)
