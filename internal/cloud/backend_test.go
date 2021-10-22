@@ -269,6 +269,7 @@ func TestCloud_config(t *testing.T) {
 }
 
 func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
+	t.Skip("skipping, as TFE version checking has been temporarily disabled")
 	config := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),

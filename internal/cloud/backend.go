@@ -295,14 +295,16 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	desiredAPIVersion, _ := version.NewVersion("2.5")
 
 	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Unsupported Terraform Enterprise version",
-			fmt.Sprintf(
-				`The 'cloud' option requires Terraform Enterprise %s or later.`,
-				apiToMinimumTFEVersion["2.5"],
-			),
-		))
+		log.Printf("[TRACE] API version check failed; want: >= %s, got: %s", desiredAPIVersion.Original(), currentAPIVersion)
+		// FIXME: Skip version checking temporarily.
+		// diags = diags.Append(tfdiags.Sourceless(
+		// 	tfdiags.Error,
+		// 	"Unsupported Terraform Enterprise version",
+		// 	fmt.Sprintf(
+		// 		`The 'cloud' option requires Terraform Enterprise %s or later.`,
+		// 		apiToMinimumTFEVersion["2.5"],
+		// 	),
+		// ))
 	}
 
 	// Configure a local backend for when we need to run operations locally.
