@@ -47,18 +47,6 @@ func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 		t.Fatal(err)
 	}
 
-	// TODO: remove this when we are ready to release. This should not need beta
-	// or internal access as the release will be. Also, we won't be able to access
-	// admin in production.
-	opts := tfe.AdminOrganizationUpdateOptions{
-		AccessBetaTools:     tfe.Bool(true),
-		AccessInternalTools: tfe.Bool(true),
-	}
-	_, err = tfeClient.Admin.Organizations.Update(ctx, org.Name, opts)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	return org, func() {
 		if err := tfeClient.Organizations.Delete(ctx, org.Name); err != nil {
 			t.Errorf("Error destroying organization! WARNING: Dangling resources\n"+
