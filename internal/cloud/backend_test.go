@@ -269,7 +269,6 @@ func TestCloud_config(t *testing.T) {
 }
 
 func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
-	t.Skip("skipping, as TFE version checking has been temporarily disabled")
 	config := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -299,7 +298,45 @@ func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 		t.Fatalf("expected configure to error")
 	}
 
-	expected := "The 'cloud' option requires Terraform Enterprise v202201-1 or later."
+	expected := `The 'cloud' option is not supported with this version of Terraform Enterprise.`
+	if !strings.Contains(confDiags.Err().Error(), expected) {
+		t.Fatalf("expected configure to error with %q, got %q", expected, confDiags.Err().Error())
+	}
+}
+
+func TestCloud_configVerifyMinimumTFEVersionInAutomation(t *testing.T) {
+	config := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.NullVal(cty.String),
+			"tags": cty.SetVal(
+				[]cty.Value{
+					cty.StringVal("billing"),
+				},
+			),
+		}),
+	})
+
+	handlers := map[string]func(http.ResponseWriter, *http.Request){
+		"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("TFP-API-Version", "2.4")
+		},
+	}
+	s := testServerWithHandlers(handlers)
+
+	b := New(testDisco(s))
+	b.runningInAutomation = true
+
+	confDiags := b.Configure(config)
+	if confDiags.Err() == nil {
+		t.Fatalf("expected configure to error")
+	}
+
+	expected := `This version of Terraform Cloud/Enterprise does not support the state mechanism
+attempting to be used by the platform. This should never happen.`
 	if !strings.Contains(confDiags.Err().Error(), expected) {
 		t.Fatalf("expected configure to error with %q, got %q", expected, confDiags.Err().Error())
 	}

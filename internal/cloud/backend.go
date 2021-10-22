@@ -85,6 +85,8 @@ type Cloud struct {
 	// version. This will also cause VerifyWorkspaceTerraformVersion to return
 	// a warning diagnostic instead of an error.
 	ignoreVersionConflict bool
+
+	runningInAutomation bool
 }
 
 var _ backend.Backend = (*Cloud)(nil)
@@ -296,15 +298,25 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
 		log.Printf("[TRACE] API version check failed; want: >= %s, got: %s", desiredAPIVersion.Original(), currentAPIVersion)
-		// FIXME: Skip version checking temporarily.
-		// diags = diags.Append(tfdiags.Sourceless(
-		// 	tfdiags.Error,
-		// 	"Unsupported Terraform Enterprise version",
-		// 	fmt.Sprintf(
-		// 		`The 'cloud' option requires Terraform Enterprise %s or later.`,
-		// 		apiToMinimumTFEVersion["2.5"],
-		// 	),
-		// ))
+		if b.runningInAutomation {
+			// It should never be possible for this Terraform process to be mistakenly
+			// used internally within an unsupported Terraform Enterprise install - but
+			// just in case it happens, give an actionable error.
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Unsupported Terraform Enterprise version",
+					cloudIntegrationUsedInUnsupportedTFE,
+				),
+			)
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Unsupported Terraform Enterprise version",
+				`The 'cloud' option is not supported with this version of Terraform Enterprise.`,
+			),
+			)
+		}
 	}
 
 	// Configure a local backend for when we need to run operations locally.
@@ -967,8 +979,13 @@ const refreshToApplyRefresh = `[bold][yellow]Proceeding with 'terraform apply -r
 const unavailableTerraformVersion = `
 [reset][yellow]The local Terraform version (%s) is not available in Terraform Cloud, or your
 organization does not have access to it. The new workspace will use %s. You can
-change this later in the workspace settings.[reset]
-`
+change this later in the workspace settings.[reset]`
+
+const cloudIntegrationUsedInUnsupportedTFE = `
+This version of Terraform Cloud/Enterprise does not support the state mechanism
+attempting to be used by the platform. This should never happen.
+
+Please reach out to HashiCorp Support to resolve this issue.`
 
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(
