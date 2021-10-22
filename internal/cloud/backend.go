@@ -506,6 +506,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	if err == tfe.ErrResourceNotFound {
+		// Create a workspace
 		options := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
 		}
@@ -517,11 +518,26 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 		options.Tags = tags
 
-		options.TerraformVersion = tfe.String(tfversion.String())
-
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
+		}
+
+		// Attempt to set the new workspace to use this version of Terraform. This
+		// can fail if there's no enabled tool_version whose name matches our
+		// version string, but that's expected sometimes -- just warn and continue.
+		versionOptions := tfe.WorkspaceUpdateOptions{
+			TerraformVersion: tfe.String(tfversion.String()),
+		}
+		_, err := b.client.Workspaces.UpdateByID(context.Background(), workspace.ID, versionOptions)
+		if err != nil {
+			// TODO: Ideally we could rely on the client to tell us what the actual
+			// problem was, but we currently can't get enough context from the error
+			// object to do a nicely formatted message, so we're just assuming the
+			// issue was that the version wasn't available since that's probably what
+			// happened.
+			versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
+			b.CLI.Output(b.Colorize().Color(versionUnavailable))
 		}
 	}
 
@@ -947,6 +963,12 @@ const operationNotCanceled = `
 `
 
 const refreshToApplyRefresh = `[bold][yellow]Proceeding with 'terraform apply -refresh-only -auto-approve'.[reset]`
+
+const unavailableTerraformVersion = `
+[reset][yellow]The local Terraform version (%s) is not available in Terraform Cloud, or your
+organization does not have access to it. The new workspace will use %s. You can
+change this later in the workspace settings.[reset]
+`
 
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(
