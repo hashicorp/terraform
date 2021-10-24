@@ -58,7 +58,7 @@ func Test_cloud_run_variables(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Successfully configured the backend "cloud"!`,
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"plan", "-var", "foo=bar"},
