@@ -202,6 +202,10 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 		fmt.Fprintf(&list, "%d. %s\n", i+1, w)
 	}
 
+	if !m.input {
+		return fmt.Errorf("Currently selected workspace %q does not exist", workspace)
+	}
+
 	// If the selected workspace doesn't exist, ask the user to select
 	// a workspace from the list of existing workspaces.
 	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
