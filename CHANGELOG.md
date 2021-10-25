@@ -4,6 +4,7 @@ BUG FIXES:
 
 * backend/oss: Fix panic when there's an error looking up OSS endpoints [GH-29784]
 * cli: Restore `-lock` and `-lock-timeout` flags for the `init` command, which were removed in 0.15.0 [GH-29773]
+* backend/remote: Fix version check when migrating state [GH-29793]
 
 ## 1.0.9 (October 13, 2021)
 
