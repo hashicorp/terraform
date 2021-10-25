@@ -1,6 +1,7 @@
 package rpcapi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -12,7 +13,10 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/tfcore1"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -23,8 +27,13 @@ type tfcore1PluginServer struct {
 	cwdModulesDir string
 
 	configs      map[uint64]*configs.Config
+	configSnaps  map[uint64]*configload.Snapshot
 	lastConfigID uint64
 	configsMu    sync.Mutex
+
+	plans      map[uint64]*plans.Plan
+	lastPlanID uint64
+	plansMu    sync.Mutex
 }
 
 var _ tfcore1.TerraformServer = (*tfcore1PluginServer)(nil)
@@ -55,14 +64,14 @@ func (s *tfcore1PluginServer) OpenConfigCwd(ctx context.Context, req *tfcore1.Op
 			"Uninitialized Working Directory",
 			fmt.Sprintf("Can't load configuration from this directory: %s.", err),
 		))
-		resp.Diagnostics = protoDiagnotics(diags)
+		resp.Diagnostics = diagnosticsToProto(diags)
 		return resp, nil
 	}
 
 	config, hclDiags := loader.LoadConfig(s.cwd)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
-		resp.Diagnostics = protoDiagnotics(diags)
+		resp.Diagnostics = diagnosticsToProto(diags)
 		return resp, nil
 	}
 
@@ -70,7 +79,7 @@ func (s *tfcore1PluginServer) OpenConfigCwd(ctx context.Context, req *tfcore1.Op
 	s.lastConfigID = newConfigID
 
 	resp.ConfigId = newConfigID
-	resp.Diagnostics = protoDiagnotics(diags) // might still have warnings
+	resp.Diagnostics = diagnosticsToProto(diags) // might still have warnings
 
 	return resp, nil
 }
@@ -96,12 +105,84 @@ func (s *tfcore1PluginServer) ValidateConfig(ctx context.Context, req *tfcore1.V
 
 	diags := s.core.Validate(config)
 	return &tfcore1.ValidateConfig_Response{
-		Diagnostics: protoDiagnotics(diags),
+		Diagnostics: diagnosticsToProto(diags),
 	}, nil
 }
 
-func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, in *tfcore1.CreatePlan_Request) (*tfcore1.CreatePlan_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, req *tfcore1.CreatePlan_Request) (*tfcore1.CreatePlan_Response, error) {
+	var diags tfdiags.Diagnostics
+
+	config := s.getOpenConfig(req.ConfigId)
+	if config == nil {
+		return nil, status.Errorf(codes.NotFound, "no open configuration has id %d", req.ConfigId)
+	}
+
+	var prevRunState *states.State
+	if len(req.PrevRunState) != 0 {
+		stateReader := bytes.NewReader(req.PrevRunState)
+		stateFile, err := statefile.Read(stateReader)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid previous run state snapshot: %s", err)
+		}
+		prevRunState = stateFile.State
+	} else {
+		prevRunState = states.NewState()
+	}
+
+	opts, err := planOptsFromProto(req.Options)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid plan options: %s", err)
+	}
+
+	s.plansMu.Lock()
+	defer s.plansMu.Unlock()
+	newPlanID, err := s.nextPlanID()
+	if err != nil {
+		return nil, err
+	}
+
+	plan, diags := s.core.Plan(config, prevRunState, opts)
+	if diags.HasErrors() {
+		return &tfcore1.CreatePlan_Response{
+			Diagnostics: diagnosticsToProto(diags),
+		}, nil
+	}
+
+	s.plans[newPlanID] = plan
+	s.lastPlanID = newPlanID
+
+	protoOutputValues := make(map[string]*tfcore1.DynamicValue)
+	for _, ovcs := range plan.Changes.Outputs {
+		if !ovcs.Addr.Module.IsRoot() {
+			continue
+		}
+		name := ovcs.Addr.OutputValue.Name
+
+		// This is a bit silly: we decode the encoded output value only to
+		// immediately re-encode it in what happens to be almost exactly
+		// the same way. But it's what works with the abstractions we have
+		// today.
+		ovc, err := ovcs.Decode()
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to decode output value %q: %s", name, err)
+		}
+
+		protoOutputValues[name], err = dynamicValueToProto(ovc.After)
+		if ovc.Sensitive {
+			// The static sensitive flag supersedes any dynamically-detected one,
+			// if set to true.
+			protoOutputValues[name].Sensitive = true
+		}
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to encode output value %q: %s", name, err)
+		}
+	}
+
+	return &tfcore1.CreatePlan_Response{
+		PlanId:              newPlanID,
+		PlannedOutputValues: protoOutputValues,
+		Diagnostics:         diagnosticsToProto(diags),
+	}, nil
 }
 
 func (s *tfcore1PluginServer) DiscardPlan(ctx context.Context, in *tfcore1.DiscardPlan_Request) (*tfcore1.DiscardPlan_Response, error) {
@@ -127,12 +208,37 @@ func (s *tfcore1PluginServer) getOpenConfig(id uint64) *configs.Config {
 	return ret
 }
 
+func (s *tfcore1PluginServer) getOpenConfigSnapshot(id uint64) *configload.Snapshot {
+	s.configsMu.Lock()
+	ret := s.configSnaps[id]
+	s.configsMu.Unlock()
+	return ret
+}
+
+// call nextPlanID only while already holding s.plansMu, and then keep holding
+// s.plansMu until updating s.lastPlanID to record having used the allocated
+// ID.
+func (s *tfcore1PluginServer) nextPlanID() (uint64, error) {
+	startPlanID := s.lastPlanID
+	newPlanID := s.lastPlanID + 1
+	for ; newPlanID != 0 && s.plans[newPlanID] != nil; newPlanID++ {
+		if newPlanID == startPlanID {
+			// wrap around, so we've exhausted all the ids somehow! This should
+			// never happen in any reasonable use of this API.
+			return 0, status.Error(codes.ResourceExhausted, "no free plan handles")
+		}
+	}
+	return newPlanID, nil
+}
+
 func newV1PluginServer(core *terraform.Context, cwd string, cwdModulesDir string) tfcore1.TerraformServer {
 	return &tfcore1PluginServer{
 		core:          core,
 		cwd:           cwd,
 		cwdModulesDir: cwdModulesDir,
 		configs:       map[uint64]*configs.Config{},
+		configSnaps:   map[uint64]*configload.Snapshot{},
+		plans:         map[uint64]*plans.Plan{},
 	}
 }
 

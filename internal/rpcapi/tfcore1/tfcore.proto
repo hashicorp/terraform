@@ -209,14 +209,22 @@ message InstanceKey {
 // DynamicValue represents an arbitrary value in the Terraform language type
 // system, such as the value of an input variable or an output value.
 message DynamicValue {
-    bytes msgpack = 1;
+    bytes value_msgpack = 1;
+    bytes type_json = 2;
 
     // Set to true if the value is considered sensitive, either because it
     // was explicitly declared as such or because it was derived from some
     // other value marked as sensitive.
-    bool sensitive = 2;
+    bool sensitive = 3;
 }
 
+// Diagnostic represents a user-facing error or warning.
+//
+// The RPC API uses gRPC error codes only to represent incorrect behavior by
+// the RPC client itself. When the RPC client is using the API correctly but
+// Terraform Core reports problems such as invalid user input, we return
+// successful response messages containing diagnostics, which the client
+// should then pass unmodified to the end-user.
 message Diagnostic {
     enum Severity {
         INVALID = 0;
