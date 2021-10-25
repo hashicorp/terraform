@@ -78,6 +78,42 @@ func TestProviderTampering(t *testing.T) {
 			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
 		}
 	})
+	t.Run("cache dir totally gone, explicit backend", func(t *testing.T) {
+		tf := e2e.NewBinary(terraformBin, seedDir)
+		defer tf.Close()
+		workDir := tf.WorkDir()
+
+		err := ioutil.WriteFile(filepath.Join(workDir, "backend.tf"), []byte(localBackendConfig), 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = os.RemoveAll(filepath.Join(workDir, ".terraform"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		stdout, stderr, err := tf.Run("plan")
+		if err == nil {
+			t.Fatalf("unexpected plan success\nstdout:\n%s", stdout)
+		}
+		if want := `Initial configuration of the requested backend "local"`; !strings.Contains(stderr, want) {
+			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
+		}
+		if want := `terraform init`; !strings.Contains(stderr, want) {
+			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
+		}
+
+		// Running init as suggested resolves the problem
+		_, stderr, err = tf.Run("init")
+		if err != nil {
+			t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
+		}
+		_, stderr, err = tf.Run("plan")
+		if err != nil {
+			t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
+		}
+	})
 	t.Run("null plugin package modified before plan", func(t *testing.T) {
 		tf := e2e.NewBinary(terraformBin, seedDir)
 		defer tf.Close()
@@ -229,3 +265,11 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 }
+
+const localBackendConfig = `
+terraform {
+  backend "local" {
+    path = "terraform.tfstate"
+  }
+}
+`

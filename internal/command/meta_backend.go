@@ -745,7 +745,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
 
 	// Grab a purely local backend to get the local state if it exists
-	localB, diags := m.Backend(&BackendOpts{ForceLocal: true})
+	localB, diags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
 	if diags.HasErrors() {
 		return nil, diags
 	}
@@ -799,7 +799,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	// Grab a purely local backend to get the local state if it exists
-	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true})
+	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
 	if localBDiags.HasErrors() {
 		diags = diags.Append(localBDiags)
 		return nil, diags
