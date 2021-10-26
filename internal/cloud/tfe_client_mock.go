@@ -1159,6 +1159,10 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 }
 
 func (m *MockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
+	// for TestCloud_setUnavailableTerraformVersion
+	if *options.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
+		return nil, fmt.Errorf("requested Terraform version not available in this TFC instance")
+	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
 	} else if options.Operations == nil {
@@ -1234,17 +1238,9 @@ func (m *MockWorkspaces) Update(ctx context.Context, organization, workspace str
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	if options.Operations != nil {
-		w.Operations = *options.Operations
-	}
-	if options.Name != nil {
-		w.Name = *options.Name
-	}
-	if options.TerraformVersion != nil {
-		w.TerraformVersion = *options.TerraformVersion
-	}
-	if options.WorkingDirectory != nil {
-		w.WorkingDirectory = *options.WorkingDirectory
+	err := updateMockWorkspaceAttributes(w, options)
+	if err != nil {
+		return nil, err
 	}
 
 	delete(m.workspaceNames, workspace)
@@ -1259,6 +1255,26 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 		return nil, tfe.ErrResourceNotFound
 	}
 
+	err := updateMockWorkspaceAttributes(w, options)
+	if err != nil {
+		return nil, err
+	}
+
+	delete(m.workspaceNames, w.Name)
+	m.workspaceNames[w.Name] = w
+
+	return w, nil
+}
+
+func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdateOptions) error {
+	// for TestCloud_setUnavailableTerraformVersion
+	if w.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
+		return fmt.Errorf("requested Terraform version not available in this TFC instance")
+	}
+
+	if options.Operations != nil {
+		w.Operations = *options.Operations
+	}
 	if options.Name != nil {
 		w.Name = *options.Name
 	}
@@ -1268,11 +1284,7 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 	if options.WorkingDirectory != nil {
 		w.WorkingDirectory = *options.WorkingDirectory
 	}
-
-	delete(m.workspaceNames, w.Name)
-	m.workspaceNames[w.Name] = w
-
-	return w, nil
+	return nil
 }
 
 func (m *MockWorkspaces) Delete(ctx context.Context, organization, workspace string) error {

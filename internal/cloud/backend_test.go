@@ -305,6 +305,58 @@ func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 	}
 }
 
+func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
+	// go-tfe returns an error IRL if you try to set a Terraform version that's
+	// not available in your TFC instance. To test this, tfe_client_mock errors if
+	// you try to set any Terraform version for this specific workspace name.
+	workspaceName := "unavailable-terraform-version"
+
+	config := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.NullVal(cty.String),
+			"tags": cty.SetVal(
+				[]cty.Value{
+					cty.StringVal("sometag"),
+				},
+			),
+		}),
+	})
+
+	b, bCleanup := testBackend(t, config)
+	defer bCleanup()
+
+	// Make sure the workspace doesn't exist yet -- otherwise, we can't test what
+	// happens when a workspace gets created. This is why we can't use "name" in
+	// the backend config above, btw: if you do, testBackend() creates the default
+	// workspace before we get a chance to do anything.
+	_, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	if err != tfe.ErrResourceNotFound {
+		t.Fatalf("the workspace we were about to try and create (%s/%s) already exists in the mocks somehow, so this test isn't trustworthy anymore", b.organization, workspaceName)
+	}
+
+	_, err = b.StateMgr(workspaceName)
+	if err != nil {
+		t.Fatalf("expected no error from StateMgr, despite not being able to set remote Terraform version: %#v", err)
+	}
+	// Make sure the workspace was created:
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	if err != nil {
+		t.Fatalf("b.StateMgr() didn't actually create the desired workspace")
+	}
+	// Make sure our mocks still error as expected, using the same update function b.StateMgr() would call:
+	_, err = b.client.Workspaces.UpdateByID(
+		context.Background(),
+		workspace.ID,
+		tfe.WorkspaceUpdateOptions{TerraformVersion: tfe.String("1.1.0")},
+	)
+	if err == nil {
+		t.Fatalf("the mocks aren't emulating a nonexistent remote Terraform version correctly, so this test isn't trustworthy anymore")
+	}
+}
+
 func TestCloud_setConfigurationFields(t *testing.T) {
 	originalForceBackendEnv := os.Getenv("TF_FORCE_LOCAL_BACKEND")
 
