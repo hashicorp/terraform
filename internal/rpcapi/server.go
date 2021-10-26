@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/rpcapi/tfcore1"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -31,9 +32,11 @@ type tfcore1PluginServer struct {
 	lastConfigID uint64
 	configsMu    sync.Mutex
 
-	plans      map[uint64]*plans.Plan
-	lastPlanID uint64
-	plansMu    sync.Mutex
+	plans       map[uint64]*plans.Plan
+	planConfigs map[uint64]*configs.Config
+	planSnaps   map[uint64]*configload.Snapshot
+	lastPlanID  uint64
+	plansMu     sync.Mutex
 }
 
 var _ tfcore1.TerraformServer = (*tfcore1PluginServer)(nil)
@@ -68,7 +71,7 @@ func (s *tfcore1PluginServer) OpenConfigCwd(ctx context.Context, req *tfcore1.Op
 		return resp, nil
 	}
 
-	config, hclDiags := loader.LoadConfig(s.cwd)
+	config, snap, hclDiags := loader.LoadConfigWithSnapshot(s.cwd)
 	diags = diags.Append(hclDiags)
 	if hclDiags.HasErrors() {
 		resp.Diagnostics = diagnosticsToProto(diags)
@@ -76,6 +79,7 @@ func (s *tfcore1PluginServer) OpenConfigCwd(ctx context.Context, req *tfcore1.Op
 	}
 
 	s.configs[newConfigID] = config
+	s.configSnaps[newConfigID] = snap
 	s.lastConfigID = newConfigID
 
 	resp.ConfigId = newConfigID
@@ -93,6 +97,7 @@ func (s *tfcore1PluginServer) CloseConfig(ctx context.Context, req *tfcore1.Clos
 	}
 
 	delete(s.configs, req.ConfigId)
+	delete(s.configSnaps, req.ConfigId)
 
 	return &tfcore1.CloseConfig_Response{}, nil
 }
@@ -114,6 +119,12 @@ func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, req *tfcore1.Creat
 
 	config := s.getOpenConfig(req.ConfigId)
 	if config == nil {
+		return nil, status.Errorf(codes.NotFound, "no open configuration has id %d", req.ConfigId)
+	}
+	configSnap := s.getOpenConfigSnapshot(req.ConfigId)
+	if configSnap == nil {
+		// Might get here if someone calls CloseConfig between our getOpenConfig
+		// and getOpenConfigSnapshot calls.
 		return nil, status.Errorf(codes.NotFound, "no open configuration has id %d", req.ConfigId)
 	}
 
@@ -148,7 +159,19 @@ func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, req *tfcore1.Creat
 		}, nil
 	}
 
+	// Because of how we're kinda-misuing the plan file format from
+	// Terraform CLI as our export format, we need to put a stub backend
+	// configuration in the plan to make the plan serializable. We won't
+	// actually make any use of this when we reload the plan.
+	plan.Backend = plans.Backend{
+		Type:      "none",
+		Config:    plans.DynamicValue{0}, // intentionally invalid
+		Workspace: "default",
+	}
+
 	s.plans[newPlanID] = plan
+	s.planConfigs[newPlanID] = config
+	s.planSnaps[newPlanID] = configSnap
 	s.lastPlanID = newPlanID
 
 	protoOutputValues := make(map[string]*tfcore1.DynamicValue)
@@ -185,16 +208,100 @@ func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, req *tfcore1.Creat
 	}, nil
 }
 
-func (s *tfcore1PluginServer) DiscardPlan(ctx context.Context, in *tfcore1.DiscardPlan_Request) (*tfcore1.DiscardPlan_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+func (s *tfcore1PluginServer) DiscardPlan(ctx context.Context, req *tfcore1.DiscardPlan_Request) (*tfcore1.DiscardPlan_Response, error) {
+	s.configsMu.Lock()
+	defer s.configsMu.Unlock()
+
+	if _, exists := s.plans[req.PlanId]; !exists {
+		return nil, status.Errorf(codes.NotFound, "no open plan has id %d", req.PlanId)
+	}
+
+	delete(s.plans, req.PlanId)
+	delete(s.planConfigs, req.PlanId)
+	delete(s.planSnaps, req.PlanId)
+
+	return &tfcore1.DiscardPlan_Response{}, nil
 }
 
-func (s *tfcore1PluginServer) ExportPlan(ctx context.Context, in *tfcore1.ExportPlan_Request) (*tfcore1.ExportPlan_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+func (s *tfcore1PluginServer) ExportPlan(ctx context.Context, req *tfcore1.ExportPlan_Request) (*tfcore1.ExportPlan_Response, error) {
+	plan := s.getOpenPlan(req.PlanId)
+	if plan == nil {
+		return nil, status.Errorf(codes.NotFound, "no open plan has id %d", req.PlanId)
+	}
+	configSnap := s.getOpenPlanConfigSnapshot(req.PlanId)
+	if configSnap == nil {
+		return nil, status.Errorf(codes.NotFound, "no open plan has id %d", req.PlanId)
+	}
+
+	// We're lightly misusing the statefile package here because we're really
+	// just serializing the state alone and letting the caller be the one
+	// to worry about file-level details like lineage and serial.
+	prevRunStateFile := statefile.New(plan.PrevRunState, "", 0)
+	priorStateFile := statefile.New(plan.PriorState, "", 0)
+
+	var buf bytes.Buffer
+
+	err := planfile.Write(planfile.CreateArgs{
+		Plan:                 plan,
+		ConfigSnapshot:       configSnap,
+		PreviousRunStateFile: prevRunStateFile,
+		StateFile:            priorStateFile,
+		// NOTE: Intentionally no DependencyLocks here, because dependency
+		// versions are not Terraform Core's concern. The caller is responsible
+		// for managing those in whatever way is appropriate for its needs.
+	}, &buf)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to serialize plan: %s", err)
+	}
+
+	return &tfcore1.ExportPlan_Response{
+		RawPlan: buf.Bytes(),
+	}, nil
 }
 
-func (s *tfcore1PluginServer) ImportPlan(ctx context.Context, in *tfcore1.ImportPlan_Request) (*tfcore1.ImportPlan_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+func (s *tfcore1PluginServer) ImportPlan(ctx context.Context, req *tfcore1.ImportPlan_Request) (*tfcore1.ImportPlan_Response, error) {
+	buf := bytes.NewReader(req.RawPlan)
+
+	r, err := planfile.OpenReader(buf, int64(len(req.RawPlan)))
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid serialized plan file: %s", err)
+	}
+	defer r.Close()
+
+	plan, err := r.ReadPlan()
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid serialized plan content: %s", err)
+	}
+
+	config, diags := r.ReadConfig()
+	if diags.HasErrors() {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid configuration in plan: %s", err)
+	}
+
+	// NOTE: This is a bit silly because ReadConfig above already read the
+	// config snapshot and parsed it for us. Maybe in future we'll extend
+	// planfile.Reader with a method that can return both the snapshot and
+	// the resulting configuration at the same time.
+	configSnap, err := r.ReadConfigSnapshot()
+	if diags.HasErrors() {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid configuration in plan: %s", err)
+	}
+
+	s.plansMu.Lock()
+	defer s.plansMu.Unlock()
+	newPlanID, err := s.nextPlanID()
+	if err != nil {
+		return nil, err
+	}
+
+	s.plans[newPlanID] = plan
+	s.planConfigs[newPlanID] = config
+	s.planSnaps[newPlanID] = configSnap
+	s.lastPlanID = newPlanID
+
+	return &tfcore1.ImportPlan_Response{
+		PlanId: newPlanID,
+	}, nil
 }
 
 func (s *tfcore1PluginServer) ApplyPlan(ctx context.Context, in *tfcore1.ApplyPlan_Request) (*tfcore1.ApplyPlan_Response, error) {
@@ -211,6 +318,27 @@ func (s *tfcore1PluginServer) getOpenConfig(id uint64) *configs.Config {
 func (s *tfcore1PluginServer) getOpenConfigSnapshot(id uint64) *configload.Snapshot {
 	s.configsMu.Lock()
 	ret := s.configSnaps[id]
+	s.configsMu.Unlock()
+	return ret
+}
+
+func (s *tfcore1PluginServer) getOpenPlan(id uint64) *plans.Plan {
+	s.configsMu.Lock()
+	ret := s.plans[id]
+	s.configsMu.Unlock()
+	return ret
+}
+
+func (s *tfcore1PluginServer) getOpenPlanConfig(id uint64) *configs.Config {
+	s.configsMu.Lock()
+	ret := s.planConfigs[id]
+	s.configsMu.Unlock()
+	return ret
+}
+
+func (s *tfcore1PluginServer) getOpenPlanConfigSnapshot(id uint64) *configload.Snapshot {
+	s.configsMu.Lock()
+	ret := s.planSnaps[id]
 	s.configsMu.Unlock()
 	return ret
 }
@@ -239,6 +367,8 @@ func newV1PluginServer(core *terraform.Context, cwd string, cwdModulesDir string
 		configs:       map[uint64]*configs.Config{},
 		configSnaps:   map[uint64]*configload.Snapshot{},
 		plans:         map[uint64]*plans.Plan{},
+		planConfigs:   map[uint64]*configs.Config{},
+		planSnaps:     map[uint64]*configload.Snapshot{},
 	}
 }
 

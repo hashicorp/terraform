@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/hashicorp/terraform/internal/configs"
@@ -25,7 +26,8 @@ const dependencyLocksFilename = ".terraform.lock.hcl" // matches the conventiona
 // be used to access the individual portions of the file for further
 // processing.
 type Reader struct {
-	zip *zip.ReadCloser
+	zip   *zip.Reader
+	close func() error
 }
 
 // Open creates a Reader for the file at the given filename, or returns an
@@ -43,6 +45,25 @@ func Open(filename string) (*Reader, error) {
 		return nil, err
 	}
 
+	return openReader(&r.Reader, r.Close)
+}
+
+// OpenReader is a variant of Open that reads from the given reader, instead
+// of opening an on-disk file itself.
+//
+// OpenReader will assume that the given reader can seek to every byte within
+// the range given in "size". If size doesn't actually match the underlying
+// data then the behavior is undefined.
+func OpenReader(r io.ReaderAt, size int64) (*Reader, error) {
+	zr, err := zip.NewReader(r, size)
+	if err != nil {
+		return nil, err
+	}
+
+	return openReader(zr, nil)
+}
+
+func openReader(r *zip.Reader, close func() error) (*Reader, error) {
 	// Sniff to make sure this looks like a plan file, as opposed to any other
 	// random zip file the user might have around.
 	var planFile *zip.File
@@ -61,8 +82,10 @@ func Open(filename string) (*Reader, error) {
 	// itself.
 
 	return &Reader{
-		zip: r,
+		zip:   r,
+		close: close,
 	}, nil
+
 }
 
 // ReadPlan reads the plan embedded in the plan file.
@@ -163,7 +186,7 @@ func (r *Reader) ReadPrevStateFile() (*statefile.File, error) {
 // This is a lower-level alternative to ReadConfig that just extracts the
 // source files, without attempting to parse them.
 func (r *Reader) ReadConfigSnapshot() (*configload.Snapshot, error) {
-	return readConfigSnapshot(&r.zip.Reader)
+	return readConfigSnapshot(r.zip)
 }
 
 // ReadConfig reads the configuration embedded in the plan file.
@@ -238,5 +261,8 @@ func (r *Reader) ReadDependencyLocks() (*depsfile.Locks, tfdiags.Diagnostics) {
 
 // Close closes the file, after which no other operations may be performed.
 func (r *Reader) Close() error {
-	return r.zip.Close()
+	if r.close == nil {
+		return nil
+	}
+	return r.close()
 }

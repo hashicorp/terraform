@@ -3,6 +3,7 @@ package planfile
 import (
 	"archive/zip"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -54,8 +55,13 @@ func Create(filename string, args CreateArgs) error {
 		return err
 	}
 	defer f.Close()
+	return Write(args, f)
+}
 
-	zw := zip.NewWriter(f)
+// Write is the same as Create except that it writes the plan file content to
+// the given writer, instead of creating a new file on disk itself.
+func Write(args CreateArgs, w io.Writer) error {
+	zw := zip.NewWriter(w)
 	defer zw.Close()
 
 	// tfplan file
