@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -864,6 +865,28 @@ func TestMetaBackend_initSelectedWorkspaceDoesNotExistAutoSelect(t *testing.T) {
 
 	if actual != expected {
 		t.Fatalf("expected selected workspace to be %q, but was %q", expected, actual)
+	}
+}
+
+// Initializing a backend which supports workspaces and does *not* have
+// the currently selected workspace with input=false should fail.
+func TestMetaBackend_initSelectedWorkspaceDoesNotExistInputFalse(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-selected-workspace-doesnt-exist-multi"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Setup the meta
+	m := testMetaBackend(t, nil)
+	m.input = false
+
+	// Get the backend
+	_, diags := m.Backend(&BackendOpts{Init: true})
+
+	// Should fail immediately
+	if got, want := diags.ErrWithWarnings().Error(), `Currently selected workspace "bar" does not exist`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: %s", got, want)
 	}
 }
 
