@@ -224,6 +224,8 @@ func TestServerCreatePlanInitial(t *testing.T) {
 	if diff := cmp.Diff(want, got, protoCmpOpt); diff != "" {
 		t.Fatalf("wrong response from CreatePlan\n%s", diff)
 	}
+	planID := got.PlanId
+	t.Logf("plan id is %d", configID)
 
 	_, err = client.CloseConfig(ctx, &tfcore1.CloseConfig_Request{
 		ConfigId: configID,
@@ -243,4 +245,39 @@ func TestServerCreatePlanInitial(t *testing.T) {
 		t.Errorf("planning still succeeded after closing the configuration")
 	}
 
+	// We should be able to export this plan and re-import it again.
+	// (Note: CreatePlan created a second reference to our configuration,
+	// so we're implicitly exporting and reimporting the configuration too,
+	// but without there being an associated configuration handle for it.
+	exportResp, err := client.ExportPlan(ctx, &tfcore1.ExportPlan_Request{
+		PlanId: planID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotImportResp, err := client.ImportPlan(ctx, &tfcore1.ImportPlan_Request{
+		RawPlan: exportResp.RawPlan,
+	})
+	wantImportResp := &tfcore1.ImportPlan_Response{
+		PlanId: 2,
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(wantImportResp, gotImportResp, protoCmpOpt); diff != "" {
+		t.Fatalf("wrong response from ImportPlan\n%s", diff)
+	}
+
+	_, err = client.DiscardPlan(ctx, &tfcore1.DiscardPlan_Request{
+		PlanId: planID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.ExportPlan(ctx, &tfcore1.ExportPlan_Request{
+		PlanId: planID,
+	})
+	if err == nil {
+		t.Fatal("exporting plan still succeeded after discarding it")
+	}
 }
