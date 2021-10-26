@@ -1,6 +1,7 @@
 package rpcapi
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -8,11 +9,15 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/tfcore1"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty-debug/ctydebug"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -225,7 +230,7 @@ func TestServerCreatePlanInitial(t *testing.T) {
 		t.Fatalf("wrong response from CreatePlan\n%s", diff)
 	}
 	planID := got.PlanId
-	t.Logf("plan id is %d", configID)
+	t.Logf("plan id is %d", planID)
 
 	_, err = client.CloseConfig(ctx, &tfcore1.CloseConfig_Request{
 		ConfigId: configID,
@@ -280,4 +285,146 @@ func TestServerCreatePlanInitial(t *testing.T) {
 	if err == nil {
 		t.Fatal("exporting plan still succeeded after discarding it")
 	}
+}
+
+func TestServerApplyPlan(t *testing.T) {
+	ctx := context.Background()
+	configDir := t.TempDir()
+	configFile := filepath.Join(configDir, "main.tf")
+
+	err := os.WriteFile(configFile, []byte(`
+		resource "test" "thing" {
+		}
+
+		output "a" {
+			value = "boop"
+		}
+
+		output "b" {
+			value     = "beep"
+			sensitive = true
+		}
+	`), 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	client := newV1ClientForTests(t, configDir, coreOptsWithTestProvider(func() (providers.Interface, error) {
+		return &terraform.MockProvider{
+			GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+				ResourceTypes: map[string]providers.Schema{
+					"test": {
+						Block: &configschema.Block{},
+					},
+				},
+			},
+			ValidateResourceConfigResponse: &providers.ValidateResourceConfigResponse{},
+			UpgradeResourceStateResponse: &providers.UpgradeResourceStateResponse{
+				UpgradedState: cty.EmptyObjectVal,
+			},
+			PlanResourceChangeResponse: &providers.PlanResourceChangeResponse{
+				PlannedState: cty.EmptyObjectVal,
+			},
+		}, nil
+	}))
+
+	configResp, err := client.OpenConfigCwd(ctx, &tfcore1.OpenConfigCwd_Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(configResp.Diagnostics) > 0 {
+		// We're not expecting diagnostics until validation time
+		t.Fatalf("unexpected diagnostics\n%s", cmp.Diff(nil, configResp.Diagnostics))
+	}
+	if configResp.ConfigId == 0 {
+		t.Fatal("not assigned a configuration id")
+	}
+	configID := configResp.ConfigId
+	t.Logf("configuration id is %d", configID)
+
+	var planID uint64
+	{
+		got, err := client.CreatePlan(ctx, &tfcore1.CreatePlan_Request{
+			ConfigId:     configID,
+			PrevRunState: nil, // is if this is the first plan
+			Options: &tfcore1.PlanOptions{
+				Mode: tfcore1.PlanOptions_NORMAL,
+			},
+		})
+		want := &tfcore1.CreatePlan_Response{
+			PlanId: 1,
+			PlannedOutputValues: map[string]*tfcore1.DynamicValue{
+				"a": {
+					TypeJson:     []byte(`"string"`),
+					ValueMsgpack: []byte("\xa4boop"),
+				},
+				"b": {
+					TypeJson:     []byte(`"string"`),
+					ValueMsgpack: []byte("\xa4beep"),
+					Sensitive:    true,
+				},
+			},
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(want, got, protoCmpOpt); diff != "" {
+			t.Fatalf("wrong response from CreatePlan\n%s", diff)
+		}
+		planID = got.PlanId
+	}
+	t.Logf("plan id is %d", planID)
+
+	{
+		got, err := client.ApplyPlan(ctx, &tfcore1.ApplyPlan_Request{
+			PlanId: planID,
+		})
+
+		rawNewState := got.NewState
+		got.NewState = nil // We'll deal with this field separately
+
+		want := &tfcore1.ApplyPlan_Response{
+			NewOutputValues: map[string]*tfcore1.DynamicValue{
+				"a": {
+					TypeJson:     []byte(`"string"`),
+					ValueMsgpack: []byte("\xa4boop"),
+				},
+				"b": {
+					TypeJson:     []byte(`"string"`),
+					ValueMsgpack: []byte("\xa4beep"),
+					Sensitive:    true,
+				},
+			},
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if diff := cmp.Diff(want, got, protoCmpOpt); diff != "" {
+			t.Fatalf("wrong response from ApplyPlan\n%s", diff)
+		}
+
+		newStateBuf := bytes.NewReader(rawNewState)
+		stateFile, err := statefile.Read(newStateBuf)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		gotOutputVals := stateFile.State.RootModule().OutputValues
+		wantOutputVals := map[string]*states.OutputValue{
+			"a": {
+				Addr:  addrs.OutputValue{Name: "a"}.Absolute(addrs.RootModuleInstance),
+				Value: cty.StringVal("boop"),
+			},
+			"b": {
+				Addr:      addrs.OutputValue{Name: "b"}.Absolute(addrs.RootModuleInstance),
+				Value:     cty.StringVal("beep"),
+				Sensitive: true,
+			},
+		}
+		if diff := cmp.Diff(wantOutputVals, gotOutputVals, ctydebug.CmpOptions); diff != "" {
+			t.Fatalf("wrong output values in state from ApplyPlan\n%s", diff)
+		}
+
+	}
+
 }

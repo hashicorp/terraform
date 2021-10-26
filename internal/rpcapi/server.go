@@ -115,6 +115,10 @@ func (s *tfcore1PluginServer) ValidateConfig(ctx context.Context, req *tfcore1.V
 }
 
 func (s *tfcore1PluginServer) CreatePlan(ctx context.Context, req *tfcore1.CreatePlan_Request) (*tfcore1.CreatePlan_Response, error) {
+	// NOTE: It would probably be better for this to be a streaming operation,
+	// so that we can send progress reports to the client rather than just
+	// quietly blocking for the entire operation.
+
 	var diags tfdiags.Diagnostics
 
 	config := s.getOpenConfig(req.ConfigId)
@@ -304,8 +308,77 @@ func (s *tfcore1PluginServer) ImportPlan(ctx context.Context, req *tfcore1.Impor
 	}, nil
 }
 
-func (s *tfcore1PluginServer) ApplyPlan(ctx context.Context, in *tfcore1.ApplyPlan_Request) (*tfcore1.ApplyPlan_Response, error) {
-	return nil, status.Error(codes.Unimplemented, "not yet implemented")
+func (s *tfcore1PluginServer) ApplyPlan(ctx context.Context, req *tfcore1.ApplyPlan_Request) (*tfcore1.ApplyPlan_Response, error) {
+	// NOTE: It would probably be better for this to be a streaming operation,
+	// so that we can send progress reports to the client rather than just
+	// quietly blocking for the entire operation.
+
+	// We hold the plans lock for the whole apply operation, because that
+	// prevents trying to apply the same plan twice. It would be better to
+	// lock only the one plan we're working on, but that's some complexity
+	// that can wait until we have a use-case for applying multiple plans
+	// concurrently.
+	s.plansMu.Lock()
+	defer s.plansMu.Unlock()
+
+	plan := s.plans[req.PlanId]
+	config := s.planConfigs[req.PlanId]
+	if plan == nil {
+		return nil, status.Errorf(codes.NotFound, "no open plan has id %d", req.PlanId)
+	}
+
+	newState, diags := s.core.Apply(plan, config)
+
+	// Running Apply consumes the open plan handle regardless of whether it
+	// totally succeeded, because we can't know whether the apply managed to do
+	// anything that would've invalidated the plan.
+	delete(s.plans, req.PlanId)
+	delete(s.planConfigs, req.PlanId)
+	delete(s.planSnaps, req.PlanId)
+
+	// We're lightly misusing the statefile package here because we're really
+	// just serializing the state alone and letting the caller be the one
+	// to worry about file-level details like lineage and serial.
+	newStateFile := statefile.New(newState, "", 0)
+	var newStateBuf bytes.Buffer
+	err := statefile.Write(newStateFile, &newStateBuf)
+	if err != nil {
+		// NOTE: It's very bad to get here because we've made changes to the
+		// remote system but we are now dropping the updated state on the floor.
+		// We should make sure that statefile.Write can always handle anything
+		// that s.core.Apply could produce.
+		return nil, status.Errorf(codes.Internal, "failed to serialize new state (which is therefore lost): %s", err)
+	}
+
+	protoOutputValues := map[string]*tfcore1.DynamicValue{}
+	for name, ov := range newState.RootModule().OutputValues {
+		protoValue, err := dynamicValueToProto(ov.Value)
+		if err != nil {
+			// We're breaking our usual rule that we report RPC/serialization
+			// errors via the gRPC error channel, because we'd prefer to return
+			// a partial result than to cause the caller to lose track of the
+			// new state entirely.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to serialize output value",
+				fmt.Sprintf(
+					"Internal error while serializing the new value of output value %q: %s.\n\nThis is a bug in Terraform. Please report it!",
+					name, err,
+				),
+			))
+			continue
+		}
+		if ov.Sensitive {
+			protoValue.Sensitive = true
+		}
+		protoOutputValues[name] = protoValue
+	}
+
+	return &tfcore1.ApplyPlan_Response{
+		NewState:        newStateBuf.Bytes(),
+		NewOutputValues: protoOutputValues,
+		Diagnostics:     diagnosticsToProto(diags),
+	}, nil
 }
 
 func (s *tfcore1PluginServer) getOpenConfig(id uint64) *configs.Config {
@@ -325,13 +398,6 @@ func (s *tfcore1PluginServer) getOpenConfigSnapshot(id uint64) *configload.Snaps
 func (s *tfcore1PluginServer) getOpenPlan(id uint64) *plans.Plan {
 	s.configsMu.Lock()
 	ret := s.plans[id]
-	s.configsMu.Unlock()
-	return ret
-}
-
-func (s *tfcore1PluginServer) getOpenPlanConfig(id uint64) *configs.Config {
-	s.configsMu.Lock()
-	ret := s.planConfigs[id]
 	s.configsMu.Unlock()
 	return ret
 }

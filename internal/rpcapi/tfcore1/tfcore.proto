@@ -159,7 +159,8 @@ message ApplyPlan {
     }
     message Response {
         bytes new_state = 1;
-        repeated Diagnostic diagnostics = 2;
+        map<string, DynamicValue> new_output_values = 2;
+        repeated Diagnostic diagnostics = 3;
     }
 }
 
