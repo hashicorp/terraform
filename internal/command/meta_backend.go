@@ -779,7 +779,11 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Get the backend type for output
 	backendType := s.Backend.Type
 
-	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+	if s.Backend.Type == "cloud" {
+		m.Ui.Output(strings.TrimSpace(outputBackendMigrateLocalFromCloud))
+	} else {
+		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+	}
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, diags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
@@ -1359,6 +1363,9 @@ Terraform detected that the backend type changed from %q to Terraform Cloud.
 
 const outputBackendMigrateLocal = `
 Terraform has detected you're unconfiguring your previously set %q backend.
+`
+const outputBackendMigrateLocalFromCloud = `
+Terraform has detected you're unconfiguring Terraform Cloud.
 `
 
 const outputBackendReconfigure = `
