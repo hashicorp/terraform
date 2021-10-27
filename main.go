@@ -59,6 +59,8 @@ func main() {
 }
 
 func realMain() int {
+	defer logging.PanicHandler()
+
 	var err error
 
 	tmpLogPath := os.Getenv(envTmpLogPath)

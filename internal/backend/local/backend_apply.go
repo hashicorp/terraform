@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -156,6 +157,7 @@ func (b *Local) opApply(
 	var applyDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
+		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: apply calling Apply")
 		applyState, applyDiags = lr.Core.Apply(plan, lr.Config)

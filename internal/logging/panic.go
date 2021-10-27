@@ -12,7 +12,6 @@ import (
 
 // This output is shown if a panic happens.
 const panicOutput = `
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Terraform crashed! This is always indicative of a bug within Terraform.
@@ -24,11 +23,11 @@ shown below, and any additional information which may help replicate the issue.
 [1]: https://github.com/hashicorp/terraform/issues
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 `
 
-// PanicHandler is called to  recover from an internal panic in Terraform, and
-// is intended to replace the standard stack trace with a more user friendly
-// error message.
+// PanicHandler is called to recover from an internal panic in Terraform, and
+// augments the standard stack trace with a more user friendly error message.
 // PanicHandler must be called as a defered function.
 func PanicHandler() {
 	recovered := recover()
