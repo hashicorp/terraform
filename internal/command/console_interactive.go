@@ -9,6 +9,7 @@ package command
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/hashicorp/terraform/internal/repl"
 
@@ -23,6 +24,9 @@ func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
 		InterruptPrompt:   "^C",
 		EOFPrompt:         "exit",
 		HistorySearchFold: true,
+		Stdin:             os.Stdin,
+		Stdout:            os.Stdout,
+		Stderr:            os.Stderr,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
