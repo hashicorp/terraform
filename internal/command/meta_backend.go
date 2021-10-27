@@ -597,11 +597,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			if c.Type == "cloud" {
-				// NOTE: There may be an implicit local backend with state that is not visible to this block.
+				initReason := "Initial configuration of Terraform Cloud"
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud has been configured but needs to be initialized.",
-					strings.TrimSpace(errBackendInitCloud),
+					"Terraform Cloud initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
 				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
@@ -649,8 +649,8 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			if c.Type == "cloud" {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud has been configured but needs to be initialized.",
-					strings.TrimSpace(errBackendInitCloud),
+					"Terraform Cloud initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -1328,17 +1328,12 @@ configuration or state have been made.
 `
 
 const errBackendInitCloud = `
-Changes to the Terraform Cloud configuration block require reinitialization.
-This allows Terraform to set up the new configuration, copy existing state,
-etc. Learn more about Terraform Settings:
-https://www.terraform.io/docs/language/settings/index.html
+Reason: %s
 
+Changes to the Terraform Cloud configuration block require reinitialization.
+This allows Terraform to set up the new configuration, copy existing state, etc.
 Please run "terraform init" with either the "-reconfigure" or "-migrate-state"
-flags. The "-reconfigure" option disregards any existing configuration,
-preventing migration of any existing state. The "-migrate-state" option
-will attempt to copy existing state to Terraform Cloud. Learn more about
-using "terraform init":
-https://www.terraform.io/docs/cli/commands/init.html#backend-initialization
+flags to use the current configuration.
 
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
