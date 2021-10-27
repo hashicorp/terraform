@@ -596,3 +596,36 @@ resource "test_object" "x" {
 	}
 
 }
+
+func TestContext2Apply_nullableVariables(t *testing.T) {
+	m := testModule(t, "apply-nullable-variables")
+	state := states.NewState()
+	ctx := testContext2(t, &ContextOpts{})
+	plan, diags := ctx.Plan(m, state, &PlanOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+	state, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+
+	outputs := state.Module(addrs.RootModuleInstance).OutputValues
+	// we check for null outputs be seeing that they don't exists
+	if _, ok := outputs["nullable_null_default"]; ok {
+		t.Error("nullable_null_default: expected no output value")
+	}
+	if _, ok := outputs["nullable_non_null_default"]; ok {
+		t.Error("nullable_non_null_default: expected no output value")
+	}
+	if _, ok := outputs["nullable_no_default"]; ok {
+		t.Error("nullable_no_default: expected no output value")
+	}
+
+	if v := outputs["non_nullable_default"].Value; v.AsString() != "ok" {
+		t.Fatalf("incorrect 'non_nullable_default' output value: %#v\n", v)
+	}
+	if v := outputs["non_nullable_no_default"].Value; v.AsString() != "ok" {
+		t.Fatalf("incorrect 'non_nullable_no_default' output value: %#v\n", v)
+	}
+}

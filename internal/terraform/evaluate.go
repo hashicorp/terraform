@@ -268,11 +268,27 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	}
 
 	val, isSet := vals[addr.Name]
-	if !isSet {
-		if config.Default != cty.NilVal {
-			return config.Default, diags
-		}
-		return cty.UnknownVal(config.Type), diags
+	switch {
+	case !isSet:
+		// The config loader will ensure there is a default if the value is not
+		// set at all.
+		val = config.Default
+
+	case val.IsNull() && !config.Nullable && config.Default != cty.NilVal:
+		// If nullable=false a null value will use the configured default.
+		val = config.Default
+
+	case val.IsNull() && !config.Nullable:
+		// The value cannot be null, and there is no configured default.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid variable value`,
+			Detail:   fmt.Sprintf(`The resolved value of variable %q cannot be null.`, addr.Name),
+			Subject:  &config.DeclRange,
+		})
+		// Stub out our return value so that the semantic checker doesn't
+		// produce redundant downstream errors.
+		val = cty.UnknownVal(config.Type)
 	}
 
 	var err error
@@ -286,8 +302,6 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 			Detail:   fmt.Sprintf(`The resolved value of variable %q is not appropriate: %s.`, addr.Name, err),
 			Subject:  &config.DeclRange,
 		})
-		// Stub out our return value so that the semantic checker doesn't
-		// produce redundant downstream errors.
 		val = cty.UnknownVal(config.Type)
 	}
 
