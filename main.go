@@ -316,9 +316,7 @@ func realMain() int {
 	// plugins crashing
 	if exitCode != 0 {
 		for _, panicLog := range logging.PluginPanics() {
-			// we don't write this to Error, or else panicwrap will think this
-			// process panicked
-			Ui.Info(panicLog)
+			Ui.Error(panicLog)
 		}
 	}
 
