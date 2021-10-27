@@ -596,3 +596,63 @@ resource "test_object" "x" {
 	}
 
 }
+
+func TestContext2Apply_variableNullAsDefault(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+  null = null
+  non_null = null
+}
+
+output "null" {
+  value = module.mod.null
+}
+
+output "non_null" {
+  value = module.mod.non_null
+}
+`,
+		"mod/main.tf": `
+variable "null" {
+  null_as_default = true
+  default = null
+}
+
+variable "non_null" {
+  null_as_default = true
+  default = "ok"
+}
+
+output "null" {
+  value = var.null
+}
+
+output "non_null" {
+  value = var.non_null
+}
+`,
+	})
+
+	state := states.NewState()
+	ctx := testContext2(t, &ContextOpts{})
+	plan, diags := ctx.Plan(m, state, &PlanOpts{})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+	state, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+
+	outputs := state.Module(addrs.RootModuleInstance).OutputValues
+	// null root outputs are elided
+	if _, ok := outputs["null"]; ok {
+		t.Fatal("expected no output value for null")
+	}
+
+	if v := outputs["non_null"].Value; v.AsString() != "ok" {
+		t.Fatalf("incorrect 'non_null' output value: %#v\n", v)
+	}
+}

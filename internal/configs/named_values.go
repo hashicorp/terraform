@@ -36,6 +36,14 @@ type Variable struct {
 	DescriptionSet bool
 	SensitiveSet   bool
 
+	// NullAsDefault allows terraform to use a default variable value when
+	// assigned a null input value.
+	// NullAsDefaultSet is used to track whether this is set in configuration,
+	// so that if in the future we change the default behavior, we can verify
+	// whether it's explicitly set to `false` or not set at all.
+	NullAsDefault    bool
+	NullAsDefaultSet bool
+
 	DeclRange hcl.Range
 }
 
@@ -110,6 +118,12 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		v.SensitiveSet = true
 	}
 
+	if attr, exists := content.Attributes["null_as_default"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.NullAsDefault)
+		diags = append(diags, valDiags...)
+		v.NullAsDefaultSet = true
+	}
+
 	if attr, exists := content.Attributes["default"]; exists {
 		val, valDiags := attr.Expr.Value(nil)
 		diags = append(diags, valDiags...)
@@ -135,6 +149,13 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		}
 
 		v.Default = val
+	} else if v.NullAsDefault {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing default value for variable",
+			Detail:   "Default value required in conjunction with null_as_default",
+			Subject:  &block.LabelRanges[0],
+		})
 	}
 
 	for _, block := range content.Blocks {
@@ -555,6 +576,9 @@ var variableBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "sensitive",
+		},
+		{
+			Name: "null_as_default",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

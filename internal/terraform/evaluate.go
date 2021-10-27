@@ -268,6 +268,10 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	}
 
 	val, isSet := vals[addr.Name]
+	if config.NullAsDefault && val.IsNull() {
+		isSet = false
+	}
+
 	if !isSet {
 		if config.Default != cty.NilVal {
 			return config.Default, diags

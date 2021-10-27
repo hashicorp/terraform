@@ -30,3 +30,9 @@ variable "sensitive_value" {
   }
   sensitive = true
 }
+
+variable "null_as_default" {
+  type = string
+  default = "ok"
+  null_as_default = true
+}
