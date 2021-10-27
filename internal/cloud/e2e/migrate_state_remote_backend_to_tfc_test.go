@@ -15,6 +15,8 @@ import (
 )
 
 func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 	cases := map[string]struct {
 		operations  []operationSets
@@ -197,6 +199,8 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 	cases := map[string]struct {
 		operations  []operationSets
@@ -334,6 +338,8 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 	cases := map[string]struct {
 		operations  []operationSets
@@ -477,6 +483,8 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 	cases := map[string]struct {
 		operations  []operationSets
@@ -695,6 +703,8 @@ func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 	cases := map[string]struct {
 		operations  []operationSets

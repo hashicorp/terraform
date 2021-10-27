@@ -13,14 +13,13 @@ import (
 	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func Test_terraform_apply_autoApprove(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
-	tfVersion := "1.1.0-tfc-integration"
-	if !hasTerraformVersion(t, tfVersion) {
-		t.Skip("Skipping test because TFC does not have current terraform version.")
-	}
 
 	cases := map[string]struct {
 		operations  []operationSets
@@ -33,7 +32,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 						wsName := "app"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 							AutoApply:        tfe.Bool(false),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
@@ -73,7 +72,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 						wsName := "app"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 							AutoApply:        tfe.Bool(true),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
@@ -113,7 +112,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 						wsName := "app"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 							AutoApply:        tfe.Bool(false),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
@@ -151,7 +150,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 						wsName := "app"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 							AutoApply:        tfe.Bool(true),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)

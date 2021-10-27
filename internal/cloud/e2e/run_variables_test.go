@@ -46,6 +46,8 @@ output "test_env" {
 }
 
 func Test_cloud_run_variables(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	cases := testCases{
 		"run variables from CLI arg": {
 			operations: []operationSets{

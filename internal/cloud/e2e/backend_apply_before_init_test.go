@@ -14,6 +14,8 @@ import (
 )
 
 func Test_backend_apply_before_init(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	cases := map[string]struct {
 		operations []operationSets
 	}{

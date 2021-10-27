@@ -13,14 +13,12 @@ import (
 	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
 	ctx := context.Background()
-	tfVersion := "1.1.0-alpha-20211027-dev-e51508be"
-	if !hasTerraformVersion(t, tfVersion) {
-		t.Skip("Skipping test because TFC does not have current terraform version.")
-	}
 
 	cases := map[string]struct {
 		setup       func(t *testing.T) (string, func())
@@ -42,7 +40,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						// terraform version of this current branch.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -69,7 +67,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "dev"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -110,7 +108,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "prod"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -174,7 +172,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "prod"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -200,7 +198,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						// version that does not support `cloud`.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("new-workspace"),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
@@ -214,7 +212,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							postInputOutput: []string{
 								// this is a temporary measure till we resolve some of the
 								// version mismatching.
-								fmt.Sprintf(`Remote workspace Terraform version "%s" does not match local Terraform version`, tfVersion)},
+								fmt.Sprintf(`Remote workspace Terraform version "%s" does not match local Terraform version`, tfversion.String())},
 						},
 					},
 				},
@@ -308,11 +306,9 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 }
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
-	tfVersion := "1.1.0-alpha-20211027-dev-e51508be"
-	if !hasTerraformVersion(t, tfVersion) {
-		t.Skip("Skipping test because TFC does not have current terraform version.")
-	}
 
 	cases := map[string]struct {
 		setup       func(t *testing.T) (string, func())
@@ -331,12 +327,12 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-prod"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-staging"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
@@ -378,7 +374,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						// using the right version for post init operations.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(name),
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, name)
 						writeMainTF(t, tfBlock, dir)
@@ -425,12 +421,12 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-prod"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-staging"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfVersion),
+							TerraformVersion: tfe.String(tfversion.String()),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)

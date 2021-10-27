@@ -15,6 +15,8 @@ import (
 )
 
 func Test_migrate_single_to_tfc(t *testing.T) {
+	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 
 	cases := map[string]struct {

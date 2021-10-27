@@ -12,6 +12,7 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/go-uuid"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
@@ -193,7 +194,8 @@ func writeMainTF(t *testing.T, block string, dir string) {
 }
 
 // Ensure that TFC/E has a particular terraform version.
-func hasTerraformVersion(t *testing.T, version string) bool {
+func skipWithoutRemoteTerraformVersion(t *testing.T) {
+	version := tfversion.String()
 	opts := tfe.AdminTerraformVersionsListOptions{
 		ListOptions: tfe.ListOptions{
 			PageNumber: 1,
@@ -226,5 +228,7 @@ findTfVersion:
 		opts.PageNumber = tfVersionList.NextPage
 	}
 
-	return hasVersion
+	if !hasVersion {
+		t.Skip(fmt.Sprintf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version))
+	}
 }
