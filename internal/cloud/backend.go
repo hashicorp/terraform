@@ -548,8 +548,10 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 			// object to do a nicely formatted message, so we're just assuming the
 			// issue was that the version wasn't available since that's probably what
 			// happened.
-			versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
-			b.CLI.Output(b.Colorize().Color(versionUnavailable))
+			if b.CLI != nil {
+				versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
+				b.CLI.Output(b.Colorize().Color(versionUnavailable))
+			}
 		}
 	}
 

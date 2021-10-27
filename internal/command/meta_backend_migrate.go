@@ -86,7 +86,9 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		}
 		// If there are no specified destination workspaces, perform a remote
 		// backend version check with the default workspace.
-		if len(destinationWorkspaces) == 0 {
+		// Ensure that we are not dealing with Terraform Cloud migrations, as it
+		// does not support the default name.
+		if len(destinationWorkspaces) == 0 && !destinationTFC {
 			diags := m.remoteVersionCheck(opts.Destination, backend.DefaultStateName)
 			if diags.HasErrors() {
 				return diags.Err()

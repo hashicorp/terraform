@@ -47,6 +47,13 @@ func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 		t.Fatal(err)
 	}
 
+	_, err = tfeClient.Admin.Organizations.Update(ctx, org.Name, tfe.AdminOrganizationUpdateOptions{
+		AccessBetaTools: tfe.Bool(true),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return org, func() {
 		if err := tfeClient.Organizations.Delete(ctx, org.Name); err != nil {
 			t.Errorf("Error destroying organization! WARNING: Dangling resources\n"+

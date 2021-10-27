@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -16,7 +17,7 @@ import (
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 	ctx := context.Background()
-	tfVersion := "1.1.0-tfc-integration"
+	tfVersion := "1.1.0-alpha-20211027-dev-e51508be"
 	if !hasTerraformVersion(t, tfVersion) {
 		t.Skip("Skipping test because TFC does not have current terraform version.")
 	}
@@ -162,6 +163,75 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				}
 			},
 		},
+		"migrating from name to tags without ignore-version flag": {
+			setup: func(t *testing.T) (string, func()) {
+				organization, cleanup := createOrganization(t)
+				return organization.Name, cleanup
+			},
+			operations: []operationSets{
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						wsName := "prod"
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String("prod"),
+							TerraformVersion: tfe.String(tfVersion),
+						})
+						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init"},
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+						},
+						{
+							command:           []string{"apply"},
+							expectedCmdOutput: `Do you want to perform these actions in workspace "prod"?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Apply complete!`},
+						},
+					},
+				},
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						tag := "app"
+						// This is only here to ensure that the updated terraform version is
+						// present in the workspace, and it does not default to a lower
+						// version that does not support `cloud`.
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String("new-workspace"),
+							TerraformVersion: tfe.String(tfVersion),
+						})
+						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init", "-migrate-state"},
+							expectedCmdOutput: `The Terraform Cloud configuration only allows named workspaces!`,
+							expectError:       true,
+							userInput:         []string{"new-workspace", "yes"},
+							postInputOutput: []string{
+								// this is a temporary measure till we resolve some of the
+								// version mismatching.
+								fmt.Sprintf(`Remote workspace Terraform version "%s" does not match local Terraform version`, tfVersion)},
+						},
+					},
+				},
+			},
+			validations: func(t *testing.T, orgName string) {
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
+					Tags: tfe.String("app"),
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				// The migration never occured, so we have no workspaces with this tag.
+				if len(wsList.Items) != 0 {
+					t.Fatalf("Expected number of workspaces to be 0, but got %d", len(wsList.Items))
+				}
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -225,7 +295,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				}
 
 				err = cmd.Wait()
-				if err != nil {
+				if err != nil && !tfCmd.expectError {
 					t.Fatal(err.Error())
 				}
 			}
@@ -239,7 +309,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 	ctx := context.Background()
-	tfVersion := "1.1.0-tfc-integration"
+	tfVersion := "1.1.0-alpha-20211027-dev-e51508be"
 	if !hasTerraformVersion(t, tfVersion) {
 		t.Skip("Skipping test because TFC does not have current terraform version.")
 	}
