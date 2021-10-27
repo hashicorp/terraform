@@ -1255,12 +1255,13 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 		return nil, tfe.ErrResourceNotFound
 	}
 
+	originalName := w.Name
 	err := updateMockWorkspaceAttributes(w, options)
 	if err != nil {
 		return nil, err
 	}
 
-	delete(m.workspaceNames, w.Name)
+	delete(m.workspaceNames, originalName)
 	m.workspaceNames[w.Name] = w
 
 	return w, nil
