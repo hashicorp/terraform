@@ -1,9 +1,9 @@
 Terraform
 =========
 
-- Website: https://www.terraform.io
+- Website: [Terraform.io](https://www.terraform.io)
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
-- Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
+- Documentation: [Terraform.io/docs](https://www.terraform.io/docs/)
 - Tutorials: [HashiCorp's Learn Platform](https://learn.hashicorp.com/terraform)
 - Certification Exam: [HashiCorp Certified: Terraform Associate](https://www.hashicorp.com/certification/#hashicorp-certified-terraform-associate)
 
@@ -26,8 +26,8 @@ For more information, see the [introduction section](https://www.terraform.io/in
 Getting Started & Documentation
 -------------------------------
 Documentation is available on the [Terraform website](https://www.terraform.io):
-  - [Intro](https://www.terraform.io/intro/index.html)
-  - [Docs](https://www.terraform.io/docs/index.html)
+  - [Introduction](https://www.terraform.io/intro/index.html)
+  - [Documentation](https://www.terraform.io/docs/index.html)
 
 If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
 
@@ -42,5 +42,11 @@ To learn more about compiling Terraform and contributing suggested changes, plea
 
 To learn more about how we handle bug reports, please read the [bug triage guide](./BUGPROCESS.md).
 
-## License
-[Mozilla Public License v2.0](https://github.com/hashicorp/terraform/blob/main/LICENSE)
+</br>
+
+<div align="center">
+   <a href="https://github.com/hashicorp/terraform/blob/main/LICENSE" target="_blank">
+    <img src="https://img.shields.io/badge/LICENSE-Mozilla%20Public%20License%20v2.0-orange?style=for-the-badge&logo=appveyorColor=white"/>
+  </a>
+  
+  </div>
