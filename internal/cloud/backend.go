@@ -504,6 +504,8 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 
 // StateMgr implements backend.Enhanced.
 func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
+	var remoteTFVersion string
+
 	if name == backend.DefaultStateName {
 		return nil, backend.ErrDefaultWorkspaceNotSupported
 	}
@@ -515,6 +517,9 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
+	}
+	if workspace != nil {
+		remoteTFVersion = workspace.TerraformVersion
 	}
 
 	if err == tfe.ErrResourceNotFound {
@@ -530,10 +535,13 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 		options.Tags = tags
 
+		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
 		}
+
+		remoteTFVersion = workspace.TerraformVersion
 
 		// Attempt to set the new workspace to use this version of Terraform. This
 		// can fail if there's no enabled tool_version whose name matches our
@@ -542,12 +550,15 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 			TerraformVersion: tfe.String(tfversion.String()),
 		}
 		_, err := b.client.Workspaces.UpdateByID(context.Background(), workspace.ID, versionOptions)
-		if err != nil {
+		if err == nil {
+			remoteTFVersion = tfversion.String()
+		} else {
 			// TODO: Ideally we could rely on the client to tell us what the actual
 			// problem was, but we currently can't get enough context from the error
 			// object to do a nicely formatted message, so we're just assuming the
 			// issue was that the version wasn't available since that's probably what
 			// happened.
+			log.Printf("[TRACE] cloud: Attempted to select version %s for TFC workspace; unavailable, so %s will be used instead.", tfversion.String(), workspace.TerraformVersion)
 			if b.CLI != nil {
 				versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
 				b.CLI.Output(b.Colorize().Color(versionUnavailable))
@@ -561,11 +572,10 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	// accidentally upgrade state with a new code path, and the version check
 	// logic is coarser and simpler.
 	if !b.ignoreVersionConflict {
-		wsv := workspace.TerraformVersion
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
-		if wsv != tfversion.String() && wsv != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String())
+		if remoteTFVersion != tfversion.String() && remoteTFVersion != "latest" {
+			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String())
 		}
 	}
 
