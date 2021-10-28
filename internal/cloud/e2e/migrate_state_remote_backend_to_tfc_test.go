@@ -379,7 +379,7 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
+							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"cloud-workspace", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to Terraform Cloud?`,
@@ -741,7 +741,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `The Terraform Cloud configuration only allows named workspaces!`,
+							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"cloud-workspace", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to Terraform Cloud?`,

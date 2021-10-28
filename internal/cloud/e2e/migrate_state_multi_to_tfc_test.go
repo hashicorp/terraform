@@ -307,7 +307,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Terraform Cloud configuration only allows named workspaces!`,
+							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*", "1"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,

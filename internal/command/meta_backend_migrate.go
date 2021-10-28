@@ -694,8 +694,7 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 	message := fmt.Sprintf("[reset][bold][yellow]The %q backend configuration only allows "+
 		"named workspaces![reset]", destinationType)
 	if destinationType == "cloud" {
-		message = fmt.Sprintf("[reset][bold][yellow]The Terraform Cloud configuration only allows " +
-			"named workspaces![reset]")
+		message = `[reset][bold][yellow]Terraform Cloud requires all workspaces to be given an explicit name.[reset]`
 	}
 	name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "new-state-name",
@@ -896,7 +895,7 @@ If you answer "yes", Terraform will migrate all states. If you answer
 
 const inputBackendNewWorkspaceName = `
 Please provide a new workspace name (e.g. dev, test) that will be used
-to migrate the existing default workspace. 
+to migrate the existing default workspace.
 `
 
 const inputBackendSelectWorkspace = `
