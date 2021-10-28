@@ -36,6 +36,8 @@ const (
 	defaultHostname    = "app.terraform.io"
 	defaultParallelism = 10
 	tfeServiceID       = "tfe.v2"
+	headerSourceKey    = "X-Terraform-Integration"
+	headerSourceValue  = "cloud"
 )
 
 // Cloud is an implementation of EnhancedBackend in service of the Terraform Cloud/Enterprise
@@ -254,6 +256,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Set the version header to the current version.
 	cfg.Headers.Set(tfversion.Header, tfversion.Version)
+	cfg.Headers.Set(headerSourceKey, headerSourceValue)
 
 	// Create the TFC/E API client.
 	b.client, err = tfe.NewClient(cfg)
