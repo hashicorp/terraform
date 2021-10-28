@@ -40,8 +40,9 @@ type testCases map[string]struct {
 func createOrganization(t *testing.T) (*tfe.Organization, func()) {
 	ctx := context.Background()
 	org, err := tfeClient.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
-		Name:  tfe.String("tst-" + randomString(t)),
-		Email: tfe.String(fmt.Sprintf("%s@tfe.local", randomString(t))),
+		Name:                  tfe.String("tst-" + randomString(t)),
+		Email:                 tfe.String(fmt.Sprintf("%s@tfe.local", randomString(t))),
+		CostEstimationEnabled: tfe.Bool(false),
 	})
 	if err != nil {
 		t.Fatal(err)
