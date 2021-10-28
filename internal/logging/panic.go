@@ -28,7 +28,8 @@ shown below, and any additional information which may help replicate the issue.
 
 // PanicHandler is called to recover from an internal panic in Terraform, and
 // augments the standard stack trace with a more user friendly error message.
-// PanicHandler must be called as a defered function.
+// PanicHandler must be called as a defered function, and must be the first
+// defer called at the start of a new goroutine.
 func PanicHandler() {
 	recovered := recover()
 	if recovered == nil {
