@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -209,10 +208,6 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							expectedCmdOutput: `The Terraform Cloud configuration only allows named workspaces!`,
 							expectError:       true,
 							userInput:         []string{"new-workspace", "yes"},
-							postInputOutput: []string{
-								// this is a temporary measure till we resolve some of the
-								// version mismatching.
-								fmt.Sprintf(`Remote workspace Terraform version "%s" does not match local Terraform version`, tfversion.String())},
 						},
 					},
 				},

@@ -30,7 +30,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud has been configured but needs to be initialized`,
+							expectedCmdOutput: `Terraform Cloud initialization required, please run "terraform init"`,
 							expectError:       true,
 						},
 					},
@@ -66,7 +66,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud has been configured but needs to be initialized`,
+							expectedCmdOutput: `Terraform Cloud initialization required, please run "terraform init"`,
 							expectError:       true,
 						},
 					},
