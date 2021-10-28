@@ -42,7 +42,11 @@ func PanicHandler() {
 	// When called from a deferred function, debug.PrintStack will include the
 	// full stack from the point of the pending panic.
 	debug.PrintStack()
-	os.Exit(2)
+
+	// An exit code of 11 keeps us out of the way of the detailed exitcodes
+	// from plan, and also happens to be the same code as SIGSEGV which is
+	// roughly the same type of condition that causes most panics.
+	os.Exit(11)
 }
 
 const pluginPanicOutput = `
