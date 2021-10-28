@@ -63,6 +63,12 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 		leftRuleStart = color.Color("[yellow]╷[reset]")
 		leftRuleEnd = color.Color("[yellow]╵[reset]")
 		leftRuleWidth = 2
+	case viewsjson.DiagnosticSeverityHint:
+		buf.WriteString(color.Color("[bold][cyan]Hint: [reset]"))
+		leftRuleLine = color.Color("[cyan]│[reset] ")
+		leftRuleStart = color.Color("[cyan]╷[reset]")
+		leftRuleEnd = color.Color("[cyan]╵[reset]")
+		leftRuleWidth = 2
 	default:
 		// Clear out any coloring that might be applied by Terraform's UI helper,
 		// so our result is not context-sensitive.
@@ -139,6 +145,8 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 		buf.WriteString("\nError: ")
 	case viewsjson.DiagnosticSeverityWarning:
 		buf.WriteString("\nWarning: ")
+	case viewsjson.DiagnosticSeverityHint:
+		buf.WriteString("\nHint: ")
 	default:
 		buf.WriteString("\n")
 	}

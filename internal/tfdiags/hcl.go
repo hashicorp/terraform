@@ -115,7 +115,10 @@ func (diags Diagnostics) ToHCL() hcl.Diagnostics {
 		}
 
 		switch severity {
-		case Warning:
+		case Warning, Hint:
+			// NOTE: HCL doesn't have a "hint" severity and so we upgrade it
+			// to "warning" here for robustness, but really nothing should be
+			// converting hint diagnostics to HCL anyway.
 			hclDiag.Severity = hcl.DiagWarning
 		case Error:
 			hclDiag.Severity = hcl.DiagError

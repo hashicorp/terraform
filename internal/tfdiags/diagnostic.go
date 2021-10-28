@@ -22,6 +22,10 @@ type Severity rune
 const (
 	Error   Severity = 'E'
 	Warning Severity = 'W'
+
+	// Hint is a special severity used only for the HintMessage diagnostic
+	// type. See that type's documentation for more information.
+	Hint Severity = 'H'
 )
 
 type Description struct {

@@ -21,6 +21,7 @@ const (
 	DiagnosticSeverityUnknown = "unknown"
 	DiagnosticSeverityError   = "error"
 	DiagnosticSeverityWarning = "warning"
+	DiagnosticSeverityHint    = "hint"
 )
 
 // Diagnostic represents any tfdiags.Diagnostic value. The simplest form has
@@ -116,6 +117,8 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 		sev = DiagnosticSeverityError
 	case tfdiags.Warning:
 		sev = DiagnosticSeverityWarning
+	case tfdiags.Hint:
+		sev = DiagnosticSeverityHint
 	default:
 		sev = DiagnosticSeverityUnknown
 	}

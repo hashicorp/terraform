@@ -750,6 +750,43 @@ func TestNewDiagnostic(t *testing.T) {
 				},
 			},
 		},
+		"hint with source code subject": {
+			&tfdiags.HintMessage{
+				Summary: "Potential for explosion",
+				Detail:  "This might explode if you leave it in direct sunlight.",
+				SourceRange: tfdiags.SourceRange{
+					Filename: "test.tf",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 10, Byte: 9},
+					End:      tfdiags.SourcePos{Line: 1, Column: 25, Byte: 24},
+				},
+			},
+			&Diagnostic{
+				Severity: "hint",
+				Summary:  "Potential for explosion",
+				Detail:   "This might explode if you leave it in direct sunlight.",
+				Range: &DiagnosticRange{
+					Filename: "test.tf",
+					Start: Pos{
+						Line:   1,
+						Column: 10,
+						Byte:   9,
+					},
+					End: Pos{
+						Line:   1,
+						Column: 25,
+						Byte:   24,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "test"`),
+					Code:                 `resource "test_resource" "test" {`,
+					StartLine:            1,
+					HighlightStartOffset: 9,
+					HighlightEndOffset:   24,
+					Values:               []DiagnosticExpressionValue{},
+				},
+			},
+		},
 	}
 
 	for name, tc := range testCases {

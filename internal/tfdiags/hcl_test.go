@@ -36,6 +36,20 @@ func TestDiagnosticsToHCL(t *testing.T) {
 		EvalContext: &hcl.EvalContext{},
 		Expression:  &fakeHCLExpression{},
 	})
+	diags = diags.Append(&HintMessage{
+		Summary: "A hint diagnostic",
+		Detail:  "...which HCL can't actually represent.",
+		SourceRange: SourceRange{
+			Filename: "test.tf",
+			Start:    SourcePos{Line: 1, Column: 2, Byte: 3},
+			End:      SourcePos{Line: 4, Column: 5, Byte: 6},
+		},
+		ContextRange: &SourceRange{
+			Filename: "test.tf",
+			Start:    SourcePos{Line: 7, Column: 8, Byte: 9},
+			End:      SourcePos{Line: 10, Column: 11, Byte: 12},
+		},
+	})
 
 	got := diags.ToHCL()
 	want := hcl.Diagnostics{
@@ -68,6 +82,21 @@ func TestDiagnosticsToHCL(t *testing.T) {
 			},
 			EvalContext: &hcl.EvalContext{},
 			Expression:  &fakeHCLExpression{},
+		},
+		{
+			Severity: hcl.DiagWarning, // Upgraded to a warning to accommodate the model mismatch
+			Summary:  "A hint diagnostic",
+			Detail:   "...which HCL can't actually represent.",
+			Subject: &hcl.Range{
+				Filename: "test.tf",
+				Start:    hcl.Pos{Line: 1, Column: 2, Byte: 3},
+				End:      hcl.Pos{Line: 4, Column: 5, Byte: 6},
+			},
+			Context: &hcl.Range{
+				Filename: "test.tf",
+				Start:    hcl.Pos{Line: 7, Column: 8, Byte: 9},
+				End:      hcl.Pos{Line: 10, Column: 11, Byte: 12},
+			},
 		},
 	}
 

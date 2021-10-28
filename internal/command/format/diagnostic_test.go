@@ -209,6 +209,26 @@ func TestDiagnostic(t *testing.T) {
 [red]╵[reset]
 `,
 		},
+		"hint with source code subject": {
+			&tfdiags.HintMessage{
+				Summary: "Possibly bad",
+				Detail:  "Maybe don't do this!",
+				SourceRange: tfdiags.SourceRange{
+					Filename: "test.tf",
+					Start:    tfdiags.SourcePos{Line: 1, Column: 6, Byte: 5},
+					End:      tfdiags.SourcePos{Line: 1, Column: 12, Byte: 11},
+				},
+			},
+			`[cyan]╷[reset]
+[cyan]│[reset] [bold][cyan]Hint: [reset][bold]Possibly bad[reset]
+[cyan]│[reset]
+[cyan]│[reset]   on test.tf line 1:
+[cyan]│[reset]    1: test [underline]source[reset] code
+[cyan]│[reset]
+[cyan]│[reset] Maybe don't do this!
+[cyan]╵[reset]
+`,
+		},
 	}
 
 	sources := map[string][]byte{
