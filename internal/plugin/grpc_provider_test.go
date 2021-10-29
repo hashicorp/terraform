@@ -228,7 +228,8 @@ func TestGRPCProvider_Configure(t *testing.T) {
 }
 
 func TestGRPCProvider_Stop(t *testing.T) {
-	client := mockProviderClient(t)
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProviderClient(ctrl)
 	p := &GRPCProvider{
 		client: client,
 	}
