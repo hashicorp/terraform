@@ -505,10 +505,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			oldItem := oldItems[i]
 			newItem := newItems[i]
 			if oldItem.RawEquals(newItem) {
-				action = plans.NoOp
 				unchanged++
-			}
-			if action != plans.NoOp {
+			} else if action != plans.NoOp {
 				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
 				p.writeSkippedAttr(result.skippedAttributes, indent+8)
 				p.buf.WriteString("\n")
