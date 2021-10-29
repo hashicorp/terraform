@@ -31,6 +31,16 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 
 	view := views.NewValidate(args.ViewType, c.View)
 
+	if args.Hints && !validateEnableHints {
+		// This is not a message of the usual quality we return for unavailable
+		// options, but this is just a temporary trick to allow us to
+		// experiment with the hint mode before really shipping it, and it's
+		// unlikely that anyone would try to use this option without already
+		// knowing it's something we're experimenting with.
+		diags = diags.Append(fmt.Errorf("-hints is not a valid command-line option"))
+		return view.Results(diags)
+	}
+
 	// After this point, we must only produce JSON output if JSON mode is
 	// enabled, so all errors should be accumulated into diags and we'll
 	// print out a suitable result at the end, depending on the format
@@ -49,7 +59,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 		return view.Results(diags)
 	}
 
-	validateDiags := c.validate(dir)
+	validateDiags := c.validate(dir, args.Hints)
 	diags = diags.Append(validateDiags)
 
 	// Validating with dev overrides in effect means that the result might
@@ -61,7 +71,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 	return view.Results(diags)
 }
 
-func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
+func (c *ValidateCommand) validate(dir string, hints bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	cfg, cfgDiags := c.loadConfig(dir)
@@ -83,7 +93,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		return diags
 	}
 
-	validateDiags := tfCtx.Validate(cfg, terraform.DefaultValidateOpts)
+	validateOpts := &terraform.ValidateOpts{
+		Hints: hints,
+	}
+
+	validateDiags := tfCtx.Validate(cfg, validateOpts)
 	diags = diags.Append(validateDiags)
 	return diags
 }

@@ -12,6 +12,11 @@ type Validate struct {
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
+
+	// Hints enables generation of additional hints that may make a module
+	// easier to understand or avoid common pitfalls, but that may not apply
+	// in all situations.
+	Hints bool
 }
 
 // ParseValidate processes CLI arguments, returning a Validate value and errors.
@@ -24,8 +29,10 @@ func ParseValidate(args []string) (*Validate, tfdiags.Diagnostics) {
 	}
 
 	var jsonOutput bool
+	var hints bool
 	cmdFlags := defaultFlagSet("validate")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&hints, "hints", false, "hints")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -54,6 +61,8 @@ func ParseValidate(args []string) (*Validate, tfdiags.Diagnostics) {
 	default:
 		validate.ViewType = ViewHuman
 	}
+
+	validate.Hints = hints
 
 	return validate, diags
 }
