@@ -27,6 +27,7 @@ import (
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
 	backendSwift "github.com/hashicorp/terraform/internal/backend/remote-state/swift"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -49,7 +50,6 @@ func Init(services *disco.Disco) {
 	defer backendsLock.Unlock()
 
 	backends = map[string]backend.InitFn{
-		// Enhanced backends.
 		"local":  func() backend.Backend { return backendLocal.New() },
 		"remote": func() backend.Backend { return backendRemote.New(services) },
 
@@ -69,6 +69,10 @@ func Init(services *disco.Disco) {
 		"pg":          func() backend.Backend { return backendPg.New() },
 		"s3":          func() backend.Backend { return backendS3.New() },
 		"swift":       func() backend.Backend { return backendSwift.New() },
+
+		// Terraform Cloud 'backend'
+		// This is an implementation detail only, used for the cloud package
+		"cloud": func() backend.Backend { return backendCloud.New(services) },
 
 		// Deprecated backends.
 		"azure": func() backend.Backend {

@@ -80,7 +80,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Check remote Terraform version is compatible
-	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	c.showDiagnostics(remoteVersionDiags)
 	if remoteVersionDiags.HasErrors() {
 		return 1

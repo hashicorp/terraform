@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // TestNewModule_provider_fqns exercises module.gatherProviderLocalNames()
@@ -307,5 +308,107 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 		if !got.Equals(test.Provider) {
 			t.Errorf("wrong result for %q: got %#v, want %#v\n", test.Type, got, test.Provider)
 		}
+	}
+}
+
+func TestModule_backend_override(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	gotType := mod.Backend.Type
+	wantType := "bar"
+
+	if gotType != wantType {
+		t.Errorf("wrong result for backend type: got %#v, want %#v\n", gotType, wantType)
+	}
+
+	attrs, _ := mod.Backend.Config.JustAttributes()
+
+	gotAttr, diags := attrs["path"].Expr.Value(nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	wantAttr := cty.StringVal("CHANGED/relative/path/to/terraform.tfstate")
+
+	if !gotAttr.RawEquals(wantAttr) {
+		t.Errorf("wrong result for backend 'path': got %#v, want %#v\n", gotAttr, wantAttr)
+	}
+}
+
+// Unlike most other overrides, backend blocks do not require a base configuration in a primary
+// configuration file, as an omitted backend there implies the local backend.
+func TestModule_backend_override_no_base(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-no-base")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	if mod.Backend == nil {
+		t.Errorf("expected module Backend not to be nil")
+	}
+}
+
+func TestModule_cloud_override_backend(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-backend-with-cloud")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	if mod.Backend != nil {
+		t.Errorf("expected module Backend to be nil")
+	}
+
+	if mod.CloudConfig == nil {
+		t.Errorf("expected module CloudConfig not to be nil")
+	}
+}
+
+// Unlike most other overrides, cloud blocks do not require a base configuration in a primary
+// configuration file, as an omitted backend there implies the local backend and cloud blocks
+// override backends.
+func TestModule_cloud_override_no_base(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud-no-base")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	if mod.CloudConfig == nil {
+		t.Errorf("expected module CloudConfig not to be nil")
+	}
+}
+
+func TestModule_cloud_override(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-cloud")
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	attrs, _ := mod.CloudConfig.Config.JustAttributes()
+
+	gotAttr, diags := attrs["organization"].Expr.Value(nil)
+	if diags.HasErrors() {
+		t.Fatal(diags.Error())
+	}
+
+	wantAttr := cty.StringVal("CHANGED")
+
+	if !gotAttr.RawEquals(wantAttr) {
+		t.Errorf("wrong result for Cloud 'organization': got %#v, want %#v\n", gotAttr, wantAttr)
+	}
+
+	// The override should have completely replaced the cloud block in the primary file, no merging
+	if attrs["should_not_be_present_with_override"] != nil {
+		t.Errorf("expected 'should_not_be_present_with_override' attribute to be nil")
+	}
+}
+
+func TestModule_cloud_duplicate_overrides(t *testing.T) {
+	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
+	want := `Duplicate Terraform Cloud configurations`
+	if got := diags.Error(); !strings.Contains(got, want) {
+		t.Fatalf("expected module error to contain %q\nerror was:\n%s", want, got)
 	}
 }

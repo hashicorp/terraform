@@ -17,7 +17,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
-	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -53,6 +53,13 @@ type BackendOpts struct {
 	// ForceLocal will force a purely local backend, including state.
 	// You probably don't want to set this.
 	ForceLocal bool
+}
+
+// BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
+// for simplified type checking when calling functions common to those particular backends.
+type BackendWithRemoteTerraformVersion interface {
+	IgnoreVersionConflict()
+	VerifyWorkspaceTerraformVersion(workspace string) tfdiags.Diagnostics
 }
 
 // Backend initializes and returns the backend for this CLI session.
@@ -589,12 +596,21 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	case c != nil && s.Backend.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
-			initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
-				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-			))
+			if c.Type == "cloud" {
+				initReason := "Initial configuration of Terraform Cloud"
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Terraform Cloud initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+				))
+			} else {
+				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Backend initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+				))
+			}
 			return nil, diags
 		}
 
@@ -619,22 +635,39 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
-		initReason := fmt.Sprintf("Backend configuration changed for %q", c.Type)
-		if s.Backend.Type != c.Type {
+		initReason := ""
+		switch {
+		case c.Type == "cloud":
+			initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", s.Backend.Type)
+		case s.Backend.Type != c.Type:
 			initReason = fmt.Sprintf("Backend configuration changed from %q to %q", s.Backend.Type, c.Type)
+		default:
+			initReason = fmt.Sprintf("Backend configuration changed for %q", c.Type)
 		}
 
 		if !opts.Init {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
-				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-			))
+			if c.Type == "cloud" {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Terraform Cloud initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+				))
+			} else {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Backend initialization required, please run \"terraform init\"",
+					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+				))
+			}
 			return nil, diags
 		}
 
 		if !m.migrateState {
-			diags = diags.Append(migrateOrReconfigDiag)
+			if c.Type == "cloud" {
+				diags = diags.Append(migrateOrReconfigDiagCloud)
+			} else {
+				diags = diags.Append(migrateOrReconfigDiag)
+			}
 			return nil, diags
 		}
 
@@ -746,7 +779,11 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	// Get the backend type for output
 	backendType := s.Backend.Type
 
-	m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+	if s.Backend.Type == "cloud" {
+		m.Ui.Output(strings.TrimSpace(outputBackendMigrateLocalFromCloud))
+	} else {
+		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
+	}
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, diags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
@@ -915,9 +952,12 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		return nil, diags
 	}
 
-	// By now the backend is successfully configured.
-	m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-		"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+	// By now the backend is successfully configured.  If using Terraform Cloud, the success
+	// message is handled as part of the final init message
+	if _, ok := b.(*cloud.Cloud); !ok {
+		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+	}
 
 	return b, diags
 }
@@ -942,7 +982,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 
 	// no need to confuse the user if the backend types are the same
 	if s.Backend.Type != c.Type {
-		m.Ui.Output(strings.TrimSpace(fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)))
+		output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
+		if c.Type == "cloud" {
+			output = fmt.Sprintf(outputBackendMigrateChangeCloud, s.Backend.Type)
+		}
+		m.Ui.Output(strings.TrimSpace(output))
 	}
 
 	// Grab the existing backend
@@ -1001,8 +1045,12 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if output {
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		// By now the backend is successfully configured.  If using Terraform Cloud, the success
+		// message is handled as part of the final init message
+		if _, ok := b.(*cloud.Cloud); !ok {
+			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+				"[reset][green]\n"+strings.TrimSpace(successBackendSet), s.Backend.Type)))
+		}
 	}
 
 	return b, diags
@@ -1168,32 +1216,32 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	return b, configVal, diags
 }
 
-// Helper method to ignore remote backend version conflicts. Only call this
+// Helper method to ignore remote/cloud backend version conflicts. Only call this
 // for commands which cannot accidentally upgrade remote state files.
-func (m *Meta) ignoreRemoteBackendVersionConflict(b backend.Backend) {
-	if rb, ok := b.(*remoteBackend.Remote); ok {
-		rb.IgnoreVersionConflict()
+func (m *Meta) ignoreRemoteVersionConflict(b backend.Backend) {
+	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
+		back.IgnoreVersionConflict()
 	}
 }
 
 // Helper method to check the local Terraform version against the configured
 // version in the remote workspace, returning diagnostics if they conflict.
-func (m *Meta) remoteBackendVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
+func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	if rb, ok := b.(*remoteBackend.Remote); ok {
+	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
 		// Allow user override based on command-line flag
 		if m.ignoreRemoteVersion {
-			rb.IgnoreVersionConflict()
+			back.IgnoreVersionConflict()
 		}
 		// If the override is set, this check will return a warning instead of
 		// an error
-		versionDiags := rb.VerifyWorkspaceTerraformVersion(workspace)
+		versionDiags := back.VerifyWorkspaceTerraformVersion(workspace)
 		diags = diags.Append(versionDiags)
 		// If there are no errors resulting from this check, we do not need to
 		// check again
 		if !diags.HasErrors() {
-			rb.IgnoreVersionConflict()
+			back.IgnoreVersionConflict()
 		}
 	}
 
@@ -1283,6 +1331,19 @@ hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.
 `
 
+const errBackendInitCloud = `
+Reason: %s
+
+Changes to the Terraform Cloud configuration block require reinitialization.
+This allows Terraform to set up the new configuration, copy existing state, etc.
+Please run "terraform init" with either the "-reconfigure" or "-migrate-state"
+flags to use the current configuration.
+
+If the change reason above is incorrect, please verify your configuration
+hasn't changed and try again. At this point, no changes to your existing
+configuration or state have been made.
+`
+
 const errBackendWriteSaved = `
 Error saving the backend configuration: %s
 
@@ -1296,8 +1357,15 @@ const outputBackendMigrateChange = `
 Terraform detected that the backend type changed from %q to %q.
 `
 
+const outputBackendMigrateChangeCloud = `
+Terraform detected that the backend type changed from %q to Terraform Cloud.
+`
+
 const outputBackendMigrateLocal = `
 Terraform has detected you're unconfiguring your previously set %q backend.
+`
+const outputBackendMigrateLocalFromCloud = `
+Terraform has detected you're unconfiguring Terraform Cloud.
 `
 
 const outputBackendReconfigure = `
@@ -1320,5 +1388,12 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
+		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+
+var migrateOrReconfigDiagCloud = tfdiags.Sourceless(
+	tfdiags.Error,
+	"Terraform Cloud configuration changed",
+	"A change in the Terraform Cloud configuration has been detected, which may require migrating existing state.\n\n"+
 		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
 		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)

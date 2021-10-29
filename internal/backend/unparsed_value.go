@@ -25,6 +25,121 @@ type UnparsedVariableValue interface {
 	ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics)
 }
 
+// ParseUndeclaredVariableValues processes a map of unparsed variable values
+// and returns an input values map of the ones not declared in the specified
+// declaration map along with detailed diagnostics about values of undeclared
+// variables being present, depending on the source of these values. If more
+// than two undeclared values are present in file form (config, auto, -var-file)
+// the remaining errors are summarized to avoid a massive list of errors.
+func ParseUndeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(terraform.InputValues, len(vv))
+	seenUndeclaredInFile := 0
+
+	for name, rv := range vv {
+		if _, declared := decls[name]; declared {
+			// Only interested in parsing undeclared variables
+			continue
+		}
+
+		val, valDiags := rv.ParseVariableValue(configs.VariableParseLiteral)
+		if valDiags.HasErrors() {
+			continue
+		}
+
+		ret[name] = val
+
+		switch val.SourceType {
+		case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
+			// We allow undeclared names for variable values from files and warn in case
+			// users have forgotten a variable {} declaration or have a typo in their var name.
+			// Some users will actively ignore this warning because they use a .tfvars file
+			// across multiple configurations.
+			if seenUndeclaredInFile < 2 {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Value for undeclared variable",
+					fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. If you meant to use this value, add a \"variable\" block to the configuration.\n\nTo silence these warnings, use TF_VAR_... environment variables to provide certain \"global\" settings to all configurations in your organization. To reduce the verbosity of these warnings, use the -compact-warnings option.", name, val.SourceRange.Filename),
+				))
+			}
+			seenUndeclaredInFile++
+
+		case terraform.ValueFromEnvVar:
+			// We allow and ignore undeclared names for environment
+			// variables, because users will often set these globally
+			// when they are used across many (but not necessarily all)
+			// configurations.
+		case terraform.ValueFromCLIArg:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Value for undeclared variable",
+				fmt.Sprintf("A variable named %q was assigned on the command line, but the root module does not declare a variable of that name. To use this value, add a \"variable\" block to the configuration.", name),
+			))
+		default:
+			// For all other source types we are more vague, but other situations
+			// don't generally crop up at this layer in practice.
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Value for undeclared variable",
+				fmt.Sprintf("A variable named %q was assigned a value, but the root module does not declare a variable of that name. To use this value, add a \"variable\" block to the configuration.", name),
+			))
+		}
+	}
+
+	if seenUndeclaredInFile > 2 {
+		extras := seenUndeclaredInFile - 2
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Values for undeclared variables",
+			Detail:   fmt.Sprintf("In addition to the other similar warnings shown, %d other variable(s) defined without being declared.", extras),
+		})
+	}
+
+	return ret, diags
+}
+
+// ParseDeclaredVariableValues processes a map of unparsed variable values
+// and returns an input values map of the ones declared in the specified
+// variable declaration mapping. Diagnostics will be populating with
+// any variable parsing errors encountered within this collection.
+func ParseDeclaredVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(terraform.InputValues, len(vv))
+
+	for name, rv := range vv {
+		var mode configs.VariableParsingMode
+		config, declared := decls[name]
+
+		if declared {
+			mode = config.ParsingMode
+		} else {
+			// Only interested in parsing declared variables
+			continue
+		}
+
+		val, valDiags := rv.ParseVariableValue(mode)
+		diags = diags.Append(valDiags)
+		if valDiags.HasErrors() {
+			continue
+		}
+
+		ret[name] = val
+	}
+
+	return ret, diags
+}
+
+// Checks all given terraform.InputValues variable maps for the existance of
+// a named variable
+func isDefinedAny(name string, maps ...terraform.InputValues) bool {
+	for _, m := range maps {
+		if _, defined := m[name]; defined {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseVariableValues processes a map of unparsed variable values by
 // correlating each one with the given variable declarations which should
 // be from a root module.
@@ -42,87 +157,17 @@ type UnparsedVariableValue interface {
 // that were successfully processed, allowing for careful analysis of the
 // partial result.
 func ParseVariableValues(vv map[string]UnparsedVariableValue, decls map[string]*configs.Variable) (terraform.InputValues, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	ret := make(terraform.InputValues, len(vv))
+	ret, diags := ParseDeclaredVariableValues(vv, decls)
+	undeclared, diagsUndeclared := ParseUndeclaredVariableValues(vv, decls)
 
-	// Currently we're generating only warnings for undeclared variables
-	// defined in files (see below) but we only want to generate a few warnings
-	// at a time because existing deployments may have lots of these and
-	// the result can therefore be overwhelming.
-	seenUndeclaredInFile := 0
-
-	for name, rv := range vv {
-		var mode configs.VariableParsingMode
-		config, declared := decls[name]
-		if declared {
-			mode = config.ParsingMode
-		} else {
-			mode = configs.VariableParseLiteral
-		}
-
-		val, valDiags := rv.ParseVariableValue(mode)
-		diags = diags.Append(valDiags)
-		if valDiags.HasErrors() {
-			continue
-		}
-
-		if !declared {
-			switch val.SourceType {
-			case terraform.ValueFromConfig, terraform.ValueFromAutoFile, terraform.ValueFromNamedFile:
-				// We allow undeclared names for variable values from files and warn in case
-				// users have forgotten a variable {} declaration or have a typo in their var name.
-				// Some users will actively ignore this warning because they use a .tfvars file
-				// across multiple configurations.
-				if seenUndeclaredInFile < 2 {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Warning,
-						"Value for undeclared variable",
-						fmt.Sprintf("The root module does not declare a variable named %q but a value was found in file %q. If you meant to use this value, add a \"variable\" block to the configuration.\n\nTo silence these warnings, use TF_VAR_... environment variables to provide certain \"global\" settings to all configurations in your organization. To reduce the verbosity of these warnings, use the -compact-warnings option.", name, val.SourceRange.Filename),
-					))
-				}
-				seenUndeclaredInFile++
-
-			case terraform.ValueFromEnvVar:
-				// We allow and ignore undeclared names for environment
-				// variables, because users will often set these globally
-				// when they are used across many (but not necessarily all)
-				// configurations.
-			case terraform.ValueFromCLIArg:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Value for undeclared variable",
-					fmt.Sprintf("A variable named %q was assigned on the command line, but the root module does not declare a variable of that name. To use this value, add a \"variable\" block to the configuration.", name),
-				))
-			default:
-				// For all other source types we are more vague, but other situations
-				// don't generally crop up at this layer in practice.
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Value for undeclared variable",
-					fmt.Sprintf("A variable named %q was assigned a value, but the root module does not declare a variable of that name. To use this value, add a \"variable\" block to the configuration.", name),
-				))
-			}
-			continue
-		}
-
-		ret[name] = val
-	}
-
-	if seenUndeclaredInFile > 2 {
-		extras := seenUndeclaredInFile - 2
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagWarning,
-			Summary:  "Values for undeclared variables",
-			Detail:   fmt.Sprintf("In addition to the other similar warnings shown, %d other variable(s) defined without being declared.", extras),
-		})
-	}
+	diags = diags.Append(diagsUndeclared)
 
 	// By this point we should've gathered all of the required root module
 	// variables from one of the many possible sources. We'll now populate
 	// any we haven't gathered as their defaults and fail if any of the
 	// missing ones are required.
 	for name, vc := range decls {
-		if _, defined := ret[name]; defined {
+		if isDefinedAny(name, ret, undeclared) {
 			continue
 		}
 

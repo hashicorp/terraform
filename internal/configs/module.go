@@ -29,6 +29,7 @@ type Module struct {
 	ActiveExperiments experiments.Set
 
 	Backend              *Backend
+	CloudConfig          *CloudConfig
 	ProviderConfigs      map[string]*Provider
 	ProviderRequirements *RequiredProviders
 	ProviderLocalNames   map[addrs.Provider]string
@@ -63,6 +64,7 @@ type File struct {
 	ActiveExperiments experiments.Set
 
 	Backends          []*Backend
+	CloudConfigs      []*CloudConfig
 	ProviderConfigs   []*Provider
 	ProviderMetas     []*ProviderMeta
 	RequiredProviders []*RequiredProviders
@@ -188,6 +190,29 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.Backend = b
+	}
+
+	for _, c := range file.CloudConfigs {
+		if m.CloudConfig != nil {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate Terraform Cloud configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", m.CloudConfig.DeclRange),
+				Subject:  &c.DeclRange,
+			})
+			continue
+		}
+
+		m.CloudConfig = c
+	}
+
+	if m.Backend != nil && m.CloudConfig != nil {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Both a backend and Terraform Cloud configuration are present",
+			Detail:   fmt.Sprintf("A module may declare either one 'cloud' block configuring Terraform Cloud OR one 'backend' block configuring a state backend. Terraform Cloud is configured at %s; a backend is configured at %s. Remove the backend block to configure Terraform Cloud.", m.CloudConfig.DeclRange, m.Backend.DeclRange),
+			Subject:  &m.Backend.DeclRange,
+		})
 	}
 
 	for _, pc := range file.ProviderConfigs {
@@ -354,6 +379,7 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 	if len(file.Backends) != 0 {
 		switch len(file.Backends) {
 		case 1:
+			m.CloudConfig = nil // A backend block is mutually exclusive with a cloud one, and overwrites any cloud config
 			m.Backend = file.Backends[0]
 		default:
 			// An override file with multiple backends is still invalid, even
@@ -363,6 +389,23 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 				Summary:  "Duplicate backend configuration",
 				Detail:   fmt.Sprintf("Each override file may have only one backend configuration. A backend was previously configured at %s.", file.Backends[0].DeclRange),
 				Subject:  &file.Backends[1].DeclRange,
+			})
+		}
+	}
+
+	if len(file.CloudConfigs) != 0 {
+		switch len(file.CloudConfigs) {
+		case 1:
+			m.Backend = nil // A cloud block is mutually exclusive with a backend one, and overwrites any backend
+			m.CloudConfig = file.CloudConfigs[0]
+		default:
+			// An override file with multiple cloud blocks is still invalid, even
+			// though it can override cloud/backend blocks from _other_ files.
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate Terraform Cloud configurations",
+				Detail:   fmt.Sprintf("A module may have only one 'cloud' block configuring Terraform Cloud. Terraform Cloud was previously configured at %s.", file.CloudConfigs[0].DeclRange),
+				Subject:  &file.CloudConfigs[1].DeclRange,
 			})
 		}
 	}

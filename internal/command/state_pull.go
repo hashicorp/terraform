@@ -31,7 +31,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Get the state manager for the current workspace
 	env, err := c.Workspace()

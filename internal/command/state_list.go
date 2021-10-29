@@ -41,7 +41,7 @@ func (c *StateListCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Get the state
 	env, err := c.Workspace()

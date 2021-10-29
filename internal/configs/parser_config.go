@@ -72,6 +72,13 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 						file.Backends = append(file.Backends, backendCfg)
 					}
 
+				case "cloud":
+					cloudCfg, cfgDiags := decodeCloudBlock(innerBlock)
+					diags = append(diags, cfgDiags...)
+					if cloudCfg != nil {
+						file.CloudConfigs = append(file.CloudConfigs, cloudCfg)
+					}
+
 				case "required_providers":
 					reqs, reqsDiags := decodeRequiredProvidersBlock(innerBlock)
 					diags = append(diags, reqsDiags...)
@@ -260,6 +267,9 @@ var terraformBlockSchema = &hcl.BodySchema{
 		{
 			Type:       "backend",
 			LabelNames: []string{"type"},
+		},
+		{
+			Type: "cloud",
 		},
 		{
 			Type: "required_providers",

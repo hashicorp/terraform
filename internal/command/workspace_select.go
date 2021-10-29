@@ -68,7 +68,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// This command will not write state
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	name := args[0]
 	if !validWorkspaceName(name) {

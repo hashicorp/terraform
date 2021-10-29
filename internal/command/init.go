@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -209,8 +210,20 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	var back backend.Backend
-	if flagBackend {
 
+	switch {
+	case config.Module.CloudConfig != nil:
+		be, backendOutput, backendDiags := c.initCloud(config.Module)
+		diags = diags.Append(backendDiags)
+		if backendDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+		if backendOutput {
+			header = true
+		}
+		back = be
+	case flagBackend:
 		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
@@ -221,7 +234,7 @@ func (c *InitCommand) Run(args []string) int {
 			header = true
 		}
 		back = be
-	} else {
+	default:
 		// load the previously-stored backend config
 		be, backendDiags := c.Meta.backendFromState()
 		diags = diags.Append(backendDiags)
@@ -251,7 +264,7 @@ func (c *InitCommand) Run(args []string) int {
 	// on a previous run) we'll use the current state as a potential source
 	// of provider dependencies.
 	if back != nil {
-		c.ignoreRemoteBackendVersionConflict(back)
+		c.ignoreRemoteVersionConflict(back)
 		workspace, err := c.Workspace()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
@@ -292,12 +305,23 @@ func (c *InitCommand) Run(args []string) int {
 	// by errors then we'll output them here so that the success message is
 	// still the final thing shown.
 	c.showDiagnostics(diags)
-	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
+	_, cloud := back.(*cloud.Cloud)
+	output := outputInitSuccess
+	if cloud {
+		output = outputInitSuccessCloud
+	}
+
+	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(output)))
+
 	if !c.RunningInAutomation {
 		// If we're not running in an automation wrapper, give the user
 		// some more detailed next steps that are appropriate for interactive
 		// shell usage.
-		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccessCLI)))
+		output = outputInitSuccessCLI
+		if cloud {
+			output = outputInitSuccessCLICloud
+		}
+		c.Ui.Output(c.Colorize().Color(strings.TrimSpace(output)))
 	}
 	return 0
 }
@@ -337,6 +361,21 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	return true, diags
 }
 
+func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+
+	backendConfig := root.CloudConfig.ToBackendConfig()
+
+	opts := &BackendOpts{
+		Config: &backendConfig,
+		Init:   true,
+	}
+
+	back, backDiags := c.Backend(opts)
+	diags = diags.Append(backDiags)
+	return back, true, diags
+}
+
 func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing the backend..."))
 
@@ -344,6 +383,16 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 	var backendConfigOverride hcl.Body
 	if root.Backend != nil {
 		backendType := root.Backend.Type
+		if backendType == "cloud" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Unsupported backend type",
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure Terraform Cloud, declare a 'cloud' block instead.", backendType),
+				Subject:  &root.Backend.TypeRange,
+			})
+			return nil, true, diags
+		}
+
 		bf := backendInit.Backend(backendType)
 		if bf == nil {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -1050,6 +1099,10 @@ const outputInitSuccess = `
 [reset][bold][green]Terraform has been successfully initialized![reset][green]
 `
 
+const outputInitSuccessCloud = `
+[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+`
+
 const outputInitSuccessCLI = `[reset][green]
 You may now begin working with Terraform. Try running "terraform plan" to see
 any changes that are required for your infrastructure. All Terraform commands
@@ -1058,6 +1111,14 @@ should now work.
 If you ever set or change modules or backend configuration for Terraform,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
+`
+
+const outputInitSuccessCLICloud = `[reset][green]
+You may now begin working with Terraform Cloud. Try running "terraform plan" to
+see any changes that are required for your infrastructure.
+
+If you ever set or change modules or Terraform Settings, run "terraform init"
+again to reinitialize your working directory.
 `
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
