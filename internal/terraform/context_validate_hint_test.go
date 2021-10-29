@@ -122,3 +122,42 @@ func TestContextValidateHint_redundantResourceDepends(t *testing.T) {
 	assertDiagnosticsMatch(t, gotDiags, wantDiags)
 
 }
+
+func TestContextValidateHint_unnecessarySplatIndex(t *testing.T) {
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_thing": {
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+		},
+	})
+
+	m := testModule(t, "validate-hint-unnecessary-splat-index")
+	c := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	gotDiags := c.Validate(m, &ValidateOpts{
+		Hints: true,
+	})
+	var wantDiags tfdiags.Diagnostics
+	wantDiags = wantDiags.Append(&tfdiags.HintMessage{
+		Summary: "Unnecessary splat expression with index",
+		Detail:  "Looking up a particular index of a splat expression result is the same as just directly using the index instead of the splat operator.",
+		SourceRange: tfdiags.SourceRange{
+			Filename: "testdata/validate-hint-unnecessary-splat-index/unnecessary-splat-index.tf",
+			Start:    tfdiags.SourcePos{Line: 34, Column: 5, Byte: 404},
+			End:      tfdiags.SourcePos{Line: 34, Column: 17, Byte: 416},
+		},
+	})
+	assertDiagnosticsMatch(t, gotDiags, wantDiags)
+
+}
