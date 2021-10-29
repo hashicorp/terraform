@@ -19,7 +19,7 @@ import (
 // only.
 type NodeValidatableResource struct {
 	*NodeAbstractResource
-	LintChecks bool
+	Hints bool
 }
 
 var (
@@ -445,15 +445,15 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
 	}
 
-	if n.LintChecks {
-		diags = diags.Append(n.lintResource(ctx))
+	if n.Hints {
+		diags = diags.Append(n.getHints(ctx))
 	}
 
 	return diags
 }
 
-func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnostics {
-	// NOTE: Lint functions are only allowed to produce _warning_ diagnostics
+func (n *NodeValidatableResource) getHints(ctx EvalContext) tfdiags.Diagnostics {
+	// NOTE: Hint functions are only allowed to produce *HintMessage diagnostics
 	var diags tfdiags.Diagnostics
 
 	if n.Config == nil {
@@ -461,9 +461,9 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 		return diags
 	}
 
-	// Generic expression linting first, before we do our resource-specific lints.
-	diags = diags.Append(lintExpressionGeneric(n.Config.Count))
-	diags = diags.Append(lintExpressionGeneric(n.Config.ForEach))
+	// Generic expression hinting first, before we do our resource-specific hints.
+	diags = diags.Append(hintExpressionGeneric(n.Config.Count))
+	diags = diags.Append(hintExpressionGeneric(n.Config.ForEach))
 	if schema := n.Schema; schema != nil {
 		// NOTE: This doesn't take into account references inside dynamic
 		// blocks, so we won't catch explicit dependencies being redundant
@@ -471,11 +471,11 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 		// This also doesn't consider "attributes as blocks mode", and so
 		// we won't consider references that appear inside a block that's
 		// pretending to be an element of a list/set attribute.
-		diags = diags.Append(lintExpressionsInBodyGeneric(n.Config.Config, schema))
+		diags = diags.Append(hintExpressionsInBodyGeneric(n.Config.Config, schema))
 	}
 
 	// We're intentionally ignoring n.forceDependsOn here because we're
-	// linting the configuration as written, not the dynamic effect of any
+	// hinting the configuration as written, not the dynamic effect of any
 	// other processing we might do during graph construction.
 	dependsOn := n.Config.DependsOn
 
@@ -488,14 +488,13 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 		}
 
 		if addr, ok := ref.Subject.(addrs.ResourceInstance); ok && addr.Key != addrs.NoKey {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Over-specified explicit dependency",
+			diags = diags.Append(&tfdiags.HintMessage{
+				Summary: "Over-specified explicit dependency",
 				Detail: fmt.Sprintf(
 					"Terraform references are between resources as a whole, and don't consider individual resource instances. The %s instance key in this address has no effect.",
 					addr.Key,
 				),
-				Subject: ref.SourceRange.ToHCL().Ptr(),
+				SourceRange: ref.SourceRange,
 			})
 
 			// For the rest of our work here we'll pretend that this was a
@@ -524,7 +523,7 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 			}
 			fakeRemain = append(fakeRemain, ref.Remaining...)
 
-			// A synthetic ref that we'll use for the rest of our linting work.
+			// A synthetic ref that we'll use for the rest of our hinting work.
 			ref = &addrs.Reference{
 				Subject:     addr.ContainingResource(),
 				SourceRange: ref.SourceRange,
@@ -534,14 +533,13 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 
 		refKey := ref.Subject.UniqueKey()
 		if existing, exists := explicitRefs[refKey]; exists {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Redundant explicit dependency",
+			diags = diags.Append(&tfdiags.HintMessage{
+				Summary: "Redundant explicit dependency",
 				Detail: fmt.Sprintf(
 					"There is already an explicit dependency for %s at %s, so this declaration is redundant.",
 					ref.Subject, existing.SourceRange.StartString(),
 				),
-				Subject: ref.SourceRange.ToHCL().Ptr(),
+				SourceRange: ref.SourceRange,
 			})
 		} else {
 			explicitRefs[ref.Subject.UniqueKey()] = ref
@@ -580,15 +578,14 @@ func (n *NodeValidatableResource) lintResource(ctx EvalContext) tfdiags.Diagnost
 			// we flag the explicit one as the suspect one, because the implied
 			// one is presumably also contributing to a configuration value and
 			// thus couldn't be so easily removed in order to to quiet this
-			// lint.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Redundant explicit dependency",
+			// hint.
+			diags = diags.Append(&tfdiags.HintMessage{
+				Summary: "Redundant explicit dependency",
 				Detail: fmt.Sprintf(
 					"There is already an implied dependency for %s at %s, so this declaration is redundant.",
 					explicitRef.Subject, implicitRef.SourceRange.StartString(),
 				),
-				Subject: explicitRef.SourceRange.ToHCL().Ptr(),
+				SourceRange: explicitRef.SourceRange,
 			})
 		}
 	}

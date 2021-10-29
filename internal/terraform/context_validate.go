@@ -13,24 +13,24 @@ import (
 // ValidateOpts are the various options that affect the details of how Terraform
 // will validate a configuration.
 type ValidateOpts struct {
-	// LintChecks, if set to true, enables additional warnings that describe
+	// Hints, if set to true, enables additional diagnostics that describe
 	// ways to possibly improve a Terraform configuration even though the
 	// current configuration is valid as written.
 	//
-	// The additional warnings produced in "lint" mode are more subjective and
-	// so module authors can evaluate each one and choose to evaluate warnings
+	// The additional messages produced in "hint mode" are more subjective and
+	// so module authors can evaluate each one and choose to ignore suggestions
 	// that don't apply in some particular situations. There might be additional
-	// lint warnings in later releases, thus making a previously-lint-free
-	// configuration potentially lint-y again, and so considering lint warnings
-	// should typically be a development task in its own right, rather than a
-	// blocker for completing other development tasks.
-	LintChecks bool
+	// hints in later releases, thus making a previously-hint-free configuration
+	// potentially hint-y again, and so considering hint messages should
+	// typically be a development task in its own right, rather than a blocker
+	// for completing other development tasks.
+	Hints bool
 }
 
 // DefaultValidateOpts is a reasonable default set of validate options to use
 // in common cases without any special needs.
 var DefaultValidateOpts = &ValidateOpts{
-	LintChecks: false,
+	Hints: false,
 }
 
 // Validate performs semantic validation of a configuration, and returns

@@ -28,7 +28,7 @@ func validateGraphBuilder(p *PlanGraphBuilder, opts *ValidateOpts) GraphBuilder 
 	p.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
 		return &NodeValidatableResource{
 			NodeAbstractResource: a,
-			LintChecks:           opts.LintChecks,
+			Hints:                opts.Hints,
 		}
 	}
 

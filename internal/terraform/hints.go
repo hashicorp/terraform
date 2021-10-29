@@ -6,14 +6,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// lintExpressionGeneric runs a generic set of linting rules on the given
+// hintExpressionGeneric runs a generic set of hinting rules on the given
 // expression, which we assume is just a normal expression that'll be evaluated
 // for its value in a lang.Scope, but with no specific assumptions about
 // where in the configuration it is placed.
 //
 // It's safe to pass a nil expression to this function, in which case this
-// function will never produce any lint warnings.
-func lintExpressionGeneric(expr hcl.Expression) tfdiags.Diagnostics {
+// function will never produce any hints.
+func hintExpressionGeneric(expr hcl.Expression) tfdiags.Diagnostics {
 	if expr == nil {
 		return nil
 	}
@@ -22,25 +22,25 @@ func lintExpressionGeneric(expr hcl.Expression) tfdiags.Diagnostics {
 	return nil
 }
 
-// lintExpressionsInBodyGeneric runs lintExpressionGeneric against each of
+// hintExpressionsInBodyGeneric runs hintExpressionGeneric against each of
 // the expressions detected inside the given body, which it detects using
 // the given schema.
 //
 // If the body doesn't fully conform to the schema then
-// lintExpressionsInBodyGeneric will skip over some or all of the body contents
+// hintExpressionsInBodyGeneric will skip over some or all of the body contents
 // in order to still produce a partial result where possible.
 //
 // It's safe to pass a nil body or schema to this function, in which case this
-// function will never produce any lint warnings.
-func lintExpressionsInBodyGeneric(body hcl.Body, schema *configschema.Block) tfdiags.Diagnostics {
+// function will never produce any hints.
+func hintExpressionsInBodyGeneric(body hcl.Body, schema *configschema.Block) tfdiags.Diagnostics {
 	if body == nil || schema == nil {
 		return nil
 	}
 
-	return visitExpressionsInBody(body, schema, lintExpressionGeneric)
+	return visitExpressionsInBody(body, schema, hintExpressionGeneric)
 }
 
-// visitExpressionsInBody is a helper for writting linter-like logic which
+// visitExpressionsInBody is a helper for writting hinter-like logic which
 // applies to all expressions declared in a particular HCL body, which should
 // conform to the given schema.
 //
