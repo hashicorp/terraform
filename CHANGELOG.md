@@ -10,6 +10,7 @@ UPGRADE NOTES:
 
 NEW FEATURES:
 
+* A new `cloud` option in the `terraform` settings block adds a more native integration for Terraform Cloud and its [CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html). The Cloud integration includes several enhancements, including per-run variable support using the `-var` flag, the ability to map Terraform Cloud workspaces to the current configuration via [Workspace Tags](https://www.terraform.io/docs/cloud/api/workspaces.html#get-tags), and an improved user experience for Terraform Cloud/Enterprise users with actionable error messages and prompts. ([#29826](https://github.com/hashicorp/terraform/pull/29826))
 * `terraform plan` and `terraform apply`: When Terraform plans to destroy a resource instance due to it no longer being declared in the configuration, the proposed plan output will now include a note hinting at what situation prompted that proposal, so you can more easily see what configuration change might avoid the object being destroyed. ([#29637](https://github.com/hashicorp/terraform/pull/29637))
 * `terraform plan` and `terraform apply`: When Terraform automatically moves a singleton resource instance to index zero or vice-versa in response to adding or removing `count`, it'll report explicitly that it did so as part of the plan output. ([#29605](https://github.com/hashicorp/terraform/pull/29605))
 * config: a new `type()` function, available only in `terraform console`. ([#28501](https://github.com/hashicorp/terraform/issues/28501))
