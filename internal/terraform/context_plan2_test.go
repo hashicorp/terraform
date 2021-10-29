@@ -740,10 +740,6 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 				from = test_object.a
 				to   = test_object.b
 			}
-
-			terraform {
-				experiments = [config_driven_move]
-			}
 		`,
 	})
 
@@ -1026,10 +1022,6 @@ func TestContext2Plan_movedResourceUntargeted(t *testing.T) {
 				from = test_object.a
 				to   = test_object.b
 			}
-
-			terraform {
-				experiments = [config_driven_move]
-			}
 		`,
 	})
 
@@ -1221,10 +1213,6 @@ func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
 			moved {
 				from = test_object.a
 				to   = test_object.b
-			}
-
-			terraform {
-				experiments = [config_driven_move]
 			}
 		`,
 	})
