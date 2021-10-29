@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"os"
 	"strings"
 
@@ -18,6 +19,22 @@ import (
 // a resource, marking it for recreation.
 type TaintCommand struct {
 	Meta
+}
+
+func (c *TaintCommand) AutocompleteArgs() complete.Predictor {
+	return c.completePredictResourceName()
+}
+
+func (c *TaintCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-ignore-remote-version": completePredictBoolean,
+		"-allow-missing":         completePredictBoolean,
+		"-backup":                complete.PredictAnything,
+		"-lock":                  completePredictBoolean,
+		"-lock-timeout":          complete.PredictAnything,
+		"-state":                 complete.PredictAnything,
+		"-state-out":             complete.PredictAnything,
+	}
 }
 
 func (c *TaintCommand) Run(args []string) int {

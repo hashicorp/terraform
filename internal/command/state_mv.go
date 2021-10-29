@@ -11,11 +11,29 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/mitchellh/cli"
+	"github.com/posener/complete"
 )
 
 // StateMvCommand is a Command implementation that shows a single resource.
 type StateMvCommand struct {
 	StateMeta
+}
+
+func (c *StateMvCommand) AutocompleteArgs() complete.Predictor {
+	return c.completePredictResourceName()
+}
+
+func (c *StateMvCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-ignore-remote-version": completePredictBoolean,
+		"-dry-run":               completePredictBoolean,
+		"-backup":                complete.PredictAnything,
+		"-backup-out":            complete.PredictAnything,
+		"-lock":                  completePredictBoolean,
+		"-lock-timeout":          complete.PredictAnything,
+		"-state":                 complete.PredictAnything,
+		"-state-out":             complete.PredictAnything,
+	}
 }
 
 func (c *StateMvCommand) Run(args []string) int {

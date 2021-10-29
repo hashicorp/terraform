@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -15,6 +16,21 @@ import (
 // StateRmCommand is a Command implementation that shows a single resource.
 type StateRmCommand struct {
 	StateMeta
+}
+
+func (c *StateRmCommand) AutocompleteArgs() complete.Predictor {
+	return c.completePredictResourceName()
+}
+
+func (c *StateRmCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-ignore-remote-version": completePredictBoolean,
+		"-dry-run":               completePredictBoolean,
+		"-backup":                complete.PredictAnything,
+		"-lock":                  completePredictBoolean,
+		"-lock-timeout":          complete.PredictAnything,
+		"-state":                 complete.PredictAnything,
+	}
 }
 
 func (c *StateRmCommand) Run(args []string) int {

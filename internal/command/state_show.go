@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"os"
 	"strings"
 
@@ -16,6 +17,16 @@ import (
 type StateShowCommand struct {
 	Meta
 	StateMeta
+}
+
+func (c *StateShowCommand) AutocompleteArgs() complete.Predictor {
+	return c.completePredictResourceName()
+}
+
+func (c *StateShowCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-state":                 complete.PredictAnything,
+	}
 }
 
 func (c *StateShowCommand) Run(args []string) int {

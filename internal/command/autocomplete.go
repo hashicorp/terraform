@@ -2,6 +2,7 @@ package command
 
 import (
 	"github.com/posener/complete"
+	"strings"
 )
 
 // This file contains some re-usable predictors for auto-complete. The
@@ -62,6 +63,60 @@ func (m *Meta) completePredictWorkspaceName() complete.Predictor {
 		}
 
 		names, _ := b.Workspaces()
+		return names
+	})
+}
+
+func (m *Meta) completePredictResourceName() complete.Predictor {
+	return complete.PredictFunc(func(a complete.Args) []string {
+		// There are lots of things that can fail in here, so if we encounter
+		// any error then we'll just return nothing and not support autocomplete
+		// until whatever error is fixed. (The user can't actually see the error
+		// here, but other commands should produce a user-visible error before
+		// too long.)
+
+		// We assume here that we want to autocomplete for the current working
+		// directory.
+		// TODO: we can identify the current working directory via duplicating the
+		// logic of "extractChdirOption()" in the main package.
+		b, diags := m.Backend(nil)
+		if diags.HasErrors() {
+			return nil
+		}
+		env, err := m.Workspace()
+		if err != nil {
+			return nil
+		}
+		stateMgr, err := b.StateMgr(env)
+		if err != nil {
+			return nil
+		}
+		if err := stateMgr.RefreshState(); err != nil {
+			return nil
+		}
+
+		state := stateMgr.State()
+		if state == nil {
+			return nil
+		}
+
+		stateMeta := StateMeta{Meta: *m}
+		addrs, diags := stateMeta.lookupAllResourceInstanceAddrs(state)
+		if diags.HasErrors() {
+			return nil
+		}
+
+		var names []string
+		for _, addr := range addrs {
+			if is := state.ResourceInstance(addr); is == nil {
+				continue
+			}
+			if a.Last != "" && !strings.HasPrefix(addr.String(), a.Last) {
+				continue
+			}
+			names = append(names, addr.String())
+		}
+
 		return names
 	})
 }

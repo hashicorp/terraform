@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/posener/complete"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -16,6 +17,22 @@ import (
 // a resource, marking it as primary and ready for service.
 type UntaintCommand struct {
 	Meta
+}
+
+func (c *UntaintCommand) AutocompleteArgs() complete.Predictor {
+	return c.completePredictResourceName()
+}
+
+func (c *UntaintCommand) AutocompleteFlags() complete.Flags {
+	return complete.Flags{
+		"-ignore-remote-version": completePredictBoolean,
+		"-allow-missing":         completePredictBoolean,
+		"-backup":                complete.PredictAnything,
+		"-lock":                  completePredictBoolean,
+		"-lock-timeout":          complete.PredictAnything,
+		"-state":                 complete.PredictAnything,
+		"-state-out":             complete.PredictAnything,
+	}
 }
 
 func (c *UntaintCommand) Run(args []string) int {
