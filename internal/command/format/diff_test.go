@@ -2263,10 +2263,10 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            + mount_point = "/var/diska"
-            + size        = "50GB"
-          },
+          + {
+              + mount_point = "/var/diska"
+              + size        = "50GB"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2309,9 +2309,9 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            + mount_point = "/var/diska"
-          },
+          + {
+              + mount_point = "/var/diska"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2371,10 +2371,10 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           ~ {
-            + size        = "50GB"
-              # (1 unchanged attribute hidden)
-          },
-          # (1 unchanged element hidden)
+              + size        = "50GB"
+                # (1 unchanged attribute hidden)
+            },
+            # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2437,9 +2437,9 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           ~ {
-            ~ mount_point = "/var/diska" -> "/var/diskb" # forces replacement
-              # (1 unchanged attribute hidden)
-          },
+              ~ mount_point = "/var/diska" -> "/var/diskb" # forces replacement
+                # (1 unchanged attribute hidden)
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2493,9 +2493,9 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [ # forces replacement
           ~ {
-            ~ mount_point = "/var/diska" -> "/var/diskb"
-              # (1 unchanged attribute hidden)
-          },
+              ~ mount_point = "/var/diska" -> "/var/diskb"
+                # (1 unchanged attribute hidden)
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2540,10 +2540,10 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+          - {
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2674,10 +2674,10 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+          - {
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ] -> (known after apply)
         id    = "i-02ae66f368e8518a9"
 
@@ -2735,10 +2735,10 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           ~ {
-            ~ size        = "50GB" -> "75GB"
-              # (1 unchanged attribute hidden)
-          },
-          # (1 unchanged element hidden)
+              ~ size        = "50GB" -> "75GB"
+                # (1 unchanged attribute hidden)
+            },
+            # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
