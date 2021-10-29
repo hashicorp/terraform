@@ -1394,16 +1394,11 @@ has changed. Terraform will now check for existing state in the backends.
 
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
-in the configured Terraform Cloud organization.
+in your Terraform Cloud organization. To finish initializing, Terraform needs at
+least one workspace available.
 
-[bold]If you expected to find existing workspaces,[reset] you might need to change your
-configuration; remember that when choosing workspaces via a list of tags, each
-workspace must have ALL of the chosen tags. Press enter or ctrl-C to cancel
-initialization, edit the "cloud" block in your Terraform configuration, then run
-terraform init again.
-
-[bold]Otherwise,[reset] Terraform can create a properly tagged workspace for you. Please
-enter a name for your new Terraform Cloud workspace:
+Terraform can create a properly tagged workspace for you now. Please enter a
+name to create a new Terraform Cloud workspace:
 `
 
 const successBackendUnset = `
