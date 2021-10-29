@@ -39,7 +39,8 @@ type Variable struct {
 	// Nullable indicates that null is a valid value for this variable. Setting
 	// Nullable to false means that the module can expect this variable to
 	// never be null.
-	Nullable bool
+	Nullable    bool
+	NullableSet bool
 
 	DeclRange hcl.Range
 }
@@ -118,6 +119,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	if attr, exists := content.Attributes["nullable"]; exists {
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Nullable)
 		diags = append(diags, valDiags...)
+		v.NullableSet = true
 	} else {
 		// The current default is true, which is subject to change in a future
 		// language edition.
