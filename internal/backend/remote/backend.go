@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -755,6 +756,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Do it.
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		defer stop()
 		defer cancel()

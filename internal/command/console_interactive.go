@@ -9,8 +9,8 @@ package command
 import (
 	"fmt"
 	"io"
+	"os"
 
-	"github.com/hashicorp/terraform/internal/helper/wrappedreadline"
 	"github.com/hashicorp/terraform/internal/repl"
 
 	"github.com/chzyer/readline"
@@ -19,12 +19,15 @@ import (
 
 func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
 	// Configure input
-	l, err := readline.NewEx(wrappedreadline.Override(&readline.Config{
+	l, err := readline.NewEx(&readline.Config{
 		Prompt:            "> ",
 		InterruptPrompt:   "^C",
 		EOFPrompt:         "exit",
 		HistorySearchFold: true,
-	}))
+		Stdin:             os.Stdin,
+		Stdout:            os.Stdout,
+		Stderr:            os.Stderr,
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error initializing console: %s",

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -79,6 +80,7 @@ func (b *Local) opPlan(
 	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
+		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
 		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)

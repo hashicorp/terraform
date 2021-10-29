@@ -1,12 +1,9 @@
 package logging
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestPanicRecorder(t *testing.T) {
@@ -51,32 +48,4 @@ func TestPanicLimit(t *testing.T) {
 			t.Fatalf("expected no more than %d lines, got: %d", max, found)
 		}
 	}
-}
-
-func TestLogPanicWrapper(t *testing.T) {
-	var buf bytes.Buffer
-	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
-		Name:        "test",
-		Level:       hclog.Debug,
-		Output:      &buf,
-		DisableTime: true,
-	})
-
-	wrapped := (&logPanicWrapper{
-		Logger: logger,
-	}).Named("test")
-
-	wrapped.Debug("panic: invalid foo of bar")
-	wrapped.Debug("\tstack trace")
-
-	expected := `[DEBUG] test.test: PANIC: invalid foo of bar
-[DEBUG] test.test: 	stack trace
-`
-
-	got := buf.String()
-
-	if expected != got {
-		t.Fatalf("Expected:\n%q\nGot:\n%q", expected, got)
-	}
-
 }

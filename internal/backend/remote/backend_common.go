@@ -13,6 +13,7 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -464,6 +465,8 @@ func (b *Remote) confirm(stopCtx context.Context, op *backend.Operation, opts *t
 	result := make(chan error, 2)
 
 	go func() {
+		defer logging.PanicHandler()
+
 		// Make sure we cancel doneCtx before we return
 		// so the input command is also canceled.
 		defer cancel()

@@ -2,75 +2,51 @@ package logging
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
+	"runtime/debug"
 	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/panicwrap"
 )
 
 // This output is shown if a panic happens.
 const panicOutput = `
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Terraform crashed! This is always indicative of a bug within Terraform.
-A crash log has been placed at %[1]q relative to your current
-working directory. It would be immensely helpful if you could please
-report the crash with Terraform[1] so that we can fix this.
+Please report the crash with Terraform[1] so that we can fix this.
 
-When reporting bugs, please include your terraform version. That
-information is available on the first line of crash.log. You can also
-get it by running 'terraform --version' on the command line.
-
-SECURITY WARNING: the %[1]q file that was created may contain 
-sensitive information that must be redacted before it is safe to share 
-on the issue tracker.
+When reporting bugs, please include your terraform version, the stack trace
+shown below, and any additional information which may help replicate the issue.
 
 [1]: https://github.com/hashicorp/terraform/issues
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 `
 
-// panicHandler is what is called by panicwrap when a panic is encountered
-// within Terraform. It is guaranteed to run after the resulting process has
-// exited so we can take the log file, add in the panic, and store it
-// somewhere locally.
-func PanicHandler(tmpLogPath string) panicwrap.HandlerFunc {
-	return func(m string) {
-		// Create the crash log file where we'll write the logs
-		f, err := ioutil.TempFile(".", "crash.*.log")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to create crash log file: %s", err)
-			return
-		}
-		defer f.Close()
-
-		tmpLog, err := os.Open(tmpLogPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", tmpLogPath, err)
-			return
-		}
-		defer tmpLog.Close()
-
-		// Copy the contents to the crash file. This will include
-		// the panic that just happened.
-		if _, err = io.Copy(f, tmpLog); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write crash log: %s", err)
-			return
-		}
-
-		// add the trace back to the log
-		f.WriteString("\n" + m)
-
-		// Tell the user a crash occurred in some helpful way that
-		// they'll hopefully notice.
-		fmt.Printf("\n\n")
-		fmt.Printf(panicOutput, f.Name())
+// PanicHandler is called to recover from an internal panic in Terraform, and
+// augments the standard stack trace with a more user friendly error message.
+// PanicHandler must be called as a defered function, and must be the first
+// defer called at the start of a new goroutine.
+func PanicHandler() {
+	recovered := recover()
+	if recovered == nil {
+		return
 	}
+
+	fmt.Fprint(os.Stderr, panicOutput)
+	fmt.Fprint(os.Stderr, recovered)
+
+	// When called from a deferred function, debug.PrintStack will include the
+	// full stack from the point of the pending panic.
+	debug.PrintStack()
+
+	// An exit code of 11 keeps us out of the way of the detailed exitcodes
+	// from plan, and also happens to be the same code as SIGSEGV which is
+	// roughly the same type of condition that causes most panics.
+	os.Exit(11)
 }
 
 const pluginPanicOutput = `
@@ -179,14 +155,6 @@ func (l *logPanicWrapper) Debug(msg string, args ...interface{}) {
 
 	if l.inPanic && l.panicRecorder != nil {
 		l.panicRecorder(msg)
-	}
-
-	// If we have logging turned on, we need to prevent panicwrap from seeing
-	// this as a core panic. This can be done by obfuscating the panic error
-	// line.
-	if panicPrefix {
-		colon := strings.Index(msg, ":")
-		msg = strings.ToUpper(msg[:colon]) + msg[colon:]
 	}
 
 	l.Logger.Debug(msg, args...)
