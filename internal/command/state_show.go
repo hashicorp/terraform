@@ -25,7 +25,7 @@ func (c *StateShowCommand) AutocompleteArgs() complete.Predictor {
 
 func (c *StateShowCommand) AutocompleteFlags() complete.Flags {
 	return complete.Flags{
-		"-state":                 complete.PredictAnything,
+		"-state": complete.PredictAnything,
 	}
 }
 
