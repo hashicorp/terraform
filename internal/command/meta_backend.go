@@ -60,6 +60,7 @@ type BackendOpts struct {
 type BackendWithRemoteTerraformVersion interface {
 	IgnoreVersionConflict()
 	VerifyWorkspaceTerraformVersion(workspace string) tfdiags.Diagnostics
+	IsLocalOperations() bool
 }
 
 // Backend initializes and returns the backend for this CLI session.
