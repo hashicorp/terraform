@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * backend/oss: Added support for `sts_endpoint` [GH-29841]
 
+BUG FIXES:
+
+* config: Fixed a bug in which `ignore_changes = all` would not work in override files [GH-29849]
+
 ## 1.0.10 (October 28, 2021)
 
 BUG FIXES:
