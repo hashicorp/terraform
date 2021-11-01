@@ -2,6 +2,7 @@ package initwd
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -39,7 +40,7 @@ func TestModuleInstaller(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
@@ -100,7 +101,7 @@ func TestModuleInstaller_error(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
@@ -135,7 +136,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
@@ -170,7 +171,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -186,7 +187,7 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
@@ -204,7 +205,7 @@ func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
@@ -222,7 +223,7 @@ func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
@@ -240,7 +241,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, nil)
-	_, diags := inst.InstallModules(".", false, hooks)
+	_, diags := inst.InstallModules(context.Background(), ".", false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{
@@ -313,7 +314,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
-	_, diags := inst.InstallModules(dir, false, hooks)
+	_, diags := inst.InstallModules(context.Background(), dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.1"))
@@ -473,7 +474,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	hooks := &testInstallHooks{}
 	modulesDir := filepath.Join(dir, ".terraform/modules")
 	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
-	_, diags := inst.InstallModules(dir, false, hooks)
+	_, diags := inst.InstallModules(context.Background(), dir, false, hooks)
 	assertNoDiagnostics(t, diags)
 
 	wantCalls := []testInstallHookCall{

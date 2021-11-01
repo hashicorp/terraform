@@ -1,6 +1,7 @@
 package initwd
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/configs"
@@ -35,7 +36,7 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
 
-	_, moreDiags := inst.InstallModules(rootDir, true, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, true, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()
