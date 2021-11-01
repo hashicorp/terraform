@@ -1165,8 +1165,10 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
+		options.ExecutionMode = tfe.String("local")
 	} else if options.Operations == nil {
 		options.Operations = tfe.Bool(true)
+		options.ExecutionMode = tfe.String("remote")
 	}
 	w := &tfe.Workspace{
 		ID:            GenerateID("ws-"),
