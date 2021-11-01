@@ -115,9 +115,9 @@ func (c *InitCommand) Run(args []string) int {
 			ShowLocalPaths: false, // since they are in a weird location for init
 		}
 
-		initDiags := c.initDirFromModule(path, src, hooks)
-		diags = diags.Append(initDiags)
-		if initDiags.HasErrors() {
+		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(path, src, hooks)
+		diags = diags.Append(initDirFromModuleDiags)
+		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -174,9 +174,9 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if flagGet {
-		modsOutput, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
+		modsOutput, modsAbort, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
-		if modsDiags.HasErrors() {
+		if modsAbort || modsDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -326,10 +326,10 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	if len(earlyRoot.ModuleCalls) == 0 {
 		// Nothing to do
-		return false, nil
+		return false, false, nil
 	}
 
 	if upgrade {
@@ -342,8 +342,12 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		Ui:             c.Ui,
 		ShowLocalPaths: true,
 	}
-	instDiags := c.installModules(path, upgrade, hooks)
-	diags = diags.Append(instDiags)
+
+	installAbort, installDiags := c.installModules(path, upgrade, hooks)
+	diags = diags.Append(installDiags)
+	if installAbort || installDiags.HasErrors() {
+		return true, true, diags
+	}
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
@@ -358,7 +362,7 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		}
 	}
 
-	return true, diags
+	return true, false, diags
 }
 
 func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {

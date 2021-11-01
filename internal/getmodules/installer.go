@@ -1,5 +1,9 @@
 package getmodules
 
+import (
+	"context"
+)
+
 // PackageFetcher is a low-level utility for fetching remote module packages
 // into local filesystem directories in preparation for use by higher-level
 // module installer functionality implemented elsewhere.
@@ -35,6 +39,6 @@ func NewPackageFetcher() *PackageFetcher {
 // a module source address which includes a subdirectory portion then the
 // caller must resolve that itself, possibly with the help of the
 // getmodules.SplitPackageSubdir and getmodules.ExpandSubdirGlobs functions.
-func (f *PackageFetcher) FetchPackage(instDir string, packageAddr string) error {
-	return f.getter.getWithGoGetter(instDir, packageAddr)
+func (f *PackageFetcher) FetchPackage(ctx context.Context, instDir string, packageAddr string) error {
+	return f.getter.getWithGoGetter(ctx, instDir, packageAddr)
 }
