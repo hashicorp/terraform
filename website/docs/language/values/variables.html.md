@@ -327,8 +327,7 @@ account for the possibility of the variable value being `null`. Passing a
 
 Setting `nullable` to `false` ensures that the variable value will never be
 `null` within the module. If `nullable` is `false` and the variable has a
-`default` value, then the default will be used when a `null` value is given as
-a module input argument.
+`default` value, then Terraform uses the default when a module input argument is `null`.
 
 `nullable` only controls where the direct value of the variable may be `null`.
 For variables of collection or structural types, such as list or object types,
