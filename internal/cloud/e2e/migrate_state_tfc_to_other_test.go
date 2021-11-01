@@ -53,7 +53,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 		fmt.Println("Test: ", name)
 		organization, cleanup := createOrganization(t)
 		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
+		exp, err := expect.NewConsole(defaultOpts()...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -86,7 +86,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 				if tfCmd.expectedCmdOutput != "" {
 					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 					if err != nil {
-						t.Fatal(err)
+						t.Fatalf(`Expected command output "%s", but got %v `, tfCmd.expectedCmdOutput, err)
 					}
 				}
 
@@ -102,7 +102,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 							output := tfCmd.postInputOutput[i]
 							_, err := exp.ExpectString(output)
 							if err != nil {
-								t.Fatal(err)
+								t.Fatalf(`Expected input output "%s", but got %v `, output, err)
 							}
 						}
 					}

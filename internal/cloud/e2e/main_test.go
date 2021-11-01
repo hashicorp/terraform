@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,9 +23,11 @@ var cliConfigFileEnv string
 var tfeClient *tfe.Client
 var tfeHostname string
 var tfeToken string
+var verboseMode bool
+
+const cloudTfVersion = "1.1.0-alpha20211029"
 
 func TestMain(m *testing.M) {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	if !accTest() {
 		// if TF_ACC is not set, we want to skip all these tests.
 		return
@@ -43,6 +46,10 @@ func accTest() bool {
 }
 
 func setup() func() {
+	tfOutput := flag.Bool("tfoutput", false, "This flag produces the terraform output from tests.")
+	flag.Parse()
+	verboseMode = *tfOutput
+
 	setTfeClient()
 	teardown := setupBinary()
 

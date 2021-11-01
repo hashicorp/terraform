@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -97,21 +98,30 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String("billing"),
+							Tags:             []*tfe.Tag{{Name: tag}},
+							TerraformVersion: tfe.String(cloudTfVersion),
+						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							userInput:         []string{"new-workspace", "yes"},
+							userInput:         []string{"billing", "yes"},
 							postInputOutput: []string{
 								`Do you want to copy existing state to Terraform Cloud?`,
 								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
-							expectedCmdOutput: `new-workspace`,
+							expectedCmdOutput: `billing`,
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "default"`,
 						},
 					},
 				},
@@ -124,18 +134,18 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					t.Fatal(err)
 				}
 				ws := wsList.Items[0]
-				if ws.Name != "new-workspace" {
-					t.Fatalf("Expected workspace to be `new-workspace`, but is %s", ws.Name)
+				if ws.Name != "billing" {
+					t.Fatalf("Expected workspace to be `billing`, but is %s", ws.Name)
 				}
 			},
 		},
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
+		fmt.Println(fmt.Sprintf("Test: %s", name))
 		organization, cleanup := createOrganization(t)
 		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
+		exp, err := expect.NewConsole(defaultOpts()...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,7 +178,7 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 				if tfCmd.expectedCmdOutput != "" {
 					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 					if err != nil {
-						t.Fatal(err)
+						t.Fatalf(`Expected command output "%s", but got %v `, tfCmd.expectedCmdOutput, err)
 					}
 				}
 
@@ -184,7 +194,7 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 							output := tfCmd.postInputOutput[i]
 							_, err := exp.ExpectString(output)
 							if err != nil {
-								t.Fatal(err)
+								t.Fatalf(`Expected input output "%s", but got %v `, output, err)
 							}
 						}
 					}

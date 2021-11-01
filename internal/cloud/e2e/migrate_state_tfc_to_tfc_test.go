@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -12,7 +13,6 @@ import (
 	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
@@ -39,7 +39,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						// terraform version of this current branch.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -66,7 +66,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "dev"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -107,7 +107,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "prod"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -171,7 +171,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						wsName := "prod"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("prod"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
@@ -197,7 +197,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 						// version that does not support `cloud`.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("new-workspace"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
@@ -228,8 +228,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
+		fmt.Println(fmt.Sprintf("Test: %s", name))
+		exp, err := expect.NewConsole(defaultOpts()...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -265,7 +265,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				if tfCmd.expectedCmdOutput != "" {
 					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 					if err != nil {
-						t.Fatal(err)
+						t.Fatalf(`Expected command output "%s", but got %v `, tfCmd.expectedCmdOutput, err)
 					}
 				}
 
@@ -281,7 +281,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							output := tfCmd.postInputOutput[i]
 							_, err := exp.ExpectString(output)
 							if err != nil {
-								t.Fatal(err)
+								t.Fatalf(`Expected input output "%s", but got %v `, output, err)
 							}
 						}
 					}
@@ -322,12 +322,12 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-prod"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-staging"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
@@ -369,7 +369,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						// using the right version for post init operations.
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(name),
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendName(orgName, name)
 						writeMainTF(t, tfBlock, dir)
@@ -416,12 +416,12 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-prod"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("app-staging"),
 							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(tfversion.String()),
+							TerraformVersion: tfe.String(cloudTfVersion),
 						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
@@ -490,8 +490,8 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
+		fmt.Println(fmt.Sprintf("Test: %s", name))
+		exp, err := expect.NewConsole(defaultOpts()...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -521,13 +521,13 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 
 				err = cmd.Start()
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf(`Could not start command %v `, err)
 				}
 
 				if tfCmd.expectedCmdOutput != "" {
 					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 					if err != nil {
-						t.Fatal(err)
+						t.Fatalf(`Expected command output "%s", but got %v `, tfCmd.expectedCmdOutput, err)
 					}
 				}
 
@@ -543,7 +543,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							output := tfCmd.postInputOutput[i]
 							_, err := exp.ExpectString(output)
 							if err != nil {
-								t.Fatal(err)
+								t.Fatalf(`Expected input output "%s", but got %v `, output, err)
 							}
 						}
 					}

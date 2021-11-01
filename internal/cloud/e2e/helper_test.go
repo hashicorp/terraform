@@ -10,8 +10,10 @@ import (
 	"testing"
 	"time"
 
+	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/go-uuid"
+	goversion "github.com/hashicorp/go-version"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -36,6 +38,16 @@ type operationSets struct {
 type testCases map[string]struct {
 	operations  []operationSets
 	validations func(t *testing.T, orgName string)
+}
+
+func defaultOpts() []expect.ConsoleOpt {
+	opts := []expect.ConsoleOpt{
+		expect.WithDefaultTimeout(expectConsoleTimeout),
+	}
+	if verboseMode {
+		opts = append(opts, expect.WithStdout(os.Stdout))
+	}
+	return opts
 }
 
 func createOrganization(t *testing.T) (*tfe.Organization, func()) {
@@ -195,7 +207,12 @@ func writeMainTF(t *testing.T, block string, dir string) {
 
 // Ensure that TFC/E has a particular terraform version.
 func skipWithoutRemoteTerraformVersion(t *testing.T) {
-	version := tfversion.String()
+	//version := tfversion.String()
+	version := tfversion.Version
+	baseVersion, err := goversion.NewVersion(version)
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("Error instantiating go-version for %s", version))
+	}
 	opts := tfe.AdminTerraformVersionsListOptions{
 		ListOptions: tfe.ListOptions{
 			PageNumber: 1,
@@ -213,7 +230,11 @@ findTfVersion:
 			t.Fatalf("Could not retrieve list of terraform versions: %v", err)
 		}
 		for _, item := range tfVersionList.Items {
-			if item.Version == version {
+			desiredVersion, err := goversion.NewVersion(item.Version)
+			if err != nil {
+				t.Fatalf(fmt.Sprintf("Error instantiating go-version for %s", item.Version))
+			}
+			if desiredVersion.Core().GreaterThanOrEqual(baseVersion.Core()) {
 				hasVersion = true
 				break findTfVersion
 			}
