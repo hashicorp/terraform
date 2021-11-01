@@ -277,18 +277,6 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	case val.IsNull() && !config.Nullable && config.Default != cty.NilVal:
 		// If nullable=false a null value will use the configured default.
 		val = config.Default
-
-	case val.IsNull() && !config.Nullable:
-		// The value cannot be null, and there is no configured default.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Invalid variable value`,
-			Detail:   fmt.Sprintf(`The resolved value of variable %q cannot be null.`, addr.Name),
-			Subject:  &config.DeclRange,
-		})
-		// Stub out our return value so that the semantic checker doesn't
-		// produce redundant downstream errors.
-		val = cty.UnknownVal(config.Type)
 	}
 
 	var err error
