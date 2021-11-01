@@ -308,7 +308,7 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 
 [inpage-nullable]: #disallowing-null-input-values
 
--> This feature was introduced in Terraform v1.1.0.
+-> This feature is available in Terraform v1.1.0 and later.
 
 The `nullable` argument in a variable block controls whether the module caller
 may assign the value `null` to the variable.
