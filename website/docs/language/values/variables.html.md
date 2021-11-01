@@ -84,6 +84,7 @@ Terraform CLI defines the following optional arguments for variable declarations
 - [`description`][inpage-description] - This specifies the input variable's documentation.
 - [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
 - [`sensitive`][inpage-sensitive] - Limits Terraform UI output when the variable is used in configuration.
+- [`nullable`][inpage-nullable] - Specify if the variable can be `null` within the module.
 
 ### Default values
 
@@ -302,6 +303,23 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 random_pet.animal: Creating...
 random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 ```
+
+### Disallowing null Module Input Values
+
+[inpage-nullable]: #disallowing-null-input-values
+
+-> This feature was introduced in Terraform v1.1.0.
+
+The default value for `nullable` is `true`. When `nullable` is `true`, `null`
+is a valid value for the variable, and the module configuration must always
+account for the possibility of the variable value being `null`. Passing a
+`null` value as a module input argument will override any `default` value.
+
+Setting `nullable` to `false` ensures that the variable value will never be
+`null` within the module. If `nullable` is `false` and the variable has a
+`default` value, then the default will be used when a `null` value is given as
+a module input argument.
+
 
 ## Using Input Variable Values
 

@@ -31,7 +31,7 @@ Strings, numbers, and bools are sometimes called _primitive types._ Lists/tuples
 Finally, there is one special value that has _no_ type:
 
 * `null`: a value that represents _absence_ or _omission._ If you set an
-  argument of a resource or module to `null`, Terraform behaves as though you
+  argument of a resource to `null`, Terraform behaves as though you
   had completely omitted it — it will use the argument's default value if it has
   one, or raise an error if the argument is mandatory. `null` is most useful in
   conditional expressions, so you can dynamically omit an argument if a
