@@ -1169,9 +1169,10 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		options.Operations = tfe.Bool(true)
 	}
 	w := &tfe.Workspace{
-		ID:         GenerateID("ws-"),
-		Name:       *options.Name,
-		Operations: *options.Operations,
+		ID:            GenerateID("ws-"),
+		Name:          *options.Name,
+		ExecutionMode: *options.ExecutionMode,
+		Operations:    *options.Operations,
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueApply: true,
 			CanQueueRun:   true,
@@ -1275,6 +1276,9 @@ func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdate
 
 	if options.Operations != nil {
 		w.Operations = *options.Operations
+	}
+	if options.ExecutionMode != nil {
+		w.ExecutionMode = *options.ExecutionMode
 	}
 	if options.Name != nil {
 		w.Name = *options.Name
