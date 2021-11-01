@@ -223,7 +223,24 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 		return fmt.Errorf("Failed to get existing workspaces: %s", err)
 	}
 	if len(workspaces) == 0 {
-		return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+		if c, ok := b.(*cloud.Cloud); ok && m.input {
+			// len is always 1 if using Name; 0 means we're using Tags and there
+			// aren't any matching workspaces. Which might be normal and fine, so
+			// let's just ask:
+			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+				Id:          "create-workspace",
+				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
+				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
+			})
+			name = strings.TrimSpace(name)
+			if err != nil || name == "" {
+				return fmt.Errorf("Couldn't create initial workspace: no name provided")
+			}
+			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new TFC workspace requested by the user (%s)", name)
+			return m.SetWorkspace(name)
+		} else {
+			return fmt.Errorf(strings.TrimSpace(errBackendNoExistingWorkspaces))
+		}
 	}
 
 	// Get the currently selected workspace.
@@ -1374,6 +1391,15 @@ const outputBackendReconfigure = `
 
 Terraform has detected that the configuration specified for the backend
 has changed. Terraform will now check for existing state in the backends.
+`
+
+const inputCloudInitCreateWorkspace = `
+There are no workspaces with the configured tags (%s)
+in your Terraform Cloud organization. To finish initializing, Terraform needs at
+least one workspace available.
+
+Terraform can create a properly tagged workspace for you now. Please enter a
+name to create a new Terraform Cloud workspace:
 `
 
 const successBackendUnset = `
