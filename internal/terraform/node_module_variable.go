@@ -260,7 +260,7 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Invalid variable value`,
-			Detail:   fmt.Sprintf(`The variable %q is required, but the given value resolved to null`, n.Addr),
+			Detail:   fmt.Sprintf(`The variable %q is required, but the given value is null.`, n.Addr),
 			Subject:  &n.Config.DeclRange,
 		})
 		// Stub out our return value so that the semantic checker doesn't
