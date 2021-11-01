@@ -701,6 +701,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 		// pre-release versions are comparable within their pre-release stage (dev,
 		// alpha, beta), but not comparable to different stages and not comparable
 		// to final releases.
+		{"1.1.0-beta1", "1.1.0-beta1", true, false},
 		{"1.1.0-beta1", "~> 1.1.0-beta", true, false},
 		{"1.1.0", "~> 1.1.0-beta", true, true},
 		{"1.1.0-beta1", "~> 1.1.0-dev", true, true},
