@@ -273,6 +273,10 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 							postInputOutput:   []string{`Apply complete!`},
 						},
 						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "default"`,
+						},
+						{
 							command:           []string{"workspace", "new", "prod"},
 							expectedCmdOutput: `Created and switched to workspace "prod"!`,
 						},
@@ -283,6 +287,24 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 							postInputOutput:   []string{`Apply complete!`},
 						},
 						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "prod"`,
+						},
+						{
+							command:           []string{"workspace", "new", "staging"},
+							expectedCmdOutput: `Created and switched to workspace "staging"!`,
+						},
+						{
+							command:           []string{"apply"},
+							expectedCmdOutput: `Do you want to perform these actions`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "staging"`,
+						},
+						{
 							command:           []string{"workspace", "select", "default"},
 							expectedCmdOutput: `Switched to workspace "default".`,
 						},
@@ -290,24 +312,11 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 							command:           []string{"output"},
 							expectedCmdOutput: `val = "default"`,
 						},
-						{
-							command:           []string{"workspace", "select", "prod"},
-							expectedCmdOutput: `Switched to workspace "prod".`,
-						},
-						{
-							command:           []string{"output"},
-							expectedCmdOutput: `val = "prod"`,
-						},
 					},
 				},
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
-						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
-							Name:             tfe.String("billing"),
-							Tags:             []*tfe.Tag{{Name: tag}},
-							TerraformVersion: tfe.String(cloudTfVersion),
-						})
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
@@ -319,7 +328,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
 								"What pattern would you like to add to all your workspaces?",
-								"The currently selected workspace (prod) does not exist.",
+								"The currently selected workspace (default) does not exist.",
 								"Terraform Cloud has been successfully initialized!"},
 						},
 						{
@@ -329,6 +338,14 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 						{
 							command:           []string{"output"},
 							expectedCmdOutput: `val = "prod"`,
+						},
+						{
+							command:           []string{"workspace", "select", "app-staging"},
+							expectedCmdOutput: `Switched to workspace "app-staging".`,
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "staging"`,
 						},
 						{
 							command:           []string{"workspace", "select", "app-dev"},
