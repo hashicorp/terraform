@@ -838,10 +838,13 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return diags
 	}
 
-	// If the workspace has a literal Terraform version, see if we can use a
-	// looser version constraint.
 	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
-	if remoteVersion != nil {
+
+	// We can use a looser version constraint if the workspace specifies a
+	// literal Terraform version, and it is not a prerelease. The latter
+	// restriction is because we cannot compare prerelease versions with any
+	// operator other than simple equality.
+	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
 		v014 := version.Must(version.NewSemver("0.14.0"))
 		v120 := version.Must(version.NewSemver("1.2.0"))
 
@@ -883,7 +886,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		tfversion.String(),
 		b.organization,
 		workspace.Name,
-		workspace.TerraformVersion,
+		remoteConstraint,
 	)
 	diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
 	return diags
