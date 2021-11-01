@@ -310,6 +310,16 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 
 -> This feature was introduced in Terraform v1.1.0.
 
+The `nullable` argument in a variable block controls whether the module caller
+may assign the value `null` to the variable:
+
+```
+variable "example" {
+  type     = string
+  nullable = false 
+}
+```
+
 The default value for `nullable` is `true`. When `nullable` is `true`, `null`
 is a valid value for the variable, and the module configuration must always
 account for the possibility of the variable value being `null`. Passing a
@@ -319,6 +329,11 @@ Setting `nullable` to `false` ensures that the variable value will never be
 `null` within the module. If `nullable` is `false` and the variable has a
 `default` value, then the default will be used when a `null` value is given as
 a module input argument.
+
+`nullable` only controls where the direct value of the variable may be `null`.
+For variables of collection or structural types, such as list or object types,
+the caller may still use `null` in nested elements or attributes, as long as
+the collection or structure itself is not null.
 
 
 ## Using Input Variable Values
