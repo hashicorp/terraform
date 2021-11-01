@@ -56,6 +56,10 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	if ov.ParsingMode != 0 {
 		v.ParsingMode = ov.ParsingMode
 	}
+	if ov.NullableSet {
+		v.Nullable = ov.Nullable
+		v.NullableSet = ov.NullableSet
+	}
 
 	// If the override file overrode type without default or vice-versa then
 	// it may have created an invalid situation, which we'll catch now by
@@ -99,6 +103,16 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 			}
 		} else {
 			v.Default = val
+		}
+
+		// ensure a null default wasn't merged in when it is not allowed
+		if !v.Nullable && v.Default.IsNull() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid default value for variable",
+				Detail:   "A null default value is not valid when nullable=false.",
+				Subject:  &ov.DeclRange,
+			})
 		}
 	}
 
