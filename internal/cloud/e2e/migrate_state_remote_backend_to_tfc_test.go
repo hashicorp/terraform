@@ -15,6 +15,7 @@ import (
 )
 
 func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -199,6 +200,7 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -338,6 +340,7 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -483,6 +486,7 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -703,6 +707,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_tags(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()

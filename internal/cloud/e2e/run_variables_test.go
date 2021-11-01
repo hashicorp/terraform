@@ -46,6 +46,7 @@ output "test_env" {
 }
 
 func Test_cloud_run_variables(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	cases := testCases{

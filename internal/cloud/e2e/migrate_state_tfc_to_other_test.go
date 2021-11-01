@@ -14,6 +14,7 @@ import (
 )
 
 func Test_migrate_tfc_to_other(t *testing.T) {
+	t.Parallel()
 	cases := map[string]struct {
 		operations []operationSets
 	}{

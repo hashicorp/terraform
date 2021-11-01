@@ -14,6 +14,7 @@ import (
 )
 
 func Test_init_with_empty_tags(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	cases := map[string]struct {
