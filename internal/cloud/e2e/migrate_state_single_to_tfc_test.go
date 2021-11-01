@@ -15,6 +15,7 @@ import (
 )
 
 func Test_migrate_single_to_tfc(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()

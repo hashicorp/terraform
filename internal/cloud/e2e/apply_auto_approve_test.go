@@ -17,6 +17,7 @@ import (
 )
 
 func Test_terraform_apply_autoApprove(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
