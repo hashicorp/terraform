@@ -1,5 +1,9 @@
 ## 1.0.11 (Unreleased)
 
+ENHANCEMENTS:
+
+* backend/oss: Added support for `sts_endpoint` [GH-29841]
+
 ## 1.0.10 (October 28, 2021)
 
 BUG FIXES:
