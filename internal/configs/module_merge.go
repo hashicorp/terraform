@@ -242,6 +242,9 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		if len(or.Managed.IgnoreChanges) != 0 {
 			r.Managed.IgnoreChanges = or.Managed.IgnoreChanges
 		}
+		if or.Managed.IgnoreAllChanges {
+			r.Managed.IgnoreAllChanges = true
+		}
 		if or.Managed.PreventDestroySet {
 			r.Managed.PreventDestroy = or.Managed.PreventDestroy
 			r.Managed.PreventDestroySet = or.Managed.PreventDestroySet

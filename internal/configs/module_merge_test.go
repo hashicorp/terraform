@@ -320,3 +320,13 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
 	}
 }
+
+func TestModuleOverrideIgnoreAllChanges(t *testing.T) {
+	mod, diags := testModuleFromDir("testdata/valid-modules/override-ignore-changes")
+	assertNoDiagnostics(t, diags)
+
+	r := mod.ManagedResources["test_instance.foo"]
+	if !r.Managed.IgnoreAllChanges {
+		t.Fatalf("wrong result: expected r.Managed.IgnoreAllChanges to be true")
+	}
+}
