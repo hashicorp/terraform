@@ -88,6 +88,7 @@ The following configuration options or environment variables are supported:
 * `key` - (Optional) The name of the state file. Defaults to `terraform.tfstate`.
 * `tablestore_endpoint` / `ALICLOUD_TABLESTORE_ENDPOINT` - (Optional) A custom endpoint for the TableStore API.
 * `tablestore_table` - (Optional) A TableStore table for state locking and consistency. The table must have a primary key named `LockID` of type `String`.
+* `sts_endpoint` - (Optional, Available in 1.0.11+) Custom endpoint for the AliCloud Security Token Service (STS) API. It supports environment variable `ALICLOUD_STS_ENDPOINT`.
 * `encrypt` - (Optional) Whether to enable server side
   encryption of the state file. If it is true, OSS will use 'AES256' encryption algorithm to encrypt state file.
 * `acl` - (Optional) [Object
