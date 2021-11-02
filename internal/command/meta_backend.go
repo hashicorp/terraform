@@ -636,20 +636,37 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
-		// We are not going to migrate if were not initializing and the hashes
-		// match indicating that the stored config is valid. If we are
-		// initializing, then we also assume the the backend config is OK if
-		// the hashes match, as long as we're not providing any new overrides.
+		// We are not going to migrate if...
+		//
+		// We're not initializing
+		// AND the backend cache hash values match, indicating that the stored config is valid and completely unchanged.
+		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
 		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
-			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
+			return m.savedBackend(sMgr)
 		}
 
-		// If our configuration is the same, then we're just initializing
-		// a previously configured remote backend.
+		// If our configuration (the result of both the literal configuration and given
+		// -backend-config options) is the same, then we're just initializing a previously
+		// configured backend. The literal configuration may differ, however, so while we
+		// don't need to migrate, we update the backend cache hash value.
 		if !m.backendConfigNeedsMigration(c, s.Backend) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized %q backend configuration", c.Type)
-			return m.backend_C_r_S_unchanged(c, cHash, sMgr)
+			savedBackend, moreDiags := m.savedBackend(sMgr)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				return nil, diags
+			}
+
+			// It's possible for a backend to be unchanged, and the config itself to
+			// have changed by moving a parameter from the config to `-backend-config`
+			// In this case, we update the Hash.
+			moreDiags = m.updateSavedBackendHash(cHash, sMgr)
+			if moreDiags.HasErrors() {
+				return nil, diags
+			}
+
+			return savedBackend, diags
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
@@ -810,7 +827,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	// Initialize the configured backend
-	b, moreDiags := m.backend_C_r_S_unchanged(c, cHash, sMgr)
+	b, moreDiags := m.savedBackend(sMgr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, diags
@@ -1008,7 +1025,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	// Grab the existing backend
-	oldB, oldBDiags := m.backend_C_r_S_unchanged(c, cHash, sMgr)
+	oldB, oldBDiags := m.savedBackend(sMgr)
 	diags = diags.Append(oldBDiags)
 	if oldBDiags.HasErrors() {
 		return nil, diags
@@ -1074,22 +1091,15 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	return b, diags
 }
 
-// Initiailizing an unchanged saved backend
-func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+// Initializing a saved backend from the cache file (legacy state file)
+//
+// TODO: This is extremely similar to Meta.backendFromState() but for legacy reasons this is the
+// function used by the migration APIs within this file. The other handles 'init -backend=false',
+// specifically.
+func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	s := sMgr.State()
-
-	// it's possible for a backend to be unchanged, and the config itself to
-	// have changed by moving a parameter from the config to `-backend-config`
-	// In this case we only need to update the Hash.
-	if c != nil && s.Backend.Hash != uint64(cHash) {
-		s.Backend.Hash = uint64(cHash)
-		if err := sMgr.WriteState(s); err != nil {
-			diags = diags.Append(err)
-			return nil, diags
-		}
-	}
 
 	// Get the backend
 	f := backendInit.Backend(s.Backend.Type)
@@ -1127,6 +1137,21 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clis
 	}
 
 	return b, diags
+}
+
+func (m *Meta) updateSavedBackendHash(cHash int, sMgr *clistate.LocalState) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	s := sMgr.State()
+
+	if s.Backend.Hash != uint64(cHash) {
+		s.Backend.Hash = uint64(cHash)
+		if err := sMgr.WriteState(s); err != nil {
+			diags = diags.Append(err)
+		}
+	}
+
+	return diags
 }
 
 //-------------------------------------------------------------------
