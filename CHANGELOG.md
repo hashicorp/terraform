@@ -34,6 +34,7 @@ BUG FIXES:
 * core: Reduce scope of dependencies that may defer reading of data sources when using `depends_on` or directly referencing managed resources ([#29682](https://github.com/hashicorp/terraform/issues/29682))
 * cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output ([#29522](https://github.com/hashicorp/terraform/issues/29522))
 * cli: Prevent applying a stale planfile when there was no previous state ([#29755](https://github.com/hashicorp/terraform/issues/29755))
+* cli: Improve list nested attribute rendering [GH-29827]
 
 ## Previous Releases
 
