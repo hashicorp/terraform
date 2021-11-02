@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/helper/cty-diff"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -66,6 +67,7 @@ func ResourceChange(
 		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, change.DeposedKey)
 	}
 
+	recreating := false
 	switch change.Action {
 	case plans.Create:
 		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be created"), dispAddr))
@@ -89,6 +91,7 @@ func ResourceChange(
 		default:
 			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] must be [bold][red]replaced"), dispAddr))
 		}
+		recreating = true
 	case plans.Delete:
 		switch language {
 		case DiffLanguageProposedChange:
@@ -199,7 +202,7 @@ func ResourceChange(
 	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
 	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
 
-	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path, recreating)
 	if result.bodyWritten {
 		buf.WriteString("\n")
 		buf.WriteString(strings.Repeat(" ", 4))
@@ -255,7 +258,7 @@ func OutputChanges(
 		newVals[name] = change.After
 	}
 
-	p.writeBlockBodyDiff(synthSchema, cty.ObjectVal(oldVals), cty.ObjectVal(newVals), 2, nil)
+	p.writeBlockBodyDiff(synthSchema, cty.ObjectVal(oldVals), cty.ObjectVal(newVals), 2, nil, false)
 
 	return buf.String()
 }
@@ -276,15 +279,16 @@ type blockBodyDiffResult struct {
 }
 
 const forcesNewResourceCaption = " [red]# forces replacement[reset]"
+const minimalDiffCostThreshold = 100_000_000
 
 // writeBlockBodyDiff writes attribute or block differences
 // and returns true if any differences were found and written
-func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path) blockBodyDiffResult {
+func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, old, new cty.Value, indent int, path cty.Path, recreating bool) blockBodyDiffResult {
 	path = ctyEnsurePathCapacity(path, 1)
 	result := blockBodyDiffResult{}
 
 	// write the attributes diff
-	blankBeforeBlocks := p.writeAttrsDiff(schema.Attributes, old, new, indent, path, &result)
+	blankBeforeBlocks := p.writeAttrsDiff(schema.Attributes, old, new, indent, path, &result, recreating)
 	p.writeSkippedAttr(result.skippedAttributes, indent+2)
 
 	{
@@ -300,7 +304,7 @@ func (p *blockBodyDiffPrinter) writeBlockBodyDiff(schema *configschema.Block, ol
 			newVal := ctyGetAttrMaybeNull(new, name)
 
 			result.bodyWritten = true
-			skippedBlocks := p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path)
+			skippedBlocks := p.writeNestedBlockDiffs(name, blockS, oldVal, newVal, blankBeforeBlocks, indent, path, recreating)
 			if skippedBlocks > 0 {
 				result.skippedBlocks += skippedBlocks
 			}
@@ -327,7 +331,8 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 	old, new cty.Value,
 	indent int,
 	path cty.Path,
-	result *blockBodyDiffResult) bool {
+	result *blockBodyDiffResult,
+	recreating bool) bool {
 
 	blankBeforeBlocks := false
 
@@ -360,7 +365,7 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		newVal := ctyGetAttrMaybeNull(new, name)
 
 		result.bodyWritten = true
-		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path, recreating)
 		if skipped {
 			result.skippedAttributes++
 		}
@@ -390,7 +395,7 @@ func getPlanActionAndShow(old cty.Value, new cty.Value) (plans.Action, bool) {
 	return action, showJustNew
 }
 
-func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path) bool {
+func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.Attribute, old, new cty.Value, nameLen, indent int, path cty.Path, recreating bool) bool {
 	path = append(path, cty.GetAttrStep{Name: name})
 	action, showJustNew := getPlanActionAndShow(old, new)
 
@@ -399,7 +404,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	if attrS.NestedType != nil {
-		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
+		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew, recreating)
 		return false
 	}
 
@@ -443,7 +448,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 // in the diff.
 func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	name string, objS *configschema.Object, old, new cty.Value,
-	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool) {
+	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool, recreating bool) {
 
 	p.buf.WriteString("\n")
 	p.buf.WriteString(strings.Repeat(" ", indent))
@@ -461,7 +466,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
-		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result)
+		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result, recreating)
 		p.writeSkippedAttr(result.skippedAttributes, indent+4)
 		p.buf.WriteString("\n")
 		p.buf.WriteString(strings.Repeat(" ", indent))
@@ -509,7 +514,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				unchanged++
 			}
 			if action != plans.NoOp {
-				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result, recreating)
 				p.writeSkippedAttr(result.skippedAttributes, indent+8)
 				p.buf.WriteString("\n")
 			}
@@ -518,14 +523,14 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			oldItem := oldItems[i]
 			newItem := cty.NullVal(oldItem.Type())
-			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result, recreating)
 			p.buf.WriteString("\n")
 		}
 		for i := commonLen; i < len(newItems); i++ {
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			newItem := newItems[i]
 			oldItem := cty.NullVal(newItem.Type())
-			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result, recreating)
 			p.buf.WriteString("\n")
 		}
 		p.buf.WriteString(strings.Repeat(" ", indent+4))
@@ -594,7 +599,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			}
 
 			path := append(path, cty.IndexStep{Key: val})
-			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result, recreating)
 
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+4))
@@ -668,7 +673,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				}
 
 				path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
-				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result, recreating)
 				p.writeSkippedAttr(result.skippedAttributes, indent+8)
 				p.buf.WriteString("\n")
 				p.buf.WriteString(strings.Repeat(" ", indent+4))
@@ -685,7 +690,43 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	}
 }
 
-func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path) int {
+// When a block is nested under a resource which will be re-created,
+// instead of using the same diff formatting logic as if the
+// individual sub-resources were to be individually updated,
+// try to produce a more readable, minimal diff.
+func (p *blockBodyDiffPrinter) writeNestedBlockEditPath(name string, blockS *configschema.NestedBlock, editPath []cty_diff.EditStep, indent int, path cty.Path, recreating bool) int {
+	skippedBlocks := 0
+	for _, step := range editPath {
+		var action plans.Action
+		oldValue := step.OldValue
+		newValue := step.NewValue
+		var pathStep cty.PathStep
+		switch {
+		case step.Operation == cty_diff.EditInsert:
+			action = plans.Create
+			oldValue = cty.NullVal(newValue.Type())
+			pathStep = step.NewKey
+		case step.Operation == cty_diff.EditDelete:
+			action = plans.Delete
+			newValue = cty.NullVal(oldValue.Type())
+			pathStep = step.OldKey
+		case step.Operation == cty_diff.EditNoOp:
+			action = plans.NoOp
+			pathStep = step.NewKey
+		default:
+			action = plans.Update
+			pathStep = step.NewKey
+		}
+		path := append(path, pathStep)
+		skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path, recreating)
+		if skipped {
+			skippedBlocks++
+		}
+	}
+	return skippedBlocks
+}
+
+func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *configschema.NestedBlock, old, new cty.Value, blankBefore bool, indent int, path cty.Path, recreating bool) int {
 	skippedBlocks := 0
 	path = append(path, cty.GetAttrStep{Name: name})
 	if old.IsNull() && new.IsNull() {
@@ -727,7 +768,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 		if blankBefore {
 			p.buf.WriteRune('\n')
 		}
-		skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, old, new, indent, path)
+		skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, old, new, indent, path, recreating)
 		if skipped {
 			return 1
 		}
@@ -740,6 +781,15 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
+
+		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
+			p.buf.WriteRune('\n')
+		}
+
+		if recreating && cty_diff.ValueDiffCost(old, new) < minimalDiffCostThreshold {
+			_, editPath := cty_diff.ListDiff(old, new, true)
+			return p.writeNestedBlockEditPath(name, blockS, editPath, indent, path, recreating)
+		}
 
 		// Here we intentionally preserve the index-based correspondance
 		// between old and new, rather than trying to detect insertions
@@ -760,10 +810,6 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			commonLen = len(newItems)
 		}
 
-		if blankBefore && (len(oldItems) > 0 || len(newItems) > 0) {
-			p.buf.WriteRune('\n')
-		}
-
 		for i := 0; i < commonLen; i++ {
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			oldItem := oldItems[i]
@@ -772,7 +818,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			if oldItem.RawEquals(newItem) {
 				action = plans.NoOp
 			}
-			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldItem, newItem, indent, path)
+			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldItem, newItem, indent, path, recreating)
 			if skipped {
 				skippedBlocks++
 			}
@@ -781,7 +827,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			oldItem := oldItems[i]
 			newItem := cty.NullVal(oldItem.Type())
-			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Delete, oldItem, newItem, indent, path)
+			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Delete, oldItem, newItem, indent, path, recreating)
 			if skipped {
 				skippedBlocks++
 			}
@@ -790,7 +836,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
 			newItem := newItems[i]
 			oldItem := cty.NullVal(newItem.Type())
-			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Create, oldItem, newItem, indent, path)
+			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Create, oldItem, newItem, indent, path, recreating)
 			if skipped {
 				skippedBlocks++
 			}
@@ -810,14 +856,19 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			return 0
 		}
 
+		if blankBefore {
+			p.buf.WriteRune('\n')
+		}
+
+		if recreating && cty_diff.ValueDiffCost(old, new) < minimalDiffCostThreshold {
+			_, editPath := cty_diff.SetDiff(old, new, true)
+			return p.writeNestedBlockEditPath(name, blockS, editPath, indent, path, recreating)
+		}
+
 		allItems := make([]cty.Value, 0, len(oldItems)+len(newItems))
 		allItems = append(allItems, oldItems...)
 		allItems = append(allItems, newItems...)
 		all := cty.SetVal(allItems)
-
-		if blankBefore {
-			p.buf.WriteRune('\n')
-		}
 
 		for it := all.ElementIterator(); it.Next(); {
 			_, val := it.Element()
@@ -841,7 +892,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 				newValue = val
 			}
 			path := append(path, cty.IndexStep{Key: val})
-			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path)
+			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, action, oldValue, newValue, indent, path, recreating)
 			if skipped {
 				skippedBlocks++
 			}
@@ -896,7 +947,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			}
 
 			path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
-			skipped := p.writeNestedBlockDiff(name, &k, &blockS.Block, action, oldValue, newValue, indent, path)
+			skipped := p.writeNestedBlockDiff(name, &k, &blockS.Block, action, oldValue, newValue, indent, path, recreating)
 			if skipped {
 				skippedBlocks++
 			}
@@ -944,14 +995,14 @@ func (p *blockBodyDiffPrinter) writeSensitiveNestedBlockDiff(name string, old, n
 	p.buf.WriteString("}")
 }
 
-func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path) bool {
+func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, blockS *configschema.Block, action plans.Action, old, new cty.Value, indent int, path cty.Path, recreating bool) bool {
 	if action == plans.NoOp && !p.verbose {
 		return true
 	}
 
 	p.buf.WriteString("\n")
-	p.buf.WriteString(strings.Repeat(" ", indent))
-	p.writeActionSymbol(action)
+	p.buf.WriteString(strings.Repeat(" ", indent-2))
+	p.buf.WriteString(p.color.Color(DiffActionSymbol(action)) + " ")
 
 	if label != nil {
 		fmt.Fprintf(p.buf, "%s %q {", name, *label)
@@ -963,7 +1014,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 		p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 	}
 
-	result := p.writeBlockBodyDiff(blockS, old, new, indent+4, path)
+	recreating = recreating || action == plans.DeleteThenCreate || action == plans.CreateThenDelete
+	result := p.writeBlockBodyDiff(blockS, old, new, indent+4, path, recreating)
 	if result.bodyWritten {
 		p.buf.WriteString("\n")
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
@@ -1940,6 +1992,8 @@ func ctyNullBlockSetAsEmpty(in cty.Value) cty.Value {
 // characters, possibly interspersed with VT100 color codes.
 func DiffActionSymbol(action plans.Action) string {
 	switch action {
+	case plans.NoOp:
+		return "   "
 	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset]"
 	case plans.CreateThenDelete:
