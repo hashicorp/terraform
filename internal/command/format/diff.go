@@ -532,11 +532,14 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				p.buf.WriteString(strings.Repeat(" ", indent+4))
 				p.writeActionSymbol(action)
 				p.buf.WriteString("{")
+
+				result := &blockBodyDiffResult{}
 				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+8, path, result)
 				if action == plans.Update {
 					p.writeSkippedAttr(result.skippedAttributes, indent+10)
 				}
 				p.buf.WriteString("\n")
+
 				p.buf.WriteString(strings.Repeat(" ", indent+6))
 				p.buf.WriteString("},\n")
 			}
