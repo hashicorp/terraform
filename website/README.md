@@ -45,6 +45,10 @@ If you need your changes to be deployed sooner, cherry-pick them to:
 - the current release branch (e.g. `v1.0`) and push. They will be deployed in the next minor version release (once every two weeks).
 - the `stable-website` branch and push. They will be included in the next site deploy (details below). Note that the release process resets `stable-website` to match the release tag, removing any additional commits. So, we recommend always cherry-picking to the version branch first and then to `stable-website` when needed.
 
+### Backport Tags
+
+Instead of cherry-picking your commits to a specific version branch, you can add the associated backport tag (e.g., "1.1-backport") to your pull request before merging. After you merge, a bot automatically creates a pull request to add your commits to the version branch (linked in your original PR). You must manually merge the auto-generated PR into the version branch.
+
 ### Deployment
 
 Currently, HashiCorp uses a CircleCI job to deploy the [terraform.io](terraform.io) site. This job can be run manually by many people within HashiCorp, and also runs automatically whenever a user in the HashiCorp GitHub org merges changes to master in the `terraform-website` repository.
