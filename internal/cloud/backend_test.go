@@ -685,7 +685,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 		executionMode string
 		wantErr       bool
 	}{
-		{"0.13.5", "0.13.5", "remote", false},
+		{"0.13.5", "0.13.5", "agent", false},
 		{"0.14.0", "0.13.5", "remote", true},
 		{"0.14.0", "0.13.5", "local", false},
 		{"0.14.0", "0.14.1", "remote", false},
