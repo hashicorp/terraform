@@ -1083,7 +1083,7 @@ func (m *Meta) backend_C_r_S_unchanged(c *configs.Backend, cHash int, sMgr *clis
 	// it's possible for a backend to be unchanged, and the config itself to
 	// have changed by moving a parameter from the config to `-backend-config`
 	// In this case we only need to update the Hash.
-	if c != nil && s.Backend.Hash != uint64(cHash) {
+	if c != nil && c.Type == s.Backend.Type && s.Backend.Hash != uint64(cHash) {
 		s.Backend.Hash = uint64(cHash)
 		if err := sMgr.WriteState(s); err != nil {
 			diags = diags.Append(err)
