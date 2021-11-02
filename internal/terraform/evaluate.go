@@ -658,15 +658,14 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	// state available in all cases.
 	// We need to build an abs provider address, but we can use a default
 	// instance since we're only interested in the schema.
-	providerAddr := moduleAddr.ProviderConfigDefault(config.Provider)
-	schema := d.getResourceSchema(addr, providerAddr)
+	schema := d.getResourceSchema(addr, config.Provider)
 	if schema == nil {
 		// This shouldn't happen, since validation before we get here should've
 		// taken care of it, but we'll show a reasonable error message anyway.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Missing resource type schema`,
-			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, providerAddr),
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, config.Provider),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -877,8 +876,8 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	return ret, diags
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr.Provider, addr.Mode, addr.Type)
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just
