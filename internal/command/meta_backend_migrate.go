@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -666,27 +667,47 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	}
 
 	// After migrating multiple workspaces, we need to reselect the current workspace as it may
-	// have been renamed. Query the backend first to be sure it now exists, and if it does,
-	// select it.
+	// have been renamed. Query the backend first to be sure it now exists.
 	workspaces, err := opts.Destination.Workspaces()
 	if err != nil {
 		return err
 	}
 
+	var workspacePresent bool
 	for _, name := range workspaces {
 		if name == newCurrentWorkspace {
-			if err = m.SetWorkspace(name); err != nil {
-				return err
-			}
-			return nil
+			workspacePresent = true
 		}
 	}
 
 	// If we couldn't select the workspace automatically from the backend (maybe it was empty
-	// and wasn't migrated, for instance), ask the user to select one.
-	if err = m.selectWorkspace(opts.Destination); err != nil {
+	// and wasn't migrated, for instance), ask the user to select one instead and be done.
+	if !workspacePresent {
+		if err = m.selectWorkspace(opts.Destination); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// The newly renamed current workspace is present, so we'll automatically select it for the
+	// user, as well as display the equivalent of 'workspace list' to show how the workspaces
+	// were changed (as well as the newly selected current workspace).
+	if err = m.SetWorkspace(newCurrentWorkspace); err != nil {
 		return err
 	}
+
+	m.Ui.Output(m.Colorize().Color("[reset][bold]Migration complete! Your workspaces are as follows:[reset]"))
+	var out bytes.Buffer
+	for _, name := range workspaces {
+		if name == newCurrentWorkspace {
+			out.WriteString("* ")
+		} else {
+			out.WriteString("  ")
+		}
+		out.WriteString(name + "\n")
+	}
+
+	m.Ui.Output(out.String())
 
 	return nil
 }
