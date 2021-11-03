@@ -75,7 +75,7 @@ also accepts the option
 
 For configurations using
 [the `local` state mv](/docs/language/settings/backends/local.html) only,
-`terraform taint` also accepts the legacy options
+`terraform state mv` also accepts the legacy options
 [`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Example: Rename a Resource
