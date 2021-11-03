@@ -24,8 +24,8 @@ func init() {
 	// a current or a concluded experiment.
 	registerConcludedExperiment(VariableValidation, "Custom variable validation can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
+	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerCurrentExperiment(ModuleVariableOptionalAttrs)
-	registerCurrentExperiment(ConfigDrivenMove)
 }
 
 // GetCurrent takes an experiment name and returns the experiment value

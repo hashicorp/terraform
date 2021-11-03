@@ -2263,10 +2263,10 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            + mount_point = "/var/diska"
-            + size        = "50GB"
-          },
+          + {
+              + mount_point = "/var/diska"
+              + size        = "50GB"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2309,9 +2309,9 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            + mount_point = "/var/diska"
-          },
+          + {
+              + mount_point = "/var/diska"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2371,10 +2371,10 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           ~ {
-            + size        = "50GB"
-              # (1 unchanged attribute hidden)
-          },
-          # (1 unchanged element hidden)
+              + size        = "50GB"
+                # (1 unchanged attribute hidden)
+            },
+            # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2437,9 +2437,9 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           ~ {
-            ~ mount_point = "/var/diska" -> "/var/diskb" # forces replacement
-              # (1 unchanged attribute hidden)
-          },
+              ~ mount_point = "/var/diska" -> "/var/diskb" # forces replacement
+                # (1 unchanged attribute hidden)
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2493,9 +2493,9 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [ # forces replacement
           ~ {
-            ~ mount_point = "/var/diska" -> "/var/diskb"
-              # (1 unchanged attribute hidden)
-          },
+              ~ mount_point = "/var/diska" -> "/var/diskb"
+                # (1 unchanged attribute hidden)
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2540,10 +2540,10 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+          - {
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2674,11 +2674,84 @@ func TestResourceChange_nestedList(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
-          ~ {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+          - {
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ] -> (known after apply)
+        id    = "i-02ae66f368e8518a9"
+
+        # (1 unchanged block hidden)
+    }
+`,
+		},
+		"in-place update - modification": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("50GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskc"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("75GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskc"),
+						"size":        cty.StringVal("25GB"),
+					}),
+				}),
+				"root_block_device": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+						"new_field":   cty.StringVal("new_value"),
+					}),
+				}),
+			}),
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchemaPlus(configschema.NestingList),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      ~ disks = [
+          ~ {
+              ~ size        = "50GB" -> "75GB"
+                # (1 unchanged attribute hidden)
+            },
+          ~ {
+              ~ size        = "50GB" -> "25GB"
+                # (1 unchanged attribute hidden)
+            },
+            # (1 unchanged element hidden)
+        ]
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)

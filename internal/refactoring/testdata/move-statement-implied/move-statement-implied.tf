@@ -2,10 +2,6 @@
 # conforms to the statements encoded in the resource names. It's for
 # TestImpliedMoveStatements only.
 
-terraform {
-  experiments = [config_driven_move]
-}
-
 resource "foo" "formerly_count" {
   # but not count anymore
 }

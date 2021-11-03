@@ -36,6 +36,12 @@ type Variable struct {
 	DescriptionSet bool
 	SensitiveSet   bool
 
+	// Nullable indicates that null is a valid value for this variable. Setting
+	// Nullable to false means that the module can expect this variable to
+	// never be null.
+	Nullable    bool
+	NullableSet bool
+
 	DeclRange hcl.Range
 }
 
@@ -110,6 +116,16 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		v.SensitiveSet = true
 	}
 
+	if attr, exists := content.Attributes["nullable"]; exists {
+		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &v.Nullable)
+		diags = append(diags, valDiags...)
+		v.NullableSet = true
+	} else {
+		// The current default is true, which is subject to change in a future
+		// language edition.
+		v.Nullable = true
+	}
+
 	if attr, exists := content.Attributes["default"]; exists {
 		val, valDiags := attr.Expr.Value(nil)
 		diags = append(diags, valDiags...)
@@ -132,6 +148,15 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 				})
 				val = cty.DynamicVal
 			}
+		}
+
+		if !v.Nullable && val.IsNull() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid default value for variable",
+				Detail:   "A null default value is not valid when nullable=false.",
+				Subject:  attr.Expr.Range().Ptr(),
+			})
 		}
 
 		v.Default = val
@@ -555,6 +580,9 @@ var variableBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "sensitive",
+		},
+		{
+			Name: "nullable",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

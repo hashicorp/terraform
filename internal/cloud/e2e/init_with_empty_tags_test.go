@@ -13,36 +13,27 @@ import (
 	"github.com/hashicorp/terraform/internal/e2e"
 )
 
-func Test_migrate_tfc_to_other(t *testing.T) {
+func Test_init_with_empty_tags(t *testing.T) {
 	t.Parallel()
+	skipWithoutRemoteTerraformVersion(t)
+
 	cases := map[string]struct {
 		operations []operationSets
 	}{
-		"migrate from cloud to local backend": {
+		"terraform init with cloud block - no tagged workspaces exist yet": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						wsTag := "emptytag"
+						tfBlock := terraformConfigCloudBackendTags(orgName, wsTag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
-						},
-					},
-				},
-				{
-					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
-						writeMainTF(t, tfBlock, dir)
-					},
-					commands: []tfCommand{
-						{
-							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Migrating state from Terraform Cloud to another backend is not yet implemented.`,
-							expectError:       true,
+							expectedCmdOutput: `There are no workspaces with the configured tags`,
+							userInput:         []string{"emptytag-prod"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 					},
 				},

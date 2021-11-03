@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -35,11 +36,10 @@ import (
 // Deprecated in favor of flattening assume_role_* options
 func deprecatedAssumeRoleSchema() *schema.Schema {
 	return &schema.Schema{
-		Type:          schema.TypeSet,
-		Optional:      true,
-		ConflictsWith: []string{"assume_role_role_arn", "assume_role_session_name", "assume_role_policy", "assume_role_session_expiration"},
-		MaxItems:      1,
-		Deprecated:    "use assume_role_* options instead",
+		Type:       schema.TypeSet,
+		Optional:   true,
+		MaxItems:   1,
+		Deprecated: "use assume_role_* options instead",
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"role_arn": {
@@ -120,6 +120,12 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "The region of the OSS bucket.",
 				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_REGION", os.Getenv("ALICLOUD_DEFAULT_REGION")),
+			},
+			"sts_endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_STS_ENDPOINT", ""),
 			},
 			"tablestore_endpoint": {
 				Type:        schema.TypeString,
@@ -212,30 +218,26 @@ func New() backend.Backend {
 			},
 			"assume_role": deprecatedAssumeRoleSchema(),
 			"assume_role_role_arn": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"assume_role"},
-				Description:   "The ARN of a RAM role to assume prior to making API calls.",
-				DefaultFunc:   schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The ARN of a RAM role to assume prior to making API calls.",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_ARN", ""),
 			},
 			"assume_role_session_name": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"assume_role"},
-				Description:   "The session name to use when assuming the role.",
-				DefaultFunc:   schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+				DefaultFunc: schema.EnvDefaultFunc("ALICLOUD_ASSUME_ROLE_SESSION_NAME", ""),
 			},
 			"assume_role_policy": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"assume_role"},
-				Description:   "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The permissions applied when assuming a role. You cannot use this policy to grant permissions which exceed those of the role that is being assumed.",
 			},
 			"assume_role_session_expiration": {
-				Type:          schema.TypeInt,
-				Optional:      true,
-				ConflictsWith: []string{"assume_role"},
-				Description:   "The time after which the established session for assuming role expires.",
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "The time after which the established session for assuming role expires.",
 				ValidateFunc: func(v interface{}, k string) ([]string, []error) {
 					min := 900
 					max := 3600
@@ -304,6 +306,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	securityToken := getBackendConfig(d.Get("security_token").(string), "sts_token")
 	region := getBackendConfig(d.Get("region").(string), "region_id")
 
+	stsEndpoint := d.Get("sts_endpoint").(string)
 	endpoint := d.Get("endpoint").(string)
 	schma := "https"
 
@@ -316,7 +319,18 @@ func (b *Backend) configure(ctx context.Context) error {
 		sessionExpiration = (int)(expiredSeconds.(float64))
 	}
 
-	if v, ok := d.GetOk("assume_role"); ok {
+	if v, ok := d.GetOk("assume_role_role_arn"); ok && v.(string) != "" {
+		roleArn = v.(string)
+		if v, ok := d.GetOk("assume_role_session_name"); ok {
+			sessionName = v.(string)
+		}
+		if v, ok := d.GetOk("assume_role_policy"); ok {
+			policy = v.(string)
+		}
+		if v, ok := d.GetOk("assume_role_session_expiration"); ok {
+			sessionExpiration = v.(int)
+		}
+	} else if v, ok := d.GetOk("assume_role"); ok {
 		// deprecated assume_role block
 		for _, v := range v.(*schema.Set).List() {
 			assumeRole := v.(map[string]interface{})
@@ -329,11 +343,6 @@ func (b *Backend) configure(ctx context.Context) error {
 			policy = assumeRole["policy"].(string)
 			sessionExpiration = assumeRole["session_expiration"].(int)
 		}
-	} else {
-		roleArn = d.Get("assume_role_role_arn").(string)
-		sessionName = d.Get("assume_role_session_name").(string)
-		policy = d.Get("assume_role_policy").(string)
-		sessionExpiration = d.Get("assume_role_session_expiration").(int)
 	}
 
 	if sessionName == "" {
@@ -360,7 +369,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if roleArn != "" {
-		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, securityToken, region, roleArn, sessionName, policy, sessionExpiration)
+		subAccessKeyId, subAccessKeySecret, subSecurityToken, err := getAssumeRoleAK(accessKey, secretKey, securityToken, region, roleArn, sessionName, policy, stsEndpoint, sessionExpiration)
 		if err != nil {
 			return err
 		}
@@ -432,7 +441,7 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 	return endpointsResponse, nil
 }
 
-func getAssumeRoleAK(accessKey, secretKey, stsToken, region, roleArn, sessionName, policy string, sessionExpiration int) (string, string, string, error) {
+func getAssumeRoleAK(accessKey, secretKey, stsToken, region, roleArn, sessionName, policy, stsEndpoint string, sessionExpiration int) (string, string, string, error) {
 	request := sts.CreateAssumeRoleRequest()
 	request.RoleArn = roleArn
 	request.RoleSessionName = sessionName
@@ -449,6 +458,9 @@ func getAssumeRoleAK(accessKey, secretKey, stsToken, region, roleArn, sessionNam
 	}
 	if err != nil {
 		return "", "", "", err
+	}
+	if stsEndpoint != "" {
+		endpoints.AddEndpointMapping(region, "STS", stsEndpoint)
 	}
 	response, err := client.AssumeRole(request)
 	if err != nil {

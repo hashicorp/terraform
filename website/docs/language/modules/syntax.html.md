@@ -160,37 +160,36 @@ For more information about referring to named values, see
 
 ## Transferring Resource State Into Modules
 
-When refactoring an existing configuration to split code into child modules,
-moving resource blocks between modules causes Terraform to see the new location
-as an entirely different resource from the old. Always check the execution plan
-after moving code across modules to ensure that no resources are deleted by
-surprise.
+Moving `resource` blocks from one module into several child modules causes
+Terraform to see the new location as an entirely different resource. As a
+result, Terraform plans to destroy all resource instances at the old address
+and create new instances at the new address.
 
-If you want to make sure an existing resource is preserved, use
-[the `terraform state mv` command](/docs/cli/commands/state/mv.html) to inform
-Terraform that it has moved to a different module.
+To preserve existing objects, you can use
+[refactoring blocks](develop/refactoring.html) to record the old and new
+addresses for each resource instance. This directs Terraform to treat existing
+objects at the old addresses as if they had originally been created at the
+corresponding new addresses.
 
-When passing resource addresses to `terraform state mv`, resources within child
-modules must be prefixed with `module.<MODULE NAME>.`. If a module was called with
-[`count`](/docs/language/meta-arguments/count.html) or
-[`for_each`](/docs/language/meta-arguments/for_each.html),
-its resource addresses must be prefixed with `module.<MODULE NAME>[<INDEX>].`
-instead, where `<INDEX>` matches the `count.index` or `each.key` value of a
-particular module instance.
+## Replacing resources within a module
 
-Full resource addresses for module contents are used within the UI and on the
-command line, but cannot be used within a Terraform configuration. Only
-[outputs](/docs/language/values/outputs.html) from a module can be referenced from
-elsewhere in your configuration.
+You may have an object that needs to be replaced with a new object for a reason
+that isn't automatically visible to Terraform, such as if a particular virtual
+machine is running on degraded underlying hardware. In this case, you can use
+[the `-replace=...` planning option](/docs/cli/commands/plan.html#replace-address)
+to force Terraform to propose replacing that object.
 
-## Tainting resources within a module
+If the object belongs to a resource within a nested module, specify the full
+path to that resource including all of the nested module steps leading to it.
+For example:
 
-The [taint command](/docs/cli/commands/taint.html) can be used to _taint_ specific
-resources within a module:
-
-```shell
-$ terraform taint module.salt_master.aws_instance.salt_master
+```shellsession
+$ terraform plan -replace=module.example.aws_instance.example
 ```
 
-It is not possible to taint an entire module. Instead, each resource within
-the module must be tainted separately.
+The above selects a `resource "aws_instance" "example"` declared inside a
+`module "example"` child module declared inside your root module.
+
+Because replacing is a very disruptive action, Terraform only allows selecting
+individual resource instances. There is no syntax to force replacing _all_
+resource instances belonging to a particular module.

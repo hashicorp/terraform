@@ -17,7 +17,7 @@ import (
 // diagnostics if any problems are found.
 //
 // This method is "optimistic" in that it will not return errors for possible
-// problems that cannot be detected statically. It is possible that an
+// problems that cannot be detected statically. It is possible that a
 // traversal which passed static validation will still fail when evaluated.
 func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnostics {
 	if !traversal.IsRelative() {

@@ -16,6 +16,7 @@ import (
 )
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 	ctx := context.Background()
 
@@ -301,6 +302,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 }
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
+	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
