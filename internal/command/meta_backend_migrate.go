@@ -613,6 +613,12 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspaces []string) error {
 	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
 
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
+	newCurrentWorkspace := ""
+
 	// This map is used later when doing the migration per source/destination.
 	// If a source has 'default', then we ask what the new name should be.
 	// And further down when we actually run state migration for each
@@ -653,12 +659,32 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 			return fmt.Errorf(strings.TrimSpace(
 				errMigrateMulti), name, opts.SourceType, opts.DestinationType, err)
 		}
+
+		if currentWorkspace == opts.sourceWorkspace {
+			newCurrentWorkspace = opts.destinationWorkspace
+		}
 	}
 
-	// After migrating multiple workspaces, we want to ensure that a workspace is
-	// set or we prompt the user to set a workspace.
-	err = m.selectWorkspace(opts.Destination)
+	// After migrating multiple workspaces, we need to reselect the current workspace as it may
+	// have been renamed. Query the backend first to be sure it now exists, and if it does,
+	// select it.
+	workspaces, err := opts.Destination.Workspaces()
 	if err != nil {
+		return err
+	}
+
+	for _, name := range workspaces {
+		if name == newCurrentWorkspace {
+			if err = m.SetWorkspace(name); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	// If we couldn't select the workspace automatically from the backend (maybe it was empty
+	// and wasn't migrated, for instance), ask the user to select one.
+	if err = m.selectWorkspace(opts.Destination); err != nil {
 		return err
 	}
 
