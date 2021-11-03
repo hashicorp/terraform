@@ -98,11 +98,11 @@ The following configuration options or environment variables are supported:
 * `profile` - (Optional, Available in 0.12.8+)  This is the Alibaba Cloud profile name as set in the shared credentials file. It can also be sourced from the `ALICLOUD_PROFILE` environment variable.
 * `assume_role_role_arn` - (Optional, Available in 1.1.0+) The ARN of the role to assume. If ARN is set to an empty string, it does not perform role switching. It supports the environment variable `ALICLOUD_ASSUME_ROLE_ARN`.
   Terraform executes configuration on account with provided credentials.
-* `assume_role_policy` - (Optional, Available in 1.1.0+ A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary security credentials. You cannot use this policy to grant permissions that exceed those of the role that is being assumed.
+* `assume_role_policy` - (Optional, Available in 1.1.0+) A more restrictive policy to apply to the temporary credentials. This gives you a way to further restrict the permissions for the resulting temporary security credentials. You cannot use this policy to grant permissions that exceed those of the role that is being assumed.
 * `assume_role_session_name` - (Optional, Available in 1.1.0+) The session name to use when assuming the role. If omitted, 'terraform' is passed to the AssumeRole call as session name. It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_NAME`.
-* `assume_role_session_expiration` - (Optional, Available in 1.1.0+ The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 3600 (in this case Alibaba Cloud uses its own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
+* `assume_role_session_expiration` - (Optional, Available in 1.1.0+) The time after which the established session for assuming role expires. Valid value range: [900-3600] seconds. Default to 3600 (in this case Alibaba Cloud uses its own default value). It supports environment variable `ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION`.
 
-* `assume_role` - (**Deprecated as of 1.1.0+**, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials. 
+* `assume_role` - (**Deprecated as of 1.1.0+**, Available in 0.12.6+) If provided with a role ARN, will attempt to assume this role using the supplied credentials. It will be ignored when `assume_role_role_arn` is specified.
 
   **Deprecated in favor of flattening assume_role_\* options**
 
