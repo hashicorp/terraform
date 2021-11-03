@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -22,6 +23,7 @@ var cliConfigFileEnv string
 var tfeClient *tfe.Client
 var tfeHostname string
 var tfeToken string
+var verboseMode bool
 
 func TestMain(m *testing.M) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -43,6 +45,10 @@ func accTest() bool {
 }
 
 func setup() func() {
+	tfOutput := flag.Bool("tfoutput", false, "This flag produces the terraform output from tests.")
+	flag.Parse()
+	verboseMode = *tfOutput
+
 	setTfeClient()
 	teardown := setupBinary()
 
