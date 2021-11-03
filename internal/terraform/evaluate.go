@@ -654,6 +654,24 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
+	// Build the provider address from configuration, since we may not have
+	// state available in all cases.
+	// We need to build an abs provider address, but we can use a default
+	// instance since we're only interested in the schema.
+	schema := d.getResourceSchema(addr, config.Provider)
+	if schema == nil {
+		// This shouldn't happen, since validation before we get here should've
+		// taken care of it, but we'll show a reasonable error message anyway.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource type schema`,
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, config.Provider),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+	ty := schema.ImpliedType()
+
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
 	if rs == nil {
@@ -675,33 +693,26 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// (since a planned destroy cannot yet remove root outputs), we
 				// need to return a dynamic value here to allow evaluation to
 				// continue.
-				log.Printf("[ERROR] unknown instance %q referenced during plan", addr.Absolute(d.ModulePath))
+				log.Printf("[ERROR] unknown instance %q referenced during %s", addr.Absolute(d.ModulePath), d.Operation)
 				return cty.DynamicVal, diags
 			}
-
 		default:
-			// We should only end up here during the validate walk,
-			// since later walks should have at least partial states populated
-			// for all resources in the configuration.
-			return cty.DynamicVal, diags
+			if d.Operation != walkValidate {
+				log.Printf("[ERROR] missing state for %q while in %s\n", addr.Absolute(d.ModulePath), d.Operation)
+			}
+
+			// Validation is done with only the configuration, so generate
+			// unknown values of the correct shape for evaluation.
+			switch {
+			case config.Count != nil:
+				return cty.UnknownVal(cty.List(ty)), diags
+			case config.ForEach != nil:
+				return cty.UnknownVal(cty.Map(ty)), diags
+			default:
+				return cty.UnknownVal(ty), diags
+			}
 		}
 	}
-
-	providerAddr := rs.ProviderConfig
-
-	schema := d.getResourceSchema(addr, providerAddr)
-	if schema == nil {
-		// This shouldn't happen, since validation before we get here should've
-		// taken care of it, but we'll show a reasonable error message anyway.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Missing resource type schema`,
-			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, providerAddr),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-	ty := schema.ImpliedType()
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
@@ -862,33 +873,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		ret = val
 	}
 
-	// since the plan was not yet created during validate, the values we
-	// collected here may not correspond with configuration, so they must be
-	// unknown.
-	if d.Operation == walkValidate {
-		// While we know the type here and it would be nice to validate whether
-		// indexes are valid or not, because tuples and objects have fixed
-		// numbers of elements we can't simply return an unknown value of the
-		// same type since we have not expanded any instances during
-		// validation.
-		//
-		// In order to validate the expression a little precisely, we'll create
-		// an unknown map or list here to get more type information.
-		switch {
-		case config.Count != nil:
-			ret = cty.UnknownVal(cty.List(ty))
-		case config.ForEach != nil:
-			ret = cty.UnknownVal(cty.Map(ty))
-		default:
-			ret = cty.UnknownVal(ty)
-		}
-	}
-
 	return ret, diags
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr.Provider, addr.Mode, addr.Type)
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just
