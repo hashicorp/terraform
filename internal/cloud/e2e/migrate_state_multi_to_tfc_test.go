@@ -12,6 +12,7 @@ import (
 	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
@@ -347,6 +348,108 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					t.Fatalf("Expected the number of workspaecs to be 2, but got %d", len(wsList.Items))
 				}
 				expectedWorkspaceNames := []string{"app-prod", "app-dev"}
+				for _, ws := range wsList.Items {
+					hasName := false
+					for _, expectedNames := range expectedWorkspaceNames {
+						if expectedNames == ws.Name {
+							hasName = true
+						}
+					}
+					if !hasName {
+						t.Fatalf("Worksapce %s is not in the expected list of workspaces", ws.Name)
+					}
+				}
+			},
+		},
+		"migrating multiple workspaces to cloud using tags strategy; existing workspaces": {
+			operations: []operationSets{
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						tfBlock := terraformConfigLocalBackend()
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init"},
+							expectedCmdOutput: `Successfully configured the backend "local"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"workspace", "new", "identity"},
+							expectedCmdOutput: `Created and switched to workspace "identity"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"workspace", "new", "billing"},
+							expectedCmdOutput: `Created and switched to workspace "billing"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"workspace", "select", "default"},
+							expectedCmdOutput: `Switched to workspace "default".`,
+						},
+					},
+				},
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						tag := "app"
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String("identity"),
+							TerraformVersion: tfe.String(tfversion.String()),
+						})
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String("billing"),
+							TerraformVersion: tfe.String(tfversion.String()),
+						})
+						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init", "-migrate-state"},
+							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
+							userInput:         []string{"dev", "1", "app-*", "1"},
+							postInputOutput: []string{
+								`Would you like to rename your workspaces?`,
+								"What pattern would you like to add to all your workspaces?",
+								"The currently selected workspace (default) does not exist.",
+								"Terraform Cloud has been successfully initialized!"},
+						},
+						{
+							command:           []string{"workspace", "select", "app-dev"},
+							expectedCmdOutput: `Switched to workspace "app-dev".`,
+						},
+						{
+							command:           []string{"workspace", "select", "app-billing"},
+							expectedCmdOutput: `Switched to workspace "app-billing".`,
+						},
+						{
+							command:           []string{"workspace", "select", "app-identity"},
+							expectedCmdOutput: `Switched to workspace "app-identity".`,
+						},
+					},
+				},
+			},
+			validations: func(t *testing.T, orgName string) {
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
+					Tags: tfe.String("app"),
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(wsList.Items) != 3 {
+					t.Fatalf("Expected the number of workspaecs to be 3, but got %d", len(wsList.Items))
+				}
+				expectedWorkspaceNames := []string{"app-billing", "app-dev", "app-identity"}
 				for _, ws := range wsList.Items {
 					hasName := false
 					for _, expectedNames := range expectedWorkspaceNames {
