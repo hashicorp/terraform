@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * config: Fixed a bug in which `ignore_changes = all` would not work in override files [GH-29849]
+* config: Numbers are now compared for equality based on their protocol representation, eliminating unexpected changes due to small precision errors [GH-29864]
 
 ## 1.0.10 (October 28, 2021)
 
