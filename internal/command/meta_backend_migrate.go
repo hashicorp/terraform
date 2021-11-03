@@ -729,7 +729,7 @@ func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, erro
 
 	pattern, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc-pattern",
-		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "What pattern would you like to add to all your workspaces?"),
+		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "How would you like to rename your workspaces?"),
 		Description: strings.TrimSpace(tfcInputBackendMigrateMultiToMultiPattern),
 	})
 	if err != nil {
@@ -797,14 +797,11 @@ Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-ver
 `
 
 const tfcInputBackendMigrateMultiToMultiPattern = `
-If you choose to NOT rename your workspaces, just input "*".
+Enter a pattern with an asterisk (*) to rename all workspaces based on their
+previous names. The asterisk represents the current workspace name.
 
-The asterisk "*" represents your workspace name. Here are a few examples
-if a workspace was named 'prod':
-* input: 'app-*'; output: 'app-prod'
-* input: '*-app', output: 'prod-app'
-* input: 'app-*-service', output: 'app-prod-service'
-* input: '*'; output: 'prod'
+For example, if a workspace is currently named 'prod', the pattern 'app-*' would yield
+'app-prod' for a new workspace name; 'app-*-region1' would  yield 'app-prod-region1'.
 `
 
 const tfcInputBackendMigrateMultiToMulti = `
@@ -818,7 +815,7 @@ across all configurations used within an organization. A typical strategy to sta
 
 For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
 
-1. Yes, rename workspaces according to a pattern.
+1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.
 `
 
