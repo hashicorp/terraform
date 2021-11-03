@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -613,6 +614,12 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspaces []string) error {
 	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
 
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
+	newCurrentWorkspace := ""
+
 	// This map is used later when doing the migration per source/destination.
 	// If a source has 'default', then we ask what the new name should be.
 	// And further down when we actually run state migration for each
@@ -653,14 +660,54 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 			return fmt.Errorf(strings.TrimSpace(
 				errMigrateMulti), name, opts.SourceType, opts.DestinationType, err)
 		}
+
+		if currentWorkspace == opts.sourceWorkspace {
+			newCurrentWorkspace = opts.destinationWorkspace
+		}
 	}
 
-	// After migrating multiple workspaces, we want to ensure that a workspace is
-	// set or we prompt the user to set a workspace.
-	err = m.selectWorkspace(opts.Destination)
+	// After migrating multiple workspaces, we need to reselect the current workspace as it may
+	// have been renamed. Query the backend first to be sure it now exists.
+	workspaces, err := opts.Destination.Workspaces()
 	if err != nil {
 		return err
 	}
+
+	var workspacePresent bool
+	for _, name := range workspaces {
+		if name == newCurrentWorkspace {
+			workspacePresent = true
+		}
+	}
+
+	// If we couldn't select the workspace automatically from the backend (maybe it was empty
+	// and wasn't migrated, for instance), ask the user to select one instead and be done.
+	if !workspacePresent {
+		if err = m.selectWorkspace(opts.Destination); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	// The newly renamed current workspace is present, so we'll automatically select it for the
+	// user, as well as display the equivalent of 'workspace list' to show how the workspaces
+	// were changed (as well as the newly selected current workspace).
+	if err = m.SetWorkspace(newCurrentWorkspace); err != nil {
+		return err
+	}
+
+	m.Ui.Output(m.Colorize().Color("[reset][bold]Migration complete! Your workspaces are as follows:[reset]"))
+	var out bytes.Buffer
+	for _, name := range workspaces {
+		if name == newCurrentWorkspace {
+			out.WriteString("* ")
+		} else {
+			out.WriteString("  ")
+		}
+		out.WriteString(name + "\n")
+	}
+
+	m.Ui.Output(out.String())
 
 	return nil
 }
@@ -729,7 +776,7 @@ func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, erro
 
 	pattern, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc-pattern",
-		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "What pattern would you like to add to all your workspaces?"),
+		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "How would you like to rename your workspaces?"),
 		Description: strings.TrimSpace(tfcInputBackendMigrateMultiToMultiPattern),
 	})
 	if err != nil {
@@ -797,14 +844,11 @@ Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-ver
 `
 
 const tfcInputBackendMigrateMultiToMultiPattern = `
-If you choose to NOT rename your workspaces, just input "*".
+Enter a pattern with an asterisk (*) to rename all workspaces based on their
+previous names. The asterisk represents the current workspace name.
 
-The asterisk "*" represents your workspace name. Here are a few examples
-if a workspace was named 'prod':
-* input: 'app-*'; output: 'app-prod'
-* input: '*-app', output: 'prod-app'
-* input: 'app-*-service', output: 'app-prod-service'
-* input: '*'; output: 'prod'
+For example, if a workspace is currently named 'prod', the pattern 'app-*' would yield
+'app-prod' for a new workspace name; 'app-*-region1' would  yield 'app-prod-region1'.
 `
 
 const tfcInputBackendMigrateMultiToMulti = `
@@ -818,7 +862,7 @@ across all configurations used within an organization. A typical strategy to sta
 
 For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
 
-1. Yes, rename workspaces according to a pattern.
+1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.
 `
 
