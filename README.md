@@ -1,6 +1,8 @@
 Terraform
 =========
 
+<img src="https://repobeats.axiom.co/api/embed/f917a77cbbdeee19b87fa1f2f932895d1df18b51.svg" />
+
 - Website: https://www.terraform.io
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
 - Documentation: [https://www.terraform.io/docs/](https://www.terraform.io/docs/)
