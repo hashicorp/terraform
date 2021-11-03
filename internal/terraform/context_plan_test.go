@@ -5308,6 +5308,7 @@ func TestContext2Plan_selfRefMultiAll(t *testing.T) {
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
 				Attributes: map[string]*configschema.Attribute{
+					"id":  {Type: cty.String, Computed: true},
 					"foo": {Type: cty.List(cty.String), Optional: true},
 				},
 			},
