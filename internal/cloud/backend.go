@@ -529,14 +529,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		// Create a workspace
 		options := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
+			Tags: b.WorkspaceMapping.tfeTags(),
 		}
-
-		var tags []*tfe.Tag
-		for _, tag := range b.WorkspaceMapping.Tags {
-			t := tfe.Tag{Name: tag}
-			tags = append(tags, &t)
-		}
-		options.Tags = tags
 
 		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
@@ -566,6 +560,17 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 				versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
 				b.CLI.Output(b.Colorize().Color(versionUnavailable))
 			}
+		}
+	}
+
+	if b.workspaceTagsRequireUpdate(workspace, b.WorkspaceMapping) {
+		options := tfe.WorkspaceAddTagsOptions{
+			Tags: b.WorkspaceMapping.tfeTags(),
+		}
+		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.organization, name)
+		err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
+		if err != nil {
+			return nil, fmt.Errorf("Error updating workspace %s: %v", name, err)
 		}
 	}
 
@@ -913,6 +918,25 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 	}
 }
 
+func (b *Cloud) workspaceTagsRequireUpdate(workspace *tfe.Workspace, workspaceMapping WorkspaceMapping) bool {
+	if workspaceMapping.Strategy() != WorkspaceTagsStrategy {
+		return false
+	}
+
+	existingTags := map[string]struct{}{}
+	for _, t := range workspace.TagNames {
+		existingTags[t] = struct{}{}
+	}
+
+	for _, tag := range workspaceMapping.Tags {
+		if _, ok := existingTags[tag]; !ok {
+			return true
+		}
+	}
+
+	return false
+}
+
 type WorkspaceMapping struct {
 	Name string
 	Tags []string
@@ -939,6 +963,21 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 		// Any other combination is invalid as each strategy is mutually exclusive
 		return WorkspaceInvalidStrategy
 	}
+}
+
+func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
+	var tags []*tfe.Tag
+
+	if wm.Strategy() != WorkspaceTagsStrategy {
+		return tags
+	}
+
+	for _, tag := range wm.Tags {
+		t := tfe.Tag{Name: tag}
+		tags = append(tags, &t)
+	}
+
+	return tags
 }
 
 func generalError(msg string, err error) error {

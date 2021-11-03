@@ -1391,7 +1391,7 @@ func (m *MockWorkspaces) Tags(ctx context.Context, workspaceID string, options t
 }
 
 func (m *MockWorkspaces) AddTags(ctx context.Context, workspaceID string, options tfe.WorkspaceAddTagsOptions) error {
-	panic("not implemented")
+	return nil
 }
 
 func (m *MockWorkspaces) RemoveTags(ctx context.Context, workspaceID string, options tfe.WorkspaceRemoveTagsOptions) error {
