@@ -1002,7 +1002,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	if output {
 		// Notify the user
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset]%s\n\n",
+			"[reset]%s\n",
 			strings.TrimSpace(outputBackendReconfigure))))
 	}
 
@@ -1021,7 +1021,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		if c.Type == "cloud" {
 			output = fmt.Sprintf(outputBackendMigrateChangeCloud, s.Backend.Type)
 		}
-		m.Ui.Output(strings.TrimSpace(output))
+		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
+			"[reset]%s\n",
+			strings.TrimSpace(output))))
 	}
 
 	// Grab the existing backend

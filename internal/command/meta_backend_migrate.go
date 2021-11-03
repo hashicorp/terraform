@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -635,9 +636,32 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 			defaultNewName[sourceWorkspaces[i]] = newName
 		}
 	}
-	pattern, err := m.promptMultiStateMigrationPattern(opts.SourceType)
-	if err != nil {
-		return err
+
+	// Fetch the pattern that will be used to rename the workspaces for Terraform Cloud.
+	//
+	// * For the general case, this will be a pattern provided by the user.
+	//
+	// * Specifically for a migration from the "remote" backend using 'prefix', we will
+	//   instead 'migrate' the workspaces using a pattern based on the old prefix+name,
+	//   not allowing a user to accidentally input the wrong pattern to line up with
+	//   what the the remote backend was already using before (which presumably already
+	//   meets the naming considerations for Terraform Cloud).
+	//   In other words, this is a fast-track migration path from the remote backend, retaining
+	//   how things already are in Terraform Cloud with no user intervention needed.
+	pattern := ""
+	if remoteBackend, ok := opts.Source.(*remote.Remote); ok {
+		if err := m.promptRemotePrefixToCloudTagsMigration(opts); err != nil {
+			return err
+		}
+		pattern = remoteBackend.WorkspaceNamePattern()
+		log.Printf("[TRACE] backendMigrateTFC: Remote backend reports workspace name pattern as: %q", pattern)
+	}
+
+	if pattern == "" {
+		pattern, err = m.promptMultiStateMigrationPattern(opts.SourceType)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Go through each and migrate
@@ -708,6 +732,27 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	}
 
 	m.Ui.Output(out.String())
+
+	return nil
+}
+
+func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) error {
+	migrate := opts.force
+	if !migrate {
+		var err error
+		migrate, err = m.confirm(&terraform.InputOpts{
+			Id:          "backend-migrate-remote-multistate-to-cloud",
+			Query:       "Do you wish to proceed?",
+			Description: strings.TrimSpace(tfcInputBackendMigrateRemoteMultiToCloud),
+		})
+		if err != nil {
+			return fmt.Errorf("Error asking for state migration action: %s", err)
+		}
+	}
+
+	if !migrate {
+		return fmt.Errorf("Migration aborted by user.")
+	}
 
 	return nil
 }
@@ -867,11 +912,26 @@ For more information on workspace naming, see https://www.terraform.io/docs/clou
 `
 
 const tfcInputBackendMigrateMultiToSingle = `
-The previous backend %[1]q has multiple workspaces, but Terraform Cloud has been
-configured to use a single workspace (%[2]q). By continuing, you will only
-migrate your current workspace. If you wish to migrate all workspaces from the
-previous backend, use the 'tags' strategy in your workspace configuration block
-instead.
+The previous backend %[1]q has multiple workspaces, but Terraform Cloud has
+been configured to use a single workspace (%[2]q). By continuing, you will
+only migrate your current workspace. If you wish to migrate all workspaces
+from the previous backend, you may cancel this operation and use the 'tags'
+strategy in your workspace configuration block instead.
+
+Enter "yes" to proceed or "no" to cancel.
+`
+
+const tfcInputBackendMigrateRemoteMultiToCloud = `
+When migrating from the 'remote' backend to Terraform's native integration
+with Terraform Cloud, Terraform will automatically create or use existing
+workspaces based on the previous backend configuration's 'prefix' value.
+
+When the migration is complete, workspace names in Terraform will match the
+fully qualified Terraform Cloud workspace name. If necessary, the workspace
+tags configured in the 'cloud' option block will be added to the associated
+Terraform Cloud workspaces.
+
+Enter "yes" to proceed or "no" to cancel.
 `
 
 const inputBackendMigrateEmpty = `
