@@ -21,22 +21,22 @@ NEW FEATURES:
 ENHANCEMENTS:
 
 * config: Terraform now checks the syntax of and normalizes module source addresses (the `source` argument in `module` blocks) during configuration decoding rather than only at module installation time. This is largely just an internal refactoring, but a visible benefit of this change is that the `terraform init` messages about module downloading will now show the canonical module package address Terraform is downloading from, after interpreting the special shorthands for common cases like GitHub URLs. ([#28854](https://github.com/hashicorp/terraform/issues/28854))
-* config: A new variable attribute `nullable`, which defines whether a variable can be null within a module. Setting `nullable` to `false` ensures that a variable value will not be `null`, and that a non-null default is used when `null` is given as a module argument [GH-29832]
+* config: A new variable attribute `nullable`, which defines whether a variable can be null within a module. Setting `nullable` to `false` ensures that a variable value will not be `null`, and that a non-null default is used when `null` is given as a module argument ([#29832](https://github.com/hashicorp/terraform/issues/29832))
 * `terraform plan` and `terraform apply`: Terraform will now report explicitly in the UI if it automatically moves a resource instance to a new address as a result of adding or removing the `count` argument from an existing resource. For example, if you previously had `resource "aws_subnet" "example"` _without_ `count`, you might have `aws_subnet.example` already bound to a remote object in your state. If you add `count = 1` to that resource then Terraform would previously silently rebind the object to `aws_subnet.example[0]` as part of planning, whereas now Terraform will mention that it did so explicitly in the plan description. ([#29605](https://github.com/hashicorp/terraform/issues/29605))
 * `terraform workspace delete`: will now allow deleting a workspace whose state contains only data resource instances and output values, without running `terraform destroy` first. Previously the presence of data resources would require using `-force` to override the safety check guarding against accidentally forgetting about remote objects, but a data resource is not responsible for the management of its associated remote object(s) anyway. ([#29754](https://github.com/hashicorp/terraform/issues/29754))
 * provisioner/remote-exec and provisioner/file: When using SSH agent authentication mode on Windows, Terraform can now detect and use [the Windows 10 built-in OpenSSH Client](https://devblogs.microsoft.com/powershell/using-the-openssh-beta-in-windows-10-fall-creators-update-and-windows-server-1709/)'s SSH Agent, when available, in addition to the existing support for the third-party solution [Pageant](https://documentation.help/PuTTY/pageant.html) that was already supported. ([#29747](https://github.com/hashicorp/terraform/issues/29747))
 
 BUG FIXES:
 
-* backend/oss: Flatten `assume_role` block attributes, so that they may be more easily represented in a compatible way with `terraform_remote_state` [GH-29307]
-* config: Fixed a bug in which `ignore_changes = all` would not work in override files [GH-29849]
-* core: Use more precise typing information of resources during config validation [GH-29862]
+* backend/oss: Flatten `assume_role` block attributes, so that they may be more easily represented in a compatible way with `terraform_remote_state` ([#29307](https://github.com/hashicorp/terraform/issues/29307))
+* config: Fixed a bug in which `ignore_changes = all` would not work in override files ([#29849](https://github.com/hashicorp/terraform/issues/29849))
+* core: Use more precise typing information of resources during config validation ([#29862](https://github.com/hashicorp/terraform/issues/29862))
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
 * core: Reduce scope of dependencies that may defer reading of data sources when using `depends_on` or directly referencing managed resources ([#29682](https://github.com/hashicorp/terraform/issues/29682))
 * cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output ([#29522](https://github.com/hashicorp/terraform/issues/29522))
 * cli: Prevent applying a stale planfile when there was no previous state ([#29755](https://github.com/hashicorp/terraform/issues/29755))
-* cli: Improve list nested attribute rendering [GH-29827]
-* command: Fixed an issue where the backend cache hash value was being updated too early in backend initialization/migrate flows, causing situations where `init` would not properly restart a backend migration process if that process failed previously. [GH-29860]
+* cli: Improve list nested attribute rendering ([#29827](https://github.com/hashicorp/terraform/issues/29827))
+* command: Fixed an issue where the backend cache hash value was being updated too early in backend initialization/migrate flows, causing situations where `init` would not properly restart a backend migration process if that process failed previously. ([#29860](https://github.com/hashicorp/terraform/issues/29860))
 
 ## Previous Releases
 
