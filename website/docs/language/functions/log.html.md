@@ -23,14 +23,14 @@ log(number, base)
 4
 ```
 
-`log` and `ceil` can be used together to find the minimum number of binary
+`log` and `floor` can be used together to find the minimum number of binary
 digits required to represent a given number of distinct values:
 
 ```
-> ceil(log(15, 2))
+> floor(log(15, 2)) + 1
 4
-> ceil(log(16, 2))
-4
-> ceil(log(17, 2))
+> floor(log(16, 2)) + 1
+5
+> floor(log(17, 2)) + 1
 5
 ```
