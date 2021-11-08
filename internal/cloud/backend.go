@@ -636,7 +636,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
+	if b.forceLocal || isLocalExecutionMode(w.ExecutionMode) {
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
@@ -825,9 +825,9 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return nil
 	}
 
-	// If the workspace has remote operations disabled, the remote Terraform
+	// If the workspace has execution-mode set to local, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if !workspace.Operations {
+	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
@@ -963,6 +963,10 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 		// Any other combination is invalid as each strategy is mutually exclusive
 		return WorkspaceInvalidStrategy
 	}
+}
+
+func isLocalExecutionMode(execMode string) bool {
+	return execMode == "local"
 }
 
 func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
