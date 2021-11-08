@@ -30,7 +30,29 @@ func TestRemoteClient(t *testing.T) {
 		"encrypt": true,
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+	state, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	remote.TestClient(t, state.(*remote.State).Client)
+}
+
+func TestRemoteClientObjectLocks(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":  bucketName,
+		"key":     keyName,
+		"encrypt": true,
+	})).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName, true)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	state, err := b.StateMgr(backend.DefaultStateName)
@@ -60,7 +82,7 @@ func TestRemoteClientLocks(t *testing.T) {
 		"dynamodb_table": bucketName,
 	})).(*Backend)
 
-	createS3Bucket(t, b1.s3Client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b1.s3Client, bucketName)
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
@@ -98,7 +120,7 @@ func TestForceUnlock(t *testing.T) {
 		"dynamodb_table": bucketName,
 	})).(*Backend)
 
-	createS3Bucket(t, b1.s3Client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b1.s3Client, bucketName)
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
@@ -167,7 +189,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 		"dynamodb_table": bucketName,
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 	createDynamoDBTable(t, b.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
@@ -215,7 +237,7 @@ func TestRemoteClient_stateChecksum(t *testing.T) {
 		"dynamodb_table": bucketName,
 	})).(*Backend)
 
-	createS3Bucket(t, b1.s3Client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b1.s3Client, bucketName)
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)

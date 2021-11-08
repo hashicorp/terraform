@@ -392,7 +392,7 @@ func TestBackend(t *testing.T) {
 		"encrypt": true,
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	backend.TestBackendStates(t, b)
@@ -418,7 +418,7 @@ func TestBackendLocked(t *testing.T) {
 		"dynamodb_table": bucketName,
 	})).(*Backend)
 
-	createS3Bucket(t, b1.s3Client, bucketName)
+	createS3Bucket(t, b1.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b1.s3Client, bucketName)
 	createDynamoDBTable(t, b1.dynClient, bucketName)
 	defer deleteDynamoDBTable(t, b1.dynClient, bucketName)
@@ -438,7 +438,7 @@ func TestBackendSSECustomerKey(t *testing.T) {
 		"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	backend.TestBackendStates(t, b)
@@ -456,7 +456,7 @@ func TestBackendExtraPaths(t *testing.T) {
 		"encrypt": true,
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	// put multiple states in old env paths.
@@ -584,7 +584,7 @@ func TestBackendPrefixInWorkspace(t *testing.T) {
 		"workspace_key_prefix": "env",
 	})).(*Backend)
 
-	createS3Bucket(t, b.s3Client, bucketName)
+	createS3Bucket(t, b.s3Client, bucketName, false)
 	defer deleteS3Bucket(t, b.s3Client, bucketName)
 
 	// get a state that contains the prefix as a substring
@@ -613,7 +613,7 @@ func TestKeyEnv(t *testing.T) {
 		"workspace_key_prefix": "",
 	})).(*Backend)
 
-	createS3Bucket(t, b0.s3Client, bucket0Name)
+	createS3Bucket(t, b0.s3Client, bucket0Name, false)
 	defer deleteS3Bucket(t, b0.s3Client, bucket0Name)
 
 	bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
@@ -624,7 +624,7 @@ func TestKeyEnv(t *testing.T) {
 		"workspace_key_prefix": "project/env:",
 	})).(*Backend)
 
-	createS3Bucket(t, b1.s3Client, bucket1Name)
+	createS3Bucket(t, b1.s3Client, bucket1Name, false)
 	defer deleteS3Bucket(t, b1.s3Client, bucket1Name)
 
 	bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
@@ -634,7 +634,7 @@ func TestKeyEnv(t *testing.T) {
 		"encrypt": true,
 	})).(*Backend)
 
-	createS3Bucket(t, b2.s3Client, bucket2Name)
+	createS3Bucket(t, b2.s3Client, bucket2Name, false)
 	defer deleteS3Bucket(t, b2.s3Client, bucket2Name)
 
 	if err := testGetWorkspaceForKey(b0, "some/paths/tfstate", ""); err != nil {
@@ -681,9 +681,12 @@ func checkStateList(b backend.Backend, expected []string) error {
 	return nil
 }
 
-func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
+func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string, objectLock bool) {
 	createBucketReq := &s3.CreateBucketInput{
 		Bucket: &bucketName,
+	}
+	if objectLock {
+		createBucketReq.ObjectLockEnabledForBucket = aws.Bool(true)
 	}
 
 	// Be clear about what we're doing in case the user needs to clean
@@ -692,6 +695,26 @@ func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
 	_, err := s3Client.CreateBucket(createBucketReq)
 	if err != nil {
 		t.Fatal("failed to create test S3 bucket:", err)
+	}
+
+	if objectLock {
+		req := &s3.PutObjectLockConfigurationInput{
+			Bucket: &bucketName,
+			ObjectLockConfiguration: &s3.ObjectLockConfiguration{
+				ObjectLockEnabled: aws.String("Enabled"),
+				Rule: &s3.ObjectLockRule{
+					DefaultRetention: &s3.DefaultRetention{
+						Mode: aws.String("COMPLIANCE"),
+						Days: aws.Int64(1),
+					},
+				},
+			},
+		}
+
+		_, err := s3Client.PutObjectLockConfiguration(req)
+		if err != nil {
+			t.Fatal("error putting S3 object lock configuration:", err)
+		}
 	}
 }
 
