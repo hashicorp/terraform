@@ -1566,7 +1566,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 				hasRemote := strings.Contains(output, "Running apply in Terraform Cloud")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
 				hasResources := run.State.HasManagedResourceInstanceObjects()
-				if !tc.forceLocal && tc.executionMode == "remote" {
+				if !tc.forceLocal && !isLocalExecutionMode(tc.executionMode) {
 					if !hasRemote {
 						t.Errorf("missing TFC header in output: %s", output)
 					}
