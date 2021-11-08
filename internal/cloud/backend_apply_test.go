@@ -13,6 +13,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
+	mocks "github.com/hashicorp/go-tfe/mocks"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -576,7 +577,7 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
@@ -778,7 +779,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
@@ -1269,7 +1270,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	policyCheckMock := tfe.NewMockPolicyChecks(ctrl)
+	policyCheckMock := mocks.NewMockPolicyChecks(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(fmt.Sprintf("%s\n%s", sentinelSoftFail, applySuccessOneResourceAdded))
@@ -1289,7 +1290,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	policyCheckMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
 	policyCheckMock.EXPECT().Override(gomock.Any(), gomock.Any()).Return(nil, nil)
 	b.client.PolicyChecks = policyCheckMock
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs = strings.NewReader("\n\n\n1 added, 0 changed, 0 destroyed")
@@ -1348,7 +1349,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
