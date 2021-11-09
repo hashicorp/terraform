@@ -9,9 +9,9 @@ description: |-
 
 # azurerm
 
-**Kind: Standard (with state locking)**
+Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction).
 
-Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction). This backend also supports state locking and consistency checking via native capabilities of Azure Blob Storage.
+This backend supports state locking and consistency checking via native capabilities of Azure Blob Storage.
 
 -> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default. 
 

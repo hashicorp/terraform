@@ -8,10 +8,9 @@ description: |-
 
 # Workspaces
 
-Each Terraform configuration has an associated [backend](/docs/language/settings/backends/index.html)
-that defines how operations are executed and where persistent data such as
-[the Terraform state](https://www.terraform.io/docs/language/state/purpose.html) are
-stored.
+Each Terraform configuration has an associated
+[backend](/docs/language/settings/backends/index.html) that defines how where persistent data such
+as [the Terraform state](https://www.terraform.io/docs/language/state/purpose.html) are stored.
 
 The persistent data stored in the backend belongs to a _workspace_. Initially
 the backend has only one workspace, called "default", and thus there is only

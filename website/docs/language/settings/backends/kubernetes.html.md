@@ -10,9 +10,9 @@ description: |-
 
 -> **Note:** This backend is limited by Kubernetes' maximum Secret size of 1MB. See [Secret restrictions](https://kubernetes.io/docs/concepts/configuration/secret/#restrictions) for details.
 
-**Kind: Standard (with locking)**
+Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
-Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/) with locking done using a Lease resource.
+This backend supports [state locking](/docs/language/state/locking.html), with locking done using a Lease resource.
 
 ## Example Configuration
 

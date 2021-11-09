@@ -6,10 +6,10 @@ page_title: "Backend Configuration - Configuration Language"
 # Backend Configuration
 
 
-Each Terraform configuration can specify a backend, which defines exactly where
-and how operations are performed, where [state](/docs/language/state/index.html)
-snapshots are stored, etc. Most non-trivial Terraform configurations configure
-a remote backend so that multiple people can work with the same infrastructure.
+Each Terraform configuration can specify a backend, which defines where
+[state](/docs/language/state/index.html) snapshots are stored. Most non-trivial Terraform
+configurations configure a remote backend so that multiple people can work with the same
+infrastructure.
 
 ## Using a Backend Block
 
@@ -45,7 +45,7 @@ See the list of backend types in the navigation sidebar for details about each s
 
 ### Default Backend
 
-If a configuration includes no backend block, Terraform defaults to using the `local` backend, which performs operations on the local system and stores state as a plain file in the current working directory.
+If a configuration includes no backend block, Terraform defaults to using the `local` backend, which stores state as a plain file in the current working directory.
 
 ## Initialization
 

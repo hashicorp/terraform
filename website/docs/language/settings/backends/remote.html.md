@@ -8,12 +8,18 @@ description: |-
 
 # remote
 
-**Kind: Enhanced**
+-> **Note:** With the release of Terraform v1.1.0, we recommend using the Terraform Cloud's built-in
+[`cloud` integration](/docs/language/settings/terraform-cloud/index.html) instead of this backend.
+The `cloud` option includes an improved user experience and more features.
 
--> **Note:** We recommend using Terraform v0.11.13 or newer with this
-backend. This backend requires either a Terraform Cloud account on
-[app.terraform.io](https://app.terraform.io) or a Terraform Enterprise instance
-(version v201809-1 or newer).
+-> **Note:** This backend is unique among all other Terraform backends in that it has the ability to
+execute operations for Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html), rather
+than only store state snapshots. This has been previously referred to as being 'enhanced' backend
+behavior. Due to confusion about this specific distinction, this terminology has been retired.
+
+-> **Note:** The remote backend requires Terraform v0.11.13 or newer, and requires either a
+Terraform Cloud account on [app.terraform.io](https://app.terraform.io) or a Terraform Enterprise
+instance (version v201809-1 or newer).
 
 The remote backend stores Terraform state and may be used to run operations in Terraform Cloud.
 
