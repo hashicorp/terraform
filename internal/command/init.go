@@ -345,9 +345,10 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 
 	installAbort, installDiags := c.installModules(path, upgrade, hooks)
 	diags = diags.Append(installDiags)
-	if installAbort || installDiags.HasErrors() {
-		return true, true, diags
-	}
+
+	// At this point, installModules may have generated error diags or been
+	// aborted by SIGINT. In any case we continue and the manifest as best
+	// we can.
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
@@ -362,7 +363,7 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		}
 	}
 
-	return true, false, diags
+	return true, installAbort, diags
 }
 
 func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {

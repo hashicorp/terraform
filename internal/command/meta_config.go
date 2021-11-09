@@ -178,8 +178,6 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 		diags = diags.Append(fmt.Errorf("failed to create local modules directory: %s", err))
 		return true, diags
 	}
-	// FIXME: KEM: does returning the abort here change behaviour in a particular error
-	// case?
 
 	inst := m.moduleInstaller()
 
