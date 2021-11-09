@@ -163,15 +163,23 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	migrate := opts.force
 	if !migrate {
 		var err error
+		var description string
+		if opts.SourceType == "cloud" {
+			description = fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateCloudMultiToMulti),
+				opts.DestinationType)
+		} else {
+			description = fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToMulti),
+				opts.SourceType, opts.DestinationType)
+		}
 		// Ask the user if they want to migrate their existing remote state
 		migrate, err = m.confirm(&terraform.InputOpts{
 			Id: "backend-migrate-multistate-to-multistate",
 			Query: fmt.Sprintf(
 				"Do you want to migrate all workspaces to %q?",
 				opts.DestinationType),
-			Description: fmt.Sprintf(
-				strings.TrimSpace(inputBackendMigrateMultiToMulti),
-				opts.SourceType, opts.DestinationType),
+			Description: description,
 		})
 		if err != nil {
 			return fmt.Errorf(
@@ -557,6 +565,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	_ = destinationWorkspaces
 	_ = destinationSingleState
 	_ = remoteBackendDestination
+	_ = destinationRemote
 
 	// First off: migrating *to* TFC. Everything in here works the same whether
 	// the source is TFC or not.
@@ -598,29 +607,43 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 			return m.backendMigrateState_S_TFC(opts, sourceWorkspaces)
 		}
 
-		return fmt.Errorf("Unexpected conditions when migrating to Terraform Cloud; this should never happen.")
+		return fmt.Errorf("unexpected conditions when migrating to Terraform Cloud; this should never happen")
 	}
 
 	// Next: migrating *away from* TFC. Technically the sourceTFC is redundant here, because you only end up in this function if either your source or destination was TFC and we're ruling out dest for these. IDK, I'll sort that out later.
 	if sourceTFC {
 		switch {
-		case destinationRemote && !destinationSingleState:
-			// New branch:
-			// Special case for "remote" backend using "prefix" in the config. UGH. This acts the same regardless of sourceSingle.
-			// Prompt, offering to automatically trim the prefix off workspaces if it's present. Then, go through an entire new branch that iterates over all workspaces and does the name transformation, like when migrating TO tfc.
-			// I hate this, and maybe let's see what happens if we leave it off for now.
+
+		// Single to "default". Mutate opts, then return s_s.
 		case sourceSingle && destinationSingleState:
-			// New branch:
-			// We know which workspace we'll be migrating, and also we'll be migrating it TO "default". Mutate opts, then return s_s.
+			opts.sourceWorkspace = currentWorkspace
+			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
+			return m.backendMigrateState_s_s(opts)
+
+		// Single to single, keeping existing name. Mutate opts, return s_s.
 		case sourceSingle && !destinationSingleState:
-			// New branch:
-			// We know which workspace we'll be migrating, and it keeps its existing name bc dest is multi-state. Mutate opts, then return s_s.
+			opts.sourceWorkspace = currentWorkspace
+			opts.destinationWorkspace = currentWorkspace
+			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
+			return m.backendMigrateState_s_s(opts)
+
+		// Multi via tags, but will only migrate the current workspace to "default".
 		case !sourceSingle && destinationSingleState:
-			// New branch:
-			// prompt for the one workspace we're going to migrate, mutate opts accordingly, then return s_s
+			opts.sourceWorkspace = currentWorkspace
+			// leave destinationWorkspace at "default"
+			if err := m.promptMultiToSingleCloudMigration(opts); err != nil {
+				return err
+			}
+
+			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
+
+			return m.backendMigrateState_s_s(opts)
+
+		// Multi via tags, migrate everything.
 		case !sourceSingle && !destinationSingleState:
 			// New branch:
 			// Migrate all workspaces, yey. Resembles S_S but we need new prompts.
+			// can. we just replace the prompts w/ conditionals?
 		}
 	}
 	// TODO: modify this failure return once things start working
@@ -794,13 +817,20 @@ func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error
 	migrate := opts.force
 	if !migrate {
 		var err error
+		var description string
+		if _, ok := opts.Destination.(*cloud.Cloud); ok {
+			description = fmt.Sprintf(
+				strings.TrimSpace(tfcInputBackendMigrateMultiToCloudSingle),
+				opts.SourceType, opts.destinationWorkspace)
+		} else {
+			description = fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateCloudMultiToSingle), opts.DestinationType, opts.sourceWorkspace)
+		}
+
 		// Ask the user if they want to migrate their existing remote state
 		migrate, err = m.confirm(&terraform.InputOpts{
-			Id:    "backend-migrate-multistate-to-single",
-			Query: "Do you want to copy only your current workspace?",
-			Description: fmt.Sprintf(
-				strings.TrimSpace(tfcInputBackendMigrateMultiToSingle),
-				opts.SourceType, opts.destinationWorkspace),
+			Id:          "backend-migrate-multistate-to-single",
+			Query:       "Do you want to copy only your current workspace?",
+			Description: description,
 		})
 		if err != nil {
 			return fmt.Errorf("Error asking for state migration action: %s", err)
@@ -943,12 +973,23 @@ rename your workspaces? Enter 1 or 2.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.
 `
 
-const tfcInputBackendMigrateMultiToSingle = `
+const tfcInputBackendMigrateMultiToCloudSingle = `
 The previous backend %[1]q has multiple workspaces, but Terraform Cloud has
 been configured to use a single workspace (%[2]q). By continuing, you will
 only migrate your current workspace. If you wish to migrate all workspaces
 from the previous backend, you may cancel this operation and use the 'tags'
 strategy in your workspace configuration block instead.
+
+Enter "yes" to proceed or "no" to cancel.
+`
+
+const tfcInputBackendMigrateCloudMultiToSingle = `
+Terraform Cloud was previously configured to use multiple workspaces, but the
+newly configured %[1]q backend doesn't support workspaces. If you
+continue, Terraform will copy only the currently selected workspace
+(%[2]q) to the default workspace in the new backend. Your
+existing workspaces in Terraform Cloud won't be modified; you can continue using
+them, or migrate them separately later.
 
 Enter "yes" to proceed or "no" to cancel.
 `
@@ -1017,6 +1058,20 @@ up, or cancel altogether, answer "no" and Terraform will abort.
 
 const inputBackendMigrateMultiToMulti = `
 Both the existing %[1]q backend and the newly configured %[2]q backend
+support workspaces. When migrating between backends, Terraform will copy
+all workspaces (with the same names). THIS WILL OVERWRITE any conflicting
+states in the destination.
+
+Terraform initialization doesn't currently migrate only select workspaces.
+If you want to migrate a select number of workspaces, you must manually
+pull and push those states.
+
+If you answer "yes", Terraform will migrate all states. If you answer
+"no", Terraform will abort.
+`
+
+const inputBackendMigrateCloudMultiToMulti = `
+Both Terraform Cloud and the newly configured %[1]q backend
 support workspaces. When migrating between backends, Terraform will copy
 all workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
