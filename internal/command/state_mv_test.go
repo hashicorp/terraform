@@ -150,6 +150,257 @@ func TestStateMv(t *testing.T) {
 
 }
 
+func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	t.Run("backup option specified", func(t *testing.T) {
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-backend-http"), td)
+		defer os.RemoveAll(td)
+		defer testChdir(t, td)()
+
+		backupPath := filepath.Join(td, "backup")
+
+		// Set up our backend state using mock state
+		dataState, srv := testBackendState(t, state, 200)
+		defer srv.Close()
+		testStateFileRemote(t, dataState)
+
+		p := testProvider()
+		ui := new(cli.MockUi)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-backup", backupPath,
+			"test_instance.foo",
+			"test_instance.bar",
+		}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+		}
+
+		gotErr := ui.ErrorWriter.String()
+		wantErr := `
+Error: Invalid command line options: -backup
+
+Command line options -backup and -backup-out are legacy options that operate
+on a local state file only. You must specify a local state file with the
+-state option or switch to the local backend.
+
+`
+		if gotErr != wantErr {
+			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		}
+	})
+
+	t.Run("backup-out option specified", func(t *testing.T) {
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-backend-http"), td)
+		defer os.RemoveAll(td)
+		defer testChdir(t, td)()
+
+		backupOutPath := filepath.Join(td, "backup-out")
+
+		// Set up our backend state using mock state
+		dataState, srv := testBackendState(t, state, 200)
+		defer srv.Close()
+		testStateFileRemote(t, dataState)
+
+		p := testProvider()
+		ui := new(cli.MockUi)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-backup-out", backupOutPath,
+			"test_instance.foo",
+			"test_instance.bar",
+		}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+		}
+
+		gotErr := ui.ErrorWriter.String()
+		wantErr := `
+Error: Invalid command line options: -backup-out
+
+Command line options -backup and -backup-out are legacy options that operate
+on a local state file only. You must specify a local state file with the
+-state option or switch to the local backend.
+
+`
+		if gotErr != wantErr {
+			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		}
+	})
+
+	t.Run("backup and backup-out options specified", func(t *testing.T) {
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-backend-http"), td)
+		defer os.RemoveAll(td)
+		defer testChdir(t, td)()
+
+		backupPath := filepath.Join(td, "backup")
+		backupOutPath := filepath.Join(td, "backup-out")
+
+		// Set up our backend state using mock state
+		dataState, srv := testBackendState(t, state, 200)
+		defer srv.Close()
+		testStateFileRemote(t, dataState)
+
+		p := testProvider()
+		ui := new(cli.MockUi)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-backup", backupPath,
+			"-backup-out", backupOutPath,
+			"test_instance.foo",
+			"test_instance.bar",
+		}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("expected error output, got:\n%s", ui.OutputWriter.String())
+		}
+
+		gotErr := ui.ErrorWriter.String()
+		wantErr := `
+Error: Invalid command line options: -backup, -backup-out
+
+Command line options -backup and -backup-out are legacy options that operate
+on a local state file only. You must specify a local state file with the
+-state option or switch to the local backend.
+
+`
+		if gotErr != wantErr {
+			t.Fatalf("expected error\ngot:%s\n\nwant:%s", gotErr, wantErr)
+		}
+	})
+
+	t.Run("backup option specified with state option", func(t *testing.T) {
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-backend-http"), td)
+		defer os.RemoveAll(td)
+		defer testChdir(t, td)()
+
+		statePath := testStateFile(t, state)
+		backupPath := filepath.Join(td, "backup")
+
+		// Set up our backend state using mock state
+		dataState, srv := testBackendState(t, state, 200)
+		defer srv.Close()
+		testStateFileRemote(t, dataState)
+
+		p := testProvider()
+		ui := new(cli.MockUi)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-backup", backupPath,
+			"test_instance.foo",
+			"test_instance.bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Test it is correct
+		testStateOutput(t, statePath, testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput)
+	})
+
+	t.Run("backup-out option specified with state option", func(t *testing.T) {
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-backend-http"), td)
+		defer os.RemoveAll(td)
+		defer testChdir(t, td)()
+
+		statePath := testStateFile(t, state)
+		backupOutPath := filepath.Join(td, "backup-out")
+
+		// Set up our backend state using mock state
+		dataState, srv := testBackendState(t, state, 200)
+		defer srv.Close()
+		testStateFileRemote(t, dataState)
+
+		p := testProvider()
+		ui := new(cli.MockUi)
+		view, _ := testView(t)
+		c := &StateMvCommand{
+			StateMeta{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					Ui:               ui,
+					View:             view,
+				},
+			},
+		}
+
+		args := []string{
+			"-state", statePath,
+			"-backup-out", backupOutPath,
+			"test_instance.foo",
+			"test_instance.bar",
+		}
+		if code := c.Run(args); code != 0 {
+			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+		}
+
+		// Test it is correct
+		testStateOutput(t, statePath, testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput)
+	})
+}
+
 func TestStateMv_resourceToInstance(t *testing.T) {
 	// A single resource (no count defined)
 	state := states.BuildState(func(s *states.SyncState) {
@@ -1458,6 +1709,14 @@ test_instance.bar:
   foo = value
 test_instance.baz:
   ID = foo
+  provider = provider["registry.terraform.io/hashicorp/test"]
+  bar = value
+  foo = value
+`
+
+const testStateMvBackupAndBackupOutOptionsWithNonLocalBackendOutput = `
+test_instance.bar:
+  ID = bar
   provider = provider["registry.terraform.io/hashicorp/test"]
   bar = value
   foo = value

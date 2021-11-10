@@ -73,10 +73,18 @@ only, `terraform state mv`
 also accepts the option
 [`-ignore-remote-version`](/docs/language/settings/backends/remote.html#command-line-arguments).
 
+The legacy options [`-backup` and `-backup-out`](/docs/language/settings/backends/local.html#command-line-arguments)
+operate on a local state file only. Configurations using
+[the `remote` backend](/docs/language/settings/backends/remote.html) 
+must specify a local state file with the [`-state`](/docs/language/settings/backends/local.html#command-line-arguments)
+option in order to use the [`-backup` and `-backup-out`](/docs/language/settings/backends/local.html#command-line-arguments)
+options.
+
+
 For configurations using
 [the `local` state mv](/docs/language/settings/backends/local.html) only,
-`terraform taint` also accepts the legacy options
-[`-state`, `-state-out`, and `-backup`](/docs/language/settings/backends/local.html#command-line-arguments).
+`terraform state mv` also accepts the legacy options
+[`-state`, `-state-out`, `-backup`, and `-backup-out`](/docs/language/settings/backends/local.html#command-line-arguments).
 
 ## Example: Rename a Resource
 
