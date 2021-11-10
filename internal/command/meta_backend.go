@@ -1021,7 +1021,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	if s.Backend.Type != c.Type {
 		output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
 		if c.Type == "cloud" {
-			output = fmt.Sprintf(outputBackendMigrateChangeCloud, s.Backend.Type)
+			output = fmt.Sprintf(outputBackendMigrateChangeToCloud, s.Backend.Type)
+		} else if s.Backend.Type == "cloud" {
+			output = fmt.Sprintf(outputBackendMigrateChangeFromCloud, c.Type)
 		}
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
 			"[reset]%s\n",
@@ -1404,8 +1406,12 @@ const outputBackendMigrateChange = `
 Terraform detected that the backend type changed from %q to %q.
 `
 
-const outputBackendMigrateChangeCloud = `
+const outputBackendMigrateChangeToCloud = `
 Terraform detected that the backend type changed from %q to Terraform Cloud.
+`
+
+const outputBackendMigrateChangeFromCloud = `
+Terraform detected that the backend type changed from Terraform Cloud to %q.
 `
 
 const outputBackendMigrateLocal = `
