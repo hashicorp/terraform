@@ -643,6 +643,9 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 
+			// now switch back to the default workspace so we can acccess the new backend
+			m.SetWorkspace(backend.DefaultStateName)
+
 			return m.backendMigrateState_s_s(opts)
 
 		// Multi via tags, migrate everything.
