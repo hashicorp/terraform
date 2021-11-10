@@ -622,18 +622,34 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	newCurrentWorkspace := ""
 
 	// This map is used later when doing the migration per source/destination.
-	// If a source has 'default', then we ask what the new name should be.
+	// If a source has 'default' and has state, then we ask what the new name should be.
 	// And further down when we actually run state migration for each
-	// sourc/destination workspce, we use this new name (where source is 'default')
-	// and set as destinationWorkspace.
+	// source/destination workspace, we use this new name (where source is 'default')
+	// and set as destinationWorkspace. If the default workspace does not have
+	// state we will not prompt the user for a new name because empty workspaces
+	// do not get migrated.
 	defaultNewName := map[string]string{}
 	for i := 0; i < len(sourceWorkspaces); i++ {
 		if sourceWorkspaces[i] == backend.DefaultStateName {
-			newName, err := m.promptNewWorkspaceName(opts.DestinationType)
+			// For the default workspace we want to look to see if there is any state
+			// before we ask for a workspace name to migrate the default workspace into.
+			sourceState, err := opts.Source.StateMgr(backend.DefaultStateName)
 			if err != nil {
-				return err
+				return fmt.Errorf(strings.TrimSpace(
+					errMigrateSingleLoadDefault), opts.SourceType, err)
 			}
-			defaultNewName[sourceWorkspaces[i]] = newName
+			// RefreshState is what actually pulls the state to be evaluated.
+			if err := sourceState.RefreshState(); err != nil {
+				return fmt.Errorf(strings.TrimSpace(
+					errMigrateSingleLoadDefault), opts.SourceType, err)
+			}
+			if !sourceState.State().Empty() {
+				newName, err := m.promptNewWorkspaceName(opts.DestinationType)
+				if err != nil {
+					return err
+				}
+				defaultNewName[sourceWorkspaces[i]] = newName
+			}
 		}
 	}
 
@@ -897,15 +913,15 @@ For example, if a workspace is currently named 'prod', the pattern 'app-*' would
 `
 
 const tfcInputBackendMigrateMultiToMulti = `
-When migrating existing workspaces from the backend %[1]q to Terraform Cloud, would you like to
-rename your workspaces?
-
 Unlike typical Terraform workspaces representing an environment associated with a particular
 configuration (e.g. production, staging, development), Terraform Cloud workspaces are named uniquely
 across all configurations used within an organization. A typical strategy to start with is
 <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, networking-staging-us-east).
 
 For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+
+When migrating existing workspaces from the backend %[1]q to Terraform Cloud, would you like to
+rename your workspaces? Enter 1 or 2.
 
 1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.

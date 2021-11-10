@@ -477,7 +477,7 @@ func TestCloud_planWithRequiredVariables(t *testing.T) {
 	defer configCleanup()
 	defer done(t)
 
-	op.Variables = testVariables(terraform.ValueFromCLIArg, "foo") // "bar" variable value missing
+	op.Variables = testVariables(terraform.ValueFromCLIArg, "foo") // "bar" variable defined in config is  missing
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -487,7 +487,7 @@ func TestCloud_planWithRequiredVariables(t *testing.T) {
 
 	<-run.Done()
 	// The usual error of a required variable being missing is deferred and the operation
-	// is successful
+	// is successful.
 	if run.Result != backend.OperationSuccess {
 		t.Fatal("expected plan operation to succeed")
 	}

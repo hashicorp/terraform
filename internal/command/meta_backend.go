@@ -670,24 +670,27 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
-		initReason := ""
-		switch {
-		case c.Type == "cloud":
-			initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", s.Backend.Type)
-		case s.Backend.Type != c.Type:
-			initReason = fmt.Sprintf("Backend configuration changed from %q to %q", s.Backend.Type, c.Type)
-		default:
-			initReason = fmt.Sprintf("Backend configuration changed for %q", c.Type)
-		}
-
 		if !opts.Init {
+			hasBackendTypeChanged := s.Backend.Type != c.Type
 			if c.Type == "cloud" {
+				initReason := ""
+				if hasBackendTypeChanged {
+					initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", s.Backend.Type)
+				} else {
+					initReason = "Terraform Cloud configuration block changed"
+				}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Terraform Cloud initialization required, please run \"terraform init\"",
 					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
+				initReason := ""
+				if hasBackendTypeChanged {
+					initReason = fmt.Sprintf("Backend configuration changed from %q to %q", s.Backend.Type, c.Type)
+				} else {
+					initReason = "Backend configuration block changed"
+				}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Backend initialization required, please run \"terraform init\"",
@@ -1426,7 +1429,7 @@ in your Terraform Cloud organization. To finish initializing, Terraform needs at
 least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
-name to create a new Terraform Cloud workspace:
+name to create a new Terraform Cloud workspace.
 `
 
 const successBackendUnset = `

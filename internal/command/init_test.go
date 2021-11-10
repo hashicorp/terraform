@@ -1452,7 +1452,45 @@ func TestInit_providerSource(t *testing.T) {
 	}
 }
 
-func TestInit_cancel(t *testing.T) {
+func TestInit_cancelModules(t *testing.T) {
+	// This test runs `terraform init` as if SIGINT (or similar on other
+	// platforms) were sent to it, testing that it is interruptible.
+
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-registry-module"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Our shutdown channel is pre-closed so init will exit as soon as it
+	// starts a cancelable portion of the process.
+	shutdownCh := make(chan struct{})
+	close(shutdownCh)
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		View:             view,
+		ShutdownCh:       shutdownCh,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; wanted error\n%s", ui.OutputWriter.String())
+	}
+
+	if got, want := ui.ErrorWriter.String(), `Module installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInit_cancelProviders(t *testing.T) {
 	// This test runs `terraform init` as if SIGINT (or similar on other
 	// platforms) were sent to it, testing that it is interruptible.
 

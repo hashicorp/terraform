@@ -5,7 +5,7 @@ package addrs
 // with any other similar cross-module state refactoring statements we might
 // allow.
 //
-// Note that AbsMovable represents an absolute address relative to the root
+// Note that AbsMoveable represents an absolute address relative to the root
 // of the configuration, which is different than the direct representation
 // of these in configuration where the author gives an address relative to
 // the current module where the address is defined. The type MoveEndpoint
@@ -16,12 +16,25 @@ type AbsMoveable interface {
 	String() string
 }
 
-// The following are all of the possible AbsMovable address types:
+// The following are all of the possible AbsMoveable address types:
 var (
 	_ AbsMoveable = AbsResource{}
 	_ AbsMoveable = AbsResourceInstance{}
 	_ AbsMoveable = ModuleInstance(nil)
 	_ AbsMoveable = AbsModuleCall{}
+)
+
+// AbsMoveableResource is an AbsMoveable that is either a resource or a resource
+// instance.
+type AbsMoveableResource interface {
+	AbsMoveable
+	AffectedAbsResource() AbsResource
+}
+
+// The following are all of the possible AbsMoveableResource types:
+var (
+	_ AbsMoveableResource = AbsResource{}
+	_ AbsMoveableResource = AbsResourceInstance{}
 )
 
 // ConfigMoveable is similar to AbsMoveable but represents a static object in

@@ -369,6 +369,54 @@ func TestProcessIgnoreChangesIndividual(t *testing.T) {
 				"b": cty.StringVal("new b value"),
 			}),
 		},
+		"null_map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("ok"),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"s":   cty.StringVal("ok"),
+						"map": cty.NullVal(cty.Map(cty.String)),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.NullVal(cty.String),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"s":   cty.StringVal("ok"),
+						"map": cty.NullVal(cty.Map(cty.String)),
+					}),
+				}),
+			}),
+			[]string{"a"},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("ok"),
+				"list": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"s":   cty.StringVal("ok"),
+						"map": cty.NullVal(cty.Map(cty.String)),
+					}),
+				}),
+			}),
+		},
+		"marked_map": {
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("val"),
+				}).Mark("marked"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("new val"),
+				}).Mark("marked"),
+			}),
+			[]string{`map["key"]`},
+			cty.ObjectVal(map[string]cty.Value{
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.StringVal("val"),
+				}).Mark("marked"),
+			}),
+		},
 	}
 
 	for name, test := range tests {
