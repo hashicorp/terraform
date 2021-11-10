@@ -451,7 +451,13 @@ func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opt
 		inputOpts = &terraform.InputOpts{
 			Id:          "backend-migrate-copy-to-empty-cloud",
 			Query:       "Do you want to copy existing state to Terraform Cloud?",
-			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateEmptyCloud), opts.SourceType),
+			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateToEmptyCloud), opts.SourceType),
+		}
+	} else if opts.SourceType == "cloud" {
+		inputOpts = &terraform.InputOpts{
+			Id:          "backend-migrate-copy-cloud-to-empty",
+			Query:       "Do you want to copy existing state to the new backend?",
+			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateCloudToEmpty), opts.DestinationType),
 		}
 	} else {
 		inputOpts = &terraform.InputOpts{
@@ -1008,16 +1014,23 @@ Enter "yes" to proceed or "no" to cancel.
 `
 
 const inputBackendMigrateEmpty = `
-Pre-existing state was found while migrating the previous %q backend to the
-newly configured %q backend. No existing state was found in the newly
-configured %[2]q backend. Do you want to copy this state to the new %[2]q
-backend? Enter "yes" to copy and "no" to start with an empty state.
+Terraform found pre-existing state in the previous %q backend, and did not
+find any state in the newly configured %q backend. Do you want to copy
+this state to the new %[2]q backend? Enter "yes" to copy and "no" to start
+with an empty state.
 `
 
-const inputBackendMigrateEmptyCloud = `
-Pre-existing state was found while migrating the previous %q backend to Terraform Cloud.
-No existing state was found in Terraform Cloud. Do you want to copy this state to Terraform Cloud?
-Enter "yes" to copy and "no" to start with an empty state.
+const inputBackendMigrateToEmptyCloud = `
+Terraform found pre-existing state in the previous %q backend, and did not
+find any existing state in Terraform Cloud. Do you want to copy this state to
+Terraform Cloud? Enter "yes" to copy and "no" to start with an empty state.
+`
+
+const inputBackendMigrateCloudToEmpty = `
+Terraform found pre-existing state in Terraform Cloud, and did not find any
+existing state in the newly configured %q backend. Do you want to copy this
+state to the new %[1]q backend? Enter "yes" to copy and "no" to start
+with an empty state.
 `
 
 const inputBackendMigrateNonEmpty = `

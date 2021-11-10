@@ -857,9 +857,11 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if output {
-		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
-			"[reset][green]\n\n"+
-				strings.TrimSpace(successBackendUnset), backendType)))
+		successMessage := fmt.Sprintf(strings.TrimSpace(successBackendUnset), backendType)
+		if backendType == "cloud" {
+			successMessage = strings.TrimSpace(successCloudUnset)
+		}
+		m.Ui.Output(m.Colorize().Color("[reset][green]\n\n" + successMessage))
 	}
 
 	// Return no backend
@@ -1431,6 +1433,10 @@ name to create a new Terraform Cloud workspace.
 
 const successBackendUnset = `
 Successfully unset the backend %q. Terraform will now operate locally.
+`
+
+const successCloudUnset = `
+Successfully unconfigured Terraform Cloud. Terraform will now operate locally.
 `
 
 const successBackendSet = `
