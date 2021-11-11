@@ -650,14 +650,12 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 		// Multi via tags, migrate everything.
 		case !sourceSingle && !destinationSingleState:
-			// New branch:
-			// Migrate all workspaces, yey. Resembles S_S but we need new prompts.
-			// can. we just replace the prompts w/ conditionals?
+			// Normal S_S works fine.
 			return m.backendMigrateState_S_S(opts)
 		}
 	}
-	// TODO: modify this failure return once things start working
-	return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
+
+	return fmt.Errorf("Hit an unaccounted-for case when migrating away from Terraform Cloud; this should never happen.")
 }
 
 // migrates a multi-state backend to Terraform Cloud
@@ -952,12 +950,6 @@ Error copying state from the previous %q backend to the newly configured
 
 The state in the previous backend remains intact and unmodified. Please resolve
 the error above and try again.
-`
-
-const errTFCMigrateNotYetImplemented = `
-Migrating state from Terraform Cloud to another backend is not yet implemented.
-
-Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
 `
 
 const tfcInputBackendMigrateMultiToMultiPattern = `
