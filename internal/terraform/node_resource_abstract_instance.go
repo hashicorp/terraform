@@ -1301,7 +1301,7 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath [
 		}
 
 		if len(vMarks) > 0 {
-			newVal = v.WithMarks(vMarks)
+			newVal = newVal.WithMarks(vMarks)
 		}
 
 		return newVal, nil
