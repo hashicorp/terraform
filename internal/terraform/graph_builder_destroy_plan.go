@@ -23,6 +23,11 @@ type DestroyPlanGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
+	// RootVariableValues are the raw input values for root input variables
+	// given by the caller, which we'll resolve into final values as part
+	// of the plan walk.
+	RootVariableValues InputValues
+
 	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
 	Plugins *contextPlugins
