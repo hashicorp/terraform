@@ -1,14 +1,12 @@
 ---
 layout: "language"
-page_title: "State: Workspaces"
-sidebar_current: "docs-state-workspaces"
-description: |-
-  Workspaces allow the use of multiple states with a single configuration directory.
+page_title: "Workspaces via Terraform state backends"
+sidebar_current: "docs-workspaces"
 ---
 
-# Workspaces
+# Workspaces via Terraform state backends
 
-Each Terraform configuration has an associated
+Each Terraform configuration may have an associated
 [backend](/docs/language/settings/backends/index.html) that defines how where persistent data such
 as [the Terraform state](https://www.terraform.io/docs/language/state/purpose.html) are stored.
 
@@ -41,79 +39,11 @@ It was renamed in 0.10 based on feedback about confusion caused by the
 overloading of the word "environment" both within Terraform itself and within
 organizations that use Terraform.
 
--> **Note**: The Terraform CLI workspace concept described in this document is
-different from but related to the Terraform Cloud
-[workspace](/docs/cloud/workspaces/index.html) concept.
-If you use multiple Terraform CLI workspaces in a single Terraform configuration
-and are migrating that configuration to Terraform Cloud, see this [migration
-document](/docs/cloud/migrate/workspaces.html).
-
-## Using Workspaces
-
-Terraform starts with a single workspace named "default". This
-workspace is special both because it is the default and also because
-it cannot ever be deleted. If you've never explicitly used workspaces, then
-you've only ever worked on the "default" workspace.
-
-Workspaces are managed with the `terraform workspace` set of commands. To
-create a new workspace and switch to it, you can use `terraform workspace new`;
-to switch workspaces you can use `terraform workspace select`; etc.
-
-For example, creating a new workspace:
-
-```text
-$ terraform workspace new bar
-Created and switched to workspace "bar"!
-
-You're now on a new, empty workspace. Workspaces isolate their state,
-so if you run "terraform plan" Terraform will not see any existing state
-for this configuration.
-```
-
-As the command says, if you run `terraform plan`, Terraform will not see
-any existing resources that existed on the default (or any other) workspace.
-**These resources still physically exist,** but are managed in another
-Terraform workspace.
-
-## Current Workspace Interpolation
-
-Within your Terraform configuration, you may include the name of the current
-workspace using the `${terraform.workspace}` interpolation sequence. This can
-be used anywhere interpolations are allowed. However, it should **not** be
-used in remote operations against Terraform Cloud workspaces. For an
-explanation, see the [remote backend](/docs/language/settings/backends/remote.html#workspaces)
-document.
-
-Referencing the current workspace is useful for changing behavior based
-on the workspace. For example, for non-default workspaces, it may be useful
-to spin up smaller cluster sizes. For example:
-
-```hcl
-resource "aws_instance" "example" {
-  count = "${terraform.workspace == "default" ? 5 : 1}"
-
-  # ... other arguments
-}
-```
-
-Another popular use case is using the workspace name as part of naming or
-tagging behavior:
-
-```hcl
-resource "aws_instance" "example" {
-  tags = {
-    Name = "web - ${terraform.workspace}"
-  }
-
-  # ... other arguments
-}
-```
-
 ## When to use Multiple Workspaces
 
-Named workspaces allow conveniently switching between multiple instances of
-a _single_ configuration within its _single_ backend. They are convenient in
-a number of situations, but cannot solve all problems.
+Named workspaces via state backends allow conveniently switching between
+multiple instances of a _single_ configuration within its _single_ backend.
+They are convenient in a number of situations, but cannot solve all problems.
 
 A common use for multiple workspaces is to create a parallel, distinct copy of
 a set of infrastructure in order to test a set of changes before modifying the
@@ -184,9 +114,9 @@ another using paired resources types and data sources. For example:
 
 ## Workspace Internals
 
-Workspaces are technically equivalent to renaming your state file. They
-aren't any more complex than that. Terraform wraps this simple notion with
-a set of protections and support for remote state.
+Workspaces via state backends are technically equivalent to renaming your
+state file. They aren't any more complex than that. Terraform wraps this
+simple notion with a set of protections and support for remote state.
 
 For local state, Terraform stores the workspace states in a directory called
 `terraform.tfstate.d`. This directory should be treated similarly to
@@ -207,6 +137,4 @@ meant to be a shared resource. They aren't a private, local-only notion
 
 The "current workspace" name is stored only locally in the ignored
 `.terraform` directory. This allows multiple team members to work on
-different workspaces concurrently. The "current workspace" name is **not**
-currently meaningful in Terraform Cloud workspaces since it will always
-have the value `default`.
+different workspaces concurrently.

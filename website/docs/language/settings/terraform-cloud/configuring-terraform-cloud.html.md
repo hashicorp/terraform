@@ -57,7 +57,12 @@ only the specified workspace can be used. This option conflicts with "tags".
 
 ## Workspaces
 
-Terraform can be configured to work with multiple Terraform Cloud workspaces using [Terraform's named workspaces feature](/docs/cli/workspaces/index.html) or a single explicit Terraform Cloud workspace.
+Terraform can be configured to work with multiple Terraform Cloud workspaces using Terraform's [named workspaces feature](/docs/cli/workspaces/index.html) or a single explicit Terraform Cloud workspace. In the multi-workspace case, subcommands of `terraform workspace` (e.g. `list`, `new`, `select`) manage remote Terraform Cloud workspaces for the current configuration.
+
+The `workspaces` block of the `cloud` configuration determines how Terraform maps workspaces for the
+current configuration to Terraform Cloud workspaces in the given organization.
+
+There are some slight differences between local and remote workspaces:
 
 * _Terraform CLI workspaces_ are representations of multiple state files associated with a single
 _configuration_. They typically represent multiple _deployment environments_ that the single
@@ -71,8 +76,7 @@ completely separate working directory, and is typically named by both the set of
 contains as well as the deployment environment it provisions to (`networking-prod-us-east`,
 `networking-staging-us-east`, etc).
 
-The `workspaces` block of the `cloud` configuration determines how Terraform maps workspaces for the
-current configuration to Terraform Cloud workspaces in the given organization.
+**For more information on what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the general documentation on [Workspaces](/docs/language/workspaces.html).**
 
 ## Example Configurations
 
