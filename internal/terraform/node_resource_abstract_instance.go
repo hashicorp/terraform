@@ -1290,7 +1290,11 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath [
 
 		var newVal cty.Value
 		if len(configMap) == 0 {
-			newVal = cty.MapValEmpty(v.Type().ElementType())
+			if v.IsNull() {
+				newVal = v
+			} else {
+				newVal = cty.MapValEmpty(v.Type().ElementType())
+			}
 		} else {
 			newVal = cty.MapVal(configMap)
 		}
