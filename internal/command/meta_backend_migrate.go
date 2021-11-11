@@ -653,6 +653,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 			// New branch:
 			// Migrate all workspaces, yey. Resembles S_S but we need new prompts.
 			// can. we just replace the prompts w/ conditionals?
+			return m.backendMigrateState_S_S(opts)
 		}
 	}
 	// TODO: modify this failure return once things start working
