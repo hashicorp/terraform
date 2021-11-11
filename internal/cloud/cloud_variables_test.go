@@ -15,11 +15,16 @@ import (
 func TestParseCloudRunVariables(t *testing.T) {
 	t.Run("populates variables from allowed sources", func(t *testing.T) {
 		vv := map[string]backend.UnparsedVariableValue{
-			"undeclared":            testUnparsedVariableValue{source: terraform.ValueFromCLIArg, value: "0"},
-			"declaredFromConfig":    testUnparsedVariableValue{source: terraform.ValueFromConfig, value: "1"},
-			"declaredFromNamedFile": testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: "2"},
-			"declaredFromCLIArg":    testUnparsedVariableValue{source: terraform.ValueFromCLIArg, value: "3"},
-			"declaredFromEnvVar":    testUnparsedVariableValue{source: terraform.ValueFromEnvVar, value: "4"},
+			"undeclared":                      testUnparsedVariableValue{source: terraform.ValueFromCLIArg, value: cty.StringVal("0")},
+			"declaredFromConfig":              testUnparsedVariableValue{source: terraform.ValueFromConfig, value: cty.StringVal("1")},
+			"declaredFromNamedFileMapString":  testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.MapVal(map[string]cty.Value{"foo": cty.StringVal("bar")})},
+			"declaredFromNamedFileBool":       testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.BoolVal(true)},
+			"declaredFromNamedFileNumber":     testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.NumberIntVal(2)},
+			"declaredFromNamedFileListString": testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.ListVal([]cty.Value{cty.StringVal("2a"), cty.StringVal("2b")})},
+			"declaredFromNamedFileNull":       testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.NullVal(cty.String)},
+			"declaredFromNamedMapComplex":     testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.MapVal(map[string]cty.Value{"foo": cty.ObjectVal(map[string]cty.Value{"qux": cty.ListVal([]cty.Value{cty.BoolVal(true), cty.BoolVal(false)})})})},
+			"declaredFromCLIArg":              testUnparsedVariableValue{source: terraform.ValueFromCLIArg, value: cty.StringVal("3")},
+			"declaredFromEnvVar":              testUnparsedVariableValue{source: terraform.ValueFromEnvVar, value: cty.StringVal("4")},
 		}
 
 		decls := map[string]*configs.Variable{
@@ -34,11 +39,66 @@ func TestParseCloudRunVariables(t *testing.T) {
 					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
 				},
 			},
-			"declaredFromNamedFile": {
-				Name:           "declaredFromNamedFile",
+			"declaredFromNamedFileMapString": {
+				Name:           "declaredFromNamedFileMapString",
+				Type:           cty.Map(cty.String),
+				ConstraintType: cty.Map(cty.String),
+				ParsingMode:    configs.VariableParseHCL,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"declaredFromNamedFileBool": {
+				Name:           "declaredFromNamedFileBool",
+				Type:           cty.Bool,
+				ConstraintType: cty.Bool,
+				ParsingMode:    configs.VariableParseLiteral,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"declaredFromNamedFileNumber": {
+				Name:           "declaredFromNamedFileNumber",
+				Type:           cty.Number,
+				ConstraintType: cty.Number,
+				ParsingMode:    configs.VariableParseLiteral,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"declaredFromNamedFileListString": {
+				Name:           "declaredFromNamedFileListString",
+				Type:           cty.List(cty.String),
+				ConstraintType: cty.List(cty.String),
+				ParsingMode:    configs.VariableParseHCL,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"declaredFromNamedFileNull": {
+				Name:           "declaredFromNamedFileNull",
 				Type:           cty.String,
 				ConstraintType: cty.String,
-				ParsingMode:    configs.VariableParseLiteral,
+				ParsingMode:    configs.VariableParseHCL,
+				DeclRange: hcl.Range{
+					Filename: "fake.tf",
+					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
+					End:      hcl.Pos{Line: 2, Column: 1, Byte: 0},
+				},
+			},
+			"declaredFromNamedMapComplex": {
+				Name:           "declaredFromNamedMapComplex",
+				Type:           cty.DynamicPseudoType,
+				ConstraintType: cty.DynamicPseudoType,
+				ParsingMode:    configs.VariableParseHCL,
 				DeclRange: hcl.Range{
 					Filename: "fake.tf",
 					Start:    hcl.Pos{Line: 2, Column: 1, Byte: 0},
@@ -81,10 +141,14 @@ func TestParseCloudRunVariables(t *testing.T) {
 			},
 		}
 		wantVals := make(map[string]string)
-
-		wantVals["declaredFromNamedFile"] = "2"
-		wantVals["declaredFromCLIArg"] = "3"
-		wantVals["declaredFromEnvVar"] = "4"
+		wantVals["declaredFromNamedFileBool"] = "true"
+		wantVals["declaredFromNamedFileNumber"] = "2"
+		wantVals["declaredFromNamedFileListString"] = `["2a", "2b"]`
+		wantVals["declaredFromNamedFileNull"] = "null"
+		wantVals["declaredFromNamedFileMapString"] = "{\n  foo = \"bar\"\n}"
+		wantVals["declaredFromNamedMapComplex"] = "{\n  foo = {\n    qux = [true, false]\n  }\n}"
+		wantVals["declaredFromCLIArg"] = `"3"`
+		wantVals["declaredFromEnvVar"] = `"4"`
 
 		gotVals, diags := ParseCloudRunVariables(vv, decls)
 		if diff := cmp.Diff(wantVals, gotVals, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
@@ -103,12 +167,12 @@ func TestParseCloudRunVariables(t *testing.T) {
 
 type testUnparsedVariableValue struct {
 	source terraform.ValueSourceType
-	value  string
+	value  cty.Value
 }
 
 func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
 	return &terraform.InputValue{
-		Value:      cty.StringVal(v.value),
+		Value:      v.value,
 		SourceType: v.source,
 		SourceRange: tfdiags.SourceRange{
 			Filename: "fake.tfvars",
