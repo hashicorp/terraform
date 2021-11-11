@@ -50,13 +50,10 @@ The above command line uses the following sub-shell commands:
 * `lsb_release -cs` to find the distribution release codename for your current
   system, such as `buster`, `groovy`, or `sid`.
 
-`apt-add-repository` usually automatically runs `apt update` as part of its
-work to fetch the new package indices, but if it does not, you will need to
-manually do so before the packages will be available.
-
 To install Terraform from the new repository:
 
 ```bash
+sudo apt update
 sudo apt install terraform
 ```
 
