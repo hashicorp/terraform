@@ -1,0 +1,24 @@
+name: Dependabot Pull Requests
+
+on: pull_request_target
+
+jobs:
+  dependabot-prs:
+    runs-on: ubuntu-latest
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.1.1
+        with:
+          github-token: "${{ github.token }}"
+      - name: Label Azure Dependabot PR
+        if: ${{ contains(steps.dependabot-metadata.outputs.dependency-names, "go-azure-helpers") }}
+        run: gh pr edit "$PR_URL" --add-label "backend/azure"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+      - name: Assign reviewer for Azure Dependabot PR
+        if: ${{ contains(steps.dependabot-metadata.outputs.dependency-names, "go-azure-helpers") }}
+        run: gh pr edit "$PR_URL" --add-reviewer hashicorp/terraform-azure
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
