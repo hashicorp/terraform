@@ -377,6 +377,7 @@ func readFileBytes(baseDir, path string) ([]byte, error) {
 		}
 		return nil, err
 	}
+	defer f.Close()
 
 	src, err := ioutil.ReadAll(f)
 	if err != nil {
