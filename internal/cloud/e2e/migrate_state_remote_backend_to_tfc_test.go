@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -705,15 +702,15 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *
 		if len(wsList.Items) != 3 {
 			t.Fatalf("expected number of workspaces in this org to be 3, but got %d", len(wsList.Items))
 		}
-		ws, empty := getWorkspace(wsList.Items, "cloud-workspace")
+		_, empty := getWorkspace(wsList.Items, "cloud-workspace")
 		if empty {
 			t.Fatalf("expected workspaces to include 'cloud-workspace' but didn't.")
 		}
-		ws, empty = getWorkspace(wsList.Items, "app-one")
+		_, empty = getWorkspace(wsList.Items, "app-one")
 		if empty {
 			t.Fatalf("expected workspaces to include 'app-one' but didn't.")
 		}
-		ws, empty = getWorkspace(wsList.Items, "app-two")
+		_, empty = getWorkspace(wsList.Items, "app-two")
 		if empty {
 			t.Fatalf("expected workspaces to include 'app-two' but didn't.")
 		}

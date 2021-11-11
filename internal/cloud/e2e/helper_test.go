@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -24,7 +21,6 @@ const (
 type tfCommand struct {
 	command           []string
 	expectedCmdOutput string
-	expectedErr       string
 	expectError       bool
 	userInput         []string
 	postInputOutput   []string
@@ -105,7 +101,7 @@ func randomString(t *testing.T) string {
 }
 
 func terraformConfigLocalBackend() string {
-	return fmt.Sprintf(`
+	return `
 terraform {
   backend "local" {
   }
@@ -114,7 +110,7 @@ terraform {
 output "val" {
   value = "${terraform.workspace}"
 }
-`)
+`
 }
 
 func terraformConfigRemoteBackendName(org, name string) string {

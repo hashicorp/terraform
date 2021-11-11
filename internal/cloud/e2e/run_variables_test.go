@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -10,7 +7,9 @@ import (
 	"testing"
 
 	expect "github.com/Netflix/go-expect"
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func terraformConfigRequiredVariable(org, name string) string {
@@ -54,6 +53,10 @@ func Test_cloud_run_variables(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
+						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
+							Name:             tfe.String(wsName),
+							TerraformVersion: tfe.String(tfversion.String()),
+						})
 						tfBlock := terraformConfigRequiredVariable(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
