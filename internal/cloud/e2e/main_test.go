@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -27,8 +24,9 @@ var verboseMode bool
 
 func TestMain(m *testing.M) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	if !accTest() {
-		// if TF_ACC is not set, we want to skip all these tests.
+	hasRequiredEnvVars := accTest() && hasHostname() && hasToken()
+	if !hasRequiredEnvVars {
+		// if the above three required variables are not set, then skip all tests.
 		return
 	}
 	teardown := setup()
@@ -42,6 +40,14 @@ func accTest() bool {
 	// TF_ACC is set when we want to run acceptance tests, meaning it relies on
 	// network access.
 	return os.Getenv("TF_ACC") != ""
+}
+
+func hasHostname() bool {
+	return os.Getenv("TFE_HOSTNAME") != ""
+}
+
+func hasToken() bool {
+	return os.Getenv("TFE_TOKEN") != ""
 }
 
 func setup() func() {

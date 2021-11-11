@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -186,7 +183,6 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			for _, op := range tc.operations {
 				op.prep(t, organization.Name, tf.WorkDir())
 				for _, tfCmd := range op.commands {
-					tfCmd.command = append(tfCmd.command)
 					cmd := tf.Cmd(tfCmd.command...)
 					cmd.Stdin = exp.Tty()
 					cmd.Stdout = exp.Tty()

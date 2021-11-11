@@ -2,11 +2,10 @@
 
 To run them, use:
 ```
-TF_ACC=1 go test -tags=e2e ./internal/cloud/e2e/... -ldflags "-X \"github.com/hashicorp/terraform/version.Prerelease=<PRE-RELEASE>\""
+TFE_TOKEN=<token> TFE_HOSTNAME=<hostname> TF_ACC=1 go test  ./internal/cloud/e2e/... -ldflags "-X \"github.com/hashicorp/terraform/version.Prerelease=<PRE-RELEASE>\""
 ```
 
 Required flags
-* `-tags=e2e` for running e2e tests.
 * `TF_ACC=1`. This variable is used as part of terraform for tests that make 
   external network calls. This is needed to run these tests. Without it, the
   tests do not run.
