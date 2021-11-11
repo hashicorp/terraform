@@ -542,14 +542,14 @@ func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool
 }
 
 func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
-	cloudBackendSource, sourceTFC := opts.Source.(*cloud.Cloud)
+	_, sourceTFC := opts.Source.(*cloud.Cloud)
 	cloudBackendDestination, destinationTFC := opts.Destination.(*cloud.Cloud)
 
 	sourceWorkspaces, sourceSingleState, err := retrieveWorkspaces(opts.Source, opts.SourceType)
 	if err != nil {
 		return err
 	}
-	destinationWorkspaces, destinationSingleState, err := retrieveWorkspaces(opts.Destination, opts.SourceType)
+	_, destinationSingleState, err := retrieveWorkspaces(opts.Destination, opts.SourceType)
 	if err != nil {
 		return err
 	}
@@ -564,22 +564,16 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		destinationTagsStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
 		destinationNameStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
 	}
-	remoteBackendDestination, destinationRemote := opts.Destination.(*remote.Remote)
 
-	// TODO (NF): drop this compiler pacifier.
-	_ = cloudBackendSource
-	_ = destinationWorkspaces
-	_ = destinationSingleState
-	_ = remoteBackendDestination
-	_ = destinationRemote
+	// In almost every case, source workspace should be the current workspace; in the one exception
+	// (multi-to-multi), there's no harm in setting it now.
+	opts.sourceWorkspace = currentWorkspace
 
 	// First off: migrating *to* TFC. Everything in here works the same whether
 	// the source is TFC or not.
 	if destinationTFC {
 		// Only one state to migrate to TFC; nice and straightforward.
 		if sourceSingle {
-			opts.sourceWorkspace = currentWorkspace
-
 			// Set the name early if we happen to know it already.
 			if destinationNameStrategy {
 				opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
@@ -595,7 +589,6 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		// Multiple states available, but they only specified one workspace name;
 		// offer to migrate just the current workspace.
 		if destinationNameStrategy {
-			opts.sourceWorkspace = currentWorkspace
 			opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
 			if err := m.promptMultiToSingleCloudMigration(opts); err != nil {
 				return err
@@ -622,20 +615,17 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 		// Single to "default". Mutate opts, then return s_s.
 		case sourceSingle && destinationSingleState:
-			opts.sourceWorkspace = currentWorkspace
 			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 			return m.backendMigrateState_s_s(opts)
 
 		// Single to single, keeping existing name. Mutate opts, return s_s.
 		case sourceSingle && !destinationSingleState:
-			opts.sourceWorkspace = currentWorkspace
 			opts.destinationWorkspace = currentWorkspace
 			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 			return m.backendMigrateState_s_s(opts)
 
 		// Multi via tags, but will only migrate the current workspace to "default".
 		case !sourceSingle && destinationSingleState:
-			opts.sourceWorkspace = currentWorkspace
 			// leave destinationWorkspace at "default"
 			if err := m.promptMultiToSingleCloudMigration(opts); err != nil {
 				return err
