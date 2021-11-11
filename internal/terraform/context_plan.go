@@ -125,11 +125,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 	var planDiags tfdiags.Diagnostics
 	switch opts.Mode {
 	case plans.NormalMode:
-		plan, planDiags = c.plan(config, prevRunState, variables, opts)
+		plan, planDiags = c.plan(config, prevRunState, opts)
 	case plans.DestroyMode:
-		plan, planDiags = c.destroyPlan(config, prevRunState, variables, opts)
+		plan, planDiags = c.destroyPlan(config, prevRunState, opts)
 	case plans.RefreshOnlyMode:
-		plan, planDiags = c.refreshOnlyPlan(config, prevRunState, variables, opts)
+		plan, planDiags = c.refreshOnlyPlan(config, prevRunState, opts)
 	default:
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
@@ -172,14 +172,14 @@ var DefaultPlanOpts = &PlanOpts{
 	Mode: plans.NormalMode,
 }
 
-func (c *Context) plan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	plan, walkDiags := c.planWalk(config, prevRunState, rootVariables, opts)
+	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -194,14 +194,14 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, rootV
 	return plan, diags
 }
 
-func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.RefreshOnlyMode {
 		panic(fmt.Sprintf("called Context.refreshOnlyPlan with %s", opts.Mode))
 	}
 
-	plan, walkDiags := c.planWalk(config, prevRunState, rootVariables, opts)
+	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -235,7 +235,7 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	return plan, diags
 }
 
-func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	pendingPlan := &plans.Plan{}
 
@@ -260,7 +260,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
 		normalOpts := *opts
 		normalOpts.Mode = plans.NormalMode
-		refreshPlan, refreshDiags := c.plan(config, prevRunState, rootVariables, &normalOpts)
+		refreshPlan, refreshDiags := c.plan(config, prevRunState, &normalOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -291,7 +291,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		priorState = pendingPlan.PriorState
 	}
 
-	destroyPlan, walkDiags := c.planWalk(config, priorState, rootVariables, opts)
+	destroyPlan, walkDiags := c.planWalk(config, priorState, opts)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		return nil, diags
@@ -392,7 +392,7 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
@@ -419,11 +419,10 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	// we can now walk.
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:             config,
-		InputState:         prevRunState,
-		Changes:            changes,
-		MoveResults:        moveResults,
-		RootVariableValues: rootVariables,
+		Config:      config,
+		InputState:  prevRunState,
+		Changes:     changes,
+		MoveResults: moveResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -469,34 +468,37 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:       config,
-			State:        prevRunState,
-			Plugins:      c.plugins,
-			Targets:      opts.Targets,
-			ForceReplace: opts.ForceReplace,
-			Validate:     validate,
-			skipRefresh:  opts.SkipRefresh,
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			ForceReplace:       opts.ForceReplace,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:          config,
-			State:           prevRunState,
-			Plugins:         c.plugins,
-			Targets:         opts.Targets,
-			Validate:        validate,
-			skipRefresh:     opts.SkipRefresh,
-			skipPlanChanges: true, // this activates "refresh only" mode.
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
+			skipPlanChanges:    true, // this activates "refresh only" mode.
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&DestroyPlanGraphBuilder{
-			Config:      config,
-			State:       prevRunState,
-			Plugins:     c.plugins,
-			Targets:     opts.Targets,
-			Validate:    validate,
-			skipRefresh: opts.SkipRefresh,
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

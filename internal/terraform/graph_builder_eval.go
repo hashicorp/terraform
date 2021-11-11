@@ -30,6 +30,11 @@ type EvalGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
+	// RootVariableValues are the raw input values for root input variables
+	// given by the caller, which we'll resolve into final values as part
+	// of the plan walk.
+	RootVariableValues InputValues
+
 	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
 	Plugins *contextPlugins
@@ -60,7 +65,7 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config},

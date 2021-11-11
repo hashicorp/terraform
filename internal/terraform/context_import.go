@@ -53,11 +53,14 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 
 	log.Printf("[DEBUG] Building and walking import graph")
 
+	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
+
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{
-		ImportTargets: opts.Targets,
-		Config:        config,
-		Plugins:       c.plugins,
+		ImportTargets:      opts.Targets,
+		Config:             config,
+		RootVariableValues: variables,
+		Plugins:            c.plugins,
 	}
 
 	// Build the graph
@@ -67,13 +70,10 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		return state, diags
 	}
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
-
 	// Walk it
 	walker, walkDiags := c.walk(graph, walkImport, &graphWalkOpts{
-		Config:             config,
-		InputState:         state,
-		RootVariableValues: variables,
+		Config:     config,
+		InputState: state,
 	})
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {

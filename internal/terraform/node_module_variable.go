@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // nodeExpandModuleVariable is the placeholder for an variable that has not yet had
@@ -143,35 +142,27 @@ func (n *nodeModuleVariable) ModulePath() addrs.Module {
 
 // GraphNodeExecutable
 func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	// If we have no value, do nothing
-	if n.Expr == nil {
-		return nil
-	}
+	log.Printf("[TRACE] nodeModuleVariable: evaluating %s", n.Addr)
 
-	// Otherwise, interpolate the value of this variable and set it
-	// within the variables mapping.
-	var vals map[string]cty.Value
+	var val cty.Value
 	var err error
 
 	switch op {
 	case walkValidate:
-		vals, err = n.evalModuleCallArgument(ctx, true)
+		val, err = n.evalModuleCallArgument(ctx, true)
 		diags = diags.Append(err)
-		if diags.HasErrors() {
-			return diags
-		}
 	default:
-		vals, err = n.evalModuleCallArgument(ctx, false)
+		val, err = n.evalModuleCallArgument(ctx, false)
 		diags = diags.Append(err)
-		if diags.HasErrors() {
-			return diags
-		}
+	}
+	if diags.HasErrors() {
+		return diags
 	}
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
 	_, call := n.Addr.Module.CallInstance()
-	ctx.SetModuleCallArguments(call, vals)
+	ctx.SetModuleCallArgument(call, n.Addr.Variable, val)
 
 	return evalVariableValidations(n.Addr, n.Config, n.Expr, ctx)
 }
@@ -199,77 +190,45 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
-	name := n.Addr.Variable.Name
-	expr := n.Expr
+func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (cty.Value, error) {
+	var diags tfdiags.Diagnostics
+	var givenVal cty.Value
+	var errSourceRange tfdiags.SourceRange
+	if expr := n.Expr; expr != nil {
+		var moduleInstanceRepetitionData instances.RepetitionData
 
-	if expr == nil {
-		// Should never happen, but we'll bail out early here rather than
-		// crash in case it does. We set no value at all in this case,
-		// making a subsequent call to EvalContext.SetModuleCallArguments
-		// a no-op.
-		log.Printf("[ERROR] attempt to evaluate %s with nil expression", n.Addr.String())
-		return nil, nil
-	}
+		switch {
+		case validateOnly:
+			// the instance expander does not track unknown expansion values, so we
+			// have to assume all RepetitionData is unknown.
+			moduleInstanceRepetitionData = instances.RepetitionData{
+				CountIndex: cty.UnknownVal(cty.Number),
+				EachKey:    cty.UnknownVal(cty.String),
+				EachValue:  cty.DynamicVal,
+			}
 
-	var moduleInstanceRepetitionData instances.RepetitionData
-
-	switch {
-	case validateOnly:
-		// the instance expander does not track unknown expansion values, so we
-		// have to assume all RepetitionData is unknown.
-		moduleInstanceRepetitionData = instances.RepetitionData{
-			CountIndex: cty.UnknownVal(cty.Number),
-			EachKey:    cty.UnknownVal(cty.String),
-			EachValue:  cty.DynamicVal,
+		default:
+			// Get the repetition data for this module instance,
+			// so we can create the appropriate scope for evaluating our expression
+			moduleInstanceRepetitionData = ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
 		}
 
-	default:
-		// Get the repetition data for this module instance,
-		// so we can create the appropriate scope for evaluating our expression
-		moduleInstanceRepetitionData = ctx.InstanceExpander().GetModuleInstanceRepetitionData(n.ModuleInstance)
+		scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
+		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return cty.DynamicVal, diags.ErrWithWarnings()
+		}
+		givenVal = val
+		errSourceRange = tfdiags.SourceRangeFromHCL(expr.Range())
+	} else {
+		// We'll use cty.NilVal to represent the variable not being set at all.
+		givenVal = cty.NilVal
+		errSourceRange = tfdiags.SourceRangeFromHCL(n.Config.DeclRange) // we use the declaration range as a fallback for an undefined variable
 	}
 
-	scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
-	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, givenVal, errSourceRange, n.Config)
+	diags = diags.Append(moreDiags)
 
-	// We intentionally passed DynamicPseudoType to EvalExpr above because
-	// now we can do our own local type conversion and produce an error message
-	// with better context if it fails.
-	var convErr error
-	val, convErr = convert.Convert(val, n.Config.ConstraintType)
-	if convErr != nil {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid value for module argument",
-			Detail: fmt.Sprintf(
-				"The given value is not suitable for child module variable %q defined at %s: %s.",
-				name, n.Config.DeclRange.String(), convErr,
-			),
-			Subject: expr.Range().Ptr(),
-		})
-		// We'll return a placeholder unknown value to avoid producing
-		// redundant downstream errors.
-		val = cty.UnknownVal(n.Config.Type)
-	}
-
-	// If there is no default, we have to ensure that a null value is allowed
-	// for this variable.
-	if n.Config.Default == cty.NilVal && !n.Config.Nullable && val.IsNull() {
-		// The value cannot be null, and there is no configured default.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Invalid variable value`,
-			Detail:   fmt.Sprintf(`The variable %q is required, but the given value is null.`, n.Addr),
-			Subject:  &n.Config.DeclRange,
-		})
-		// Stub out our return value so that the semantic checker doesn't
-		// produce redundant downstream errors.
-		val = cty.UnknownVal(n.Config.Type)
-	}
-
-	vals := make(map[string]cty.Value)
-	vals[name] = val
-
-	return vals, diags.ErrWithWarnings()
+	return finalVal, diags.ErrWithWarnings()
 }
