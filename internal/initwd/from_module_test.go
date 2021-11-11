@@ -1,6 +1,7 @@
 package initwd
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -38,7 +39,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 
 	reg := registry.NewClient(nil, nil)
-	diags := DirFromModule(dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
+	diags := DirFromModule(context.Background(), dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
@@ -154,7 +155,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 	}
 	modInstallDir := filepath.Join(dir, ".terraform/modules")
 
-	diags := DirFromModule(dir, modInstallDir, fromModuleDir, nil, hooks)
+	diags := DirFromModule(context.Background(), dir, modInstallDir, fromModuleDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -248,7 +249,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	modInstallDir := ".terraform/modules"
 	sourceDir := "../local-modules"
-	diags := DirFromModule(".", modInstallDir, sourceDir, nil, hooks)
+	diags := DirFromModule(context.Background(), ".", modInstallDir, sourceDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
