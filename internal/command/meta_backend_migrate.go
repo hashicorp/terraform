@@ -223,14 +223,10 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	return nil
 }
 
-// Multi-state to single state.
+// Multi-state to single state. Make sure to set opts.sourceWorkspace to an appropriate value before calling
+// this function.
 func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	log.Printf("[INFO] backendMigrateState: destination backend type %q does not support named workspaces", opts.DestinationType)
-
-	currentWorkspace, err := m.Workspace()
-	if err != nil {
-		return err
-	}
 
 	migrate := opts.force
 	if !migrate {
@@ -250,7 +246,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 		} else {
 			description = fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateMultiToSingle),
-				opts.SourceType, opts.DestinationType, currentWorkspace)
+				opts.SourceType, opts.DestinationType, opts.sourceWorkspace)
 		}
 
 		// Ask the user if they want to migrate their existing remote state
@@ -269,10 +265,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 		return fmt.Errorf("Migration aborted by user.")
 	}
 
-	// Copy the default state
-	opts.sourceWorkspace = currentWorkspace
-
-	// now switch back to the default env so we can acccess the new backend
+	// now switch back to the default workspace so we can acccess the new backend.
 	m.SetWorkspace(backend.DefaultStateName)
 
 	return m.backendMigrateState_s_s(opts)
