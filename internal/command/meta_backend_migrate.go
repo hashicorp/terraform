@@ -83,13 +83,12 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		opts.destinationWorkspace = destinationAsCloud.WorkspaceMapping.Name
 	}
 
-	// Regardless of source type: If the source only *has* one state, we can treat
-	// it as if it doesn't support multi-state.
+	// If a multi-workspace source only *has* one state, we can act like it's single-state.
 	if len(sourceWorkspaces) == 1 {
 		sourceSingleState = true
-		// In most backends that one state would be "default"; in TFC, it'd have
-		// a unique name. In either case, if the destination allows us to choose a
-		// name, we should use whatever name the source uses.
+		// That one state is "default" in most backends, but would have some other
+		// name in TFC. Either way, if the destination allows us to choose a name,
+		// we should use whatever name the source uses.
 		if !destinationSingleState {
 			opts.destinationWorkspace = opts.sourceWorkspace
 		}
