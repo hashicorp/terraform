@@ -231,16 +231,29 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	migrate := opts.force
 	if !migrate {
 		var err error
+		var description string
+		_, sourceTFC := opts.Source.(*cloud.Cloud)
+		_, destinationTFC := opts.Destination.(*cloud.Cloud)
+		// Special prompt messages if going to/from TFC, generic if not:
+		if destinationTFC {
+			description = fmt.Sprintf(
+				strings.TrimSpace(tfcInputBackendMigrateMultiToCloudSingle),
+				opts.SourceType, opts.destinationWorkspace)
+		} else if sourceTFC {
+			description = fmt.Sprintf(
+				strings.TrimSpace(tfcInputBackendMigrateCloudMultiToSingle),
+				opts.DestinationType, opts.sourceWorkspace)
+		} else {
+			description = fmt.Sprintf(
+				strings.TrimSpace(inputBackendMigrateMultiToSingle),
+				opts.SourceType, opts.DestinationType, currentWorkspace)
+		}
+
 		// Ask the user if they want to migrate their existing remote state
 		migrate, err = m.confirm(&terraform.InputOpts{
-			Id: "backend-migrate-multistate-to-single",
-			Query: fmt.Sprintf(
-				"Destination state %q doesn't support workspaces.\n"+
-					"Do you want to copy only your current workspace?",
-				opts.DestinationType),
-			Description: fmt.Sprintf(
-				strings.TrimSpace(inputBackendMigrateMultiToSingle),
-				opts.SourceType, opts.DestinationType, currentWorkspace),
+			Id:          "backend-migrate-multistate-to-single",
+			Query:       "Do you want to copy only your current workspace?",
+			Description: description,
 		})
 		if err != nil {
 			return fmt.Errorf(
@@ -568,17 +581,16 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	// In almost every case, source workspace should be the current workspace; in the one exception
 	// (multi-to-multi), there's no harm in setting it now.
 	opts.sourceWorkspace = currentWorkspace
+	// Set the name early if we happen to know it already.
+	if destinationNameStrategy {
+		opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
+	}
 
 	// First off: migrating *to* TFC. Everything in here works the same whether
 	// the source is TFC or not.
 	if destinationTFC {
 		// Only one state to migrate to TFC; nice and straightforward.
 		if sourceSingle {
-			// Set the name early if we happen to know it already.
-			if destinationNameStrategy {
-				opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
-			}
-
 			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 			// Run normal single-to-single state migration. If using the tags
 			// strategy, it'll prompt for a new destination workspace name when
@@ -589,14 +601,9 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		// Multiple states available, but they only specified one workspace name;
 		// offer to migrate just the current workspace.
 		if destinationNameStrategy {
-			opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
-			if err := m.promptMultiToSingleCloudMigration(opts); err != nil {
-				return err
-			}
-
 			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 
-			return m.backendMigrateState_s_s(opts)
+			return m.backendMigrateState_S_s(opts)
 		}
 
 		// Multiple states available, and they're allowing multiple workspaces via
@@ -627,16 +634,9 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		// Multi via tags, but will only migrate the current workspace to "default".
 		case !sourceSingle && destinationSingleState:
 			// leave destinationWorkspace at "default"
-			if err := m.promptMultiToSingleCloudMigration(opts); err != nil {
-				return err
-			}
-
 			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 
-			// now switch back to the default workspace so we can acccess the new backend
-			m.SetWorkspace(backend.DefaultStateName)
-
-			return m.backendMigrateState_s_s(opts)
+			return m.backendMigrateState_S_s(opts)
 
 		// Multi via tags, migrate everything.
 		case !sourceSingle && !destinationSingleState:
@@ -797,38 +797,6 @@ func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) 
 			Id:          "backend-migrate-remote-multistate-to-cloud",
 			Query:       "Do you wish to proceed?",
 			Description: strings.TrimSpace(tfcInputBackendMigrateRemoteMultiToCloud),
-		})
-		if err != nil {
-			return fmt.Errorf("Error asking for state migration action: %s", err)
-		}
-	}
-
-	if !migrate {
-		return fmt.Errorf("Migration aborted by user.")
-	}
-
-	return nil
-}
-
-// Multi-state to single state.
-func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error {
-	migrate := opts.force
-	if !migrate {
-		var err error
-		var description string
-		if _, ok := opts.Destination.(*cloud.Cloud); ok {
-			description = fmt.Sprintf(
-				strings.TrimSpace(tfcInputBackendMigrateMultiToCloudSingle),
-				opts.SourceType, opts.destinationWorkspace)
-		} else {
-			description = fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateCloudMultiToSingle), opts.DestinationType, opts.sourceWorkspace)
-		}
-
-		// Ask the user if they want to migrate their existing remote state
-		migrate, err = m.confirm(&terraform.InputOpts{
-			Id:          "backend-migrate-multistate-to-single",
-			Query:       "Do you want to copy only your current workspace?",
-			Description: description,
 		})
 		if err != nil {
 			return fmt.Errorf("Error asking for state migration action: %s", err)
