@@ -13,6 +13,7 @@ import (
 )
 
 func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -233,6 +234,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 }
 
 func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()

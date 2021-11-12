@@ -10,6 +10,7 @@ import (
 )
 
 func Test_backend_apply_before_init(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 

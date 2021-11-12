@@ -12,6 +12,7 @@ import (
 )
 
 func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -133,6 +134,7 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_same_name(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 	ctx := context.Background()
 	operations := []operationSets{
@@ -251,6 +253,7 @@ func Test_migrate_remote_backend_name_to_tfc_same_name(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -377,6 +380,7 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -509,6 +513,7 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -632,6 +637,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t 
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -785,6 +791,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_single_workspace(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -909,6 +916,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_single_workspace(t 
 }
 
 func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_multi_workspace(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
