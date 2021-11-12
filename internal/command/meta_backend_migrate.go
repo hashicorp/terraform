@@ -120,12 +120,12 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		return m.backendMigrateTFC(opts)
 
 	// Single-state to single-state. This is the easiest case: we just
-	// copy the default state directly.
+	// copy the one existing state directly.
 	case sourceSingleState && destinationSingleState:
 		return m.backendMigrateState_s_s(opts)
 
 	// Single-state to multi-state. This is easy since we just copy
-	// the default state and ignore the rest in the destination.
+	// the one existing state and ignore the rest in the destination.
 	case sourceSingleState && !destinationSingleState:
 		return m.backendMigrateState_s_s(opts)
 
