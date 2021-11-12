@@ -83,6 +83,18 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		opts.destinationWorkspace = destinationAsCloud.WorkspaceMapping.Name
 	}
 
+	// Regardless of source type: If the source only *has* one state, we can treat
+	// it as if it doesn't support multi-state.
+	if len(sourceWorkspaces) == 1 {
+		sourceSingleState = true
+		// In most backends that one state would be "default"; in TFC, it'd have
+		// a unique name. In either case, if the destination allows us to choose a
+		// name, we should use whatever name the source uses.
+		if !destinationSingleState {
+			opts.destinationWorkspace = opts.sourceWorkspace
+		}
+	}
+
 	// Disregard remote Terraform version for the state source backend. If it's a
 	// Terraform Cloud remote backend, we don't care about the remote version,
 	// as we are migrating away and will not break a remote workspace.
@@ -132,23 +144,11 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Multi-state to single-state. If the source has more than the default
 	// state this is complicated since we have to ask the user what to do.
 	case !sourceSingleState && destinationSingleState:
-		// If the source only has one state and it is the default,
-		// treat it as if it doesn't support multi-state.
-		if len(sourceWorkspaces) == 1 && sourceWorkspaces[0] == backend.DefaultStateName {
-			return m.backendMigrateState_s_s(opts)
-		}
-
 		return m.backendMigrateState_S_s(opts)
 
 	// Multi-state to multi-state. We merge the states together (migrating
 	// each from the source to the destination one by one).
 	case !sourceSingleState && !destinationSingleState:
-		// If the source only has one state and it is the default,
-		// treat it as if it doesn't support multi-state.
-		if len(sourceWorkspaces) == 1 && sourceWorkspaces[0] == backend.DefaultStateName {
-			return m.backendMigrateState_s_s(opts)
-		}
-
 		return m.backendMigrateState_S_S(opts)
 	}
 
