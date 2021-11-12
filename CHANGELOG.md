@@ -35,6 +35,7 @@ BUG FIXES:
 * core: Use more precise typing information of resources during config validation ([#29862](https://github.com/hashicorp/terraform/issues/29862))
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
 * core: Reduce scope of dependencies that may defer reading of data sources when using `depends_on` or directly referencing managed resources ([#29682](https://github.com/hashicorp/terraform/issues/29682))
+* core: `ignore_changes` could cause a null map to be converted to an empty map [GH-29928]
 * cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output ([#29522](https://github.com/hashicorp/terraform/issues/29522))
 * cli: Prevent applying a stale planfile when there was no previous state ([#29755](https://github.com/hashicorp/terraform/issues/29755))
 * cli: Improve list nested attribute rendering ([#29827](https://github.com/hashicorp/terraform/issues/29827))
