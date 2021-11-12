@@ -51,8 +51,8 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// from multi-state to single-state for example, we need to handle that.
 	var sourceSingleState, destinationSingleState, sourceTFC, destinationTFC bool
 
-	_, sourceTFC = opts.Source.(*cloud.Cloud)
-	_, destinationTFC = opts.Destination.(*cloud.Cloud)
+	sourceAsCloud, sourceTFC := opts.Source.(*cloud.Cloud)
+	destinationAsCloud, destinationTFC := opts.Destination.(*cloud.Cloud)
 
 	sourceWorkspaces, sourceSingleState, err := retrieveWorkspaces(opts.Source, opts.SourceType)
 	if err != nil {
@@ -71,6 +71,17 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	opts.sourceWorkspace = currentWorkspace
 	opts.destinationWorkspace = backend.DefaultStateName
 	opts.force = m.forceInitCopy
+
+	// When TFC is configured in single-state mode, it doesn't *look* like a
+	// single-state backend. (c.Workspaces() succeeds; always a named workspace
+	// instead of "default".) So tweak some variables if TFC is in the mix.
+	if sourceTFC && sourceAsCloud.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy {
+		sourceSingleState = true
+	}
+	if destinationTFC && destinationAsCloud.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy {
+		destinationSingleState = true
+		opts.destinationWorkspace = destinationAsCloud.WorkspaceMapping.Name
+	}
 
 	// Disregard remote Terraform version for the state source backend. If it's a
 	// Terraform Cloud remote backend, we don't care about the remote version,
@@ -572,11 +583,6 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if destinationTFC {
 		destinationTagsStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
 		destinationNameStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
-	}
-
-	// Set the name early if we happen to know it already.
-	if destinationNameStrategy {
-		opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
 	}
 
 	// First off: migrating *to* TFC. Everything in here works the same whether
