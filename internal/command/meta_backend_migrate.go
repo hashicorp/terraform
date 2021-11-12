@@ -62,9 +62,13 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	if err != nil {
 		return err
 	}
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
 
 	// Set up defaults
-	opts.sourceWorkspace = backend.DefaultStateName
+	opts.sourceWorkspace = currentWorkspace
 	opts.destinationWorkspace = backend.DefaultStateName
 	opts.force = m.forceInitCopy
 
@@ -566,7 +570,6 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if err != nil {
 		return err
 	}
-	currentWorkspace, err := m.Workspace()
 	if err != nil {
 		return err
 	}
@@ -578,9 +581,6 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		destinationNameStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
 	}
 
-	// In almost every case, source workspace should be the current workspace; in the one exception
-	// (multi-to-multi), there's no harm in setting it now.
-	opts.sourceWorkspace = currentWorkspace
 	// Set the name early if we happen to know it already.
 	if destinationNameStrategy {
 		opts.destinationWorkspace = cloudBackendDestination.WorkspaceMapping.Name
@@ -627,7 +627,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 		// Single to single, keeping existing name. Mutate opts, return s_s.
 		case sourceSingle && !destinationSingleState:
-			opts.destinationWorkspace = currentWorkspace
+			opts.destinationWorkspace = opts.sourceWorkspace
 			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
 			return m.backendMigrateState_s_s(opts)
 
