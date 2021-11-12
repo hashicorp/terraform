@@ -127,9 +127,6 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Determine migration behavior based on whether the source/destination
 	// supports multi-state.
 	switch {
-	case sourceTFC || destinationTFC:
-		return m.backendMigrateTFC(opts)
-
 	// Single-state to single-state. This is the easiest case: we just
 	// copy the one existing state directly.
 	case sourceSingleState && destinationSingleState:
@@ -148,6 +145,11 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// Multi-state to multi-state. We merge the states together (migrating
 	// each from the source to the destination one by one).
 	case !sourceSingleState && !destinationSingleState:
+		// One special case: if they're migrating to TFC, we offer to rename their
+		// workspaces to avoid collisions.
+		if destinationTFC {
+			return m.backendMigrateState_S_TFC(opts, sourceWorkspaces)
+		}
 		return m.backendMigrateState_S_S(opts)
 	}
 
@@ -559,91 +561,6 @@ func retrieveWorkspaces(back backend.Backend, sourceType string) ([]string, bool
 	}
 
 	return workspaces, singleState, err
-}
-
-func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
-	_, sourceTFC := opts.Source.(*cloud.Cloud)
-	cloudBackendDestination, destinationTFC := opts.Destination.(*cloud.Cloud)
-
-	sourceWorkspaces, sourceSingleState, err := retrieveWorkspaces(opts.Source, opts.SourceType)
-	if err != nil {
-		return err
-	}
-	_, destinationSingleState, err := retrieveWorkspaces(opts.Destination, opts.SourceType)
-	if err != nil {
-		return err
-	}
-	if err != nil {
-		return err
-	}
-
-	sourceSingle := sourceSingleState || (len(sourceWorkspaces) == 1)
-	var destinationNameStrategy, destinationTagsStrategy bool
-	if destinationTFC {
-		destinationTagsStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceTagsStrategy
-		destinationNameStrategy = cloudBackendDestination.WorkspaceMapping.Strategy() == cloud.WorkspaceNameStrategy
-	}
-
-	// First off: migrating *to* TFC. Everything in here works the same whether
-	// the source is TFC or not.
-	if destinationTFC {
-		// Only one state to migrate to TFC; nice and straightforward.
-		if sourceSingle {
-			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-			// Run normal single-to-single state migration. If using the tags
-			// strategy, it'll prompt for a new destination workspace name when
-			// needed.
-			return m.backendMigrateState_s_s(opts)
-		}
-
-		// Multiple states available, but they only specified one workspace name;
-		// offer to migrate just the current workspace.
-		if destinationNameStrategy {
-			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-
-			return m.backendMigrateState_S_s(opts)
-		}
-
-		// Multiple states available, and they're allowing multiple workspaces via
-		// tags. Migrate everything!
-		if destinationTagsStrategy {
-			log.Printf("[INFO] backendMigrateTFC: multi-to-multi migration from source workspaces %q", sourceWorkspaces)
-			return m.backendMigrateState_S_TFC(opts, sourceWorkspaces)
-		}
-
-		return fmt.Errorf("unexpected conditions when migrating to Terraform Cloud; this should never happen")
-	}
-
-	// Next: migrating *away from* TFC. Technically the sourceTFC is redundant here, because you only end up in this function if either your source or destination was TFC and we're ruling out dest for these. IDK, I'll sort that out later.
-	if sourceTFC {
-		switch {
-
-		// Single to "default". Mutate opts, then return s_s.
-		case sourceSingle && destinationSingleState:
-			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-			return m.backendMigrateState_s_s(opts)
-
-		// Single to single, keeping existing name. Mutate opts, return s_s.
-		case sourceSingle && !destinationSingleState:
-			opts.destinationWorkspace = opts.sourceWorkspace
-			log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-			return m.backendMigrateState_s_s(opts)
-
-		// Multi via tags, but will only migrate the current workspace to "default".
-		case !sourceSingle && destinationSingleState:
-			// leave destinationWorkspace at "default"
-			log.Printf("[INFO] backendMigrateTFC: multi-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-
-			return m.backendMigrateState_S_s(opts)
-
-		// Multi via tags, migrate everything.
-		case !sourceSingle && !destinationSingleState:
-			// Normal S_S works fine.
-			return m.backendMigrateState_S_S(opts)
-		}
-	}
-
-	return fmt.Errorf("Hit an unaccounted-for case when migrating away from Terraform Cloud; this should never happen.")
 }
 
 // migrates a multi-state backend to Terraform Cloud
