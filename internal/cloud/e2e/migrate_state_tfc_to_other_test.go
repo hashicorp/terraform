@@ -10,6 +10,7 @@ import (
 )
 
 func Test_migrate_tfc_to_other(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	cases := map[string]struct {
 		operations []operationSets
 	}{

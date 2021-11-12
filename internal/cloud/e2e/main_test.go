@@ -23,12 +23,6 @@ var tfeToken string
 var verboseMode bool
 
 func TestMain(m *testing.M) {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	hasRequiredEnvVars := accTest() && hasHostname() && hasToken()
-	if !hasRequiredEnvVars {
-		// if the above three required variables are not set, then skip all tests.
-		return
-	}
 	teardown := setup()
 	code := m.Run()
 	teardown()
@@ -50,6 +44,16 @@ func hasToken() bool {
 	return os.Getenv("TFE_TOKEN") != ""
 }
 
+func hasRequiredEnvVars() bool {
+	return accTest() && hasHostname() && hasToken()
+}
+
+func skipIfMissingEnvVar(t *testing.T) {
+	if !hasRequiredEnvVars() {
+		t.Skip("Skipping test, required environment variables missing. Use `TF_ACC`, `TFE_HOSTNAME`, `TFE_TOKEN`")
+	}
+}
+
 func setup() func() {
 	tfOutput := flag.Bool("tfoutput", false, "This flag produces the terraform output from tests.")
 	flag.Parse()
@@ -64,41 +68,38 @@ func setup() func() {
 }
 
 func setTfeClient() {
-	hostname := os.Getenv("TFE_HOSTNAME")
-	token := os.Getenv("TFE_TOKEN")
-	if hostname == "" {
-		log.Fatal("hostname cannot be empty")
-	}
-	if token == "" {
-		log.Fatal("token cannot be empty")
-	}
-	tfeHostname = hostname
-	tfeToken = token
+	tfeHostname = os.Getenv("TFE_HOSTNAME")
+	tfeToken = os.Getenv("TFE_TOKEN")
 
 	cfg := &tfe.Config{
-		Address: fmt.Sprintf("https://%s", hostname),
-		Token:   token,
+		Address: fmt.Sprintf("https://%s", tfeHostname),
+		Token:   tfeToken,
 	}
 
-	// Create a new TFE client.
-	client, err := tfe.NewClient(cfg)
-	if err != nil {
-		log.Fatal(err)
+	if tfeHostname != "" && tfeToken != "" {
+		// Create a new TFE client.
+		client, err := tfe.NewClient(cfg)
+		if err != nil {
+			fmt.Printf("Could not create new tfe client: %v\n", err)
+			os.Exit(1)
+		}
+		tfeClient = client
 	}
-	tfeClient = client
 }
 
 func setupBinary() func() {
 	log.Println("Setting up terraform binary")
 	tmpTerraformBinaryDir, err := ioutil.TempDir("", "terraform-test")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not create temp directory: %v\n", err)
+		os.Exit(1)
 	}
 	log.Println(tmpTerraformBinaryDir)
 	currentDir, err := os.Getwd()
 	defer os.Chdir(currentDir)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not change directories: %v\n", err)
+		os.Exit(1)
 	}
 	// Getting top level dir
 	dirPaths := strings.Split(currentDir, "/")
@@ -107,7 +108,8 @@ func setupBinary() func() {
 	topDir := strings.Join(dirPaths[0:topLevel], "/")
 
 	if err := os.Chdir(topDir); err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not change directories: %v\n", err)
+		os.Exit(1)
 	}
 
 	cmd := exec.Command(
@@ -118,7 +120,8 @@ func setupBinary() func() {
 	)
 	err = cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not run exec command: %v\n", err)
+		os.Exit(1)
 	}
 
 	credFile := fmt.Sprintf("%s/dev.tfrc", tmpTerraformBinaryDir)
@@ -136,11 +139,13 @@ func writeCredRC(file string) {
 	creds := credentialBlock()
 	f, err := os.Create(file)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not create file: %v\n", err)
+		os.Exit(1)
 	}
 	_, err = f.WriteString(creds)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not write credentials: %v\n", err)
+		os.Exit(1)
 	}
 	f.Close()
 }

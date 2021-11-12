@@ -10,6 +10,7 @@ import (
 )
 
 func Test_init_with_empty_tags(t *testing.T) {
+	skipIfMissingEnvVar(t)
 	t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
