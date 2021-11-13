@@ -213,7 +213,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	switch {
 	case config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module)
+		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -366,8 +366,17 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+
+	if len(extraConfig.AllItems()) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command-line option",
+			"The -backend-config=... command line option is only for state backends, and is not applicable to Terraform Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
+		))
+		return nil, true, diags
+	}
 
 	backendConfig := root.CloudConfig.ToBackendConfig()
 

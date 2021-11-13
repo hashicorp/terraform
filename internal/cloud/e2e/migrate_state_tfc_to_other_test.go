@@ -36,7 +36,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Migrating state from Terraform Cloud to another backend is not yet implemented.`,
 							expectError:       true,
 						},

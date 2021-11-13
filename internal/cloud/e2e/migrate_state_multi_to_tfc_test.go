@@ -60,7 +60,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
@@ -127,7 +127,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
@@ -195,7 +195,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
@@ -268,7 +268,6 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					if tfCmd.expectedCmdOutput != "" {
 						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-
 							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
@@ -365,7 +364,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
@@ -470,7 +469,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
