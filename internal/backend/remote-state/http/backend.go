@@ -67,6 +67,18 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_PASSWORD", nil),
 				Description: "The password for HTTP basic authentication",
 			},
+			"token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_TOKEN", nil),
+				Description: "The token for token authentication",
+			},
+			"token_header": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_TOKEN_HEADER", nil),
+				Description: "The HTTP header for token authentication",
+			},
 			"skip_cert_verification": &schema.Schema{
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -171,8 +183,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		UnlockURL:    unlockURL,
 		UnlockMethod: unlockMethod,
 
-		Username: data.Get("username").(string),
-		Password: data.Get("password").(string),
+		Username:    data.Get("username").(string),
+		Password:    data.Get("password").(string),
+		Token:       data.Get("token").(string),
+		TokenHeader: data.Get("token_header").(string),
 
 		// accessible only for testing use
 		Client: rClient,

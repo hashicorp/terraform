@@ -29,9 +29,11 @@ type httpClient struct {
 	UnlockMethod string
 
 	// HTTP
-	Client   *retryablehttp.Client
-	Username string
-	Password string
+	Client      *retryablehttp.Client
+	Username    string
+	Password    string
+	Token       string
+	TokenHeader string
 
 	lockID       string
 	jsonLockInfo []byte
@@ -52,6 +54,11 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	// Set up basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
+	}
+
+	// Set up token header
+	if c.TokenHeader != "" {
+		req.Header.Set(c.TokenHeader, c.Token)
 	}
 
 	// Work with data/body
