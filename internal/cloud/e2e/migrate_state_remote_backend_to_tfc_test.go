@@ -42,8 +42,8 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-					expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
+					command:           []string{"init", "-ignore-remote-version"},
+					expectedCmdOutput: `Should Terraform migrate your existing state?`,
 					userInput:         []string{"yes"},
 					postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 				},
@@ -163,7 +163,7 @@ func Test_migrate_remote_backend_name_to_tfc_same_name(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
+					command:           []string{"init", "-ignore-remote-version"},
 					expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 				},
 				{
@@ -283,8 +283,8 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-					expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
+					command:           []string{"init", "-ignore-remote-version"},
+					expectedCmdOutput: `Should Terraform migrate your existing state?`,
 					userInput:         []string{"yes"},
 					postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 				},
@@ -414,11 +414,11 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
+					command:           []string{"init", "-ignore-remote-version"},
 					expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 					userInput:         []string{"cloud-workspace", "yes"},
 					postInputOutput: []string{
-						`Do you want to copy existing state to Terraform Cloud?`,
+						`Should Terraform migrate your existing state?`,
 						`Terraform Cloud has been successfully initialized!`},
 				},
 				{
@@ -544,8 +544,8 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t 
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-					expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
+					command:           []string{"init", "-ignore-remote-version"},
+					expectedCmdOutput: `Should Terraform migrate your existing state?`,
 					userInput:         []string{"yes"},
 					postInputOutput: []string{
 						`Terraform Cloud has been successfully initialized!`},
@@ -679,7 +679,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
+					command:           []string{"init", "-ignore-remote-version"},
 					expectedCmdOutput: `Do you want to copy only your current workspace?`,
 					userInput:         []string{"yes"},
 					postInputOutput: []string{
@@ -822,11 +822,11 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_single_workspace(t 
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
+					command:           []string{"init", "-ignore-remote-version"},
 					expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 					userInput:         []string{"cloud-workspace", "yes"},
 					postInputOutput: []string{
-						`Do you want to copy existing state to Terraform Cloud?`,
+						`Should Terraform migrate your existing state?`,
 						`Terraform Cloud has been successfully initialized!`},
 				},
 				{
@@ -961,7 +961,7 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_multi_workspace(t *
 			},
 			commands: []tfCommand{
 				{
-					command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
+					command:           []string{"init", "-ignore-remote-version"},
 					expectedCmdOutput: `Do you wish to proceed?`,
 					userInput:         []string{"yes"},
 					postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
