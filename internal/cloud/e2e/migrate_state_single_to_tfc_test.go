@@ -47,8 +47,8 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
+							command:           []string{"init"},
+							expectedCmdOutput: `Should Terraform migrate your existing state?`,
 							userInput:         []string{"yes"},
 							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
@@ -96,11 +96,11 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"new-workspace", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
+								`Should Terraform migrate your existing state?`,
 								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
