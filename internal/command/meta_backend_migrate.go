@@ -569,10 +569,20 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		opts.sourceWorkspace = currentWorkspace
 
 		log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
-		// Run normal single-to-single state migration
+		// Run normal single-to-single state migration.
 		// This will handle both situations where the new cloud backend
 		// configuration is using a workspace.name strategy or workspace.tags
 		// strategy.
+		//
+		// We do prompt first though, because state migration is mandatory
+		// for moving to Cloud and the user should get an opportunity to
+		// confirm that first.
+		if migrate, err := m.promptSingleToCloudSingleStateMigration(opts); err != nil {
+			return err
+		} else if !migrate {
+			return nil //skip migrating but return successfully
+		}
+
 		return m.backendMigrateState_s_s(opts)
 	}
 
@@ -750,6 +760,23 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	m.Ui.Output(out.String())
 
 	return nil
+}
+
+func (m *Meta) promptSingleToCloudSingleStateMigration(opts *backendMigrateOpts) (bool, error) {
+	migrate := opts.force
+	if !migrate {
+		var err error
+		migrate, err = m.confirm(&terraform.InputOpts{
+			Id:          "backend-migrate-state-single-to-cloud-single",
+			Query:       "Do you wish to proceed?",
+			Description: strings.TrimSpace(tfcInputBackendMigrateStateSingleToCloudSingle),
+		})
+		if err != nil {
+			return false, fmt.Errorf("Error asking for state migration action: %s", err)
+		}
+	}
+
+	return migrate, nil
 }
 
 func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) error {
@@ -935,6 +962,19 @@ from the previous backend, you may cancel this operation and use the 'tags'
 strategy in your workspace configuration block instead.
 
 Enter "yes" to proceed or "no" to cancel.
+`
+
+const tfcInputBackendMigrateStateSingleToCloudSingle = `
+As part of migrating to Terraform Cloud, Terraform can optionally copy your
+current workspace state to the configured Terraform Cloud workspace.
+
+Answer "yes" to copy the latest state snapshot to the configured
+Terraform Cloud workspace.
+
+Answer "no" to ignore the existing state and just activate the configured
+Terraform Cloud workspace with its existing state, if any.
+
+Should Terraform migrate your existing state?
 `
 
 const tfcInputBackendMigrateRemoteMultiToCloud = `
