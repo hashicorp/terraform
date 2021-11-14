@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-func TestDecodeMovedBlock(t *testing.T) {
+func TestMovedBlock_decode(t *testing.T) {
 	blockRange := hcl.Range{
 		Filename: "mock.tf",
 		Start:    hcl.Pos{Line: 3, Column: 12, Byte: 27},
@@ -169,7 +169,7 @@ func TestDecodeMovedBlock(t *testing.T) {
 	}
 }
 
-func TestMovedBlocksInModule(t *testing.T) {
+func TestMovedBlock_inModule(t *testing.T) {
 	parser := NewParser(nil)
 	mod, diags := parser.LoadConfigDir("testdata/valid-modules/moved-blocks")
 	if diags.HasErrors() {
