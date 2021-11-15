@@ -202,9 +202,9 @@ resource "aws_subnet" "example" {
 }
 ```
 
-The `network_subnets` block in the example above creates one subnet instance per combination of network and subnet elements in the input variables. So for this example input:  
+The `network_subnets` list in the example above creates one subnet instance per combination of network and subnet elements in the input variables. So for this example input:
 
-``` hcl
+```hcl
 networks = {
   a = {
     base_cidr_block = "10.1.0.0/16"
@@ -226,57 +226,58 @@ subnets = {
 }
 ```
 
-The `nework_subnets` block output would look similar to the following:
+The `nework_subnets` output would look similar to the following:
 
-``` hcl
-{
-  "cidr_block" = "10.1.16.0/20"
-  "network_id" = "vpc-0bfb00ca6173ea5aa"
-  "network_key" = "a"
-  "subnet_key" = "a"
-},
-{
-  "cidr_block" = "10.1.32.0/20"
-  "network_id" = "vpc-0bfb00ca6173ea5aa"
-  "network_key" = "a"
-  "subnet_key" = "b"
-},
-{
-  "cidr_block" = "10.1.48.0/20"
-  "network_id" = "vpc-0bfb00ca6173ea5aa"
-  "network_key" = "a"
-  "subnet_key" = "c"
-},
-{
-  "cidr_block" = "10.2.16.0/20"
-  "network_id" = "vpc-0d193e011f6211a7d"
-  "network_key" = "b"
-  "subnet_key" = "a"
-},
-{
-  "cidr_block" = "10.2.32.0/20"
-  "network_id" = "vpc-0d193e011f6211a7d"
-  "network_key" = "b"
-  "subnet_key" = "b"
-},
-{
-  "cidr_block" = "10.2.48.0/20"
-  "network_id" = "vpc-0d193e011f6211a7d"
-  "network_key" = "b"
-  "subnet_key" = "c"
-},
+```hcl
+[
+  {
+    "cidr_block" = "10.1.16.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.1.32.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.1.48.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "c"
+  },
+  {
+    "cidr_block" = "10.2.16.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.2.32.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.2.48.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "c"
+  },
 ]
 ```
 
 ## Related Functions
 
-* [`contains`](./contains.html) tests whether a given list or set contains
+- [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
-* [`flatten`](./flatten.html) is useful for flattening hierarchical data
+- [`flatten`](./flatten.html) is useful for flattening hierarchical data
   into a single list, for situations where the relationships between two
   object types are defined explicitly.
-* [`setintersection`](./setintersection.html) computes the _intersection_ of
+- [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
-* [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets
-* [`setunion`](./setunion.html) computes the _union_ of multiple
+- [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets
+- [`setunion`](./setunion.html) computes the _union_ of multiple
   sets.
