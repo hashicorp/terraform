@@ -897,15 +897,15 @@ For example, if a workspace is currently named 'prod', the pattern 'app-*' would
 `
 
 const tfcInputBackendMigrateMultiToMulti = `
-When migrating existing workspaces from the backend %[1]q to Terraform Cloud, would you like to
-rename your workspaces?
-
 Unlike typical Terraform workspaces representing an environment associated with a particular
 configuration (e.g. production, staging, development), Terraform Cloud workspaces are named uniquely
 across all configurations used within an organization. A typical strategy to start with is
 <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, networking-staging-us-east).
 
 For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+
+When migrating existing workspaces from the backend %[1]q to Terraform Cloud, would you like to
+rename your workspaces? Enter 1 or 2.
 
 1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
 2. No, I would not like to rename my workspaces. Migrate them as currently named.

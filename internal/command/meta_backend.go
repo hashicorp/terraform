@@ -1426,7 +1426,7 @@ in your Terraform Cloud organization. To finish initializing, Terraform needs at
 least one workspace available.
 
 Terraform can create a properly tagged workspace for you now. Please enter a
-name to create a new Terraform Cloud workspace:
+name to create a new Terraform Cloud workspace.
 `
 
 const successBackendUnset = `
