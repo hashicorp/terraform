@@ -144,10 +144,7 @@ variable "subnets" {
 }
 ```
 
-If the goal is to create each of the defined subnets per each of the defined
-networks, creating the top-level networks can directly use `var.networks`
-because it's already in a form where the resulting instances match one-to-one
-with map elements:
+If the goal is to create each of the defined subnets per each of the defined networks, creating the top-level networks can directly use `var.networks` because it is already in a form where the resulting instances match one-to-one with map elements:
 
 ```hcl
 resource "aws_vpc" "example" {
@@ -157,15 +154,12 @@ resource "aws_vpc" "example" {
 }
 ```
 
-However, in order to declare all of the _subnets_ with a single `resource`
-block, we must first produce a collection whose elements represent all of
-the combinations of networks and subnets, so that each element itself
-represents a subnet:
+However, to declare all of the _subnets_ with a single `resource` block, you must first produce a collection whose elements represent all of the combinations of networks and subnets, so that each element itself represents a subnet:
 
 ```hcl
 locals {
-  # setproduct works with sets and lists, but our variables are both maps
-  # so we'll need to convert them first.
+  # setproduct works with sets and lists, but the variables are both maps
+  # so convert them first.
   networks = [
     for key, network in var.networks : {
       key        = key
@@ -187,7 +181,7 @@ locals {
       subnet_key  = pair[1].key
       network_id  = aws_vpc.example[pair[0].key].id
 
-      # The cidr_block is derived from the corresponding network. See the
+      # The cidr_block is derived from the corresponding network. Refer to the
       # cidrsubnet function for more information on how this calculation works.
       cidr_block = cidrsubnet(pair[0].cidr_block, 4, pair[1].number)
     }
@@ -195,8 +189,8 @@ locals {
 }
 
 resource "aws_subnet" "example" {
-  # local.network_subnets is a list, so we must now project it into a map
-  # where each key is unique. We'll combine the network and subnet keys to
+  # local.network_subnets is a list, so project it into a map
+  # where each key is unique. Combine the network and subnet keys to
   # produce a single unique key per instance.
   for_each = {
     for subnet in local.network_subnets : "${subnet.network_key}.${subnet.subnet_key}" => subnet
@@ -208,18 +202,82 @@ resource "aws_subnet" "example" {
 }
 ```
 
-The above results in one subnet instance per combination of network and subnet
-elements in the input variables.
+The `network_subnets` list in the example above creates one subnet instance per combination of network and subnet elements in the input variables. So for this example input:
+
+```hcl
+networks = {
+  a = {
+    base_cidr_block = "10.1.0.0/16"
+  }
+  b = {
+    base_cidr_block = "10.2.0.0/16"
+  }
+}
+subnets = {
+  a = {
+    number = 1
+  }
+  b = {
+    number = 2
+  }
+  c = {
+    number = 3
+  }
+}
+```
+
+The `nework_subnets` output would look similar to the following:
+
+```hcl
+[
+  {
+    "cidr_block" = "10.1.16.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.1.32.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.1.48.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "c"
+  },
+  {
+    "cidr_block" = "10.2.16.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.2.32.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.2.48.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "c"
+  },
+]
+```
 
 ## Related Functions
 
-* [`contains`](./contains.html) tests whether a given list or set contains
+- [`contains`](./contains.html) tests whether a given list or set contains
   a given element value.
-* [`flatten`](./flatten.html) is useful for flattening hierarchical data
+- [`flatten`](./flatten.html) is useful for flattening hierarchical data
   into a single list, for situations where the relationships between two
   object types are defined explicitly.
-* [`setintersection`](./setintersection.html) computes the _intersection_ of
+- [`setintersection`](./setintersection.html) computes the _intersection_ of
   multiple sets.
-* [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets
-* [`setunion`](./setunion.html) computes the _union_ of multiple
+- [`setsubtract`](./setsubtract.html) computes the _relative complement_ of two sets
+- [`setunion`](./setunion.html) computes the _union_ of multiple
   sets.
