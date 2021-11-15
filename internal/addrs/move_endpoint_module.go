@@ -131,7 +131,7 @@ func (e *MoveEndpointInModule) Module() Module {
 	return e.module
 }
 
-// InModuleInstance returns an AbsMovable address which concatenates the
+// InModuleInstance returns an AbsMoveable address which concatenates the
 // given module instance address with the receiver's relative object selection
 // to produce one example of an instance that might be affected by this
 // move statement.
