@@ -1,7 +1,7 @@
 ---
-layout: "language"
+layout: "docs"
 page_title: "Migrating from the remote backend"
-sidebar_current: "terraform-cloud-configuration"
+sidebar_current: "configuring-terraform-cloud"
 description: "Migrating from the remote backend"
 ---
 

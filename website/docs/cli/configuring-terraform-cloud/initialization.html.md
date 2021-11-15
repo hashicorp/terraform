@@ -1,15 +1,13 @@
 ---
-layout: "language"
+layout: "docs"
 page_title: "Configuring Terraaform Cloud"
-sidebar_current: "terraform-cloud-configuration"
-description: "Configuring Terraform Cloud"
+sidebar_current: "configuring-terraform-cloud"
 ---
 
-# Configuring Terraform Cloud
+# Initialization
 
-To enable the [CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html), a
-Terraform configuration can integrate Terraform Cloud via a special `cloud` block within the
-top-level `terraform` block, e.g.:
+To enable Terraform Cloud's [CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html), a
+special `cloud` block can be added to a Terraform configuration within the top-level `terraform` block, e.g.:
 
 ```
 terraform {
@@ -22,13 +20,15 @@ terraform {
 }
 ```
 
-Using the Cloud integration is mutually exclusive of declaring any backend; that is, a configuration
+With this configuration in place, run `terraform init`.
+
+Using the Cloud integration is mutually exclusive of declaring any [state backend](/docs/language/settings/backends/index.html); that is, a configuration
 can only declare one or the other. Similar to backends...
 
 - A configuration can only provide one cloud block.
 - A cloud block cannot refer to named values (like input variables, locals, or data source attributes).
 
-## Configuration variables
+## Configuration Options
 
 The following configuration options are supported:
 
@@ -76,7 +76,7 @@ completely separate working directory, and is typically named by both the set of
 contains as well as the deployment environment it provisions to (`networking-prod-us-east`,
 `networking-staging-us-east`, etc).
 
-**For more information on what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the general documentation on [Workspaces](/docs/language/workspaces.html).**
+**For more information on what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the general documentation on [Workspaces](/docs/language/workspaces/index.html).**
 
 ## Example Configurations
 

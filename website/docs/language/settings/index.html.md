@@ -2,7 +2,7 @@
 layout: "language"
 page_title: "Terraform Settings - Configuration Language"
 sidebar_current: "docs-config-terraform"
-description: "The terraform block allows you to configure Terraform behavior, including the Terraform version, backend, and required providers."
+description: "The terraform block allows you to configure Terraform behavior, including the Terraform version, backend, integration with Terraform Cloud, and required providers."
 ---
 
 # Terraform Settings
@@ -31,10 +31,19 @@ following sections.
 
 ## Configuring a Terraform Backend
 
-The nested `backend` block configures which backend Terraform should use.
+The nested `backend` block configures which state backend Terraform should use.
 
 The syntax and behavior of the `backend` block is described in [Backend
 Configuration](/docs/language/settings/backends/configuration.html).
+
+## Configuring Terraform Cloud
+
+The nested `cloud` block configures Terraform Cloud for enabling its
+[CLI-driven run workflow](/docs/cloud/run/cli.html).
+
+The syntax and behavior of the `cloud` block is described in [Configuring
+Terraform Cloud](/docs/cli/configuring-terraform-cloud/index.html) in the
+Terraform CLI documentation.
 
 ## Specifying a Required Terraform Version
 

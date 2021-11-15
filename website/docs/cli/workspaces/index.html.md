@@ -25,4 +25,4 @@ resources with the same configuration.
   [`terraform workspace delete`](/docs/cli/commands/workspace/delete.html) commands
   to manage the available workspaces in the current working directory.
 
-The remainder of this section explains how to manage workspaces in Terraform CLI via the `workspaces` command. **For more information what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the [Terraform Language documentation on Workspaces](/docs/language/workspaces.html).**
+The remainder of this section explains how to manage workspaces in Terraform CLI via the `workspaces` command. **For more information what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the [Terraform Language documentation on Workspaces](/docs/language/workspaces/index.html).**
