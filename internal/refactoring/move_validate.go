@@ -110,7 +110,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 				shortNoun = "resource"
 			default:
 				// The above cases should cover all of the AbsMoveable types
-				panic("unsupported AbsMovable address type")
+				panic("unsupported AbsMoveable address type")
 			}
 
 			// It's invalid to have a move statement whose "from" address
@@ -234,7 +234,7 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 		return in.HasResource(addr)
 	default:
 		// The above cases should cover all of the AbsMoveable types
-		panic("unsupported AbsMovable address type")
+		panic("unsupported AbsMoveable address type")
 	}
 }
 
@@ -309,7 +309,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		return tfdiags.SourceRangeFromHCL(rc.DeclRange), true
 	default:
 		// The above cases should cover all of the AbsMoveable types
-		panic("unsupported AbsMovable address type")
+		panic("unsupported AbsMoveable address type")
 	}
 }
 
