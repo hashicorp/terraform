@@ -24,6 +24,19 @@ var (
 	_ AbsMoveable = AbsModuleCall{}
 )
 
+// AbsMoveableResource is an AbsMoveable that is either a resource or a resource
+// instance.
+type AbsMoveableResource interface {
+	AbsMoveable
+	Type() string
+}
+
+// The following are all of the possible AbsMoveableResource types:
+var (
+	_ AbsMoveableResource = AbsResource{}
+	_ AbsMoveableResource = AbsResourceInstance{}
+)
+
 // ConfigMoveable is similar to AbsMoveable but represents a static object in
 // the configuration, rather than an instance of that object created by
 // module expansion.
