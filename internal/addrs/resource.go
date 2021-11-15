@@ -186,6 +186,10 @@ func (r AbsResource) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
+func (r AbsResource) Type() string {
+	return r.Resource.Type
+}
+
 func (r AbsResource) Equal(o AbsResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
@@ -265,6 +269,10 @@ func (r AbsResourceInstance) String() string {
 		return r.Resource.String()
 	}
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
+}
+
+func (r AbsResourceInstance) Type() string {
+	return r.Resource.Resource.Type
 }
 
 func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
