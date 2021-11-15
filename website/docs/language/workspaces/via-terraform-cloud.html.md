@@ -24,7 +24,7 @@ same workflow to the one provided by remote state backends, and managed by
 Terraform CLI via the same familiar `terraform workspace` subcommands (e.g.
 `list`, `new`, `select`).
 
-For more on configuring Terraform to use Terraform Cloud, see [TODO]().
+For more on configuring Terraform to use Terraform Cloud, see [Configuring Terraform Cloud](/docs/cli/configuring-terraform-cloud/index.html) in the Terraform CLI documentation.
 
 For more on Terraform Cloud workspaces, see the [Terraform Cloud documentation
 on workspaces](/docs/cloud/workspaces/index.html).
