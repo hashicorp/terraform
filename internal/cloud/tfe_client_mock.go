@@ -1165,13 +1165,16 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
+		options.ExecutionMode = tfe.String("local")
 	} else if options.Operations == nil {
 		options.Operations = tfe.Bool(true)
+		options.ExecutionMode = tfe.String("remote")
 	}
 	w := &tfe.Workspace{
-		ID:         GenerateID("ws-"),
-		Name:       *options.Name,
-		Operations: *options.Operations,
+		ID:            GenerateID("ws-"),
+		Name:          *options.Name,
+		ExecutionMode: *options.ExecutionMode,
+		Operations:    *options.Operations,
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueApply: true,
 			CanQueueRun:   true,
@@ -1275,6 +1278,9 @@ func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdate
 
 	if options.Operations != nil {
 		w.Operations = *options.Operations
+	}
+	if options.ExecutionMode != nil {
+		w.ExecutionMode = *options.ExecutionMode
 	}
 	if options.Name != nil {
 		w.Name = *options.Name
