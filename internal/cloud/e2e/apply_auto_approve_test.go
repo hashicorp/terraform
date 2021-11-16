@@ -1,12 +1,8 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
 	"context"
 	"io/ioutil"
-	"log"
 	"os"
 	"testing"
 
@@ -17,7 +13,7 @@ import (
 )
 
 func Test_terraform_apply_autoApprove(t *testing.T) {
-	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -183,12 +179,10 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 		},
 	}
-	for name, tc := range cases {
-		log.Println("Test: ", name)
-
+	for _, tc := range cases {
 		organization, cleanup := createOrganization(t)
 		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
+		exp, err := expect.NewConsole(defaultOpts()...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -201,7 +195,6 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 
 		tf := e2e.NewBinary(terraformBin, tmpDir)
-		tf.AddEnv("TF_LOG=info")
 		tf.AddEnv(cliConfigFileEnv)
 		defer tf.Close()
 
