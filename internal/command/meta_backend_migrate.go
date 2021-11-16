@@ -277,13 +277,13 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 		return fmt.Errorf("Migration aborted by user.")
 	}
 
-	// now switch back to the default workspace so we can acccess the new backend.
-	m.SetWorkspace(backend.DefaultStateName)
-
 	return m.backendMigrateState_s_s(opts)
 }
 
-// Single state to single state, assumed default state name.
+// Single state to single state. This function also implements all the other
+// migration strategies. It expects its caller to set opts.sourceWorkspace and
+// opts.destinationWorkspace as needed, and can handle re-setting the current
+// workspace if the source and destination don't match.
 func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	log.Printf("[INFO] backendMigrateState: single-to-single migrating %q workspace to %q workspace", opts.sourceWorkspace, opts.destinationWorkspace)
 
@@ -461,6 +461,19 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if err := destinationState.PersistState(); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
+	}
+
+	// If we just migrated the current workspace to a new name (multi to single,
+	// or any time TFC is involved), select its new name so the new backend
+	// doesn't barf when our great-grand-caller tries to grab a StateMgr.
+	currentWorkspace, err := m.Workspace()
+	if err != nil {
+		return err
+	}
+	if currentWorkspace == opts.sourceWorkspace && opts.sourceWorkspace != opts.destinationWorkspace {
+		if err = m.SetWorkspace(opts.destinationWorkspace); err != nil {
+			return err
+		}
 	}
 
 	// And we're done.
@@ -658,8 +671,11 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 		}
 	}
 
-	// After migrating multiple workspaces, we need to reselect the current workspace as it may
-	// have been renamed. Query the backend first to be sure it now exists.
+	// After migrating multiple workspaces, we need to reselect the current
+	// workspace as it may have been renamed. backendMigrateState_s_s already
+	// tried to handle this, but because this is one of the most complex migration
+	// paths, we'll do it again with some extra guards and a fallback behavior.
+	// First, query the backend to be sure the current workspace exists.
 	workspaces, err := opts.Destination.Workspaces()
 	if err != nil {
 		return err
