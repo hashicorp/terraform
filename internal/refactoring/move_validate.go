@@ -249,14 +249,13 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 }
 
 func resourceTypesDiffer(absFrom, absTo addrs.AbsMoveable) bool {
-	switch absFrom.(type) {
-	case addrs.AbsResourceInstance, addrs.AbsResource:
-		absFrom := absFrom.(addrs.AbsMoveableResource)
+	switch absFrom := absFrom.(type) {
+	case addrs.AbsMoveableResource:
 		// addrs.UnifyMoveEndpoints guarantees that both addresses are of the
 		// same kind, so at this point we can assume that absTo is also an
 		// addrs.AbsResourceInstance or addrs.AbsResource.
 		absTo := absTo.(addrs.AbsMoveableResource)
-		return absFrom.Type() != absTo.Type()
+		return absFrom.AffectedAbsResource().Resource.Type != absTo.AffectedAbsResource().Resource.Type
 	default:
 		return false
 	}
