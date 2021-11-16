@@ -186,8 +186,9 @@ func (r AbsResource) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
-func (r AbsResource) Type() string {
-	return r.Resource.Type
+// AffectedAbsResource returns the AbsResource.
+func (r AbsResource) AffectedAbsResource() AbsResource {
+	return r
 }
 
 func (r AbsResource) Equal(o AbsResource) bool {
@@ -271,8 +272,12 @@ func (r AbsResourceInstance) String() string {
 	return fmt.Sprintf("%s.%s", r.Module.String(), r.Resource.String())
 }
 
-func (r AbsResourceInstance) Type() string {
-	return r.Resource.Resource.Type
+// AffectedAbsResource returns the AbsResource for the instance.
+func (r AbsResourceInstance) AffectedAbsResource() AbsResource {
+	return AbsResource{
+		Module:   r.Module,
+		Resource: r.Resource.Resource,
+	}
 }
 
 func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {

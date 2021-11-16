@@ -28,7 +28,7 @@ var (
 // instance.
 type AbsMoveableResource interface {
 	AbsMoveable
-	Type() string
+	AffectedAbsResource() AbsResource
 }
 
 // The following are all of the possible AbsMoveableResource types:
