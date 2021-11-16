@@ -252,9 +252,9 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -512,9 +512,9 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
