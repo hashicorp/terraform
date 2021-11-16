@@ -60,7 +60,7 @@ The following configuration options / environment variables are supported:
    authentication
  * `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
    authentication
- * `token` / `TF_HTTP_TOKEN` - (Optional) "The token for token authentication
+ * `token` / `TF_HTTP_TOKEN` - (Optional) The token for token authentication
  * `token_header` / `TF_HTTP_TOKEN_HEADER` - (Optional) The HTTP header for 
    token authentication
  * `skip_cert_verification` - (Optional) Whether to skip TLS verification.
