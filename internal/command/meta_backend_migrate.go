@@ -86,12 +86,6 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	// If a multi-workspace source only *has* one state, we can act like it's single-state.
 	if len(sourceWorkspaces) == 1 {
 		sourceSingleState = true
-		// That one state is "default" in most backends, but would have some other
-		// name in TFC. Either way, if the destination allows us to choose a name,
-		// we should use whatever name the source uses.
-		if !destinationSingleState {
-			opts.destinationWorkspace = opts.sourceWorkspace
-		}
 	}
 
 	// Disregard remote Terraform version for the state source backend. If it's a
@@ -132,9 +126,12 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	case sourceSingleState && destinationSingleState:
 		return m.backendMigrateState_s_s(opts)
 
-	// Single-state to multi-state. This is easy since we just copy
-	// the one existing state and ignore the rest in the destination.
+	// Single-state to multi-state. We copy the one existing state and ignore the
+	// rest in the destination.
 	case sourceSingleState && !destinationSingleState:
+		// The destination lets us choose a name, so match the source. (TFC allows a
+		// named workspace as the only state, so this might not be "default".)
+		opts.destinationWorkspace = opts.sourceWorkspace
 		return m.backendMigrateState_s_s(opts)
 
 	// Multi-state to single-state. If the source has more than the default
