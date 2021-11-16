@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -16,7 +13,7 @@ import (
 )
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
-	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 	ctx := context.Background()
 
@@ -55,10 +52,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							expectedCmdOutput: `prod`, // this comes from the `prep` function
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions in workspace "prod"?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 					},
 				},
@@ -119,10 +114,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions in workspace "prod"?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 					},
 				},
@@ -183,10 +176,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions in workspace "prod"?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 					},
 				},
@@ -214,95 +205,93 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
-				})
+				// We created the workspace, so it will be there. We could not complete the state migration,
+				// though, so the workspace should be empty.
+				ws, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "new-workspace", &tfe.WorkspaceReadOptions{Include: "current_run"})
 				if err != nil {
 					t.Fatal(err)
 				}
-				// The migration never occured, so we have no workspaces with this tag.
-				if len(wsList.Items) != 0 {
-					t.Fatalf("Expected number of workspaces to be 0, but got %d", len(wsList.Items))
+				if ws.CurrentRun != nil {
+					t.Fatal("Expected to workspace be empty")
 				}
 			},
 		},
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer exp.Close()
+		t.Run(name, func(t *testing.T) {
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer exp.Close()
 
-		tmpDir, err := ioutil.TempDir("", "terraform-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir)
+			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(tmpDir)
 
-		tf := e2e.NewBinary(terraformBin, tmpDir)
-		defer tf.Close()
-		tf.AddEnv("TF_LOG=INFO")
-		tf.AddEnv(cliConfigFileEnv)
+			tf := e2e.NewBinary(terraformBin, tmpDir)
+			defer tf.Close()
+			tf.AddEnv(cliConfigFileEnv)
 
-		orgName, cleanup := tc.setup(t)
-		defer cleanup()
-		for _, op := range tc.operations {
-			op.prep(t, orgName, tf.WorkDir())
-			for _, tfCmd := range op.commands {
-				t.Log("Running commands: ", tfCmd.command)
-				cmd := tf.Cmd(tfCmd.command...)
-				cmd.Stdin = exp.Tty()
-				cmd.Stdout = exp.Tty()
-				cmd.Stderr = exp.Tty()
+			orgName, cleanup := tc.setup(t)
+			defer cleanup()
+			for _, op := range tc.operations {
+				op.prep(t, orgName, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
 
-				err = cmd.Start()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if tfCmd.expectedCmdOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+					err = cmd.Start()
 					if err != nil {
 						t.Fatal(err)
 					}
-				}
 
-				lenInput := len(tfCmd.userInput)
-				lenInputOutput := len(tfCmd.postInputOutput)
-				if lenInput > 0 {
-					for i := 0; i < lenInput; i++ {
-						input := tfCmd.userInput[i]
-						exp.SendLine(input)
-						// use the index to find the corresponding
-						// output that matches the input.
-						if lenInputOutput-1 >= i {
-							output := tfCmd.postInputOutput[i]
-							_, err := exp.ExpectString(output)
-							if err != nil {
-								t.Fatal(err)
+					if tfCmd.expectedCmdOutput != "" {
+						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									t.Fatal(err)
+								}
 							}
 						}
 					}
-				}
 
-				err = cmd.Wait()
-				if err != nil && !tfCmd.expectError {
-					t.Fatal(err.Error())
+					err = cmd.Wait()
+					if err != nil && !tfCmd.expectError {
+						t.Fatal(err.Error())
+					}
 				}
 			}
-		}
 
-		if tc.validations != nil {
-			tc.validations(t, orgName)
-		}
+			if tc.validations != nil {
+				tc.validations(t, orgName)
+			}
+		})
 	}
 }
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
-	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -454,7 +443,6 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 						tag := "billing"
 						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
-						t.Log(orgName)
 					},
 					commands: []tfCommand{
 						{
@@ -462,8 +450,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							expectedCmdOutput: `Would you like to rename your workspaces?`,
 							userInput:         []string{"1", "new-*", "1"},
 							postInputOutput: []string{
-								`What pattern would you like to add to all your workspaces?`,
-								`The currently selected workspace (app-staging) does not exist.`,
+								`How would you like to rename your workspaces?`,
 								`Terraform Cloud has been successfully initialized!`},
 						},
 					},
@@ -492,75 +479,73 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer exp.Close()
+		t.Run(name, func(t *testing.T) {
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer exp.Close()
 
-		tmpDir, err := ioutil.TempDir("", "terraform-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir)
+			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(tmpDir)
 
-		tf := e2e.NewBinary(terraformBin, tmpDir)
-		defer tf.Close()
-		tf.AddEnv("TF_LOG=INFO")
-		tf.AddEnv(cliConfigFileEnv)
+			tf := e2e.NewBinary(terraformBin, tmpDir)
+			defer tf.Close()
+			tf.AddEnv(cliConfigFileEnv)
 
-		orgName, cleanup := tc.setup(t)
-		defer cleanup()
-		for _, op := range tc.operations {
-			op.prep(t, orgName, tf.WorkDir())
-			for _, tfCmd := range op.commands {
-				t.Log("Running commands: ", tfCmd.command)
-				cmd := tf.Cmd(tfCmd.command...)
-				cmd.Stdin = exp.Tty()
-				cmd.Stdout = exp.Tty()
-				cmd.Stderr = exp.Tty()
+			orgName, cleanup := tc.setup(t)
+			defer cleanup()
+			for _, op := range tc.operations {
+				op.prep(t, orgName, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
 
-				err = cmd.Start()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if tfCmd.expectedCmdOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+					err = cmd.Start()
 					if err != nil {
 						t.Fatal(err)
 					}
-				}
 
-				lenInput := len(tfCmd.userInput)
-				lenInputOutput := len(tfCmd.postInputOutput)
-				if lenInput > 0 {
-					for i := 0; i < lenInput; i++ {
-						input := tfCmd.userInput[i]
-						exp.SendLine(input)
-						// use the index to find the corresponding
-						// output that matches the input.
-						if lenInputOutput-1 >= i {
-							output := tfCmd.postInputOutput[i]
-							_, err := exp.ExpectString(output)
-							if err != nil {
-								t.Fatal(err)
+					if tfCmd.expectedCmdOutput != "" {
+						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							t.Fatal(err)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									t.Fatal(err)
+								}
 							}
 						}
 					}
-				}
 
-				t.Log(cmd.Stderr)
-				err = cmd.Wait()
-				if err != nil {
-					t.Fatal(err.Error())
+					err = cmd.Wait()
+					if err != nil {
+						t.Fatal(err.Error())
+					}
 				}
 			}
-		}
 
-		if tc.validations != nil {
-			tc.validations(t, orgName)
-		}
+			if tc.validations != nil {
+				tc.validations(t, orgName)
+			}
+		})
 	}
 }
