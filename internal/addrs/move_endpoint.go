@@ -19,7 +19,7 @@ import (
 // prompt creating a different plan than Terraform would by default.
 //
 // To obtain a full address from a MoveEndpoint you must use
-// either the package function UnifyMoveEndpoints (to get an AbsMovable) or
+// either the package function UnifyMoveEndpoints (to get an AbsMoveable) or
 // the method ConfigMoveable (to get a ConfigMoveable).
 type MoveEndpoint struct {
 	// SourceRange is the location of the physical endpoint address
@@ -27,15 +27,15 @@ type MoveEndpoint struct {
 	// configuration expresson.
 	SourceRange tfdiags.SourceRange
 
-	// Internally we (ab)use AbsMovable as the representation of our
+	// Internally we (ab)use AbsMoveable as the representation of our
 	// relative address, even though everywhere else in Terraform
-	// AbsMovable always represents a fully-absolute address.
+	// AbsMoveable always represents a fully-absolute address.
 	// In practice, due to the implementation of ParseMoveEndpoint,
 	// this is always either a ModuleInstance or an AbsResourceInstance,
 	// and we only consider the possibility of interpreting it as
 	// a AbsModuleCall or an AbsResource in UnifyMoveEndpoints.
 	// This is intentionally unexported to encapsulate this unusual
-	// meaning of AbsMovable.
+	// meaning of AbsMoveable.
 	relSubject AbsMoveable
 }
 
@@ -44,7 +44,7 @@ func (e *MoveEndpoint) ObjectKind() MoveEndpointKind {
 }
 
 func (e *MoveEndpoint) String() string {
-	// Our internal pseudo-AbsMovable representing the relative
+	// Our internal pseudo-AbsMoveable representing the relative
 	// address (either ModuleInstance or AbsResourceInstance) is
 	// a good enough proxy for the relative move endpoint address
 	// serialization.
