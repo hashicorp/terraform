@@ -386,6 +386,24 @@ Each resource can have moved from only one source resource.`,
 			},
 			WantError: ``, // This is okay because the call itself is not considered to be inside the package it refers to
 		},
+		"resource type mismatch": {
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, ``,
+					`test.nonexist1`,
+					`other.single`,
+				),
+			},
+			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1 to other.single, which is a resource of a different type.`,
+		},
+		"resource instance type mismatch": {
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, ``,
+					`test.nonexist1[0]`,
+					`other.single`,
+				),
+			},
+			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1[0] to other.single, which is a resource instance of a different type.`,
+		},
 	}
 
 	for name, test := range tests {

@@ -110,7 +110,7 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 				shortNoun = "resource"
 			default:
 				// The above cases should cover all of the AbsMoveable types
-				panic("unsupported AbsMovable address type")
+				panic("unsupported AbsMoveable address type")
 			}
 
 			// It's invalid to have a move statement whose "from" address
@@ -178,6 +178,16 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 				}
 			}
 
+			// Resource types must match.
+			if resourceTypesDiffer(absFrom, absTo) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource type mismatch",
+					Detail: fmt.Sprintf(
+						"This statement declares a move from %s to %s, which is a %s of a different type.", absFrom, absTo, noun,
+					),
+				})
+			}
 		}
 	}
 
@@ -234,7 +244,20 @@ func moveableObjectExists(addr addrs.AbsMoveable, in instances.Set) bool {
 		return in.HasResource(addr)
 	default:
 		// The above cases should cover all of the AbsMoveable types
-		panic("unsupported AbsMovable address type")
+		panic("unsupported AbsMoveable address type")
+	}
+}
+
+func resourceTypesDiffer(absFrom, absTo addrs.AbsMoveable) bool {
+	switch absFrom := absFrom.(type) {
+	case addrs.AbsMoveableResource:
+		// addrs.UnifyMoveEndpoints guarantees that both addresses are of the
+		// same kind, so at this point we can assume that absTo is also an
+		// addrs.AbsResourceInstance or addrs.AbsResource.
+		absTo := absTo.(addrs.AbsMoveableResource)
+		return absFrom.AffectedAbsResource().Resource.Type != absTo.AffectedAbsResource().Resource.Type
+	default:
+		return false
 	}
 }
 
@@ -309,7 +332,7 @@ func movableObjectDeclRange(addr addrs.AbsMoveable, cfg *configs.Config) (tfdiag
 		return tfdiags.SourceRangeFromHCL(rc.DeclRange), true
 	default:
 		// The above cases should cover all of the AbsMoveable types
-		panic("unsupported AbsMovable address type")
+		panic("unsupported AbsMoveable address type")
 	}
 }
 
