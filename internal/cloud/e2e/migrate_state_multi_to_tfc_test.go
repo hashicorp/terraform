@@ -157,6 +157,77 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				}
 			},
 		},
+		"migrating multiple workspaces to cloud using name strategy; 'default' workspace is empty": {
+			operations: []operationSets{
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						tfBlock := terraformConfigLocalBackend()
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init"},
+							expectedCmdOutput: `Successfully configured the backend "local"!`,
+						},
+						{
+							command:           []string{"workspace", "new", "workspace1"},
+							expectedCmdOutput: `Created and switched to workspace "workspace1"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"workspace", "new", "workspace2"},
+							expectedCmdOutput: `Created and switched to workspace "workspace2"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+					},
+				},
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						wsName := "new-workspace"
+						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init", "-migrate-state"},
+							expectedCmdOutput: `Do you want to copy only your current workspace?`,
+							userInput:         []string{"yes", "yes"},
+							postInputOutput: []string{
+								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform Cloud has been successfully initialized!`},
+						},
+						{
+							command:     []string{"workspace", "select", "default"},
+							expectError: true,
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "workspace2"`, // this was the output of the current workspace selected before migration
+						},
+					},
+				},
+			},
+			validations: func(t *testing.T, orgName string) {
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(wsList.Items) != 1 {
+					t.Fatalf("Expected the number of workspaces to be 1, but got %d", len(wsList.Items))
+				}
+				ws := wsList.Items[0]
+				// this workspace name is what exists in the cloud backend configuration block
+				if ws.Name != "new-workspace" {
+					t.Fatalf("Expected workspace to be `new-workspace`, but is %s", ws.Name)
+				}
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -220,7 +291,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					}
 
 					err = cmd.Wait()
-					if err != nil {
+					if err != nil && !tfCmd.expectError {
 						t.Fatal(err)
 					}
 				}

@@ -622,10 +622,12 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	newCurrentWorkspace := ""
 
 	// This map is used later when doing the migration per source/destination.
-	// If a source has 'default', then we ask what the new name should be.
+	// If a source has 'default' and has state, then we ask what the new name should be.
 	// And further down when we actually run state migration for each
-	// sourc/destination workspce, we use this new name (where source is 'default')
-	// and set as destinationWorkspace.
+	// source/destination workspace, we use this new name (where source is 'default')
+	// and set as destinationWorkspace. If the default workspace does not have
+	// state we will not prompt the user for a new name because empty workspaces
+	// do not get migrated.
 	defaultNewName := map[string]string{}
 	for i := 0; i < len(sourceWorkspaces); i++ {
 		if sourceWorkspaces[i] == backend.DefaultStateName {
