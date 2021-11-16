@@ -97,9 +97,9 @@ func Test_migrate_remote_backend_name_to_tfc_name(t *testing.T) {
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -216,9 +216,9 @@ func Test_migrate_remote_backend_name_to_tfc_same_name(t *testing.T) {
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -343,9 +343,9 @@ func Test_migrate_remote_backend_name_to_tfc_name_different_org(t *testing.T) {
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -476,9 +476,9 @@ func Test_migrate_remote_backend_name_to_tfc_tags(t *testing.T) {
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -600,9 +600,9 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t 
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -616,9 +616,9 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_single_workspace(t 
 					// output that matches the input.
 					if lenInputOutput-1 >= i {
 						output := tfCmd.postInputOutput[i]
-						_, err := exp.ExpectString(output)
+						got, err := exp.ExpectString(output)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", output, err, got)
 						}
 					}
 				}
@@ -754,9 +754,9 @@ func Test_migrate_remote_backend_prefix_to_tfc_name_strategy_multi_workspace(t *
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -879,9 +879,9 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_single_workspace(t 
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
@@ -1035,9 +1035,9 @@ func Test_migrate_remote_backend_prefix_to_tfc_tags_strategy_multi_workspace(t *
 			}
 
 			if tfCmd.expectedCmdOutput != "" {
-				_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+				got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 				if err != nil {
-					t.Fatal(err)
+					t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 				}
 			}
 
