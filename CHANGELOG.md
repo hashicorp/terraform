@@ -8,6 +8,7 @@ UPGRADE NOTES:
 
     This additional check should not affect typical plugins that conform to the expectation that a plugin package's contents are immutable once released, but may affect a hypothetical in-house plugin that intentionally modifies extra files in its package directory somehow between plan and apply. If you have such a plugin, you'll need to change its approach to store those files in some other location separate from the package directory. This is a minor compatibility break motivated by increasing the assurance that plugins have not been inadvertently or maliciously modified between plan and apply.
 * `terraform state mv` will now error when legacy `-backup` or `-backup-out` options are used without the `-state` option on non-local backends. These options operate on a local state file only. Previously, these options were accepted but ignored silently when used with non-local backends. 
+* backend/azurerm: a new opt-in flag `use_microsoft_graph` is available which switches to using MSAL authentication tokens and Microsoft Graph rather than using ADAL tokens and Azure Active Directory Graph which is now [deprecated by Microsoft](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-faq). This functionality is disabled by default but will be enabled by default in a future version of Terraform. We encourage you to configure and test this setting with your own Azure AD tenant prior to Terraform 1.2. ([#29968](https://github.com/hashicorp/terraform/issues/29968))
 
 NEW FEATURES:
 
