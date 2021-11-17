@@ -670,30 +670,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 		log.Printf("[TRACE] Meta.Backend: backend configuration has changed (from type %q to type %q)", s.Backend.Type, c.Type)
 
-		initReason := ""
-		switch {
-		case c.Type == "cloud":
-			initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", s.Backend.Type)
-		case s.Backend.Type != c.Type:
-			initReason = fmt.Sprintf("Backend configuration changed from %q to %q", s.Backend.Type, c.Type)
-		default:
-			initReason = fmt.Sprintf("Backend configuration changed for %q", c.Type)
-		}
-
 		if !opts.Init {
-			if c.Type == "cloud" {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Terraform Cloud initialization required, please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
-				))
-			} else {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Backend initialization required, please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-				))
-			}
+			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
+			initReason := m.determineInitReason(s.Backend.Type, c.Type)
+
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Backend initialization required, please run \"terraform init\"",
+				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+			))
 			return nil, diags
 		}
 
@@ -719,6 +704,33 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		))
 		return nil, diags
 	}
+}
+
+func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string) string {
+	hasBackendTypeChanged := previousBackendType != currentBackendType
+	hasConfigBlockChanged := previousBackendType == currentBackendType
+
+	initReason := ""
+
+	if hasBackendTypeChanged {
+		if currentBackendType == "cloud" {
+			initReason = fmt.Sprintf("Backend configuration changed from %q to Terraform Cloud", previousBackendType)
+		} else if previousBackendType == "cloud" {
+			initReason = fmt.Sprintf("Backend configuration changed from Terraform Cloud to %q", currentBackendType)
+		} else {
+			initReason = fmt.Sprintf("Backend configuration changed from %q to %q", previousBackendType, currentBackendType)
+		}
+	}
+
+	if hasConfigBlockChanged {
+		if currentBackendType == "cloud" {
+			initReason = "Terraform Cloud configuration block changed"
+		} else {
+			initReason = "Backend configuration block changed"
+		}
+	}
+
+	return initReason
 }
 
 // backendFromState returns the initialized (not configured) backend directly
