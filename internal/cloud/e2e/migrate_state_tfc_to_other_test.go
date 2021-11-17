@@ -14,7 +14,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 	cases := map[string]struct {
 		operations []operationSets
 	}{
-		"migrate from cloud to local backend": {
+		"migrate from cloud (name) to local backend": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -27,6 +27,10 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
 						},
+						{
+							command:           []string{"apply", "-auto-approve"},
+							expectedCmdOutput: `Apply complete!`,
+						},
 					},
 				},
 				{
@@ -37,8 +41,13 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Migrating state from Terraform Cloud to another backend is not yet implemented.`,
-							expectError:       true,
+							expectedCmdOutput: `Do you want to copy existing state to the new backend?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform has been successfully initialized!`},
+						},
+						{
+							command:           []string{"apply", "-auto-approve"},
+							expectedCmdOutput: `Your infrastructure matches the configuration.`,
 						},
 					},
 				},
@@ -52,7 +61,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 			t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
-			exp, err := expect.NewConsole(defaultOpts()...)
+			exp, err := expect.NewConsole(remoteOperationsOpts()...)
 			if err != nil {
 				t.Fatal(err)
 			}

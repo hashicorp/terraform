@@ -16,6 +16,9 @@ import (
 
 const (
 	expectConsoleTimeout = 15 * time.Second
+	// Remote runs can be very slow in local dockerized TFC, so tests that do
+	// plans and applies might need to opt into a longer timeout:
+	expectRemoteOperationsTimeout = 60 * time.Second
 )
 
 type tfCommand struct {
@@ -39,6 +42,17 @@ type testCases map[string]struct {
 func defaultOpts() []expect.ConsoleOpt {
 	opts := []expect.ConsoleOpt{
 		expect.WithDefaultTimeout(expectConsoleTimeout),
+	}
+	if verboseMode {
+		opts = append(opts, expect.WithStdout(os.Stdout))
+	}
+	return opts
+}
+
+// Like defaultOpts, but with a longer timeout.
+func remoteOperationsOpts() []expect.ConsoleOpt {
+	opts := []expect.ConsoleOpt{
+		expect.WithDefaultTimeout(expectRemoteOperationsTimeout),
 	}
 	if verboseMode {
 		opts = append(opts, expect.WithStdout(os.Stdout))
