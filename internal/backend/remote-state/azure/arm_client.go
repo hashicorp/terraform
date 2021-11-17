@@ -96,13 +96,13 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	}
 
 	sender := sender.BuildSender("backend/remote-state/azure")
-	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
+	auth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
 
 	if config.UseAzureADAuthentication {
-		storageAuth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.ResourceIdentifiers.Storage)
+		storageAuth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.ResourceIdentifiers.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -118,18 +118,6 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	client.groupsClient = &groupsClient
 
 	return &client, nil
-}
-
-func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
-	// TODO: can we remove this?
-	// https://github.com/hashicorp/terraform/issues/27156
-	if config.CustomResourceManagerEndpoint != "" {
-		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
-		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
-	}
-
-	log.Printf("[DEBUG] Loading Environment %q", config.Environment)
-	return authentication.DetermineEnvironment(config.Environment)
 }
 
 func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
