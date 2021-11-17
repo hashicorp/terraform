@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/manicminer/hamilton/environments"
+
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 
@@ -84,6 +86,7 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		SupportsClientCertAuth:         true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
+		UseMicrosoftGraph:              config.UseMicrosoftGraph,
 	}
 	armConfig, err := builder.Build()
 	if err != nil {
@@ -95,18 +98,43 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return nil, err
 	}
 
-	sender := sender.BuildSender("backend/remote-state/azure")
-	auth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.TokenAudience)
+	hamiltonEnv, err := environments.EnvironmentFromString(config.Environment)
 	if err != nil {
 		return nil, err
 	}
 
-	if config.UseAzureADAuthentication {
-		storageAuth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.ResourceIdentifiers.Storage)
+	sender := sender.BuildSender("backend/remote-state/azure")
+	var auth autorest.Authorizer
+	if builder.UseMicrosoftGraph {
+		log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Resource Manager..")
+		auth, err = armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
 		if err != nil {
 			return nil, err
 		}
-		client.azureAdStorageAuth = &storageAuth
+	} else {
+		log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Resource Manager..")
+		auth, err = armConfig.GetADALToken(ctx, sender, oauthConfig, env.TokenAudience)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if config.UseAzureADAuthentication {
+		if builder.UseMicrosoftGraph {
+			log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Storage..")
+			storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
+			if err != nil {
+				return nil, err
+			}
+			client.azureAdStorageAuth = &storageAuth
+		} else {
+			log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Storage..")
+			storageAuth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.ResourceIdentifiers.Storage)
+			if err != nil {
+				return nil, err
+			}
+			client.azureAdStorageAuth = &storageAuth
+		}
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
