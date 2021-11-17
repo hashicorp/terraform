@@ -11,7 +11,7 @@ import (
 
 func Test_backend_apply_before_init(t *testing.T) {
 	skipIfMissingEnvVar(t)
-	t.Parallel()
+	// t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	cases := map[string]struct {
@@ -74,7 +74,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -130,6 +130,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 							}
 						}
 					}
+
 					err = cmd.Wait()
 					if err != nil && !tfCmd.expectError {
 						t.Fatal(err)
