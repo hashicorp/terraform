@@ -291,6 +291,6 @@ When authenticating using a Service Principal with a Client Secret - the followi
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
-* `use_microsoft_graph` - (Optional) Should Microsoft Graph (MSAL) be used instead of Azure Active Directory Graph (ADAL) for authentication? Defaults to `false`.
+* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `false`.
 
 -> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default.
