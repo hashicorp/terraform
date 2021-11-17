@@ -65,34 +65,6 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendManagedServiceIdentityBasic(t *testing.T) {
-	testAccAzureBackendRunningInAzure(t)
-	rs := acctest.RandString(4)
-	res := testResourceNames(rs, "testState")
-	armClient := buildTestClient(t, res)
-
-	ctx := context.TODO()
-	err := armClient.buildTestResources(ctx, &res)
-	defer armClient.destroyTestResources(ctx, res)
-	if err != nil {
-		t.Fatalf("Error creating Test Resources: %q", err)
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
-		"storage_account_name": res.storageAccountName,
-		"container_name":       res.storageContainerName,
-		"key":                  res.storageKeyName,
-		"resource_group_name":  res.resourceGroup,
-		"use_msi":              true,
-		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
-		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
-		"environment":          os.Getenv("ARM_ENVIRONMENT"),
-		"endpoint":             os.Getenv("ARM_ENDPOINT"),
-	})).(*Backend)
-
-	backend.TestBackendStates(t, b)
-}
-
 func TestBackendSASTokenBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
@@ -123,7 +95,7 @@ func TestBackendSASTokenBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendAzureADAuthBasic(t *testing.T) {
+func TestBackendADALAzureADAuthBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -151,7 +123,35 @@ func TestBackendAzureADAuthBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalClientCertificateBasic(t *testing.T) {
+func TestBackendADALManagedServiceIdentityBasic(t *testing.T) {
+	testAccAzureBackendRunningInAzure(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
+		"use_msi":              true,
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestBackendADALServicePrincipalClientCertificateBasic(t *testing.T) {
 	testAccAzureBackend(t)
 
 	clientCertPassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
@@ -188,7 +188,7 @@ func TestBackendServicePrincipalClientCertificateBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalClientSecretBasic(t *testing.T) {
+func TestBackendADALServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -217,7 +217,7 @@ func TestBackendServicePrincipalClientSecretBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
+func TestBackendADALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	testAccAzureBackend(t)
 
 	// this is only applicable for Azure Stack.
