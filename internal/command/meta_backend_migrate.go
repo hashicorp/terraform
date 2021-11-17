@@ -387,8 +387,18 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// We have existing state moving into no state. Ask the user if
 	// they'd like to do this.
 	case !source.Empty() && destination.Empty():
-		log.Print("[TRACE] backendMigrateState: destination workspace has empty state, so might copy source workspace state")
-		confirmFunc = m.backendMigrateEmptyConfirm
+		if opts.SourceType == "cloud" || opts.DestinationType == "cloud" {
+			// HACK: backendMigrateTFC has its own earlier prompt for
+			// whether to migrate state in the cloud case, so we'll skip
+			// this later prompt for Cloud, even though we do still need it
+			// for state backends.
+			confirmFunc = func(statemgr.Full, statemgr.Full, *backendMigrateOpts) (bool, error) {
+				return true, nil // the answer is implied to be "yes" if we reached this point
+			}
+		} else {
+			log.Print("[TRACE] backendMigrateState: destination workspace has empty state, so might copy source workspace state")
+			confirmFunc = m.backendMigrateEmptyConfirm
+		}
 
 	// Both states are non-empty, meaning we need to determine which
 	// state should be used and update accordingly.
