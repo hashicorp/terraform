@@ -713,7 +713,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 		case previousBackendType != currentBackendType:
 			initReason = fmt.Sprintf("Backend type changed from %q to %q", previousBackendType, currentBackendType)
 		default:
-			initReason = fmt.Sprintf("Backend configuration block has changed")
+			initReason = "Backend configuration block has changed"
 		}
 	}
 
