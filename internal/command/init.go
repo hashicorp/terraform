@@ -1048,14 +1048,16 @@ Options:
 
                           aliases: -cloud=false
 
-  -backend-config=path    This can be either a path to an HCL file with key/value
+  -backend-config=path    Configuration to be merged with what is in the
+                          configuration file's 'backend' block. This can be
+                          either a path to an HCL file with key/value
                           assignments (same format as terraform.tfvars) or a
-                          'key=value' format. This is merged with what is in the
-                          configuration file. This can be specified multiple
+                          'key=value' format, and can be specified multiple
                           times. The backend type must be in the configuration
                           itself.
 
-  -force-copy             Suppress prompts about copying state data. This is
+  -force-copy             Suppress prompts about copying state data when
+                          initializating a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
                           prompts.
 
@@ -1064,9 +1066,9 @@ Options:
 
   -get=false              Disable downloading modules for this configuration.
 
-  -input=false            Disable prompting for missing backend configuration
-                          values. This will result in an error if the backend
-                          configuration is not fully specified.
+  -input=false            Disable interactive prompts. Note that some actions may
+                          require interactive prompts and will error if input is
+                          disabled.
 
   -lock=false             Don't hold a state lock during backend migration.
                           This is dangerous if others might concurrently run
@@ -1081,10 +1083,10 @@ Options:
                           automatic installation of plugins. This flag can be used
                           multiple times.
 
-  -reconfigure            Reconfigure the backend, ignoring any saved
+  -reconfigure            Reconfigure a backend, ignoring any saved
                           configuration.
 
-  -migrate-state          Reconfigure the backend, and attempt to migrate any
+  -migrate-state          Reconfigure a backend, and attempt to migrate any
                           existing state.
 
   -upgrade                Install the latest module and provider versions
@@ -1095,8 +1097,12 @@ Options:
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
 
-  -ignore-remote-version  A rare option used for the remote backend only. See
-                          the remote backend documentation for more information.
+  -ignore-remote-version  A rare option used for Terraform Cloud and the remote backend
+                          only. Set this to ignore checking that the local and remote
+                          Terraform versions use compatible state representations, making
+                          an operation proceed even when there is a potential mismatch.
+                          See the documentation on configuring Terraform with
+                          Terraform Cloud for more information.
 
 `
 	return strings.TrimSpace(helpText)
