@@ -13,8 +13,10 @@ import (
 )
 
 func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
+	t.Parallel()
 	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
+
 	ctx := context.Background()
 
 	cases := map[string]struct {
@@ -219,16 +221,18 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
+		tc := tc // rebind tc into this lexical scope
+		t.Run(name, func(subtest *testing.T) {
+			subtest.Parallel()
 			exp, err := expect.NewConsole(defaultOpts()...)
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer exp.Close()
 
 			tmpDir, err := ioutil.TempDir("", "terraform-test")
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer os.RemoveAll(tmpDir)
 
@@ -248,13 +252,13 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 
 					err = cmd.Start()
 					if err != nil {
-						t.Fatal(err)
+						subtest.Fatal(err)
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
 						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -270,7 +274,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 								output := tfCmd.postInputOutput[i]
 								_, err := exp.ExpectString(output)
 								if err != nil {
-									t.Fatal(err)
+									subtest.Fatal(err)
 								}
 							}
 						}
@@ -278,7 +282,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 
 					err = cmd.Wait()
 					if err != nil && !tfCmd.expectError {
-						t.Fatal(err.Error())
+						subtest.Fatal(err.Error())
 					}
 				}
 			}
@@ -291,6 +295,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 }
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
+	t.Parallel()
 	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
@@ -464,16 +469,18 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
+		tc := tc // rebind tc into this lexical scope
+		t.Run(name, func(subtest *testing.T) {
+			subtest.Parallel()
 			exp, err := expect.NewConsole(defaultOpts()...)
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer exp.Close()
 
 			tmpDir, err := ioutil.TempDir("", "terraform-test")
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer os.RemoveAll(tmpDir)
 
@@ -493,13 +500,13 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 
 					err = cmd.Start()
 					if err != nil {
-						t.Fatal(err)
+						subtest.Fatal(err)
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
 						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -515,7 +522,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 								output := tfCmd.postInputOutput[i]
 								_, err := exp.ExpectString(output)
 								if err != nil {
-									t.Fatal(err)
+									subtest.Fatal(err)
 								}
 							}
 						}
@@ -523,7 +530,7 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 
 					err = cmd.Wait()
 					if err != nil {
-						t.Fatal(err.Error())
+						subtest.Fatal(err.Error())
 					}
 				}
 			}

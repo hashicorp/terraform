@@ -10,8 +10,8 @@ import (
 )
 
 func Test_init_with_empty_tags(t *testing.T) {
+	t.Parallel()
 	skipIfMissingEnvVar(t)
-	// t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	cases := map[string]struct {
@@ -39,20 +39,20 @@ func Test_init_with_empty_tags(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		tc := tc
-		t.Run(name, func(t *testing.T) {
-			// t.Parallel()
+		tc := tc // rebind tc into this lexical scope
+		t.Run(name, func(subtest *testing.T) {
+			subtest.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer exp.Close()
 
 			tmpDir, err := ioutil.TempDir("", "terraform-test")
 			if err != nil {
-				t.Fatal(err)
+				subtest.Fatal(err)
 			}
 			defer os.RemoveAll(tmpDir)
 
@@ -70,13 +70,13 @@ func Test_init_with_empty_tags(t *testing.T) {
 
 					err = cmd.Start()
 					if err != nil {
-						t.Fatal(err)
+						subtest.Fatal(err)
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
 						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -92,14 +92,14 @@ func Test_init_with_empty_tags(t *testing.T) {
 								output := tfCmd.postInputOutput[i]
 								_, err := exp.ExpectString(output)
 								if err != nil {
-									t.Fatal(err)
+									subtest.Fatal(err)
 								}
 							}
 						}
 					}
 					err = cmd.Wait()
 					if err != nil && !tfCmd.expectError {
-						t.Fatal(err)
+						subtest.Fatal(err)
 					}
 				}
 			}
