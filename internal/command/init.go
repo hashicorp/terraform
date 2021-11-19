@@ -378,6 +378,15 @@ func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be 
 		return nil, true, diags
 	}
 
+	if c.Meta.input == false {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command-line option",
+			"The Terraform Cloud integration requires user interactivity.",
+		))
+		return nil, true, diags
+	}
+
 	backendConfig := root.CloudConfig.ToBackendConfig()
 
 	opts := &BackendOpts{
