@@ -2822,6 +2822,10 @@ func TestResourceChange_nestedSet(t *testing.T) {
 						"mount_point": cty.StringVal("/var/diska"),
 						"size":        cty.NullVal(cty.String),
 					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("100GB"),
+					}),
 				}),
 				"root_block_device": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -2837,6 +2841,10 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"mount_point": cty.StringVal("/var/diska"),
 						"size":        cty.StringVal("50GB"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("100GB"),
 					}),
 				}),
 				"root_block_device": cty.SetVal([]cty.Value{
@@ -2859,6 +2867,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
           - {
             - mount_point = "/var/diska" -> null
           },
+          # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
