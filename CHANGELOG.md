@@ -40,6 +40,7 @@ BUG FIXES:
 * cli: Blocks using SchemaConfigModeAttr in the provider SDK can now represented in the plan json output ([#29522](https://github.com/hashicorp/terraform/issues/29522))
 * cli: Prevent applying a stale planfile when there was no previous state ([#29755](https://github.com/hashicorp/terraform/issues/29755))
 * cli: Improve list nested attribute rendering ([#29827](https://github.com/hashicorp/terraform/issues/29827))
+* cli: Improve set nested attribute rendering ([#29983](https://github.com/hashicorp/terraform/issues/29983))
 * command: Fixed an issue where the backend cache hash value was being updated too early in backend initialization/migrate flows, causing situations where `init` would not properly restart a backend migration process if that process failed previously. ([#29860](https://github.com/hashicorp/terraform/issues/29860))
 
 ## Previous Releases
