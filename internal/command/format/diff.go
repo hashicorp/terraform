@@ -569,6 +569,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 
 		p.buf.WriteString(" = [")
 
+		var unchanged int
+
 		for it := all.ElementIterator(); it.Next(); {
 			_, val := it.Element()
 			var action plans.Action
@@ -598,23 +600,29 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				newValue = val
 			}
 
+			if action == plans.NoOp {
+				unchanged++
+				continue
+			}
+
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+4))
 			p.writeActionSymbol(action)
 			p.buf.WriteString("{")
 
-			if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+			if p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1]) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
 
 			path := append(path, cty.IndexStep{Key: val})
-			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
 
 			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString(strings.Repeat(" ", indent+6))
 			p.buf.WriteString("},")
 		}
 		p.buf.WriteString("\n")
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
