@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -34,13 +35,14 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule, flagLockfile string
-	var flagBackend, flagGet, flagUpgrade bool
+	var flagBackend, flagCloud, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
+	cmdFlags.BoolVar(&flagCloud, "cloud", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
@@ -56,6 +58,19 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	backendFlagSet := arguments.FlagIsSet(cmdFlags, "backend")
+	cloudFlagSet := arguments.FlagIsSet(cmdFlags, "cloud")
+
+	switch {
+	case backendFlagSet && cloudFlagSet:
+		c.Ui.Error("The -backend and -cloud options are aliases of one another and mutually-exclusive in their use")
+		return 1
+	case backendFlagSet:
+		flagCloud = flagBackend
+	case cloudFlagSet:
+		flagBackend = flagCloud
 	}
 
 	if c.migrateState && c.reconfigure {
@@ -212,7 +227,7 @@ func (c *InitCommand) Run(args []string) int {
 	var back backend.Backend
 
 	switch {
-	case config.Module.CloudConfig != nil:
+	case flagCloud && config.Module.CloudConfig != nil:
 		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
@@ -992,6 +1007,7 @@ func (c *InitCommand) AutocompleteArgs() complete.Predictor {
 func (c *InitCommand) AutocompleteFlags() complete.Flags {
 	return complete.Flags{
 		"-backend":        completePredictBoolean,
+		"-cloud":          completePredictBoolean,
 		"-backend-config": complete.PredictFiles("*.tfvars"), // can also be key=value, but we can't "predict" that
 		"-force-copy":     complete.PredictNothing,
 		"-from-module":    completePredictModuleSource,
@@ -1026,8 +1042,11 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend initialization for this configuration
-                          and use the previously initialized backend instead.
+  -backend=false          Disable backend or Terraform Cloud initialization for
+                          this configuration and use what what was previously
+                          initialized instead.
+
+                          aliases: -cloud=false
 
   -backend-config=path    This can be either a path to an HCL file with key/value
                           assignments (same format as terraform.tfvars) or a
