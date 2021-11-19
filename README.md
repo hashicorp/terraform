@@ -2,6 +2,7 @@ Terraform
 =========
 
 - Website: https://www.terraform.io
+
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
 
 <img alt="Terraform" src="https://www.terraform.io/assets/images/logo-hashicorp-3f10732f.svg" width="600px">
