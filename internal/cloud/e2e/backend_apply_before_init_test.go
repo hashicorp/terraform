@@ -11,7 +11,7 @@ import (
 
 func Test_backend_apply_before_init(t *testing.T) {
 	skipIfMissingEnvVar(t)
-	t.Parallel()
+	// t.Parallel()
 	skipWithoutRemoteTerraformVersion(t)
 
 	cases := map[string]struct {
@@ -28,7 +28,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required, please run "terraform init"`,
+							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
 							expectError:       true,
 						},
 					},
@@ -62,7 +62,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required, please run "terraform init"`,
+							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
 							expectError:       true,
 						},
 					},
@@ -74,7 +74,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -107,9 +107,9 @@ func Test_backend_apply_before_init(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -130,6 +130,7 @@ func Test_backend_apply_before_init(t *testing.T) {
 							}
 						}
 					}
+
 					err = cmd.Wait()
 					if err != nil && !tfCmd.expectError {
 						t.Fatal(err)

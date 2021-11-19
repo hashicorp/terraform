@@ -60,12 +60,10 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -127,12 +125,10 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -195,12 +191,10 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:     []string{"workspace", "select", "default"},
@@ -233,7 +227,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -266,9 +260,9 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -364,7 +358,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
@@ -469,7 +463,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
@@ -521,7 +515,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -554,9 +548,9 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 

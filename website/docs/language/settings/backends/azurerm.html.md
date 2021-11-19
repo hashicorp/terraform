@@ -13,6 +13,8 @@ description: |-
 
 Stores the state as a Blob with the given Key within the Blob Container within [the Blob Storage Account](https://docs.microsoft.com/en-us/azure/storage/common/storage-introduction). This backend also supports state locking and consistency checking via native capabilities of Azure Blob Storage.
 
+-> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default. 
+
 ## Example Configuration
 
 When authenticating using the Azure CLI or a Service Principal (either with a Client Certificate or a Client Secret):
@@ -219,11 +221,15 @@ When authenticating using the Managed Service Identity (MSI) - the following fie
 
 * `resource_group_name` - (Required) The Name of the Resource Group in which the Storage Account exists.
 
+* `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
+* 
 * `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
-* `msi_endpoint` - (Optional) The path to a custom Managed Service Identity endpoint which is automatically determined if not specified. This can also be sourced from the `ARM_MSI_ENDPOINT` environment variable.
+* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `false`.
+
+-> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default.
 
 * `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
 
@@ -247,6 +253,10 @@ When authenticating using AzureAD Authentication - the following fields are also
 
 -> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
+* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `false`.
+
+-> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default.
+
 ---
 
 When authenticating using a Service Principal with a Client Certificate - the following fields are also supported:
@@ -263,6 +273,10 @@ When authenticating using a Service Principal with a Client Certificate - the fo
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
+* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `false`.
+
+-> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default.
+
 ---
 
 When authenticating using a Service Principal with a Client Secret - the following fields are also supported:
@@ -276,3 +290,7 @@ When authenticating using a Service Principal with a Client Secret - the followi
 * `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
+
+* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `false`.
+
+-> **Note:** By default the Azure Backend uses ADAL for authentication which is deprecated in favour of MSAL - MSAL can be used by setting `use_microsoft_graph` to `true`. **The default for this will change in Terraform 1.2**, so that MSAL authentication is used by default.

@@ -47,10 +47,12 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							command:           []string{"init"},
+							expectedCmdOutput: `Migrating from backend "local" to Terraform Cloud.`,
+							userInput:         []string{"yes", "yes"},
+							postInputOutput: []string{
+								`Should Terraform migrate your existing state?`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -96,11 +98,12 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							userInput:         []string{"new-workspace", "yes"},
+							command:           []string{"init"},
+							expectedCmdOutput: `Migrating from backend "local" to Terraform Cloud.`,
+							userInput:         []string{"yes", "new-workspace", "yes"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
+								`Should Terraform migrate your existing state?`,
+								`Terraform Cloud requires all workspaces to be given an explicit name.`,
 								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
@@ -128,7 +131,7 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -161,9 +164,9 @@ func Test_migrate_single_to_tfc(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 

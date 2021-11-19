@@ -36,7 +36,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Migrating state from Terraform Cloud to another backend is not yet implemented.`,
 							expectError:       true,
 						},
@@ -49,7 +49,7 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 	for name, tc := range cases {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
-			t.Parallel()
+			// t.Parallel()
 			organization, cleanup := createOrganization(t)
 			defer cleanup()
 			exp, err := expect.NewConsole(defaultOpts()...)
@@ -82,9 +82,9 @@ func Test_migrate_tfc_to_other(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 

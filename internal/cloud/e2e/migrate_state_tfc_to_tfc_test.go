@@ -69,10 +69,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy existing state to Terraform Cloud?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							command:         []string{"init", "-ignore-remote-version"},
+							postInputOutput: []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -127,11 +125,11 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							userInput:         []string{"new-workspace", "yes"},
+							command:           []string{"init", "-ignore-remote-version"},
+							expectedCmdOutput: `There are no workspaces with the configured tags (app)`,
+							userInput:         []string{"new-workspace"},
 							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
+								`Terraform can create a properly tagged workspace for you now.`,
 								`Terraform Cloud has been successfully initialized!`},
 						},
 						{
@@ -196,10 +194,12 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							expectError:       true,
-							userInput:         []string{"new-workspace", "yes"},
+							command:           []string{"init"},
+							expectedCmdOutput: `There are no workspaces with the configured tags (app)`,
+							userInput:         []string{"new-workspace"},
+							postInputOutput: []string{
+								`Terraform can create a properly tagged workspace for you now.`,
+								`Terraform Cloud has been successfully initialized!`},
 						},
 					},
 				},
@@ -252,9 +252,9 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 
@@ -341,10 +341,8 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 							expectedCmdOutput: `Switched to workspace "app-staging".`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions in workspace "app-staging"?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"output"},
@@ -367,20 +365,13 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							command:           []string{"init", "-ignore-remote-version"},
+							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							postInputOutput:   []string{`tag_val = "service"`},
 						},
 						{
 							command:           []string{"workspace", "show"},
 							expectedCmdOutput: `service`, // this comes from the `prep` function
-						},
-						{
-							command:           []string{"output"},
-							expectedCmdOutput: `tag_val = "app"`,
 						},
 					},
 				},
@@ -446,12 +437,10 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state", "-ignore-remote-version"},
-							expectedCmdOutput: `Would you like to rename your workspaces?`,
-							userInput:         []string{"1", "new-*", "1"},
-							postInputOutput: []string{
-								`How would you like to rename your workspaces?`,
-								`Terraform Cloud has been successfully initialized!`},
+							command:           []string{"init", "-ignore-remote-version"},
+							expectedCmdOutput: `There are no workspaces with the configured tags (billing)`,
+							userInput:         []string{"new-app-prod"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 					},
 				},
@@ -463,16 +452,12 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if len(wsList.Items) != 2 {
+				if len(wsList.Items) != 1 {
 					t.Logf("Expected the number of workspaces to be 2, but got %d", len(wsList.Items))
 				}
 				_, empty := getWorkspace(wsList.Items, "new-app-prod")
 				if empty {
 					t.Fatalf("expected workspaces to include 'new-app-prod' but didn't.")
-				}
-				_, empty = getWorkspace(wsList.Items, "new-app-staging")
-				if empty {
-					t.Fatalf("expected workspaces to include 'new-app-staging' but didn't.")
 				}
 			},
 		},
@@ -512,9 +497,9 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 					}
 
 					if tfCmd.expectedCmdOutput != "" {
-						_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
 						if err != nil {
-							t.Fatal(err)
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
 						}
 					}
 

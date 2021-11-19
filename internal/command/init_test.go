@@ -17,6 +17,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -935,6 +937,318 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	if state.Backend.Hash == backendHash {
 		t.Fatal("state.Backend.Hash was not updated")
 	}
+}
+
+func TestInit_backendCloudInvalidOptions(t *testing.T) {
+	// There are various "terraform init" options that are only for
+	// traditional backends and not applicable to Terraform Cloud mode.
+	// For those, we want to return an explicit error rather than
+	// just silently ignoring them, so that users will be aware that
+	// Cloud mode has more of an expected "happy path" than the
+	// less-vertically-integrated backends do, and to avoid these
+	// unapplicable options becoming compatibility constraints for
+	// future evolution of Cloud mode.
+
+	// We use the same starting fixture for all of these tests, but some
+	// of them will customize it a bit as part of their work.
+	setupTempDir := func(t *testing.T) func() {
+		t.Helper()
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-cloud-simple"), td)
+		unChdir := testChdir(t, td)
+		return func() {
+			unChdir()
+			os.RemoveAll(td)
+		}
+	}
+
+	// Some of the tests need a non-empty placeholder state file to work
+	// with.
+	fakeState := states.BuildState(func(cb *states.SyncState) {
+		// Having a root module output value should be enough for this
+		// state file to be considered "non-empty" and thus a candidate
+		// for migration.
+		cb.SetOutputValue(
+			addrs.OutputValue{Name: "a"}.Absolute(addrs.RootModuleInstance),
+			cty.True,
+			false,
+		)
+	})
+	fakeStateFile := &statefile.File{
+		Lineage:          "boop",
+		Serial:           4,
+		TerraformVersion: version.Must(version.NewVersion("1.0.0")),
+		State:            fakeState,
+	}
+	var fakeStateBuf bytes.Buffer
+	err := statefile.WriteForTest(fakeStateFile, &fakeStateBuf)
+	if err != nil {
+		t.Error(err)
+	}
+	fakeStateBytes := fakeStateBuf.Bytes()
+
+	t.Run("-backend-config", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have -backend-config as a pragmatic way to dynamically set
+		// certain settings of backends that tend to vary depending on
+		// where Terraform is running, such as AWS authentication profiles
+		// that are naturally local only to the machine where Terraform is
+		// running. Those needs don't apply to Terraform Cloud, because
+		// the remote workspace encapsulates all of the details of how
+		// operations and state work in that case, and so the Cloud
+		// configuration is only about which workspaces we'll be working
+		// with.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-backend-config=anything"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -backend-config=... command line option is only for state backends, and
+is not applicable to Terraform Cloud-based configurations.
+
+To change the set of workspaces associated with this configuration, edit the
+Cloud configuration block in the root module.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-reconfigure", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// The -reconfigure option was originally imagined as a way to force
+		// skipping state migration when migrating between backends, but it
+		// has a historical flaw that it doesn't work properly when the
+		// initial situation is the implicit local backend with a state file
+		// present. The Terraform Cloud migration path has some additional
+		// steps to take care of more details automatically, and so
+		// -reconfigure doesn't really make sense in that context, particularly
+		// with its design bug with the handling of the implicit local backend.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-reconfigure"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -reconfigure option is for in-place reconfiguration of state backends
+only, and is not needed when changing Terraform Cloud settings.
+
+When using Terraform Cloud, initialization automatically activates any new
+Cloud configuration settings.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-reconfigure when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-reconfigure"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -reconfigure option is unsupported when migrating to Terraform Cloud,
+because activating Terraform Cloud involves some additional steps.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-migrate-state", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// In Cloud mode, migrating in or out always proposes migrating state
+		// and changing configuration while staying in cloud mode never migrates
+		// state, so this special option isn't relevant.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-migrate-state"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -migrate-state option is for migration between state backends only, and
+is not applicable when using Terraform Cloud.
+
+State storage is handled automatically by Terraform Cloud and so the state
+storage location is not configurable.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-migrate-state when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-migrate-state"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -migrate-state option is for migration between state backends only, and
+is not applicable when using Terraform Cloud.
+
+Terraform Cloud migration has additional steps, configured by interactive
+prompts.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-force-copy", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// In Cloud mode, migrating in or out always proposes migrating state
+		// and changing configuration while staying in cloud mode never migrates
+		// state, so this special option isn't relevant.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-force-copy"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -force-copy option is for migration between state backends only, and is
+not applicable when using Terraform Cloud.
+
+State storage is handled automatically by Terraform Cloud and so the state
+storage location is not configurable.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-force-copy when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-force-copy"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -force-copy option is for migration between state backends only, and is
+not applicable when using Terraform Cloud.
+
+Terraform Cloud migration has additional steps, configured by interactive
+prompts.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+
 }
 
 // make sure inputFalse stops execution on migrate
