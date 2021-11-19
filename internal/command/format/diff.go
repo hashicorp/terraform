@@ -615,14 +615,14 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			}
 
 			path := append(path, cty.IndexStep{Key: val})
-			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
 
 			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString(strings.Repeat(" ", indent+6))
 			p.buf.WriteString("},")
 		}
 		p.buf.WriteString("\n")
-		p.writeSkippedElems(unchanged, indent+4)
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
