@@ -461,10 +461,10 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
-		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result)
-		p.writeSkippedAttr(result.skippedAttributes, indent+4)
+		p.writeAttrsDiff(objS.Attributes, old, new, indent+4, path, result)
+		p.writeSkippedAttr(result.skippedAttributes, indent+6)
 		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 
 	case configschema.NestingList:
@@ -690,15 +690,15 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				}
 
 				path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
-				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
-				p.writeSkippedAttr(result.skippedAttributes, indent+8)
+				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
+				p.writeSkippedAttr(result.skippedAttributes, indent+10)
 				p.buf.WriteString("\n")
-				p.buf.WriteString(strings.Repeat(" ", indent+4))
+				p.buf.WriteString(strings.Repeat(" ", indent+6))
 				p.buf.WriteString("},\n")
 			}
 		}
 
-		p.writeSkippedElems(unchanged, indent+4)
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 		if !new.IsKnown() {
