@@ -1310,7 +1310,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	errMsg := ui.ErrorWriter.String()
-	if !strings.Contains(errMsg, "input disabled") {
+	if !strings.Contains(errMsg, "interactive input is disabled") {
 		t.Fatal("expected input disabled error, got", errMsg)
 	}
 
