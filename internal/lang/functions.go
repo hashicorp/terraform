@@ -57,6 +57,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"contains":         stdlib.ContainsFunc,
 			"csvdecode":        stdlib.CSVDecodeFunc,
 			"defaults":         s.experimentalFunction(experiments.ModuleVariableOptionalAttrs, funcs.DefaultsFunc),
+			"direxists":        funcs.MakeDirExistsFunc(s.BaseDir),
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,

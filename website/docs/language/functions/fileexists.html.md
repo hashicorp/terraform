@@ -35,3 +35,4 @@ fileexists("custom-section.sh") ? file("custom-section.sh") : local.default_cont
 ## Related Functions
 
 * [`file`](./file.html) reads the contents of a file at a given path
+* [`direxists`](./direxists.html) determines whether a directory exists at a given path

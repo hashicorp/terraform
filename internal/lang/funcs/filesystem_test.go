@@ -236,6 +236,49 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
+func TestDirExists(t *testing.T) {
+	tests := []struct {
+		Path cty.Value
+		Want cty.Value
+		Err  bool
+	}{
+		{
+			cty.StringVal("testdata/subdirectory"),
+			cty.BoolVal(true),
+			false,
+		},
+		{
+			cty.StringVal("testdata/missing"),
+			cty.BoolVal(false),
+			false, // no directory exists
+		},
+		{
+			cty.StringVal("testdata/hello.txt"),
+			cty.BoolVal(false),
+			true, // is a file
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("DirExists(\".\", %#v)", test.Path), func(t *testing.T) {
+			got, err := DirExists(".", test.Path)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestFileSet(t *testing.T) {
 	tests := []struct {
 		Path    cty.Value

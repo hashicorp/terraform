@@ -303,6 +303,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"direxists": {
+			{
+				`direxists("subdirectory")`,
+				cty.BoolVal(true),
+			},
+		},
+
 		"dirname": {
 			{
 				`dirname("testdata/hello.txt")`,

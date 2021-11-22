@@ -193,19 +193,7 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 		Type: function.StaticReturnType(cty.Bool),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			path := args[0].AsString()
-			path, err := homedir.Expand(path)
-			if err != nil {
-				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to expand ~: %s", err)
-			}
-
-			if !filepath.IsAbs(path) {
-				path = filepath.Join(baseDir, path)
-			}
-
-			// Ensure that the path is canonical for the host OS
-			path = filepath.Clean(path)
-
-			fi, err := os.Stat(path)
+			fi, err := getFileStat(baseDir, path)
 			if err != nil {
 				if os.IsNotExist(err) {
 					return cty.False, nil
@@ -218,6 +206,37 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 			}
 
 			return cty.False, fmt.Errorf("%s is not a regular file, but %q",
+				path, fi.Mode().String())
+		},
+	})
+}
+
+// MakeDirExistsFunc constructs a function that takes a path
+// and determines whether a directory exists at that path
+func MakeDirExistsFunc(baseDir string) function.Function {
+	return function.New(&function.Spec{
+		Params: []function.Parameter{
+			{
+				Name: "path",
+				Type: cty.String,
+			},
+		},
+		Type: function.StaticReturnType(cty.Bool),
+		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+			path := args[0].AsString()
+			fi, err := getFileStat(baseDir, path)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return cty.False, nil
+				}
+				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to stat %s", path)
+			}
+
+			if fi.Mode().IsDir() {
+				return cty.True, nil
+			}
+
+			return cty.False, fmt.Errorf("%s is not a regular directory, but %q",
 				path, fi.Mode().String())
 		},
 	})
@@ -352,10 +371,10 @@ var PathExpandFunc = function.New(&function.Spec{
 	},
 })
 
-func openFile(baseDir, path string) (*os.File, error) {
+func normalizeFilepath(baseDir, path string) (string, error) {
 	path, err := homedir.Expand(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to expand ~: %s", err)
+		return "", fmt.Errorf("failed to expand ~: %s", err)
 	}
 
 	if !filepath.IsAbs(path) {
@@ -363,9 +382,25 @@ func openFile(baseDir, path string) (*os.File, error) {
 	}
 
 	// Ensure that the path is canonical for the host OS
-	path = filepath.Clean(path)
+	return filepath.Clean(path), nil
+}
+
+func openFile(baseDir, path string) (*os.File, error) {
+	path, err := normalizeFilepath(baseDir, path)
+	if err != nil {
+		return nil, err
+	}
 
 	return os.Open(path)
+}
+
+func getFileStat(baseDir, path string) (os.FileInfo, error) {
+	path, err := normalizeFilepath(baseDir, path)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.Stat(path)
 }
 
 func readFileBytes(baseDir, path string) ([]byte, error) {
@@ -406,6 +441,18 @@ func File(baseDir string, path cty.Value) (cty.Value, error) {
 // construct the underlying function before calling it.
 func FileExists(baseDir string, path cty.Value) (cty.Value, error) {
 	fn := MakeFileExistsFunc(baseDir)
+	return fn.Call([]cty.Value{path})
+}
+
+// DirExists determines whether a directory exists at the given path.
+//
+// The underlying function implementation works relative to a particular base
+// directory, so this wrapper takes a base directory string and uses it to
+// construct the underlying function before calling it.
+//
+// If the path is empty then the result is ".", representing the current working directory.
+func DirExists(baseDir string, path cty.Value) (cty.Value, error) {
+	fn := MakeDirExistsFunc(baseDir)
 	return fn.Call([]cty.Value{path})
 }
 
