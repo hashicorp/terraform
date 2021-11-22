@@ -672,44 +672,10 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 		cloudMode := cloud.DetectConfigChangeType(s.Backend, c, false)
 
-		initReason := ""
-		switch cloudMode {
-		case cloud.ConfigMigrationIn:
-			initReason = fmt.Sprintf("Changed from backend %q to Terraform Cloud", s.Backend.Type)
-		case cloud.ConfigMigrationOut:
-			initReason = fmt.Sprintf("Changed from Terraform Cloud to backend %q", s.Backend.Type)
-		case cloud.ConfigChangeInPlace:
-			initReason = "Terraform Cloud configuration has changed"
-		default:
-			switch {
-			case s.Backend.Type != c.Type:
-				initReason = fmt.Sprintf("Backend type changed from %q to %q", s.Backend.Type, c.Type)
-			default:
-				initReason = fmt.Sprintf("Configuration changed for backend %q", c.Type)
-			}
-		}
-
 		if !opts.Init {
-			switch cloudMode {
-			case cloud.ConfigChangeInPlace:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Terraform Cloud initialization required: please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
-				))
-			case cloud.ConfigMigrationIn:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Terraform Cloud initialization required: please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInitCloudMigration), initReason),
-				))
-			default:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Backend initialization required: please run \"terraform init\"",
-					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
-				))
-			}
+			//user ran another cmd that is not init but they are required to initialize because of a potential relevant change to their backend configuration
+			initDiag := m.determineInitReason(s.Backend.Type, c.Type, cloudMode)
+			diags = diags.Append(initDiag)
 			return nil, diags
 		}
 
@@ -731,6 +697,49 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		))
 		return nil, diags
 	}
+}
+
+func (m *Meta) determineInitReason(previousBackendType string, currentBackendType string, cloudMode cloud.ConfigChangeMode) tfdiags.Diagnostics {
+	initReason := ""
+	switch cloudMode {
+	case cloud.ConfigMigrationIn:
+		initReason = fmt.Sprintf("Changed from backend %q to Terraform Cloud", previousBackendType)
+	case cloud.ConfigMigrationOut:
+		initReason = fmt.Sprintf("Changed from Terraform Cloud to backend %q", previousBackendType)
+	case cloud.ConfigChangeInPlace:
+		initReason = "Terraform Cloud configuration block has changed"
+	default:
+		switch {
+		case previousBackendType != currentBackendType:
+			initReason = fmt.Sprintf("Backend type changed from %q to %q", previousBackendType, currentBackendType)
+		default:
+			initReason = "Backend configuration block has changed"
+		}
+	}
+
+	var diags tfdiags.Diagnostics
+	switch cloudMode {
+	case cloud.ConfigChangeInPlace:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Terraform Cloud initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
+		))
+	case cloud.ConfigMigrationIn:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Terraform Cloud initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errBackendInitCloudMigration), initReason),
+		))
+	default:
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Backend initialization required: please run \"terraform init\"",
+			fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
+		))
+	}
+
+	return diags
 }
 
 // backendFromState returns the initialized (not configured) backend directly
