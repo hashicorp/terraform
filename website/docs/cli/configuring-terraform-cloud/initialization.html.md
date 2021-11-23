@@ -1,6 +1,6 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraaform Cloud"
+page_title: "Configuring Terraform Cloud"
 sidebar_current: "configuring-terraform-cloud"
 ---
 
