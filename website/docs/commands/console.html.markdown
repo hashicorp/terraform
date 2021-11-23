@@ -9,7 +9,7 @@ description: |-
 
 # Command: console
 
-> **Hands-on:** Try the [Develop Configuration with the Console](https://learn.hashicorp.com/tutorials/terraform/console?in=terraform/cli&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
+> **Hands-on:** Try the [Develop Configuration with the Console](https://learn.hashicorp.com/tutorials/terraform/console) tutorial on HashiCorp Learn.
 
 The `terraform console` command provides an interactive console for
 evaluating [expressions](/docs/configuration/expressions/index.html).
