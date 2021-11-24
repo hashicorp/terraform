@@ -172,8 +172,8 @@ go test ./...
 As you make your changes, you can re-run the above command to ensure that the tests are *still* passing. If you are working only on a specific Go package, you can speed up your testing cycle by testing only that single package, or packages under a particular package prefix:
 
 ```
-go test ./command/...
-go test ./addrs
+go test ./internal/command/...
+go test ./internal/addrs
 ```
 
 ## Acceptance Tests: Testing interactions with external services
