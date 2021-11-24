@@ -51,6 +51,7 @@ Usage: terraform [global options] version [options]
 Options:
 
   -json       Output the version information as a JSON object.
+  -simple     Output the version information number only.
 `
 	return strings.TrimSpace(helpText)
 }
@@ -59,10 +60,13 @@ func (c *VersionCommand) Run(args []string) int {
 	var outdated bool
 	var latest string
 	var versionString bytes.Buffer
+	var fullVersionString bytes.Buffer
 	args = c.Meta.process(args)
 	var jsonOutput bool
+	var simpleOutput bool
 	cmdFlags := c.Meta.defaultFlagSet("version")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&simpleOutput, "simple", false, "simple")
 	// Enable but ignore the global version flags. In main.go, if any of the
 	// arguments are -v, -version, or --version, this command will be called
 	// with the rest of the arguments, so we need to be able to cope with
@@ -75,10 +79,16 @@ func (c *VersionCommand) Run(args []string) int {
 		return 1
 	}
 
-	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
+	if jsonOutput && simpleOutput {
+		c.Ui.Error("-simple and -json flags are not compatible together")
+		return 1
+	}
+
+	fmt.Fprintf(&versionString, "%s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
 	}
+	fmt.Fprintf(&fullVersionString, "Terraform v%s", versionString.String())
 
 	// We'll also attempt to print out the selected plugin versions. We do
 	// this based on the dependency lock file, and so the result might be
@@ -145,8 +155,10 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 		c.Ui.Output(string(jsonOutput))
 		return 0
-	} else {
+	} else if simpleOutput {
 		c.Ui.Output(versionString.String())
+	} else {
+		c.Ui.Output(fullVersionString.String())
 		c.Ui.Output(fmt.Sprintf("on %s", c.Platform))
 
 		if len(providerVersions) != 0 {

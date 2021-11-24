@@ -91,6 +91,62 @@ func TestVersion_flags(t *testing.T) {
 	}
 }
 
+func TestVersion_simple(t *testing.T) {
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui: ui,
+	}
+
+	// `terraform version`
+	c := &VersionCommand{
+		Meta:              m,
+		Version:           "4.5.6",
+		VersionPrerelease: "foo",
+		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
+	}
+
+	if code := c.Run([]string{"-v", "-simple"}); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := "4.5.6-foo"
+	if actual != expected {
+		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
+	}
+}
+
+func TestVersion_simple_json_error(t *testing.T) {
+	ui := new(cli.MockUi)
+	m := Meta{
+		Ui: ui,
+	}
+
+	// `terraform version`
+	c := &VersionCommand{
+		Meta:              m,
+		Version:           "4.5.6",
+		VersionPrerelease: "foo",
+		Platform:          getproviders.Platform{OS: "aros", Arch: "riscv64"},
+	}
+
+	if code := c.Run([]string{"-v", "-simple", "-json"}); code == 0 {
+		t.Fatalf("-simple and -json are incompatible flags, but no error was raised")
+	}
+
+	actual := strings.TrimSpace(ui.OutputWriter.String())
+	expected := ""
+	if actual != expected {
+		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
+	}
+
+	actualError := strings.TrimSpace(ui.ErrorWriter.String())
+	expectedError := "-simple and -json flags are not compatible together"
+	if actual != expected {
+		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actualError, expectedError)
+	}
+}
+
 func TestVersion_outdated(t *testing.T) {
 	ui := new(cli.MockUi)
 	m := Meta{
