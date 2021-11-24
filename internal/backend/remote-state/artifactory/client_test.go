@@ -36,14 +36,15 @@ func TestArtifactoryFactory(t *testing.T) {
 	}
 
 	artifactoryClient := state.(*remote.State).Client.(*ArtifactoryClient)
+	details := artifactoryClient.nativeClient.GetConfig().GetServiceDetails()
 
-	if artifactoryClient.nativeClient.Config.BaseURL != "http://artifactory.local:8081/artifactory" {
+	if details.GetUrl() != "http://artifactory.local:8081/artifactory/" {
 		t.Fatalf("Incorrect url was populated")
 	}
-	if artifactoryClient.nativeClient.Config.Username != "test" {
+	if details.GetUser() != "test" {
 		t.Fatalf("Incorrect username was populated")
 	}
-	if artifactoryClient.nativeClient.Config.Password != "testpass" {
+	if details.GetPassword() != "testpass" {
 		t.Fatalf("Incorrect password was populated")
 	}
 	if artifactoryClient.repo != "terraform-repo" {

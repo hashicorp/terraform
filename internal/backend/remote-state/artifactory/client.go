@@ -3,32 +3,43 @@ package artifactory
 import (
 	"crypto/md5"
 	"fmt"
-	"strings"
+	"io/ioutil"
+	"os"
+	"path"
 
 	"github.com/hashicorp/terraform/internal/states/remote"
-	artifactory "github.com/lusis/go-artifactory/src/artifactory.v401"
+	"github.com/jfrog/jfrog-client-go/artifactory"
+	"github.com/jfrog/jfrog-client-go/artifactory/services"
 )
 
 const ARTIF_TFSTATE_NAME = "terraform.tfstate"
 
 type ArtifactoryClient struct {
-	nativeClient *artifactory.ArtifactoryClient
-	userName     string
-	password     string
-	url          string
+	nativeClient artifactory.ArtifactoryServicesManager
 	repo         string
 	subpath      string
 }
 
 func (c *ArtifactoryClient) Get() (*remote.Payload, error) {
-	p := fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
-	output, err := c.nativeClient.Get(p, make(map[string]string))
+	params := services.NewDownloadParams()
+	params.Pattern = fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
+	params.Target = os.TempDir()
+
+	downloaded, _, err := c.nativeClient.DownloadFiles(params)
 	if err != nil {
-		if strings.Contains(err.Error(), "404") {
-			return nil, nil
-		}
-		return nil, err
+		return nil, fmt.Errorf("failed to download state: %v", err)
 	}
+
+	if downloaded <= 0 {
+		return nil, nil
+	}
+
+	tmpState := path.Join(params.Target, c.subpath, ARTIF_TFSTATE_NAME)
+	output, err := ioutil.ReadFile(tmpState)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read state: %v", err)
+	}
+	defer os.Remove(tmpState)
 
 	// TODO: migrate to using X-Checksum-Md5 header from artifactory
 	// needs to be exposed by go-artifactory first
@@ -39,25 +50,37 @@ func (c *ArtifactoryClient) Get() (*remote.Payload, error) {
 		MD5:  hash[:md5.Size],
 	}
 
-	// If there was no data, then return nil
-	if len(payload.Data) == 0 {
-		return nil, nil
-	}
-
 	return payload, nil
 }
 
 func (c *ArtifactoryClient) Put(data []byte) error {
-	p := fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
-	if _, err := c.nativeClient.Put(p, string(data), make(map[string]string)); err == nil {
-		return nil
-	} else {
-		return fmt.Errorf("Failed to upload state: %v", err)
+	params := services.NewUploadParams()
+	params.Pattern = path.Join(os.TempDir(), c.subpath, ARTIF_TFSTATE_NAME)
+	params.Target = fmt.Sprintf("%s/%s/", c.repo, c.subpath)
+	params.IncludeDirs = false
+	params.Flat = true
+
+	if err := ioutil.WriteFile(params.Pattern, data, 0755); err != nil {
+		return err
 	}
+	defer os.Remove(params.Pattern)
+
+	_, _, err := c.nativeClient.UploadFiles(params)
+	if err != nil {
+		return fmt.Errorf("failed to upload state: %v", err)
+	}
+	return nil
 }
 
 func (c *ArtifactoryClient) Delete() error {
-	p := fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
-	err := c.nativeClient.Delete(p)
-	return err
+	params := services.NewDeleteParams()
+	params.Pattern = fmt.Sprintf("%s/%s/%s", c.repo, c.subpath, ARTIF_TFSTATE_NAME)
+	pathToDelete, err := c.nativeClient.GetPathsToDelete(params)
+	if err != nil {
+		return err
+	}
+	if _, err := c.nativeClient.DeleteFiles(pathToDelete); err != nil {
+		return fmt.Errorf("failed to delete state: %v", err)
+	}
+	return nil
 }
