@@ -154,6 +154,70 @@ func TestBlockImpliedType(t *testing.T) {
 	}
 }
 
+func TestBlockContainsSensitive(t *testing.T) {
+	tests := map[string]struct {
+		Schema *Block
+		Want   bool
+	}{
+		"object contains sensitive": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"sensitive": {Sensitive: true},
+				},
+			},
+			true,
+		},
+		"no sensitive attrs": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"insensitive": {},
+				},
+			},
+			false,
+		},
+		"nested object contains sensitive": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"nested": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"sensitive": {Sensitive: true},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		"nested obj, no sensitive attrs": {
+			&Block{
+				Attributes: map[string]*Attribute{
+					"nested": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"public": {},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got := test.Schema.ContainsSensitive()
+			if got != test.Want {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+
+}
+
 func TestObjectImpliedType(t *testing.T) {
 	tests := map[string]struct {
 		Schema *Object
@@ -352,6 +416,37 @@ func TestObjectContainsSensitive(t *testing.T) {
 				},
 			},
 			false,
+		},
+		"several nested objects, one contains sensitive": {
+			&Object{
+				Attributes: map[string]*Attribute{
+					"alpha": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"nonsensitive": {},
+							},
+						},
+					},
+					"beta": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"sensitive": {Sensitive: true},
+							},
+						},
+					},
+					"gamma": {
+						NestedType: &Object{
+							Nesting: NestingSingle,
+							Attributes: map[string]*Attribute{
+								"nonsensitive": {},
+							},
+						},
+					},
+				},
+			},
+			true,
 		},
 	}
 
