@@ -277,11 +277,11 @@ func (c *ImportCommand) Run(args []string) int {
 
 func (c *ImportCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] import [options] ADDR ID
+Usage: terraform [global options] import [options] ADDR ID [additional pairs of ADDR and ID]
 
   Import existing infrastructure into your Terraform state.
 
-  This will find and import the specified resource into your Terraform
+  This will find and import the specified resource(s) into your Terraform
   state, allowing existing infrastructure to come under Terraform
   management without having to be initially created by Terraform.
 
