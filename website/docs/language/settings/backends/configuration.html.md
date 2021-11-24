@@ -5,11 +5,14 @@ page_title: "Backend Configuration - Configuration Language"
 
 # Backend Configuration
 
-
 Each Terraform configuration can specify a backend, which defines where
-[state](/docs/language/state/index.html) snapshots are stored. Most non-trivial Terraform
-configurations configure a remote backend so that multiple people can work with the same
-infrastructure.
+[state](/docs/language/state/index.html) snapshots are stored.
+
+[Terraform Cloud integration](/docs/language/settings/configuring-terraform-cloud)
+is another way to store state remotely, and is mutually exclusive with configuring a backend.
+
+Most non-trivial Terraform configurations store state remotely so that multiple
+people can work with the same infrastructure.
 
 ## Using a Backend Block
 
