@@ -6,8 +6,11 @@ description: "A backend defines where Terraform stores its state. Learn about ho
 
 # Backends
 
-Each Terraform configuration can specify a backend, which defines where
-[state](/docs/language/state/index.html) snapshots are stored.
+Backends store [state](/docs/language/state/index.html) snapshots.
+
+A given Terraform configuration can either specify a backend,
+[integrate with Terraform Cloud](/docs/language/settings/configuring-terraform-cloud),
+or do neither and default to storing state locally.
 
 The rest of this page introduces the concept of backends; the other pages in
 this section document how to configure and use backends.
@@ -37,17 +40,20 @@ Some backends act like plain "remote disks" for state files; others support
 _locking_ the state while operations are being performed, which helps prevent
 conflicts and inconsistencies.
 
--> **Note:** In Terraform versions prior to 1.1.0, backends were also classifid as being 'standard'
-or 'enhanced', where the latter term referred to the ability of the
-[remote](/docs/language/settings/sbackends/remote.html) backend to not only store state but perform
-Terraform operations. This classification has been removed, clarifying the primary purpose of
-backends. See [Configuring Terraform Cloud](/docs/language/settings/configuring-terraform-cloud) to
-store state, execute remote operations, and use Terraform Cloud directly from Terraform.
+-> **Historical note:** Prior to Terraform 1.1.0, this documentation made a
+distinction between "standard" and "enhanced" backends; we later decided that
+wasn't useful. If you encounter old material that mentions "enhanced" backends,
+it refers to the [remote](/docs/language/settings/backends/remote.html)
+backend's ability to perform Terraform operations remotely in Terraform Cloud.
+`remote` was the only "enhanced" backend, and
+[the Terraform Cloud integration](/docs/language/settings/configuring-terraform-cloud)
+is intended to replace it.
 
 ## Available Backends
 
-Terraform includes a built-in selection of backends; this selection has changed
-over time, but does not change very often.
+Terraform includes a built-in selection of backends, which are listed in the
+navigation sidebar. This selection has changed over time, but does not change
+very often.
 
 The built-in backends are the only backends. You cannot load additional backends
 as plugins.
