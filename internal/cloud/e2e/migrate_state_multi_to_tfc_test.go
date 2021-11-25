@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -16,7 +13,7 @@ import (
 )
 
 func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
-	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -38,20 +35,16 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							expectedCmdOutput: `Successfully configured the backend "local"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"workspace", "new", "prod"},
 							expectedCmdOutput: `Created and switched to workspace "prod"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"workspace", "select", "default"},
@@ -67,12 +60,10 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -113,20 +104,16 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							expectedCmdOutput: `Successfully configured the backend "local"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"workspace", "new", "prod"},
 							expectedCmdOutput: `Created and switched to workspace "prod"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 					},
 				},
@@ -138,12 +125,10 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
-							userInput:         []string{"yes", "yes"},
-							postInputOutput: []string{
-								`Do you want to copy existing state to Terraform Cloud?`,
-								`Terraform Cloud has been successfully initialized!`},
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -168,85 +153,153 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				}
 			},
 		},
+		"migrating multiple workspaces to cloud using name strategy; 'default' workspace is empty": {
+			operations: []operationSets{
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						tfBlock := terraformConfigLocalBackend()
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init"},
+							expectedCmdOutput: `Successfully configured the backend "local"!`,
+						},
+						{
+							command:           []string{"workspace", "new", "workspace1"},
+							expectedCmdOutput: `Created and switched to workspace "workspace1"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+						{
+							command:           []string{"workspace", "new", "workspace2"},
+							expectedCmdOutput: `Created and switched to workspace "workspace2"!`,
+						},
+						{
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
+						},
+					},
+				},
+				{
+					prep: func(t *testing.T, orgName, dir string) {
+						wsName := "new-workspace"
+						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						writeMainTF(t, tfBlock, dir)
+					},
+					commands: []tfCommand{
+						{
+							command:           []string{"init"},
+							expectedCmdOutput: `Do you want to copy only your current workspace?`,
+							userInput:         []string{"yes"},
+							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+						},
+						{
+							command:     []string{"workspace", "select", "default"},
+							expectError: true,
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "workspace2"`, // this was the output of the current workspace selected before migration
+						},
+					},
+				},
+			},
+			validations: func(t *testing.T, orgName string) {
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(wsList.Items) != 1 {
+					t.Fatalf("Expected the number of workspaces to be 1, but got %d", len(wsList.Items))
+				}
+				ws := wsList.Items[0]
+				// this workspace name is what exists in the cloud backend configuration block
+				if ws.Name != "new-workspace" {
+					t.Fatalf("Expected workspace to be `new-workspace`, but is %s", ws.Name)
+				}
+			},
+		},
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		organization, cleanup := createOrganization(t)
-		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer exp.Close()
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// t.Parallel()
+			organization, cleanup := createOrganization(t)
+			defer cleanup()
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer exp.Close()
 
-		tmpDir, err := ioutil.TempDir("", "terraform-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir)
+			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(tmpDir)
 
-		tf := e2e.NewBinary(terraformBin, tmpDir)
-		defer tf.Close()
-		tf.AddEnv("TF_LOG=INFO")
-		tf.AddEnv(cliConfigFileEnv)
+			tf := e2e.NewBinary(terraformBin, tmpDir)
+			defer tf.Close()
+			tf.AddEnv(cliConfigFileEnv)
 
-		for _, op := range tc.operations {
-			op.prep(t, organization.Name, tf.WorkDir())
-			for _, tfCmd := range op.commands {
-				t.Log("Running commands: ", tfCmd.command)
-				tfCmd.command = append(tfCmd.command)
-				cmd := tf.Cmd(tfCmd.command...)
-				cmd.Stdin = exp.Tty()
-				cmd.Stdout = exp.Tty()
-				cmd.Stderr = exp.Tty()
+			for _, op := range tc.operations {
+				op.prep(t, organization.Name, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
 
-				err = cmd.Start()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if tfCmd.expectedCmdOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+					err = cmd.Start()
 					if err != nil {
 						t.Fatal(err)
 					}
-				}
 
-				lenInput := len(tfCmd.userInput)
-				lenInputOutput := len(tfCmd.postInputOutput)
-				if lenInput > 0 {
-					for i := 0; i < lenInput; i++ {
-						input := tfCmd.userInput[i]
-						exp.SendLine(input)
-						// use the index to find the corresponding
-						// output that matches the input.
-						if lenInputOutput-1 >= i {
-							output := tfCmd.postInputOutput[i]
-							_, err := exp.ExpectString(output)
-							if err != nil {
-								t.Fatal(err)
+					if tfCmd.expectedCmdOutput != "" {
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									t.Fatal(err)
+								}
 							}
 						}
 					}
-				}
 
-				err = cmd.Wait()
-				if err != nil {
-					t.Fatal(err)
+					err = cmd.Wait()
+					if err != nil && !tfCmd.expectError {
+						t.Fatal(err)
+					}
 				}
 			}
-		}
 
-		if tc.validations != nil {
-			tc.validations(t, organization.Name)
-		}
+			if tc.validations != nil {
+				tc.validations(t, organization.Name)
+			}
+		})
 	}
-
 }
 
 func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
-	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
@@ -268,20 +321,16 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 							expectedCmdOutput: `Successfully configured the backend "local"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions?`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"workspace", "new", "prod"},
 							expectedCmdOutput: `Created and switched to workspace "prod"!`,
 						},
 						{
-							command:           []string{"apply"},
-							expectedCmdOutput: `Do you want to perform these actions`,
-							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Apply complete!`},
+							command:         []string{"apply", "-auto-approve"},
+							postInputOutput: []string{`Apply complete!`},
 						},
 						{
 							command:           []string{"workspace", "select", "default"},
@@ -309,22 +358,13 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							userInput:         []string{"dev", "1", "app-*", "1"},
+							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
-								"What pattern would you like to add to all your workspaces?",
-								"The currently selected workspace (prod) does not exist.",
+								"How would you like to rename your workspaces?",
 								"Terraform Cloud has been successfully initialized!"},
-						},
-						{
-							command:           []string{"workspace", "select", "app-prod"},
-							expectedCmdOutput: `Switched to workspace "app-prod".`,
-						},
-						{
-							command:           []string{"output"},
-							expectedCmdOutput: `val = "prod"`,
 						},
 						{
 							command:           []string{"workspace", "select", "app-dev"},
@@ -333,6 +373,14 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 						{
 							command:           []string{"output"},
 							expectedCmdOutput: `val = "default"`,
+						},
+						{
+							command:           []string{"workspace", "select", "app-prod"},
+							expectedCmdOutput: `Switched to workspace "app-prod".`,
+						},
+						{
+							command:           []string{"output"},
+							expectedCmdOutput: `val = "prod"`,
 						},
 					},
 				},
@@ -415,18 +463,13 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 					},
 					commands: []tfCommand{
 						{
-							command:           []string{"init", "-migrate-state"},
+							command:           []string{"init"},
 							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
-							userInput:         []string{"dev", "1", "app-*", "1"},
+							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
-								"What pattern would you like to add to all your workspaces?",
-								"The currently selected workspace (default) does not exist.",
+								"How would you like to rename your workspaces?",
 								"Terraform Cloud has been successfully initialized!"},
-						},
-						{
-							command:           []string{"workspace", "select", "app-dev"},
-							expectedCmdOutput: `Switched to workspace "app-dev".`,
 						},
 						{
 							command:           []string{"workspace", "select", "app-billing"},
@@ -435,6 +478,10 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 						{
 							command:           []string{"workspace", "select", "app-identity"},
 							expectedCmdOutput: `Switched to workspace "app-identity".`,
+						},
+						{
+							command:           []string{"workspace", "select", "app-dev"},
+							expectedCmdOutput: `Switched to workspace "app-dev".`,
 						},
 					},
 				},
@@ -466,78 +513,78 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		t.Log("Test: ", name)
-		organization, cleanup := createOrganization(t)
-		t.Log(organization.Name)
-		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer exp.Close()
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			// t.Parallel()
+			organization, cleanup := createOrganization(t)
+			defer cleanup()
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer exp.Close()
 
-		tmpDir, err := ioutil.TempDir("", "terraform-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir)
+			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(tmpDir)
 
-		tf := e2e.NewBinary(terraformBin, tmpDir)
-		defer tf.Close()
-		tf.AddEnv("TF_LOG=INFO")
-		tf.AddEnv(cliConfigFileEnv)
+			tf := e2e.NewBinary(terraformBin, tmpDir)
+			defer tf.Close()
+			tf.AddEnv(cliConfigFileEnv)
 
-		for _, op := range tc.operations {
-			op.prep(t, organization.Name, tf.WorkDir())
-			for _, tfCmd := range op.commands {
-				t.Log("running commands: ", tfCmd.command)
-				cmd := tf.Cmd(tfCmd.command...)
-				cmd.Stdin = exp.Tty()
-				cmd.Stdout = exp.Tty()
-				cmd.Stderr = exp.Tty()
+			for _, op := range tc.operations {
+				op.prep(t, organization.Name, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
 
-				err = cmd.Start()
-				if err != nil {
-					t.Fatal(err)
-				}
+					err = cmd.Start()
+					if err != nil {
+						t.Fatal(err)
+					}
 
-				if tfCmd.expectedCmdOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+					if tfCmd.expectedCmdOutput != "" {
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							t.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								if output == "" {
+									continue
+								}
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									t.Fatal(err)
+								}
+							}
+						}
+					}
+
+					err = cmd.Wait()
 					if err != nil {
 						t.Fatal(err)
 					}
 				}
-
-				lenInput := len(tfCmd.userInput)
-				lenInputOutput := len(tfCmd.postInputOutput)
-				if lenInput > 0 {
-					for i := 0; i < lenInput; i++ {
-						input := tfCmd.userInput[i]
-						exp.SendLine(input)
-						// use the index to find the corresponding
-						// output that matches the input.
-						if lenInputOutput-1 >= i {
-							output := tfCmd.postInputOutput[i]
-							if output == "" {
-								continue
-							}
-							_, err := exp.ExpectString(output)
-							if err != nil {
-								t.Fatal(err)
-							}
-						}
-					}
-				}
-
-				err = cmd.Wait()
-				if err != nil {
-					t.Fatal(err)
-				}
 			}
-		}
 
-		if tc.validations != nil {
-			tc.validations(t, organization.Name)
-		}
+			if tc.validations != nil {
+				tc.validations(t, organization.Name)
+			}
+		})
 	}
 }

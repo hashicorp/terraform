@@ -115,9 +115,9 @@ func (c *InitCommand) Run(args []string) int {
 			ShowLocalPaths: false, // since they are in a weird location for init
 		}
 
-		initDiags := c.initDirFromModule(path, src, hooks)
-		diags = diags.Append(initDiags)
-		if initDiags.HasErrors() {
+		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(path, src, hooks)
+		diags = diags.Append(initDirFromModuleDiags)
+		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -174,9 +174,9 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if flagGet {
-		modsOutput, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
+		modsOutput, modsAbort, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
-		if modsDiags.HasErrors() {
+		if modsAbort || modsDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -213,7 +213,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	switch {
 	case config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module)
+		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -326,10 +326,10 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	if len(earlyRoot.ModuleCalls) == 0 {
 		// Nothing to do
-		return false, nil
+		return false, false, nil
 	}
 
 	if upgrade {
@@ -342,8 +342,13 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		Ui:             c.Ui,
 		ShowLocalPaths: true,
 	}
-	instDiags := c.installModules(path, upgrade, hooks)
-	diags = diags.Append(instDiags)
+
+	installAbort, installDiags := c.installModules(path, upgrade, hooks)
+	diags = diags.Append(installDiags)
+
+	// At this point, installModules may have generated error diags or been
+	// aborted by SIGINT. In any case we continue and the manifest as best
+	// we can.
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
@@ -358,11 +363,20 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		}
 	}
 
-	return true, diags
+	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+
+	if len(extraConfig.AllItems()) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command-line option",
+			"The -backend-config=... command line option is only for state backends, and is not applicable to Terraform Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
+		))
+		return nil, true, diags
+	}
 
 	backendConfig := root.CloudConfig.ToBackendConfig()
 

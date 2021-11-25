@@ -249,7 +249,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	os.MkdirAll(suiteDirs.ModulesDir, 0755) // if this fails then we'll ignore it and let InstallModules below fail instead
 	reg := c.registryClient()
 	moduleInst := initwd.NewModuleInstaller(suiteDirs.ModulesDir, reg)
-	_, moreDiags := moduleInst.InstallModules(configDir, true, nil)
+	_, moreDiags := moduleInst.InstallModules(ctx, configDir, true, nil)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return suiteDirs, diags

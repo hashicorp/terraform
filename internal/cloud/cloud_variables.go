@@ -1,14 +1,11 @@
 package cloud
 
 import (
-	"encoding/json"
-	"fmt"
-
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 func allowedSourceType(source terraform.ValueSourceType) bool {
@@ -17,7 +14,7 @@ func allowedSourceType(source terraform.ValueSourceType) bool {
 
 // ParseCloudRunVariables accepts a mapping of unparsed values and a mapping of variable
 // declarations and returns a name/value variable map appropriate for an API run context,
-// that is, containing declared string variables only sourced from non-file inputs like CLI args
+// that is, containing variables only sourced from non-file inputs like CLI args
 // and environment variables. However, all variable parsing diagnostics are returned
 // in order to allow callers to short circuit cloud runs that contain variable
 // declaration or parsing errors. The only exception is that missing required values are not
@@ -36,16 +33,9 @@ func ParseCloudRunVariables(vv map[string]backend.UnparsedVariableValue, decls m
 			continue
 		}
 
-		valueData, err := ctyjson.Marshal(v.Value, v.Value.Type())
-		if err != nil {
-			return nil, diags.Append(fmt.Errorf("error marshaling input variable value as json: %w", err))
-		}
-		var variableValue string
-		if err = json.Unmarshal(valueData, &variableValue); err != nil {
-			// This should never happen since cty marshaled the value to begin with without error
-			return nil, diags.Append(fmt.Errorf("error unmarshaling run variable: %w", err))
-		}
-		ret[name] = variableValue
+		// RunVariables are always expressed as HCL strings
+		tokens := hclwrite.TokensForValue(v.Value)
+		ret[name] = string(tokens.Bytes())
 	}
 
 	return ret, diags

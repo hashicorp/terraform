@@ -569,6 +569,17 @@ func (b *Remote) workspaces() ([]string, error) {
 	return names, nil
 }
 
+// WorkspaceNamePattern provides an appropriate workspace renaming pattern for backend migration
+// purposes (handled outside of this package), based on previous usage of this backend with the
+// 'prefix' workspace functionality. As of this writing, see meta_backend.migrate.go
+func (b *Remote) WorkspaceNamePattern() string {
+	if b.prefix != "" {
+		return b.prefix + "*"
+	}
+
+	return ""
+}
+
 // DeleteWorkspace implements backend.Enhanced.
 func (b *Remote) DeleteWorkspace(name string) error {
 	if b.workspace == "" && name == backend.DefaultStateName {

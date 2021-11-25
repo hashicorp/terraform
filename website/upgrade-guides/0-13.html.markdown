@@ -69,7 +69,7 @@ distribution packages into specific local filesystem locations.
 Terraform v0.13 introduces a new hierarchical namespace for providers that
 allows specifying both HashiCorp-maintained and community-maintained providers
 as dependencies of a module, with community providers distributed from other
-namespaces on [Terraform Registry](https://registry.terraform.io/) from a
+namespaces on [Terraform Registry](https://registry.terraform.io/) or from a
 third-party provider registry.
 
 In order to establish the hierarchical namespace, Terraform now requires

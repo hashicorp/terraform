@@ -636,7 +636,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
+	if b.forceLocal || isLocalExecutionMode(w.ExecutionMode) {
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
@@ -825,9 +825,9 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return nil
 	}
 
-	// If the workspace has remote operations disabled, the remote Terraform
+	// If the workspace has execution-mode set to local, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if !workspace.Operations {
+	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
@@ -965,6 +965,10 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 	}
 }
 
+func isLocalExecutionMode(execMode string) bool {
+	return execMode == "local"
+}
+
 func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
 	var tags []*tfe.Tag
 
@@ -1047,7 +1051,7 @@ Please reach out to HashiCorp Support to resolve this issue.`
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(
 		`The 'workspaces' block configures how Terraform CLI maps its workspaces for this single
-configuration to workspaces within a Terraform Cloud organization. Three strategies are available:
+configuration to workspaces within a Terraform Cloud organization. Two strategies are available:
 
 [bold]tags[reset] - %s
 
@@ -1063,9 +1067,9 @@ be set, and 'terraform login' used instead; your credentials will then be fetche
 configuration file or configured credential helper.`
 
 	schemaDescriptionTags = `A set of tags used to select remote Terraform Cloud workspaces to be used for this single
-configuration.  New workspaces will automatically be tagged with these tag values.  Generally, this
+configuration. New workspaces will automatically be tagged with these tag values. Generally, this
 is the primary and recommended strategy to use.  This option conflicts with "name".`
 
-	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration When configured
-only the specified workspace can be used. This option conflicts with "tags".`
+	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
+When configured, only the specified workspace can be used. This option conflicts with "tags".`
 )
