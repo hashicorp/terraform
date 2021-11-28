@@ -60,7 +60,8 @@ type NodeAbstractResource struct {
 	ProvisionerSchemas map[string]*configschema.Block
 
 	// Set from GraphNodeTargetable
-	Targets []addrs.Targetable
+	Targets        []addrs.Targetable
+	ExcludeTargets []addrs.Targetable
 
 	// Set from AttachDataResourceDependsOn
 	dependsOn      []addrs.ConfigResource
@@ -262,6 +263,7 @@ func (n *NodeAbstractResource) ResourceAddr() addrs.ConfigResource {
 // GraphNodeTargetable
 func (n *NodeAbstractResource) SetTargets(targets []addrs.Targetable) {
 	n.Targets = targets
+	n.ExcludeTargets = []addrs.Targetable{}
 }
 
 // graphNodeAttachDataResourceDependsOn

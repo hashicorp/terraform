@@ -258,11 +258,12 @@ type Operation struct {
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.
-	PlanMode     plans.Mode
-	AutoApprove  bool
-	Targets      []addrs.Targetable
-	ForceReplace []addrs.AbsResourceInstance
-	Variables    map[string]UnparsedVariableValue
+	PlanMode       plans.Mode
+	AutoApprove    bool
+	Targets        []addrs.Targetable
+	ExcludeTargets []addrs.Targetable
+	ForceReplace   []addrs.AbsResourceInstance
+	Variables      map[string]UnparsedVariableValue
 
 	// Some operations use root module variables only opportunistically or
 	// don't need them at all. If this flag is set, the backend must treat

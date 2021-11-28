@@ -21,11 +21,12 @@ import (
 // PlanOpts are the various options that affect the details of how Terraform
 // will build a plan.
 type PlanOpts struct {
-	Mode         plans.Mode
-	SkipRefresh  bool
-	SetVariables InputValues
-	Targets      []addrs.Targetable
-	ForceReplace []addrs.AbsResourceInstance
+	Mode           plans.Mode
+	SkipRefresh    bool
+	SetVariables   InputValues
+	Targets        []addrs.Targetable
+	ExcludeTargets []addrs.Targetable
+	ForceReplace   []addrs.AbsResourceInstance
 }
 
 // Plan generates an execution plan for the given context, and returns the
@@ -111,15 +112,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	varDiags := checkInputVariables(config.Module.Variables, variables)
 	diags = diags.Append(varDiags)
 
-	if len(opts.Targets) > 0 {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Resource targeting is in effect",
-			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
-
-The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
-		))
-	}
+	diags = diags.Append(resourceTargetWarning(opts, diags))
 
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
@@ -469,13 +462,14 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:       config,
-			State:        prevRunState,
-			Plugins:      c.plugins,
-			Targets:      opts.Targets,
-			ForceReplace: opts.ForceReplace,
-			Validate:     validate,
-			skipRefresh:  opts.SkipRefresh,
+			Config:         config,
+			State:          prevRunState,
+			Plugins:        c.plugins,
+			Targets:        opts.Targets,
+			ExcludeTargets: opts.ExcludeTargets,
+			ForceReplace:   opts.ForceReplace,
+			Validate:       validate,
+			skipRefresh:    opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -491,12 +485,13 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&DestroyPlanGraphBuilder{
-			Config:      config,
-			State:       prevRunState,
-			Plugins:     c.plugins,
-			Targets:     opts.Targets,
-			Validate:    validate,
-			skipRefresh: opts.SkipRefresh,
+			Config:         config,
+			State:          prevRunState,
+			Plugins:        c.plugins,
+			Targets:        opts.Targets,
+			ExcludeTargets: opts.ExcludeTargets,
+			Validate:       validate,
+			skipRefresh:    opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:
@@ -683,4 +678,64 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 			itemsBuf.String(),
 		),
 	)
+}
+
+// resourceTargetWarning checks to see if the opts contain usage of
+// the -target or -exclude flags, and returns appropriate Diagnostics if so.
+func resourceTargetWarning(opts *PlanOpts, diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+	if len(opts.Targets) > 0 && len(opts.ExcludeTargets) > 0 {
+		if hasConflictingTargetOptions(opts) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Resource targeting is in effect",
+				`You are creating a plan with the -target and -exclude option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+
+				Additionally, in the plan there exists a/some resource/s that are being both targeted and excluded
+
+	The -target/exclude option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+			))
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Resource targeting is in effect",
+				`You are creating a plan with the -target and -exclude option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+
+	The -target/exclude option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+			))
+		}
+	} else if len(opts.Targets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Resource targeting is in effect",
+			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+
+The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	} else if len(opts.ExcludeTargets) > 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Resource targeting is in effect",
+			`You are creating a plan with the -exclude option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
+
+The -exclude option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+		))
+	}
+	return diags
+}
+
+// hasConflictingTargetOptions returns true if both the -target and -exclude
+// flags have been specified with the same resource for both.
+func hasConflictingTargetOptions(opts *PlanOpts) bool {
+	targetSet := make(map[string]bool)
+	for _, s := range opts.Targets {
+		targetSet[s.String()] = true
+	}
+
+	for _, excludeTargets := range opts.ExcludeTargets {
+		if targetSet[excludeTargets.String()] {
+			return true
+		}
+	}
+
+	return false
 }

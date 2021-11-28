@@ -430,6 +430,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 	return &backend.Operation{
 		PlanOutBackend:  planOutBackend,
 		Targets:         m.targets,
+		ExcludeTargets:  m.excludeTargets,
 		UIIn:            m.UIInput(),
 		UIOut:           m.Ui,
 		Workspace:       workspace,

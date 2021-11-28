@@ -61,7 +61,8 @@ type Operation struct {
 
 	// Targets allow limiting an operation to a set of resource addresses and
 	// their dependencies.
-	Targets []addrs.Targetable
+	Targets        []addrs.Targetable
+	ExcludeTargets []addrs.Targetable
 
 	// ForceReplace addresses cause Terraform to force a particular set of
 	// resource instances to generate "replace" actions in any plan where they
@@ -78,10 +79,11 @@ type Operation struct {
 	// These private fields are used only temporarily during decoding. Use
 	// method Parse to populate the exported fields from these, validating
 	// the raw values in the process.
-	targetsRaw      []string
-	forceReplaceRaw []string
-	destroyRaw      bool
-	refreshOnlyRaw  bool
+	targetsRaw        []string
+	excludeTargetsRaw []string
+	forceReplaceRaw   []string
+	destroyRaw        bool
+	refreshOnlyRaw    bool
 }
 
 // Parse must be called on Operation after initial flag parse. This processes
@@ -91,6 +93,7 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	o.Targets = nil
+	o.ExcludeTargets = nil
 
 	for _, tr := range o.targetsRaw {
 		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
@@ -114,6 +117,30 @@ func (o *Operation) Parse() tfdiags.Diagnostics {
 		}
 
 		o.Targets = append(o.Targets, target.Subject)
+	}
+
+	for _, tr := range o.excludeTargetsRaw {
+		traversal, syntaxDiags := hclsyntax.ParseTraversalAbs([]byte(tr), "", hcl.Pos{Line: 1, Column: 1})
+		if syntaxDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tr),
+				syntaxDiags[0].Detail,
+			))
+			continue
+		}
+
+		excludeTarget, excludetargetDiags := addrs.ParseTarget(traversal)
+		if excludetargetDiags.HasErrors() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Invalid target %q", tr),
+				excludetargetDiags[0].Description().Detail,
+			))
+			continue
+		}
+
+		o.ExcludeTargets = append(o.ExcludeTargets, excludeTarget.Subject)
 	}
 
 	for _, raw := range o.forceReplaceRaw {
@@ -224,6 +251,7 @@ func extendedFlagSet(name string, state *State, operation *Operation, vars *Vars
 		f.BoolVar(&operation.destroyRaw, "destroy", false, "destroy")
 		f.BoolVar(&operation.refreshOnlyRaw, "refresh-only", false, "refresh-only")
 		f.Var((*flagStringSlice)(&operation.targetsRaw), "target", "target")
+		f.Var((*flagStringSlice)(&operation.excludeTargetsRaw), "exclude", "exclude")
 		f.Var((*flagStringSlice)(&operation.forceReplaceRaw), "replace", "replace")
 	}
 

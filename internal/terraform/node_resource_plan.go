@@ -379,7 +379,10 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		&AttachStateTransformer{State: state},
 
 		// Targeting
-		&TargetsTransformer{Targets: n.Targets},
+		&TargetsTransformer{
+			Targets:        n.Targets,
+			ExcludeTargets: n.ExcludeTargets,
+		},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

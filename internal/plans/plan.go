@@ -29,12 +29,13 @@ type Plan struct {
 	// the Changes field, regardless of how the plan was created.
 	UIMode Mode
 
-	VariableValues    map[string]DynamicValue
-	Changes           *Changes
-	DriftedResources  []*ResourceInstanceChangeSrc
-	TargetAddrs       []addrs.Targetable
-	ForceReplaceAddrs []addrs.AbsResourceInstance
-	Backend           Backend
+	VariableValues      map[string]DynamicValue
+	Changes             *Changes
+	DriftedResources    []*ResourceInstanceChangeSrc
+	TargetAddrs         []addrs.Targetable
+	ExcludeTargetsAddrs []addrs.Targetable
+	ForceReplaceAddrs   []addrs.AbsResourceInstance
+	Backend             Backend
 
 	// PrevRunState and PriorState both describe the situation that the plan
 	// was derived from:
