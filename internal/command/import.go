@@ -52,7 +52,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args)%2 != 0 {
+	if len(args) == 0 || len(args)%2 != 0 {
 		c.Ui.Error("The import command expects even amount of arguments.")
 		cmdFlags.Usage()
 		return 1
