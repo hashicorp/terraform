@@ -6,7 +6,7 @@ description: "A backend defines where Terraform stores its state. Learn about ho
 
 # Backends
 
-Backends store [state](/docs/language/state/index.html) snapshots.
+Backends define where Terraform's [state](/docs/language/state/index.html) snapshots are stored.
 
 A given Terraform configuration can either specify a backend,
 [integrate with Terraform Cloud](/docs/language/settings/configuring-terraform-cloud),
