@@ -77,11 +77,14 @@ following distribution releases:
 * Debian 8 (`jessie`)
 * Debian 9 (`stretch`)
 * Debian 10 (`buster`)
+* Debian 11 (`bullseye`)
 * Ubuntu 16.04 (`xenial`)
 * Ubuntu 18.04 (`bionic`)
 * Ubuntu 19.10 (`eoam`)
 * Ubuntu 20.04 (`focal`)
 * Ubuntu 20.10 (`groovy`)
+* Ubuntu 21.04 (`hirsute`)
+* Ubuntu 21.10 (`impish`)
 
 No repositories are available for other Debian or Ubuntu versions or
 any other APT-based Linux distributions. If you add the repository using
