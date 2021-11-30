@@ -11,7 +11,7 @@ Each Terraform configuration can specify a backend, which defines where
 Backend configuration is not needed when using Terraform Cloud, because
 Terraform Cloud automatically manages state in the workspaces your configuration
 is associated with. If your configuration includes
-[a `cloud` block](/docs/language/settings/configuring-terraform-cloud),
+[a `cloud` block](/docs/language/settings/terraform-cloud.html),
 it cannot include a `backend` block.
 
 Most non-trivial Terraform configurations store state remotely so that multiple
