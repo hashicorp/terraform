@@ -59,15 +59,35 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 		})
 	}
 
+	haveVersionArg := false
+	if attr, exists := content.Attributes["version"]; exists {
+		var versionDiags hcl.Diagnostics
+		mc.Version, versionDiags = decodeVersionConstraint(attr)
+		diags = append(diags, versionDiags...)
+		haveVersionArg = true
+	}
+
 	if attr, exists := content.Attributes["source"]; exists {
 		mc.SourceSet = true
 		mc.SourceAddrRange = attr.Expr.Range()
 		valDiags := gohcl.DecodeExpression(attr.Expr, nil, &mc.SourceAddrRaw)
 		diags = append(diags, valDiags...)
 		if !valDiags.HasErrors() {
-			addr, err := addrs.ParseModuleSource(mc.SourceAddrRaw)
+			var addr addrs.ModuleSource
+			var err error
+			if haveVersionArg {
+				addr, err = addrs.ParseModuleSourceRegistry(mc.SourceAddrRaw)
+			} else {
+				addr, err = addrs.ParseModuleSource(mc.SourceAddrRaw)
+			}
 			mc.SourceAddr = addr
 			if err != nil {
+				// NOTE: We leave mc.SourceAddr as nil for any situation where the
+				// source attribute is invalid, so any code which tries to carefully
+				// use the partial result of a failed config decode must be
+				// resilient to that.
+				mc.SourceAddr = nil
+
 				// NOTE: In practice it's actually very unlikely to end up here,
 				// because our source address parser can turn just about any string
 				// into some sort of remote package address, and so for most errors
@@ -87,25 +107,27 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 						Subject: mc.SourceAddrRange.Ptr(),
 					})
 				default:
-					diags = append(diags, &hcl.Diagnostic{
-						Severity: hcl.DiagError,
-						Summary:  "Invalid module source address",
-						Detail:   fmt.Sprintf("Failed to parse module source address: %s.", err),
-						Subject:  mc.SourceAddrRange.Ptr(),
-					})
+					if haveVersionArg {
+						// In this case we'll include some extra context that
+						// we assumed a registry source address due to the
+						// version argument.
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid registry module source address",
+							Detail:   fmt.Sprintf("Failed to parse module registry address: %s.\n\nTerraform assumed that you intended a module registry source address because you also set the argument \"version\", which applies only to registry modules.", err),
+							Subject:  mc.SourceAddrRange.Ptr(),
+						})
+					} else {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid module source address",
+							Detail:   fmt.Sprintf("Failed to parse module source address: %s.", err),
+							Subject:  mc.SourceAddrRange.Ptr(),
+						})
+					}
 				}
 			}
 		}
-		// NOTE: We leave mc.SourceAddr as nil for any situation where the
-		// source attribute is invalid, so any code which tries to carefully
-		// use the partial result of a failed config decode must be
-		// resilient to that.
-	}
-
-	if attr, exists := content.Attributes["version"]; exists {
-		var versionDiags hcl.Diagnostics
-		mc.Version, versionDiags = decodeVersionConstraint(attr)
-		diags = append(diags, versionDiags...)
 	}
 
 	if attr, exists := content.Attributes["count"]; exists {
