@@ -192,7 +192,12 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	} else {
-		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+		// We use the presence of the "version" argument as a heuristic for
+		// user intent to use a registry module, and so we intentionally catch
+		// this as an invalid registry module address rather than an invalid
+		// version constraint, so we can surface the specific address parsing
+		// error instead of a generic version constraint error.
+		assertDiagnosticSummary(t, diags, "Invalid registry module source address")
 	}
 }
 
@@ -210,7 +215,12 @@ func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	} else {
-		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+		// We use the presence of the "version" argument as a heuristic for
+		// user intent to use a registry module, and so we intentionally catch
+		// this as an invalid registry module address rather than an invalid
+		// version constraint, so we can surface the specific address parsing
+		// error instead of a generic version constraint error.
+		assertDiagnosticSummary(t, diags, "Invalid registry module source address")
 	}
 }
 
@@ -228,7 +238,12 @@ func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
 	} else {
-		assertDiagnosticSummary(t, diags, "Invalid version constraint")
+		// We use the presence of the "version" argument as a heuristic for
+		// user intent to use a registry module, and so we intentionally catch
+		// this as an invalid registry module address rather than an invalid
+		// version constraint, so we can surface the specific address parsing
+		// error instead of a generic version constraint error.
+		assertDiagnosticSummary(t, diags, "Invalid registry module source address")
 	}
 }
 

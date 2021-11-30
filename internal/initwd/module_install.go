@@ -547,7 +547,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *earlyc
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid version constraint",
-			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
+			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it doesn't come from a module registry.", req.Name, req.CallPos.Filename, req.CallPos.Line),
 		))
 		return nil, diags
 	}
