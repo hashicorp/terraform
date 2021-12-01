@@ -33,7 +33,7 @@ BUG FIXES:
 
 * backend/oss: Flatten `assume_role` block attributes, so that they may be more easily represented in a compatible way with `terraform_remote_state` ([#29307](https://github.com/hashicorp/terraform/issues/29307))
 * config: Fixed a bug in which `ignore_changes = all` would not work in override files ([#29849](https://github.com/hashicorp/terraform/issues/29849))
-* config: Upgrading an unknown single value to a list using a splat expression must return an unknown value and type [GH-30062]
+* config: Upgrading an unknown single value to a list using a splat expression must return an unknown value and type ([#30062](https://github.com/hashicorp/terraform/issues/30062))
 * core: Use more precise typing information of resources during config validation ([#29862](https://github.com/hashicorp/terraform/issues/29862))
 * core: Fixed an issue where provider configuration input variables were not properly merging with values in configuration ([#29000](https://github.com/hashicorp/terraform/issues/29000))
 * core: Reduce scope of dependencies that may defer reading of data sources when using `depends_on` or directly referencing managed resources ([#29682](https://github.com/hashicorp/terraform/issues/29682))
