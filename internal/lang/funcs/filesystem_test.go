@@ -2,9 +2,11 @@ package funcs
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
@@ -15,22 +17,32 @@ func TestFile(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.StringVal("testdata/hello.txt"),
 			cty.StringVal("Hello World"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata/icon.png"),
 			cty.NilVal,
-			true, // Not valid UTF-8
+			`contents of "testdata/icon.png" are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
+		},
+		{
+			cty.StringVal("testdata/icon.png").Mark(marks.Sensitive),
+			cty.NilVal,
+			`contents of (sensitive value) are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
 		},
 		{
 			cty.StringVal("testdata/missing"),
 			cty.NilVal,
-			true, // no file exists
+			`no file exists at "testdata/missing"; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
+		},
+		{
+			cty.StringVal("testdata/missing").Mark(marks.Sensitive),
+			cty.NilVal,
+			`no file exists at (sensitive value); this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
 		},
 	}
 
@@ -38,9 +50,12 @@ func TestFile(t *testing.T) {
 		t.Run(fmt.Sprintf("File(\".\", %#v)", test.Path), func(t *testing.T) {
 			got, err := File(".", test.Path)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
@@ -71,13 +86,19 @@ func TestTemplateFile(t *testing.T) {
 			cty.StringVal("testdata/icon.png"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			`contents of testdata/icon.png are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
+			`contents of "testdata/icon.png" are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead`,
 		},
 		{
 			cty.StringVal("testdata/missing"),
 			cty.EmptyObjectVal,
 			cty.NilVal,
-			`no file exists at testdata/missing; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
+			`no file exists at "testdata/missing"; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
+		},
+		{
+			cty.StringVal("testdata/secrets.txt").Mark(marks.Sensitive),
+			cty.EmptyObjectVal,
+			cty.NilVal,
+			`no file exists at (sensitive value); this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource`,
 		},
 		{
 			cty.StringVal("testdata/hello.tmpl"),
@@ -197,32 +218,60 @@ func TestFileExists(t *testing.T) {
 	tests := []struct {
 		Path cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.StringVal("testdata/hello.txt"),
 			cty.BoolVal(true),
-			false,
+			``,
 		},
 		{
-			cty.StringVal(""), // empty path
+			cty.StringVal(""),
 			cty.BoolVal(false),
-			true,
+			`"." is not a regular file, but "drwxr-xr-x"`,
+		},
+		{
+			cty.StringVal("testdata").Mark(marks.Sensitive),
+			cty.BoolVal(false),
+			`(sensitive value) is not a regular file, but "drwxr-xr-x"`,
 		},
 		{
 			cty.StringVal("testdata/missing"),
 			cty.BoolVal(false),
-			false, // no file exists
+			``,
+		},
+		{
+			cty.StringVal("testdata/unreadable/foobar"),
+			cty.BoolVal(false),
+			`failed to stat "testdata/unreadable/foobar"`,
+		},
+		{
+			cty.StringVal("testdata/unreadable/foobar").Mark(marks.Sensitive),
+			cty.BoolVal(false),
+			`failed to stat (sensitive value)`,
 		},
 	}
+
+	// Ensure "unreadable" directory cannot be listed during the test run
+	fi, err := os.Lstat("testdata/unreadable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Chmod("testdata/unreadable", 0000)
+	defer func(mode os.FileMode) {
+		os.Chmod("testdata/unreadable", mode)
+	}(fi.Mode())
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("FileExists(\".\", %#v)", test.Path), func(t *testing.T) {
 			got, err := FileExists(".", test.Path)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
@@ -241,49 +290,49 @@ func TestFileSet(t *testing.T) {
 		Path    cty.Value
 		Pattern cty.Value
 		Want    cty.Value
-		Err     bool
+		Err     string
 	}{
 		{
 			cty.StringVal("."),
 			cty.StringVal("testdata*"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("testdata"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("{testdata,missing}"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("testdata/missing"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("testdata/missing*"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("*/missing"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("**/missing"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -291,7 +340,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -299,7 +348,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -307,7 +356,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -316,7 +365,7 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -325,7 +374,7 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -333,7 +382,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -341,7 +390,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -350,7 +399,7 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -359,7 +408,7 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
@@ -368,31 +417,37 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("testdata/hello.tmpl"),
 				cty.StringVal("testdata/hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("["),
 			cty.SetValEmpty(cty.String),
-			true,
+			`failed to glob pattern "[": syntax error in pattern`,
+		},
+		{
+			cty.StringVal("."),
+			cty.StringVal("[").Mark(marks.Sensitive),
+			cty.SetValEmpty(cty.String),
+			`failed to glob pattern (sensitive value): syntax error in pattern`,
 		},
 		{
 			cty.StringVal("."),
 			cty.StringVal("\\"),
 			cty.SetValEmpty(cty.String),
-			true,
+			`failed to glob pattern "\\": syntax error in pattern`,
 		},
 		{
 			cty.StringVal("testdata"),
 			cty.StringVal("missing"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata"),
 			cty.StringVal("missing*"),
 			cty.SetValEmpty(cty.String),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata"),
@@ -400,7 +455,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata"),
@@ -408,7 +463,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata"),
@@ -416,7 +471,7 @@ func TestFileSet(t *testing.T) {
 			cty.SetVal([]cty.Value{
 				cty.StringVal("hello.txt"),
 			}),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("testdata"),
@@ -425,7 +480,7 @@ func TestFileSet(t *testing.T) {
 				cty.StringVal("hello.tmpl"),
 				cty.StringVal("hello.txt"),
 			}),
-			false,
+			``,
 		},
 	}
 
@@ -433,9 +488,12 @@ func TestFileSet(t *testing.T) {
 		t.Run(fmt.Sprintf("FileSet(\".\", %#v, %#v)", test.Path, test.Pattern), func(t *testing.T) {
 			got, err := FileSet(".", test.Path, test.Pattern)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
