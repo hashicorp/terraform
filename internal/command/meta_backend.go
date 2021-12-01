@@ -737,7 +737,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Terraform Cloud initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloudMigration), initReason),
+			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
@@ -1508,17 +1508,6 @@ use the current configuration.
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.
-`
-
-const errBackendInitCloudMigration = `
-Reason: %s.
-
-Migrating to Terraform Cloud requires reinitialization, to discover which Terraform Cloud workspaces belong to this configuration and to optionally migrate existing state to the corresponding Terraform Cloud workspaces.
-
-To re-initialize, run:
-  terraform init
-
-Terraform has not yet made changes to your existing configuration or state.
 `
 
 const errBackendInitCloud = `
