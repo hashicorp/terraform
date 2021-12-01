@@ -95,12 +95,14 @@ var SignumFunc = function.New(&function.Spec{
 var ParseIntFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name: "number",
-			Type: cty.DynamicPseudoType,
+			Name:        "number",
+			Type:        cty.DynamicPseudoType,
+			AllowMarked: true,
 		},
 		{
-			Name: "base",
-			Type: cty.Number,
+			Name:        "base",
+			Type:        cty.Number,
+			AllowMarked: true,
 		},
 	},
 
@@ -116,11 +118,13 @@ var ParseIntFunc = function.New(&function.Spec{
 		var base int
 		var err error
 
-		if err = gocty.FromCtyValue(args[0], &numstr); err != nil {
+		numArg, numMarks := args[0].Unmark()
+		if err = gocty.FromCtyValue(numArg, &numstr); err != nil {
 			return cty.UnknownVal(cty.String), function.NewArgError(0, err)
 		}
 
-		if err = gocty.FromCtyValue(args[1], &base); err != nil {
+		baseArg, baseMarks := args[1].Unmark()
+		if err = gocty.FromCtyValue(baseArg, &base); err != nil {
 			return cty.UnknownVal(cty.Number), function.NewArgError(1, err)
 		}
 
@@ -135,13 +139,13 @@ var ParseIntFunc = function.New(&function.Spec{
 		if !ok {
 			return cty.UnknownVal(cty.Number), function.NewArgErrorf(
 				0,
-				"cannot parse %q as a base %d integer",
-				numstr,
-				base,
+				"cannot parse %s as a base %s integer",
+				redactIfSensitive(numstr, numMarks),
+				redactIfSensitive(base, baseMarks),
 			)
 		}
 
-		parsedNum := cty.NumberVal((&big.Float{}).SetInt(num))
+		parsedNum := cty.NumberVal((&big.Float{}).SetInt(num)).WithMarks(numMarks, baseMarks)
 
 		return parsedNum, nil
 	},
