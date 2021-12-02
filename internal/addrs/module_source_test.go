@@ -488,9 +488,13 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 			input:   `foo/var/baz/qux`,
 			wantErr: `invalid module registry hostname: must contain at least one dot`,
 		},
-		"invalid target system": {
+		"invalid target system characters": {
 			input:   `foo/var/no-no-no`,
 			wantErr: `invalid target system "no-no-no": must be between one and 64 ASCII letters or digits`,
+		},
+		"invalid target system length": {
+			input:   `foo/var/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah`,
+			wantErr: `invalid target system "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah": must be between one and 64 ASCII letters or digits`,
 		},
 		"invalid namespace": {
 			input:   `boop!/var/baz`,
@@ -518,11 +522,23 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 			input:   `bitbucket.org/HashiCorp/Consul/aws`,
 			wantErr: `can't use "bitbucket.org" as a module registry host, because it's reserved for installing directly from version control repositories`,
 		},
+		"local path from current dir": {
+			// Can't use a local path when we're specifically trying to parse
+			// a _registry_ source address.
+			input:   `./boop`,
+			wantErr: `can't use local directory "./boop" as a module registry address`,
+		},
+		"local path from parent dir": {
+			// Can't use a local path when we're specifically trying to parse
+			// a _registry_ source address.
+			input:   `../boop`,
+			wantErr: `can't use local directory "../boop" as a module registry address`,
+		},
 	}
 
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			addr, err := parseModuleSourceRegistry(test.input)
+			addrI, err := ParseModuleSourceRegistry(test.input)
 
 			if test.wantErr != "" {
 				switch {
@@ -536,6 +552,11 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 
 			if err != nil {
 				t.Fatalf("unexpected error: %s", err.Error())
+			}
+
+			addr, ok := addrI.(ModuleSourceRegistry)
+			if !ok {
+				t.Fatalf("wrong address type %T; want %T", addrI, addr)
 			}
 
 			if got, want := addr.String(), test.wantString; got != want {

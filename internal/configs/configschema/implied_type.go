@@ -44,6 +44,9 @@ func (b *Block) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
 	}
 	for _, blockS := range b.BlockTypes {
 		if blockS.ContainsSensitive() {
@@ -108,8 +111,8 @@ func (o *Object) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
-		if attrS.NestedType != nil {
-			return attrS.NestedType.ContainsSensitive()
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
 		}
 	}
 	return false
