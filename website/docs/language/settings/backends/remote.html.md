@@ -223,15 +223,15 @@ When executing a remote `plan` or `apply` in a [CLI-driven run](/docs/cloud/run/
 an archive of your configuration directory is uploaded to Terraform Cloud. You can define
 paths to ignore from upload via a `.terraformignore` file at the root of your configuration directory. If this file is not present, the archive will exclude the following by default:
 
-* .git/ directories
-* .terraform/ directories (exclusive of .terraform/modules)
+* `.git/` directories
+* `.terraform/` directories (exclusive of `.terraform/modules`)
 
 The `.terraformignore` file can include rules as one would include in a
-[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring)
+[`.gitignore` file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring)
 
 
 * Comments (starting with `#`) or blank lines are ignored
-* End a pattern with a forward slash / to specify a directory
+* End a pattern with a forward slash `/` to specify a directory
 * Negate a pattern by starting it with an exclamation point `!`
 
 Note that unlike `.gitignore`, only the `.terraformignore` at the root of the configuration
