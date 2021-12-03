@@ -1,7 +1,6 @@
 ---
 layout: "docs"
 page_title: "Command Line Arguments"
-sidebar_current: "configuring-terraform-cloud"
 description: "Command Line Arguments"
 ---
 
