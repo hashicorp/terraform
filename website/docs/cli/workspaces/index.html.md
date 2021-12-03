@@ -45,7 +45,7 @@ Terraform CLI supports using multiple workspaces with:
 - _Most_ [remote state backends](/docs/language/settings/backends/index.html)
 
 When using remote state, the set of available workspaces is shared, but the name
-of the currently selected workspace is only saved locally. So everyone sees the
+of the currently selected workspace is only saved locally. Everyone sees the
 same workspaces available, but can work independently on a given workspace.
 
 ## When to Use or Not Use Workspaces
