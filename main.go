@@ -141,7 +141,7 @@ func realMain() int {
 	// when creating the source fails. Otherwise we pass a typed nil which
 	// breaks the nil checks in the disco object
 	var services *disco.Disco
-	credsSrc, err := credentialsSource(config)
+	credsSrc, err := credentialsSource(config, os.Environ())
 	if err == nil {
 		services = disco.NewWithCredentialsSource(credsSrc)
 	} else {

@@ -32,8 +32,10 @@ func credentialsConfigFile() (string, error) {
 
 // CredentialsSource creates and returns a service credentials source whose
 // behavior depends on which "credentials" and "credentials_helper" blocks,
-// if any, are present in the receiving config.
-func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) (*CredentialsSource, error) {
+// if any, are present in the receiving config, and on the environment
+// variables in the given environ slice which should be formatted like the
+// return value of os.Environ.
+func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet, environ []string) (*CredentialsSource, error) {
 	credentialsFilePath, err := credentialsConfigFile()
 	if err != nil {
 		// If we managed to load a Config object at all then we would already
@@ -62,7 +64,7 @@ func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) 
 		break
 	}
 
-	return c.credentialsSource(helperType, helper, credentialsFilePath), nil
+	return c.credentialsSource(environ, helperType, helper, credentialsFilePath), nil
 }
 
 // EmptyCredentialsSourceForTests constructs a CredentialsSource with
@@ -73,13 +75,13 @@ func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) 
 // be used in normal application code.
 func EmptyCredentialsSourceForTests(credentialsFilePath string) *CredentialsSource {
 	cfg := &Config{}
-	return cfg.credentialsSource("", nil, credentialsFilePath)
+	return cfg.credentialsSource(nil, "", nil, credentialsFilePath)
 }
 
 // credentialsSource is an internal factory for the credentials source which
 // allows overriding the credentials file path, which allows setting it to
 // a temporary file location when testing.
-func (c *Config) credentialsSource(helperType string, helper svcauth.CredentialsSource, credentialsFilePath string) *CredentialsSource {
+func (c *Config) credentialsSource(environ []string, helperType string, helper svcauth.CredentialsSource, credentialsFilePath string) *CredentialsSource {
 	configured := map[svchost.Hostname]cty.Value{}
 	for userHost, creds := range c.Credentials {
 		host, err := svchost.ForComparison(userHost)
@@ -104,7 +106,10 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 		}
 	}
 
+	fromEnv := svcauth.EnvVarsCredentialsSource(environ)
+
 	return &CredentialsSource{
+		fromEnv:             fromEnv,
 		configured:          configured,
 		unwritable:          unwritableLocal,
 		credentialsFilePath: credentialsFilePath,
@@ -117,6 +122,10 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 // that can read and write the CLI configuration, and possibly also delegate
 // to a credentials helper when configured.
 type CredentialsSource struct {
+	// fromEnv is the credentials source representing credentials found in
+	// the process environment variables.
+	fromEnv svcauth.CredentialsSource
+
 	// configured describes the credentials explicitly configured in the CLI
 	// config via "credentials" blocks. This map will also change to reflect
 	// any writes to the special credentials.tfrc.json file.
@@ -153,6 +162,10 @@ type CredentialsSource struct {
 var _ svcauth.CredentialsSource = (*CredentialsSource)(nil)
 
 func (s *CredentialsSource) ForHost(host svchost.Hostname) (svcauth.HostCredentials, error) {
+	if creds, err := s.fromEnv.ForHost(host); err == nil && creds != nil {
+		return creds, nil
+	}
+
 	v, ok := s.configured[host]
 	if ok {
 		return svcauth.HostCredentialsFromObject(v), nil
@@ -179,6 +192,9 @@ func (s *CredentialsSource) ForgetForHost(host svchost.Hostname) error {
 // The current location of credentials determines whether updates are possible
 // at all and, if they are, where any updates will be written.
 func (s *CredentialsSource) HostCredentialsLocation(host svchost.Hostname) CredentialsLocation {
+	if c, err := s.fromEnv.ForHost(host); err == nil && c != nil {
+		return CredentialsFromEnvironment
+	}
 	if _, unwritable := s.unwritable[host]; unwritable {
 		return CredentialsInOtherFile
 	}
@@ -214,7 +230,9 @@ func (s *CredentialsSource) CredentialsHelperType() string {
 func (s *CredentialsSource) updateHostCredentials(host svchost.Hostname, new svcauth.HostCredentialsWritable) error {
 	switch loc := s.HostCredentialsLocation(host); loc {
 	case CredentialsInOtherFile:
-		return ErrUnwritableHostCredentials(host)
+		return ErrUnwritableHostCredentialsCLIConfig(host)
+	case CredentialsFromEnvironment:
+		return ErrUnwritableHostCredentialsEnvVar(host)
 	case CredentialsInPrimaryFile, CredentialsNotAvailable:
 		// If the host already has credentials stored locally then we'll update
 		// them locally too, even if there's a credentials helper configured,
@@ -402,23 +420,39 @@ func readHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
 	return ret
 }
 
-// ErrUnwritableHostCredentials is an error type that is returned when a caller
-// tries to write credentials for a host that has existing credentials configured
-// in a file that we cannot automatically update.
-type ErrUnwritableHostCredentials svchost.Hostname
+// ErrUnwritableHostCredentialsCLIConfig is an error type that is returned when
+// a caller tries to write credentials for a host that has existing credentials
+// configured in a file that we cannot automatically update.
+type ErrUnwritableHostCredentialsCLIConfig svchost.Hostname
 
-func (err ErrUnwritableHostCredentials) Error() string {
+func (err ErrUnwritableHostCredentialsCLIConfig) Error() string {
 	return fmt.Sprintf("cannot change credentials for %s: existing manually-configured credentials in a CLI config file", svchost.Hostname(err).ForDisplay())
 }
 
 // Hostname returns the host that could not be written.
-func (err ErrUnwritableHostCredentials) Hostname() svchost.Hostname {
+func (err ErrUnwritableHostCredentialsCLIConfig) Hostname() svchost.Hostname {
+	return svchost.Hostname(err)
+}
+
+// ErrUnwritableHostCredentialsEnvVar is an error type that is returned when
+// a caller tries to write credentials for a host that has existing credentials
+// configured in an environment variable.
+type ErrUnwritableHostCredentialsEnvVar svchost.Hostname
+
+func (err ErrUnwritableHostCredentialsEnvVar) Error() string {
+	return fmt.Sprintf("cannot change credentials for %s: credentials are set via an environment variable", svchost.Hostname(err).ForDisplay())
+}
+
+// Hostname returns the host that could not be written.
+func (err ErrUnwritableHostCredentialsEnvVar) Hostname() svchost.Hostname {
 	return svchost.Hostname(err)
 }
 
 // CredentialsLocation describes a type of storage used for the credentials
 // for a particular hostname.
 type CredentialsLocation rune
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type CredentialsLocation
 
 const (
 	// CredentialsNotAvailable means that we know that there are no credential
@@ -441,4 +475,8 @@ const (
 	// are available for the host but a helper program is available that may
 	// or may not have credentials for the host.
 	CredentialsViaHelper CredentialsLocation = 'H'
+
+	// CredentialsFromEnvironment indicates that Terraform found an environment
+	// variable which provides credentials for the host.
+	CredentialsFromEnvironment CredentialsLocation = 'E'
 )

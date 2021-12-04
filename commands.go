@@ -426,7 +426,7 @@ func makeShutdownCh() <-chan struct{} {
 	return resultCh
 }
 
-func credentialsSource(config *cliconfig.Config) (auth.CredentialsSource, error) {
+func credentialsSource(config *cliconfig.Config, environ []string) (auth.CredentialsSource, error) {
 	helperPlugins := pluginDiscovery.FindPlugins("credentials", globalPluginDirs())
-	return config.CredentialsSource(helperPlugins)
+	return config.CredentialsSource(helperPlugins, environ)
 }

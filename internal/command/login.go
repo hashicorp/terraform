@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -161,11 +162,36 @@ func (c *LoginCommand) Run(args []string) int {
 		}
 	}
 
-	if credsCtx.Location == cliconfig.CredentialsInOtherFile {
+	switch credsCtx.Location {
+	case cliconfig.CredentialsInOtherFile:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("Credentials for %s are manually configured", dispHostname),
 			"The \"terraform login\" command cannot log in because credentials for this host are already configured in a CLI configuration file.\n\nTo log in, first revoke the existing credentials and remove that block from the CLI configuration.",
+		))
+	case cliconfig.CredentialsFromEnvironment:
+		// We'll find the environment variable that we read this from in
+		// order to mention it in the error message. This should always succeed
+		// in normal code because we're reading from the same table that
+		// the credentials source was built from; in test code with a fake
+		// environment it might return a weird error message with no var name
+		// included, which isn't a big enough problem to warrant more complexity.
+		var varName string
+		for _, ev := range os.Environ() {
+			eq := strings.IndexByte(ev, '=')
+			if eq < 0 {
+				continue
+			}
+			name := ev[:eq]
+			host, ok := svcauth.CredentialsHostnameForEnvVar(name)
+			if ok && host == hostname {
+				varName = name
+			}
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Credentials for %s are set in the environment", dispHostname),
+			fmt.Sprintf("The \"terraform login\" command cannot log in because this host already has credentials set via the environment variable %s.\n\nTo log in, first revoke the existing credentials and unset the environment variable.", varName),
 		))
 	}
 

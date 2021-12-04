@@ -10,12 +10,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 )
 
 func TestCredentialsForHost(t *testing.T) {
 	credSrc := &CredentialsSource{
+		fromEnv: svcauth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+			"fromenv.example.com": {
+				"token": "from-env",
+			},
+		}),
+
 		configured: map[svchost.Hostname]cty.Value{
 			"configured.example.com": cty.ObjectVal(map[string]cty.Value{
 				"token": cty.StringVal("configured"),
@@ -58,6 +64,15 @@ func TestCredentialsForHost(t *testing.T) {
 		return req.Header.Get("Authorization")
 	}
 
+	t.Run("from environment", func(t *testing.T) {
+		creds, err := credSrc.ForHost(svchost.Hostname("fromenv.example.com"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+		if got, want := testReqAuthHeader(t, creds), "Bearer from-env"; got != want {
+			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+	})
 	t.Run("configured", func(t *testing.T) {
 		creds, err := credSrc.ForHost(svchost.Hostname("configured.example.com"))
 		if err != nil {
@@ -109,6 +124,9 @@ func TestCredentialsStoreForget(t *testing.T) {
 	// We'll initially use a credentials source with no credentials helper at
 	// all, and thus with credentials stored in the credentials file.
 	credSrc := cfg.credentialsSource(
+		[]string{
+			"TF_TOKEN_fromenv.example.com=boop",
+		},
 		"", nil,
 		mockCredsFilename,
 	)
@@ -139,8 +157,8 @@ func TestCredentialsStoreForget(t *testing.T) {
 		if err == nil {
 			t.Fatalf("successfully stored for manually-configured; want error")
 		}
-		if _, ok := err.(ErrUnwritableHostCredentials); !ok {
-			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials", err)
+		if _, ok := err.(ErrUnwritableHostCredentialsCLIConfig); !ok {
+			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials\ngot: %s", err, err)
 		}
 	}
 	{
@@ -150,8 +168,31 @@ func TestCredentialsStoreForget(t *testing.T) {
 		if err == nil {
 			t.Fatalf("successfully forgot for manually-configured; want error")
 		}
-		if _, ok := err.(ErrUnwritableHostCredentials); !ok {
-			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials", err)
+		if _, ok := err.(ErrUnwritableHostCredentialsCLIConfig); !ok {
+			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials\ngot: %s", err, err)
+		}
+	}
+	{
+		err := credSrc.StoreForHost(
+			svchost.Hostname("fromenv.example.com"),
+			svcauth.HostCredentialsToken("not-manually-configured"),
+		)
+		if err == nil {
+			t.Fatalf("successfully stored for manually-configured; want error")
+		}
+		if _, ok := err.(ErrUnwritableHostCredentialsEnvVar); !ok {
+			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials\ngot: %s", err, err)
+		}
+	}
+	{
+		err := credSrc.ForgetForHost(
+			svchost.Hostname("fromenv.example.com"),
+		)
+		if err == nil {
+			t.Fatalf("successfully forgot for manually-configured; want error")
+		}
+		if _, ok := err.(ErrUnwritableHostCredentialsEnvVar); !ok {
+			t.Fatalf("wrong error type %T; want ErrUnwritableHostCredentials\ngot: %s", err, err)
 		}
 	}
 	{
@@ -192,6 +233,7 @@ func TestCredentialsStoreForget(t *testing.T) {
 	}
 	mockHelper := &mockCredentialsHelper{current: make(map[svchost.Hostname]cty.Value)}
 	credSrc = cfg.credentialsSource(
+		nil,
 		"mock", mockHelper,
 		mockCredsFilename,
 	)
@@ -312,6 +354,37 @@ func TestCredentialsStoreForget(t *testing.T) {
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("unexpected credentials helper operation log\n%s", diff)
 		}
+	}
+}
+
+func TestCredentialsStoreFromEnvSetup(t *testing.T) {
+	// This is to verify that we can actually pick up credentials from
+	// the given environment variables, in particular.
+	// (There are more comprehensive tests for all of the permutations
+	// of these environment variables in the svcauth package itself,
+	// and so we're just trying to test that we're actually calling into
+	// that code here.)
+	environ := []string{
+		"TF_TOKEN_example_com=success",
+	}
+	hostname := svchost.Hostname("example.com")
+
+	config := &Config{}
+	creds, err := config.CredentialsSource(nil, environ)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := creds.HostCredentialsLocation(hostname), CredentialsFromEnvironment; got != want {
+		t.Errorf("wrong credentials location\ngot:  %s\nwant: %s", got, want)
+	}
+
+	got, err := creds.ForHost(hostname)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotToken, wantToken := got.Token(), "success"; gotToken != wantToken {
+		t.Errorf("wrong token\ngot:  %s\nwant: %s", gotToken, wantToken)
 	}
 }
 
