@@ -1,49 +1,84 @@
 ---
 layout: "docs"
-page_title: "Configuring Terraform Cloud"
+page_title: "Terraform Cloud Settings - Terraform CLI"
 ---
 
-# Initialization
+# Terraform Cloud Settings
 
-To enable Terraform Cloud's [CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html), a
-special `cloud` block can be added to a Terraform configuration within the top-level `terraform` block, e.g.:
+Terraform CLI can integrate with Terraform Cloud, acting as a client for Terraform Cloud's
+[CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html).
 
-```
+To use Terraform Cloud for a particular working directory, you must configure the following settings:
+
+- Add a `cloud` block to the directory's Terraform configuration, to specify
+  which organization and workspace(s) to use.
+- Provide credentials to access Terraform Cloud, preferably by using the
+  [`terraform login`](/docs/cli/commands/login.html) command.
+- Optionally, use a `.terraformignore` file to specify files that shouldn't be
+  uploaded with the Terraform configuration when running plans and applies.
+
+After adding or changing a `cloud` block, you must run `terraform init`.
+
+~> **Important:** If you are enabling Terraform Cloud for an existing working
+directory that already has Terraform state for managed resources (either stored
+locally, or in a remote state backend), `terraform init` might prompt you to
+rename existing workspaces. See
+[Initializing and Migrating](/docs/cli/cloud/migrating.html) for more details.
+
+## The `cloud` Block
+
+The `cloud` block is a nested block within the top-level `terraform` settings
+block. It specifies which Terraform Cloud workspaces to use for the current
+working directory.
+
+```hcl
 terraform {
   cloud {
     organization = "my-org"
+    hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
+
     workspaces {
-      tags = ["networking"]
+      tags = ["networking", "source:cli"] # Selects all workspaces that have both tags
+      # --- OR: ---
+      name = "vpc-us-west" # Selects exactly one workspace
     }
   }
 }
 ```
 
-With this configuration in place, run `terraform init`.
+The `cloud` block has some special restrictions:
 
-Using the Cloud integration is mutually exclusive of declaring any [state backend](/docs/language/settings/backends/index.html); that is, a configuration
-can only declare one or the other. Similar to backends...
+- A configuration can only provide one `cloud` block.
+- A `cloud` block cannot be used with [state backends](/docs/language/settings/backends/index.html).
+  A configuration can use one or the other, but not both.
+- A cloud block cannot refer to named values (like input variables, locals, or
+  data source attributes).
 
-- A configuration can only provide one cloud block.
-- A cloud block cannot refer to named values (like input variables, locals, or data source attributes).
+The `cloud` block only affects Terraform CLI's behavior. When Terraform Cloud
+uses a configuration that contains a cloud  block, it ignores it and behaves
+according to its own workspace settings.
 
-## Configuration Options
+### Arguments
 
-The following configuration options are supported:
+The `cloud` block supports the following configuration arguments:
 
 * `organization` - (Required) The name of the organization containing the
-  workspace(s) the current configuration should be mapped to.
+  workspace(s) the current configuration should use.
 
-* `workspaces` - (Required) A block declaring a strategy for mapping local CLI workspaces to remote
-  Terraform Cloud workspaces.
-  The `workspaces` block supports the following keys, each denoting a 'strategy':
+* `workspaces` - (Required) A nested block that specifies which remote
+  Terraform Cloud workspaces to use. The `workspaces` block must contain
+  **exactly one** of the following arguments:
 
-  * `tags` - (Optional) A set of tags used to select remote Terraform Cloud workspaces to be used for this single
-configuration.  New workspaces will automatically be tagged with these tag values.  Generally, this
-is the primary and recommended strategy to use.  This option conflicts with "name".
+    * `tags` - (Optional) A set of Terraform Cloud workspace tags. You will be able to use
+      this working directory with any workspaces that have all of the specified tags,
+      and can use [the `terraform workspace` commands](/docs/cli/workspaces/index.html)
+      to switch between them or create new workspaces; new workspaces will automatically have
+      the specified tags. This option conflicts with "name".
 
-  * `name` - (Optional) The name of a single Terraform Cloud workspace to be used with this configuration When configured
-only the specified workspace can be used. This option conflicts with "tags".
+    * `name` - (Optional) The name of a single Terraform Cloud workspace. You will
+      only be able to use the workspace specified in the configuration with this working
+      directory, and cannot use `terraform workspace select` or `terraform workspace new`.
+      This option conflicts with "tags".
 
 * `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
   Enterprise. Defaults to Terraform Cloud (app.terraform.io).
@@ -54,113 +89,37 @@ only the specified workspace can be used. This option conflicts with "tags".
   `credentials` in the
   [CLI config file](/docs/cli/config/config-file.html#credentials).
 
-## Workspaces
+### Organizing Workspaces
 
-Terraform can be configured to work with multiple Terraform Cloud workspaces using Terraform's [named workspaces feature](/docs/cli/workspaces/index.html) or a single explicit Terraform Cloud workspace. In the multi-workspace case, subcommands of `terraform workspace` (e.g. `list`, `new`, `select`) manage remote Terraform Cloud workspaces for the current configuration.
+You should only connect a configuration to Terraform Cloud workspaces that use
+that same configuration.
 
-The `workspaces` block of the `cloud` configuration determines how Terraform maps workspaces for the
-current configuration to Terraform Cloud workspaces in the given organization.
+This is straightforward when using `name` to select a single workspace. But when
+using `tags` to specify multiple workspaces, it's important to ensure your tags
+will only match workspaces that use this configuration.
 
-There are some slight differences between local and remote workspaces:
+This is ultimately determined by the layout and tagging scheme of your Terraform
+Cloud organization's workspaces, so we suggest taking care to consider CLI use
+when organizing your workspaces.
 
-* _Terraform CLI workspaces_ are representations of multiple state files associated with a single
-_configuration_. They typically represent multiple _deployment environments_ that the single
-configuration can be provisioned to (`prod`, `staging`, `dev`, etc).
 
-* _Terraform Cloud workspaces_ are more flexible in that they are not associated with a particular
-configuration but by a Terraform Cloud organization. Two related workspaces (representing the `prod`
-and `staging` deployment environments of a single set of resources) may _or may not_ be associated
-with the same configuration. In this sense, a Terraform Cloud workspace behaves more like a
-completely separate working directory, and is typically named by both the set of resources it
-contains as well as the deployment environment it provisions to (`networking-prod-us-east`,
-`networking-staging-us-east`, etc).
-
-**For more information on what workspaces are, their purpose, and how workspaces in Terraform CLI relate to Terraform Cloud workspaces, see the general documentation on [Workspaces](/docs/language/workspaces/index.html).**
-
-## Example Configurations
-
-### Basic Configuration
-
-```hcl
-terraform {
-  cloud {
-    organization = "company"
-    workspaces {
-      tags = ["networking", "source:cli"]
-    }
-  }
-}
-```
-
-In the example above, all Terraform Cloud workspaces with the `networking` and `source:cli` tags
-will be mapped to the current configuration. `terraform workspace new example` would similarly
-create a new Terraform Cloud workspace named `example` tagged with `networking` and `source:cli`.
-
-### Configurating a single workspace
-
-```hcl
-terraform {
-  cloud {
-    organization = "company"
-    workspaces {
-      name = "networking-prod-us-east"
-    }
-  }
-}
-```
-
-In the example above, the `workspaces` block maps the current configuration to a single specific
-Terraform Cloud workspace named `networking-prod-us-east`; Terraform will create this workspace if
-it does not yet exist when running `terraform init`. Note that using a particular workspace in this
-way means that commands which utilize multiple workspaces have no effect (e.g. `terraform workspace
-new`, `terraform workspace select`, etc).
-
-### Using Partial Configuration
-
-Like a state backend, the `cloud` option supports [partial
-configuration](/docs/language/settings/backends/configuration.html#partial-configuration) with the
-`-backend-config` flag, allowing you to supply configuration values from separate file.
-
-```hcl
-# main.tf
-terraform {
-  required_version = "~> 1.1.0"
-
-  cloud {}
-}
-```
-
-Configuration file:
-
-```hcl
-# config.cloud
-workspaces { tags = ["networking"] }
-hostname     = "app.terraform.io"
-organization = "company"
-```
-
-Running `terraform init` with the configuration file:
-
-```sh
-$ terraform init -backend-config=config.cloud
-```
-
-### Excluding Files from Upload with .terraformignore
+## Excluding Files from Upload with .terraformignore
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/docs/cloud/run/cli.html),
-an archive of your configuration directory is uploaded to Terraform Cloud. You can define
-paths to ignore from upload via a `.terraformignore` file at the root of your configuration directory. If this file is not present, the archive will exclude the following by default:
+a copy of your configuration directory is uploaded to Terraform Cloud. You can define
+paths to exclude from upload via a `.terraformignore` file at the root of your
+configuration directory. If this file is not present, the upload will exclude
+the following by default:
 
-* .git/ directories
-* .terraform/ directories (exclusive of .terraform/modules)
+* `.git/` directories
+* `.terraform/` directories (exclusive of .terraform/modules)
 
-The `.terraformignore` file can include rules as one would include in a
-[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring)
+The rules in `.terraformignore` file resemble the rules allowed in a
+[.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring):
 
-
-* Comments (starting with `#`) or blank lines are ignored
-* End a pattern with a forward slash / to specify a directory
-* Negate a pattern by starting it with an exclamation point `!`
+* Comments (starting with `#`) or blank lines are ignored.
+* End a pattern with a forward slash / to specify a directory.
+* Negate a pattern by starting it with an exclamation point `!`.
 
 Note that unlike `.gitignore`, only the `.terraformignore` at the root of the configuration
 directory is considered.
