@@ -19,7 +19,7 @@ The rest of this page briefly describes cases 2 and 3.
 
 ## Migrating from the `remote` Backend
 
-The [`remote` backend]((/docs/language/settings/backends/remote.html)) was the primary
+The [`remote` backend](/docs/language/settings/backends/remote.html) was the primary
 implementation of Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html) for
 Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud`
 integration for Terraform versions 1.1 or later, as it provides an improved user experience and
