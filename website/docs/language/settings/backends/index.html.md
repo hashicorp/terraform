@@ -9,7 +9,7 @@ description: "A backend defines where Terraform stores its state. Learn about ho
 Backends define where Terraform's [state](/docs/language/state/index.html) snapshots are stored.
 
 A given Terraform configuration can either specify a backend,
-[integrate with Terraform Cloud](/docs/language/settings/configuring-terraform-cloud),
+[integrate with Terraform Cloud](/docs/language/settings/terraform-cloud.html),
 or do neither and default to storing state locally.
 
 The rest of this page introduces the concept of backends; the other pages in
@@ -46,7 +46,7 @@ wasn't useful. If you encounter old material that mentions "enhanced" backends,
 it refers to the [remote](/docs/language/settings/backends/remote.html)
 backend's ability to perform Terraform operations remotely in Terraform Cloud.
 `remote` was the only "enhanced" backend, and
-[the Terraform Cloud integration](/docs/language/settings/configuring-terraform-cloud)
+[the Terraform Cloud integration](/docs/language/settings/terraform-cloud.html)
 is intended to replace it.
 
 ## Available Backends
