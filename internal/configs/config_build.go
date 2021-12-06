@@ -23,9 +23,13 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
 
-	// Now that the config is built, we can connect the provider names to all
-	// the known types for validation.
-	cfg.resolveProviderTypes()
+	// Skip provider resolution if there are any errors, since the provider
+	// configurations themselves may not be valid.
+	if !diags.HasErrors() {
+		// Now that the config is built, we can connect the provider names to all
+		// the known types for validation.
+		cfg.resolveProviderTypes()
+	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, false)...)
 
