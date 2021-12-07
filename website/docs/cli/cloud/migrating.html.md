@@ -9,7 +9,7 @@ After [configuring Terraform Cloud settings](/docs/cli/cloud/settings.html) for 
 
 -> **Note:** When initializing Terraform Cloud, `terraform init`'s `-migrate-state` and `-reconfigure` options aren't valid.
 
-There are three main paths for what happens when initializing Terraform Cloud support:
+There are three main scenarios when you might initialize Terraform Cloud support:
 
 1. **Fresh working directory:** If the working directory has no existing Terraform state, no extra work happens during initialization. You can start using Terraform with Terraform Cloud right away.
 2. **`remote` backend:** If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces. The local names shown for those workspaces will change to match their remote names.
