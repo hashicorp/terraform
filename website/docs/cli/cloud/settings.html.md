@@ -112,7 +112,7 @@ configuration directory. If this file is not present, the upload will exclude
 the following by default:
 
 * `.git/` directories
-* `.terraform/` directories (exclusive of .terraform/modules)
+* `.terraform/` directories (exclusive of `.terraform/modules`)
 
 The rules in `.terraformignore` file resemble the rules allowed in a
 [.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring):
