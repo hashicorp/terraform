@@ -107,7 +107,7 @@ when organizing your workspaces.
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/docs/cloud/run/cli.html),
 a copy of your configuration directory is uploaded to Terraform Cloud. You can define
-paths to exclude from upload via a `.terraformignore` file at the root of your
+paths to exclude from upload by adding a `.terraformignore` file at the root of your
 configuration directory. If this file is not present, the upload will exclude
 the following by default:
 
