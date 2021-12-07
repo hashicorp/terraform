@@ -15,9 +15,9 @@ accept the following option to modify that behavior:
   a mismatch.
 
     Normally state-modification operations require using a local version of
-    Terraform CLI which is compatible with the Terraform version selected
+    Terraform CLI that is compatible with the Terraform version selected
     for the remote workspace as part of its settings. This is to avoid the
-    local operation creating a new state snapshot which the workspace's
+    local operation creating a new state snapshot that the workspace's
     remote execution environment would then be unable to decode.
 
     Overriding this check can result in a Terraform Cloud workspace that is
