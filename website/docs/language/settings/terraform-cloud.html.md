@@ -33,5 +33,5 @@ can only declare one or the other. Similar to backends...
 - A configuration can only provide one cloud block.
 - A cloud block cannot refer to named values (like input variables, locals, or data source attributes).
 
-See [Configuring Terraform Cloud](/docs/cli/cloud/index.html)
+See [Using Terraform Cloud](/docs/cli/cloud/index.html)
 in the Terraform CLI docs for more information.
