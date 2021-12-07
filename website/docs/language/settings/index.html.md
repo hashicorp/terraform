@@ -38,7 +38,7 @@ The nested `cloud` block configures Terraform Cloud for enabling its
 [Terraform Cloud Configuration](/docs/language/settings/terraform-cloud.html).
 
 - For more complete details about configuring and using Terraform Cloud with Terraform CLI,
-see [Configuring Terraform Cloud](/docs/cli/cloud/index.html) in the
+see [Using Terraform Cloud](/docs/cli/cloud/index.html) in the
 Terraform CLI documentation.
 
 ## Configuring a Terraform Backend
