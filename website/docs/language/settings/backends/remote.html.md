@@ -21,7 +21,6 @@ behavior, but it's simpler to describe it as a quirk of the `remote` backend.)
 Terraform Cloud account on [app.terraform.io](https://app.terraform.io) or a Terraform Enterprise
 instance (version v201809-1 or newer).
 
-The remote backend stores Terraform state and may be used to run operations in Terraform Cloud.
 
 When using full remote operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
 Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace.
