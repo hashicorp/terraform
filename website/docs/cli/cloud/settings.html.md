@@ -78,7 +78,7 @@ The `cloud` block supports the following configuration arguments:
     * `name` - (Optional) The name of a single Terraform Cloud workspace. You will
       only be able to use the workspace specified in the configuration with this working
       directory, and cannot use `terraform workspace select` or `terraform workspace new`.
-      This option conflicts with "tags".
+      This option conflicts with `tags`.
 
 * `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
   Enterprise. Defaults to Terraform Cloud (app.terraform.io).
