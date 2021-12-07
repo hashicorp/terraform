@@ -8,9 +8,9 @@ description: |-
 
 # swift
 
-**Kind: Standard (with locking)**
-
 Stores the state as an artifact in [Swift](http://docs.openstack.org/developer/swift/latest/).
+
+This backend supports [state locking](/docs/language/state/locking.html).
 
 ~> Warning! It is highly recommended that you enable [Object Versioning](https://docs.openstack.org/developer/swift/latest/overview_object_versioning.html) by setting the [`archive_container`](https://www.terraform.io/docs/language/settings/backends/swift.html#archive_container) configuration. This allows for state recovery in the case of accidental deletions and human error.
 

@@ -8,10 +8,9 @@ description: |-
 
 # COS
 
-**Kind: Standard (with locking)**
-
 Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
-This backend also supports [state locking](/docs/language/state/locking.html).
+
+This backend supports [state locking](/docs/language/state/locking.html).
 
 ~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
 on the COS bucket to allow for state recovery in the case of accidental deletions and human error.

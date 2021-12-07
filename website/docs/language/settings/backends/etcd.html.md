@@ -8,9 +8,9 @@ description: |-
 
 # etcd
 
-**Kind: Standard (with no locking)**
-
 Stores the state in [etcd 2.x](https://coreos.com/etcd/docs/latest/v2/README.html) at a given path.
+
+This backend does **not** support [state locking](/docs/language/state/locking.html).
 
 ## Example Configuration
 

@@ -8,8 +8,6 @@ description: |-
 
 # artifactory
 
-**Kind: Standard (with no locking)**
-
 Stores the state as an artifact in a given repository in
 [Artifactory](https://www.jfrog.com/artifactory/).
 
@@ -18,6 +16,8 @@ configurations may be kept at different subpaths within the repository.
 
 -> **Note:** The URL must include the path to the Artifactory installation.
 It will likely end in `/artifactory`.
+
+This backend does **not** support [state locking](/docs/language/state/locking.html).
 
 ## Example Configuration
 

@@ -8,8 +8,6 @@ description: |-
 
 # consul
 
-**Kind: Standard (with locking)**
-
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
 This backend supports [state locking](/docs/language/state/locking.html).
