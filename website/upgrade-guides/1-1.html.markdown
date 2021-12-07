@@ -1,0 +1,137 @@
+---
+layout: "language"
+page_title: "Upgrading to Terraform v1.1"
+sidebar_current: "upgrade-guides-1-1"
+description: |-
+  Upgrading to Terraform v1.1
+---
+
+# Upgrading to Terraform v1.1
+
+Terraform v1.1 is the first minor release after establishing a compatibility
+baseline in Terraform v1.0, and so this release should not require any
+unusual upgrade steps for most users.
+
+However, if you are upgrading from a version earlier than v1.0 then please
+refer to [the Terraform v1.0 upgrade guide](1-0.html) for how to upgrade through
+the v0 releases to reach the v1 release series. Because v1.1 is
+backward-compatible with the v1.0 series, you can upgrade directly to the
+latest v1.1 release, skipping the v1.0 series entirely, at any point where the
+v1.0 upgrade guide calls for upgrading to Terraform v1.0.
+
+Terraform v1.1 continues to honor
+[the Terraform v1.0 Compatibility Promises](/docs/language/v1-compatibility-promises.html),
+but there are some behavior changes outside of those promises that may affect a
+small number of users, described in the following sections.
+
+* [Terraform requires macOS 10.13 High Sierra or later](#terraform-requires-macos-1013-high-sierra-or-later)
+* [Preparation for removing Azure AD Graph support in the AzureRM Backend](#preparation-for-removing-azure-ad-graph-support-in-the-azurerm-backend)
+* [Changes to `terraform graph`](#changes-to-terraform-graph)
+* [Changes to `terraform state mv`](#changes-to-terraform-state-mv)
+* [Provider checksum verification in `terraform apply`](#provider-checksum-verification-in-terraform-apply)
+
+## Terraform requires macOS 10.13 High Sierra or later
+
+As operating system vendors phase out support for older versions of their
+software, the Terraform team must also phase out support in order to focus
+on supporting newer releases.
+
+With that in mind, the official releases of Terraform v1.1 now require
+macOS 10.13 High Sierra or later. Earlier versions of macOS are no longer
+supported, and Terraform CLI behavior on those earlier versions is undefined.
+
+## Preparation for removing Azure AD Graph support in the AzureRM Backend
+
+[Microsoft has announced the deprecation of Azure AD Graph](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-faq),
+and so Terraform v1.1 marks the first phase of a deprecation process for
+that legacy system in [the AzureRM state storage backend](/docs/language/settings/backends/azurerm.html).
+
+During the Terraform v1.1 release the default behavior is unchanged, but you
+can explicitly opt in to Microsoft Graph by setting
+`use_microsoft_graph = true` inside your `backend "azurerm` block and then
+reinitializing your working directory with `terraform init -reconfigure`.
+
+In Terraform v1.2 we plan to change this argument to default to `true` when
+not set, and so we strongly recommend planning to migrate to Microsoft Graph
+in the near future to prepare for the final removal of Azure AD Graph support
+in a later Terraform release. However, no immediate change is required before
+upgrading to Terraform v1.1.
+
+## Changes to `terraform graph`
+
+The `terraform graph` command exists to help with debugging and so it
+inherently exposes some of Terraform Core's implementation details. For that
+reason it isn't included in the v1.0 Compatibility Promises, but we still
+aim to preserve its behavior in spirit even as Terraform Core's internal
+design changes.
+
+In previous releases, `terraform graph` exposed the implementation detail that
+Terraform internally knows how to build graph types called "validate" and
+"eval", but Terraform Core no longer exposes those graph types externally
+and so consequently the graph command will no longer accept the options
+`-type=validate` or `-type=eval`.
+
+You can see a similar result to what those graph types would previously
+produce by generating a _plan_ graph, which is the default graph type and
+therefore requires no special `-type=...` option.
+
+## Changes to `terraform state mv`
+
+Terraform's local state storage backend supports a number of
+[legacy command line options](/docs/language/settings/backends/local.html#command-line-arguments)
+for backward-compatibility with workflows from much older versions of Terraform,
+prior to the introduction of Backends.
+
+Those options are not supported when using any other backend, but for many
+commands they are simply silently ignored rather than returning an error.
+
+Because `terraform state mv` has some extra use-cases related to migrating
+between states, it historically had some slightly different handling of those
+legacy options, but was not fully consistent.
+
+From Terraform v1.1, the behavior of these options has changed as follows:
+
+* The `-state=...` argument is allowed even when a remote backend is specified
+  in the configuration. If present, it forces the command to work in local
+  mode.
+* The `-backup=...` and `-backup-out=...` options are allowed only if either
+  the local backend is the configuration's selected backend _or_ if you
+  specify `-state=...` to force local state operation. These options will now
+  return an error if used against a remote backend, whereas previous Terraform
+  versions ignored them entirely in that case.
+
+There are no breaking changes to `terraform state mv`'s normal usage pattern,
+without any special options overriding the state storage strategy.
+
+## Provider checksum verification in `terraform apply`
+
+This section applies only to situations where you might generate a saved
+plan file using `terraform plan -out=tfplan` and then separately apply it
+using `terraform apply tfplan`.
+
+You do not need to consider this section unless you are using a custom
+Terraform provider which somehow modifies its own provider package contents
+during execution. That is hypothetically possible, but not true in practice for
+any publicly-available providers we are aware of at the time of writing this
+guide.
+
+Our design intent for this two-step run workflow is that the saved plan
+records enough information for Terraform to guarantee that it's running
+against an identical set of providers during the apply step as it was during
+the plan step, because otherwise the different provider plugins may disagree
+about the meaning of the planned actions.
+
+However, prior versions of Terraform verified consistency only for the main
+executable file representing a provider plugin, and didn't consider other
+files that might appear alongside in the plugin package. Terraform v1.1 now
+uses the same strategy for provider checking during apply as it does when
+verifying provider consistency against
+[the dependency lock file](/docs/language/dependency-lock.html)
+during `terraform init`, which means `terraform apply` will return an error
+if it detects that _any_ of the files in a provider's plugin package have
+changed compared to when the plan was created.
+
+In the unlikely event that you _do_ use a self-modifying provider plugin,
+please consider other solutions to achieve the goals which motivated that,
+which do not involve the provider modifying itself at runtime. If you aren't
+sure, please open a GitHub issue to discuss your use-case.
