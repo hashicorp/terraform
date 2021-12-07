@@ -7,10 +7,7 @@ page_title: "Using Terraform Cloud - Terraform CLI"
 
 The Terraform Cloud CLI Integration allows you to use Terraform Cloud and Terraform Enterprise on the command line. In the documentation Terraform Cloud instructions also apply to Terraform Enterprise, except where explicitly stated.
 
-Operations like `terraform plan` or `terraform apply` are remotely executed in Terraform Cloud's run
-environment, with log output streaming to the local terminal. This allows usage of Terraform Cloud's
-features — for example, using variables encrypted at rest in a Terraform Cloud workspace, cost
-estimates, and policy checking — within the familiar Terraform CLI workflow.
+Using Terraform Cloud through the command line is called the [CLI-driven run workflow](/docs/cloud/run/cli.html). When you use the CLI workflow, operations like `terraform plan` or `terraform apply` are remotely executed in Terraform Cloud's run environment by default, with log output streaming to the local terminal. This lets you use Terraform Cloud features within the familiar Terraform CLI workflow, including variables encrypted at rest in a Terraform Cloud workspace, cost estimates, and policy checking.
 
 Workspaces can also be configured for local execution, in which case only state is stored in
 Terraform Cloud. In this mode, Terraform Cloud behaves just like a standard state backend.
