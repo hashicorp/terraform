@@ -8,13 +8,13 @@ description: |-
 
 # OSS
 
-**Kind: Standard (with locking via TableStore)**
-
 Stores the state as a given key in a given bucket on Stores
 [Alibaba Cloud OSS](https://www.alibabacloud.com/help/product/31815.htm).
 This backend also supports state locking and consistency checking via
 [Alibaba Cloud Table Store](https://www.alibabacloud.com/help/doc-detail/27280.htm), which can be enabled by setting
 the `tablestore_table` field to an existing TableStore table name.
+
+This backend supports [state locking](/docs/language/state/locking.html) via TableStore.
 
 -> **Note:** The OSS backend is available from terraform version 0.12.2.
 
