@@ -19,8 +19,8 @@ which can then be shared between all members of a team. Terraform supports
 storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
 [HashiCorp Consul](https://www.consul.io/), Amazon S3, Azure Blob Storage, Google Cloud Storage, Alibaba Cloud OSS, and more.
 
-Remote state is implemented by a [backend](/docs/language/settings/backends/index.html),
-which you can configure in your configuration's root module.
+Remote state is implemented by a [backend](/docs/language/settings/backends/index.html) or by
+Terraform Cloud, both of which you can configure in your configuration's root module.
 
 ## Delegation and Teamwork
 
