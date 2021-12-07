@@ -351,7 +351,22 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
+	// Await collective run tasks
+	if len(r.TaskStage) > 0 {
+		context := NewIntegrationContext(stopCtx, cancelCtx, b, op, r)
+		err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), r.TaskStage[0].ID)
+
+		if err != nil {
+			return r, err
+		}
+	}
+
 	return r, nil
+}
+
+// String returns a pointer to the given string.
+func String(v string) *string {
+	return &v
 }
 
 const planDefaultHeader = `
