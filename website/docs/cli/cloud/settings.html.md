@@ -118,7 +118,7 @@ The rules in `.terraformignore` file resemble the rules allowed in a
 [.gitignore file](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository#_ignoring):
 
 * Comments (starting with `#`) or blank lines are ignored.
-* End a pattern with a forward slash / to specify a directory.
+* End a pattern with a forward slash `/` to specify a directory.
 * Negate a pattern by starting it with an exclamation point `!`.
 
 Note that unlike `.gitignore`, only the `.terraformignore` at the root of the configuration
