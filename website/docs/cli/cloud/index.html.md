@@ -27,10 +27,9 @@ is 202201-1.
 
 ## Documentation Summary
 
-* [Terraform Cloud Settings](/docs/cli/cloud/settings.html) documents the form of the `cloud` block that enables Terraform Cloud support for a Terraform configuration.
-* [Initializing and Migrating](/docs/cli/cloud/migrating.html) describes
+- [Terraform Cloud Settings](/docs/cli/cloud/settings.html) documents the `cloud` block that you must add to your configuration to enable Terraform Cloud support.
+- [Initializing and Migrating](/docs/cli/cloud/migrating.html) describes
 how to start using Terraform Cloud with a working directory that already has state data.
-* [Command Line Arguments](/docs/cli/cloud/command-line-arguments.html) lists the Terraform command flags that are specific to using Terraform with Terraform Cloud.
+- [Command Line Arguments](/docs/cli/cloud/command-line-arguments.html) lists the Terraform command flags that are specific to using Terraform with Terraform Cloud.
 
-For more information, see Terraform Cloud's documentation on [Terraform Runs and Remote
-Operations](/docs/cloud/run/index.html).
+Refer to the [CLI-driven Run Workflow](/docs/cloud/run/cli.html) for more details about how to use Terraform Cloud from the command line.
