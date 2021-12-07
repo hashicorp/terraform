@@ -6,7 +6,7 @@ description: "Command Line Arguments"
 
 # Command Line Arguments
 
-For configurations that include a `cloud` block to integrate with Terraform Cloud, commands that
+When your configuration includes a `cloud` block, commands that
 make local modifications to Terraform state and then push them back up to the remote workspace
 accept the following option to modify that behavior:
 
