@@ -8,12 +8,9 @@ description: |-
 
 # Refactoring
 
-~> **Note:** Explicit refactoring declarations with `moved` blocks will work
-only in Terraform v1.1 and later. When working with earlier Terraform versions,
-or for refactoring actions too complex to express as `moved` blocks, you could
-use
-[the `terraform state mv` CLI command](/docs/cli/commands/state/mv.html)
-as a separate step instead.
+-> **Note:** Explicit refactoring declarations with `moved` blocks is available in Terraform v1.1 and later. For earlier Terraform versions or for refactoring actions too complex to express as `moved` blocks, you can
+use the [`terraform state mv` CLI command](/docs/cli/commands/state/mv.html)
+as a separate step.
 
 In shared modules and long-lived configurations, you may eventually outgrow
 your initial module structure and resource names. For example, you might decide
@@ -28,6 +25,8 @@ at the old address and to create a new object at the new address.
 When you add `moved` blocks in your configuration to record where you've
 historically moved or renamed an object, Terraform treats an existing object at
 the old address as if it now belongs to the new address.
+
+> **Hands On:** Try the [Use Configuration to Move Resources](https://learn.hashicorp.com/tutorials/terraform/move-config) tutorial on HashiCorp Learn.
 
 ## `moved` Block Syntax
 
@@ -426,9 +425,9 @@ moved {
 
 ## Removing `moved` Blocks
 
-Over time, a long-lasting module may accumulate many `moved` blocks. 
+Over time, a long-lasting module may accumulate many `moved` blocks.
 
-Removing a `moved` block is a generally breaking change because any configurations that refer to the old address will plan to delete that existing object instead of move it. We strongly recommend that you retain all historical `moved` blocks from earlier versions of your modules to preserve the upgrade path for users of any previous version. 
+Removing a `moved` block is a generally breaking change because any configurations that refer to the old address will plan to delete that existing object instead of move it. We strongly recommend that you retain all historical `moved` blocks from earlier versions of your modules to preserve the upgrade path for users of any previous version.
 
 If you do decide to remove `moved` blocks, proceed with caution. It can be safe to remove `moved` blocks when you are maintaining private modules within an organization and you are certain that all users have successfully run `terraform apply` with your new module version.
 
