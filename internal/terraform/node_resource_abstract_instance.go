@@ -136,6 +136,9 @@ func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
 	}
+	if n.storedProviderConfig.Provider.Type != "" {
+		return n.storedProviderConfig.Provider
+	}
 	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 

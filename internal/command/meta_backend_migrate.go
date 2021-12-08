@@ -579,6 +579,21 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		opts.sourceWorkspace = currentWorkspace
 
 		log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
+
+		// If the current workspace is has no state we do not need to ask
+		// if they want to migrate the state.
+		sourceState, err := opts.Source.StateMgr(currentWorkspace)
+		if err != nil {
+			return err
+		}
+		if err := sourceState.RefreshState(); err != nil {
+			return err
+		}
+		if sourceState.State().Empty() {
+			log.Printf("[INFO] backendMigrateTFC: skipping migration because source %s is empty", opts.sourceWorkspace)
+			return nil
+		}
+
 		// Run normal single-to-single state migration.
 		// This will handle both situations where the new cloud backend
 		// configuration is using a workspace.name strategy or workspace.tags
