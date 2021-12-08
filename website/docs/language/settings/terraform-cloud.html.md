@@ -8,11 +8,10 @@ description: "The nested `cloud` block configures Terraform's integration with T
 # Terraform Cloud Configuration
 
 The main module of a Terraform configuration can integrate with Terraform Cloud to enable its
-[CLI-driven run workflow](/docs/cloud/run/cli.html). These settings are only needed when
-using Terraform CLI to interact with Terraform Cloud, and are ignored when interacting with
-Terraform Cloud via version control or the API.
+[CLI-driven run workflow](/docs/cloud/run/cli.html). You only need to configure these settings when you want to use Terraform CLI to interact with Terraform Cloud. Terraform Cloud ignores them when interacting with
+Terraform through version control or the API.
 
-Terraform Cloud is configured with a nested `cloud` block within the top-level
+You can configure the Terraform Cloud CLI integration by adding a nested `cloud` block within the top-level
 `terraform` block:
 
 ```hcl
@@ -27,11 +26,6 @@ terraform {
 }
 ```
 
-Using the Cloud integration is mutually exclusive of declaring any [state backend](/docs/language/settings/backends/index.html); that is, a configuration
-can only declare one or the other. Similar to backends...
+You cannot use the CLI integration and a [state backend](/docs/language/settings/backends/index.html) in the same configuration; the are mutually exclusive. A configuration can only provide one `cloud` block and the `cloud` block cannot refer to named values like input variables, locals, or data source attributes.
 
-- A configuration can only provide one cloud block.
-- A cloud block cannot refer to named values (like input variables, locals, or data source attributes).
-
-See [Using Terraform Cloud](/docs/cli/cloud/index.html)
-in the Terraform CLI docs for more information.
+Refer to [Using Terraform Cloud](/docs/cli/cloud/index.html) in the Terraform CLI docs for more information.

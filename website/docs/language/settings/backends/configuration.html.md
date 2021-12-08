@@ -8,11 +8,8 @@ page_title: "Backend Configuration - Configuration Language"
 Each Terraform configuration can specify a backend, which defines where
 [state](/docs/language/state/index.html) snapshots are stored.
 
-Backend configuration is not needed when using Terraform Cloud, because
-Terraform Cloud automatically manages state in the workspaces your configuration
-is associated with. If your configuration includes
-[a `cloud` block](/docs/language/settings/terraform-cloud.html),
-it cannot include a `backend` block.
+You do not need to configure a backend when using Terraform Cloud because
+Terraform Cloud automatically manages state in the workspaces associated with your configuration. If your configuration includes [a `cloud` block](/docs/language/settings/terraform-cloud.html), it cannot include a `backend` block.
 
 Most non-trivial Terraform configurations store state remotely so that multiple
 people can work with the same infrastructure.

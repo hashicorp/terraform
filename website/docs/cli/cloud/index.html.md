@@ -12,15 +12,9 @@ Using Terraform Cloud through the command line is called the [CLI-driven run wor
 Workspaces can also be configured for local execution, in which case only state is stored in
 Terraform Cloud. In this mode, Terraform Cloud behaves just like a standard state backend.
 
--> **Note:** The Cloud integration for Terraform was added in Terraform 1.1.0; for previous
-versions, see the [remote backend documentation](/docs/language/settings/backends/remote.html). See
-also: [Migrating from the remote
-backend](/docs/cli/cloud/migrating.html)
+-> **Note:** The CLI integration is available in Terraform 1.1.0 and later, and Terraform Enterprise 202201-1 and later. Previous versions can use the [`remote` backend](/docs/language/settings/backends/remote.html). Refer to [Migrating from the remote
+backend](/docs/cli/cloud/migrating.html) for details about switching to the CLI integration.
 
--> **Note:** This integration supports Terraform Enterprise as well. Throughout all the
-documentation, the platform will be referred to as Terraform Cloud, with any Terraform
-Enterprise-specific details explicitly stated. The minimum required version of Terraform Enterprise
-is 202201-1.
 
 ## Documentation Summary
 

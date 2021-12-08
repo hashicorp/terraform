@@ -5,7 +5,7 @@ page_title: "Initializing and Migrating to Terraform Cloud - Terraform CLI"
 
 # Initializing and Migrating
 
-After [configuring Terraform Cloud settings](/docs/cli/cloud/settings.html) for a working directory, you must run `terraform init` to finish setting up. When running this command, Terraform may guide you through an interactive process where you may choose whether or not you'd like to migrate state from any existing workspaces.
+After [configuring Terraform Cloud settings](/docs/cli/cloud/settings.html) for a working directory, you must run `terraform init` to finish setting up. When running this command, Terraform may guide you through an interactive process where you may choose whether or not to migrate state from any existing workspaces.
 
 There are three potential scenarios:
 
@@ -47,7 +47,7 @@ When switching from the `remote` backend to a `cloud` block, Terraform will cont
 set of Terraform Cloud workspaces. Replace your `backend "remote"` block with an equivalent `cloud`
 block:
 
-- If you were using a single workspace via the `name` argument, change the block
+- If you were using a single workspace with the `name` argument, change the block
   label to `cloud`.
 
     ```diff
@@ -68,8 +68,7 @@ block:
   distinguish the workspaces for your working directory, but a good starting point may be to use
   whatever the prefix was before.
 
-    The existing workspaces don't need to already have these tags — when you
-    initialize, Terraform will add the specified tags to them.
+    The tags you configure do not need to be present on the existing workspaces. When you initialize, Terraform will add the specified tags to the workspaces if necessary.
 
     ```diff
      terraform {
