@@ -8,9 +8,9 @@ description: |-
 
 # manta
 
-**Kind: Standard (with locking within Manta)**
-
 Stores the state as an artifact in [Manta](https://www.joyent.com/manta).
+
+This backend supports [state locking](/docs/language/state/locking.html), with locking within Manta.
 
 ## Example Configuration
 

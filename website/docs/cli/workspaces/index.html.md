@@ -68,12 +68,10 @@ act more like completely separate working directories; each Terraform Cloud
 workspace has its own Terraform configuration, set of variable values, state
 data, run history, and settings.
 
-These two kinds of workspaces are different, but related. When using Terraform
-CLI as a frontend for Terraform Cloud, you associate the current working
-directory with one or more remote workspaces by configuring
-[the `remote` backend](/docs/language/settings/backends/remote.html). If you associate the
-directory with multiple workspaces (using a name prefix), you can use the
+These two kinds of workspaces are different, but related. When [using Terraform
+CLI as a frontend for Terraform Cloud](/docs/cli/cloud/index.html), you can associate the current working
+directory with one or more remote workspaces. If you associate the
+directory with multiple workspaces (using workspace tags), you can use the
 `terraform workspace` commands to select which remote workspace to use.
 
-For more information about using Terraform CLI with Terraform Cloud, see
-[CLI-driven Runs](/docs/cloud/run/cli.html) in the Terraform Cloud docs.
+Refer to [CLI-driven Runs](/docs/cloud/run/cli.html) in the Terraform Cloud documentation for more details about using Terraform CLI with Terraform Cloud.

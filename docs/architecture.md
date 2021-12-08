@@ -61,29 +61,22 @@ Backends that are able to execute operations additionally implement
 the command-handling code calls `Operation` with the operation it has
 constructed, and then the backend is responsible for executing that action.
 
-Most backends do _not_ implement this interface, and so the `command` package
-wraps these backends in an instance of
+Backends that execute operations, however, do so as an architectural implementation detail and not a
+general feature of backends. That is, the term 'backend' as a Terraform feature is used to refer to
+a plugin that determines where Terraform stores its state snapshots - only the default `local`
+backend and Terraform Cloud's backends (`remote`, `cloud`) perform operations.
+
+Thus, most backends do _not_ implement this interface, and so the `command` package wraps these
+backends in an instance of
 [`local.Local`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend/local#Local),
-causing the operation to be executed locally within the `terraform` process
-itself, which (at the time of writing) is currently the only way an operation
-can be executed.
+causing the operation to be executed locally within the `terraform` process itself.
 
 ## Backends
 
-A _backend_ has a number of responsibilities in Terraform:
+A _backend_ determines where Terraform should store its state snapshots.
 
-* Execute operations (e.g. plan, apply)
-* Store state
-* Store workspace-defined variables (in the future; not yet implemented)
-
-As described above, the `local.Local` implementation -- named `local` from the
-user's standpoint -- is the only backend which implements _all_ functionality.
-Backends that cannot execute operations (at the time of writing, all except
-`local`) can be wrapped inside `local.Local` to perform operations locally
-while storing the [state](https://www.terraform.io/docs/state/index.html)
-elsewhere.
-
-To execute an operation locally, the `local` backend uses a _state manager_
+As described above, the `local` backend also executes operations on behalf of most other
+backends. It uses a _state manager_
 (either
 [`statemgr.Filesystem`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/states/statemgr#Filesystem) if the
 local backend is being used directly, or an implementation provided by whatever

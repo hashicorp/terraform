@@ -118,9 +118,10 @@ type Backend interface {
 
 // Enhanced implements additional behavior on top of a normal backend.
 //
-// Enhanced backends allow customizing the behavior of Terraform operations.
-// This allows Terraform to potentially run operations remotely, load
-// configurations from external sources, etc.
+// 'Enhanced' backends are an implementation detail only, and are no longer reflected as an external
+// 'feature' of backends. In other words, backends refer to plugins for remote state snapshot
+// storage only, and the Enhanced interface here is a necessary vestige of the 'local' and
+// remote/cloud backends only.
 type Enhanced interface {
 	Backend
 

@@ -25,6 +25,8 @@ resource.
   real-world object. Use this to preserve an object when renaming a resource, or
   when moving a resource into or out of a child module.
 
+    > **Hands On:** Try the [Use Configuration to Move Resources](https://learn.hashicorp.com/tutorials/terraform/move-config) on HashiCorp Learn.
+
 - [The `terraform state rm` command](/docs/cli/commands/state/rm.html) tells
   Terraform to stop managing a resource as part of the current working directory
   and workspace, _without_ destroying the corresponding real-world object. (You
