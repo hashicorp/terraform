@@ -1,3 +1,5 @@
+## 1.1.1 (Unreleased)
+
 ## 1.1.0 (December 08, 2021)
 
 Terraform v1.1.0 is a new minor release, containing some new features and some bug fixes whose scope was too large for inclusion in a patch release.
