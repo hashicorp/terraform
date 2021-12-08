@@ -22,13 +22,14 @@ backend](/docs/language/settings/backends/index.html)), Terraform will ask your 
 that state to Terraform Cloud. This process is interactive and self-documenting, and resembles
 moving between state backends.
 
-You may also be prompted to rename your workspaces during the migration, to either give a name to
+Terraform may also prompt you to rename your workspaces during the migration, to either give a name to
 the unnamed `default` workspace (Terraform Cloud requires all workspaces to have a name) or give
-your workspace names more contextual information. Unlike typical Terraform workspaces representing
-an environment associated with a particular configuration (e.g. production, staging, development),
-Terraform Cloud workspaces are named uniquely across all configurations used within an organization.
-Because of this, you'll be given an opportunity to rename the working directory's workspaces
-according to a pattern relative to their existing names. A typical strategy to start with is
+your workspace names more contextual information. Unlike Terraform CLI-only workspaces, which represent
+multiple environments associated with the same configuration (e.g. production, staging, development),
+Terraform Cloud workspaces can represent totally independent configurations, and must have unique names within the Terraform Cloud organization.
+
+Because of this, Terraform will prompt you to rename the working directory's workspaces
+according to a pattern relative to their existing names, which can indicate the fact that these specific workspaces share configuration. A typical strategy to start with is
 `<COMPONENT>-<ENVIRONMENT>-<REGION>` (e.g.  `networking-prod-us-east`,
 `networking-staging-us-east`). For more information on workspace naming, see [Workspace
 Naming](/docs/cloud/workspaces/naming.html) in the Terraform Cloud documentation.
