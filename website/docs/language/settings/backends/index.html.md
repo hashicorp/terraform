@@ -40,11 +40,11 @@ Some backends act like plain "remote disks" for state files; others support
 _locking_ the state while operations are being performed, which helps prevent
 conflicts and inconsistencies.
 
--> **Note:** In Terraform versions prior to 1.1.0, backends were also classifid as being 'standard'
+-> **Note:** In Terraform versions prior to 1.1.0, backends were also classified as being 'standard'
 or 'enhanced', where the latter term referred to the ability of the
-[remote](/docs/language/settings/sbackends/remote.html) backend to not only store state but perform
+[remote](/docs/language/settings/sbackends/remote.html) backend to store state and perform
 Terraform operations. This classification has been removed, clarifying the primary purpose of
-backends. See [Configuring Terraform Cloud](/docs/language/settings/configuring-terraform-cloud) to
+backends. Refer to [Configuring Terraform Cloud](/docs/language/settings/configuring-terraform-cloud) for details about how to
 store state, execute remote operations, and use Terraform Cloud directly from Terraform.
 
 ## Available Backends
