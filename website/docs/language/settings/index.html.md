@@ -34,12 +34,10 @@ following sections.
 The nested `cloud` block configures Terraform Cloud for enabling its
 [CLI-driven run workflow](/docs/cloud/run/cli.html).
 
-- For a summary of the `cloud` block's syntax, see 
-[Terraform Cloud Configuration](/docs/language/settings/terraform-cloud.html).
+- Refer to [Terraform Cloud Configuration](/docs/language/settings/terraform-cloud.html) for a summary of the `cloud` block's syntax.
 
-- For more complete details about configuring and using Terraform Cloud with Terraform CLI,
-see [Using Terraform Cloud](/docs/cli/cloud/index.html) in the
-Terraform CLI documentation.
+- Refer to [Using Terraform Cloud](/docs/cli/cloud/index.html) in the
+Terraform CLI documentation for complete details about how to initialize and configure the Terraform Cloud CLI integration.
 
 ## Configuring a Terraform Backend
 
