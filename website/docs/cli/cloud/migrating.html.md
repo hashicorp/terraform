@@ -11,7 +11,7 @@ When you run `terraform init` in the following scenarios, Terraform will ask you
 
 1. [**Migrating from local state or state backends:**](#migrating-from-local-state-or-state-backends) If the working directory already has state data in one or more workspaces, Terraform will ask if you would like to migrate that state to new Terraform Cloud workspaces.
 
-2. [**Migrating from the `remote` backend:**](#migrating-from-the-remote-backend) If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces.
+2. [**Migrating from the `remote` backend:**](#migrating-from-the-remote-backend) If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces. You will need to switch the `remote` backend block to the `cloud` block.
 
 ## Migrating from Local State or State Backends
 
@@ -64,7 +64,7 @@ terraform {
  }
 ```
 
-#### Multiple workspaces
+#### Multiple Workspaces
 
 If you were using multiple workspaces with the `prefix` argument, replace it with a `cloud` block that uses the `tags` argument. You may specify any number of tags to distinguish the workspaces for your working directory, but a good starting point may be to use whatever the prefix was before.
 
