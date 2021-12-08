@@ -8,17 +8,15 @@ description: |-
 
 # remote
 
-**Kind: Enhanced**
+-> **Note:** The remote backend was introduced in Terraform v0.11.13 and Terraform Enterprise v201809-1. As of Terraform v1.1.0 and Terraform Enterprise v202201-1, **we recommend using the Terraform Cloud's built-in [`cloud` integration](/docs/language/settings/terraform-cloud.html)** instead of this backend. The `cloud` option includes an improved user experience and more features. 
 
--> **Note:** We recommend using Terraform v0.11.13 or newer with this
-backend. This backend requires either a Terraform Cloud account on
-[app.terraform.io](https://app.terraform.io) or a Terraform Enterprise instance
-(version v201809-1 or newer).
 
-The remote backend stores Terraform state and may be used to run operations in Terraform Cloud.
+The remote backend is unique among all other Terraform backends because it can both store state snapshots and execute operations for Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html). It used to be called an "enhanced" backend.
+
+
 
 When using full remote operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
-Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace. 
+Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace.
 
 Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
 
@@ -70,16 +68,16 @@ the Terraform CLI workspace `prod` within the current configuration. Remote
 Terraform operations such as `plan` and `apply` executed against that Terraform
 CLI workspace will be executed in the Terraform Cloud workspace `networking-prod`.
 
-Additionally, the [`${terraform.workspace}`](/docs/language/state/workspaces.html#current-workspace-interpolation)
-interpolation sequence should be removed from Terraform configurations that run
+Additionally, the [`terraform.workspace`](/docs/language/state/workspaces.html#referencing-the-current-workspace-name)
+expression shouldn't be used in Terraform configurations that use Terraform 1.0.x or earlier and run
 remote operations against Terraform Cloud workspaces. The reason for this is that
-each Terraform Cloud workspace currently only uses the single `default` Terraform
+prior to Terraform 1.1.0, Terraform Cloud workspaces only used the single `default` Terraform
 CLI workspace internally. In other words, if your Terraform configuration
 used `${terraform.workspace}` to return `dev` or `prod`, remote runs in Terraform Cloud
 would always evaluate it as `default` regardless of
 which workspace you had set with the `terraform workspace select` command. That
-would most likely not be what you wanted. (It is ok to use `${terraform.workspace}`
-in local operations.)
+would most likely not be what you wanted. (It is ok to use `terraform.workspace`
+in local operations, and with remote operations in workspaces configured to use Terraform 1.1.0 or later.)
 
 The backend configuration requires either `name` or `prefix`. Omitting both or
 setting both results in a configuration error.
@@ -190,7 +188,7 @@ The following configuration options are supported:
     workspace names are used in Terraform Cloud, and the short names
     (minus the prefix) are used on the command line for Terraform CLI workspaces.
     If omitted, only the default workspace can be used. This option conflicts with `name`.
-    
+
 ->  **Note:** You must use the `name` key when configuring a `terraform_remote_state`
 data source that retrieves state from another Terraform Cloud workspace. The `prefix` key is only
 intended for use when configuring an instance of the remote backend.

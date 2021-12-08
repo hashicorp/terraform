@@ -1,0 +1,28 @@
+---
+layout: "docs"
+page_title: "Using Terraform Cloud - Terraform CLI"
+---
+
+# Using Terraform Cloud with Terraform CLI
+
+The Terraform CLI's integration with Terraform Cloud lets you to use Terraform Cloud and Terraform Enterprise on the command line. In the documentation Terraform Cloud instructions also apply to Terraform Enterprise, except where explicitly stated.
+
+Using Terraform Cloud through the command line is called the [CLI-driven run workflow](/docs/cloud/run/cli.html). When you use the CLI workflow, operations like `terraform plan` or `terraform apply` are remotely executed in Terraform Cloud's run environment by default, with log output streaming to the local terminal. This lets you use Terraform Cloud features within the familiar Terraform CLI workflow, including variables encrypted at rest in a Terraform Cloud workspace, cost estimates, and policy checking.
+
+> **Hands On:** Try the [Migrate State to Terraform Cloud](https://learn.hashicorp.com/tutorials/terraform/cloud-migrate) tutorial on HashiCorp Learn.
+
+Workspaces can also be configured for local execution, in which case only state is stored in
+Terraform Cloud. In this mode, Terraform Cloud behaves just like a standard state backend.
+
+-> **Note:** The CLI integration is available in Terraform 1.1.0 and later, and Terraform Enterprise 202201-1 and later. Previous versions can use the [`remote` backend](/docs/language/settings/backends/remote.html). Refer to [Migrating from the remote
+backend](/docs/cli/cloud/migrating.html) for details about switching to the CLI integration.
+
+
+## Documentation Summary
+
+- [Terraform Cloud Settings](/docs/cli/cloud/settings.html) documents the `cloud` block that you must add to your configuration to enable Terraform Cloud support.
+- [Initializing and Migrating](/docs/cli/cloud/migrating.html) describes
+how to start using Terraform Cloud with a working directory that already has state data.
+- [Command Line Arguments](/docs/cli/cloud/command-line-arguments.html) lists the Terraform command flags that are specific to using Terraform with Terraform Cloud.
+
+Refer to the [CLI-driven Run Workflow](/docs/cloud/run/cli.html) for more details about how to use Terraform Cloud from the command line.

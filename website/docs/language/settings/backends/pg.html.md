@@ -8,8 +8,6 @@ description: |-
 
 # pg
 
-**Kind: Standard (with locking)**
-
 Stores the state in a [Postgres database](https://www.postgresql.org) version 10 or newer.
 
 This backend supports [state locking](/docs/language/state/locking.html).

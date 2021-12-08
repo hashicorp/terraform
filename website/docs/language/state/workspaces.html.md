@@ -80,10 +80,7 @@ Terraform workspace.
 
 Within your Terraform configuration, you may include the name of the current
 workspace using the `${terraform.workspace}` interpolation sequence. This can
-be used anywhere interpolations are allowed. However, it should **not** be
-used in remote operations against Terraform Cloud workspaces. For an
-explanation, see the [remote backend](/docs/language/settings/backends/remote.html#workspaces)
-document.
+be used anywhere interpolations are allowed.
 
 Referencing the current workspace is useful for changing behavior based
 on the workspace. For example, for non-default workspaces, it may be useful

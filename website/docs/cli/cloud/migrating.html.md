@@ -1,0 +1,85 @@
+---
+layout: "docs"
+page_title: "Initializing and Migrating to Terraform Cloud - Terraform CLI"
+---
+
+# Initializing and Migrating
+
+After [configuring Terraform Cloud settings](/docs/cli/cloud/settings.html) for a working directory, you must run `terraform init` to finish setting up. If the working directory has no existing Terraform state, you can start using Terraform with Terraform Cloud right away. Refer to [CLI-driven run workflow](/docs/cloud/run/cli.html) for more details.
+
+When you run `terraform init` in the following scenarios, Terraform will ask you to choose whether or not to migrate state from any existing workspaces.
+
+1. [**Migrating from local state or state backends:**](#migrating-from-local-state-or-state-backends) If the working directory already has state data in one or more workspaces, Terraform will ask if you would like to migrate that state to new Terraform Cloud workspaces.
+
+2. [**Migrating from the `remote` backend:**](#migrating-from-the-remote-backend) If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces. You will need to switch the `remote` backend block to the `cloud` block.
+
+## Migrating from Local State or State Backends
+
+> **Hands On:** Try the [Migrate State to Terraform Cloud](https://learn.hashicorp.com/tutorials/terraform/cloud-migrate) tutorial on HashiCorp Learn.
+
+If the working directory already has state data available (using either local state or a [state
+backend](/docs/language/settings/backends/index.html)), Terraform will ask your approval to migrate
+that state to Terraform Cloud. You will need permission to manage workspaces in the destination Terraform Cloud organization. This process is interactive and self-documenting, and resembles
+moving between state backends.
+
+Terraform may also prompt you to rename your workspaces during the migration, to either give a name to
+the unnamed `default` workspace (Terraform Cloud requires all workspaces to have a name) or give
+your workspace names more contextual information. Unlike Terraform CLI-only workspaces, which represent
+multiple environments associated with the same configuration (e.g. production, staging, development),
+Terraform Cloud workspaces can represent totally independent configurations, and must have unique names within the Terraform Cloud organization.
+
+Because of this, Terraform will prompt you to rename the working directory's workspaces
+according to a pattern relative to their existing names. This can indicate the fact that these specific workspaces share configuration. A typical strategy is
+`<COMPONENT>-<ENVIRONMENT>-<REGION>` (e.g.,  `networking-prod-us-east`,
+`networking-staging-us-east`). Refer to [Workspace
+Naming](/docs/cloud/workspaces/naming.html) in the Terraform Cloud documentation for more detail.
+
+## Migrating from the `remote` Backend
+
+If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces. The local names shown for those workspaces will change to match their remote names.
+
+The [`remote` backend](/docs/language/settings/backends/remote.html) was the primary implementation of Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html) for Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud` integration for Terraform versions 1.1 or later, as it provides an improved user experience and various enhancements.
+
+### Block Replacement
+
+When switching from the `remote` backend to a `cloud` block, Terraform will continue using the same
+set of Terraform Cloud workspaces. Replace your `backend "remote"` block with an equivalent `cloud`
+block.
+
+#### Single Workspace
+
+If you were using a single workspace with the `name` argument, change the block
+  label to `cloud`.
+
+```diff
+terraform {
+-  backend "remote" {
++  cloud {
+    organization = "my-org"
+
+    workspaces {
+    name = "my-app-prod"
+    }
+   }
+ }
+```
+
+#### Multiple Workspaces
+
+If you were using multiple workspaces with the `prefix` argument, replace it with a `cloud` block that uses the `tags` argument. You may specify any number of tags to distinguish the workspaces for your working directory, but a good starting point may be to use whatever the prefix was before.
+
+The tags you configure do not need to be present on the existing workspaces. When you initialize, Terraform will add the specified tags to the workspaces if necessary.
+
+```diff
+terraform {
+-  backend "remote" {
++  cloud {
+     organization = "my-org"
+
+    workspaces {
+-      prefix = "my-app-"
++      tags = ["app:mine"]
+    }
+   }
+ }
+```
