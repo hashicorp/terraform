@@ -61,10 +61,10 @@ The `cloud` block supports the following configuration arguments:
 use for the current configuration. The `workspaces` block must contain **exactly one** of the
 following arguments, each denoting a strategy for how workspaces should be mapped:
 
-    * `tags` - (Optional) A set of Terraform Cloud workspace tags. You will be able to use
+    - `tags` - (Optional) A set of Terraform Cloud workspace tags. You will be able to use
       this working directory with any workspaces that have all of the specified tags,
       and can use [the `terraform workspace` commands](/docs/cli/workspaces/index.html)
-      to switch between them or create new workspaces; new workspaces will automatically have
+      to switch between them or create new workspaces. New workspaces will automatically have
       the specified tags. This option conflicts with `name`.
 
     - `name` - (Optional) The name of a single Terraform Cloud workspace. You will
