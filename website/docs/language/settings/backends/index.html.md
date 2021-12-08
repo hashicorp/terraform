@@ -42,9 +42,9 @@ conflicts and inconsistencies.
 
 -> **Note:** In Terraform versions prior to 1.1.0, backends were also classified as being 'standard'
 or 'enhanced', where the latter term referred to the ability of the
-[remote](/docs/language/settings/sbackends/remote.html) backend to store state and perform
+[remote](/docs/language/settings/backends/remote.html) backend to store state and perform
 Terraform operations. This classification has been removed, clarifying the primary purpose of
-backends. Refer to [Configuring Terraform Cloud](/docs/language/settings/configuring-terraform-cloud) for details about how to
+backends. Refer to [Using Terraform Cloud ](/docs/cli/cloud/index.html) for details about how to
 store state, execute remote operations, and use Terraform Cloud directly from Terraform.
 
 ## Available Backends
