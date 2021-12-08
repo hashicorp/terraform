@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Using Terraform Cloud - Terraform CLI"
 ---
 
-# Using Terraform Cloud with Terraform
+# Using Terraform Cloud with Terraform CLI
 
 The Terraform CLI's integration with Terraform Cloud lets you to use Terraform Cloud and Terraform Enterprise on the command line. In the documentation Terraform Cloud instructions also apply to Terraform Enterprise, except where explicitly stated.
 
