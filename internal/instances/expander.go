@@ -380,9 +380,15 @@ func (m *expanderModule) resourceInstances(moduleAddr addrs.ModuleInstance, reso
 			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
 		}
 
-		inst := m.childInstances[step]
-		moduleInstAddr := append(parentAddr, step)
-		return inst.resourceInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)
+		if inst, ok := m.childInstances[step]; !ok {
+			// This is a bug in the caller, because it should always register
+			// expansions for an object and all of its ancestors before requesting
+			// expansion of it.
+			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(step.Name, step.InstanceKey)))
+		} else {
+			moduleInstAddr := append(parentAddr, step)
+			return inst.resourceInstances(moduleAddr[1:], resourceAddr, moduleInstAddr)
+		}
 	}
 	return m.onlyResourceInstances(resourceAddr, parentAddr)
 }
