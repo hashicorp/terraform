@@ -36,11 +36,9 @@ Naming](/docs/cloud/workspaces/naming.html) in the Terraform Cloud documentation
 
 ## Migrating from the `remote` Backend
 
-The [`remote` backend](/docs/language/settings/backends/remote.html) was the primary
-implementation of Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html) for
-Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud`
-integration for Terraform versions 1.1 or later, as it provides an improved user experience and
-various enhancements.
+If the working directory was already connected to Terraform Cloud with the `remote` backend, Terraform can continue using the same Terraform Cloud workspaces. The local names shown for those workspaces will change to match their remote names.
+
+The [`remote` backend](/docs/language/settings/backends/remote.html) was the primary implementation of Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html) for Terraform versions 0.11.13 through 1.0.x. We recommend using the native `cloud` integration for Terraform versions 1.1 or later, as it provides an improved user experience and various enhancements.
 
 ### Block Replacement
 
