@@ -8,9 +8,8 @@ description: |-
 
 # remote
 
--> **Note:** With the release of Terraform v1.1.0, we recommend using the Terraform Cloud's built-in
-[`cloud` integration](/docs/language/settings/terraform-cloud.html) instead of this backend.
-The `cloud` option includes an improved user experience and more features.
+-> **Note:** The remote backend was introduced in Terraform v0.11.13 and Terraform Enterprise v201809-1. As of Terraform v1.1.0 and Terraform Enterprise v202201-1, **we recommend using the Terraform Cloud's built-in [`cloud` integration](/docs/language/settings/terraform-cloud.html)** instead of this backend. The `cloud` option includes an improved user experience and more features. 
+
 
 The remote backend is unique among all other Terraform backends because it can both store state snapshots and execute operations for Terraform Cloud's [CLI-driven run workflow](/docs/cloud/run/cli.html). It used to be called an "enhanced" backend.
 
