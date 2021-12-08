@@ -8,7 +8,9 @@ page_title: "Terraform Cloud Settings - Terraform CLI"
 Terraform CLI can integrate with Terraform Cloud, acting as a client for Terraform Cloud's
 [CLI-driven run workflow](https://www.terraform.io/docs/cloud/run/cli.html).
 
-To use Terraform Cloud for a particular working directory, you must configure the following settings:
+> **Hands On:** Try the [Migrate State to Terraform Cloud](https://learn.hashicorp.com/tutorials/terraform/cloud-migrate) tutorial on HashiCorp Learn.
+
+You must configure the following settings to use Terraform Cloud for a particular working directory:
 
 - Provide credentials to access Terraform Cloud, preferably by using the
   [`terraform login`](/docs/cli/commands/login.html) command.
@@ -38,7 +40,7 @@ terraform {
 }
 ```
 
-The `cloud` block has some special restrictions:
+The `cloud` block also has some special restrictions:
 
 - A configuration can only provide one `cloud` block.
 - A `cloud` block cannot be used with [state backends](/docs/language/settings/backends/index.html).
