@@ -48,3 +48,8 @@ resource "foo" "ambiguous" {
   # set it up to have both no-key and zero-key instances in the
   # state.
 }
+
+module "child_now_count" {
+  source = "./child"
+  count = 1
+}

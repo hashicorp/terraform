@@ -29,6 +29,13 @@ func TestImpliedMoveStatements(t *testing.T) {
 	rootCfg, _ := loadRefactoringFixture(t, "testdata/move-statement-implied")
 	prevRunState := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
+			resourceAddr("child_now_count").Resource.Absolute(
+				addrs.RootModuleInstance.Child("now_count", addrs.NoKey),
+			).Instance(addrs.IntKey(0)),
+			instObjState(),
+			providerAddr,
+		)
+		s.SetResourceInstanceCurrent(
 			resourceAddr("formerly_count").Instance(addrs.IntKey(0)),
 			instObjState(),
 			providerAddr,
@@ -125,6 +132,26 @@ func TestImpliedMoveStatements(t *testing.T) {
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
 				Start:    tfdiags.SourcePos{Line: 46, Column: 1, Byte: 806},
 				End:      tfdiags.SourcePos{Line: 46, Column: 27, Byte: 832},
+			},
+		},
+		{
+			From: addrs.ImpliedMoveStatementEndpoint(
+				resourceAddr("now_count").Resource.Absolute(
+					addrs.RootModuleInstance.Child("child_now_count", addrs.NoKey),
+				).Instance(addrs.IntKey(0)),
+				tfdiags.SourceRange{},
+			),
+			To: addrs.ImpliedMoveStatementEndpoint(
+				resourceAddr("now_count").Resource.Absolute(
+					addrs.RootModuleInstance.Child("child_now_count", addrs.IntKey(0)),
+				).Instance(addrs.IntKey(0)),
+				tfdiags.SourceRange{},
+			),
+			Implied: true,
+			DeclRange: tfdiags.SourceRange{
+				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
+				Start:    tfdiags.SourcePos{Line: 52, Column: 1, Byte: 1800},
+				End:      tfdiags.SourcePos{Line: 52, Column: 32, Byte: 1850},
 			},
 		},
 	}
