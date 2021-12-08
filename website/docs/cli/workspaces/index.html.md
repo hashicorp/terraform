@@ -74,5 +74,4 @@ directory with one or more remote workspaces. If you associate the
 directory with multiple workspaces (using workspace tags), you can use the
 `terraform workspace` commands to select which remote workspace to use.
 
-For more information about using Terraform CLI with Terraform Cloud, see
-[CLI-driven Runs](/docs/cloud/run/cli.html) in the Terraform Cloud docs.
+Refer to [CLI-driven Runs](/docs/cloud/run/cli.html) in the Terraform Cloud documentation for more details about using Terraform CLI with Terraform Cloud.
