@@ -72,7 +72,7 @@ following arguments, each denoting a strategy for how workspaces should be mappe
       directory, and cannot manage workspaces from the CLI (e.g. `terraform workspace select` or
       `terraform workspace new`). This option conflicts with `tags`.
 
-* `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
+- `hostname` - (Optional) The hostname of a Terraform Enterprise installation, if using Terraform
   Enterprise. Defaults to Terraform Cloud (app.terraform.io).
 
 - `token` - (Optional) The token used to authenticate with Terraform Cloud.
