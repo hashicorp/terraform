@@ -68,7 +68,7 @@ the Terraform CLI workspace `prod` within the current configuration. Remote
 Terraform operations such as `plan` and `apply` executed against that Terraform
 CLI workspace will be executed in the Terraform Cloud workspace `networking-prod`.
 
-Additionally, the [`terraform.workspace`](/docs/language/state/workspaces.html#referencing-the-current-workspace-name)
+Additionally, the [`terraform.workspace`](/docs/language/state/workspaces.html#current-workspace-interpolation)
 expression shouldn't be used in Terraform configurations that use Terraform 1.0.x or earlier and run
 remote operations against Terraform Cloud workspaces. The reason for this is that
 prior to Terraform 1.1.0, Terraform Cloud workspaces only used the single `default` Terraform
