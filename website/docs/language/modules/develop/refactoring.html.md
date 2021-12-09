@@ -231,6 +231,11 @@ module "b" {
 
   # (module arguments)
 }
+
+moved {
+  from = module.a
+  to   = module.b
+}
 ```
 
 When creating the next plan for each configuration using this module, Terraform
