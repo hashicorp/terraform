@@ -2076,3 +2076,82 @@ output "output" {
 		}
 	}
 }
+
+func TestContext2Plan_expandModuleWithExpandedResource(t *testing.T) {
+	addrNoKey := mustResourceInstanceAddr("module.child.test_object.a[0]")
+	addrZeroKey := mustResourceInstanceAddr("module.child[0].test_object.a[0]")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			module "child" {
+				source = "./child"
+				count = 1
+			}
+		`,
+		"child/main.tf": `
+			resource "test_object" "a" {
+				count = 1
+			}
+		`,
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(addrNoKey, &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addrNoKey.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrNoKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrNoKey)
+		}
+
+		if got, want := instPlan.Addr, addrNoKey; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrNoKey; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Delete; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run(addrZeroKey.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addrZeroKey)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addrZeroKey)
+		}
+
+		if got, want := instPlan.Addr, addrZeroKey; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addrZeroKey; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+}
