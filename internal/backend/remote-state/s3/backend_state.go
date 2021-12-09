@@ -117,6 +117,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		serverSideEncryption:  b.serverSideEncryption,
 		customerEncryptionKey: b.customerEncryptionKey,
 		acl:                   b.acl,
+		tags:                  b.tags,
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
 	}

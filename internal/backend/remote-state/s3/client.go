@@ -37,6 +37,7 @@ type RemoteClient struct {
 	serverSideEncryption  bool
 	customerEncryptionKey []byte
 	acl                   string
+	tags                  string
 	kmsKeyID              string
 	ddbTable              string
 }
@@ -174,6 +175,10 @@ func (c *RemoteClient) Put(data []byte) error {
 
 	if c.acl != "" {
 		i.ACL = aws.String(c.acl)
+	}
+
+	if c.tags != "" {
+		i.Tagging = aws.String(c.tags)
 	}
 
 	log.Printf("[DEBUG] Uploading remote state to S3: %#v", i)

@@ -93,6 +93,13 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"tags": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The tag-set for the object. The tag-set must be encoded as URL Query parameters. (For example, “Key1=Value1”)",
+				Default:     "",
+			},
+
 			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -280,6 +287,7 @@ type Backend struct {
 	serverSideEncryption  bool
 	customerEncryptionKey []byte
 	acl                   string
+	tags                  string
 	kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
@@ -302,6 +310,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.bucketName = data.Get("bucket").(string)
 	b.keyName = data.Get("key").(string)
 	b.acl = data.Get("acl").(string)
+	b.tags = data.Get("tags").(string)
 	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
