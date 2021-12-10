@@ -68,7 +68,7 @@
                       "mode": "managed",
                       "type": "test_instance",
                       "name": "test",
-                      "provider_config_key": "more:test",
+                      "provider_config_key": "module.my_module.module.more:test",
                       "expressions": {
                         "ami": {
                           "references": [

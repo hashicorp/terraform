@@ -224,7 +224,7 @@
                                 "mode": "managed",
                                 "type": "test_instance",
                                 "name": "test",
-                                "provider_config_key": "module_test_bar:test",
+                                "provider_config_key": "module.module_test_bar:test",
                                 "expressions": {
                                     "ami": {
                                         "references": [
@@ -265,7 +265,7 @@
                                 "mode": "managed",
                                 "type": "test_instance",
                                 "name": "test",
-                                "provider_config_key": "module_test_foo:test",
+                                "provider_config_key": "module.module_test_foo:test",
                                 "expressions": {
                                     "ami": {
                                         "references": [
@@ -291,7 +291,8 @@
         "provider_config": {
             "module.module_test_foo:test": {
                 "module_address": "module.module_test_foo",
-                "name": "test"
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
             }
         }
     }

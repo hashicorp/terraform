@@ -152,6 +152,7 @@
         "provider_config": {
             "test": {
                 "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test",
                 "version_constraint": ">= 1.2.3"
             }
         },
