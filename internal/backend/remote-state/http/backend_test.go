@@ -53,6 +53,8 @@ func TestHTTPClientFactory(t *testing.T) {
 		"unlock_method":  cty.StringVal("BLOOP"),
 		"username":       cty.StringVal("user"),
 		"password":       cty.StringVal("pass"),
+		"token":          cty.StringVal("token"),
+		"token_header":   cty.StringVal("x-token"),
 		"retry_max":      cty.StringVal("999"),
 		"retry_wait_min": cty.StringVal("15"),
 		"retry_wait_max": cty.StringVal("150"),
@@ -79,6 +81,10 @@ func TestHTTPClientFactory(t *testing.T) {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
 	}
+	if client.Token != "token" || client.TokenHeader != "x-token" {
+		t.Fatalf("Unexpected token \"%s\" vs \"%s\" or token header \"%s\" vs \"%s\"", client.Token, conf["token"],
+			client.TokenHeader, conf["token-header"])
+	}
 	if client.Client.RetryMax != 999 {
 		t.Fatalf("Expected retry_max \"%d\", got \"%d\"", 999, client.Client.RetryMax)
 	}
@@ -101,6 +107,8 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 		"unlock_method":  "BLOOP",
 		"username":       "user",
 		"password":       "pass",
+		"token":          "token",
+		"token_header":   "x-token",
 		"retry_max":      "999",
 		"retry_wait_min": "15",
 		"retry_wait_max": "150",
@@ -114,6 +122,8 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	defer testWithEnv(t, "TF_HTTP_UNLOCK_METHOD", conf["unlock_method"])()
 	defer testWithEnv(t, "TF_HTTP_USERNAME", conf["username"])()
 	defer testWithEnv(t, "TF_HTTP_PASSWORD", conf["password"])()
+	defer testWithEnv(t, "TF_HTTP_TOKEN", conf["token"])()
+	defer testWithEnv(t, "TF_HTTP_TOKEN_HEADER", conf["token_header"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_MAX", conf["retry_max"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_WAIT_MIN", conf["retry_wait_min"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_WAIT_MAX", conf["retry_wait_max"])()
@@ -138,6 +148,10 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	if client.Username != "user" || client.Password != "pass" {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
+	}
+	if client.Token != conf["token"] || client.TokenHeader != conf["token_header"] {
+		t.Fatalf("Unexpected token \"%s\" vs \"%s\" or token header \"%s\" vs \"%s\"", client.Token, conf["token"],
+			client.TokenHeader, conf["token_header"])
 	}
 	if client.Client.RetryMax != 999 {
 		t.Fatalf("Expected retry_max \"%d\", got \"%d\"", 999, client.Client.RetryMax)
