@@ -1025,11 +1025,24 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		Hash:      uint64(cHash),
 	}
 
-	// Verify that selected workspace exist. Otherwise prompt user to create one
+	// Verify that selected workspace exists in the backend.
 	if opts.Init && b != nil {
-		if err := m.selectWorkspace(b); err != nil {
+		err := m.selectWorkspace(b)
+		if err != nil {
 			diags = diags.Append(err)
-			return nil, diags
+
+			// FIXME: A compatibility oddity with the 'remote' backend.
+			// As an awkward legacy UX, when the remote backend is configured and there
+			// are no workspaces, the output to the user saying that there are none and
+			// the user should create one with 'workspace new' takes the form of an
+			// error message - even though it's happy path, expected behavior.
+			//
+			// Therefore, only return nil with errored diags for everything else, and
+			// allow the remote backend to continue and write its configuration to state
+			// even though no workspace is selected.
+			if c.Type != "remote" {
+				return nil, diags
+			}
 		}
 	}
 
