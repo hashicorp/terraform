@@ -596,6 +596,133 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 
 }
 
+func TestLoaderInstallModules_goGetterGitCommit(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("this test accesses github.com; set TF_ACC=1 to run it")
+	}
+
+	fixtureDir := filepath.Clean("testdata/go-getter-modules-gitcommit")
+	tmpDir, done := tempChdir(t, fixtureDir)
+	// the module installer runs filepath.EvalSymlinks() on the destination
+	// directory before copying files, and the resultant directory is what is
+	// returned by the install hooks. Without this, tests could fail on machines
+	// where the default temp dir was a symlink.
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+	defer done()
+
+	hooks := &testInstallHooks{}
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+	inst := NewModuleInstaller(modulesDir, registry.NewClient(nil, nil))
+	_, diags := inst.InstallModules(context.Background(), dir, false, hooks)
+	assertNoDiagnostics(t, diags)
+
+	wantCalls := []testInstallHookCall{
+		// the configuration builder visits each level of calls in lexicographical
+		// order by name, so the following list is kept in the same order.
+
+		// acctest_child_a accesses //modules/child_a directly
+		{
+			Name:        "Download",
+			ModuleAddr:  "acctest_child_a",
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=fbad92afe22792b939ceb233acd86ebd57af8fc7", // intentionally excludes the subdir because we're downloading the whole repo here
+		},
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_a"),
+		},
+
+		// acctest_child_a.child_b
+		// (no download because it's a relative path inside acctest_child_a)
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_child_a.child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
+		},
+
+		// acctest_child_b accesses //modules/child_b directly
+		{
+			Name:        "Download",
+			ModuleAddr:  "acctest_child_b",
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=fbad92afe22792b939ceb233acd86ebd57af8fc7", // intentionally excludes the subdir because we're downloading the whole package here
+		},
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/modules/child_b"),
+		},
+
+		// acctest_root
+		{
+			Name:        "Download",
+			ModuleAddr:  "acctest_root",
+			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=fbad92afe22792b939ceb233acd86ebd57af8fc7",
+		},
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_root",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root"),
+		},
+
+		// acctest_root.child_a
+		// (no download because it's a relative path inside acctest_root)
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_root.child_a",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
+		},
+
+		// acctest_root.child_a.child_b
+		// (no download because it's a relative path inside acctest_root, via acctest_root.child_a)
+		{
+			Name:       "Install",
+			ModuleAddr: "acctest_root.child_a.child_b",
+			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_b"),
+		},
+	}
+
+	if diff := cmp.Diff(wantCalls, hooks.Calls); diff != "" {
+		t.Fatalf("wrong installer calls\n%s", diff)
+	}
+
+	loader, err := configload.NewLoader(&configload.Config{
+		ModulesDir: modulesDir,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Make sure the configuration is loadable now.
+	// (This ensures that correct information is recorded in the manifest.)
+	config, loadDiags := loader.LoadConfig(".")
+	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
+
+	wantTraces := map[string]string{
+		"":                             "in local caller for go-getter-modules",
+		"acctest_root":                 "in root module",
+		"acctest_root.child_a":         "in child_a module",
+		"acctest_root.child_a.child_b": "in child_b module",
+		"acctest_child_a":              "in child_a module",
+		"acctest_child_a.child_b":      "in child_b module",
+		"acctest_child_b":              "in child_b module",
+	}
+	gotTraces := map[string]string{}
+	config.DeepEach(func(c *configs.Config) {
+		path := strings.Join(c.Path, ".")
+		if c.Module.Variables["v"] == nil {
+			gotTraces[path] = "<missing>"
+			return
+		}
+		varDesc := c.Module.Variables["v"].Description
+		gotTraces[path] = varDesc
+	})
+	assertResultDeepEqual(t, gotTraces, wantTraces)
+
+}
+
 type testInstallHooks struct {
 	Calls []testInstallHookCall
 }
