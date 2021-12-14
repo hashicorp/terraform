@@ -90,6 +90,58 @@ func TestGitGetter_branch(t *testing.T) {
 	}
 }
 
+func TestGitGetter_commitID(t *testing.T) {
+	if !testHasGit {
+		t.Skip("git not found, skipping")
+	}
+
+	g := new(gitGetter)
+	dst := tempDir(t)
+
+	// We're going to create different content on the main branch vs.
+	// another branch here, so that below we can recognize if we
+	// correctly cloned the commit actually requested (from the
+	// "other branch"), not the one at HEAD.
+	repo := testGitRepo(t, "commit_id")
+	repo.git("checkout", "-b", "main-branch")
+	repo.commitFile("wrong.txt", "Nope")
+	repo.git("checkout", "-b", "other-branch")
+	repo.commitFile("hello.txt", "Yep")
+	commitID, err := repo.latestCommit()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Return to the main branch so that HEAD of this repository
+	// will be that, rather than "test-branch".
+	repo.git("checkout", "main-branch")
+
+	q := repo.url.Query()
+	q.Add("ref", commitID)
+	repo.url.RawQuery = q.Encode()
+
+	t.Logf("Getting %s", repo.url)
+	if err := g.Get(dst, repo.url); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the main file exists
+	mainPath := filepath.Join(dst, "hello.txt")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get again should work
+	if err := g.Get(dst, repo.url); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the main file exists
+	mainPath = filepath.Join(dst, "hello.txt")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestGitGetter_remoteWithoutMaster(t *testing.T) {
 	if !testHasGit {
 		t.Log("git not found, skipping")
@@ -211,6 +263,44 @@ func TestGitGetter_shallowCloneWithTag(t *testing.T) {
 	mainPath = filepath.Join(dst, "v1.1.txt")
 	if _, err := os.Stat(mainPath); err == nil {
 		t.Fatalf("expected v1.1 file to not exist")
+	}
+}
+
+func TestGitGetter_shallowCloneWithCommitID(t *testing.T) {
+	if !testHasGit {
+		t.Log("git not found, skipping")
+		t.Skip()
+	}
+
+	g := new(gitGetter)
+	dst := tempDir(t)
+
+	repo := testGitRepo(t, "upstream")
+	repo.commitFile("v1.0.txt", "0")
+	repo.git("tag", "v1.0")
+	repo.commitFile("v1.1.txt", "1")
+
+	commitID, err := repo.latestCommit()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Specify a clone depth of 1 with a naked commit ID
+	// This is intentionally invalid: shallow clone always requires a named ref.
+	q := repo.url.Query()
+	q.Add("ref", commitID[:8])
+	q.Add("depth", "1")
+	repo.url.RawQuery = q.Encode()
+
+	t.Logf("Getting %s", repo.url)
+	err = g.Get(dst, repo.url)
+	if err == nil {
+		t.Fatalf("success; want error")
+	}
+	// We use a heuristic to generate an extra hint in the error message if
+	// it looks like the user was trying to combine ref=COMMIT with depth.
+	if got, want := err.Error(), "(note that setting 'depth' requires 'ref' to be a branch or tag name)"; !strings.Contains(got, want) {
+		t.Errorf("missing error message hint\ngot: %s\nwant substring: %s", got, want)
 	}
 }
 
@@ -662,6 +752,19 @@ func (r *gitRepo) commitFile(file, content string) {
 	}
 	r.git("add", file)
 	r.git("commit", "-m", "Adding "+file)
+}
+
+// latestCommit returns the full commit id of the latest commit on the current
+// branch.
+func (r *gitRepo) latestCommit() (string, error) {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd.Dir = r.dir
+	rawOut, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	rawOut = bytes.TrimSpace(rawOut)
+	return string(rawOut), nil
 }
 
 // This is a read-only deploy key for an empty test repository.
