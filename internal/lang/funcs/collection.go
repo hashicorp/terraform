@@ -256,13 +256,48 @@ var LookupFunc = function.New(&function.Spec{
 			}
 			return cty.DynamicPseudoType, function.NewArgErrorf(0, "the given object has no attribute %q", key)
 		case ty.IsMapType():
-			if len(args) == 3 {
-				_, err = convert.Convert(args[2], ty.ElementType())
-				if err != nil {
-					return cty.NilType, function.NewArgErrorf(2, "the default value must have the same type as the map elements")
-				}
+			if len(args) < 3 {
+				// no default, so we can use the map element type
+				return ty.ElementType(), nil
 			}
-			return ty.ElementType(), nil
+
+			ety := ty.ElementType()
+			defaultTy := args[2].Type()
+
+			if ety.Equals(defaultTy) {
+				return ety, nil
+			}
+
+			conv := convert.GetConversionUnsafe(defaultTy, ety)
+			if conv != nil {
+				// We have a single type to cover both the element type and the
+				// default
+				return ety, nil
+			}
+
+			// If these are primitives, or collections of primitives, we
+			// know these cannot be compatible, however if they are objects, we
+			// can check their "similarity" below.
+			if !ety.IsObjectType() || !defaultTy.IsObjectType() {
+				return cty.NilType, function.NewArgErrorf(2, "the default value must have the same type as the map elements")
+			}
+
+			// If the types are both objects, we need to assume that at a
+			// minimum the user may only be indexing particular attributes, and
+			// the overall type is not going to be relevant in the
+			// configuration. We can verify this by checking that the objects
+			// could be converted in the other direction, meaning that at least
+			// one object type is a subset of the other.
+			conv = convert.GetConversionUnsafe(ety, defaultTy)
+			if conv == nil {
+				return cty.NilType, function.NewArgErrorf(2, "the default value must have the same type as the map elements")
+			}
+
+			// We can't predict the correct type here, but we allow this
+			// situation for compatibility with earlier versions where
+			// input types were often unknown by passing along the ambiguity.
+			return cty.DynamicPseudoType, nil
+
 		default:
 			return cty.NilType, function.NewArgErrorf(0, "lookup() requires a map as the first argument")
 		}
