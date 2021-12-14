@@ -33,7 +33,8 @@ type PlanGraphBuilder struct {
 	Plugins *contextPlugins
 
 	// Targets are resources to target
-	Targets []addrs.Targetable
+	Targets        []addrs.Targetable
+	ExcludeTargets []addrs.Targetable
 
 	// ForceReplace are resource instances where if we would normally have
 	// generated a NoOp or Update action then we'll force generating a replace
@@ -150,7 +151,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&attachDataResourceDependsOnTransformer{},
 
 		// Target
-		&TargetsTransformer{Targets: b.Targets},
+		&TargetsTransformer{
+			Targets:        b.Targets,
+			ExcludeTargets: b.ExcludeTargets,
+		},
 
 		// Detect when create_before_destroy must be forced on for a particular
 		// node due to dependency edges, to avoid graph cycles during apply.

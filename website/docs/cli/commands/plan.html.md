@@ -174,6 +174,14 @@ the previous section, are also available with the same meanings on
     [Resource Targeting](#resource-targeting)
     below for more information.
 
+* `-exclude=ADDRESS` - Instructs Terraform to focus its planning efforts
+   on resource instances that don't match the given address and on any objects
+   that those instances depend on
+
+    This command is for exceptional use only. See
+    [Resource Targeting](#resource-targeting)
+    below for more information.
+
 * `-var 'NAME=VALUE'` - Sets a value for a single
   [input variable](/docs/language/values/variables.html) declared in the
   root module of the configuration. Use this option multiple times to set
@@ -187,10 +195,10 @@ the previous section, are also available with the same meanings on
   ["tfvars" file](/docs/language/values/variables.html#variable-definitions-tfvars-files).
   Use this option multiple times to include values from more than one file.
 
-There are several other ways to set values for input variables in the root
-module, aside from the `-var` and `-var-file` options. For more information,
-see
-[Assigning Values to Root Module Variables](/docs/language/values/variables.html#assigning-values-to-root-module-variables).
+There are several other ways to set values for input variables in the
+root module, aside from the `-var` and `-var-file` options. For more
+information, see [Assigning Values to Root Module
+Variables](/docs/language/values/variables.html#assigning-values-to-root-module-variables).
 
 ### Input Variables on the Command Line
 
@@ -270,9 +278,8 @@ input variables, see
 > **Hands-on:** Try the [Target resources](https://learn.hashicorp.com/tutorials/terraform/resource-targeting?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial on HashiCorp Learn.
 
 You can use the `-target` option to focus Terraform's attention on only a
-subset of resources.
-You can use [resource address syntax](/docs/cli/state/resource-addressing.html)
-to specify the constraint. Terraform interprets the resource address as follows:
+subset of resources. You can use the `-exclude` option to target all resources
+besides the specified resources. You can use [resource address syntax](/docs/cli/state/resource-addressing.html) to specify the constraint. Terraform interprets the resource address as follows:
 
 * If the given address identifies one specific resource instance, Terraform
   will select that instance alone. For resources with either `count` or
@@ -296,11 +303,11 @@ that those selections depend on either directly or indirectly.
 
 This targeting capability is provided for exceptional circumstances, such
 as recovering from mistakes or working around Terraform limitations. It
-is *not recommended* to use `-target` for routine operations, since this can
+is *not recommended* to use `-target` and `-exclude` for routine operations, since this can
 lead to undetected configuration drift and confusion about how the true state
 of resources relates to configuration.
 
-Instead of using `-target` as a means to operate on isolated portions of very
+Instead of using `-target` or `-exclude` as a means to operate on isolated portions of very
 large configurations, prefer instead to break large configurations into
 several smaller configurations that can each be independently applied.
 [Data sources](/docs/language/data-sources/index.html) can be used to access

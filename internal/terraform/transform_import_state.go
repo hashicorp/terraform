@@ -14,8 +14,9 @@ import (
 // ImportStateTransformer is a GraphTransformer that adds nodes to the
 // graph to represent the imports we want to do for resources.
 type ImportStateTransformer struct {
-	Targets []*ImportTarget
-	Config  *configs.Config
+	Targets        []*ImportTarget
+	ExcludeTargets []*ImportTarget
+	Config         *configs.Config
 }
 
 func (t *ImportStateTransformer) Transform(g *Graph) error {
