@@ -1,5 +1,9 @@
 ## 1.1.1 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix crash with orphaned module instance due to changed `count` or `for_each` value ([#30151](https://github.com/hashicorp/terraform/issues/30151))
+
 ## 1.1.0 (December 08, 2021)
 
 Terraform v1.1.0 is a new minor release, containing some new features and some bug fixes whose scope was too large for inclusion in a patch release.
