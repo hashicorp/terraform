@@ -118,7 +118,7 @@ module "foo" {
 }
 
 resource "test_instance" "x" {
-  some_attribute = module.mod.a # resource attribute references a sensitive output
+  some_attribute = module.foo.a # resource attribute references a sensitive output
 }
 
 output "out" {
