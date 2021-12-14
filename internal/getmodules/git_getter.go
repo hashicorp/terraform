@@ -80,7 +80,7 @@ func (g *gitGetter) Get(dst string, u *url.URL) error {
 
 	// Extract some query parameters we use
 	var ref, sshKey string
-	var depth int
+	depth := 0 // 0 means "not set"
 	q := u.Query()
 	if len(q) > 0 {
 		ref = q.Get("ref")
@@ -194,20 +194,54 @@ func (g *gitGetter) checkout(dst string, ref string) error {
 	return getRunCommand(cmd)
 }
 
+// gitCommitIDRegex is a pattern intended to match strings that seem
+// "likely to be" git commit IDs, rather than named refs. This cannot be
+// an exact decision because it's valid to name a branch or tag after a series
+// of hexadecimal digits too.
+//
+// We require at least 7 digits here because that's the smallest size git
+// itself will typically generate, and so it'll reduce the risk of false
+// positives on short branch names that happen to also be "hex words".
+var gitCommitIDRegex = regexp.MustCompile("^[0-9a-fA-F]{7,40}$")
+
 func (g *gitGetter) clone(ctx context.Context, dst, sshKeyFile string, u *url.URL, ref string, depth int) error {
 	args := []string{"clone"}
 
+	autoBranch := false
 	if ref == "" {
 		ref = findRemoteDefaultBranch(u)
+		autoBranch = true
 	}
 	if depth > 0 {
 		args = append(args, "--depth", strconv.Itoa(depth))
+		args = append(args, "--branch", ref)
 	}
+	args = append(args, u.String(), dst)
 
-	args = append(args, "--branch", ref, u.String(), dst)
 	cmd := exec.CommandContext(ctx, "git", args...)
 	setupGitEnv(cmd, sshKeyFile)
-	return getRunCommand(cmd)
+	err := getRunCommand(cmd)
+	if err != nil {
+		if depth > 0 && !autoBranch {
+			// If we're creating a shallow clone then the given ref must be
+			// a named ref (branch or tag) rather than a commit directly.
+			// We can't accurately recognize the resulting error here without
+			// hard-coding assumptions about git's human-readable output, but
+			// we can at least try a heuristic.
+			if gitCommitIDRegex.MatchString(ref) {
+				return fmt.Errorf("%w (note that setting 'depth' requires 'ref' to be a branch or tag name)", err)
+			}
+		}
+		return err
+	}
+
+	if depth < 1 && !autoBranch {
+		// If we didn't add --depth and --branch above then we will now be
+		// on the remote repository's default branch, rather than the selected
+		// ref, so we'll need to fix that before we return.
+		return g.checkout(dst, ref)
+	}
+	return nil
 }
 
 func (g *gitGetter) update(ctx context.Context, dst, sshKeyFile, ref string, depth int) error {
