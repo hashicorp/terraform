@@ -794,7 +794,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = val
 	}
 
-	var ret cty.Value
+	ret := cty.DynamicVal
 
 	switch {
 	case config.Count != nil:
