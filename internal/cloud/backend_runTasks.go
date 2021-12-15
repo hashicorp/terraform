@@ -49,7 +49,6 @@ func summarizeTaskResults(taskResults []*tfe.TaskResult) *taskResultSummary {
 
 func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output IntegrationOutputWriter, fetchTaskStage taskStageReadFunc) error {
 	return context.Poll(func(i int) (bool, error) {
-		// TODO: get the stage that corresponds to an argument passed to this function
 		stage, err := fetchTaskStage(b, context.StopContext)
 
 		if err != nil {

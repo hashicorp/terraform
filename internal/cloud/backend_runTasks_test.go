@@ -132,7 +132,7 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 
 	for caseName, c := range cases {
 		c.writer.output.Reset()
-		err := b.runTasksWithTaskResults(c.writer.ctx, c.writer, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
+		err := b.runTasksWithTaskResults(c.context, writer, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
 			return &tfe.TaskStage{
 				TaskResults: c.taskResults,
 			}, nil
