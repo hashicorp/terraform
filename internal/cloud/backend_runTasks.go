@@ -9,6 +9,7 @@ import (
 )
 
 type taskResultSummary struct {
+	unreachable     bool
 	pending         int
 	failed          int
 	failedMandatory int
@@ -17,10 +18,14 @@ type taskResultSummary struct {
 
 type taskStageReadFunc func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error)
 
-func summarizeTaskResults(taskResults []*tfe.TaskResult) taskResultSummary {
+func summarizeTaskResults(taskResults []*tfe.TaskResult) *taskResultSummary {
 	var pe, er, erm, pa int
 	for _, task := range taskResults {
-		if task.Status == "running" || task.Status == "pending" {
+		if task.Status == "unreachable" {
+			return &taskResultSummary{
+				unreachable: true,
+			}
+		} else if task.Status == "running" || task.Status == "pending" {
 			pe++
 		} else if task.Status == "passed" {
 			pa++
@@ -33,7 +38,8 @@ func summarizeTaskResults(taskResults []*tfe.TaskResult) taskResultSummary {
 		}
 	}
 
-	return taskResultSummary{
+	return &taskResultSummary{
+		unreachable:     false,
 		pending:         pe,
 		failed:          er,
 		failedMandatory: erm,
@@ -41,19 +47,7 @@ func summarizeTaskResults(taskResults []*tfe.TaskResult) taskResultSummary {
 	}
 }
 
-// elapsedMessageMax is 50 chars: the length of this message with 6 digits
-// 99 tasks still pending, 99 passed, 99 failed ...
-const elapsedMessageMax int = 50
-
 func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output IntegrationOutputWriter, fetchTaskStage taskStageReadFunc) error {
-	// TODO: Do not fetch run tasks if there are no changes to infrastructure
-	// if !context.Run.HasChanges {
-	// 	output.Output("No Changes. Tasks will not run")
-	// 	output.End()
-
-	// 	return nil
-	// }
-
 	return context.Poll(func(i int) (bool, error) {
 		// TODO: get the stage that corresponds to an argument passed to this function
 		stage, err := fetchTaskStage(b, context.StopContext)
@@ -63,12 +57,20 @@ func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output Inte
 		}
 
 		summary := summarizeTaskResults(stage.TaskResults)
+
+		if summary.unreachable {
+			output.Output("Skipping task results.")
+			output.End()
+			return false, nil
+		}
+
 		if summary.pending > 0 {
-			message := fmt.Sprintf("%d tasks still pending, %d passed, %d failed ... ", summary.pending, summary.passed, summary.failed)
+			pendingMessage := "%d tasks still pending, %d passed, %d failed ... "
+			message := fmt.Sprintf(pendingMessage, summary.pending, summary.passed, summary.failed)
 
 			if i%4 == 0 {
 				if i > 0 {
-					output.OutputElapsed(message, elapsedMessageMax)
+					output.OutputElapsed(message, len(pendingMessage)) // Up to 2 digits are allowed by the max message allocation
 				}
 			}
 			return true, nil

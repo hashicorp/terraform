@@ -118,6 +118,16 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			expectedOutputs: []string{"Failed (Advisory)", "Overall Result: Passed with advisory failure"},
 			isError:         false,
 		},
+		"unreachable": {
+			taskResults: []*tfe.TaskResult{
+				{ID: "1", TaskName: "Mandatory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "mandatory"},
+				{ID: "2", TaskName: "Advisory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "advisory"},
+			},
+			writer:          writer,
+			context:         integrationContext,
+			expectedOutputs: []string{"Skipping"},
+			isError:         false,
+		},
 	}
 
 	for caseName, c := range cases {
