@@ -1,9 +1,9 @@
-## 1.1.1 (Unreleased)
+## 1.1.1 (December 15, 2021)
 
 BUG FIXES:
 
 * core: Fix crash with orphaned module instance due to changed `count` or `for_each` value ([#30151](https://github.com/hashicorp/terraform/issues/30151))
-* core: Fix regression where some expressions failed during validation when referencing resources expanded with `count` or `for_each` [GH-30171]
+* core: Fix regression where some expressions failed during validation when referencing resources expanded with `count` or `for_each` ([#30171](https://github.com/hashicorp/terraform/issues/30171))
 
 ## 1.1.0 (December 08, 2021)
 
