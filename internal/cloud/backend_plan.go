@@ -354,7 +354,7 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	// Await pre-apply run tasks
-	if len(r.TaskStage) > 0 {
+	if len(r.TaskStages) > 0 {
 		context := &IntegrationContext{
 			B:             b,
 			StopContext:   stopCtx,
@@ -363,7 +363,7 @@ in order to capture the filesystem context the remote workspace expects:
 			Run:           r,
 		}
 
-		if stageID := getTaskStageIDByName(r.TaskStage, "pre_apply"); stageID != nil {
+		if stageID := getTaskStageIDByName(r.TaskStages, "pre_apply"); stageID != nil {
 			err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), *stageID)
 			if err != nil {
 				return r, err
