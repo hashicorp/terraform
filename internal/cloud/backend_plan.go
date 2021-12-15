@@ -324,7 +324,9 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	// Retrieve the run to get its current status.
-	r, err = b.client.Runs.Read(stopCtx, r.ID)
+	r, err = b.client.Runs.ReadWithOptions(stopCtx, r.ID, &tfe.RunReadOptions{
+		Include: "task_stages",
+	})
 	if err != nil {
 		return r, generalError("Failed to retrieve run", err)
 	}
@@ -354,11 +356,12 @@ in order to capture the filesystem context the remote workspace expects:
 	// Await pre-apply run tasks
 	if len(r.TaskStage) > 0 {
 		context := NewIntegrationContext(stopCtx, cancelCtx, b, op, r)
-		// TODO: this only works while there is exactly 1 task stage
-		err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), r.TaskStage[0].ID)
 
-		if err != nil {
-			return r, err
+		if stageID := getTaskStageIDByName(r.TaskStage, "pre_apply"); stageID != nil {
+			err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), *stageID)
+			if err != nil {
+				return r, err
+			}
 		}
 	}
 
@@ -368,6 +371,15 @@ in order to capture the filesystem context the remote workspace expects:
 // String returns a pointer to the given string.
 func String(v string) *string {
 	return &v
+}
+
+func getTaskStageIDByName(stages []*tfe.TaskStage, name string) *string {
+	for _, stage := range stages {
+		if stage.Stage == name {
+			return &stage.ID
+		}
+	}
+	return nil
 }
 
 const planDefaultHeader = `
