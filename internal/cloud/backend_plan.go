@@ -374,11 +374,6 @@ in order to capture the filesystem context the remote workspace expects:
 	return r, nil
 }
 
-// String returns a pointer to the given string.
-func String(v string) *string {
-	return &v
-}
-
 func getTaskStageIDByName(stages []*tfe.TaskStage, name string) *string {
 	for _, stage := range stages {
 		if stage.Stage == name {
