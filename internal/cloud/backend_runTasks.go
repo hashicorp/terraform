@@ -116,7 +116,11 @@ func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output Inte
 		var overall string = "[green]Passed"
 		if firstMandatoryTaskFailed != nil {
 			overall = "[red]Failed"
-			taskErr = fmt.Errorf("the run failed because the run task, %s, is required to succeed", *firstMandatoryTaskFailed)
+			if summary.failedMandatory > 1 {
+				taskErr = fmt.Errorf("the run failed because %d mandatory tasks are required to succeed", summary.failedMandatory)
+			} else {
+				taskErr = fmt.Errorf("the run failed because the run task, %s, is required to succeed", *firstMandatoryTaskFailed)
+			}
 		} else if summary.failed > 0 { // we have failures but none of them mandatory
 			overall = "[green]Passed with advisory failures"
 		}
