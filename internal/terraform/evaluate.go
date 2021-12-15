@@ -696,21 +696,12 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				log.Printf("[ERROR] unknown instance %q referenced during %s", addr.Absolute(d.ModulePath), d.Operation)
 				return cty.DynamicVal, diags
 			}
-		default:
-			if d.Operation != walkValidate {
-				log.Printf("[ERROR] missing state for %q while in %s\n", addr.Absolute(d.ModulePath), d.Operation)
-			}
 
-			// Validation is done with only the configuration, so generate
-			// unknown values of the correct shape for evaluation.
-			switch {
-			case config.Count != nil:
-				return cty.UnknownVal(cty.List(ty)), diags
-			case config.ForEach != nil:
-				return cty.UnknownVal(cty.Map(ty)), diags
-			default:
-				return cty.UnknownVal(ty), diags
-			}
+		default:
+			// We should only end up here during the validate walk,
+			// since later walks should have at least partial states populated
+			// for all resources in the configuration.
+			return cty.DynamicVal, diags
 		}
 	}
 
@@ -803,7 +794,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = val
 	}
 
-	var ret cty.Value
+	ret := cty.DynamicVal
 
 	switch {
 	case config.Count != nil:
