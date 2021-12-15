@@ -351,9 +351,10 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
-	// Await collective run tasks
+	// Await pre-apply run tasks
 	if len(r.TaskStage) > 0 {
 		context := NewIntegrationContext(stopCtx, cancelCtx, b, op, r)
+		// TODO: this only works while there is exactly 1 task stage
 		err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), r.TaskStage[0].ID)
 
 		if err != nil {
