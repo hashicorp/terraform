@@ -2031,3 +2031,60 @@ resource "test_object" "t" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"things": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "items" {
+  type = list(string)
+  default = []
+}
+
+resource "test_instance" "a" {
+  for_each = length(var.items) > 0 ? { default = {} } : {}
+}
+
+output "out" {
+  // Strictly speaking, this expression is incorrect because the map element
+  // type is a different type from the default value, and the lookup
+  // implementation expects to be able to convert the default to match the
+  // element type.
+  // There are two reasons this works which we need to maintain for
+  // compatibility. First during validation the 'test_instance.a' expression
+  // only returns a dynamic value, preventing any type comparison. Later during
+  // plan and apply 'test_instance.a' is an object and not a map, and the
+  // lookup implementation skips the type comparison when the keys are known
+  // statically.
+  value = lookup(test_instance.a, "default", { id = null })["id"]
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
