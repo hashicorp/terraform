@@ -351,7 +351,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				},
 			},
 		},
-		"no-conflicting local variable": {
+		"no conflicting local variable": {
 			map[string]backend.UnparsedVariableValue{
 				varName3: testUnparsedVariableValue(varValue3),
 			},

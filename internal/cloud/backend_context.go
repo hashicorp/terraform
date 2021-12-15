@@ -110,8 +110,10 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 			}
 			for _, v := range tfeVariables.Items {
 				if v.Category == tfe.CategoryTerraform {
-					op.Variables[v.Key] = &remoteStoredVariableValue{
-						definition: v,
+					if _, ok := op.Variables[v.Key]; !ok {
+						op.Variables[v.Key] = &remoteStoredVariableValue{
+							definition: v,
+						}
 					}
 				}
 			}
