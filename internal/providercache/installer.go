@@ -162,8 +162,8 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 
 	// We'll work with a copy of the given locks, so we can modify it and
 	// return the updated locks without affecting the caller's object.
-	// We'll add or replace locks in here during our work so that the final
-	// locks file reflects what the installer has selected.
+	// We'll add, replace, or remove locks in here during our work so that the
+	// final locks file reflects what the installer has selected.
 	locks = locks.DeepCopy()
 
 	if cb := evts.PendingProviders; cb != nil {
@@ -560,6 +560,18 @@ NeedProvider:
 	// Emit final event for fetching if any were successfully fetched
 	if cb := evts.ProvidersFetched; cb != nil && len(authResults) > 0 {
 		cb(authResults)
+	}
+
+	// Finally, if the lock structure contains locks for any providers that
+	// are no longer needed by this configuration, we'll remove them. This
+	// is important because we will not have installed those providers
+	// above and so a lock file still containing them would make the working
+	// directory invalid: not every provider in the lock file is available
+	// for use.
+	for providerAddr := range locks.AllProviders() {
+		if _, ok := reqs[providerAddr]; !ok {
+			locks.RemoveProvider(providerAddr)
+		}
 	}
 
 	if len(errs) > 0 {

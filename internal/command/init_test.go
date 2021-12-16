@@ -2205,6 +2205,11 @@ provider "registry.terraform.io/hashicorp/test" {
 }
 `)
 
+	emptyUpdatedLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+`)
+
 	cases := []struct {
 		desc      string
 		fixture   string
@@ -2224,12 +2229,30 @@ provider "registry.terraform.io/hashicorp/test" {
 			want:      updatedLockFile,
 		},
 		{
+			desc:      "unused provider",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{},
+			ok:        true,
+			want:      emptyUpdatedLockFile,
+		},
+		{
 			desc:      "readonly",
 			fixture:   "init-provider-lock-file",
 			providers: map[string][]string{"test": {"1.2.3"}},
 			input:     inputLockFile,
 			args:      []string{"-lockfile=readonly"},
 			ok:        true,
+			want:      inputLockFile,
+		},
+		{
+			desc:      "unused provider readonly",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{"-lockfile=readonly"},
+			ok:        false,
 			want:      inputLockFile,
 		},
 		{
