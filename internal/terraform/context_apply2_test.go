@@ -631,8 +631,6 @@ func TestContext2Apply_nullableVariables(t *testing.T) {
 }
 
 func TestContext2Apply_targetedDestroyWithMoved(t *testing.T) {
-	// The impure function call should not cause a planned change with
-	// ignore_changes
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
 module "modb" {
