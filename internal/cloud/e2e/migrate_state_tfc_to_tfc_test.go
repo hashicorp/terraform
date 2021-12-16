@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"testing"
 
-	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/e2e"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -19,16 +15,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 
 	ctx := context.Background()
 
-	cases := map[string]struct {
-		setup       func(t *testing.T) (string, func())
-		operations  []operationSets
-		validations func(t *testing.T, orgName string)
-	}{
+	cases := testCases{
 		"migrating from name to name": {
-			setup: func(t *testing.T) (string, func()) {
-				organization, cleanup := createOrganization(t)
-				return organization.Name, cleanup
-			},
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -93,10 +81,6 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 			},
 		},
 		"migrating from name to tags": {
-			setup: func(t *testing.T) (string, func()) {
-				organization, cleanup := createOrganization(t)
-				return organization.Name, cleanup
-			},
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -155,10 +139,6 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 			},
 		},
 		"migrating from name to tags without ignore-version flag": {
-			setup: func(t *testing.T) (string, func()) {
-				organization, cleanup := createOrganization(t)
-				return organization.Name, cleanup
-			},
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -220,78 +200,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 		},
 	}
 
-	for name, tc := range cases {
-		tc := tc // rebind tc into this lexical scope
-		t.Run(name, func(subtest *testing.T) {
-			subtest.Parallel()
-			exp, err := expect.NewConsole(defaultOpts()...)
-			if err != nil {
-				subtest.Fatal(err)
-			}
-			defer exp.Close()
-
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
-			if err != nil {
-				subtest.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
-
-			tf := e2e.NewBinary(terraformBin, tmpDir)
-			defer tf.Close()
-			tf.AddEnv(cliConfigFileEnv)
-
-			orgName, cleanup := tc.setup(t)
-			defer cleanup()
-			for _, op := range tc.operations {
-				op.prep(t, orgName, tf.WorkDir())
-				for _, tfCmd := range op.commands {
-					cmd := tf.Cmd(tfCmd.command...)
-					cmd.Stdin = exp.Tty()
-					cmd.Stdout = exp.Tty()
-					cmd.Stderr = exp.Tty()
-
-					err = cmd.Start()
-					if err != nil {
-						subtest.Fatal(err)
-					}
-
-					if tfCmd.expectedCmdOutput != "" {
-						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
-						if err != nil {
-							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
-						}
-					}
-
-					lenInput := len(tfCmd.userInput)
-					lenInputOutput := len(tfCmd.postInputOutput)
-					if lenInput > 0 {
-						for i := 0; i < lenInput; i++ {
-							input := tfCmd.userInput[i]
-							exp.SendLine(input)
-							// use the index to find the corresponding
-							// output that matches the input.
-							if lenInputOutput-1 >= i {
-								output := tfCmd.postInputOutput[i]
-								_, err := exp.ExpectString(output)
-								if err != nil {
-									subtest.Fatal(err)
-								}
-							}
-						}
-					}
-
-					err = cmd.Wait()
-					if err != nil && !tfCmd.expectError {
-						subtest.Fatal(err.Error())
-					}
-				}
-			}
-
-			if tc.validations != nil {
-				tc.validations(t, orgName)
-			}
-		})
-	}
+	testRunner(t, cases, 1)
 }
 
 func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
@@ -301,16 +210,8 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 
 	ctx := context.Background()
 
-	cases := map[string]struct {
-		setup       func(t *testing.T) (string, func())
-		operations  []operationSets
-		validations func(t *testing.T, orgName string)
-	}{
+	cases := testCases{
 		"migrating from multiple workspaces via tags to name": {
-			setup: func(t *testing.T) (string, func()) {
-				organization, cleanup := createOrganization(t)
-				return organization.Name, cleanup
-			},
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -392,10 +293,6 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 			},
 		},
 		"migrating from multiple workspaces via tags to other tags": {
-			setup: func(t *testing.T) (string, func()) {
-				organization, cleanup := createOrganization(t)
-				return organization.Name, cleanup
-			},
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -468,76 +365,5 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 		},
 	}
 
-	for name, tc := range cases {
-		tc := tc // rebind tc into this lexical scope
-		t.Run(name, func(subtest *testing.T) {
-			subtest.Parallel()
-			exp, err := expect.NewConsole(defaultOpts()...)
-			if err != nil {
-				subtest.Fatal(err)
-			}
-			defer exp.Close()
-
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
-			if err != nil {
-				subtest.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
-
-			tf := e2e.NewBinary(terraformBin, tmpDir)
-			defer tf.Close()
-			tf.AddEnv(cliConfigFileEnv)
-
-			orgName, cleanup := tc.setup(t)
-			defer cleanup()
-			for _, op := range tc.operations {
-				op.prep(t, orgName, tf.WorkDir())
-				for _, tfCmd := range op.commands {
-					cmd := tf.Cmd(tfCmd.command...)
-					cmd.Stdin = exp.Tty()
-					cmd.Stdout = exp.Tty()
-					cmd.Stderr = exp.Tty()
-
-					err = cmd.Start()
-					if err != nil {
-						subtest.Fatal(err)
-					}
-
-					if tfCmd.expectedCmdOutput != "" {
-						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
-						if err != nil {
-							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
-						}
-					}
-
-					lenInput := len(tfCmd.userInput)
-					lenInputOutput := len(tfCmd.postInputOutput)
-					if lenInput > 0 {
-						for i := 0; i < lenInput; i++ {
-							input := tfCmd.userInput[i]
-							exp.SendLine(input)
-							// use the index to find the corresponding
-							// output that matches the input.
-							if lenInputOutput-1 >= i {
-								output := tfCmd.postInputOutput[i]
-								_, err := exp.ExpectString(output)
-								if err != nil {
-									subtest.Fatal(err)
-								}
-							}
-						}
-					}
-
-					err = cmd.Wait()
-					if err != nil {
-						subtest.Fatal(err.Error())
-					}
-				}
-			}
-
-			if tc.validations != nil {
-				tc.validations(t, orgName)
-			}
-		})
-	}
+	testRunner(t, cases, 1)
 }
