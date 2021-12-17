@@ -1,5 +1,10 @@
 ## 1.1.2 (Unreleased)
 
+BUG FIXES:
+
+* config: Fix panic when using `-target` in combination with `moved` blocks within modules [GH-30189]
+* core: Fix condition which could lead to an empty state being written when there is a failure building the apply graph [GH-30199]
+
 ## 1.1.1 (December 15, 2021)
 
 BUG FIXES:
