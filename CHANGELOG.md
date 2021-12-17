@@ -1,5 +1,9 @@
 ## 1.1.3 (Unreleased)
 
+BUG FIXES:
+
+* `terraform init`: Will now remove from [the dependency lock file](https://www.terraform.io/language/files/dependency-lock) entries for providers not used in the current configuration. Previously it would leave formerly-used providers behind in the lock file, leading to "missing or corrupted provider plugins" errors when other commands verified the consistency of the installed plugins against the locked plugins. [GH-30192]
+
 ## 1.1.2 (December 17, 2021)
 
 **If you are using Terraform CLI v1.1.0 or v1.1.1, please upgrade to this new version as soon as possible.**
