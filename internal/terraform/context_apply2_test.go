@@ -629,3 +629,52 @@ func TestContext2Apply_nullableVariables(t *testing.T) {
 		t.Fatalf("incorrect 'non_nullable_no_default' output value: %#v\n", v)
 	}
 }
+
+func TestContext2Apply_targetedDestroyWithMoved(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "modb" {
+  source = "./mod"
+  for_each = toset(["a", "b"])
+}
+`,
+		"./mod/main.tf": `
+resource "test_object" "a" {
+}
+
+module "sub" {
+  for_each = toset(["a", "b"])
+  source = "./sub"
+}
+
+moved {
+  from = module.old
+  to = module.sub
+}
+`,
+		"./mod/sub/main.tf": `
+resource "test_object" "s" {
+}
+`})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// destroy only a single instance not included in the moved statements
+	_, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode:    plans.DestroyMode,
+		Targets: []addrs.Targetable{mustResourceInstanceAddr(`module.modb["a"].test_object.a`)},
+	})
+	assertNoErrors(t, diags)
+}
