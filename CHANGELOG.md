@@ -1,5 +1,9 @@
 ## 1.1.2 (Unreleased)
 
+**If you are using Terraform CLI v1.1.0 or v1.1.1, please upgrade to this new version as soon as possible.**
+
+Terraform CLI v1.1.0 and v1.1.1 both have a bug where a failure to construct the apply-time graph can cause Terraform to incorrectly report success and save an empty state, effectively "forgetting" all existing infrastructure. Although configurations that already worked on previous releases should not encounter this problem, it's possible that incorrect _future_ configuration changes would trigger this behavior during the apply step.
+
 BUG FIXES:
 
 * config: Fix panic when using `-target` in combination with `moved` blocks within modules [GH-30189]
