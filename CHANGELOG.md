@@ -1,4 +1,4 @@
-## 1.1.2 (Unreleased)
+## 1.1.2 (December 17, 2021)
 
 **If you are using Terraform CLI v1.1.0 or v1.1.1, please upgrade to this new version as soon as possible.**
 
@@ -6,8 +6,8 @@ Terraform CLI v1.1.0 and v1.1.1 both have a bug where a failure to construct the
 
 BUG FIXES:
 
-* config: Fix panic when using `-target` in combination with `moved` blocks within modules [GH-30189]
-* core: Fix condition which could lead to an empty state being written when there is a failure building the apply graph [GH-30199]
+* config: Fix panic when using `-target` in combination with `moved` blocks within modules ([#30189](https://github.com/hashicorp/terraform/issues/30189))
+* core: Fix condition which could lead to an empty state being written when there is a failure building the apply graph ([#30199](https://github.com/hashicorp/terraform/issues/30199))
 
 ## 1.1.1 (December 15, 2021)
 
