@@ -168,6 +168,14 @@ func (b *Local) opApply(
 	}
 	diags = diags.Append(applyDiags)
 
+	// Even on error with an empty state, the state value should not be nil.
+	// Return early here to prevent corrupting any existing state.
+	if diags.HasErrors() && applyState == nil {
+		log.Printf("[ERROR] backend/local: apply returned nil state")
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	// Store the final state
 	runningOp.State = applyState
 	err := statemgr.WriteAndPersist(opState, applyState)
