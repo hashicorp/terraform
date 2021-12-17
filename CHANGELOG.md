@@ -1,3 +1,5 @@
+## 1.1.3 (Unreleased)
+
 ## 1.1.2 (December 17, 2021)
 
 **If you are using Terraform CLI v1.1.0 or v1.1.1, please upgrade to this new version as soon as possible.**
