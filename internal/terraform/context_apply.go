@@ -22,12 +22,11 @@ import (
 // resulting state which is likely to have been partially-updated.
 func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
-	var diags tfdiags.Diagnostics
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
-	graph, operation, moreDiags := c.applyGraph(plan, config, true)
-	if moreDiags.HasErrors() {
+	graph, operation, diags := c.applyGraph(plan, config, true)
+	if diags.HasErrors() {
 		return nil, diags
 	}
 

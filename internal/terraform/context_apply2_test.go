@@ -678,3 +678,61 @@ resource "test_object" "s" {
 	})
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Apply_graphError(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "ok"
+}
+
+resource "test_object" "b" {
+  test_string = test_object.a.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"test_string":"ok"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"test_string":"ok"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	// We're going to corrupt the stored state so that the dependencies will
+	// cause a cycle when building the apply graph.
+	testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
+	testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
+
+	_, diags = ctx.Apply(plan, m)
+	if !diags.HasErrors() {
+		t.Fatal("expected cycle error from apply")
+	}
+}
