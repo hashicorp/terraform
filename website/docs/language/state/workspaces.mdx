@@ -193,9 +193,9 @@ multiple collaborators.
 For [remote state](/language/state/remote), the workspaces are stored
 directly in the configured [backend](/language/settings/backends). For example, if you
 use [Consul](/language/settings/backends/consul), the workspaces are stored
-by appending the workspace name to the state path. To ensure that
-workspace names are stored correctly and safely in all backends, the name
-must be valid to use in a URL path segment without escaping.
+by appending the workspace name to the state path. 
+
+~> Note: To ensure that workspace names are stored correctly and safely in all backends, the name must be valid to use in a URL path segment without escaping.
 
 The important thing about workspace internals is that workspaces are
 meant to be a shared resource. They aren't a private, local-only notion
