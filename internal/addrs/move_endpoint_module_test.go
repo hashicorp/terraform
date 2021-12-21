@@ -1584,6 +1584,139 @@ func TestSelectsResource(t *testing.T) {
 	}
 }
 
+func TestIsModuleMoveReIndex(t *testing.T) {
+	tests := []struct {
+		from, to AbsMoveable
+		expect   bool
+	}{
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.bar`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.bar[0]`),
+			expect: true,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar[0]`),
+			expect: true,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar["a"]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.foo`),
+			to:     mustParseModuleInstanceStr(`module.bar`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.foo[0]`),
+			expect: false,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			to:     mustParseModuleInstanceStr(`module.foo[0]`),
+			expect: false,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar["a"]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "foo"},
+			},
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.baz.module.baz`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.baz.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar[1].module.baz[0]`),
+			expect: true,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "baz"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "baz"},
+			},
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to:     mustParseModuleInstanceStr(`module.baz`),
+			expect: false,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]IsModuleMoveReIndex(%s, %s)", i, test.from, test.to),
+			func(t *testing.T) {
+				from := &MoveEndpointInModule{
+					relSubject: test.from,
+				}
+
+				to := &MoveEndpointInModule{
+					relSubject: test.to,
+				}
+
+				if got := IsModuleMoveReIndex(from, to); got != test.expect {
+					t.Errorf("expected %t, got %t", test.expect, got)
+				}
+			},
+		)
+	}
+}
+
 func mustParseAbsResourceInstanceStr(s string) AbsResourceInstance {
 	r, diags := ParseAbsResourceInstanceStr(s)
 	if diags.HasErrors() {
