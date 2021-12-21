@@ -238,11 +238,31 @@ func statementDependsOn(a, b *MoveStatement) bool {
 	//
 	// Since we are only interested in checking if A depends on B, we only need
 	// to check the 4 possibilities above which result in B being executed
-	// first.
-	return a.From.NestedWithin(b.To) ||
-		a.To.NestedWithin(b.To) ||
-		b.From.NestedWithin(a.From) ||
-		b.To.NestedWithin(a.From)
+	// first. If we're there's no dependency at all we can return immediately.
+	if !(a.From.NestedWithin(b.To) || a.To.NestedWithin(b.To) ||
+		b.From.NestedWithin(a.From) || b.To.NestedWithin(a.From)) {
+		return false
+	}
+
+	// If a nested move has a dependency, we need to rule out the possibility
+	// that this is a move inside a module only changing indexes. If an
+	// ancestor module is only changing the index of a nested module, any
+	// nested move statements are going to match both the From and To address
+	// when the base name is not changing, causing a cycle in the order of
+	// operations.
+
+	// if A is not declared in an ancestor module, then we can't be nested
+	// within a module index change.
+	if len(a.To.Module()) >= len(b.To.Module()) {
+		return true
+	}
+	// We only want the nested move statement to depend on the outer module
+	// move, so we only test this in the reverse direction.
+	if a.From.IsModuleReIndex(a.To) {
+		return false
+	}
+
+	return true
 }
 
 // MoveResults describes the outcome of an ApplyMoves call.

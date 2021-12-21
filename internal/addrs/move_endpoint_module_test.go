@@ -1686,6 +1686,25 @@ func TestIsModuleMoveReIndex(t *testing.T) {
 			},
 			expect: false,
 		},
+
+		{
+			from: AbsModuleCall{
+				Module: mustParseModuleInstanceStr(`module.bar[0]`),
+				Call:   ModuleCall{Name: "baz"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+
+		{
+			from: mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to: AbsModuleCall{
+				Module: mustParseModuleInstanceStr(`module.bar[0]`),
+				Call:   ModuleCall{Name: "baz"},
+			},
+			expect: true,
+		},
+
 		{
 			from:   mustParseModuleInstanceStr(`module.baz`),
 			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
@@ -1709,7 +1728,7 @@ func TestIsModuleMoveReIndex(t *testing.T) {
 					relSubject: test.to,
 				}
 
-				if got := IsModuleMoveReIndex(from, to); got != test.expect {
+				if got := from.IsModuleReIndex(to); got != test.expect {
 					t.Errorf("expected %t, got %t", test.expect, got)
 				}
 			},
