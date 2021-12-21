@@ -21,10 +21,42 @@ import (
 // PlanOpts are the various options that affect the details of how Terraform
 // will build a plan.
 type PlanOpts struct {
-	Mode         plans.Mode
-	SkipRefresh  bool
+	// Mode defines what variety of plan the caller wishes to create.
+	// Refer to the documentation of the plans.Mode type and its values
+	// for more information.
+	Mode plans.Mode
+
+	// SkipRefresh specifies to trust that the current values for managed
+	// resource instances in the prior state are accurate and to therefore
+	// disable the usual step of fetching updated values for each resource
+	// instance using its corresponding provider.
+	SkipRefresh bool
+
+	// SetVariables are the raw values for root module variables as provided
+	// by the user who is requesting the run, prior to any normalization or
+	// substitution of defaults. See the documentation for the InputValue
+	// type for more information on how to correctly populate this.
 	SetVariables InputValues
-	Targets      []addrs.Targetable
+
+	// If Targets has a non-zero length then it activates targeted planning
+	// mode, where Terraform will take actions only for resource instances
+	// mentioned in this set and any other objects those resource instances
+	// depend on.
+	//
+	// Targeted planning mode is intended for exceptional use only,
+	// and so populating this field will cause Terraform to generate extra
+	// warnings as part of the planning result.
+	Targets []addrs.Targetable
+
+	// ForceReplace is a set of resource instance addresses whose corresponding
+	// objects should be forced planned for replacement if the provider's
+	// plan would otherwise have been to either update the object in-place or
+	// to take no action on it at all.
+	//
+	// A typical use of this argument is to ask Terraform to replace an object
+	// which the user has determined is somehow degraded (via information from
+	// outside of Terraform), thereby hopefully replacing it with a
+	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 }
 
@@ -99,8 +131,6 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 		return nil, diags
 	}
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
-
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
 	// caller's responsibility to have already handled the decoding of these
@@ -108,7 +138,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// user-friendly error messages if they are not all present, and so
 	// the error message from checkInputVariables should never be seen and
 	// includes language asking the user to report a bug.
-	varDiags := checkInputVariables(config.Module.Variables, variables)
+	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
 	if len(opts.Targets) > 0 {
@@ -139,8 +169,12 @@ The -target option is not for routine use, and is provided only for exceptional 
 	}
 
 	// convert the variables into the format expected for the plan
-	varVals := make(map[string]plans.DynamicValue, len(variables))
-	for k, iv := range variables {
+	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
+	for k, iv := range opts.SetVariables {
+		if iv.Value == cty.NilVal {
+			continue // We only record values that the caller actually set
+		}
+
 		// We use cty.DynamicPseudoType here so that we'll save both the
 		// value _and_ its dynamic type in the plan, so we can recover
 		// exactly the same value later.
@@ -170,6 +204,25 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 var DefaultPlanOpts = &PlanOpts{
 	Mode: plans.NormalMode,
+}
+
+// SimplePlanOpts is a constructor to help with creating "simple" values of
+// PlanOpts which only specify a mode and input variables.
+//
+// This helper function is primarily intended for use in straightforward
+// tests that don't need any of the more "esoteric" planning options. For
+// handling real user requests to run Terraform, it'd probably be better
+// to construct a *PlanOpts value directly and provide a way for the user
+// to set values for all of its fields.
+//
+// The "mode" and "setVariables" arguments become the values of the "Mode"
+// and "SetVariables" fields in the result. Refer to the PlanOpts type
+// documentation to learn about the meanings of those fields.
+func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
+	return &PlanOpts{
+		Mode:         mode,
+		SetVariables: setVariables,
+	}
 }
 
 func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {

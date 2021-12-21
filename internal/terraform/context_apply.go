@@ -87,6 +87,21 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 		return nil, walkApply, diags
 	}
 
+	// The plan.VariableValues field only records variables that were actually
+	// set by the caller in the PlanOpts, so we may need to provide
+	// placeholders for any other variables that the user didn't set, in
+	// which case Terraform will once again use the default value from the
+	// configuration when we visit these variables during the graph walk.
+	for name := range config.Module.Variables {
+		if _, ok := variables[name]; ok {
+			continue
+		}
+		variables[name] = &InputValue{
+			Value:      cty.NilVal,
+			SourceType: ValueFromPlan,
+		}
+	}
+
 	graph, moreDiags := (&ApplyGraphBuilder{
 		Config:             config,
 		Changes:            plan.Changes,

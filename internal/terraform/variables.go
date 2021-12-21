@@ -3,18 +3,50 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// InputValue represents a value for a variable in the root module, provided
-// as part of the definition of an operation.
+// InputValue represents a raw value vor a root module input variable as
+// provided by the external caller into a function like terraform.Context.Plan.
+//
+// InputValue should represent as directly as possible what the user set the
+// variable to, without any attempt to convert the value to the variable's
+// type constraint or substitute the configured default values for variables
+// that wasn't set. Those adjustments will be handled by Terraform Core itself
+// as part of performing the requested operation.
+//
+// A Terraform Core caller must provide an InputValue object for each of the
+// variables declared in the root module, even if the end user didn't provide
+// an explicit value for some of them. See the Value field documentation for
+// how to handle that situation.
 type InputValue struct {
-	Value      cty.Value
+	// Value is the raw value as provided by the user as part of the plan
+	// options, or a corresponding similar data structure for non-plan
+	// operations.
+	//
+	// If a particular variable declared in the root module is _not_ set by
+	// the user then the caller must still provide an InputValue for it but
+	// must set Value to cty.NilVal to represent the absense of a value.
+	// This requirement is to help detect situations where the caller isn't
+	// correctly detecting and handling all of the declared variables.
+	//
+	// For historical reasons it's important that callers distinguish the
+	// situation of the value not being set at all (cty.NilVal) from the
+	// situation of it being explicitly set to null (a cty.NullVal result):
+	// for "nullable" input variables that distinction unfortunately decides
+	// whether the final value will be the variable's default or will be
+	// explicitly null.
+	Value cty.Value
+
+	// SourceType is a high-level category for where the value of Value
+	// came from, which Terraform Core uses to tailor some of its error
+	// messages to be more helpful to the user.
+	//
+	// Some SourceType values should be accompanied by a populated SourceRange
+	// value. See that field's documentation below for more information.
 	SourceType ValueSourceType
 
 	// SourceRange provides source location information for values whose
@@ -129,23 +161,6 @@ func (vv InputValues) JustValues() map[string]cty.Value {
 	return ret
 }
 
-// DefaultVariableValues returns an InputValues map representing the default
-// values specified for variables in the given configuration map.
-func DefaultVariableValues(configs map[string]*configs.Variable) InputValues {
-	ret := make(InputValues)
-	for k, c := range configs {
-		if c.Default == cty.NilVal {
-			continue
-		}
-		ret[k] = &InputValue{
-			Value:       c.Default,
-			SourceType:  ValueFromConfig,
-			SourceRange: tfdiags.SourceRangeFromHCL(c.DeclRange),
-		}
-	}
-	return ret
-}
-
 // SameValues returns true if the given InputValues has the same values as
 // the receiever, disregarding the source types and source ranges.
 //
@@ -227,21 +242,15 @@ func (vv InputValues) Identical(other InputValues) bool {
 	return true
 }
 
-func mergeDefaultInputVariableValues(setVals InputValues, rootVarsConfig map[string]*configs.Variable) InputValues {
-	var variables InputValues
-
-	// Default variables from the configuration seed our map.
-	variables = DefaultVariableValues(rootVarsConfig)
-
-	// Variables provided by the caller (from CLI, environment, etc) can
-	// override the defaults.
-	variables = variables.Override(setVals)
-
-	return variables
-}
-
-// checkInputVariables ensures that variable values supplied at the UI conform
-// to their corresponding declarations in configuration.
+// checkInputVariables ensures that the caller provided an InputValue
+// definition for each root module variable declared in the configuration.
+// The caller must provide an InputVariables with keys exactly matching
+// the declared variables, though some of them may be marked explicitly
+// unset by their values being cty.NilVal.
+//
+// This doesn't perform any type checking, default value substitution, or
+// validation checks. Those are all handled during a graph walk when we
+// visit the graph nodes representing each root variable.
 //
 // The set of values is considered valid only if the returned diagnostics
 // does not contain errors. A valid set of values may still produce warnings,
@@ -249,60 +258,18 @@ func mergeDefaultInputVariableValues(setVals InputValues, rootVarsConfig map[str
 func checkInputVariables(vcs map[string]*configs.Variable, vs InputValues) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	for name, vc := range vcs {
-		val, isSet := vs[name]
+	for name := range vcs {
+		_, isSet := vs[name]
 		if !isSet {
-			// Always an error, since the caller should already have included
-			// default values from the configuration in the values map.
+			// Always an error, since the caller should have produced an
+			// item with Value: cty.NilVal to be explicit that it offered
+			// an opportunity to set this variable.
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unassigned variable",
 				fmt.Sprintf("The input variable %q has not been assigned a value. This is a bug in Terraform; please report it in a GitHub issue.", name),
 			))
 			continue
-		}
-
-		// A given value is valid if it can convert to the desired type.
-		_, err := convert.Convert(val.Value, vc.ConstraintType)
-		if err != nil {
-			switch val.SourceType {
-			case ValueFromConfig, ValueFromAutoFile, ValueFromNamedFile:
-				// We have source location information for these.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid value for input variable",
-					Detail:   fmt.Sprintf("The given value is not valid for variable %q: %s.", name, err),
-					Subject:  val.SourceRange.ToHCL().Ptr(),
-				})
-			case ValueFromEnvVar:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid value for input variable",
-					fmt.Sprintf("The environment variable TF_VAR_%s does not contain a valid value for variable %q: %s.", name, name, err),
-				))
-			case ValueFromCLIArg:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid value for input variable",
-					fmt.Sprintf("The argument -var=\"%s=...\" does not contain a valid value for variable %q: %s.", name, name, err),
-				))
-			case ValueFromInput:
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid value for input variable",
-					fmt.Sprintf("The value entered for variable %q is not valid: %s.", name, err),
-				))
-			default:
-				// The above gets us good coverage for the situations users
-				// are likely to encounter with their own inputs. The other
-				// cases are generally implementation bugs, so we'll just
-				// use a generic error for these.
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Invalid value for input variable",
-					fmt.Sprintf("The value provided for variable %q is not valid: %s.", name, err),
-				))
-			}
 		}
 	}
 

@@ -45,7 +45,7 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	state = state.DeepCopy()
 	var walker *ContextGraphWalker
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
+	variables := opts.SetVariables
 
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
