@@ -373,7 +373,7 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 	return false
 }
 
-// NestedWithin returns true if the reciever describes an address that is
+// NestedWithin returns true if the receiver describes an address that is
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
@@ -703,4 +703,54 @@ func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInM
 	default:
 		panic("unexpected object kind")
 	}
+}
+
+// IsModuleMoveReIndex takes the from and to endpoints from a move statement,
+// and returns true if the only changes are to module indexes, and all
+// non-absolute paths remain the same.
+func IsModuleMoveReIndex(from, to *MoveEndpointInModule) bool {
+	// The statements must originate from the same module.
+	if !from.module.Equal(to.module) {
+		panic("cannot compare move expressions from different modules")
+	}
+
+	switch f := from.relSubject.(type) {
+	case AbsModuleCall:
+		switch t := to.relSubject.(type) {
+		case ModuleInstance:
+			if len(t) != 1 {
+				// An AbsModuleCall only ever has one segment, so the
+				// ModuleInstance length must match.
+				return false
+			}
+
+			return f.Call.Name == t[0].Name
+		}
+
+	case ModuleInstance:
+		switch t := to.relSubject.(type) {
+		case AbsModuleCall:
+			if len(f) != 1 {
+				return false
+			}
+
+			return f[0].Name == t.Call.Name
+
+		case ModuleInstance:
+			// We must have the same number of segments, and the names must all
+			// match in order for this to solely be an index change operation.
+			if len(f) != len(t) {
+				return false
+			}
+
+			for i := range f {
+				if f[i].Name != t[i].Name {
+					return false
+				}
+			}
+			return true
+		}
+	}
+
+	return false
 }
