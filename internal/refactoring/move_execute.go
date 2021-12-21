@@ -88,16 +88,13 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 		for _, ms := range state.Modules {
 			modAddr := ms.Addr
-			if !stmt.From.SelectsModule(modAddr) {
-				continue
-			}
 
-			// We now know that the current module is relevant but what
-			// we'll do with it depends on the object kind.
+			// We don't yet know that the current module is relevant, and
+			// we determine that differently for each the object kind.
 			switch kind := stmt.ObjectKind(); kind {
 			case addrs.MoveEndpointModule:
 				// For a module endpoint we just try the module address
-				// directly.
+				// directly, and execute the moves if it matches.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
 					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
 
@@ -125,8 +122,15 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 					continue
 				}
 			case addrs.MoveEndpointResource:
-				// For a resource endpoint we need to search each of the
-				// resources and resource instances in the module.
+				// For a resource endpoint we require an exact containing
+				// module match, because by definition a matching resource
+				// cannot be nested any deeper than that.
+				if !stmt.From.SelectsModule(modAddr) {
+					continue
+				}
+
+				// We then need to search each of the resources and resource
+				// instances in the module.
 				for _, rs := range ms.Resources {
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
