@@ -53,7 +53,7 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 
 	log.Printf("[DEBUG] Building and walking import graph")
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
+	variables := opts.SetVariables
 
 	// Initialize our graph builder
 	builder := &ImportGraphBuilder{

@@ -45,9 +45,11 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 		log.Printf("[TRACE] prepareFinalInputVariableValue: %s has no defined value", addr)
 		if cfg.Required() {
 			// NOTE: The CLI layer typically checks for itself whether all of
-			// the required _root_ module variables are not set, which would
-			// mask this error. We can get here for child module variables,
-			// though.
+			// the required _root_ module variables are set, which would
+			// mask this error with a more specific one that refers to the
+			// CLI features for setting such variables. We can get here for
+			// child module variables, though.
+			log.Printf("[ERROR] prepareFinalInputVariableValue: %s is required but is not set", addr)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Required variable not set`,
@@ -64,6 +66,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
+		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid value for module argument",
@@ -93,6 +96,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 		if defaultVal != cty.NilVal {
 			val = defaultVal
 		} else {
+			log.Printf("[ERROR] prepareFinalInputVariableValue: %s is non-nullable but set to null, and is required", addr)
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Required variable not set`,

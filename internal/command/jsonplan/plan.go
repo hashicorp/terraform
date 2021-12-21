@@ -118,7 +118,7 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
-	err := output.marshalPlanVariables(p.VariableValues, schemas)
+	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshalPlanVariables: %s", err)
 	}
@@ -183,11 +183,7 @@ func Marshal(
 	return ret, err
 }
 
-func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas *terraform.Schemas) error {
-	if len(vars) == 0 {
-		return nil
-	}
-
+func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
 	p.Variables = make(variables, len(vars))
 
 	for k, v := range vars {
@@ -203,6 +199,41 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas 
 			Value: valJSON,
 		}
 	}
+
+	// In Terraform v1.1 and earlier we had some confusion about which subsystem
+	// of Terraform was the one responsible for substituting in default values
+	// for unset module variables, with root module variables being handled in
+	// three different places while child module variables were only handled
+	// during the Terraform Core graph walk.
+	//
+	// For Terraform v1.2 and later we rationalized that by having the Terraform
+	// Core graph walk always be responsible for selecting defaults regardless
+	// of root vs. child module, but unfortunately our earlier accidental
+	// misbehavior bled out into the public interface by making the defaults
+	// show up in the "vars" map to this function. Those are now correctly
+	// omitted (so that the plan file only records the variables _actually_
+	// set by the caller) but consumers of the JSON plan format may be depending
+	// on our old behavior and so we'll fake it here just in time so that
+	// outside consumers won't see a behavior change.
+	for name, decl := range decls {
+		if _, ok := p.Variables[name]; ok {
+			continue
+		}
+		if val := decl.Default; val != cty.NilVal {
+			valJSON, err := ctyjson.Marshal(val, val.Type())
+			if err != nil {
+				return err
+			}
+			p.Variables[name] = &variable{
+				Value: valJSON,
+			}
+		}
+	}
+
+	if len(p.Variables) == 0 {
+		p.Variables = nil // omit this property if there are no variables to describe
+	}
+
 	return nil
 }
 
