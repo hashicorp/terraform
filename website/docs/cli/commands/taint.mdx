@@ -9,36 +9,26 @@ description: |-
 
 The `terraform taint` command informs Terraform that a particular object has
 become degraded or damaged. Terraform represents this by marking the
-object as "tainted" in the Terraform state, in which case Terraform will
+object as "tainted" in the Terraform state, and Terraform will
 propose to replace it in the next plan you create.
 
-~> _Warning:_ This command is deprecated, because there are better alternatives
-available in Terraform v0.15.2 and later. See below for more details.
+~> **Warning:** This command is deprecated. For Terraform v0.15.2 and later, we recommend using the `-replace` option with `terraform apply` instead (details below).
 
-If your intent is to force replacement of a particular object even though
-there are no configuration changes that would require it, we recommend instead
-to use the `-replace` option with [`terraform apply`](/cli/commands/apply).
-For example:
+## Recommended Alternative
+
+For Terraform v0.15.2 and later, we recommend using the [`-replace` option](/cli/commands/plan#replace-address) with `terraform apply` to force Terraform to replace an object even though there are no configuration changes that would require it.
 
 ```
-terraform apply -replace="aws_instance.example[0]"
+$ terraform apply -replace="aws_instance.example[0]"
 ```
 
-Creating a plan with the "replace" option is superior to using `terraform taint`
-because it will allow you to see the full effect of that change before you take
-any externally-visible action. When you use `terraform taint` to get a similar
-effect, you risk someone else on your team creating a new plan against your
-tainted object before you've had a chance to review the consequences of that
-change yourself.
-
-The `-replace=...` option to `terraform apply` is only available from
-Terraform v0.15.2 onwards, so if you are using an earlier version you will need
-to use `terraform taint` to force object replacement, while considering the
-caveats described above.
+We recommend the `-replace` option because the change will be reflected in the Terraform plan, letting you understand how it will affect your infrastructure before you take any externally-visible action. When you use `terraform taint`, other users could create a new plan against your tainted object before you can review the effects.
 
 ## Usage
 
-Usage: `terraform taint [options] address`
+```
+$ terraform taint [options] <address>
+```
 
 The `address` argument is the address of the resource to mark as tainted.
 The address is in
