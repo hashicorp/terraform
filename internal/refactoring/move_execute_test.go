@@ -21,7 +21,10 @@ func TestApplyMoves(t *testing.T) {
 	}
 
 	moduleBoo, _ := addrs.ParseModuleInstanceStr("module.boo")
+	moduleBar, _ := addrs.ParseModuleInstanceStr("module.bar")
 	moduleBarKey, _ := addrs.ParseModuleInstanceStr("module.bar[0]")
+	moduleBooHoo, _ := addrs.ParseModuleInstanceStr("module.boo.module.hoo")
+	moduleBarHoo, _ := addrs.ParseModuleInstanceStr("module.bar.module.hoo")
 
 	instAddrs := map[string]addrs.AbsResourceInstance{
 		"foo.from": addrs.Resource{
@@ -84,6 +87,12 @@ func TestApplyMoves(t *testing.T) {
 			Name: "to",
 		}.Instance(addrs.IntKey(0)).Absolute(moduleBoo),
 
+		"module.bar.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBar),
+
 		"module.bar[0].foo.from": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
@@ -113,6 +122,18 @@ func TestApplyMoves(t *testing.T) {
 			Type: "foo",
 			Name: "to",
 		}.Instance(addrs.IntKey(0)).Absolute(moduleBarKey),
+
+		"module.boo.module.hoo.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBooHoo),
+
+		"module.bar.module.hoo.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBarHoo),
 	}
 
 	emptyResults := MoveResults{
@@ -286,6 +307,47 @@ func TestApplyMoves(t *testing.T) {
 			},
 			[]string{
 				`module.bar[0].foo.to[0]`,
+			},
+		},
+
+		"module move with child module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.module.hoo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar.foo.from"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from"],
+						To:   instAddrs["module.bar.foo.from"],
+					},
+					instAddrs["module.bar.module.hoo.foo.from"].UniqueKey(): {
+						From: instAddrs["module.boo.module.hoo.foo.from"],
+						To:   instAddrs["module.bar.module.hoo.foo.from"],
+					},
+				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
+			},
+			[]string{
+				`module.bar.foo.from`,
+				`module.bar.module.hoo.foo.from`,
 			},
 		},
 
