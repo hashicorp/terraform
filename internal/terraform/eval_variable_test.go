@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -64,6 +65,13 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 		"main.tf": cfgSrc,
 	})
 	variableConfigs := cfg.Module.Variables
+
+	// Because we loaded our pseudo-module from a temporary file, the
+	// declaration source ranges will have unpredictable filenames. We'll
+	// fix that here just to make things easier below.
+	for _, vc := range variableConfigs {
+		vc.DeclRange.Filename = "main.tf"
+	}
 
 	tests := []struct {
 		varName string
@@ -264,7 +272,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			"required",
 			cty.NullVal(cty.DynamicPseudoType),
 			cty.UnknownVal(cty.DynamicPseudoType),
-			`Required variable not set: The variable "required" is required, but the given value is null.`,
+			`Required variable not set: Unsuitable value for var.required set from outside of the configuration: required variable may not be set to null.`,
 		},
 		{
 			"required",
@@ -316,7 +324,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			"constrained_string_required",
 			cty.NullVal(cty.DynamicPseudoType),
 			cty.UnknownVal(cty.String),
-			`Required variable not set: The variable "constrained_string_required" is required, but the given value is null.`,
+			`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
 		},
 		{
 			"constrained_string_required",
@@ -401,8 +409,13 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				test.given,
 			)
 
+			rawVal := &InputValue{
+				Value:      test.given,
+				SourceType: ValueFromCaller,
+			}
+
 			got, diags := prepareFinalInputVariableValue(
-				varAddr, test.given, tfdiags.SourceRangeFromHCL(varCfg.DeclRange), varCfg,
+				varAddr, rawVal, varCfg,
 			)
 
 			if test.wantErr != "" {
@@ -423,4 +436,128 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("SourceType error message variants", func(t *testing.T) {
+		tests := []struct {
+			SourceType  ValueSourceType
+			SourceRange tfdiags.SourceRange
+			WantTypeErr string
+			WantNullErr string
+		}{
+			{
+				ValueFromUnknown,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
+			},
+			{
+				ValueFromConfig,
+				tfdiags.SourceRange{
+					Filename: "example.tf",
+					Start:    tfdiags.SourcePos(hcl.InitialPos),
+					End:      tfdiags.SourcePos(hcl.InitialPos),
+				},
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
+			},
+			{
+				ValueFromAutoFile,
+				tfdiags.SourceRange{
+					Filename: "example.auto.tfvars",
+					Start:    tfdiags.SourcePos(hcl.InitialPos),
+					End:      tfdiags.SourcePos(hcl.InitialPos),
+				},
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
+			},
+			{
+				ValueFromNamedFile,
+				tfdiags.SourceRange{
+					Filename: "example.tfvars",
+					Start:    tfdiags.SourcePos(hcl.InitialPos),
+					End:      tfdiags.SourcePos(hcl.InitialPos),
+				},
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_required declared at main.tf:32,3-41: string required.`,
+				`Required variable not set: The given value is not suitable for var.constrained_string_required defined at main.tf:32,3-41: required variable may not be set to null.`,
+			},
+			{
+				ValueFromCLIArg,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using -var="constrained_string_required=...": string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set using -var="constrained_string_required=...": required variable may not be set to null.`,
+			},
+			{
+				ValueFromEnvVar,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using the TF_VAR_constrained_string_required environment variable: string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set using the TF_VAR_constrained_string_required environment variable: required variable may not be set to null.`,
+			},
+			{
+				ValueFromInput,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set using an interactive prompt: string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set using an interactive prompt: required variable may not be set to null.`,
+			},
+			{
+				// NOTE: This isn't actually a realistic case for this particular
+				// function, because if we have a value coming from a plan then
+				// we must be in the apply step, and we shouldn't be able to
+				// get past the plan step if we have invalid variable values,
+				// and during planning we'll always have other source types.
+				ValueFromPlan,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
+			},
+			{
+				ValueFromCaller,
+				tfdiags.SourceRange{},
+				`Invalid value for input variable: Unsuitable value for var.constrained_string_required set from outside of the configuration: string required.`,
+				`Required variable not set: Unsuitable value for var.constrained_string_required set from outside of the configuration: required variable may not be set to null.`,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(fmt.Sprintf("%s %s", test.SourceType, test.SourceRange.StartString()), func(t *testing.T) {
+				varAddr := addrs.InputVariable{Name: "constrained_string_required"}.Absolute(addrs.RootModuleInstance)
+				varCfg := variableConfigs[varAddr.Variable.Name]
+				t.Run("type error", func(t *testing.T) {
+					rawVal := &InputValue{
+						Value:       cty.EmptyObjectVal,
+						SourceType:  test.SourceType,
+						SourceRange: test.SourceRange,
+					}
+
+					_, diags := prepareFinalInputVariableValue(
+						varAddr, rawVal, varCfg,
+					)
+					if !diags.HasErrors() {
+						t.Fatalf("unexpected success; want error")
+					}
+
+					if got, want := diags.Err().Error(), test.WantTypeErr; got != want {
+						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+					}
+				})
+				t.Run("null error", func(t *testing.T) {
+					rawVal := &InputValue{
+						Value:       cty.NullVal(cty.DynamicPseudoType),
+						SourceType:  test.SourceType,
+						SourceRange: test.SourceRange,
+					}
+
+					_, diags := prepareFinalInputVariableValue(
+						varAddr, rawVal, varCfg,
+					)
+					if !diags.HasErrors() {
+						t.Fatalf("unexpected success; want error")
+					}
+
+					if got, want := diags.Err().Error(), test.WantNullErr; got != want {
+						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+					}
+				})
+			})
+		}
+	})
 }

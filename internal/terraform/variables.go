@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// InputValue represents a raw value vor a root module input variable as
+// InputValue represents a raw value for a root module input variable as
 // provided by the external caller into a function like terraform.Context.Plan.
 //
 // InputValue should represent as directly as possible what the user set the
@@ -22,6 +22,11 @@ import (
 // variables declared in the root module, even if the end user didn't provide
 // an explicit value for some of them. See the Value field documentation for
 // how to handle that situation.
+//
+// Terraform Core also internally uses InputValue to represent the raw value
+// provided for a variable in a child module call, following the same
+// conventions. However, that's an implementation detail not visible to
+// outside callers.
 type InputValue struct {
 	// Value is the raw value as provided by the user as part of the plan
 	// options, or a corresponding similar data structure for non-plan
@@ -50,8 +55,9 @@ type InputValue struct {
 	SourceType ValueSourceType
 
 	// SourceRange provides source location information for values whose
-	// SourceType is either ValueFromConfig or ValueFromFile. It is not
-	// populated for other source types, and so should not be used.
+	// SourceType is either ValueFromConfig, ValueFromNamedFile, or
+	// ValueForNormalFile. It is not populated for other source types, and so
+	// should not be used.
 	SourceRange tfdiags.SourceRange
 }
 
@@ -103,6 +109,24 @@ func (v *InputValue) GoString() string {
 		return fmt.Sprintf("&terraform.InputValue{Value: %#v, SourceType: %#v, SourceRange: %#v}", v.Value, v.SourceType, v.SourceRange)
 	} else {
 		return fmt.Sprintf("&terraform.InputValue{Value: %#v, SourceType: %#v}", v.Value, v.SourceType)
+	}
+}
+
+// HasSourceRange returns true if the reciever has a source type for which
+// we expect the SourceRange field to be populated with a valid range.
+func (v *InputValue) HasSourceRange() bool {
+	return v.SourceType.HasSourceRange()
+}
+
+// HasSourceRange returns true if the reciever is one of the source types
+// that is used along with a valid SourceRange field when appearing inside an
+// InputValue object.
+func (v ValueSourceType) HasSourceRange() bool {
+	switch v {
+	case ValueFromConfig, ValueFromAutoFile, ValueFromNamedFile:
+		return true
+	default:
+		return false
 	}
 }
 
