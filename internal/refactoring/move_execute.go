@@ -31,6 +31,10 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 		Blocked: make(map[addrs.UniqueKey]MoveBlocked),
 	}
 
+	if len(stmts) == 0 {
+		return ret
+	}
+
 	// The methodology here is to construct a small graph of all of the move
 	// statements where the edges represent where a particular statement
 	// is either chained from or nested inside the effect of another statement.
@@ -39,12 +43,17 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 	g := buildMoveStatementGraph(stmts)
 
-	// If there are any cycles in the graph then we'll not take any action
-	// at all. The separate validation step should detect this and return
-	// an error.
-	if len(g.Cycles()) != 0 {
+	// If the graph is not valid the we will not take any action at all. The
+	// separate validation step should detect this and return an error.
+	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
+		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
 		return ret
 	}
+
+	// The graph must be reduced in order for ReverseDepthFirstWalk to work
+	// correctly, since it is built from following edges and can skip over
+	// dependencies if there is a direct edge to a transitive dependency.
+	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := make(dag.Set, len(stmts))
