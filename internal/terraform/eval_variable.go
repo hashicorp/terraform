@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 )
 
-func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given cty.Value, valRange tfdiags.SourceRange, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
+func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	convertTy := cfg.ConstraintType
@@ -41,6 +41,29 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 		}
 	}
 
+	var sourceRange tfdiags.SourceRange
+	var nonFileSource string
+	if raw.HasSourceRange() {
+		sourceRange = raw.SourceRange
+	} else {
+		// If the value came from a place that isn't a file and thus doesn't
+		// have its own source range, we'll use the declaration range as
+		// our source range and generate some slightly different error
+		// messages.
+		sourceRange = tfdiags.SourceRangeFromHCL(cfg.DeclRange)
+		switch raw.SourceType {
+		case ValueFromCLIArg:
+			nonFileSource = fmt.Sprintf("set using -var=\"%s=...\"", addr.Variable.Name)
+		case ValueFromEnvVar:
+			nonFileSource = fmt.Sprintf("set using the TF_VAR_%s environment variable", addr.Variable.Name)
+		case ValueFromInput:
+			nonFileSource = "set using an interactive prompt"
+		default:
+			nonFileSource = "set from outside of the configuration"
+		}
+	}
+
+	given := raw.Value
 	if given == cty.NilVal { // The variable wasn't set at all (even to null)
 		log.Printf("[TRACE] prepareFinalInputVariableValue: %s has no defined value", addr)
 		if cfg.Required() {
@@ -54,7 +77,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 				Severity: hcl.DiagError,
 				Summary:  `Required variable not set`,
 				Detail:   fmt.Sprintf(`The variable %q is required, but is not set.`, addr.Variable.Name),
-				Subject:  valRange.ToHCL().Ptr(),
+				Subject:  cfg.DeclRange.Ptr(),
 			})
 			// We'll return a placeholder unknown value to avoid producing
 			// redundant downstream errors.
@@ -67,15 +90,27 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
 		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid value for module argument",
-			Detail: fmt.Sprintf(
-				"The given value is not suitable for child module variable %q defined at %s: %s.",
-				cfg.Name, cfg.DeclRange.String(), err,
-			),
-			Subject: valRange.ToHCL().Ptr(),
-		})
+		if nonFileSource != "" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for input variable",
+				Detail: fmt.Sprintf(
+					"Unsuitable value for %s %s: %s.",
+					addr, nonFileSource, err,
+				),
+				Subject: cfg.DeclRange.Ptr(),
+			})
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid value for input variable",
+				Detail: fmt.Sprintf(
+					"The given value is not suitable for %s declared at %s: %s.",
+					addr, cfg.DeclRange.String(), err,
+				),
+				Subject: sourceRange.ToHCL().Ptr(),
+			})
+		}
 		// We'll return a placeholder unknown value to avoid producing
 		// redundant downstream errors.
 		return cty.UnknownVal(cfg.Type), diags
@@ -97,12 +132,27 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, given c
 			val = defaultVal
 		} else {
 			log.Printf("[ERROR] prepareFinalInputVariableValue: %s is non-nullable but set to null, and is required", addr)
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Required variable not set`,
-				Detail:   fmt.Sprintf(`The variable %q is required, but the given value is null.`, addr.Variable.Name),
-				Subject:  valRange.ToHCL().Ptr(),
-			})
+			if nonFileSource != "" {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Required variable not set`,
+					Detail: fmt.Sprintf(
+						"Unsuitable value for %s %s: required variable may not be set to null.",
+						addr, nonFileSource,
+					),
+					Subject: cfg.DeclRange.Ptr(),
+				})
+			} else {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Required variable not set`,
+					Detail: fmt.Sprintf(
+						"The given value is not suitable for %s defined at %s: required variable may not be set to null.",
+						addr, cfg.DeclRange.String(),
+					),
+					Subject: sourceRange.ToHCL().Ptr(),
+				})
+			}
 			// Stub out our return value so that the semantic checker doesn't
 			// produce redundant downstream errors.
 			val = cty.UnknownVal(cfg.Type)

@@ -65,20 +65,23 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		return nil
 	}
 
-	var givenVal cty.Value
-	if n.RawValue != nil {
-		givenVal = n.RawValue.Value
-	} else {
+	givenVal := n.RawValue
+	if givenVal == nil {
 		// We'll use cty.NilVal to represent the variable not being set at
 		// all, which for historical reasons is unfortunately different than
-		// explicitly setting it to null in some cases.
-		givenVal = cty.NilVal
+		// explicitly setting it to null in some cases. In normal code we
+		// should never get here because all variables should have raw
+		// values, but we can get here in some historical tests that call
+		// in directly and don't necessarily obey the rules.
+		givenVal = &InputValue{
+			Value:      cty.NilVal,
+			SourceType: ValueFromUnknown,
+		}
 	}
 
 	finalVal, moreDiags := prepareFinalInputVariableValue(
 		addr,
 		givenVal,
-		tfdiags.SourceRangeFromHCL(n.Config.DeclRange),
 		n.Config,
 	)
 	diags = diags.Append(moreDiags)

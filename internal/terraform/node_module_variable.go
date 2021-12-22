@@ -227,7 +227,16 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 		errSourceRange = tfdiags.SourceRangeFromHCL(n.Config.DeclRange) // we use the declaration range as a fallback for an undefined variable
 	}
 
-	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, givenVal, errSourceRange, n.Config)
+	// We construct a synthetic InputValue here to pretend as if this were
+	// a root module variable set from outside, just as a convenience so we
+	// can reuse the InputValue type for this.
+	rawVal := &InputValue{
+		Value:       givenVal,
+		SourceType:  ValueFromConfig,
+		SourceRange: errSourceRange,
+	}
+
+	finalVal, moreDiags := prepareFinalInputVariableValue(n.Addr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
 
 	return finalVal, diags.ErrWithWarnings()
