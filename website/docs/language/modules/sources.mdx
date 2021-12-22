@@ -239,19 +239,43 @@ only SSH key authentication is supported, and
 By default, Terraform will clone and use the default branch (referenced by
 `HEAD`) in the selected repository. You can override this using the
 `ref` argument. The value of the `ref` argument can be any reference that would be accepted
-by the `git checkout` command, such as branch, SHA-1 hash (short or full), or tag names. The [Git documentation](https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection#_single_revisions) contains a complete list.
+by the `git checkout` command, such as branch, SHA-1 hash (short or full), or tag names.
+For a full list of the possible values, see
+[Git Tools - Revision Selection](https://git-scm.com/book/en/v2/Git-Tools-Revision-Selection#_single_revisions)
+in [the Git Book](https://git-scm.com/book/en/v2).
 
 ```hcl
-# referencing a specific release
+# select a specific tag
 module "vpc" {
   source = "git::https://example.com/vpc.git?ref=v1.2.0"
 }
 
-# referencing a specific commit SHA-1 hash
+# directly select a commit using its SHA-1 hash
 module "storage" {
   source = "git::https://example.com/storage.git?ref=51d462976d84fdea54b47d80dcabbf680badcdb8"
 }
 ```
+
+### Shallow Clone
+
+For larger repositories you may prefer to make only a shallow clone in order
+to reduce the time taken to retrieve the remote repository.
+
+The `depth` URL argument corresponds to
+[the `--depth` argument to `git clone`](https://git-scm.com/docs/git-clone#Documentation/git-clone.txt---depthltdepthgt),
+telling Git to create a shallow clone with the history truncated to only
+the specified number of commits.
+
+However, because shallow clone requires different Git protocol behavior,
+setting the `depth` argument makes Terraform pass your [`ref` argument](#selecting-a-revision),
+if any, to
+[the `--branch` argument to `git clone`](https://git-scm.com/docs/git-clone#Documentation/git-clone.txt---branchltnamegt)
+instead. That means it must specify a named branch or tag known to the remote
+repository, and that raw commit IDs are not acceptable.
+
+Because Terraform only uses the most recent selected commit to find the source
+code of your specified module, it is not typically useful to set `depth`
+to any value other than `1`.
 
 ### "scp-like" address syntax
 
@@ -421,10 +445,12 @@ module "consul" {
 }
 ```
 
-The module installer uses Google Cloud SDK to authenticate with GCS. To set credentials you can:
+The module installer uses Google Cloud SDK to authenticate with GCS. You can
+use any of the following methods to set Google Cloud Platform credentials:
 
-* Enter the path of your service account key file in the GOOGLE_APPLICATION_CREDENTIALS environment variable, or;
-* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances) for Instances for more details
+* Set the `GOOGLE_OAUTH_ACCESS_TOKEN` environment variable to a raw Google Cloud Platform OAuth access token.
+* Enter the path of your service account key file in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+* If you're running Terraform from a GCE instance, default credentials are automatically available. See [Creating and Enabling Service Accounts](https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances) for Instances for more details.
 * On your computer, you can make your Google identity available by running `gcloud auth application-default login`.
 
 ## Modules in Package Sub-directories
