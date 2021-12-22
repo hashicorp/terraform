@@ -4,6 +4,7 @@ BUG FIXES:
 
 * `terraform init`: Will now remove from [the dependency lock file](https://www.terraform.io/language/files/dependency-lock) entries for providers not used in the current configuration. Previously it would leave formerly-used providers behind in the lock file, leading to "missing or corrupted provider plugins" errors when other commands verified the consistency of the installed plugins against the locked plugins. [GH-30192]
 * config: Fix panic when encountering an invalid provider block within a module [GH-30095]
+* config: Fix cycle error when the index of a module containing move statements is changed [GH-30232]
 * core: Fix `moved` block refactoring to include nested modules [GH-30233]
 
 ## 1.1.2 (December 17, 2021)
