@@ -13,6 +13,16 @@ import (
 // TestProviderProtocols verifies that Terraform can execute provider plugins
 // with both supported protocol versions.
 func TestProviderProtocols(t *testing.T) {
+	if terraformBin != "" {
+		// We're running in a separate-build-then-run context, so we can't
+		// current include this test which depends on being able to build
+		// new executable at runtime.
+		// FIXME: We could potentially add a compromise mode where the test
+		// is allowed to assume that a Go toolchain is available, as long
+		// as it only tries to compile files that were included in the testdata
+		// (which is true for this test).
+		t.Skip("can't run without building a new provider executable")
+	}
 	t.Parallel()
 
 	tf := e2e.NewBinary(terraformBin, "testdata/provider-plugin")

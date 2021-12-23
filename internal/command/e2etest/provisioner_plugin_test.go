@@ -12,6 +12,17 @@ import (
 // TestProvisionerPlugin is a test that terraform can execute a 3rd party
 // provisioner plugin.
 func TestProvisionerPlugin(t *testing.T) {
+	if terraformBin != "" {
+		// We're running in a separate-build-then-run context, so we can't
+		// current include this test which depends on being able to build
+		// new executable at runtime.
+		// FIXME: We could potentially add a compromise mode where the test
+		// is allowed to assume that a Go toolchain is available, as long
+		// as it only tries to compile files that were included in the testdata
+		// (which is true for this test).
+		t.Skip("can't run without building a new provisioner executable")
+	}
+
 	t.Parallel()
 
 	// This test reaches out to releases.hashicorp.com to download the
