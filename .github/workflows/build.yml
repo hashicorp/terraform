@@ -1,0 +1,209 @@
+name: Build Terraform CLI Packages
+
+# If you want to test changes to this file before merging to a main branch,
+# push them up to a branch whose name has the prefix "build-workflow-dev/",
+# which is a special prefix that triggers this workflow even though it's not
+# actually a release branch.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'v[0-9]+.[0-9]+'
+      - build-workflow-dev/*
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+env:
+  PKG_NAME: "terraform"
+
+jobs:
+  get-product-version:
+    name: "Determine intended Terraform version"
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Need all commits and tags to find a reasonable version number
+      - name: Decide version number
+        id: get-product-version
+        run: |
+          git describe --first-parent
+          echo "::set-output name=product-version::$(git describe --first-parent)"
+
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+
+  generate-metadata-file:
+    name: "Generate release metadata"
+    needs: get-product-version
+    runs-on: ubuntu-latest
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate package metadata
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@main
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build:
+    needs: ["get-product-version", "get-go-version"]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - {goos: "freebsd", goarch: "386"}
+          - {goos: "freebsd", goarch: "amd64"}
+          - {goos: "freebsd", goarch: "arm"}
+          - {goos: "linux", goarch: "386"}
+          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm"}
+          - {goos: "linux", goarch: "arm64"}
+          - {goos: "openbsd", goarch: "386"}
+          - {goos: "openbsd", goarch: "amd64"}
+          - {goos: "solaris", goarch: "amd64"}
+          - {goos: "windows", goarch: "386"}
+          - {goos: "windows", goarch: "amd64"}
+      fail-fast: false
+
+    name: Build for ${{ matrix.goos }}_${{ matrix.goarch }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir dist out
+          go build -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+      - name: Linux distribution packages
+        if: ${{ matrix.goos == 'linux' }}
+        uses: hashicorp/package@v1
+        with:
+          name: "terraform"
+          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
+          arch: ${{ matrix.goarch }}
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          maintainer: "HashiCorp"
+          homepage: "https://terraform.io/"
+          license: "MPL-2.0"
+          binary: "dist/${{ env.PKG_NAME }}"
+          deb_depends: "git"
+          rpm_depends: "git"
+
+      - name: Gather Linux distribution package filenames
+        if: ${{ matrix.goos == 'linux' }}
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.goos == 'linux' }}
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+
+  build-darwin:
+    needs: ["get-product-version", "get-go-version"]
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - {goos: "darwin", goarch: "amd64"}
+          - {goos: "darwin", goarch: "arm64"}
+      fail-fast: false
+
+    name: Build for ${{ matrix.goos }}_${{ matrix.goarch }}
+
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build
+        run: |
+          mkdir dist out
+          go build -o dist/
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+  build-docker:
+    name: Build Docker image for linux_${{ matrix.arch }}
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: ["amd64"]
+      fail-fast: false
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker images
+        uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: default
+          arch: ${{matrix.arch}}
+          dockerfile: .github/workflows/build-Dockerfile
+          tags: |
+            docker.io/hashicorp/${{env.repo}}:${{env.version}}
+            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{env.repo}}:${{env.version}}
