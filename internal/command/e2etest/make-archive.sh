@@ -13,9 +13,12 @@
 # and then executed as follows:
 #    set TF_ACC=1
 #    ./e2etest.exe
-# Since the test archive includes both the test fixtures and the compiled
-# terraform executable along with this test program, the result is
-# self-contained and does not require a local Go compiler on the target system.
+#
+# Because separated e2etest harnesses are intended for testing against "real"
+# release executables, the generated archives don't include a copy of
+# the Terraform executable. Instead, the caller of the tests must retrieve
+# and extract a release package into the working directory before running
+# the e2etest executable, so that "e2etest" can find and execute it.
 
 set +euo pipefail
 
@@ -32,10 +35,6 @@ mkdir -p "$OUTDIR"
 
 # We need the test fixtures available when we run the tests.
 cp -r testdata "$OUTDIR/testdata"
-
-# Bundle a copy of our binary so the target system doesn't need the go
-# compiler installed.
-go build -o "$OUTDIR/terraform$GOEXE" github.com/hashicorp/terraform
 
 # Build the test program
 go test -o "$OUTDIR/e2etest$GOEXE" -c -ldflags "-X github.com/hashicorp/terraform/internal/command/e2etest.terraformBin=./terraform$GOEXE" github.com/hashicorp/terraform/internal/command/e2etest
