@@ -41,7 +41,7 @@ Modify the `SupportedPluginProtocols` variable in hashicorp/terraform's
 
 Use the provider test framework to test a provider written with the new
 protocol. This end-to-end test ensures that providers written with the new
-protocol work correctly wtih the test framework, especially in communicating
+protocol work correctly with the test framework, especially in communicating
 the protocol version between the test framework and Terraform.
 
 ## Test Retrieving and Running a Provider From the Registry
