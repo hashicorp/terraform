@@ -193,7 +193,7 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-replace google.golang.org/grpc v1.36.0 => google.golang.org/grpc v1.27.1
+replace google.golang.org/grpc v1.43.0 => google.golang.org/grpc v1.27.1
 
 replace github.com/golang/mock v1.5.0 => github.com/golang/mock v1.4.4
 
