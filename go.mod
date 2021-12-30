@@ -1,7 +1,7 @@
 module github.com/hashicorp/terraform
 
 require (
-	cloud.google.com/go/storage v1.10.0
+	cloud.google.com/go/storage v1.18.2
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.22
 	github.com/Netflix/go-expect v0.0.0-20211003183012-e1a7c020ce25
