@@ -5,6 +5,20 @@ name: Build Terraform CLI Packages
 # which is a special prefix that triggers this workflow even though it's not
 # actually a release branch.
 
+# NOTE: This workflow is currently used only to verify that all commits to a
+# release branch are buildable. It's set up to generate some artifacts that
+# might in principle be consumed by a downstream release process, but currently
+# they are not used in this way and official Terraform CLI releases are instead
+# built using a separate process maintained elsewhere. We intend to adopt this
+# new process fully later, once other HashiCorp-internal tooling is ready.
+#
+# Currently this process produces what should be working packages but packages
+# NOT suitable for distribution to end-users as official releases, because it
+# doesn't include a step to ensure that "terraform version" (and similar) will
+# report the intended version number. Consequently we can safely use these
+# results for testing purposes, but not yet for release purposes. See the
+# "build" job below for a FIXME comment related to version numbers.
+
 on:
   workflow_dispatch:
   push:
@@ -28,6 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -54,6 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
+
     steps:
       - uses: actions/checkout@v2
       - name: Determine Go version
@@ -91,7 +107,6 @@ jobs:
     needs:
       - get-product-version
       - get-go-version
-
     strategy:
       matrix:
         include:
@@ -142,51 +157,90 @@ jobs:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
-      - name: Linux distribution packages
-        if: ${{ matrix.goos == 'linux' }}
+  package-linux:
+    name: "Build Linux distro packages for ${{ matrix.arch }}"
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - build
+    strategy:
+      matrix:
+        include:
+          - {arch: "386"}
+          - {arch: "amd64"}
+          - {arch: "arm"}
+          - {arch: "arm64"}
+      fail-fast: false
+
+    env:
+      os: linux
+      arch: ${{matrix.arch}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@v2
+        id: clipkg
+        with:
+          name: terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        run: |
+          mkdir -p dist
+          (cd dist && unzip "../terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip")
+          mkdir -p out
+      - name: Build Linux distribution packages
         uses: hashicorp/package@v1
         with:
           name: "terraform"
           description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
-          arch: ${{ matrix.goarch }}
-          version: ${{ needs.get-product-version.outputs.product-version }}
+          arch: ${{ matrix.arch }}
+          version: ${{ env.version }}
           maintainer: "HashiCorp"
           homepage: "https://terraform.io/"
           license: "MPL-2.0"
-          binary: "dist/${{ env.PKG_NAME }}"
+          binary: "dist/terraform"
           deb_depends: "git"
           rpm_depends: "git"
-
       - name: Gather Linux distribution package filenames
-        if: ${{ matrix.goos == 'linux' }}
         run: |
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
-
-      # FIXME: Generate homebrew packages when targeting macOS.
-
-      - uses: actions/upload-artifact@v2
-        if: ${{ matrix.goos == 'linux' }}
+      - name: "Save .rpm package"
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
-
-      - uses: actions/upload-artifact@v2
-        if: ${{ matrix.goos == 'linux' }}
+      - name: "Save .deb package"
+        uses: actions/upload-artifact@v2
         with:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
 
-  build-docker:
+  # TODO: homebrew packages for macOS
+  #package-homebrew:
+  #  name: Build Homebrew package for darwin_${{ matrix.arch }}
+  #  runs-on: macos-latest
+  #  needs:
+  #    - get-product-version
+  #    - build
+  #  strategy:
+  #    matrix:
+  #      arch: ["amd64", "arm64"]
+  #    fail-fast: false
+  # ...
+
+  package-docker:
     name: Build Docker image for linux_${{ matrix.arch }}
+    runs-on: ubuntu-latest
     needs:
       - get-product-version
       - build
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         arch: ["amd64"]
       fail-fast: false
+
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
@@ -206,8 +260,8 @@ jobs:
 
   e2etest-build:
     name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
-    needs: ["get-go-version"]
     runs-on: ubuntu-latest
+    needs: ["get-go-version"]
     strategy:
       matrix:
         # We build test harnesses only for the v1.0 Compatibility Promises
@@ -258,7 +312,6 @@ jobs:
       - get-product-version
       - build
       - e2etest-build
-
     strategy:
       matrix:
         include:
@@ -306,7 +359,6 @@ jobs:
       - get-product-version
       - build
       - e2etest-build
-
     strategy:
       matrix:
         include:
@@ -353,7 +405,6 @@ jobs:
       - get-product-version
       - build
       - e2etest-build
-
     strategy:
       matrix:
         include:
