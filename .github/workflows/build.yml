@@ -18,6 +18,10 @@ on:
 env:
   PKG_NAME: "terraform"
 
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   get-product-version:
     name: "Determine intended Terraform version"
