@@ -410,3 +410,26 @@ jobs:
         shell: cmd
         run: |
           e2etest.exe -test.v
+
+  docs-source-package:
+    name: "Build documentation bundle"
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      # FIXME: We should include some sort of pre-validation step here, to
+      # confirm that the doc content is mechanically valid so that the
+      # publishing pipeline will be able to render all content without errors.
+      - name: "Create documentation source bundle"
+        run: |
+          (cd website && zip -9 -r ../terraform-cli-docs-source_${{ env.version }}.zip .)
+      - uses: actions/upload-artifact@v2
+        with:
+          name: terraform-cli-docs-source_${{ env.version }}.zip
+          path: terraform-cli-docs-source_${{ env.version }}.zip
+          if-no-files-found: error
