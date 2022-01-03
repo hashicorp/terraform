@@ -50,6 +50,7 @@ type moduleCall struct {
 	Module            module                 `json:"module,omitempty"`
 	VersionConstraint string                 `json:"version_constraint,omitempty"`
 	DependsOn         []string               `json:"depends_on,omitempty"`
+	Providers         map[string]string      `json:"providers,omitempty"`
 }
 
 // variables is the JSON representation of the variables provided to the current
@@ -334,6 +335,13 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 			}
 		}
 		ret.DependsOn = dependencies
+	}
+
+	if len(mc.Providers) > 0 {
+		ret.Providers = make(map[string]string, len(mc.Providers))
+		for _, ppc := range mc.Providers {
+			ret.Providers[ppc.InChild.String()] = ppc.InParent.String()
+		}
 	}
 
 	return ret
