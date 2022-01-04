@@ -23,14 +23,16 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name: "path",
-				Type: cty.String,
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
 			},
 		},
 		Type: function.StaticReturnType(cty.String),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			path := args[0].AsString()
-			src, err := readFileBytes(baseDir, path)
+			pathArg, pathMarks := args[0].Unmark()
+			path := pathArg.AsString()
+			src, err := readFileBytes(baseDir, path, pathMarks)
 			if err != nil {
 				err = function.NewArgError(0, err)
 				return cty.UnknownVal(cty.String), err
@@ -39,12 +41,12 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 			switch {
 			case encBase64:
 				enc := base64.StdEncoding.EncodeToString(src)
-				return cty.StringVal(enc), nil
+				return cty.StringVal(enc).WithMarks(pathMarks), nil
 			default:
 				if !utf8.Valid(src) {
-					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead", path)
+					return cty.UnknownVal(cty.String), fmt.Errorf("contents of %s are not valid UTF-8; use the filebase64 function to obtain the Base64 encoded contents or the other file functions (e.g. filemd5, filesha256) to obtain file hashing results instead", redactIfSensitive(path, pathMarks))
 				}
-				return cty.StringVal(string(src)), nil
+				return cty.StringVal(string(src)).WithMarks(pathMarks), nil
 			}
 		},
 	})
@@ -67,8 +69,9 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 
 	params := []function.Parameter{
 		{
-			Name: "path",
-			Type: cty.String,
+			Name:        "path",
+			Type:        cty.String,
+			AllowMarked: true,
 		},
 		{
 			Name: "vars",
@@ -76,10 +79,10 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 		},
 	}
 
-	loadTmpl := func(fn string) (hcl.Expression, error) {
+	loadTmpl := func(fn string, marks cty.ValueMarks) (hcl.Expression, error) {
 		// We re-use File here to ensure the same filename interpretation
 		// as it does, along with its other safety checks.
-		tmplVal, err := File(baseDir, cty.StringVal(fn))
+		tmplVal, err := File(baseDir, cty.StringVal(fn).WithMarks(marks))
 		if err != nil {
 			return nil, err
 		}
@@ -159,7 +162,9 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 			// We'll render our template now to see what result type it produces.
 			// A template consisting only of a single interpolation an potentially
 			// return any type.
-			expr, err := loadTmpl(args[0].AsString())
+
+			pathArg, pathMarks := args[0].Unmark()
+			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicPseudoType, err
 			}
@@ -170,11 +175,13 @@ func MakeTemplateFileFunc(baseDir string, funcsCb func() map[string]function.Fun
 			return val.Type(), err
 		},
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			expr, err := loadTmpl(args[0].AsString())
+			pathArg, pathMarks := args[0].Unmark()
+			expr, err := loadTmpl(pathArg.AsString(), pathMarks)
 			if err != nil {
 				return cty.DynamicVal, err
 			}
-			return renderTmpl(expr, args[1])
+			result, err := renderTmpl(expr, args[1])
+			return result.WithMarks(pathMarks), err
 		},
 	})
 
@@ -186,16 +193,18 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name: "path",
-				Type: cty.String,
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
 			},
 		},
 		Type: function.StaticReturnType(cty.Bool),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			path := args[0].AsString()
+			pathArg, pathMarks := args[0].Unmark()
+			path := pathArg.AsString()
 			path, err := homedir.Expand(path)
 			if err != nil {
-				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to expand ~: %s", err)
+				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to expand ~: %w", err)
 			}
 
 			if !filepath.IsAbs(path) {
@@ -208,17 +217,17 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 			fi, err := os.Stat(path)
 			if err != nil {
 				if os.IsNotExist(err) {
-					return cty.False, nil
+					return cty.False.WithMarks(pathMarks), nil
 				}
-				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to stat %s", path)
+				return cty.UnknownVal(cty.Bool), fmt.Errorf("failed to stat %s", redactIfSensitive(path, pathMarks))
 			}
 
 			if fi.Mode().IsRegular() {
-				return cty.True, nil
+				return cty.True.WithMarks(pathMarks), nil
 			}
 
 			return cty.False, fmt.Errorf("%s is not a regular file, but %q",
-				path, fi.Mode().String())
+				redactIfSensitive(path, pathMarks), fi.Mode().String())
 		},
 	})
 }
@@ -229,18 +238,24 @@ func MakeFileSetFunc(baseDir string) function.Function {
 	return function.New(&function.Spec{
 		Params: []function.Parameter{
 			{
-				Name: "path",
-				Type: cty.String,
+				Name:        "path",
+				Type:        cty.String,
+				AllowMarked: true,
 			},
 			{
-				Name: "pattern",
-				Type: cty.String,
+				Name:        "pattern",
+				Type:        cty.String,
+				AllowMarked: true,
 			},
 		},
 		Type: function.StaticReturnType(cty.Set(cty.String)),
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-			path := args[0].AsString()
-			pattern := args[1].AsString()
+			pathArg, pathMarks := args[0].Unmark()
+			path := pathArg.AsString()
+			patternArg, patternMarks := args[1].Unmark()
+			pattern := patternArg.AsString()
+
+			marks := []cty.ValueMarks{pathMarks, patternMarks}
 
 			if !filepath.IsAbs(path) {
 				path = filepath.Join(baseDir, path)
@@ -253,7 +268,7 @@ func MakeFileSetFunc(baseDir string) function.Function {
 
 			matches, err := doublestar.Glob(pattern)
 			if err != nil {
-				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern (%s): %s", pattern, err)
+				return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to glob pattern %s: %w", redactIfSensitive(pattern, marks...), err)
 			}
 
 			var matchVals []cty.Value
@@ -261,7 +276,7 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				fi, err := os.Stat(match)
 
 				if err != nil {
-					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat (%s): %s", match, err)
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to stat %s: %w", redactIfSensitive(match, marks...), err)
 				}
 
 				if !fi.Mode().IsRegular() {
@@ -272,7 +287,7 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				match, err = filepath.Rel(path, match)
 
 				if err != nil {
-					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to trim path of match (%s): %s", match, err)
+					return cty.UnknownVal(cty.Set(cty.String)), fmt.Errorf("failed to trim path of match %s: %w", redactIfSensitive(match, marks...), err)
 				}
 
 				// Replace any remaining file separators with forward slash (/)
@@ -283,10 +298,10 @@ func MakeFileSetFunc(baseDir string) function.Function {
 			}
 
 			if len(matchVals) == 0 {
-				return cty.SetValEmpty(cty.String), nil
+				return cty.SetValEmpty(cty.String).WithMarks(marks...), nil
 			}
 
-			return cty.SetVal(matchVals), nil
+			return cty.SetVal(matchVals).WithMarks(marks...), nil
 		},
 	})
 }
@@ -355,7 +370,7 @@ var PathExpandFunc = function.New(&function.Spec{
 func openFile(baseDir, path string) (*os.File, error) {
 	path, err := homedir.Expand(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to expand ~: %s", err)
+		return nil, fmt.Errorf("failed to expand ~: %w", err)
 	}
 
 	if !filepath.IsAbs(path) {
@@ -368,12 +383,12 @@ func openFile(baseDir, path string) (*os.File, error) {
 	return os.Open(path)
 }
 
-func readFileBytes(baseDir, path string) ([]byte, error) {
+func readFileBytes(baseDir, path string, marks cty.ValueMarks) ([]byte, error) {
 	f, err := openFile(baseDir, path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// An extra Terraform-specific hint for this situation
-			return nil, fmt.Errorf("no file exists at %s; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource", path)
+			return nil, fmt.Errorf("no file exists at %s; this function works only with files that are distributed as part of the configuration source code, so if this file will be created by a resource in this configuration you must instead obtain this result from an attribute of that resource", redactIfSensitive(path, marks))
 		}
 		return nil, err
 	}
@@ -381,7 +396,7 @@ func readFileBytes(baseDir, path string) ([]byte, error) {
 
 	src, err := ioutil.ReadAll(f)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %s", path)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	return src, nil

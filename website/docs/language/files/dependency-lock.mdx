@@ -363,3 +363,55 @@ both `zh:` and `h1:` checksums for each of them in the lock file, thus avoiding
 the case where Terraform will learn about a `h1:` equivalent only at a later
 time. See the `terraform providers lock` documentation for more information on
 this command.
+
+### Providers that are no longer required
+
+If you remove the last dependency on a particular provider from your
+configuration, then `terraform init` will remove any existing lock file entry
+for that provider.
+
+```diff
+--- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
++++ .terraform.lock.hcl	2020-10-07 16:12:15.267487237 -0700
+@@ -6,26 +6,6 @@
+   ]
+ }
+
+-provider "registry.terraform.io/hashicorp/azurerm" {
+-  version     = "2.30.0"
+-  constraints = "~> 2.12"
+-  hashes = [
+-    "h1:FJwsuowaG5CIdZ0WQyFZH9r6kIJeRKts9+GcRsTz1+Y=",
+-    "h1:c/ntSXrDYM1mUir2KufijYebPcwKqS9CRGd3duDSGfY=",
+-    "h1:yre4Ph76g9H84MbuhZ2z5MuldjSA4FsrX6538O7PCcY=",
+-    "zh:04f0a50bb2ba92f3bea6f0a9e549ace5a4c13ef0cbb6975494cac0ef7d4acb43",
+-    "zh:2082e12548ebcdd6fd73580e83f626ed4ed13f8cdfd51205d8696ffe54f30734",
+-    "zh:246bcc449e9a92679fb30f3c0a77f05513886565e2dcc66b16c4486f51533064",
+-    "zh:24de3930625ac9014594d79bfa42d600eca65e9022b9668b54bfd0d924e21d14",
+-    "zh:2a22893a576ff6f268d9bf81cf4a56406f7ba79f77826f6df51ee787f6d2840a",
+-    "zh:2b27485e19c2aaa9f15f29c4cff46154a9720647610171e30fc6c18ddc42ec28",
+-    "zh:435f24ce1fb2b63f7f02aa3c84ac29c5757cd29ec4d297ed0618423387fe7bd4",
+-    "zh:7d99725923de5240ff8b34b5510569aa4ebdc0bdb27b7bac2aa911a8037a3893",
+-    "zh:7e3b5d0af3b7411dd9dc65ec9ab6caee8c191aee0fa7f20fc4f51716e67f50c0",
+-    "zh:da0af4552bef5a29b88f6a0718253f3bf71ce471c959816eb7602b0dadb469ca",
+-  ]
+-}
+-
+ provider "registry.terraform.io/newrelic/newrelic" {
+   version     = "2.1.2"
+   constraints = "~> 2.1.1"
+```
+
+If you add a new requirement for the same provider at a later date and run
+`terraform init` again, Terraform will treat it as if it were
+[an entirely new provider](#dependency-on-a-new-provider)
+and so will not necessarily select the same version that was previously
+selected and will not be able to verify that the checksums remained unchanged.
+
+-> **Note:** In Terraform v1.0 and earlier, `terraform init` does not
+automatically remove now-unneeded providers from the lock file, and instead
+just ignores them. If you removed a provider dependency while using an
+earlier version of Terraform and then upgraded to Terraform v1.1 or later
+then you may see the error "missing or corrupted provider plugins", referring to
+the stale lock file entries. If so, run `terraform init` with the new Terraform
+version to tidy those unneeded entries and then retry the previous operation.

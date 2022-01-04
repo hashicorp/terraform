@@ -10,7 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/internal/e2e"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -64,6 +66,96 @@ func setup() func() {
 
 	return func() {
 		teardown()
+	}
+}
+func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...string) {
+	for name, tc := range cases {
+		tc := tc // rebind tc into this lexical scope
+		t.Run(name, func(subtest *testing.T) {
+			subtest.Parallel()
+
+			orgNames := []string{}
+			for i := 0; i < orgCount; i++ {
+				organization, cleanup := createOrganization(t)
+				t.Cleanup(cleanup)
+				orgNames = append(orgNames, organization.Name)
+			}
+
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				subtest.Fatal(err)
+			}
+			defer exp.Close()
+
+			tmpDir, err := ioutil.TempDir("", "terraform-test")
+			if err != nil {
+				subtest.Fatal(err)
+			}
+			defer os.RemoveAll(tmpDir)
+
+			tf := e2e.NewBinary(terraformBin, tmpDir)
+			tfEnvFlags = append(tfEnvFlags, "TF_LOG=INFO")
+			tfEnvFlags = append(tfEnvFlags, cliConfigFileEnv)
+			for _, env := range tfEnvFlags {
+				tf.AddEnv(env)
+			}
+			defer tf.Close()
+
+			var orgName string
+			for index, op := range tc.operations {
+				if orgCount == 1 {
+					orgName = orgNames[0]
+				} else {
+					orgName = orgNames[index]
+				}
+				op.prep(t, orgName, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
+
+					err = cmd.Start()
+					if err != nil {
+						subtest.Fatal(err)
+					}
+
+					if tfCmd.expectedCmdOutput != "" {
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									subtest.Fatal(err)
+								}
+							}
+						}
+					}
+
+					err = cmd.Wait()
+					if err != nil && !tfCmd.expectError {
+						subtest.Fatal(err)
+					}
+				}
+			}
+
+			if tc.validations != nil {
+				tc.validations(t, orgName)
+			}
+		})
 	}
 }
 

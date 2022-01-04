@@ -98,6 +98,23 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 	return new
 }
 
+// RemoveProvider removes any existing lock file entry for the given provider.
+//
+// If the given provider did not already have a lock entry, RemoveProvider is
+// a no-op.
+//
+// Only lockable providers can be passed to this method. If you pass a
+// non-lockable provider address then this function will panic. Use
+// function ProviderIsLockable to determine whether a particular provider
+// should participate in the version locking mechanism.
+func (l *Locks) RemoveProvider(addr addrs.Provider) {
+	if !ProviderIsLockable(addr) {
+		panic(fmt.Sprintf("Locks.RemoveProvider with non-lockable provider %s", addr))
+	}
+
+	delete(l.providers, addr)
+}
+
 // SetProviderOverridden records that this particular Terraform process will
 // not pay attention to the recorded lock entry for the given provider, and
 // will instead access that provider's functionality in some other special

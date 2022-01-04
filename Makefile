@@ -27,25 +27,18 @@ exhaustive:
 	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
 
 website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
+	@echo "==> Downloading latest Docker image..."
+	@docker pull hashicorp/terraform-website:full
 	@echo "==> Starting core website in Docker..."
 	@docker run \
 		--interactive \
 		--rm \
 		--tty \
-		--publish "4567:4567" \
-		--publish "35729:35729" \
-		--volume "$(shell pwd)/website:/website" \
-		--volume "$(shell pwd):/ext/terraform" \
-		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
-		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
-		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
-		--workdir /terraform-website \
-		hashicorp/middleman-hashicorp:${VERSION}
+		--workdir "/website" \
+		--volume "$(shell pwd):/website/ext/terraform" \
+		--publish "3000:3000" \
+		hashicorp/terraform-website:full \
+		npm start
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
