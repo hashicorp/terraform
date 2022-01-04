@@ -19,31 +19,31 @@ type taskResultSummary struct {
 type taskStageReadFunc func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error)
 
 func summarizeTaskResults(taskResults []*tfe.TaskResult) *taskResultSummary {
-	var pe, er, erm, pa int
+	var pendingCount, errCount, errMandatoryCount, passedCount int
 	for _, task := range taskResults {
 		if task.Status == "unreachable" {
 			return &taskResultSummary{
 				unreachable: true,
 			}
-		} else if task.Status == "running" || task.Status == "pending" {
-			pe++
+		} else if task.Status == "running" || task.Status == "pendingCountnding" {
+			pendingCount++
 		} else if task.Status == "passed" {
-			pa++
+			passedCount++
 		} else {
 			// Everything else is a failure
-			er++
+			errCount++
 			if task.WorkspaceTaskEnforcementLevel == "mandatory" {
-				erm++
+				errMandatoryCount++
 			}
 		}
 	}
 
 	return &taskResultSummary{
 		unreachable:     false,
-		pending:         pe,
-		failed:          er,
-		failedMandatory: erm,
-		passed:          pa,
+		pending:         pendingCount,
+		failed:          errCount,
+		failedMandatory: errMandatoryCount,
+		passed:          passedCount,
 	}
 }
 
