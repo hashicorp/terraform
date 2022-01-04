@@ -6,6 +6,7 @@ BUG FIXES:
 * config: Fix panic when encountering an invalid provider block within a module [GH-30095]
 * config: Fix cycle error when the index of a module containing move statements is changed [GH-30232]
 * core: Fix `moved` block refactoring to include nested modules [GH-30233]
+* functions: Redact sensitive values from function call error messages [GH-30067]
 
 ## 1.1.2 (December 17, 2021)
 
