@@ -18,22 +18,24 @@ import (
 var Base64DecodeFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
-			Name: "str",
-			Type: cty.String,
+			Name:        "str",
+			Type:        cty.String,
+			AllowMarked: true,
 		},
 	},
 	Type: function.StaticReturnType(cty.String),
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		s := args[0].AsString()
+		str, strMarks := args[0].Unmark()
+		s := str.AsString()
 		sDec, err := base64.StdEncoding.DecodeString(s)
 		if err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode base64 data '%s'", s)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decode base64 data %s", redactIfSensitive(s, strMarks))
 		}
 		if !utf8.Valid([]byte(sDec)) {
-			log.Printf("[DEBUG] the result of decoding the provided string is not valid UTF-8: %s", sDec)
+			log.Printf("[DEBUG] the result of decoding the provided string is not valid UTF-8: %s", redactIfSensitive(sDec, strMarks))
 			return cty.UnknownVal(cty.String), fmt.Errorf("the result of decoding the provided string is not valid UTF-8")
 		}
-		return cty.StringVal(string(sDec)), nil
+		return cty.StringVal(string(sDec)).WithMarks(strMarks), nil
 	},
 })
 
@@ -125,7 +127,7 @@ var TextDecodeBase64Func = function.New(&function.Spec{
 			case base64.CorruptInputError:
 				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "the given value is has an invalid base64 symbol at offset %d", int(err))
 			default:
-				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "invalid source string: %T", err)
+				return cty.UnknownVal(cty.String), function.NewArgErrorf(0, "invalid source string: %w", err)
 			}
 
 		}
@@ -156,13 +158,13 @@ var Base64GzipFunc = function.New(&function.Spec{
 		var b bytes.Buffer
 		gz := gzip.NewWriter(&b)
 		if _, err := gz.Write([]byte(s)); err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to write gzip raw data: '%s'", s)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to write gzip raw data: %w", err)
 		}
 		if err := gz.Flush(); err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to flush gzip writer: '%s'", s)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to flush gzip writer: %w", err)
 		}
 		if err := gz.Close(); err != nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("failed to close gzip writer: '%s'", s)
+			return cty.UnknownVal(cty.String), fmt.Errorf("failed to close gzip writer: %w", err)
 		}
 		return cty.StringVal(base64.StdEncoding.EncodeToString(b.Bytes())), nil
 	},

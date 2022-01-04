@@ -311,8 +311,8 @@ var LookupFunc = function.New(&function.Spec{
 			return defaultVal.WithMarks(markses...), nil
 		}
 
-		return cty.UnknownVal(cty.DynamicPseudoType).WithMarks(markses...), fmt.Errorf(
-			"lookup failed to find '%s'", lookupKey)
+		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
+			"lookup failed to find key %s", redactIfSensitive(lookupKey, keyMarks))
 	},
 })
 
