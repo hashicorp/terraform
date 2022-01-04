@@ -41,8 +41,12 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/go-retryablehttp v0.7.0
+<<<<<<< HEAD
 	github.com/hashicorp/go-tfe v0.21.0
 	github.com/hashicorp/go-safetemp v1.0.0
+=======
+	github.com/hashicorp/go-tfe v0.20.1-0.20211215223223-3057a43c4f5c
+>>>>>>> fd151e0fc (run go mod tidy)
 	github.com/hashicorp/go-uuid v1.0.2
 	github.com/hashicorp/go-version v1.3.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
