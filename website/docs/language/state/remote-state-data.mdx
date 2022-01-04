@@ -13,13 +13,9 @@ The `terraform_remote_state` data source retrieves the root module output values
 from some other Terraform configuration, using the latest state snapshot from
 the remote backend.
 
-This data source is built into Terraform, and is always available; you do not
-need to require or configure a provider in order to use it.
+This data source implemented by a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources. Because of this, the `terraform_remote_state` data source is always available; you do not need to require or configure a provider to use it.
 
--> **Note:** This data source is implemented by a built-in provider, whose
-[source address](/language/providers/requirements#source-addresses)
-is `terraform.io/builtin/terraform`. That provider does not include any other
-resources or data sources.
+-> **Warning:** To access remote state outputs in Terraform Cloud or Terraform Enterprise, we recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs). The `tfe_outputs` method is more secure because it does not require full access to state of a workspace to fetch the outputs. If you are using the [Terraform Cloud CLI integration](/docs/cli/cloud), you **must** use `tfe_outputs` because the integration is incompatible with `terraform_remote_state`.
 
 ## Alternative Ways to Share Data Between Configurations
 
@@ -93,12 +89,6 @@ containing the necessary data source configuration and any necessary
 post-processing such as JSON decoding. You can then change that module later
 if you switch to a different strategy for sharing data between multiple
 Terraform configurations.
-
-## Usage with Terraform Cloud/Enterprise
-
-When trying to access remote state outputs in Terraform Cloud/Enterprise, it is recommended to use the `tfe_outputs` data source in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) instead of relying the `terraform_remote_state` data source.
-
-See the [full documentation](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) for the `tfe_outputs` data source for more details.
 
 ## Example Usage (`remote` Backend)
 
