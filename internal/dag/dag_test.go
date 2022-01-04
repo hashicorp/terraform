@@ -99,6 +99,38 @@ func TestAyclicGraphTransReduction_more(t *testing.T) {
 	}
 }
 
+func TestAyclicGraphTransReduction_multipleRoots(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(3, 4))
+
+	g.Add(5)
+	g.Add(6)
+	g.Add(7)
+	g.Add(8)
+	g.Connect(BasicEdge(5, 6))
+	g.Connect(BasicEdge(5, 7))
+	g.Connect(BasicEdge(5, 8))
+	g.Connect(BasicEdge(6, 7))
+	g.Connect(BasicEdge(6, 8))
+	g.Connect(BasicEdge(7, 8))
+	g.TransitiveReduction()
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphTransReductionMultipleRootsStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 // use this to simulate slow sort operations
 type counter struct {
 	Name  string
@@ -428,4 +460,21 @@ const testGraphTransReductionMoreStr = `
 3
   4
 4
+`
+
+const testGraphTransReductionMultipleRootsStr = `
+1
+  2
+2
+  3
+3
+  4
+4
+5
+  6
+6
+  7
+7
+  8
+8
 `
