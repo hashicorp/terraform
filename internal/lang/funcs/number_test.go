@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -187,139 +188,175 @@ func TestParseInt(t *testing.T) {
 		Num  cty.Value
 		Base cty.Value
 		Want cty.Value
-		Err  bool
+		Err  string
 	}{
 		{
 			cty.StringVal("128"),
 			cty.NumberIntVal(10),
 			cty.NumberIntVal(128),
-			false,
+			``,
+		},
+		{
+			cty.StringVal("128").Mark(marks.Sensitive),
+			cty.NumberIntVal(10),
+			cty.NumberIntVal(128).Mark(marks.Sensitive),
+			``,
+		},
+		{
+			cty.StringVal("128"),
+			cty.NumberIntVal(10).Mark(marks.Sensitive),
+			cty.NumberIntVal(128).Mark(marks.Sensitive),
+			``,
+		},
+		{
+			cty.StringVal("128").Mark(marks.Sensitive),
+			cty.NumberIntVal(10).Mark(marks.Sensitive),
+			cty.NumberIntVal(128).Mark(marks.Sensitive),
+			``,
+		},
+		{
+			cty.StringVal("128").Mark(marks.Raw),
+			cty.NumberIntVal(10).Mark(marks.Sensitive),
+			cty.NumberIntVal(128).WithMarks(cty.NewValueMarks(marks.Raw, marks.Sensitive)),
+			``,
 		},
 		{
 			cty.StringVal("-128"),
 			cty.NumberIntVal(10),
 			cty.NumberIntVal(-128),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("00128"),
 			cty.NumberIntVal(10),
 			cty.NumberIntVal(128),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("-00128"),
 			cty.NumberIntVal(10),
 			cty.NumberIntVal(-128),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("FF00"),
 			cty.NumberIntVal(16),
 			cty.NumberIntVal(65280),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("ff00"),
 			cty.NumberIntVal(16),
 			cty.NumberIntVal(65280),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("-FF00"),
 			cty.NumberIntVal(16),
 			cty.NumberIntVal(-65280),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("00FF00"),
 			cty.NumberIntVal(16),
 			cty.NumberIntVal(65280),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("-00FF00"),
 			cty.NumberIntVal(16),
 			cty.NumberIntVal(-65280),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("1011111011101111"),
 			cty.NumberIntVal(2),
 			cty.NumberIntVal(48879),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("aA"),
 			cty.NumberIntVal(62),
 			cty.NumberIntVal(656),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("Aa"),
 			cty.NumberIntVal(62),
 			cty.NumberIntVal(2242),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("999999999999999999999999999999999999999999999999999999999999"),
 			cty.NumberIntVal(10),
 			cty.MustParseNumberVal("999999999999999999999999999999999999999999999999999999999999"),
-			false,
+			``,
 		},
 		{
 			cty.StringVal("FF"),
 			cty.NumberIntVal(10),
 			cty.UnknownVal(cty.Number),
-			true,
+			`cannot parse "FF" as a base 10 integer`,
+		},
+		{
+			cty.StringVal("FF").Mark(marks.Sensitive),
+			cty.NumberIntVal(10),
+			cty.UnknownVal(cty.Number),
+			`cannot parse (sensitive value) as a base 10 integer`,
+		},
+		{
+			cty.StringVal("FF").Mark(marks.Sensitive),
+			cty.NumberIntVal(10).Mark(marks.Sensitive),
+			cty.UnknownVal(cty.Number),
+			`cannot parse (sensitive value) as a base (sensitive value) integer`,
 		},
 		{
 			cty.StringVal("00FF"),
 			cty.NumberIntVal(10),
 			cty.UnknownVal(cty.Number),
-			true,
+			`cannot parse "00FF" as a base 10 integer`,
 		},
 		{
 			cty.StringVal("-00FF"),
 			cty.NumberIntVal(10),
 			cty.UnknownVal(cty.Number),
-			true,
+			`cannot parse "-00FF" as a base 10 integer`,
 		},
 		{
 			cty.NumberIntVal(2),
 			cty.NumberIntVal(10),
 			cty.UnknownVal(cty.Number),
-			true,
+			`first argument must be a string, not number`,
 		},
 		{
 			cty.StringVal("1"),
 			cty.NumberIntVal(63),
 			cty.UnknownVal(cty.Number),
-			true,
+			`base must be a whole number between 2 and 62 inclusive`,
 		},
 		{
 			cty.StringVal("1"),
 			cty.NumberIntVal(-1),
 			cty.UnknownVal(cty.Number),
-			true,
+			`base must be a whole number between 2 and 62 inclusive`,
 		},
 		{
 			cty.StringVal("1"),
 			cty.NumberIntVal(1),
 			cty.UnknownVal(cty.Number),
-			true,
+			`base must be a whole number between 2 and 62 inclusive`,
 		},
 		{
 			cty.StringVal("1"),
 			cty.NumberIntVal(0),
 			cty.UnknownVal(cty.Number),
-			true,
+			`base must be a whole number between 2 and 62 inclusive`,
 		},
 		{
 			cty.StringVal("1.2"),
 			cty.NumberIntVal(10),
 			cty.UnknownVal(cty.Number),
-			true,
+			`cannot parse "1.2" as a base 10 integer`,
 		},
 	}
 
@@ -327,9 +364,12 @@ func TestParseInt(t *testing.T) {
 		t.Run(fmt.Sprintf("parseint(%#v, %#v)", test.Num, test.Base), func(t *testing.T) {
 			got, err := ParseInt(test.Num, test.Base)
 
-			if test.Err {
+			if test.Err != "" {
 				if err == nil {
 					t.Fatal("succeeded; want error")
+				}
+				if got, want := err.Error(), test.Err; got != want {
+					t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 				}
 				return
 			} else if err != nil {
