@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -30,6 +31,10 @@ import (
 // plan to the user.
 func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts instances.Set) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+
+	if len(stmts) == 0 {
+		return diags
+	}
 
 	g := buildMoveStatementGraph(stmts)
 
@@ -200,30 +205,54 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 	// validation rules above where we can make better suggestions, and so
 	// we'll use a cycle report only as a last resort.
 	if !diags.HasErrors() {
-		for _, cycle := range g.Cycles() {
-			// Reporting cycles is awkward because there isn't any definitive
-			// way to decide which of the objects in the cycle is the cause of
-			// the problem. Therefore we'll just list them all out and leave
-			// the user to figure it out. :(
-			stmtStrs := make([]string, 0, len(cycle))
-			for _, stmtI := range cycle {
-				// move statement graph nodes are pointers to move statements
-				stmt := stmtI.(*MoveStatement)
-				stmtStrs = append(stmtStrs, fmt.Sprintf(
-					"\n  - %s: %s → %s",
-					stmt.DeclRange.StartString(),
-					stmt.From.String(),
-					stmt.To.String(),
-				))
-			}
-			sort.Strings(stmtStrs) // just to make the order deterministic
+		diags = diags.Append(validateMoveStatementGraph(g))
+	}
 
+	return diags
+}
+
+func validateMoveStatementGraph(g *dag.AcyclicGraph) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, cycle := range g.Cycles() {
+		// Reporting cycles is awkward because there isn't any definitive
+		// way to decide which of the objects in the cycle is the cause of
+		// the problem. Therefore we'll just list them all out and leave
+		// the user to figure it out. :(
+		stmtStrs := make([]string, 0, len(cycle))
+		for _, stmtI := range cycle {
+			// move statement graph nodes are pointers to move statements
+			stmt := stmtI.(*MoveStatement)
+			stmtStrs = append(stmtStrs, fmt.Sprintf(
+				"\n  - %s: %s → %s",
+				stmt.DeclRange.StartString(),
+				stmt.From.String(),
+				stmt.To.String(),
+			))
+		}
+		sort.Strings(stmtStrs) // just to make the order deterministic
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cyclic dependency in move statements",
+			fmt.Sprintf(
+				"The following chained move statements form a cycle, and so there is no final location to move objects to:%s\n\nA chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.",
+				strings.Join(stmtStrs, ""),
+			),
+		))
+	}
+
+	// Look for cycles to self.
+	// A user shouldn't be able to create self-references, but we cannot
+	// correctly process a graph with them.
+	for _, e := range g.Edges() {
+		src := e.Source()
+		if src == e.Target() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Cyclic dependency in move statements",
+				"Self reference in move statements",
 				fmt.Sprintf(
-					"The following chained move statements form a cycle, and so there is no final location to move objects to:%s\n\nA chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.",
-					strings.Join(stmtStrs, ""),
+					"The move statement %s refers to itself the move dependency graph, which is invalid. This is a bug in Terraform; please report it!",
+					src.(*MoveStatement).Name(),
 				),
 			))
 		}
