@@ -11,19 +11,10 @@ Most provisioners require access to the remote resource via SSH or WinRM, and
 expect a nested `connection` block with details about how to connect.
 
 -> **Note:** Provisioners should only be used as a last resort. For most
-common situations there are better alternatives. For more information, see
-[the main Provisioners page](/language/resources/provisioners).
+common situations there are better alternatives. Refer to
+[Declaring Provisioners](/language/resources/provisioners/syntax) for more details.
 
--> **Note:** In Terraform 0.11 and earlier, providers could set default values
-for some connection settings, so that `connection` blocks could sometimes be
-omitted. This feature was removed in 0.12 in order to make Terraform's behavior
-more predictable.
-
--> **Note:** Since the SSH connection type is most often used with
-newly-created remote resources, validation of SSH host keys is disabled by
-default. In scenarios where this is not acceptable, a separate mechanism for
-key distribution could be established and the `host_key` directive documented
-below explicitly set to verify against a specific key or signing CA.
+## Connection Block
 
 Connection blocks don't take a block label, and can be nested within either a
 `resource` or a `provisioner`.
@@ -36,6 +27,18 @@ Connection blocks don't take a block label, and can be nested within either a
 One use case for providing multiple connections is to have an initial
 provisioner connect as the `root` user to set up user accounts, and have
 subsequent provisioners connect as a user with more limited permissions.
+
+Since the SSH connection type is most often used with
+newly-created remote resources, validation of SSH host keys is disabled by
+default. In scenarios where this is not acceptable, a separate mechanism for
+key distribution could be established and the `host_key` directive documented
+below explicitly set to verify against a specific key or signing CA.
+
+-> **Note:** In Terraform 0.11 and earlier, providers could set default values
+for some connection settings, so that `connection` blocks could sometimes be
+omitted. This feature was removed in 0.12 in order to make Terraform's behavior
+more predictable.
+
 
 ## Example usage
 
