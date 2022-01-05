@@ -52,41 +52,77 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `source` - This is the source file or folder. It can be specified as
-  relative to the current working directory or as an absolute path. This
-  attribute cannot be specified with `content`.
+* `source` - The source file or directory. Specify it either relative to the
+  current working directory or as an absolute path.
+  This argument cannot be combined with `content`.
 
-* `content` - This is the content to copy on the destination. If destination is a file,
-  the content will be written on that file, in case of a directory a file named
-  `tf-file-content` is created. It's recommended to use a file as the destination. A
-  [`template_file`](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file) might be referenced in here, or
-  any interpolation syntax. This attribute cannot be specified with `source`.
+* `content` - The direct content to copy on the destination.
+  If destination is a file, the content will be written on that file. In case
+  of a directory, a file named `tf-file-content` is created inside that
+  directory. We recommend using a file as the destination when using `content`.
+  This argument cannot be combined with `source`.
 
-* `destination` - (Required) This is the destination path. It must be specified as an
-  absolute path.
+* `destination` - (Required) The destination path to write to on the remote
+  system. See [Destination Paths](#destination-paths) below for more
+  information.
+
+## Destination Paths
+
+The path you provide in the `destination` argument will be evaluated by the
+remote system, rather than by Terraform itself. Therefore the valid values
+for that argument can vary depending on the operating system and remote access
+software running on the target.
+
+When connecting over SSH, the `file` provisioner passes the given destination
+path verbatim to the `scp` program on the remote host. By default, OpenSSH's
+`scp` implementation runs in the remote user's home directory and so you can
+specify a relative path to upload into that home directory, or an absolute
+path to upload to some other location. The remote `scp` process will run with
+the access level of the user specified in the `connection` block, and so
+permissions may prevent writing directly to locations outside of the home
+directory.
+
+Because WinRM has no corresponding file transfer protocol, for WinRM
+connections the `file` provisioner uses a more complex process:
+
+1. Generate a temporary filename in the directory given in the remote system's
+   `TEMP` environment variable, using a pseudorandom UUID for uniqueness.
+2. Use sequential generated `echo` commands over WinRM to gradually append
+   base64-encoded chunks of the source file to the chosen temporary file.
+3. Use an uploaded PowerShell script to read the temporary file, base64-decode,
+   and write the raw result into the destination file.
+
+In the WinRM case, the destination path is therefore interpreted by PowerShell
+and so you must take care not to use any meta-characters that PowerShell might
+interpret. In particular, avoid including any untrusted external input in
+your `destination` argument when using WinRM, because it can serve as a vector
+for arbitrary PowerShell code execution on the remote system.
+
+Modern Windows systems support running an OpenSSH server, so we strongly
+recommend choosing SSH over WinRM whereever possible, and using WinRM only as
+a last resort when working with obsolete Windows versions.
 
 ## Directory Uploads
 
-The file provisioner is also able to upload a complete directory to the remote machine.
-When uploading a directory, there are a few important things you should know.
+The `file` provisioner can upload a complete directory to the remote machine.
+When uploading a directory, there are some additional considerations.
 
-First, when using the `ssh` connection type the destination directory must already exist.
-If you need to create it, use a remote-exec provisioner just prior to the file provisioner
-in order to create the directory. When using the `winrm` connection type the destination
-directory will be created for you if it doesn't already exist.
+When using the `ssh` connection type the destination directory must already
+exist. If you need to create it, use a remote-exec provisioner just prior to
+the file provisioner in order to create the directory
 
-Next, the existence of a trailing slash on the source path will determine whether the
-directory name will be embedded within the destination, or whether the destination will
-be created. An example explains this best:
+When using the `winrm` connection type the destination directory will be
+created for you if it doesn't already exist.
 
-If the source is `/foo` (no trailing slash), and the destination is `/tmp`, then the contents
-of `/foo` on the local machine will be uploaded to `/tmp/foo` on the remote machine. The
-`foo` directory on the remote machine will be created by Terraform.
+The existence of a trailing slash on the source path will determine whether the
+directory name will be embedded within the destination, or whether the
+destination will be created. For example:
 
-If the source, however, is `/foo/` (a trailing slash is present), and the destination is
-`/tmp`, then the contents of `/foo` will be uploaded directly into `/tmp`.
+* If the source is `/foo` (no trailing slash), and the destination is `/tmp`,
+  then the contents of `/foo` on the local machine will be uploaded to
+  `/tmp/foo` on the remote machine. The `foo` directory on the remote machine
+  will be created by Terraform.
 
-This behavior was adopted from the standard behavior of
-[rsync](https://linux.die.net/man/1/rsync).
-
--> **Note:** Under the covers, rsync may or may not be used.
+* If the source, however, is `/foo/` (a trailing slash is present), and the
+  destination is `/tmp`, then the contents of `/foo` will be uploaded directly
+  into `/tmp`.
