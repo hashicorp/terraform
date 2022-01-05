@@ -75,10 +75,6 @@
         "title": "Provisioners",
         "routes": [
           {
-            "title": "Overview",
-            "path": "resources/provisioners"
-          },
-          {
             "title": "Declaring Provisioners",
             "path": "resources/provisioners/syntax"
           },
