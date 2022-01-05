@@ -147,8 +147,17 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          ACTIONSOS: ${{ matrix.runson }}
         run: |
           mkdir dist out
+          if [ "$ACTIONSOS" == "macos-latest" ] && [ "$GOOS" == "darwin" ]; then
+            # When building for macOS _on_ macOS we must force CGo to get
+            # correct hostname resolution behavior. (This must be conditional
+            # because other cross-compiles won't have suitable headers
+            # available to use CGo; darwin_amd64 has suitable headers to
+            # cross-build for darwin_arm64.)
+            export CGO_ENABLED=1
+          fi
           go build -ldflags "-w -s" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
