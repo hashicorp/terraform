@@ -8,6 +8,7 @@ BUG FIXES:
 * config: Fix inconsistent ordering with nested move operations [GH-30253]
 * config: Fix `moved` block refactoring to include nested modules [GH-30233]
 * functions: Redact sensitive values from function call error messages [GH-30067]
+* `terraform show`: Disable plan state lineage checks, ensuring that we can show plan files which were generated against non-default state files [GH-30205]
 
 ## 1.1.2 (December 17, 2021)
 
