@@ -19,6 +19,10 @@ details](/language/resources/provisioners/connection) on a `null_resource`. You 
 use its `triggers` argument and any meta-arguments to control exactly where in
 the dependency graph its provisioners will run.
 
+-> **Note:** Provisioners should only be used as a last resort. For most
+common situations there are better alternatives. Refer to
+[Declaring Provisioners](/language/resources/provisioners/syntax) for more details.
+
 ## Example usage
 
 ```hcl
