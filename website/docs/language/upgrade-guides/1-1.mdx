@@ -23,6 +23,7 @@ small number of users, described in the following sections.
 
 * [Terraform requires macOS 10.13 High Sierra or later](#terraform-requires-macos-1013-high-sierra-or-later)
 * [Preparation for removing Azure AD Graph support in the AzureRM Backend](#preparation-for-removing-azure-ad-graph-support-in-the-azurerm-backend)
+* [Interpretation of remote file paths in the `remote-exec` and `file` provisioners](#interpretation-of-remote-file-paths-in-the-remote-exec-and-file-provisioners)
 * [Changes to `terraform graph`](#changes-to-terraform-graph)
 * [Changes to `terraform state mv`](#changes-to-terraform-state-mv)
 * [Provider checksum verification in `terraform apply`](#provider-checksum-verification-in-terraform-apply)
@@ -53,6 +54,66 @@ not set, and so we strongly recommend planning to migrate to Microsoft Graph
 in the near future to prepare for the final removal of Azure AD Graph support
 in a later Terraform release. However, no immediate change is required before
 upgrading to Terraform v1.1.
+
+## Interpretation of remote file paths in the `remote-exec` and `file` provisioners
+
+When using Terraform's built-in `remote-exec` and `file` provisioners, there
+are two situations where Terraform internally uses
+[Secure Copy Protocol](https://en.wikipedia.org/wiki/Secure_copy_protocol)
+(SCP) to upload files to the remote system at a configuration-specified
+location:
+
+* For [the `file` provisioner](/language/resources/provisioners/file),
+  the primary functionality is to upload a file using SCP, and the
+  `destination` argument specifies the remote path where the file is to be
+  written.
+* For [the `remote-exec` provisioner](/language/resources/provisioners/remote-exec),
+  internally the provisioner works by uploading the given scripts to files
+  on the remote system and then executing them. By default the provisioner
+  selects a temporary filename automatically, but a module author can
+  potentially override that location using the `script_path` argument in the
+  associated [`connection` block](https://www.terraform.io/language/resources/provisioners/connection).
+
+If you are not using either of the specific arguments mentioned above, no
+configuration changes will be required to upgrade to Terraform v1.1.
+
+These provisioners both passing the specified remote paths to the `scp` service
+program on the remote system. In Terraform v1.0 and earlier, the provisioners
+were passing the paths to `scp` in a way that was inadvertently subject to
+_shell expansion_. That inadvertently allowed for convenient shorthands
+such as `~/example` and `$HOME/example` to write into the target user's
+home directory, but also offered an undesirable opportunity for accidental
+remote code execution, such as `$(arbitrary-program)`.
+
+In Terraform v1.1 both of the above remote path arguments are passed _verbatim_
+to the remote `scp` service, without any prior shell expansion. For that reason,
+shell-defined expansion tokens such as `~` and environment variable references
+will no longer be evaluated.
+
+By default, the OpenSSH server and the program `scp` together already interpret
+relative paths as relative to the target user's home directory, and so
+module authors can specify relative paths without any special metacharacters
+in order to request uploading into that default location:
+
+```hcl
+  provisioner "file" {
+    source      = "local.txt"
+    destination = "remote.txt"
+  }
+```
+
+If you maintain a module that was depending on expansion of `~/`, `$HOME/`,
+`${HOME}`/ or similar, remove that prefix so that your module instead specifies
+just a relative path.
+
+This is an intentional compatibility regression which we accepted after due
+consideration of
+[the pragmatic exceptions to our compatibility promises](/language/v1-compatibility-promises#pragmatic-exceptions).
+Specifically, this behavior offered an unintended and non-obvious avenue for
+arbitrary code execution on the remote system if either of the above arguments
+were populated from outside input, and an alternative approach is available
+which doesn't have that drawback, and this is therefore justified on security
+grounds.
 
 ## Changes to `terraform graph`
 
