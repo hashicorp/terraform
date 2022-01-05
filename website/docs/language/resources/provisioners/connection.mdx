@@ -90,11 +90,11 @@ Resource references are restricted because references create dependencies. Refer
 | `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/language/functions/file). This takes preference over `password` if provided. | |
 | `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/language/functions/file). | |
 | `agent` | SSH | Set to `false` to disable using `ssh-agent` to authenticate. On Windows the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). |   |
-| `agent_identity`| SSH | The preferred identity from the ssh agent for authentication. | |
+| `agent_identity` | SSH | The preferred identity from the ssh agent for authentication. | |
 | `host_key` | SSH | The public key from the remote host or the signing CA, used to verify the connection. | |
-| `target_platform`| SSH | The target platform to connect to. Valid values are `"windows"` and `"unix"`. If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\terraform_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"` | `"unix"` |
-| `https`| WinRM | Set to `true` to connect using HTTPS instead of HTTP. | |
-| `insecure`| WinRM | Set to `true` to not validate skip validating the HTTPS certificate chain. | |
+| `target_platform` | SSH | The target platform to connect to. Valid values are `"windows"` and `"unix"`. If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\terraform_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"` | `"unix"` |
+| `https` | WinRM | Set to `true` to connect using HTTPS instead of HTTP. | |
+| `insecure` | WinRM | Set to `true` to not validate skip validating the HTTPS certificate chain. | |
 | `use_ntlm` | WinRM | Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. For more information, see [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation. | |
 | `cacert` | WinRM | The CA certificate to validate against. | |
 
