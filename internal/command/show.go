@@ -94,6 +94,7 @@ func (c *ShowCommand) Run(args []string) int {
 	opReq.PlanFile = planFile
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true
+	opReq.DisablePlanFileStateLineageChecks = true
 	if err != nil {
 		diags = diags.Append(err)
 		c.showDiagnostics(diags)
