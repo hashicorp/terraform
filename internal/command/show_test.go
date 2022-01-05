@@ -15,7 +15,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -572,6 +574,52 @@ func TestShow_json_output_state(t *testing.T) {
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
 		})
+	}
+}
+
+func TestShow_planWithNonDefaultStateLineage(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("show"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Write default state file with a testing lineage ("fake-for-testing")
+	testStateFileDefault(t, testState())
+
+	// Create a plan with a different lineage, which we should still be able
+	// to show
+	_, snap := testModuleWithSnapshot(t, "show")
+	state := testState()
+	plan := testPlan(t)
+	stateMeta := statemgr.SnapshotMeta{
+		Lineage:          "fake-for-plan",
+		Serial:           1,
+		TerraformVersion: version.SemVer,
+	}
+	planPath := testPlanFileMatchState(t, snap, state, plan, stateMeta)
+
+	ui := cli.NewMockUi()
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	args := []string{
+		planPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	want := `No changes. Your infrastructure matches the configuration.`
+	got := done(t).Stdout()
+	if !strings.Contains(got, want) {
+		t.Errorf("missing expected output\nwant: %s\ngot:\n%s", want, got)
 	}
 }
 
