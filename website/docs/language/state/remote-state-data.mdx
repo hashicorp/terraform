@@ -9,13 +9,12 @@ description: >-
 
 [backends]: /language/settings/backends
 
-The `terraform_remote_state` data source retrieves the root module output values
-from some other Terraform configuration, using the latest state snapshot from
-the remote backend.
+The `terraform_remote_state` data source uses the latest state snapshot from the remote backend to retrieve the root module output values
+from some other Terraform configuration.
 
-This data source implemented by a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources. Because of this, the `terraform_remote_state` data source is always available; you do not need to require or configure a provider to use it.
+You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available because it is implemented through a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
 
--> **Warning:** To access remote state outputs in Terraform Cloud or Terraform Enterprise, we recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs). The `tfe_outputs` method is more secure because it does not require full access to state of a workspace to fetch the outputs. If you are using the [Terraform Cloud CLI integration](/docs/cli/cloud), you **must** use `tfe_outputs` because the integration is incompatible with `terraform_remote_state`.
+!> **Warning:** We recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) to access remote state outputs in Terraform Cloud or Terraform Enterprise. The `tfe_outputs` data source is more secure because it does not require full access to workspace state to fetch outputs. If you are using the [Terraform Cloud CLI integration](/docs/cli/cloud), you **must** use `tfe_outputs` because the integration is incompatible with `terraform_remote_state`.
 
 ## Alternative Ways to Share Data Between Configurations
 
