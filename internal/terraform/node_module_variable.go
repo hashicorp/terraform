@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -143,11 +142,6 @@ func (n *nodeModuleVariable) ModulePath() addrs.Module {
 
 // GraphNodeExecutable
 func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	// If we have no value, do nothing
-	if n.Expr == nil {
-		return nil
-	}
-
 	// Otherwise, interpolate the value of this variable and set it
 	// within the variables mapping.
 	var vals map[string]cty.Value
@@ -155,13 +149,13 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 
 	switch op {
 	case walkValidate:
-		vals, err = n.evalModuleCallArgument(ctx, true)
+		vals, err = n.evalModuleVariable(ctx, true)
 		diags = diags.Append(err)
 		if diags.HasErrors() {
 			return diags
 		}
 	default:
-		vals, err = n.evalModuleCallArgument(ctx, false)
+		vals, err = n.evalModuleVariable(ctx, false)
 		diags = diags.Append(err)
 		if diags.HasErrors() {
 			return diags
@@ -187,7 +181,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 	}
 }
 
-// evalModuleCallArgument produces the value for a particular variable as will
+// evalModuleVariable produces the value for a particular variable as will
 // be used by a child module instance.
 //
 // The result is written into a map, with its key set to the local name of the
@@ -199,17 +193,17 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
+func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (map[string]cty.Value, error) {
 	name := n.Addr.Variable.Name
 	expr := n.Expr
+	vals := make(map[string]cty.Value)
 
 	if expr == nil {
-		// Should never happen, but we'll bail out early here rather than
-		// crash in case it does. We set no value at all in this case,
-		// making a subsequent call to EvalContext.SetModuleCallArguments
-		// a no-op.
-		log.Printf("[ERROR] attempt to evaluate %s with nil expression", n.Addr.String())
-		return nil, nil
+		// If there is no module input expression, we must use the default. The
+		// config loader ensures there is a default if the input value is not
+		// set at all.
+		vals[name] = n.Config.Default
+		return vals, nil
 	}
 
 	var moduleInstanceRepetitionData instances.RepetitionData
@@ -268,8 +262,13 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 		val = cty.UnknownVal(n.Config.Type)
 	}
 
-	vals := make(map[string]cty.Value)
-	vals[name] = val
+	// If nullable=false, a null input must be replaced with the default. The
+	// config loader has already verified the default exists and is valid in
+	// this case.
+	if val.IsNull() && !n.Config.Nullable {
+		val = n.Config.Default
+	}
 
+	vals[name] = val
 	return vals, diags.ErrWithWarnings()
 }

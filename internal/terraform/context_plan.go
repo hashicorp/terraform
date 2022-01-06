@@ -110,6 +110,11 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// includes language asking the user to report a bug.
 	varDiags := checkInputVariables(config.Module.Variables, variables)
 	diags = diags.Append(varDiags)
+	if diags.HasErrors() {
+		// We can't plan anything with values missing entirely, so let the user
+		// know which variables must be set as early as possible.
+		return nil, diags
+	}
 
 	if len(opts.Targets) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(

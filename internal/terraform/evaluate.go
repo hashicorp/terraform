@@ -267,16 +267,18 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.UnknownVal(config.Type), diags
 	}
 
-	val, isSet := vals[addr.Name]
-	switch {
-	case !isSet:
-		// The config loader will ensure there is a default if the value is not
-		// set at all.
-		val = config.Default
-
-	case val.IsNull() && !config.Nullable && config.Default != cty.NilVal:
-		// If nullable=false a null value will use the configured default.
-		val = config.Default
+	val, ok := vals[addr.Name]
+	if !ok {
+		log.Printf("[ERROR] GetInputVariable: missing value for %s", addr)
+		val = cty.UnknownVal(config.Type)
+		// All variables should have been stored in the context already,
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing variable value`,
+			Detail:   fmt.Sprintf(`No value found for %s. This is a bug in Terraform; please report it!`, addr),
+			Subject:  &config.DeclRange,
+		})
+		val = cty.UnknownVal(config.Type)
 	}
 
 	var err error
