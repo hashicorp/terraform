@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,6 +29,7 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
@@ -438,11 +440,44 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 }
 
 func (b *Cloud) Workspace(name string) (*tfe.Workspace, error) {
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	return b.client.Workspaces.Read(context.Background(), b.organization, name)
+}
+
+type outputData struct {
+	Value     cty.Value
+	Sensitive bool
+}
+type StateOutputData struct {
+	Outputs map[string]*outputData
+}
+
+func (b *Cloud) StateVersionOutputs(svID string) (*StateOutputData, error) {
+	svo, err := b.client.StateVersions.Outputs(context.Background(), svID, tfe.StateVersionOutputsListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return workspace, nil
+
+	sd := &StateOutputData{
+		Outputs: map[string]*outputData{},
+	}
+
+	for _, op := range svo {
+		buf, err := json.Marshal(op.Value)
+		if err != nil {
+			return nil, fmt.Errorf("Could not marshal output value: %v", err)
+		}
+
+		v := ctyjson.SimpleJSONValue{}
+		err = v.UnmarshalJSON(buf)
+		if err != nil {
+			return nil, fmt.Errorf("Could not unmarshal output value: %v", err)
+		}
+		sd.Outputs[op.Name] = &outputData{
+			Value:     v.Value,
+			Sensitive: op.Sensitive,
+		}
+	}
+	return sd, nil
 }
 
 // Workspaces implements backend.Enhanced, returning a filtered list of workspace names according to
