@@ -1,14 +1,14 @@
-## 1.1.3 (Unreleased)
+## 1.1.3 (January 06, 2022)
 
 BUG FIXES:
 
-* `terraform init`: Will now remove from [the dependency lock file](https://www.terraform.io/language/files/dependency-lock) entries for providers not used in the current configuration. Previously it would leave formerly-used providers behind in the lock file, leading to "missing or corrupted provider plugins" errors when other commands verified the consistency of the installed plugins against the locked plugins. [GH-30192]
-* config: Fix panic when encountering an invalid provider block within a module [GH-30095]
-* config: Fix cycle error when the index of a module containing move statements is changed [GH-30232]
-* config: Fix inconsistent ordering with nested move operations [GH-30253]
-* config: Fix `moved` block refactoring to include nested modules [GH-30233]
-* functions: Redact sensitive values from function call error messages [GH-30067]
-* `terraform show`: Disable plan state lineage checks, ensuring that we can show plan files which were generated against non-default state files [GH-30205]
+* `terraform init`: Will now remove from [the dependency lock file](https://www.terraform.io/language/files/dependency-lock) entries for providers not used in the current configuration. Previously it would leave formerly-used providers behind in the lock file, leading to "missing or corrupted provider plugins" errors when other commands verified the consistency of the installed plugins against the locked plugins. ([#30192](https://github.com/hashicorp/terraform/issues/30192))
+* config: Fix panic when encountering an invalid provider block within a module ([#30095](https://github.com/hashicorp/terraform/issues/30095))
+* config: Fix cycle error when the index of a module containing move statements is changed ([#30232](https://github.com/hashicorp/terraform/issues/30232))
+* config: Fix inconsistent ordering with nested move operations ([#30253](https://github.com/hashicorp/terraform/issues/30253))
+* config: Fix `moved` block refactoring to include nested modules ([#30233](https://github.com/hashicorp/terraform/issues/30233))
+* functions: Redact sensitive values from function call error messages ([#30067](https://github.com/hashicorp/terraform/issues/30067))
+* `terraform show`: Disable plan state lineage checks, ensuring that we can show plan files which were generated against non-default state files ([#30205](https://github.com/hashicorp/terraform/issues/30205))
 
 ## 1.1.2 (December 17, 2021)
 
