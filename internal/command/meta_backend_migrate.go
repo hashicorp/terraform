@@ -415,7 +415,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		// Abort if we can't ask for input.
 		if !m.input {
 			log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
-			return errors.New("error asking for state migration action: input disabled")
+			return errors.New(strings.TrimSpace(errInteractiveInputDisabled))
 		}
 
 		// Confirm with the user whether we want to copy state over
@@ -788,6 +788,10 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 }
 
 func (m *Meta) promptSingleToCloudSingleStateMigration(opts *backendMigrateOpts) (bool, error) {
+	if !m.input {
+		log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
+		return false, errors.New(strings.TrimSpace(errInteractiveInputDisabled))
+	}
 	migrate := opts.force
 	if !migrate {
 		var err error
@@ -805,6 +809,10 @@ func (m *Meta) promptSingleToCloudSingleStateMigration(opts *backendMigrateOpts)
 }
 
 func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) error {
+	if !m.input {
+		log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
+		return errors.New(strings.TrimSpace(errInteractiveInputDisabled))
+	}
 	migrate := opts.force
 	if !migrate {
 		var err error
@@ -827,6 +835,10 @@ func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) 
 
 // Multi-state to single state.
 func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error {
+	if !m.input {
+		log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
+		return errors.New(strings.TrimSpace(errInteractiveInputDisabled))
+	}
 	migrate := opts.force
 	if !migrate {
 		var err error
@@ -854,6 +866,10 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 	message := fmt.Sprintf("[reset][bold][yellow]The %q backend configuration only allows "+
 		"named workspaces![reset]", destinationType)
 	if destinationType == "cloud" {
+		if !m.input {
+			log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
+			return "", errors.New(strings.TrimSpace(errInteractiveInputDisabled))
+		}
 		message = `[reset][bold][yellow]Terraform Cloud requires all workspaces to be given an explicit name.[reset]`
 	}
 	name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
@@ -869,6 +885,8 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 }
 
 func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, error) {
+	// This is not the first prompt a user would be presented with in the migration to TFC, so no
+	// guard on m.input is needed here.
 	renameWorkspaces, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc",
 		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "Would you like to rename your workspaces?"),
@@ -954,6 +972,12 @@ const errTFCMigrateNotYetImplemented = `
 Migrating state from Terraform Cloud to another backend is not yet implemented.
 
 Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+`
+
+const errInteractiveInputDisabled = `
+Can't ask approval for state migration when interactive input is disabled.
+
+Please remove the "-input=false" option and try again.
 `
 
 const tfcInputBackendMigrateMultiToMultiPattern = `
