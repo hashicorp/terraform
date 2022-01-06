@@ -12,7 +12,7 @@ description: >-
 The `terraform_remote_state` data source uses the latest state snapshot from the remote backend to retrieve the root module output values
 from some other Terraform configuration.
 
-You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available because it is implemented through a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
+You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
 
 !> **Warning:** We recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) to access remote state outputs in Terraform Cloud or Terraform Enterprise. The `tfe_outputs` data source is more secure because it does not require full access to workspace state to fetch outputs. If you are using the [Terraform Cloud CLI integration](/docs/cli/cloud), you **must** use `tfe_outputs` because the integration is incompatible with `terraform_remote_state`.
 
