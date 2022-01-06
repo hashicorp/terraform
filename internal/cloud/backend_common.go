@@ -87,7 +87,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			// Retrieve the workspace used to run this operation in.
-			w, err = b.client.Workspaces.Read(stopCtx, b.organization, w.Name)
+			w, err = b.Workspace(w.Name)
 			if err != nil {
 				return nil, generalError("Failed to retrieve workspace", err)
 			}

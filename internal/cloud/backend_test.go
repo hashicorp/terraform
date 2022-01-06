@@ -369,7 +369,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 	// happens when a workspace gets created. This is why we can't use "name" in
 	// the backend config above, btw: if you do, testBackend() creates the default
 	// workspace before we get a chance to do anything.
-	_, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	_, err := b.Workspace(workspaceName)
 	if err != tfe.ErrResourceNotFound {
 		t.Fatalf("the workspace we were about to try and create (%s/%s) already exists in the mocks somehow, so this test isn't trustworthy anymore", b.organization, workspaceName)
 	}
@@ -379,7 +379,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 		t.Fatalf("expected no error from StateMgr, despite not being able to set remote Terraform version: %#v", err)
 	}
 	// Make sure the workspace was created:
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, workspaceName)
+	workspace, err := b.Workspace(workspaceName)
 	if err != nil {
 		t.Fatalf("b.StateMgr() didn't actually create the desired workspace")
 	}

@@ -695,7 +695,7 @@ func TestCloud_planLockTimeout(t *testing.T) {
 	ctx := context.Background()
 
 	// Retrieve the workspace used to run this operation in.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, b.WorkspaceMapping.Name)
+	w, err := b.Workspace(b.WorkspaceMapping.Name)
 	if err != nil {
 		t.Fatalf("error retrieving workspace: %v", err)
 	}

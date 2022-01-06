@@ -150,7 +150,7 @@ func (b *Cloud) getRemoteWorkspace(ctx context.Context, localWorkspaceName strin
 	remoteWorkspaceName := b.getRemoteWorkspaceName(localWorkspaceName)
 
 	log.Printf("[TRACE] cloud: looking up workspace for %s/%s", b.organization, remoteWorkspaceName)
-	remoteWorkspace, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
+	remoteWorkspace, err := b.Workspace(remoteWorkspaceName)
 	if err != nil {
 		return nil, err
 	}

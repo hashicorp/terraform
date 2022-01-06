@@ -437,6 +437,14 @@ func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 	}
 }
 
+func (b *Cloud) Workspace(name string) (*tfe.Workspace, error) {
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	if err != nil {
+		return nil, err
+	}
+	return workspace, nil
+}
+
 // Workspaces implements backend.Enhanced, returning a filtered list of workspace names according to
 // the workspace mapping strategy configured.
 func (b *Cloud) Workspaces() ([]string, error) {
@@ -517,7 +525,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		return nil, backend.ErrWorkspacesNotSupported
 	}
 
-	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	workspace, err := b.Workspace(name)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
 	}
@@ -604,7 +612,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	name := op.Workspace
 
 	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+	w, err := b.Workspace(name)
 	if err != nil {
 		switch err {
 		case context.Canceled:
