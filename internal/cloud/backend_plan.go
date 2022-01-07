@@ -324,11 +324,20 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	// Retrieve the run to get its current status.
-	r, err = b.client.Runs.ReadWithOptions(stopCtx, r.ID, &tfe.RunReadOptions{
+	runID := r.ID
+	r, err = b.client.Runs.ReadWithOptions(stopCtx, runID, &tfe.RunReadOptions{
 		Include: "task_stages",
 	})
 	if err != nil {
-		return r, generalError("Failed to retrieve run", err)
+		// This error would be expected for older versions of TFE that do not allow
+		// fetching task_stages.
+		if strings.HasSuffix(err.Error(), "Invalid include parameter") {
+			r, err = b.client.Runs.Read(stopCtx, runID)
+		}
+
+		if err != nil {
+			return r, generalError("Failed to retrieve run", err)
+		}
 	}
 
 	// If the run is canceled or errored, we still continue to the
@@ -355,7 +364,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	// Await pre-apply run tasks
 	if len(r.TaskStages) > 0 {
-		context := &IntegrationContext{
+		integration := &IntegrationContext{
 			B:             b,
 			StopContext:   stopCtx,
 			CancelContext: cancelCtx,
@@ -364,7 +373,7 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 
 		if stageID := getTaskStageIDByName(r.TaskStages, "pre_apply"); stageID != nil {
-			err = b.runTasks(context, context.BeginOutput("Run Tasks (pre-apply)"), *stageID)
+			err = b.runTasks(integration, integration.BeginOutput("Run Tasks (pre-apply)"), *stageID)
 			if err != nil {
 				return r, err
 			}
