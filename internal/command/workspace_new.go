@@ -167,7 +167,6 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 
 func (c *WorkspaceNewCommand) AutocompleteArgs() complete.Predictor {
 	return completePredictSequence{
-		complete.PredictNothing, // the "new" subcommand itself (already matched)
 		complete.PredictAnything,
 		complete.PredictDirs(""),
 	}
