@@ -233,6 +233,29 @@ func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnl
 	scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
 	val, diags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 
+	// FIXME: This check is only necessary for v1.1, and is will never be
+	// present in the v1.2 branch.
+	//
+	// Default values are currently being handled in two places, the graph
+	// transformation where a synthetic default expression is created if there
+	// was no input expression, and in the evaluator when a reference to the
+	// variable is evaluated. Unfortunately neither of these covers the case
+	// where a non-nullable variable default needs to be checked within a
+	// validation statement
+	//
+	// Rather than try and fix the overall variable handling here, which runs
+	// the risk of encountering more unexpected behavior, we are going to fixup
+	// this one case to ensure a null value doesn't continue to slip into
+	// validation. A more extensive refactoring of variable handling has been
+	// completed in v1.2, and this code will only be relevant for the v1.1
+	// branch.
+	if !diags.HasErrors() && val.IsNull() &&
+		!n.Config.Nullable &&
+		n.Config.Default != cty.NilVal && !n.Config.Default.IsNull() {
+		// replace the evaluated value with the actual default
+		val = n.Config.Default
+	}
+
 	// We intentionally passed DynamicPseudoType to EvalExpr above because
 	// now we can do our own local type conversion and produce an error message
 	// with better context if it fails.
