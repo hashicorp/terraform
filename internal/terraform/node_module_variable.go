@@ -149,10 +149,10 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 
 	switch op {
 	case walkValidate:
-		val, err = n.evalModuleCallArgument(ctx, true)
+		val, err = n.evalModuleVariable(ctx, true)
 		diags = diags.Append(err)
 	default:
-		val, err = n.evalModuleCallArgument(ctx, false)
+		val, err = n.evalModuleVariable(ctx, false)
 		diags = diags.Append(err)
 	}
 	if diags.HasErrors() {
@@ -178,7 +178,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 	}
 }
 
-// evalModuleCallArgument produces the value for a particular variable as will
+// evalModuleVariable produces the value for a particular variable as will
 // be used by a child module instance.
 //
 // The result is written into a map, with its key set to the local name of the
@@ -190,7 +190,7 @@ func (n *nodeModuleVariable) DotNode(name string, opts *dag.DotOpts) *dag.DotNod
 // validateOnly indicates that this evaluation is only for config
 // validation, and we will not have any expansion module instance
 // repetition data.
-func (n *nodeModuleVariable) evalModuleCallArgument(ctx EvalContext, validateOnly bool) (cty.Value, error) {
+func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bool) (cty.Value, error) {
 	var diags tfdiags.Diagnostics
 	var givenVal cty.Value
 	var errSourceRange tfdiags.SourceRange

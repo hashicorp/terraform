@@ -2062,3 +2062,36 @@ output "out" {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Validate_nonNullableVariableDefaultValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+ module "first" {
+   source = "./mod"
+   input = null
+ }
+ `,
+
+		"mod/main.tf": `
+ variable "input" {
+   type        = string
+   default     = "default"
+   nullable    = false
+
+   // Validation expressions should receive the default with nullable=false and
+   // a null input.
+   validation {
+     condition     = var.input != null
+     error_message = "Input cannot be null!"
+   }
+ }
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
