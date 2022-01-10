@@ -49,6 +49,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	// text belongs to the diagnostic and which does not.
 	var leftRuleLine, leftRuleStart, leftRuleEnd string
 	var leftRuleWidth int // in visual character cells
+	severityLen := 3
 
 	switch diag.Severity {
 	case viewsjson.DiagnosticSeverityError:
@@ -57,12 +58,14 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 		leftRuleStart = color.Color("[red]╷[reset]")
 		leftRuleEnd = color.Color("[red]╵[reset]")
 		leftRuleWidth = 2
+		severityLen = 6
 	case viewsjson.DiagnosticSeverityWarning:
 		buf.WriteString(color.Color("[bold][yellow]Warning: [reset]"))
 		leftRuleLine = color.Color("[yellow]│[reset] ")
 		leftRuleStart = color.Color("[yellow]╷[reset]")
 		leftRuleEnd = color.Color("[yellow]╵[reset]")
 		leftRuleWidth = 2
+		severityLen = 8
 	default:
 		// Clear out any coloring that might be applied by Terraform's UI helper,
 		// so our result is not context-sensitive.
@@ -72,9 +75,27 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 	// We don't wrap the summary, since we expect it to be terse, and since
 	// this is where we put the text of a native Go error it may not always
 	// be pure text that lends itself well to word-wrapping.
-	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n\n"), diag.Summary)
-
-	appendSourceSnippets(&buf, diag, color)
+	fmt.Fprintf(&buf, color.Color("[bold]%s[reset]\n"), diag.Summary)
+	if strings.Contains(diag.Summary, "\n") {
+		// In some cases we derive error diagnostics directly from "error"
+		// values, which can then use atypical formatting conventions such
+		// as newlines which then causes a strange-looking result if we run
+		// our on/in/for statements below directly afterwards. For that
+		// less common situation we'll compromise by adding an extra blank
+		// line and not trying to align on/in/for with the severity colon.
+		buf.WriteByte('\n')
+		severityLen = 3 // the smallest to have room for "for"
+	}
+	if diag.Range != nil && diag.Detail != "" {
+		fmt.Fprintf(&buf, "%son %s line %d\n", strings.Repeat(" ", severityLen-2), diag.Range.Filename, diag.Range.Start.Line)
+	}
+	if diag.Snippet != nil && diag.Snippet.Context != nil {
+		fmt.Fprintf(&buf, "%sin %s\n", strings.Repeat(" ", severityLen-2), *diag.Snippet.Context)
+	}
+	if diag.Address != "" {
+		fmt.Fprintf(&buf, "%sfor %s\n", strings.Repeat(" ", severityLen-3), diag.Address)
+	}
+	buf.WriteByte('\n')
 
 	if diag.Detail != "" {
 		paraWidth := width - leftRuleWidth - 1 // leave room for the left rule
@@ -91,12 +112,19 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 		}
 	}
 
+	appendSourceSnippets(&buf, diag, color)
+
+	// Depending on exactly which components we included above, we may have
+	// some extra trailing newlines which will make the result look unbalanced,
+	// and so we'll trim them off.
+	trimBuf := bytes.NewReader(bytes.TrimSpace(buf.Bytes()))
+
 	// Before we return, we'll finally add the left rule prefixes to each
 	// line so that the overall message is visually delimited from what's
 	// around it. We'll do that by scanning over what we already generated
 	// and adding the prefix for each line.
 	var ruleBuf strings.Builder
-	sc := bufio.NewScanner(&buf)
+	sc := bufio.NewScanner(trimBuf)
 	ruleBuf.WriteString(leftRuleStart)
 	ruleBuf.WriteByte('\n')
 	for sc.Scan() {
@@ -146,9 +174,17 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 	// We don't wrap the summary, since we expect it to be terse, and since
 	// this is where we put the text of a native Go error it may not always
 	// be pure text that lends itself well to word-wrapping.
-	fmt.Fprintf(&buf, "%s\n\n", diag.Summary)
-
-	appendSourceSnippets(&buf, diag, disabledColorize)
+	fmt.Fprintf(&buf, "%s\n", diag.Summary)
+	if diag.Range != nil && diag.Detail != "" {
+		fmt.Fprintf(&buf, "on %s line %d\n", diag.Range.Filename, diag.Range.Start.Line)
+	}
+	if diag.Snippet != nil && diag.Snippet.Context != nil {
+		fmt.Fprintf(&buf, "in %s\n", *diag.Snippet.Context)
+	}
+	if diag.Address != "" {
+		fmt.Fprintf(&buf, "for %s\n", diag.Address)
+	}
+	buf.WriteByte('\n')
 
 	if diag.Detail != "" {
 		if width > 1 {
@@ -163,6 +199,8 @@ func DiagnosticPlainFromJSON(diag *viewsjson.Diagnostic, width int) string {
 			fmt.Fprintf(&buf, "%s\n", diag.Detail)
 		}
 	}
+
+	appendSourceSnippets(&buf, diag, disabledColorize)
 
 	return buf.String()
 }
@@ -213,89 +251,78 @@ func DiagnosticWarningsCompact(diags tfdiags.Diagnostics, color *colorstring.Col
 }
 
 func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *colorstring.Colorize) {
-	if diag.Address != "" {
-		fmt.Fprintf(buf, "  with %s,\n", diag.Address)
-	}
-
-	if diag.Range == nil {
+	if diag.Range == nil || diag.Snippet == nil {
 		return
 	}
 
-	if diag.Snippet == nil {
-		// This should generally not happen, as long as sources are always
-		// loaded through the main loader. We may load things in other
-		// ways in weird cases, so we'll tolerate it at the expense of
-		// a not-so-helpful error message.
-		fmt.Fprintf(buf, "  on %s line %d:\n  (source code not available)\n", diag.Range.Filename, diag.Range.Start.Line)
-	} else {
-		snippet := diag.Snippet
-		code := snippet.Code
+	buf.WriteByte('\n')
 
-		var contextStr string
-		if snippet.Context != nil {
-			contextStr = fmt.Sprintf(", in %s", *snippet.Context)
-		}
-		fmt.Fprintf(buf, "  on %s line %d%s:\n", diag.Range.Filename, diag.Range.Start.Line, contextStr)
+	snippet := diag.Snippet
+	code := snippet.Code
 
-		// Split the snippet and render the highlighted section with underlines
-		start := snippet.HighlightStartOffset
-		end := snippet.HighlightEndOffset
+	var contextStr string
+	if snippet.Context != nil {
+		contextStr = fmt.Sprintf(", in %s", *snippet.Context)
+	}
+	fmt.Fprintf(buf, color.Color("[bold]%s[reset]%s:\n"), diag.Range.Filename, contextStr)
 
-		// Only buggy diagnostics can have an end range before the start, but
-		// we need to ensure we don't crash here if that happens.
-		if end < start {
-			end = start + 1
-			if end > len(code) {
-				end = len(code)
-			}
-		}
+	// Split the snippet and render the highlighted section with underlines
+	start := snippet.HighlightStartOffset
+	end := snippet.HighlightEndOffset
 
-		// If either start or end is out of range for the code buffer then
-		// we'll cap them at the bounds just to avoid a panic, although
-		// this would happen only if there's a bug in the code generating
-		// the snippet objects.
-		if start < 0 {
-			start = 0
-		} else if start > len(code) {
-			start = len(code)
-		}
-		if end < 0 {
-			end = 0
-		} else if end > len(code) {
+	// Only buggy diagnostics can have an end range before the start, but
+	// we need to ensure we don't crash here if that happens.
+	if end < start {
+		end = start + 1
+		if end > len(code) {
 			end = len(code)
-		}
-
-		before, highlight, after := code[0:start], code[start:end], code[end:]
-		code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
-
-		// Split the snippet into lines and render one at a time
-		lines := strings.Split(code, "\n")
-		for i, line := range lines {
-			fmt.Fprintf(
-				buf, "%4d: %s\n",
-				snippet.StartLine+i,
-				line,
-			)
-		}
-
-		if len(snippet.Values) > 0 {
-			// The diagnostic may also have information about the dynamic
-			// values of relevant variables at the point of evaluation.
-			// This is particularly useful for expressions that get evaluated
-			// multiple times with different values, such as blocks using
-			// "count" and "for_each", or within "for" expressions.
-			values := make([]viewsjson.DiagnosticExpressionValue, len(snippet.Values))
-			copy(values, snippet.Values)
-			sort.Slice(values, func(i, j int) bool {
-				return values[i].Traversal < values[j].Traversal
-			})
-
-			fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
-			for _, value := range values {
-				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, value.Statement)
-			}
 		}
 	}
 
-	buf.WriteByte('\n')
+	// If either start or end is out of range for the code buffer then
+	// we'll cap them at the bounds just to avoid a panic, although
+	// this would happen only if there's a bug in the code generating
+	// the snippet objects.
+	if start < 0 {
+		start = 0
+	} else if start > len(code) {
+		start = len(code)
+	}
+	if end < 0 {
+		end = 0
+	} else if end > len(code) {
+		end = len(code)
+	}
+
+	before, highlight, after := code[0:start], code[start:end], code[end:]
+	code = fmt.Sprintf(color.Color("%s[underline]%s[reset]%s"), before, highlight, after)
+
+	// Split the snippet into lines and render one at a time
+	lines := strings.Split(code, "\n")
+	for i, line := range lines {
+		fmt.Fprintf(
+			buf, "%4d: %s\n",
+			snippet.StartLine+i,
+			line,
+		)
+	}
+
+	if len(snippet.Values) > 0 {
+		// The diagnostic may also have information about the dynamic
+		// values of relevant variables at the point of evaluation.
+		// This is particularly useful for expressions that get evaluated
+		// multiple times with different values, such as blocks using
+		// "count" and "for_each", or within "for" expressions.
+		values := make([]viewsjson.DiagnosticExpressionValue, len(snippet.Values))
+		copy(values, snippet.Values)
+		sort.Slice(values, func(i, j int) bool {
+			return values[i].Traversal < values[j].Traversal
+		})
+
+		fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
+		for _, value := range values {
+			fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s"), value.Traversal, value.Statement)
+		}
+		buf.WriteByte('\n') // must be written separately so that color.Color doesn't add [reset] after it
+	}
 }
