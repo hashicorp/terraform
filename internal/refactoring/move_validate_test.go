@@ -366,6 +366,50 @@ Each resource can have moved from only one source resource.`,
 			},
 			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
 		},
+		"implied move from resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.test.thing`,
+					`test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`test.thing`,
+					`module.fake_external.test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move from module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.module.a`,
+					`module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.a`,
+					`module.fake_external.module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
 		"move to a call that refers to another module package": {
 			Statements: []MoveStatement{
 				makeTestMoveStmt(t,
@@ -648,6 +692,13 @@ func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatem
 			End:      tfdiags.SourcePos{Line: 1, Column: 1},
 		},
 	}
+}
+
+func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatement {
+	t.Helper()
+	ret := makeTestMoveStmt(t, moduleStr, fromStr, toStr)
+	ret.Implied = true
+	return ret
 }
 
 var fakeExternalModuleSource = addrs.ModuleSourceRemote{

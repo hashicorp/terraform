@@ -55,27 +55,34 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 		_, toCallSteps := stmt.To.ModuleCallTraversals()
 
 		modCfg := rootCfg.Descendent(stmtMod)
-		if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Cross-package move statement",
-				Detail: fmt.Sprintf(
-					"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
-					pkgAddr,
-				),
-				Subject: stmt.DeclRange.ToHCL().Ptr(),
-			})
-		}
-		if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Cross-package move statement",
-				Detail: fmt.Sprintf(
-					"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
-					pkgAddr,
-				),
-				Subject: stmt.DeclRange.ToHCL().Ptr(),
-			})
+		if !stmt.Implied {
+			// Implied statements can cross module boundaries because we
+			// generate them only for changing instance keys on a single
+			// resource. They happen to be generated _as if_ they were written
+			// in the root module, but the source and destination are always
+			// in the same module anyway.
+			if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cross-package move statement",
+					Detail: fmt.Sprintf(
+						"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
+						pkgAddr,
+					),
+					Subject: stmt.DeclRange.ToHCL().Ptr(),
+				})
+			}
+			if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cross-package move statement",
+					Detail: fmt.Sprintf(
+						"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
+						pkgAddr,
+					),
+					Subject: stmt.DeclRange.ToHCL().Ptr(),
+				})
+			}
 		}
 
 		for _, modInst := range declaredInsts.InstancesForModule(stmtMod) {
