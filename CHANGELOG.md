@@ -1,5 +1,9 @@
 ## 1.1.4 (Unreleased)
 
+BIG FIXES:
+
+* config: Non-nullable variables with null inputs were not given default values when checking validation statements [GH-30330]
+
 ## 1.1.3 (January 06, 2022)
 
 BUG FIXES:
