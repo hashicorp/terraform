@@ -226,8 +226,30 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 				return cty.True.WithMarks(pathMarks), nil
 			}
 
-			return cty.False, fmt.Errorf("%s is not a regular file, but %q",
-				redactIfSensitive(path, pathMarks), fi.Mode().String())
+			// The Go stat API only provides convenient access to whether it's
+			// a directory or not, so we need to do some bit fiddling to
+			// recognize other irregular file types.
+			filename := redactIfSensitive(path, pathMarks)
+			fileType := fi.Mode().Type()
+			switch {
+			case (fileType & os.ModeDir) != 0:
+				err = function.NewArgErrorf(1, "%s is a directory, not a file", filename)
+			case (fileType & os.ModeDevice) != 0:
+				err = function.NewArgErrorf(1, "%s is a device node, not a regular file", filename)
+			case (fileType & os.ModeNamedPipe) != 0:
+				err = function.NewArgErrorf(1, "%s is a named pipe, not a regular file", filename)
+			case (fileType & os.ModeSocket) != 0:
+				err = function.NewArgErrorf(1, "%s is a unix domain socket, not a regular file", filename)
+			default:
+				// If it's not a type we recognize then we'll just return a
+				// generic error message. This should be very rare.
+				err = function.NewArgErrorf(1, "%s is not a regular file", filename)
+
+				// Note: os.ModeSymlink should be impossible because we used
+				// os.Stat above, not os.Lstat.
+			}
+
+			return cty.False, err
 		},
 	})
 }
