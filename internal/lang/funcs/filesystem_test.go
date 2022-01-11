@@ -228,12 +228,12 @@ func TestFileExists(t *testing.T) {
 		{
 			cty.StringVal(""),
 			cty.BoolVal(false),
-			`"." is not a regular file, but "drwxr-xr-x"`,
+			`"." is a directory, not a file`,
 		},
 		{
 			cty.StringVal("testdata").Mark(marks.Sensitive),
 			cty.BoolVal(false),
-			`(sensitive value) is not a regular file, but "drwxr-xr-x"`,
+			`(sensitive value) is a directory, not a file`,
 		},
 		{
 			cty.StringVal("testdata/missing"),
