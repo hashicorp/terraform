@@ -372,7 +372,7 @@ in order to capture the filesystem context the remote workspace expects:
 			Run:           r,
 		}
 
-		if stageID := getTaskStageIDByName(r.TaskStages, "pre_apply"); stageID != nil {
+		if stageID := getTaskStageIDByName(r.TaskStages, tfe.PreApply); stageID != nil {
 			err = b.runTasks(integration, integration.BeginOutput("Run Tasks (pre-apply)"), *stageID)
 			if err != nil {
 				return r, err
@@ -383,9 +383,9 @@ in order to capture the filesystem context the remote workspace expects:
 	return r, nil
 }
 
-func getTaskStageIDByName(stages []*tfe.TaskStage, name string) *string {
+func getTaskStageIDByName(stages []*tfe.TaskStage, stageName tfe.Stage) *string {
 	for _, stage := range stages {
-		if stage.Stage == name {
+		if stage.Stage == stageName {
 			return &stage.ID
 		}
 	}
