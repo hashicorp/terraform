@@ -7,14 +7,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -24,174 +23,40 @@ type ShowCommand struct {
 	Meta
 }
 
-func (c *ShowCommand) Run(args []string) int {
-	args = c.Meta.process(args)
-	cmdFlags := c.Meta.defaultFlagSet("show")
-	var jsonOutput bool
-	cmdFlags.BoolVar(&jsonOutput, "json", false, "produce JSON output")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+func (c *ShowCommand) Run(rawArgs []string) int {
+	// Parse and apply global view arguments
+	common, rawArgs := arguments.ParseView(rawArgs)
+	c.View.Configure(common)
+
+	// Parse and validate flags
+	args, diags := arguments.ParseShow(rawArgs)
+	if diags.HasErrors() {
+		c.View.Diagnostics(diags)
+		c.View.HelpPrompt("show")
 		return 1
 	}
 
-	args = cmdFlags.Args()
-	if len(args) > 2 {
-		c.Ui.Error(
-			"The show command expects at most two arguments.\n The path to a " +
-				"Terraform state or plan file, and optionally -json for json output.\n")
-		cmdFlags.Usage()
-		return 1
-	}
+	// Set up view
+	view := views.NewShow(args.ViewType, c.View)
 
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		diags = diags.Append(fmt.Errorf("error loading plugin path: %s", err))
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	var diags tfdiags.Diagnostics
-
-	// Load the backend
-	b, backendDiags := c.Backend(nil)
-	diags = diags.Append(backendDiags)
-	if backendDiags.HasErrors() {
-		c.showDiagnostics(diags)
+	// Get the data we need to display
+	plan, stateFile, config, schemas, showDiags := c.show(args.Path)
+	diags = diags.Append(showDiags)
+	if showDiags.HasErrors() {
+		view.Diagnostics(diags)
 		return 1
 	}
 
-	// We require a local backend
-	local, ok := b.(backend.Local)
-	if !ok {
-		c.showDiagnostics(diags) // in case of any warnings in here
-		c.Ui.Error(ErrUnsupportedLocalOp)
-		return 1
-	}
-
-	// This is a read-only command
-	c.ignoreRemoteVersionConflict(b)
-
-	// the show command expects the config dir to always be the cwd
-	cwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
-		return 1
-	}
-
-	// Determine if a planfile was passed to the command
-	var planFile *planfile.Reader
-	if len(args) > 0 {
-		// We will handle error checking later on - this is just required to
-		// load the local context if the given path is successfully read as
-		// a planfile.
-		planFile, _ = c.PlanFile(args[0])
-	}
-
-	// Build the operation
-	opReq := c.Operation(b)
-	opReq.ConfigDir = cwd
-	opReq.PlanFile = planFile
-	opReq.ConfigLoader, err = c.initConfigLoader()
-	opReq.AllowUnsetVariables = true
-	opReq.DisablePlanFileStateLineageChecks = true
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	// Get the context
-	lr, _, ctxDiags := local.LocalRun(opReq)
-	diags = diags.Append(ctxDiags)
-	if ctxDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	// Get the schemas from the context
-	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	var planErr, stateErr error
-	var plan *plans.Plan
-	var stateFile *statefile.File
-
-	// if a path was provided, try to read it as a path to a planfile
-	// if that fails, try to read the cli argument as a path to a statefile
-	if len(args) > 0 {
-		path := args[0]
-		plan, stateFile, planErr = getPlanFromPath(path)
-		if planErr != nil {
-			stateFile, stateErr = getStateFromPath(path)
-			if stateErr != nil {
-				c.Ui.Error(fmt.Sprintf(
-					"Terraform couldn't read the given file as a state or plan file.\n"+
-						"The errors while attempting to read the file as each format are\n"+
-						"shown below.\n\n"+
-						"State read error: %s\n\nPlan read error: %s",
-					stateErr,
-					planErr))
-				return 1
-			}
-		}
-	} else {
-		env, err := c.Workspace()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
-			return 1
-		}
-		stateFile, stateErr = getStateFromEnv(b, env)
-		if stateErr != nil {
-			c.Ui.Error(stateErr.Error())
-			return 1
-		}
-	}
-
-	if plan != nil {
-		if jsonOutput {
-			config := lr.Config
-			jsonPlan, err := jsonplan.Marshal(config, plan, stateFile, schemas)
-
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Failed to marshal plan to json: %s", err))
-				return 1
-			}
-			c.Ui.Output(string(jsonPlan))
-			return 0
-		}
-
-		view := views.NewShow(arguments.ViewHuman, c.View)
-		view.Plan(plan, schemas)
-		return 0
-	}
-
-	if jsonOutput {
-		// At this point, it is possible that there is neither state nor a plan.
-		// That's ok, we'll just return an empty object.
-		jsonState, err := jsonstate.Marshal(stateFile, schemas)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to marshal state to json: %s", err))
-			return 1
-		}
-		c.Ui.Output(string(jsonState))
-	} else {
-		if stateFile == nil {
-			c.Ui.Output("No state.")
-			return 0
-		}
-		c.Ui.Output(format.State(&format.StateOpts{
-			State:   stateFile.State,
-			Color:   c.Colorize(),
-			Schemas: schemas,
-		}))
-	}
-
-	return 0
+	// Display the data
+	return view.Display(config, plan, stateFile, schemas)
 }
 
 func (c *ShowCommand) Help() string {
@@ -215,52 +80,171 @@ func (c *ShowCommand) Synopsis() string {
 	return "Show the current state or a saved plan"
 }
 
-// getPlanFromPath returns a plan and statefile if the user-supplied path points
-// to a planfile. If both plan and error are nil, the path is likely a
-// directory. An error could suggest that the given path points to a statefile.
-func getPlanFromPath(path string) (*plans.Plan, *statefile.File, error) {
-	pr, err := planfile.Open(path)
-	if err != nil {
-		return nil, nil, err
-	}
-	plan, err := pr.ReadPlan()
-	if err != nil {
-		return nil, nil, err
+func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.Config, *terraform.Schemas, tfdiags.Diagnostics) {
+	var diags, showDiags tfdiags.Diagnostics
+	var plan *plans.Plan
+	var stateFile *statefile.File
+	var config *configs.Config
+	var schemas *terraform.Schemas
+
+	// No plan file or state file argument provided,
+	// so get the latest state snapshot
+	if path == "" {
+		stateFile, showDiags = c.showFromLatestStateSnapshot()
+		diags = diags.Append(showDiags)
+		if showDiags.HasErrors() {
+			return plan, stateFile, config, schemas, diags
+		}
 	}
 
-	stateFile, err := pr.ReadStateFile()
-	return plan, stateFile, err
+	// Plan file or state file argument provided,
+	// so try to load the argument as a plan file first.
+	// If that fails, try to load it as a statefile.
+	if path != "" {
+		plan, stateFile, config, showDiags = c.showFromPath(path)
+		diags = diags.Append(showDiags)
+		if showDiags.HasErrors() {
+			return plan, stateFile, config, schemas, diags
+		}
+	}
+
+	// Get schemas, if possible
+	if config != nil || stateFile != nil {
+		opts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return plan, stateFile, config, schemas, diags
+		}
+		tfCtx, ctxDiags := terraform.NewContext(opts)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			return plan, stateFile, config, schemas, diags
+		}
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = tfCtx.Schemas(config, stateFile.State)
+		diags = diags.Append(schemaDiags)
+		if schemaDiags.HasErrors() {
+			return plan, stateFile, config, schemas, diags
+		}
+	}
+
+	return plan, stateFile, config, schemas, diags
+}
+func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Load the backend
+	b, backendDiags := c.Backend(nil)
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		return nil, diags
+	}
+	c.ignoreRemoteVersionConflict(b)
+
+	// Load the workspace
+	workspace, err := c.Workspace()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("error selecting workspace: %s", err))
+		return nil, diags
+	}
+
+	// Get the latest state snapshot from the backend for the current workspace
+	stateFile, stateErr := getStateFromBackend(b, workspace)
+	if stateErr != nil {
+		diags = diags.Append(stateErr.Error())
+		return nil, diags
+	}
+
+	return stateFile, diags
+}
+
+func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *statefile.File, *configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var planErr, stateErr error
+	var plan *plans.Plan
+	var stateFile *statefile.File
+	var config *configs.Config
+
+	// Try to get the plan file and associated data from
+	// the path argument. If that fails, try to get the
+	// statefile from the path argument.
+	plan, stateFile, config, planErr = getPlanFromPath(path)
+	if planErr != nil {
+		stateFile, stateErr = getStateFromPath(path)
+		if stateErr != nil {
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to read the given file as a state or plan file",
+					fmt.Sprintf("State read error: %s\n\nPlan read error: %s", stateErr, planErr),
+				),
+			)
+			return nil, nil, nil, diags
+		}
+	}
+	return plan, stateFile, config, diags
+}
+
+// getPlanFromPath returns a plan, statefile, and config if the user-supplied
+// path points to a plan file. If both plan and error are nil, the path is likely
+// a directory. An error could suggest that the given path points to a statefile.
+func getPlanFromPath(path string) (*plans.Plan, *statefile.File, *configs.Config, error) {
+	planReader, err := planfile.Open(path)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Get plan
+	plan, err := planReader.ReadPlan()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Get statefile
+	stateFile, err := planReader.ReadStateFile()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Get config
+	config, diags := planReader.ReadConfig()
+	if diags.HasErrors() {
+		return nil, nil, nil, diags.Err()
+	}
+
+	return plan, stateFile, config, err
 }
 
 // getStateFromPath returns a statefile if the user-supplied path points to a statefile.
 func getStateFromPath(path string) (*statefile.File, error) {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading statefile: %s", err)
 	}
-	defer f.Close()
+	defer file.Close()
 
 	var stateFile *statefile.File
-	stateFile, err = statefile.Read(f)
+	stateFile, err = statefile.Read(file)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
 	}
 	return stateFile, nil
 }
 
-// getStateFromEnv returns the State for the current workspace, if available.
-func getStateFromEnv(b backend.Backend, env string) (*statefile.File, error) {
-	// Get the state
-	stateStore, err := b.StateMgr(env)
+// getStateFromBackend returns the State for the current workspace, if available.
+func getStateFromBackend(b backend.Backend, workspace string) (*statefile.File, error) {
+	// Get the state store for the given workspace
+	stateStore, err := b.StateMgr(workspace)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to load state manager: %s", err)
 	}
 
+	// Refresh the state store with the latest state snapshot from persistent storage
 	if err := stateStore.RefreshState(); err != nil {
 		return nil, fmt.Errorf("Failed to load state: %s", err)
 	}
 
-	sf := statemgr.Export(stateStore)
-
-	return sf, nil
+	// Get the latest state snapshot and return it
+	stateFile := statemgr.Export(stateStore)
+	return stateFile, nil
 }

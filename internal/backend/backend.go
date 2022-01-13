@@ -275,13 +275,6 @@ type Operation struct {
 	// the variables set in the plan are used instead, and they must be valid.
 	AllowUnsetVariables bool
 
-	// When loading a plan file for a read-only operation, we may want to
-	// disable the state lineage checks which are only relevant for operations
-	// which can modify state. An example where this is important is showing
-	// a plan which was prepared against a non-default state file, because the
-	// lineage checks are always against the default state.
-	DisablePlanFileStateLineageChecks bool
-
 	// View implements the logic for all UI interactions.
 	View views.Operation
 
