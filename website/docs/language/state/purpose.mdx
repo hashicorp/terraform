@@ -24,7 +24,7 @@ shifting massive amounts of complexity from one place (state) to another place
 Terraform requires some sort of database to map Terraform config to the real
 world. For example, when you have a resource `resource "aws_instance" "foo"` in your
 configuration, Terraform uses this mapping to know that the resource `resource "aws_instance" "foo"`
-represents a real world object having instance ID `i-abcd1234` on a remote system.
+represents a real world object with the instance ID `i-abcd1234` on a remote system.
 
 For some providers like AWS, Terraform could theoretically use something like
 AWS tags. Early prototypes of Terraform actually had no state files and used
