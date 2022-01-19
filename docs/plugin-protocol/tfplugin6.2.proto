@@ -1,0 +1,350 @@
+// Terraform Plugin RPC protocol version 6.2
+//
+// This file defines version 6.2 of the RPC protocol. To implement a plugin
+// against this protocol, copy this definition into your own codebase and
+// use protoc to generate stubs for your target language.
+//
+// This file will not be updated. Any minor versions of protocol 6 to follow
+// should copy this file and modify the copy while maintaing backwards
+// compatibility. Breaking changes, if any are required, will come
+// in a subsequent major version with its own separate proto definition.
+//
+// Note that only the proto files included in a release tag of Terraform are
+// official protocol releases. Proto files taken from other commits may include
+// incomplete changes or features that did not make it into a final release.
+// In all reasonable cases, plugin developers should take the proto file from
+// the tag of the most recent release of Terraform, and not from the main
+// branch or any other development branch.
+//
+syntax = "proto3";
+option go_package = "github.com/hashicorp/terraform/internal/tfplugin6";
+
+package tfplugin6;
+
+// DynamicValue is an opaque encoding of terraform data, with the field name
+// indicating the encoding scheme used.
+message DynamicValue {
+    bytes msgpack = 1;
+    bytes json = 2;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    AttributePath attribute = 4;
+}
+
+message AttributePath {
+    message Step {
+        oneof selector {
+            // Set "attribute_name" to represent looking up an attribute
+            // in the current object value.
+            string attribute_name = 1;
+            // Set "element_key_*" to represent looking up an element in
+            // an indexable collection type.
+            string element_key_string = 2;
+            int64 element_key_int = 3;
+        }
+    }
+    repeated Step steps = 1;
+}
+
+message StopProvider {
+    message Request {
+    }
+    message Response {
+        string Error = 1;
+    }
+}
+
+// RawState holds the stored state for a resource to be upgraded by the
+// provider. It can be in one of two formats, the current json encoded format
+// in bytes, or the legacy flatmap format as a map of strings.
+message RawState {
+    bytes json = 1;
+    map<string, string> flatmap = 2;
+}
+
+enum StringKind {
+    PLAIN = 0;
+    MARKDOWN = 1;
+}
+
+// Schema is the configuration schema for a Resource or Provider.
+message Schema {
+    message Block {
+        int64 version = 1;
+        repeated Attribute attributes = 2;
+        repeated NestedBlock block_types = 3;
+        string description = 4;
+        StringKind description_kind = 5;
+        bool deprecated = 6;
+    }
+
+    message Attribute {
+        string name = 1;
+        bytes type = 2;
+        Object nested_type = 10;
+        string description = 3;
+        bool required = 4;
+        bool optional = 5;
+        bool computed = 6;
+        bool sensitive = 7;
+        StringKind description_kind = 8;
+        bool deprecated = 9;
+    }
+
+    message NestedBlock {
+        enum NestingMode {
+            INVALID = 0;
+            SINGLE = 1;
+            LIST = 2;
+            SET = 3;
+            MAP = 4;
+            GROUP = 5;
+        }
+
+        string type_name = 1;
+        Block block = 2;
+        NestingMode nesting = 3;
+        int64 min_items = 4;
+        int64 max_items = 5;
+    }
+
+    message Object {
+        enum NestingMode {
+            INVALID = 0;
+            SINGLE = 1;
+            LIST = 2;
+            SET = 3;
+            MAP = 4;
+        }
+
+        repeated Attribute attributes = 1;
+        NestingMode nesting = 3;
+
+        // MinItems and MaxItems were never used in the protocol, and have no
+        // effect on validation.
+        int64 min_items = 4 [deprecated = true];
+        int64 max_items = 5 [deprecated = true];
+    }
+
+    // The version of the schema.
+    // Schemas are versioned, so that providers can upgrade a saved resource
+    // state when the schema is changed.
+    int64 version = 1;
+
+    // Block is the top level configuration block for this schema.
+    Block block = 2;
+}
+
+service Provider {
+    //////// Information about what a provider supports/expects
+    rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
+    rpc ValidateProviderConfig(ValidateProviderConfig.Request) returns (ValidateProviderConfig.Response);
+    rpc ValidateResourceConfig(ValidateResourceConfig.Request) returns (ValidateResourceConfig.Response);
+    rpc ValidateDataResourceConfig(ValidateDataResourceConfig.Request) returns (ValidateDataResourceConfig.Response);
+    rpc UpgradeResourceState(UpgradeResourceState.Request) returns (UpgradeResourceState.Response);
+
+    //////// One-time initialization, called before other functions below
+    rpc ConfigureProvider(ConfigureProvider.Request) returns (ConfigureProvider.Response);
+
+    //////// Managed Resource Lifecycle
+    rpc ReadResource(ReadResource.Request) returns (ReadResource.Response);
+    rpc PlanResourceChange(PlanResourceChange.Request) returns (PlanResourceChange.Response);
+    rpc ApplyResourceChange(ApplyResourceChange.Request) returns (ApplyResourceChange.Response);
+    rpc ImportResourceState(ImportResourceState.Request) returns (ImportResourceState.Response);
+
+    rpc ReadDataSource(ReadDataSource.Request) returns (ReadDataSource.Response);
+
+    //////// Graceful Shutdown
+    rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
+}
+
+message GetProviderSchema {
+    message Request {
+    }
+    message Response {
+        Schema provider = 1;
+        map<string, Schema> resource_schemas = 2;
+        map<string, Schema> data_source_schemas = 3;
+        repeated Diagnostic diagnostics = 4;
+        Schema provider_meta = 5;
+    }
+}
+
+message ValidateProviderConfig {
+    message Request {
+        DynamicValue config = 1;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message UpgradeResourceState {
+    message Request {
+        string type_name = 1;
+
+        // version is the schema_version number recorded in the state file
+        int64 version = 2;
+
+        // raw_state is the raw states as stored for the resource.  Core does
+        // not have access to the schema of prior_version, so it's the
+        // provider's responsibility to interpret this value using the
+        // appropriate older schema. The raw_state will be the json encoded
+        // state, or a legacy flat-mapped format.
+        RawState raw_state = 3;
+    }
+    message Response {
+        // new_state is a msgpack-encoded data structure that, when interpreted with
+        // the _current_ schema for this resource type, is functionally equivalent to
+        // that which was given in prior_state_raw.
+        DynamicValue upgraded_state = 1;
+
+        // diagnostics describes any errors encountered during migration that could not
+        // be safely resolved, and warnings about any possibly-risky assumptions made
+        // in the upgrade process.
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message ValidateResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ValidateDataResourceConfig {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ConfigureProvider {
+    message Request {
+        string terraform_version = 1;
+        DynamicValue config = 2;
+    }
+    message Response {
+        repeated Diagnostic diagnostics = 1;
+    }
+}
+
+message ReadResource {
+    message Request {
+        string type_name = 1;
+        DynamicValue current_state = 2;
+        bytes private = 3;
+        DynamicValue provider_meta = 4;
+    }
+    message Response {
+        DynamicValue new_state = 1;
+        repeated Diagnostic diagnostics = 2;
+        bytes private = 3;
+    }
+}
+
+message PlanResourceChange {
+    message Request {
+        string type_name = 1;
+        DynamicValue prior_state = 2;
+        DynamicValue proposed_new_state = 3;
+        DynamicValue config = 4;
+        bytes prior_private = 5;
+        DynamicValue provider_meta = 6;
+    }
+
+    message Response {
+        DynamicValue planned_state = 1;
+        repeated AttributePath requires_replace = 2;
+        bytes planned_private = 3;
+        repeated Diagnostic diagnostics = 4;
+
+        // This may be set only by the helper/schema "SDK" in the main Terraform
+        // repository, to request that Terraform Core >=0.12 permit additional
+        // inconsistencies that can result from the legacy SDK type system
+        // and its imprecise mapping to the >=0.12 type system.
+        // The change in behavior implied by this flag makes sense only for the
+        // specific details of the legacy SDK type system, and are not a general
+        // mechanism to avoid proper type handling in providers.
+        //
+        //     ====              DO NOT USE THIS              ====
+        //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+        //     ====              DO NOT USE THIS              ====
+        bool legacy_type_system = 5;
+    }
+}
+
+message ApplyResourceChange {
+    message Request {
+        string type_name = 1;
+        DynamicValue prior_state = 2;
+        DynamicValue planned_state = 3;
+        DynamicValue config = 4;
+        bytes planned_private = 5;
+        DynamicValue provider_meta = 6;
+    }
+    message Response {
+        DynamicValue new_state = 1;
+        bytes private = 2;
+        repeated Diagnostic diagnostics = 3;
+
+        // This may be set only by the helper/schema "SDK" in the main Terraform
+        // repository, to request that Terraform Core >=0.12 permit additional
+        // inconsistencies that can result from the legacy SDK type system
+        // and its imprecise mapping to the >=0.12 type system.
+        // The change in behavior implied by this flag makes sense only for the
+        // specific details of the legacy SDK type system, and are not a general
+        // mechanism to avoid proper type handling in providers.
+        //
+        //     ====              DO NOT USE THIS              ====
+        //     ==== THIS MUST BE LEFT UNSET IN ALL OTHER SDKS ====
+        //     ====              DO NOT USE THIS              ====
+        bool legacy_type_system = 4;
+    }
+}
+
+message ImportResourceState {
+    message Request {
+        string type_name = 1;
+        string id = 2;
+    }
+
+    message ImportedResource {
+        string type_name = 1;
+        DynamicValue state = 2;
+        bytes private = 3;
+    }
+
+    message Response {
+        repeated ImportedResource imported_resources = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message ReadDataSource {
+    message Request {
+        string type_name = 1;
+        DynamicValue config = 2;
+        DynamicValue provider_meta = 3;
+    }
+    message Response {
+        DynamicValue state = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
