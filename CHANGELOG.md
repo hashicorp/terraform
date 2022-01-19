@@ -1,6 +1,6 @@
 ## 1.1.4 (Unreleased)
 
-BIG FIXES:
+BUG FIXES:
 
 * config: Non-nullable variables with null inputs were not given default values when checking validation statements [GH-30330]
 * config: Terraform will no longer incorrectly report "Cross-package move statement" when an external package has changed a resource from no `count` to using `count`, or vice-versa. [GH-30333]
