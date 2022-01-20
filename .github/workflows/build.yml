@@ -199,7 +199,7 @@ jobs:
           (cd dist && unzip "../terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip")
           mkdir -p out
       - name: Build Linux distribution packages
-        uses: hashicorp/package@v1
+        uses: hashicorp/actions-packaging-linux@v1
         with:
           name: "terraform"
           description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
