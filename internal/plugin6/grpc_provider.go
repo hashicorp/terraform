@@ -436,6 +436,8 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
 
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
+
 	return resp
 }
 
@@ -493,6 +495,8 @@ func (p *GRPCProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return resp
 	}
 	resp.NewState = state
+
+	resp.LegacyTypeSystem = protoResp.LegacyTypeSystem
 
 	return resp
 }
