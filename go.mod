@@ -17,7 +17,7 @@ require (
 	github.com/armon/circbuf v0.0.0-20190214190532-5111143e8da2
 	github.com/aws/aws-sdk-go v1.42.35
 	github.com/bgentry/speakeasy v0.1.0
-	github.com/bmatcuk/doublestar v1.1.5
+	github.com/bmatcuk/doublestar v1.3.4
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/davecgh/go-spew v1.1.1
