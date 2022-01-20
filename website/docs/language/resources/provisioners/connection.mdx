@@ -15,15 +15,15 @@ expect a nested `connection` block with details about how to connect.
 
 ## Connection Block
 
-You can create one or more `connection` blocks that describe how to access the remote resource. One use case for providing multiple connections is to have an initial provisioner connect as the `root` user to set up user accounts, and then have subsequent provisioners connect as a user with more limited permissions.
+You can create one or more `connection` blocks that describe how to access the remote resource. One use case for providing multiple connections is to have an initial provisioner connect as the `root` user to set up user accounts and then have subsequent provisioners connect as a user with more limited permissions.
 
-Connection blocks don't take a block label, and can be nested within either a
+Connection blocks don't take a block label and can be nested within either a
 `resource` or a `provisioner`.
 
 * A `connection` block nested directly within a `resource` affects all of
   that resource's provisioners.
 * A `connection` block nested in a `provisioner` block only affects that
-  provisioner, and overrides any resource-level connection settings.
+  provisioner and overrides any resource-level connection settings.
 
 Since the SSH connection type is most often used with
 newly-created remote resources, validation of SSH host keys is disabled by
@@ -65,28 +65,28 @@ provisioner "file" {
 }
 ```
 
-## The `self` Object
+### The `self` Object
 
-Expressions in `connection` blocks cannot refer to their parent resource by
-name. Instead, they can use the special `self` object.
+Expressions in `connection` blocks cannot refer to their parent resource by name. References create dependencies, and referring to a resource by name within its own block would create a dependency cycle. Instead, expressions can use the `self` object, which represents the connection's parent resource and has all of that resource's attributes. For example, use `self.public_ip` to reference an `aws_instance`'s `public_ip` attribute.
 
-The `self` object represents the connection's parent resource, and has all of
-that resource's attributes. For example, use `self.public_ip` to reference an
-`aws_instance`'s `public_ip` attribute.
 
-Resource references are restricted because references create dependencies. Referring to a resource by name within its own block would create a dependency cycle.
+### Argument Reference
 
-## Argument Reference
+The `connection` block supports the following argments. Some arguments are only supported by either the SSH or the WinRM connection type.
 
-| Argument Name | Supported By | Description | Default |
+Behaviors which would vary based on
+the `target_platform` option if using SSH will instead force the
+Windows-specific behavior when using WinRM, unless otherwise specified.
+
+| Argument | Connection Type | Description | Default |
 |---------------|--------------|-------------|---------|
-| `type` | Both | The connection type that should be used. Valid types are `"ssh"` and `"winrm"`. | `"ssh"` |
+| `type` | Both | The connection type. Valid values are `"ssh"` and `"winrm"`. Provisioners typically assume that the remote system runs Microsoft Windows when using the `"winrm"` connection type. | `"ssh"` |
 | `user` | Both | The user to use for the connection. | `root` for type `"ssh"`<br />`Administrator` for type `"winrm"` |
-| `password` | Both | The password we should use for the connection. | |
+| `password` | Both | The password to use for the connection. | |
 | `host` | Both | **Required** - The address of the resource to connect to. | |
 | `port` | Both| The port to connect to. | `22` for type `"ssh"`<br />`5985` for type `"winrm"` |
-| `timeout` | Both | The timeout to wait for the connection to become available. Should be provided as a string like `"30s"` or `"5m"`. | `"5m"` |
-| `script_path` | Both | The path used to copy scripts meant for remote execution. For more information, see [How Provisioners Execute Remote Scripts](#how-provisioners-execute-remote-scripts) below. | (see below)) |
+| `timeout` | Both | The timeout to wait for the connection to become available. Should be provided as a string (e.g., `"30s"` or `"5m"`.) | `"5m"` |
+| `script_path` | Both | The path used to copy scripts meant for remote execution. Refer to [How Provisioners Execute Remote Scripts](#how-provisioners-execute-remote-scripts) below for more details. | (details below) |
 | `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/language/functions/file). This takes preference over `password` if provided. | |
 | `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/language/functions/file). | |
 | `agent` | SSH | Set to `false` to disable using `ssh-agent` to authenticate. On Windows the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). |   |
@@ -94,23 +94,19 @@ Resource references are restricted because references create dependencies. Refer
 | `host_key` | SSH | The public key from the remote host or the signing CA, used to verify the connection. | |
 | `target_platform` | SSH | The target platform to connect to. Valid values are `"windows"` and `"unix"`. If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\terraform_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"` | `"unix"` |
 | `https` | WinRM | Set to `true` to connect using HTTPS instead of HTTP. | |
-| `insecure` | WinRM | Set to `true` to not validate skip validating the HTTPS certificate chain. | |
-| `use_ntlm` | WinRM | Set to `true` to use NTLM authentication, rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. For more information, see [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation. | |
+| `insecure` | WinRM | Set to `true` to skip validating the HTTPS certificate chain. | |
+| `use_ntlm` | WinRM | Set to `true` to use NTLM authentication rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Refer to [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation for more details. | |
 | `cacert` | WinRM | The CA certificate to validate against. | |
 
-Provisioners typically assume that the remote system runs Microsoft Windows
-when using the `winrm` connection type. Behaviors which would vary based on
-the `target_platform` option if using SSH will instead force the
-Windows-specific behavior when using WinRM, unless otherwise specified.
 
 <a id="bastion"></a>
 
 ## Connecting through a Bastion Host with SSH
 
 The `ssh` connection also supports the following arguments to connect
-indirectly via a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
+indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 
-| Argument Name | Description | Default |
+| Argument | Description | Default |
 |---------------|-------------|---------|
 | `bastion_host` | Setting this enables the bastion Host connection. The provisioner will connect to `bastion_host` first, and then connect from there to `host`. | |
 | `bastion_host_key` | The public key from the remote host or the signing CA, used to verify the host connection. | |
