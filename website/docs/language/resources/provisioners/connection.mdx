@@ -74,13 +74,10 @@ Expressions in `connection` blocks cannot refer to their parent resource by name
 
 The `connection` block supports the following argments. Some arguments are only supported by either the SSH or the WinRM connection type.
 
-Behaviors which would vary based on
-the `target_platform` option if using SSH will instead force the
-Windows-specific behavior when using WinRM, unless otherwise specified.
 
 | Argument | Connection Type | Description | Default |
 |---------------|--------------|-------------|---------|
-| `type` | Both | The connection type. Valid values are `"ssh"` and `"winrm"`. Provisioners typically assume that the remote system runs Microsoft Windows when using the `"winrm"` connection type. | `"ssh"` |
+| `type` | Both | The connection type. Valid values are `"ssh"` and `"winrm"`. Provisioners typically assume that the remote system runs Microsoft Windows when using WinRM. Behaviors based on the SSH `target_platform` will force Windows-specific behavior for WinRM, unless otherwise specified.| `"ssh"` |
 | `user` | Both | The user to use for the connection. | `root` for type `"ssh"`<br />`Administrator` for type `"winrm"` |
 | `password` | Both | The password to use for the connection. | |
 | `host` | Both | **Required** - The address of the resource to connect to. | |
@@ -182,7 +179,7 @@ connection {
 }
 ```
 
--> **Warning:** In Terraform v1.0 and earlier, the built-in provisioners
+!> **Warning:** In Terraform v1.0 and earlier, the built-in provisioners
 incorrectly passed the `script_path` value to `scp` through a remote shell and
 thus allowed it to be subject to arbitrary shell expansion, and thus created an
 unintended opportunity for remote code execution. Terraform v1.1 and later
