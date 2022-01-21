@@ -19,11 +19,6 @@ var completePredictModuleSource = complete.PredictAnything
 type completePredictSequence []complete.Predictor
 
 func (s completePredictSequence) Predict(a complete.Args) []string {
-	// Only one level of command is stripped off the prefix of a.Completed
-	// here, so nested subcommands like "workspace new" will need to provide
-	// dummy entries (e.g. complete.PredictNothing) as placeholders for
-	// all but the first subcommand. For example, "workspace new" needs
-	// one placeholder for the argument "new".
 	idx := len(a.Completed)
 	if idx >= len(s) {
 		return nil
