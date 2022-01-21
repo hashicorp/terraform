@@ -190,7 +190,6 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 func (c *WorkspaceDeleteCommand) AutocompleteArgs() complete.Predictor {
 	return completePredictSequence{
-		complete.PredictNothing, // the "select" subcommand itself (already matched)
 		c.completePredictWorkspaceName(),
 		complete.PredictDirs(""),
 	}
