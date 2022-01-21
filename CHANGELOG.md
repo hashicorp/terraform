@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * backend/s3: Update AWS SDK to allow the use of the ap-southeast-3 region [GH-30363]
 
+BUG FIXES:
+
+* cli: Fix crash when using autocomplete with long commands, such as `terraform workspace select` [GH-30193]
+
 ## 1.1.4 (January 19, 2022)
 
 BUG FIXES:
