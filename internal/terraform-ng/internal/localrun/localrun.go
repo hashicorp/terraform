@@ -15,5 +15,5 @@ import (
 func nothing() {
 	// This is literally just here to see what happens when we import the
 	// Terraform package into this nested module.
-	var thing terraform.Context
+	var _ terraform.Context
 }
