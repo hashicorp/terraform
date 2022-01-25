@@ -9,7 +9,7 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show the Terraform-NG version number",
+	Short: "Show the Terraform-NG version number.",
 	Run: func(cmd *cobra.Command, args []string) {
 		versionStr := "devel"
 		if info, ok := debug.ReadBuildInfo(); ok {
