@@ -1,0 +1,26 @@
+{
+  "severity": "error",
+  "summary": "You forgot something",
+  "detail": "Please finish your thought",
+  "range": {
+    "filename": "short.tf",
+    "start": {
+      "line": 1,
+      "column": 16,
+      "byte": 15
+    },
+    "end": {
+      "line": 1,
+      "column": 17,
+      "byte": 16
+    }
+  },
+  "snippet": {
+    "context": null,
+    "code": "bad source code",
+    "start_line": 1,
+    "highlight_start_offset": 15,
+    "highlight_end_offset": 15,
+    "values": []
+  }
+}

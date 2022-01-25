@@ -8,10 +8,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // Record represents some metadata about an installed module, as part
@@ -25,6 +26,9 @@ type Record struct {
 	// This is used only to detect if the source was changed in configuration
 	// since the module was last installed, which means that the installer
 	// must re-install it.
+	//
+	// This should always be the result of calling method String on an
+	// addrs.ModuleSource value, to get a suitably-normalized result.
 	SourceAddr string `json:"Source"`
 
 	// Version is the exact version of the module, which results from parsing
@@ -48,7 +52,11 @@ type Record struct {
 type Manifest map[string]Record
 
 func (m Manifest) ModuleKey(path addrs.Module) string {
-	return path.String()
+	if len(path) == 0 {
+		return ""
+	}
+	return strings.Join([]string(path), ".")
+
 }
 
 // manifestSnapshotFile is an internal struct used only to assist in our JSON
@@ -72,7 +80,9 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 
 	var read manifestSnapshotFile
 	err = json.Unmarshal(src, &read)
-
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling snapshot: %v", err)
+	}
 	new := make(Manifest)
 	for _, record := range read.Records {
 		if record.VersionStr != "" {
@@ -81,6 +91,25 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 				return nil, fmt.Errorf("invalid version %q for %s: %s", record.VersionStr, record.Key, err)
 			}
 		}
+
+		// Historically we didn't normalize the module source addresses when
+		// writing them into the manifest, and so we'll make a best effort
+		// to normalize them back in on read so that we can just gracefully
+		// upgrade on the next "terraform init".
+		if record.SourceAddr != "" {
+			if addr, err := addrs.ParseModuleSource(record.SourceAddr); err == nil {
+				// This is a best effort sort of thing. If the source
+				// address isn't valid then we'll just leave it as-is
+				// and let another component detect that downstream,
+				// to preserve the old behavior in that case.
+				record.SourceAddr = addr.String()
+			}
+		}
+
+		// Ensure Windows is using the proper modules path format after
+		// reading the modules manifest Dir records
+		record.Dir = filepath.FromSlash(record.Dir)
+
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
@@ -115,6 +144,10 @@ func (m Manifest) WriteSnapshot(w io.Writer) error {
 		} else {
 			record.VersionStr = ""
 		}
+
+		// Ensure Dir is written in a format that can be read by Linux and
+		// Windows nodes for remote and apply compatibility
+		record.Dir = filepath.ToSlash(record.Dir)
 		write.Records = append(write.Records, record)
 	}
 

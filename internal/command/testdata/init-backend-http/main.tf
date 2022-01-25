@@ -1,0 +1,4 @@
+terraform {
+  backend "http" {
+  }
+}

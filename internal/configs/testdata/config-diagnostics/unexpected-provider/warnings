@@ -1,0 +1,2 @@
+unexpected-provider/main.tf:13,5-8: Provider foo is undefined; Module module.mod does not declare a provider named foo.
+

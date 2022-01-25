@@ -1,0 +1,1 @@
+pass-inherited-provider/mod/main.tf:15,16-20: No configuration passed in for provider test in module.mod; Provider test is referenced within module.mod, but no configuration has been supplied

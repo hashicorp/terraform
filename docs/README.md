@@ -4,7 +4,7 @@ This directory contains some documentation about the Terraform Core codebase,
 aimed at readers who are interested in making code contributions.
 
 If you're looking for information on _using_ Terraform, please instead refer
-to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli-index.html).
+to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/index.html).
 
 ## Terraform Core Architecture Documents
 
@@ -24,6 +24,16 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli-inde
   please refer to [the Extend documentation](https://www.terraform.io/docs/extend/index.html)
   instead; it presents similar information from the perspective of the SDK
   API, rather than the plugin wire protocol.)
+
+* [Plugin Protocol](./plugin-protocol/): gRPC/protobuf definitions for the
+  plugin wire protocol and information about its versioning strategy.
+
+  This documentation is for SDK developers, and is not necessary reading for
+  those implementing a provider using the official SDK.
+
+* [How Terraform Uses Unicode](./unicode.md): an overview of the various
+  features of Terraform that rely on Unicode and how to change those features
+  to adopt new versions of Unicode.
 
 ## Contribution Guides
 

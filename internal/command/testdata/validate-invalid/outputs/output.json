@@ -1,0 +1,60 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 2,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Missing required argument",
+      "detail": "The argument \"value\" is required, but no definition was found.",
+      "range": {
+        "filename": "testdata/validate-invalid/outputs/main.tf",
+        "start": {
+          "line": 1,
+          "column": 18,
+          "byte": 17
+        },
+        "end": {
+          "line": 1,
+          "column": 19,
+          "byte": 18
+        }
+      },
+      "snippet": {
+        "context": "output \"myvalue\"",
+        "code": "output \"myvalue\" {",
+        "start_line": 1,
+        "highlight_start_offset": 17,
+        "highlight_end_offset": 18,
+        "values": []
+      }
+    },
+    {
+      "severity": "error",
+      "summary": "Unsupported argument",
+      "detail": "An argument named \"values\" is not expected here. Did you mean \"value\"?",
+      "range": {
+        "filename": "testdata/validate-invalid/outputs/main.tf",
+        "start": {
+          "line": 2,
+          "column": 3,
+          "byte": 21
+        },
+        "end": {
+          "line": 2,
+          "column": 9,
+          "byte": 27
+        }
+      },
+      "snippet": {
+        "context": "output \"myvalue\"",
+        "code": "  values = \"Some value\"",
+        "start_line": 2,
+        "highlight_start_offset": 2,
+        "highlight_end_offset": 8,
+        "values": []
+      }
+    }
+  ]
+}

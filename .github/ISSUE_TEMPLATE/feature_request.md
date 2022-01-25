@@ -1,7 +1,8 @@
 ---
 name: Feature request
 about: Suggest a new feature or other enhancement.
-labels: enhancement
+labels: enhancement, new
+
 ---
 
 <!--
@@ -9,12 +10,14 @@ Hi there,
 
 Thank you for opening an issue. Please note that we try to keep the Terraform issue tracker reserved for bug reports and feature requests. For general usage questions, please see: https://www.terraform.io/community.html.
 
-If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers .
+For feature requests concerning Terraform Cloud/Enterprise, please contact tf-cloud@hashicorp.support
+
+If your issue relates to a specific Terraform provider, please open it in the provider's own repository. The index of providers is at https://github.com/terraform-providers.
 -->
 
 ### Current Terraform Version
 <!---
-Run `terraform -v` to show the version, and paste the result between the ``` marks below. This will record which version was current at the time of your feature request, to help manage the request backlog.
+Run `terraform version` to show the version, and paste the result between the ``` marks below. This will record which version was current at the time of your feature request, to help manage the request backlog.
 
 If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
 -->

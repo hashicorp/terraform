@@ -1,0 +1,31 @@
+{
+  "severity": "error",
+  "summary": "Wrong noises",
+  "detail": "Biological sounds are not allowed",
+  "range": {
+    "filename": "test.tf",
+    "start": {
+      "line": 2,
+      "column": 9,
+      "byte": 42
+    },
+    "end": {
+      "line": 2,
+      "column": 26,
+      "byte": 59
+    }
+  },
+  "snippet": {
+    "context": "resource \"test_resource\" \"test\"",
+    "code": "  foo = var.boop[\"hello!\"]",
+    "start_line": 2,
+    "highlight_start_offset": 8,
+    "highlight_end_offset": 25,
+    "values": [
+      {
+        "traversal": "var.boop",
+        "statement": "is map of string with 1 element"
+      }
+    ]
+  }
+}

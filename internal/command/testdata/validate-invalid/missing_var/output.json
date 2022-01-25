@@ -1,0 +1,34 @@
+{
+  "format_version": "1.0",
+  "valid": false,
+  "error_count": 1,
+  "warning_count": 0,
+  "diagnostics": [
+    {
+      "severity": "error",
+      "summary": "Reference to undeclared input variable",
+      "detail": "An input variable with the name \"description\" has not been declared. This variable can be declared with a variable \"description\" {} block.",
+      "range": {
+        "filename": "testdata/validate-invalid/missing_var/main.tf",
+        "start": {
+          "line": 6,
+          "column": 21,
+          "byte": 117
+        },
+        "end": {
+          "line": 6,
+          "column": 36,
+          "byte": 132
+        }
+      },
+      "snippet": {
+        "context": "resource \"test_instance\" \"foo\"",
+        "code": "      description = var.description",
+        "start_line": 6,
+        "highlight_start_offset": 20,
+        "highlight_end_offset": 35,
+        "values": []
+      }
+    }
+  ]
+}

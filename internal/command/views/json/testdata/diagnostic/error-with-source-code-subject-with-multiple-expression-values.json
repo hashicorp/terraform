@@ -1,0 +1,71 @@
+{
+  "severity": "error",
+  "summary": "Catastrophic failure",
+  "detail": "Basically, everything went wrong",
+  "range": {
+    "filename": "values.tf",
+    "start": {
+      "line": 1,
+      "column": 1,
+      "byte": 0
+    },
+    "end": {
+      "line": 13,
+      "column": 2,
+      "byte": 102
+    }
+  },
+  "snippet": {
+    "context": null,
+    "code": "[\n  var.a,\n  var.b,\n  var.c,\n  var.d,\n  var.e,\n  var.f,\n  var.g,\n  var.h,\n  var.i,\n  var.j,\n  var.k,\n]",
+    "start_line": 1,
+    "highlight_start_offset": 0,
+    "highlight_end_offset": 102,
+    "values": [
+      {
+        "traversal": "var.a",
+        "statement": "is true"
+      },
+      {
+        "traversal": "var.b",
+        "statement": "is 123.45"
+      },
+      {
+        "traversal": "var.c",
+        "statement": "is null"
+      },
+      {
+        "traversal": "var.d",
+        "statement": "has a sensitive value"
+      },
+      {
+        "traversal": "var.e",
+        "statement": "is false"
+      },
+      {
+        "traversal": "var.f",
+        "statement": "is empty list of string"
+      },
+      {
+        "traversal": "var.g",
+        "statement": "is map of string with 1 element"
+      },
+      {
+        "traversal": "var.h",
+        "statement": "is list of string with 3 elements"
+      },
+      {
+        "traversal": "var.i",
+        "statement": "is object with no attributes"
+      },
+      {
+        "traversal": "var.j",
+        "statement": "is object with 1 attribute \"foo\""
+      },
+      {
+        "traversal": "var.k",
+        "statement": "is object with 2 attributes"
+      }
+    ]
+  }
+}

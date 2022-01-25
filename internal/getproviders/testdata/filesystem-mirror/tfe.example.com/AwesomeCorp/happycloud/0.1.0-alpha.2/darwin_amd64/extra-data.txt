@@ -1,0 +1,6 @@
+Provider plugin packages are allowed to include other files such as any static
+data they need to operate, or possibly source files if the provider is written
+in an interpreted programming language.
+
+This extra file is here just to make sure that extra files don't cause any
+misbehavior during local discovery.

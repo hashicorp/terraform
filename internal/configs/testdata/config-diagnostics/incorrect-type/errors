@@ -1,0 +1,1 @@
+incorrect-type/main.tf:15,5-8: Invalid type for provider module.mod.provider["example.com/vendor/foo"]; Cannot use configuration from provider["registry.terraform.io/hashicorp/foo"] for module.mod.provider["example.com/vendor/foo"]
