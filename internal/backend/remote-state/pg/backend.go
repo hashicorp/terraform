@@ -22,14 +22,15 @@ func New() backend.Backend {
 			"conn_str": {
 				Type:        schema.TypeString,
 				Required:    true,
+                                DefaultFunc: schema.EnvDefaultFunc("PG_CONN_STR", nil),
 				Description: "Postgres connection string; a `postgres://` URL",
 			},
 
 			"schema_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
+                                DefaultFunc: schema.EnvDefaultFunc("PG_SCHEMA_NAME", ""),
 				Description: "Name of the automatically managed Postgres schema to store state",
-				Default:     "terraform_remote_state",
 			},
 
 			"skip_schema_creation": {
@@ -75,6 +76,9 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.connStr = data.Get("conn_str").(string)
 	b.schemaName = pq.QuoteIdentifier(data.Get("schema_name").(string))
+	if b.schemaName == "" {
+		b.schemaName = "terraform_remote_state"
+	}
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
