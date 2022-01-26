@@ -149,7 +149,7 @@ func impliedMoveStatements(cfg *configs.Config, prevRunState *states.State, expl
 	}
 
 	for _, childCfg := range cfg.Children {
-		into = findMoveStatements(childCfg, into)
+		into = impliedMoveStatements(childCfg, prevRunState, explicitStmts, into)
 	}
 
 	return into

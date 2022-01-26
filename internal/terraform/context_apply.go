@@ -30,30 +30,11 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		return nil, diags
 	}
 
-	variables := InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-
-		variables[name] = &InputValue{
-			Value:      val,
-			SourceType: ValueFromPlan,
-		}
-	}
-
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
-		Config:             config,
-		InputState:         workingState,
-		Changes:            plan.Changes,
-		RootVariableValues: variables,
+		Config:     config,
+		InputState: workingState,
+		Changes:    plan.Changes,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -83,15 +64,58 @@ Note that the -target option is not suitable for routine use, and is provided on
 }
 
 func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
-	graph, diags := (&ApplyGraphBuilder{
-		Config:       config,
-		Changes:      plan.Changes,
-		State:        plan.PriorState,
-		Plugins:      c.plugins,
-		Targets:      plan.TargetAddrs,
-		ForceReplace: plan.ForceReplaceAddrs,
-		Validate:     validate,
+	var diags tfdiags.Diagnostics
+
+	variables := InputValues{}
+	for name, dyVal := range plan.VariableValues {
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid variable value in plan",
+				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
+			))
+			continue
+		}
+
+		variables[name] = &InputValue{
+			Value:      val,
+			SourceType: ValueFromPlan,
+		}
+	}
+	if diags.HasErrors() {
+		return nil, walkApply, diags
+	}
+
+	// The plan.VariableValues field only records variables that were actually
+	// set by the caller in the PlanOpts, so we may need to provide
+	// placeholders for any other variables that the user didn't set, in
+	// which case Terraform will once again use the default value from the
+	// configuration when we visit these variables during the graph walk.
+	for name := range config.Module.Variables {
+		if _, ok := variables[name]; ok {
+			continue
+		}
+		variables[name] = &InputValue{
+			Value:      cty.NilVal,
+			SourceType: ValueFromPlan,
+		}
+	}
+
+	graph, moreDiags := (&ApplyGraphBuilder{
+		Config:             config,
+		Changes:            plan.Changes,
+		State:              plan.PriorState,
+		RootVariableValues: variables,
+		Plugins:            c.plugins,
+		Targets:            plan.TargetAddrs,
+		ForceReplace:       plan.ForceReplaceAddrs,
+		Validate:           validate,
 	}).Build(addrs.RootModuleInstance)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, walkApply, diags
+	}
 
 	operation := walkApply
 	if plan.UIMode == plans.DestroyMode {

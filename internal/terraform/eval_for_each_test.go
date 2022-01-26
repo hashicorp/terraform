@@ -114,12 +114,12 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		"unknown string set": {
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
 			"Invalid for_each argument",
-			"depends on resource attributes that cannot be determined until apply",
+			"set includes values derived from resource attributes that cannot be determined until apply",
 		},
 		"unknown map": {
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
 			"Invalid for_each argument",
-			"depends on resource attributes that cannot be determined until apply",
+			"map includes keys derived from resource attributes that cannot be determined until apply",
 		},
 		"marked map": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -142,12 +142,12 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		"set containing unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
 			"Invalid for_each argument",
-			"depends on resource attributes that cannot be determined until apply",
+			"set includes values derived from resource attributes that cannot be determined until apply",
 		},
 		"set containing dynamic unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
 			"Invalid for_each argument",
-			"depends on resource attributes that cannot be determined until apply",
+			"set includes values derived from resource attributes that cannot be determined until apply",
 		},
 		"set containing marked values": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark(marks.Sensitive), cty.StringVal("boop")})),
@@ -169,10 +169,10 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 				t.Errorf("wrong diagnostic severity %#v; want %#v", got, want)
 			}
 			if got, want := diags[0].Description().Summary, test.Summary; got != want {
-				t.Errorf("wrong diagnostic summary %#v; want %#v", got, want)
+				t.Errorf("wrong diagnostic summary\ngot:  %s\nwant: %s", got, want)
 			}
 			if got, want := diags[0].Description().Detail, test.DetailSubstring; !strings.Contains(got, want) {
-				t.Errorf("wrong diagnostic detail %#v; want %#v", got, want)
+				t.Errorf("wrong diagnostic detail\ngot: %s\nwant substring: %s", got, want)
 			}
 			if fromExpr := diags[0].FromExpr(); fromExpr != nil {
 				if fromExpr.Expression == nil {

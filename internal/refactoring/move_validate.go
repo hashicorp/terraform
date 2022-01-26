@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -31,6 +32,10 @@ import (
 func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts instances.Set) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
+	if len(stmts) == 0 {
+		return diags
+	}
+
 	g := buildMoveStatementGraph(stmts)
 
 	// We need to track the absolute versions of our endpoint addresses in
@@ -50,27 +55,34 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 		_, toCallSteps := stmt.To.ModuleCallTraversals()
 
 		modCfg := rootCfg.Descendent(stmtMod)
-		if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Cross-package move statement",
-				Detail: fmt.Sprintf(
-					"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
-					pkgAddr,
-				),
-				Subject: stmt.DeclRange.ToHCL().Ptr(),
-			})
-		}
-		if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Cross-package move statement",
-				Detail: fmt.Sprintf(
-					"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
-					pkgAddr,
-				),
-				Subject: stmt.DeclRange.ToHCL().Ptr(),
-			})
+		if !stmt.Implied {
+			// Implied statements can cross module boundaries because we
+			// generate them only for changing instance keys on a single
+			// resource. They happen to be generated _as if_ they were written
+			// in the root module, but the source and destination are always
+			// in the same module anyway.
+			if pkgAddr := callsThroughModulePackage(modCfg, fromCallSteps); pkgAddr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cross-package move statement",
+					Detail: fmt.Sprintf(
+						"This statement declares a move from an object declared in external module package %q. Move statements can be only within a single module package.",
+						pkgAddr,
+					),
+					Subject: stmt.DeclRange.ToHCL().Ptr(),
+				})
+			}
+			if pkgAddr := callsThroughModulePackage(modCfg, toCallSteps); pkgAddr != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Cross-package move statement",
+					Detail: fmt.Sprintf(
+						"This statement declares a move to an object declared in external module package %q. Move statements can be only within a single module package.",
+						pkgAddr,
+					),
+					Subject: stmt.DeclRange.ToHCL().Ptr(),
+				})
+			}
 		}
 
 		for _, modInst := range declaredInsts.InstancesForModule(stmtMod) {
@@ -200,30 +212,54 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 	// validation rules above where we can make better suggestions, and so
 	// we'll use a cycle report only as a last resort.
 	if !diags.HasErrors() {
-		for _, cycle := range g.Cycles() {
-			// Reporting cycles is awkward because there isn't any definitive
-			// way to decide which of the objects in the cycle is the cause of
-			// the problem. Therefore we'll just list them all out and leave
-			// the user to figure it out. :(
-			stmtStrs := make([]string, 0, len(cycle))
-			for _, stmtI := range cycle {
-				// move statement graph nodes are pointers to move statements
-				stmt := stmtI.(*MoveStatement)
-				stmtStrs = append(stmtStrs, fmt.Sprintf(
-					"\n  - %s: %s → %s",
-					stmt.DeclRange.StartString(),
-					stmt.From.String(),
-					stmt.To.String(),
-				))
-			}
-			sort.Strings(stmtStrs) // just to make the order deterministic
+		diags = diags.Append(validateMoveStatementGraph(g))
+	}
 
+	return diags
+}
+
+func validateMoveStatementGraph(g *dag.AcyclicGraph) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, cycle := range g.Cycles() {
+		// Reporting cycles is awkward because there isn't any definitive
+		// way to decide which of the objects in the cycle is the cause of
+		// the problem. Therefore we'll just list them all out and leave
+		// the user to figure it out. :(
+		stmtStrs := make([]string, 0, len(cycle))
+		for _, stmtI := range cycle {
+			// move statement graph nodes are pointers to move statements
+			stmt := stmtI.(*MoveStatement)
+			stmtStrs = append(stmtStrs, fmt.Sprintf(
+				"\n  - %s: %s → %s",
+				stmt.DeclRange.StartString(),
+				stmt.From.String(),
+				stmt.To.String(),
+			))
+		}
+		sort.Strings(stmtStrs) // just to make the order deterministic
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cyclic dependency in move statements",
+			fmt.Sprintf(
+				"The following chained move statements form a cycle, and so there is no final location to move objects to:%s\n\nA chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.",
+				strings.Join(stmtStrs, ""),
+			),
+		))
+	}
+
+	// Look for cycles to self.
+	// A user shouldn't be able to create self-references, but we cannot
+	// correctly process a graph with them.
+	for _, e := range g.Edges() {
+		src := e.Source()
+		if src == e.Target() {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Cyclic dependency in move statements",
+				"Self reference in move statements",
 				fmt.Sprintf(
-					"The following chained move statements form a cycle, and so there is no final location to move objects to:%s\n\nA chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.",
-					strings.Join(stmtStrs, ""),
+					"The move statement %s refers to itself the move dependency graph, which is invalid. This is a bug in Terraform; please report it!",
+					src.(*MoveStatement).Name(),
 				),
 			))
 		}

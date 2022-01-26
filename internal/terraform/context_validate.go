@@ -37,17 +37,6 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 
 	log.Printf("[DEBUG] Building and walking validate graph")
 
-	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
-		Config:   config,
-		Plugins:  c.plugins,
-		Validate: true,
-		State:    states.NewState(),
-	}).Build(addrs.RootModuleInstance)
-	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return diags
-	}
-
 	// Validate is to check if the given module is valid regardless of
 	// input values, current state, etc. Therefore we populate all of the
 	// input values with unknown values of the expected type, allowing us
@@ -66,9 +55,20 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 		}
 	}
 
-	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
+	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
 		Config:             config,
+		Plugins:            c.plugins,
+		Validate:           true,
+		State:              states.NewState(),
 		RootVariableValues: varValues,
+	}).Build(addrs.RootModuleInstance)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+
+	walker, walkDiags := c.walk(graph, walkValidate, &graphWalkOpts{
+		Config: config,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

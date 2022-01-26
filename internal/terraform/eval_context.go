@@ -121,12 +121,24 @@ type EvalContext interface {
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
-	// SetModuleCallArguments defines values for the variables of a particular
-	// child module call.
+	// SetRootModuleArgument defines the value for one variable of the root
+	// module. The caller must ensure that given value is a suitable
+	// "final value" for the variable, which means that it's already converted
+	// and validated to match any configured constraints and validation rules.
 	//
-	// Calling this function multiple times has merging behavior, keeping any
-	// previously-set keys that are not present in the new map.
-	SetModuleCallArguments(addrs.ModuleCallInstance, map[string]cty.Value)
+	// Calling this function multiple times with the same variable address
+	// will silently overwrite the value provided by a previous call.
+	SetRootModuleArgument(addrs.InputVariable, cty.Value)
+
+	// SetModuleCallArgument defines the value for one input variable of a
+	// particular child module call. The caller must ensure that the given
+	// value is a suitable "final value" for the variable, which means that
+	// it's already converted and validated to match any configured
+	// constraints and validation rules.
+	//
+	// Calling this function multiple times with the same variable address
+	// will silently overwrite the value provided by a previous call.
+	SetModuleCallArgument(addrs.ModuleCallInstance, addrs.InputVariable, cty.Value)
 
 	// GetVariableValue returns the value provided for the input variable with
 	// the given address, or cty.DynamicVal if the variable hasn't been assigned

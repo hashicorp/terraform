@@ -366,6 +366,50 @@ Each resource can have moved from only one source resource.`,
 			},
 			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
 		},
+		"implied move from resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.test.thing`,
+					`test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`test.thing`,
+					`module.fake_external.test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move from module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.module.a`,
+					`module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.a`,
+					`module.fake_external.module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
 		"move to a call that refers to another module package": {
 			Statements: []MoveStatement{
 				makeTestMoveStmt(t,
@@ -403,6 +447,58 @@ Each resource can have moved from only one source resource.`,
 				),
 			},
 			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1[0] to other.single, which is a resource instance of a different type.`,
+		},
+		"crossing nested statements": {
+			// overlapping nested moves will result in a cycle.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, ``,
+					`module.nonexist.test.single`,
+					`module.count[0].test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.nonexist`,
+					`module.count[0]`,
+				),
+			},
+			WantError: `Cyclic dependency in move statements: The following chained move statements form a cycle, and so there is no final location to move objects to:
+  - test:1,1: module.nonexist → module.count[0]
+  - test:1,1: module.nonexist.test.single → module.count[0].test.count[0]
+
+A chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.`,
+		},
+		"fully contained nested statements": {
+			// we have to avoid a cycle because the nested moves appear in both
+			// the from and to address of the parent when only the module index
+			// is changing.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, `count`,
+					`test.count`,
+					`test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.count`,
+					`module.count[0]`,
+				),
+			},
+		},
+		"double fully contained nested statements": {
+			// we have to avoid a cycle because the nested moves appear in both
+			// the from and to address of the parent when only the module index
+			// is changing.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, `count`,
+					`module.count`,
+					`module.count[0]`,
+				),
+				makeTestMoveStmt(t, `count.count`,
+					`test.count`,
+					`test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.count`,
+					`module.count[0]`,
+				),
+			},
 		},
 	}
 
@@ -596,6 +692,13 @@ func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatem
 			End:      tfdiags.SourcePos{Line: 1, Column: 1},
 		},
 	}
+}
+
+func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatement {
+	t.Helper()
+	ret := makeTestMoveStmt(t, moduleStr, fromStr, toStr)
+	ret.Implied = true
+	return ret
 }
 
 var fakeExternalModuleSource = addrs.ModuleSourceRemote{

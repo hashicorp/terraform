@@ -73,7 +73,7 @@ var goGetterDecompressors = map[string]getter.Decompressor{
 var goGetterGetters = map[string]getter.Getter{
 	"file":  new(getter.FileGetter),
 	"gcs":   new(getter.GCSGetter),
-	"git":   new(gitGetter),
+	"git":   new(getter.GitGetter),
 	"hg":    new(getter.HgGetter),
 	"s3":    new(getter.S3Getter),
 	"http":  getterHTTPGetter,

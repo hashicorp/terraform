@@ -21,10 +21,42 @@ import (
 // PlanOpts are the various options that affect the details of how Terraform
 // will build a plan.
 type PlanOpts struct {
-	Mode         plans.Mode
-	SkipRefresh  bool
+	// Mode defines what variety of plan the caller wishes to create.
+	// Refer to the documentation of the plans.Mode type and its values
+	// for more information.
+	Mode plans.Mode
+
+	// SkipRefresh specifies to trust that the current values for managed
+	// resource instances in the prior state are accurate and to therefore
+	// disable the usual step of fetching updated values for each resource
+	// instance using its corresponding provider.
+	SkipRefresh bool
+
+	// SetVariables are the raw values for root module variables as provided
+	// by the user who is requesting the run, prior to any normalization or
+	// substitution of defaults. See the documentation for the InputValue
+	// type for more information on how to correctly populate this.
 	SetVariables InputValues
-	Targets      []addrs.Targetable
+
+	// If Targets has a non-zero length then it activates targeted planning
+	// mode, where Terraform will take actions only for resource instances
+	// mentioned in this set and any other objects those resource instances
+	// depend on.
+	//
+	// Targeted planning mode is intended for exceptional use only,
+	// and so populating this field will cause Terraform to generate extra
+	// warnings as part of the planning result.
+	Targets []addrs.Targetable
+
+	// ForceReplace is a set of resource instance addresses whose corresponding
+	// objects should be forced planned for replacement if the provider's
+	// plan would otherwise have been to either update the object in-place or
+	// to take no action on it at all.
+	//
+	// A typical use of this argument is to ask Terraform to replace an object
+	// which the user has determined is somehow degraded (via information from
+	// outside of Terraform), thereby hopefully replacing it with a
+	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 }
 
@@ -99,8 +131,6 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 		return nil, diags
 	}
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
-
 	// By the time we get here, we should have values defined for all of
 	// the root module variables, even if some of them are "unknown". It's the
 	// caller's responsibility to have already handled the decoding of these
@@ -108,7 +138,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// user-friendly error messages if they are not all present, and so
 	// the error message from checkInputVariables should never be seen and
 	// includes language asking the user to report a bug.
-	varDiags := checkInputVariables(config.Module.Variables, variables)
+	varDiags := checkInputVariables(config.Module.Variables, opts.SetVariables)
 	diags = diags.Append(varDiags)
 
 	if len(opts.Targets) > 0 {
@@ -125,11 +155,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 	var planDiags tfdiags.Diagnostics
 	switch opts.Mode {
 	case plans.NormalMode:
-		plan, planDiags = c.plan(config, prevRunState, variables, opts)
+		plan, planDiags = c.plan(config, prevRunState, opts)
 	case plans.DestroyMode:
-		plan, planDiags = c.destroyPlan(config, prevRunState, variables, opts)
+		plan, planDiags = c.destroyPlan(config, prevRunState, opts)
 	case plans.RefreshOnlyMode:
-		plan, planDiags = c.refreshOnlyPlan(config, prevRunState, variables, opts)
+		plan, planDiags = c.refreshOnlyPlan(config, prevRunState, opts)
 	default:
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
@@ -139,8 +169,12 @@ The -target option is not for routine use, and is provided only for exceptional 
 	}
 
 	// convert the variables into the format expected for the plan
-	varVals := make(map[string]plans.DynamicValue, len(variables))
-	for k, iv := range variables {
+	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
+	for k, iv := range opts.SetVariables {
+		if iv.Value == cty.NilVal {
+			continue // We only record values that the caller actually set
+		}
+
 		// We use cty.DynamicPseudoType here so that we'll save both the
 		// value _and_ its dynamic type in the plan, so we can recover
 		// exactly the same value later.
@@ -172,14 +206,33 @@ var DefaultPlanOpts = &PlanOpts{
 	Mode: plans.NormalMode,
 }
 
-func (c *Context) plan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+// SimplePlanOpts is a constructor to help with creating "simple" values of
+// PlanOpts which only specify a mode and input variables.
+//
+// This helper function is primarily intended for use in straightforward
+// tests that don't need any of the more "esoteric" planning options. For
+// handling real user requests to run Terraform, it'd probably be better
+// to construct a *PlanOpts value directly and provide a way for the user
+// to set values for all of its fields.
+//
+// The "mode" and "setVariables" arguments become the values of the "Mode"
+// and "SetVariables" fields in the result. Refer to the PlanOpts type
+// documentation to learn about the meanings of those fields.
+func SimplePlanOpts(mode plans.Mode, setVariables InputValues) *PlanOpts {
+	return &PlanOpts{
+		Mode:         mode,
+		SetVariables: setVariables,
+	}
+}
+
+func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.NormalMode {
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	plan, walkDiags := c.planWalk(config, prevRunState, rootVariables, opts)
+	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -194,14 +247,14 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, rootV
 	return plan, diags
 }
 
-func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if opts.Mode != plans.RefreshOnlyMode {
 		panic(fmt.Sprintf("called Context.refreshOnlyPlan with %s", opts.Mode))
 	}
 
-	plan, walkDiags := c.planWalk(config, prevRunState, rootVariables, opts)
+	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -235,7 +288,7 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	return plan, diags
 }
 
-func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	pendingPlan := &plans.Plan{}
 
@@ -260,7 +313,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
 		normalOpts := *opts
 		normalOpts.Mode = plans.NormalMode
-		refreshPlan, refreshDiags := c.plan(config, prevRunState, rootVariables, &normalOpts)
+		refreshPlan, refreshDiags := c.plan(config, prevRunState, &normalOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -291,7 +344,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		priorState = pendingPlan.PriorState
 	}
 
-	destroyPlan, walkDiags := c.planWalk(config, priorState, rootVariables, opts)
+	destroyPlan, walkDiags := c.planWalk(config, priorState, opts)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		return nil, diags
@@ -392,7 +445,7 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, rootVariables InputValues, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
+func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
 
@@ -419,11 +472,10 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, r
 	// we can now walk.
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:             config,
-		InputState:         prevRunState,
-		Changes:            changes,
-		MoveResults:        moveResults,
-		RootVariableValues: rootVariables,
+		Config:      config,
+		InputState:  prevRunState,
+		Changes:     changes,
+		MoveResults: moveResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -469,34 +521,37 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:       config,
-			State:        prevRunState,
-			Plugins:      c.plugins,
-			Targets:      opts.Targets,
-			ForceReplace: opts.ForceReplace,
-			Validate:     validate,
-			skipRefresh:  opts.SkipRefresh,
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			ForceReplace:       opts.ForceReplace,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
 		graph, diags := (&PlanGraphBuilder{
-			Config:          config,
-			State:           prevRunState,
-			Plugins:         c.plugins,
-			Targets:         opts.Targets,
-			Validate:        validate,
-			skipRefresh:     opts.SkipRefresh,
-			skipPlanChanges: true, // this activates "refresh only" mode.
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
+			skipPlanChanges:    true, // this activates "refresh only" mode.
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
 		graph, diags := (&DestroyPlanGraphBuilder{
-			Config:      config,
-			State:       prevRunState,
-			Plugins:     c.plugins,
-			Targets:     opts.Targets,
-			Validate:    validate,
-			skipRefresh: opts.SkipRefresh,
+			Config:             config,
+			State:              prevRunState,
+			RootVariableValues: opts.SetVariables,
+			Plugins:            c.plugins,
+			Targets:            opts.Targets,
+			Validate:           validate,
+			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
 	default:

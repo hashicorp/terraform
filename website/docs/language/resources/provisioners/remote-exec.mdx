@@ -17,9 +17,8 @@ into a cluster, etc. To invoke a local process, see the `local-exec`
 provisioner requires a [connection](/language/resources/provisioners/connection)
 and supports both `ssh` and `winrm`.
 
--> **Note:** Provisioners should only be used as a last resort. For most
-common situations there are better alternatives. For more information, see
-[the main Provisioners page](/language/resources/provisioners).
+~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
+[Declaring Provisioners](/language/resources/provisioners/syntax) for more details.
 
 ## Example usage
 
@@ -27,7 +26,7 @@ common situations there are better alternatives. For more information, see
 resource "aws_instance" "web" {
   # ...
 
-  # Establishes connection to be used by all 
+  # Establishes connection to be used by all
   # generic remote provisioners (i.e. file/remote-exec)
   connection {
     type     = "ssh"
