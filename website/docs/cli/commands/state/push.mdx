@@ -40,8 +40,7 @@ Both of these safety checks can be disabled with the `-force` flag.
 **This is not recommended.** If you disable the safety checks and are
 pushing state, the destination state will be overwritten.
 
-For configurations using
-[the `remote` backend](/language/settings/backends/remote)
+For configurations using the [Terraform Cloud CLI integration](/cli/cloud) or the [`remote` backend](/language/settings/backends/remote)
 only, `terraform state push`
 also accepts the option
-[`-ignore-remote-version`](/language/settings/backends/remote#command-line-arguments).
+[`-ignore-remote-version`](/cli/cloud/command-line-arguments#ignore-remote-version).

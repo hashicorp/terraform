@@ -22,23 +22,23 @@ used by other Terraform commands.
 The module installer supports installation from a number of different source
 types, as listed below.
 
-* [Local paths](#local-paths)
+- [Local paths](#local-paths)
 
-* [Terraform Registry](#terraform-registry)
+- [Terraform Registry](#terraform-registry)
 
-* [GitHub](#github)
+- [GitHub](#github)
 
-* [Bitbucket](#bitbucket)
+- [Bitbucket](#bitbucket)
 
-* Generic [Git](#generic-git-repository), [Mercurial](#generic-mercurial-repository) repositories
+- Generic [Git](#generic-git-repository), [Mercurial](#generic-mercurial-repository) repositories
 
-* [HTTP URLs](#http-urls)
+- [HTTP URLs](#http-urls)
 
-* [S3 buckets](#s3-bucket)
+- [S3 buckets](#s3-bucket)
 
-* [GCS buckets](#gcs-bucket)
+- [GCS buckets](#gcs-bucket)
 
-* [Modules in Package Sub-directories](#modules-in-package-sub-directories)
+- [Modules in Package Sub-directories](#modules-in-package-sub-directories)
 
 Each of these is described in the following sections. Module source addresses
 use a _URL-like_ syntax, but with extensions to support unambiguous selection
@@ -135,7 +135,7 @@ If you are using the SaaS version of Terraform Cloud, its private
 registry hostname is `app.terraform.io`. If you use a self-hosted Terraform
 Enterprise instance, its private registry hostname is the same as the host
 where you'd access the web UI and the host you'd use when configuring
-the `remote` backend.
+the [Terraform Cloud CLI integration](/cli/cloud).
 
 Registry modules support versioning. You can provide a specific version as shown
 in the above examples, or use flexible
@@ -347,13 +347,12 @@ optionally return a different result when Terraform is requesting it.
 If the response is successful (`200`-range status code), Terraform looks in
 the following locations in order for the next address to access:
 
-* The value of a response header field named `X-Terraform-Get`.
+- The value of a response header field named `X-Terraform-Get`.
 
-* If the response is an HTML page, a `meta` element with the name `terraform-get`:
+- If the response is an HTML page, a `meta` element with the name `terraform-get`:
 
   ```html
-  <meta name="terraform-get"
-        content="github.com/hashicorp/example" />
+  <meta name="terraform-get" content="github.com/hashicorp/example" />
   ```
 
 In either case, the result is interpreted as another module source address
@@ -378,10 +377,10 @@ module "vpc" {
 
 The extensions that Terraform recognizes for this special behavior are:
 
-* `zip`
-* `tar.bz2` and `tbz2`
-* `tar.gz` and `tgz`
-* `tar.xz` and `txz`
+- `zip`
+- `tar.bz2` and `tbz2`
+- `tar.gz` and `tgz`
+- `tar.xz` and `txz`
 
 If your URL _doesn't_ have one of these extensions but refers to an archive
 anyway, use the `archive` argument to force this interpretation:
@@ -423,9 +422,9 @@ Terraform will extract the archive to obtain the module source tree.
 The module installer looks for AWS credentials in the following locations,
 preferring those earlier in the list when multiple are available:
 
-* The `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
-* The default profile in the `.aws/credentials` file in your home directory.
-* If running on an EC2 instance, temporary credentials associated with the
+- The `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
+- The default profile in the `.aws/credentials` file in your home directory.
+- If running on an EC2 instance, temporary credentials associated with the
   instance's IAM Instance Profile.
 
 ## GCS Bucket
@@ -436,8 +435,8 @@ prefix, followed by
 
 For example
 
-* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE`
-* `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip`
+- `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE`
+- `gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip`
 
 ```hcl
 module "consul" {
@@ -463,16 +462,16 @@ A special double-slash syntax is interpreted by Terraform to indicate that
 the remaining path after that point is a sub-directory within the package.
 For example:
 
-* `hashicorp/consul/aws//modules/consul-cluster`
-* `git::https://example.com/network.git//modules/vpc`
-* `https://example.com/network-module.zip//modules/vpc`
-* `s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/network.zip//modules/vpc`
+- `hashicorp/consul/aws//modules/consul-cluster`
+- `git::https://example.com/network.git//modules/vpc`
+- `https://example.com/network-module.zip//modules/vpc`
+- `s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/network.zip//modules/vpc`
 
 If the source address has arguments, such as the `ref` argument supported for
 the version control sources, the sub-directory portion must be _before_ those
 arguments:
 
-* `git::https://example.com/network.git//modules/vpc?ref=v1.2.0`
+- `git::https://example.com/network.git//modules/vpc?ref=v1.2.0`
 
 Terraform will still extract the entire package to local disk, but will read
 the module from the subdirectory. As a result, it is safe for a module in
