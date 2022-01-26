@@ -40,4 +40,4 @@ importing existing resources.
 
 ## Terraform Cloud
 
-When you use Terraform on the command line with Terraform Cloud, many commands (e.g., `apply`) run inside your Terraform Cloud environment. However, the `import` command runs locally, so it will not have access to information from Terraform Cloud. To fix this, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
+When you use Terraform on the command line with Terraform Cloud, many commands (e.g., `apply`) run inside your Terraform Cloud environment. However, the `import` command runs locally, so it will not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
