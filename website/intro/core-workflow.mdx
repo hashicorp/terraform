@@ -229,22 +229,23 @@ for a better experience at each step.
 
 Terraform Cloud provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
-speculative plans for config authors. Terraform configuration interacts with
-Terraform Cloud via the ["remote" backend](/language/settings/backends/remote).
+speculative plans for config authors. Terraform configuration can interact with
+Terraform Cloud through the [CLI integration](/cli/cloud).
 
 ```
 terraform {
-  backend "remote" {
+  cloud {
     organization = "my-org"
+    hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
+
     workspaces {
-      prefix = "my-app-"
+      tags = ["networking", "source:cli"]
     }
   }
 }
 ```
 
-Once the backend is wired up, a Terraform Cloud API key is all that's
-needed by team members to be able to edit config and run speculative plans
+After you configure the integration, a Terraform Cloud API key is all your team members need to edit config and run speculative plans
 against the latest version of the state file using all the remotely stored
 input variables.
 
