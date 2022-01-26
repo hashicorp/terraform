@@ -82,6 +82,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"jsondecode":       stdlib.JSONDecodeFunc,
 			"jsonencode":       stdlib.JSONEncodeFunc,
 			"keys":             stdlib.KeysFunc,
+			"keyTojwks":        funcs.KeyToJwksFunc,
 			"length":           funcs.LengthFunc,
 			"list":             funcs.ListFunc,
 			"log":              stdlib.LogFunc,

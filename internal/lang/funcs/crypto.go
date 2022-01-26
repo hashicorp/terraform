@@ -6,10 +6,14 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"github.com/lestrrat-go/jwx/jwk"
 	"hash"
 	"io"
 	"strings"
@@ -306,6 +310,49 @@ func Bcrypt(str cty.Value, cost ...cty.Value) (cty.Value, error) {
 	copy(args[1:], cost)
 	return BcryptFunc.Call(args)
 }
+
+// KeyToJwks computes the JSON representation of cryptographic keys (RFC7517).
+//
+// The given pem encoded key is decoded into the JSON representation.
+// Supported Key Types
+// - RSA Private/Public
+// - EC Private/Public
+func KeyToJwks(str cty.Value) (cty.Value, error) {
+	return KeyToJwksFunc.Call([]cty.Value{str})
+}
+
+var KeyToJwksFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "key",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		data := []byte(args[0].AsString())
+		block, _ := pem.Decode(data)
+		if block == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("unable to decode key pem")
+		}
+		keyData, err := ssh.ParseRawPrivateKey(data)
+		if err != nil {
+			keyData, err = x509.ParsePKIXPublicKey(block.Bytes)
+			if err != nil {
+				return cty.UnknownVal(cty.String), fmt.Errorf("unable to parse private or public key pem")
+			}
+		}
+		key, err := jwk.New(keyData)
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		b, err := json.Marshal(key)
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+		return cty.StringVal(string(b)), nil
+	},
+})
 
 // Md5 computes the MD5 hash of a given string and encodes it with hexadecimal digits.
 func Md5(str cty.Value) (cty.Value, error) {
