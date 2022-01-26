@@ -410,12 +410,35 @@ to only a single state object within an S3 bucket is shown below:
 }
 ```
 
-It is not possible to apply such fine-grained access control to the DynamoDB
-table used for locking, so it is possible for any user with Terraform access
-to lock any workspace state, even if they do not have access to read or write
-that state. If a malicious user has such access they could block attempts to
-use Terraform against some or all of your workspaces as long as locking is
-enabled in the backend configuration.
+It is also possible to apply fine-grained access control to the DynamoDB
+table used for locking. An example policy statement is shown below:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+        "Effect" : "Allow",
+        "Action" : [
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem"
+        ],
+        "Resource" : ["arn:aws:dynamodb:*:*:table/myorg-state-lock-table"],
+        "Condition" : {
+          "ForAllValues:StringEquals" : {
+            "dynamodb:LeadingKeys" : [
+              "myorg-terraform-states/myapp/production/tfstate",
+              "myorg-terraform-states/myapp/production/tfstate-md5"
+            ]
+          }
+        }
+      }
+  ]
+}
+```
 
 ### Configuring Custom User-Agent Information
 
