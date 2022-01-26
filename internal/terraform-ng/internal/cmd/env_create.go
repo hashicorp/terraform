@@ -1,7 +1,12 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/terraform-ng/internal/localenv"
 )
 
 var envCreateCmd = &cobra.Command{
@@ -48,7 +53,34 @@ a local environment may need a storage location for its mutable state.
 
 	Args: requiredPositionalArgs("new environment location", "initial configuration source"),
 
-	Run: stubbedCommand,
+	Run: func(cmd *cobra.Command, args []string) {
+		// TEMP: We only support local environments for the moment, while
+		// we're just stubbing.
+		location := args[0]
+		initialConfigSource := args[1]
+		if !localenv.ValidEnvironmentFilename(location) {
+			cmd.PrintErrln("This stub command currently supports only local environment locations, given as a filename with a .tfenv.hcl suffix.")
+			os.Exit(1)
+		}
+
+		// FIXME: If the given source is a local path then we ought to
+		// reinterpret it so it's relative to the directory containing the
+		// environment file, rather than the current working directory, in
+		// case those are different.
+		sourceAddr, err := addrs.ParseModuleSource(initialConfigSource)
+		if err != nil {
+			cmd.PrintErrf("Invalid initial configuration source location: %s\n\n", err)
+			os.Exit(1)
+		}
+
+		def, err := localenv.NewDefinitionFile(location, sourceAddr)
+		if err != nil {
+			cmd.PrintErrf("Failed to create environment definition file: %s\n\n", err)
+			os.Exit(1)
+		}
+
+		cmd.Printf("New local environment definition created in %q.\n\n", def.Filename())
+	},
 }
 
 var envCreateOpts = struct {
