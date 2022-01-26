@@ -24,7 +24,7 @@ The core Terraform workflow consists of three stages:
 - **Plan:** Terraform creates an execution plan describing the infrastructure it will create, update, or destroy based on the existing infrastructure and your configuration.
 - **Apply:** On approval, Terraform performs the proposed operations in the correct order, respecting any resource dependencies. For example, if you update the properties of a VPC and change the number of virtual machines in that VPC, Terraform will recreate the VPC before scaling the virtual machines.
 
-![The Terraform workflow: Write, Plan, Apply](/images/intro-terraform-workflow.png)
+![The Terraform workflow has three steps: Write, Plan, and Apply](/images/intro-terraform-workflow.png)
 
 
 ## Why Terraform?
@@ -54,7 +54,7 @@ Terraform supports reusable configuration components called [modules](/docs/lang
 
 Since your configuration is codified, you can commit it to a version control system (VCS) and use [Terraform Cloud](/intro/terraform-editions#terraform-cloud) to efficiently manage Terraform workflows across teams. Terraform Cloud runs Terraform in a consistent, reliable environment and provides access to shared state and secret data, role-based access controls, a private registry for sharing both modules and providers, and more.
 
--> Learn more about [Terraform use cases](/intro/use-cases) and [how Terraform compares to alternatives](/intro/vs).
+-> **Note:** Learn more about [Terraform use cases](/intro/use-cases) and [how Terraform compares to alternatives](/intro/vs).
 
 ## Community
 
