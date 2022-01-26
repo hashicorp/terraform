@@ -9,7 +9,7 @@ description: >-
 
 [backends]: /language/settings/backends
 
-The `terraform_remote_state` data source uses the latest state snapshot from the remote backend to retrieve the root module output values
+The `terraform_remote_state` data source uses the latest state snapshot from a specified state backend to retrieve the root module output values
 from some other Terraform configuration.
 
 You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
