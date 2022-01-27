@@ -154,10 +154,9 @@ the previous section, are also available with the same meanings on
   normally have caused only an "update" action, or no action at all, then
   Terraform will choose a "replace" action instead.
 
-  You can use this option if you have learned that a particular remote object
-  has become degraded in some way. If you are using immutable infrastructure
-  patterns then you may wish to respond to that by replacing the
-  malfunctioning object with a new object that has the same configuration. You can also replace multiple objects at once by adding multiple flags to the command. 
+  You can use this option if you have learned that one or more remote objects
+  has become degraded in some way. Add multiple `-replace` flags to the command to replace several objects at once. If you are using immutable infrastructure
+  patterns, you may wish to replace the malfunctioning objects with new objects that have the same configuration.
 
   This option is allowed only in the normal planning mode, so this option
   is incompatible with the `-destroy` option.
