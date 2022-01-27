@@ -20,7 +20,7 @@ HashiCorp and the Terraform community have already written **more than 1700 prov
 
 The core Terraform workflow consists of three stages:
 
-- **Write:** You define resources, which may be across multiple cloud providers and services. For example, you might create a configuration to deploy an application on virtual machines in a virtual private cloud (VPC) network with security groups and a load balancer.
+- **Write:** You define resources, which may be across multiple cloud providers and services. For example, you might create a configuration to deploy an application on virtual machines in a Virtual Private Cloud (VPC) network with security groups and a load balancer.
 - **Plan:** Terraform creates an execution plan describing the infrastructure it will create, update, or destroy based on the existing infrastructure and your configuration.
 - **Apply:** On approval, Terraform performs the proposed operations in the correct order, respecting any resource dependencies. For example, if you update the properties of a VPC and change the number of virtual machines in that VPC, Terraform will recreate the VPC before scaling the virtual machines.
 
@@ -40,19 +40,19 @@ Find providers for many of the platforms and services you already use in the [Te
 
 ### Track your infrastructure
 
-Terraform generates a plan and prompts  for your approval before modifying your infrastructure. It also keeps track of your real infrastructure in a [state file](/language/state), which acts as a source of truth for your environment. Terraform uses the state file to determine the changes to make to your infrastructure so that it will match your configuration.
+Terraform generates a plan and prompts you for your approval before modifying your infrastructure. It also keeps track of your real infrastructure in a [state file](/language/state), which acts as a source of truth for your environment. Terraform uses the state file to determine the changes to make to your infrastructure so that it will match your configuration.
 
 ### Automate changes
 
-Terraform configuration files are declarative, meaning that they describe the end state of your infrastructure. You do not need to write step-by-step instructions to create resources because Terraform handles the underlying logic. Terraform builds a resource graph to determine resource dependencies and creates or modifies non-dependent resources in parallel. This allows Terraform to build resources efficiently.
+Terraform configuration files are declarative, meaning that they describe the end state of your infrastructure. You do not need to write step-by-step instructions to create resources because Terraform handles the underlying logic. Terraform builds a resource graph to determine resource dependencies and creates or modifies non-dependent resources in parallel. This allows Terraform to provision resources efficiently.
 
 ### Standardize configurations
 
-Terraform supports reusable configuration components called [modules](/docs/language/modules) that define configurable collections of infrastructure, saving time and enforcing best practices. You can use publicly available modules from the Terraform Registry, or write your own.
+Terraform supports reusable configuration components called [modules](/docs/language/modules) that define configurable collections of infrastructure, saving time and encouraging best practices. You can use publicly available modules from the Terraform Registry, or write your own.
 
 ### Collaborate
 
-Since your configuration is codified, you can commit it to a version control system (VCS) and use [Terraform Cloud](/intro/terraform-editions#terraform-cloud) to efficiently manage Terraform workflows across teams. Terraform Cloud runs Terraform in a consistent, reliable environment and provides secure access to shared state and secret data, role-based access controls, a private registry for sharing both modules and providers, and more.
+Since your configuration is written in a file, you can commit it to a Version Control System (VCS) and use [Terraform Cloud](/intro/terraform-editions#terraform-cloud) to efficiently manage Terraform workflows across teams. Terraform Cloud runs Terraform in a consistent, reliable environment and provides secure access to shared state and secret data, role-based access controls, a private registry for sharing both modules and providers, and more.
 
 -> **Tip:** Learn more about [Terraform use cases](/intro/use-cases) and [how Terraform compares to alternatives](/intro/vs).
 
