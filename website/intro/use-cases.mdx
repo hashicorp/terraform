@@ -65,17 +65,17 @@ Try the [Deploy, Manage, and Scale an Application on Heroku](https://learn.hashi
 
 Terraform can interact with Software Defined Networks (SDNs) to automatically configure the network according to the needs of the applications running in it. This lets you move from a ticket-based workflow to an automated one, reducing deployment times.
 
-For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://www.consul.io/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require, without having to manually translate tickets from developers into the changes you think their applications need.
+For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://www.consul.io/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
 
 ### Resources
 
-- Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?in=consul/network-infrastructure-automation) tutorial on Hashicorp Learn to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
+- Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?in=consul/network-infrastructure-automation) tutorial on HashiCorp Learn to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
 - Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-terraform-enterprise?in=consul/network-infrastructure-automation) tutorial on HashiCorp Learn to configure Consul-Terraform-Sync to interact with Terraform Enterprise and Terraform Cloud.
 
 
 ## Kubernetes
 
-Kubernetes is an open-source workload scheduler for containerized applications. Terraform lets you both deploy a Kubernetes cluster and manage its resources (e.g., pods, deployments, services, etc.). You can also use the [Kubernetes Operator for Terraform](https://github.com/hashicorp/terraform-k8s) to manage cloud and on-prem infrastructure through a Kubernetes custom resource definition (CRD) and Terraform Cloud.
+Kubernetes is an open-source workload scheduler for containerized applications. Terraform lets you both deploy a Kubernetes cluster and manage its resources (e.g., pods, deployments, services, etc.). You can also use the [Kubernetes Operator for Terraform](https://github.com/hashicorp/terraform-k8s) to manage cloud and on-prem infrastructure through a Kubernetes Custom Resource Definition (CRD) and Terraform Cloud.
 
 ### Resources
 
@@ -85,7 +85,7 @@ Kubernetes is an open-source workload scheduler for containerized applications. 
 
 ## Parallel Environments
 
-You may have staging or QA environments that you use to test new applications before releasing them in production. As the production environment grows larger and more complex, it can be increasingly difficult to maintain an up-to-date environment for each stage in the development process. Terraform lets you rapidly spin up and decommission infrastructure for development, test, QA, and production. Using Terraform to create disposable environments as needed is more cost-efficient than maintaining each one indefinitely.
+You may have staging or QA environments that you use to test new applications before releasing them in production. As the production environment grows larger and more complex, it can be increasingly difficult to maintain an up-to-date environment for each stage of the development process. Terraform lets you rapidly spin up and decommission infrastructure for development, test, QA, and production. Using Terraform to create disposable environments as needed is more cost-efficient than maintaining each one indefinitely.
 
 
 ## Software Demos
