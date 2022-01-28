@@ -138,46 +138,25 @@ the previous section, are also available with the same meanings on
 `terraform apply`.
 
 - `-refresh=false` - Disables the default behavior of synchronizing the
-  Terraform state with remote objects before checking for configuration changes.
+  Terraform state with remote objects before checking for configuration changes. This can make the planning operation faster by reducing the number of remote API requests. However, setting `refresh=false` causes Terraform to ignore external changes, which could result in an incomplete or incorrect plan.
 
-  This option can potentially make the planning operation faster by reducing
-  the number of remote API requests, but it comes at the expense of having
-  Terraform not take into account any changes that might've happened outside
-  of Terraform, and thus the resulting plan may not be complete or correct.
+  -> **Note:** You cannot use `refresh=false` in "refresh only" planning mode, because it would effectively disable the entirety of the planning operation.
 
-  This option is not available in the "refresh only" planning mode, because
-  it would effectively disable the entirety of the planning operation in that
-  case.
+- `-replace=ADDRESS` - Instructs Terraform to plan to replace the
+  resource instance with the given address. This is helpful when one or more remote objects have become degraded, and you can use replacement objects with the same configuratation to align with immutable infrastructure patterns. Terraform will use a "replace" action if the specified resource would normally cause an "update" action or no action at all. Use this option multiple times to replace several objects at once.
 
-- `-replace=ADDRESS` - Instructs Terraform to plan to replace the single
-  resource instance with the given address. If the given instance would
-  normally have caused only an "update" action, or no action at all, then
-  Terraform will choose a "replace" action instead.
-
-  You can use this option if you have learned that one or more remote objects
-  have become degraded in some way. Add multiple `-replace` flags to replace several objects at once. If you are using immutable infrastructure patterns, you may wish to replace the malfunctioning objects with new objects that have the same configuration.
-
-  This option is allowed only in the normal planning mode, so this option
-  is incompatible with the `-destroy` option.
-
-  The `-replace=...` option is available only from Terraform v0.15.2 onwards.
-  For earlier versions, you can achieve a similar effect (with some caveats)
-  using [`terraform taint`](/cli/commands/taint).
+  -> **Note:** You cannot use `-replace` with the `-destroy` option, and it is only available from Terraform v0.15.2 onwards. For earlier versions, use [`terraform taint`](/cli/commands/taint) to achieve a similar result.
 
 - `-target=ADDRESS` - Instructs Terraform to focus its planning efforts only
   on resource instances which match the given address and on any objects that
-  those instances depend on.
-
-  This command is for exceptional use only. See
-  [Resource Targeting](#resource-targeting)
-  below for more information.
+  those instances depend on. This command is for exceptional use only. Refer to
+  [Resource Targeting](#resource-targeting) for more information.
 
 - `-var 'NAME=VALUE'` - Sets a value for a single
   [input variable](/language/values/variables) declared in the
   root module of the configuration. Use this option multiple times to set
-  more than one variable. For more information see
-  [Input Variables on the Command Line](#input-variables-on-the-command-line),
-  below.
+  more than one variable. Refer to
+  [Input Variables on the Command Line](#input-variables-on-the-command-line) for more information.
 
 - `-var-file=FILENAME` - Sets values for potentially many
   [input variables](/language/values/variables) declared in the
@@ -186,9 +165,8 @@ the previous section, are also available with the same meanings on
   Use this option multiple times to include values from more than one file.
 
 There are several other ways to set values for input variables in the root
-module, aside from the `-var` and `-var-file` options. For more information,
-see
-[Assigning Values to Root Module Variables](/language/values/variables#assigning-values-to-root-module-variables).
+module, aside from the `-var` and `-var-file` options. Refer to
+[Assigning Values to Root Module Variables](/language/values/variables#assigning-values-to-root-module-variables) for more information.
 
 ### Input Variables on the Command Line
 
