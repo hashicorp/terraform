@@ -16,7 +16,7 @@ propose to replace it in the next plan you create.
 
 ## Recommended Alternative
 
-For Terraform v0.15.2 and later, we recommend using the [`-replace` option](/cli/commands/plan#replace-address) with `terraform apply` to force Terraform to replace an object even though there are no configuration changes that would require it. 
+For Terraform v0.15.2 and later, we recommend using the [`-replace` option](/cli/commands/plan#replace-address) with `terraform apply` to force Terraform to replace an object even though there are no configuration changes that would require it.
 
 ```
 $ terraform apply -replace="aws_instance.example[0]"
