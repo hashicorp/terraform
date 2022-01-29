@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -199,6 +200,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
+	plan.RelevantResources = c.relevantResourcesForPlan(config, plan)
 	return plan, diags
 }
 
@@ -285,6 +287,10 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	// objects that would need to be created.
 	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
+	// We don't populate RelevantResources for a refresh-only plan, because
+	// they never have any planned actions and so no resource can ever be
+	// "relevant" per the intended meaning of that field.
+
 	return plan, diags
 }
 
@@ -357,6 +363,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = pendingPlan.PrevRunState
 	}
 
+	destroyPlan.RelevantResources = c.relevantResourcesForPlan(config, destroyPlan)
 	return destroyPlan, diags
 }
 
@@ -735,4 +742,61 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 			itemsBuf.String(),
 		),
 	)
+}
+
+// ReferenceAnalyzer returns a globalref.Analyzer object to help with
+// global analysis of references within the configuration that's attached
+// to the receiving context.
+func (c *Context) ReferenceAnalyzer(config *configs.Config, state *states.State) *globalref.Analyzer {
+	schemas, diags := c.Schemas(config, state)
+	if diags != nil {
+		// FIXME: we now have to deal with the diagnostics here
+		panic(diags.ErrWithWarnings().Error())
+	}
+
+	return globalref.NewAnalyzer(config, schemas.Providers)
+}
+
+// relevantResourcesForPlan implements the heuristic we use to populate the
+// RelevantResources field of returned plans.
+func (c *Context) relevantResourcesForPlan(config *configs.Config, plan *plans.Plan) []addrs.AbsResource {
+	azr := c.ReferenceAnalyzer(config, plan.PriorState)
+
+	// Our current strategy is that a resource is relevant if it either has
+	// a proposed change action directly, or if its attributes are used as
+	// any part of a resource that has a proposed change action. We don't
+	// consider individual changed attributes for now, because we can't
+	// really reason about any rules that providers might have about changes
+	// to one attribute implying a change to another.
+
+	// We'll use the string representation of a resource address as a unique
+	// key so we can dedupe our results.
+	relevant := make(map[string]addrs.AbsResource)
+
+	var refs []globalref.Reference
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.NoOp {
+			continue
+		}
+		instAddr := change.Addr
+		addr := instAddr.ContainingResource()
+		relevant[addr.String()] = addr
+
+		moreRefs := azr.ReferencesFromResourceInstance(instAddr)
+		refs = append(refs, moreRefs...)
+	}
+
+	contributors := azr.ContributingResources(refs...)
+	for _, addr := range contributors {
+		relevant[addr.String()] = addr
+	}
+
+	if len(relevant) == 0 {
+		return nil
+	}
+	ret := make([]addrs.AbsResource, 0, len(relevant))
+	for _, addr := range relevant {
+		ret = append(ret, addr)
+	}
+	return ret
 }
