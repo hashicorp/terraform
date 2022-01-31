@@ -2178,3 +2178,438 @@ func TestContext2Plan_moduleExpandOrphansResourceInstance(t *testing.T) {
 		}
 	})
 }
+
+func TestContext2Plan_resourcePreconditionPostcondition(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "boop" {
+  type = string
+}
+
+resource "test_resource" "a" {
+  value = var.boop
+  lifecycle {
+    precondition {
+      condition     = var.boop == "boop"
+      error_message = "Wrong boop."
+    }
+    postcondition {
+      condition     = self.output != ""
+      error_message = "Output must not be blank."
+    }
+  }
+}
+
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"output": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	t.Run("conditions pass", func(t *testing.T) {
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			m := req.ProposedNewState.AsValueMap()
+			m["output"] = cty.StringVal("bar")
+
+			resp.PlannedState = cty.ObjectVal(m)
+			resp.LegacyTypeSystem = true
+			return resp
+		}
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		for _, res := range plan.Changes.Resources {
+			switch res.Addr.String() {
+			case "test_resource.a":
+				if res.Action != plans.Create {
+					t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+				}
+			default:
+				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+			}
+		}
+	})
+
+	t.Run("precondition fail", func(t *testing.T) {
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("succeeded; want errors")
+		}
+		if got, want := diags.Err().Error(), "Resource precondition failed: Wrong boop."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+		if p.PlanResourceChangeCalled {
+			t.Errorf("Provider's PlanResourceChange was called; should'nt've been")
+		}
+	})
+
+	t.Run("postcondition fail", func(t *testing.T) {
+		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+			m := req.ProposedNewState.AsValueMap()
+			m["output"] = cty.StringVal("")
+
+			resp.PlannedState = cty.ObjectVal(m)
+			resp.LegacyTypeSystem = true
+			return resp
+		}
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("succeeded; want errors")
+		}
+		if got, want := diags.Err().Error(), "Resource postcondition failed: Output must not be blank."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+		if !p.PlanResourceChangeCalled {
+			t.Errorf("Provider's PlanResourceChangeCalled wasn't called; should've been")
+		}
+	})
+}
+
+func TestContext2Plan_dataSourcePreconditionPostcondition(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "boop" {
+  type = string
+}
+
+data "test_data_source" "a" {
+  foo = var.boop
+  lifecycle {
+    precondition {
+      condition     = var.boop == "boop"
+      error_message = "Wrong boop."
+    }
+    postcondition {
+      condition     = length(self.results) > 0
+      error_message = "Results cannot be empty."
+    }
+  }
+}
+
+resource "test_resource" "a" {
+  value    = data.test_data_source.a.results[0]
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+		DataSources: map[string]*configschema.Block{
+			"test_data_source": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"results": {
+						Type:     cty.List(cty.String),
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	t.Run("conditions pass", func(t *testing.T) {
+		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"foo":     cty.StringVal("boop"),
+				"results": cty.ListVal([]cty.Value{cty.StringVal("boop")}),
+			}),
+		}
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		for _, res := range plan.Changes.Resources {
+			switch res.Addr.String() {
+			case "test_resource.a":
+				if res.Action != plans.Create {
+					t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+				}
+			case "data.test_data_source.a":
+				if res.Action != plans.Read {
+					t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+				}
+			default:
+				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+			}
+		}
+	})
+
+	t.Run("precondition fail", func(t *testing.T) {
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("succeeded; want errors")
+		}
+		if got, want := diags.Err().Error(), "Resource precondition failed: Wrong boop."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+		if p.ReadDataSourceCalled {
+			t.Errorf("Provider's ReadResource was called; should'nt've been")
+		}
+	})
+
+	t.Run("postcondition fail", func(t *testing.T) {
+		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"foo":     cty.StringVal("boop"),
+				"results": cty.ListValEmpty(cty.String),
+			}),
+		}
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("succeeded; want errors")
+		}
+		if got, want := diags.Err().Error(), "Resource postcondition failed: Results cannot be empty."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+		if !p.ReadDataSourceCalled {
+			t.Errorf("Provider's ReadDataSource wasn't called; should've been")
+		}
+	})
+}
+
+func TestContext2Plan_outputPrecondition(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "boop" {
+  type = string
+}
+
+output "a" {
+  value = var.boop
+  precondition {
+    condition     = var.boop == "boop"
+    error_message = "Wrong boop."
+  }
+}
+`,
+	})
+
+	p := testProvider("test")
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	t.Run("condition pass", func(t *testing.T) {
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		addr := addrs.RootModuleInstance.OutputValue("a")
+		outputPlan := plan.Changes.OutputValue(addr)
+		if outputPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+		if got, want := outputPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := outputPlan.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+
+	t.Run("condition fail", func(t *testing.T) {
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatal("succeeded; want errors")
+		}
+		if got, want := diags.Err().Error(), "Module output value precondition failed: Wrong boop."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+	})
+}
+
+func TestContext2Plan_preconditionErrors(t *testing.T) {
+	testCases := []struct {
+		condition   string
+		wantSummary string
+		wantDetail  string
+	}{
+		{
+			"data.test_data_source",
+			"Invalid reference",
+			`The "data" object must be followed by two attribute names`,
+		},
+		{
+			"self.value",
+			`Invalid "self" reference`,
+			"only in resource provisioner, connection, and postcondition blocks",
+		},
+		{
+			"data.foo.bar",
+			"Reference to undeclared resource",
+			`A data resource "foo" "bar" has not been declared in the root module`,
+		},
+		{
+			"test_resource.b.value",
+			"Invalid condition result",
+			"Condition expression must return either true or false",
+		},
+		{
+			"test_resource.c.value",
+			"Invalid condition result",
+			"Invalid validation condition result value: a bool is required",
+		},
+	}
+
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	for _, tc := range testCases {
+		t.Run(tc.condition, func(t *testing.T) {
+			main := fmt.Sprintf(`
+			terraform {
+				experiments = [preconditions_postconditions]
+			}
+
+			resource "test_resource" "a" {
+				value = var.boop
+				lifecycle {
+					precondition {
+						condition     = %s
+						error_message = "Not relevant."
+					}
+				}
+			}
+
+			resource "test_resource" "b" {
+				value = null
+			}
+
+			resource "test_resource" "c" {
+				value = "bar"
+			}
+			`, tc.condition)
+			m := testModuleInline(t, map[string]string{"main.tf": main})
+
+			_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+			if !diags.HasErrors() {
+				t.Fatal("succeeded; want errors")
+			}
+			diag := diags[0]
+			if got, want := diag.Description().Summary, tc.wantSummary; got != want {
+				t.Errorf("unexpected summary\n got: %s\nwant: %s", got, want)
+			}
+			if got, want := diag.Description().Detail, tc.wantDetail; !strings.Contains(got, want) {
+				t.Errorf("unexpected summary\ngot: %s\nwant to contain %q", got, want)
+			}
+		})
+	}
+}
