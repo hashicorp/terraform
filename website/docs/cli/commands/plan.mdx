@@ -82,12 +82,9 @@ The remaining sections on this page describe the various options:
 
 ## Planning Modes
 
-The section above described Terraform's default planning behavior, which is
-intended for changing the remote system to match with changes you've made to
-your configuration.
-
-Terraform has two alternative planning modes, each of which creates a plan with
-a different intended outcome:
+The previous section describes Terraform's default planning behavior, which
+changes the remote system to match the changes you make to
+your configuration. Terraform has two alternative planning modes, each of which creates a plan with a different intended outcome. These options are available for  both `terraform plan` and [`terraform apply`](/cli/commands/apply).
 
 * **Destroy mode:** creates a plan whose goal is to destroy all remote objects
   that currently exist, leaving an empty Terraform state. This can be useful
@@ -127,18 +124,10 @@ and later.
 
 ## Planning Options
 
-In addition to the planning _modes_ described above, there are also several
-additional options that can modify details of the behavior of the planning
-step.
-
-When you use `terraform apply` without passing it a saved plan file, it
-incorporates the `terraform plan` command functionality and so the planning
-options in this section, along with the planning mode selection options in
-the previous section, are also available with the same meanings on
-`terraform apply`.
+In addition to alternate [planning modes](#planning-modes), there are several options that can modify planning behavior. These options are available for  both `terraform plan` and [`terraform apply`](/cli/commands/apply).
 
 - `-refresh=false` - Disables the default behavior of synchronizing the
-  Terraform state with remote objects before checking for configuration changes. This can make the planning operation faster by reducing the number of remote API requests. However, setting `refresh=false` causes Terraform to ignore external changes, which could result in an incomplete or incorrect plan. You cannot use `refresh=false` in "refresh only" planning mode because it would effectively disable the entirety of the planning operation.
+  Terraform state with remote objects before checking for configuration changes. This can make the planning operation faster by reducing the number of remote API requests. However, setting `refresh=false` causes Terraform to ignore external changes, which could result in an incomplete or incorrect plan. You cannot use `refresh=false` in refresh-only planning mode because it would effectively disable the entirety of the planning operation.
 
 - `-replace=ADDRESS` - Instructs Terraform to plan to replace the
   resource instance with the given address. This is helpful when one or more remote objects have become degraded, and you can use replacement objects with the same configuratation to align with immutable infrastructure patterns. Terraform will use a "replace" action if the specified resource would normally cause an "update" action or no action at all. Include this option multiple times to replace several objects at once. You cannot use `-replace` with the `-destroy` option, and it is only available from Terraform v0.15.2 onwards. For earlier versions, use [`terraform taint`](/cli/commands/taint) to achieve a similar result.
