@@ -96,37 +96,7 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
-	// In refresh-only mode, we show all resources marked as drifted,
-	// including those which have moved without other changes. In other plan
-	// modes, move-only changes will be rendered in the planned changes, so
-	// we skip them here.
-	var driftedResources []*plans.ResourceInstanceChangeSrc
-	if plan.UIMode == plans.RefreshOnlyMode {
-		driftedResources = plan.DriftedResources
-	} else {
-		for _, dr := range plan.DriftedResources {
-			if dr.Action != plans.NoOp {
-				driftedResources = append(driftedResources, dr)
-			}
-		}
-	}
-
-	haveRefreshChanges := len(driftedResources) > 0
-	if haveRefreshChanges {
-		renderChangesDetectedByRefresh(driftedResources, schemas, view)
-		switch plan.UIMode {
-		case plans.RefreshOnlyMode:
-			view.streams.Println(format.WordWrap(
-				"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
-				view.outputColumns(),
-			))
-		default:
-			view.streams.Println(format.WordWrap(
-				"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
-				view.outputColumns(),
-			))
-		}
-	}
+	haveRefreshChanges := renderChangesDetectedByRefresh(plan, schemas, view)
 
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
@@ -360,7 +330,47 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // renderChangesDetectedByRefresh returns true if it produced at least one
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
-func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas, view *View) {
+func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas, view *View) (rendered bool) {
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+	var drs []*plans.ResourceInstanceChangeSrc
+	if plan.UIMode == plans.RefreshOnlyMode {
+		drs = plan.DriftedResources
+	} else {
+		for _, dr := range plan.DriftedResources {
+			if dr.Action != plans.NoOp {
+				drs = append(drs, dr)
+			}
+		}
+	}
+
+	if len(drs) == 0 {
+		return false
+	}
+
+	// In an empty plan, we don't show any outside changes, because nothing in
+	// the plan could have been affected by those changes. If a user wants to
+	// see all external changes, then a refresh-only plan should be executed
+	// instead.
+	if plan.Changes.Empty() && plan.UIMode != plans.RefreshOnlyMode {
+		return false
+	}
+
+	switch plan.UIMode {
+	case plans.RefreshOnlyMode:
+		view.streams.Println(format.WordWrap(
+			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			view.outputColumns(),
+		))
+	default:
+		view.streams.Println(format.WordWrap(
+			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			view.outputColumns(),
+		))
+	}
+
 	view.streams.Print(
 		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
 	)
@@ -403,6 +413,7 @@ func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, sche
 			format.DiffLanguageDetectedDrift,
 		))
 	}
+	return true
 }
 
 const planHeaderIntro = `
