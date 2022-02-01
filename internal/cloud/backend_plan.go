@@ -346,6 +346,22 @@ in order to capture the filesystem context the remote workspace expects:
 	// status of the run will be "errored", but there is still policy
 	// information which should be shown.
 
+	// Await post-plan run tasks
+	integration := &IntegrationContext{
+		B:             b,
+		StopContext:   stopCtx,
+		CancelContext: cancelCtx,
+		Op:            op,
+		Run:           r,
+	}
+
+	if stageID := getTaskStageIDByName(r.TaskStages, tfe.PostPlan); stageID != nil {
+		err = b.runTasks(integration, integration.BeginOutput("Run Tasks (post-plan)"), *stageID)
+		if err != nil {
+			return r, err
+		}
+	}
+
 	// Show any cost estimation output.
 	if r.CostEstimate != nil {
 		err = b.costEstimate(stopCtx, cancelCtx, op, r)
@@ -362,28 +378,14 @@ in order to capture the filesystem context the remote workspace expects:
 		}
 	}
 
-	// Await pre-apply run tasks
-	if len(r.TaskStages) > 0 {
-		integration := &IntegrationContext{
-			B:             b,
-			StopContext:   stopCtx,
-			CancelContext: cancelCtx,
-			Op:            op,
-			Run:           r,
-		}
-
-		if stageID := getTaskStageIDByName(r.TaskStages, tfe.PreApply); stageID != nil {
-			err = b.runTasks(integration, integration.BeginOutput("Run Tasks (pre-apply)"), *stageID)
-			if err != nil {
-				return r, err
-			}
-		}
-	}
-
 	return r, nil
 }
 
 func getTaskStageIDByName(stages []*tfe.TaskStage, stageName tfe.Stage) *string {
+	if len(stages) == 0 {
+		return nil
+	}
+
 	for _, stage := range stages {
 		if stage.Stage == stageName {
 			return &stage.ID
