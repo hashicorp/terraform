@@ -325,6 +325,10 @@ func (fs snapshotFS) Chmod(name string, mode os.FileMode) error {
 	return fmt.Errorf("cannot set file mode inside configuration snapshot")
 }
 
+func (fs snapshotFS) Chown(name string, uid int, gid int) error {
+	return fmt.Errorf("cannot set file ownership inside configuration snapshot")
+}
+
 func (fs snapshotFS) Chtimes(name string, atime, mtime time.Time) error {
 	return fmt.Errorf("cannot set file times inside configuration snapshot")
 }

@@ -9,6 +9,8 @@ require (
 	cloud.google.com/go/storage v1.14.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-cidr v1.1.0 // indirect
+	github.com/apparentlymart/go-ctxenv v1.0.0 // indirect
+	github.com/apparentlymart/go-shquot v0.0.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/apparentlymart/go-versions v1.0.1 // indirect
 	github.com/aws/aws-sdk-go v1.42.35 // indirect
@@ -38,9 +40,11 @@ require (
 	github.com/klauspost/compress v1.11.2 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.4 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
@@ -48,6 +52,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
+	go.rpcplugin.org/rpcplugin v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
 	golang.org/x/mod v0.5.0 // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
@@ -62,7 +67,7 @@ require (
 
 require (
 	github.com/hashicorp/hcl/v2 v2.11.1
-	github.com/spf13/afero v1.8.0 // indirect
+	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/zclconf/go-cty v1.10.0
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
