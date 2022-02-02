@@ -79,7 +79,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 				Name:           "foo",
 				Type:           cty.Number,
 				ConstraintType: cty.Number,
-				Validations: []*configs.VariableValidation{
+				Validations: []*configs.CheckRule{
 					{
 						Condition: fakeHCLExpressionFunc(func(ctx *hcl.EvalContext) (cty.Value, hcl.Diagnostics) {
 							// This returns true only if the given variable value
