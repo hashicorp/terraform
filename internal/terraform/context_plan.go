@@ -200,7 +200,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
-	plan.RelevantResources = c.relevantResourcesForPlan(config, plan)
+	relevantResources, rDiags := c.relevantResourcesForPlan(config, plan)
+	diags = diags.Append(rDiags)
+
+	plan.RelevantResources = relevantResources
 	return plan, diags
 }
 
@@ -363,7 +366,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = pendingPlan.PrevRunState
 	}
 
-	destroyPlan.RelevantResources = c.relevantResourcesForPlan(config, destroyPlan)
+	relevantResources, rDiags := c.relevantResourcesForPlan(config, destroyPlan)
+	diags = diags.Append(rDiags)
+
+	destroyPlan.RelevantResources = relevantResources
 	return destroyPlan, diags
 }
 
@@ -744,23 +750,24 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 	)
 }
 
-// ReferenceAnalyzer returns a globalref.Analyzer object to help with
+// referenceAnalyzer returns a globalref.Analyzer object to help with
 // global analysis of references within the configuration that's attached
 // to the receiving context.
-func (c *Context) ReferenceAnalyzer(config *configs.Config, state *states.State) *globalref.Analyzer {
+func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State) (*globalref.Analyzer, tfdiags.Diagnostics) {
 	schemas, diags := c.Schemas(config, state)
-	if diags != nil {
-		// FIXME: we now have to deal with the diagnostics here
-		panic(diags.ErrWithWarnings().Error())
+	if diags.HasErrors() {
+		return nil, diags
 	}
-
-	return globalref.NewAnalyzer(config, schemas.Providers)
+	return globalref.NewAnalyzer(config, schemas.Providers), diags
 }
 
 // relevantResourcesForPlan implements the heuristic we use to populate the
 // RelevantResources field of returned plans.
-func (c *Context) relevantResourcesForPlan(config *configs.Config, plan *plans.Plan) []addrs.AbsResource {
-	azr := c.ReferenceAnalyzer(config, plan.PriorState)
+func (c *Context) relevantResourcesForPlan(config *configs.Config, plan *plans.Plan) ([]addrs.AbsResource, tfdiags.Diagnostics) {
+	azr, diags := c.referenceAnalyzer(config, plan.PriorState)
+	if diags.HasErrors() {
+		return nil, diags
+	}
 
 	// Our current strategy is that a resource is relevant if it either has
 	// a proposed change action directly, or if its attributes are used as
@@ -792,11 +799,11 @@ func (c *Context) relevantResourcesForPlan(config *configs.Config, plan *plans.P
 	}
 
 	if len(relevant) == 0 {
-		return nil
+		return nil, diags
 	}
 	ret := make([]addrs.AbsResource, 0, len(relevant))
 	for _, addr := range relevant {
 		ret = append(ret, addr)
 	}
-	return ret
+	return ret, diags
 }
