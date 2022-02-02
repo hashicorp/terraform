@@ -331,6 +331,13 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
 func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas, view *View) (rendered bool) {
+	// If this is not a refresh-only plan, we will need to filter out any
+	// non-relevant changes to reduce plan output.
+	relevant := make(map[string]bool)
+	for _, r := range plan.RelevantResources {
+		relevant[r.String()] = true
+	}
+
 	// In refresh-only mode, we show all resources marked as drifted,
 	// including those which have moved without other changes. In other plan
 	// modes, move-only changes will be rendered in the planned changes, so
@@ -340,7 +347,7 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 		drs = plan.DriftedResources
 	} else {
 		for _, dr := range plan.DriftedResources {
-			if dr.Action != plans.NoOp {
+			if dr.Action != plans.NoOp && relevant[dr.Addr.ContainingResource().String()] {
 				drs = append(drs, dr)
 			}
 		}
