@@ -6,6 +6,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
 )
 
 // CheckRule represents a configuration-defined validation rule, precondition,
@@ -30,6 +32,37 @@ type CheckRule struct {
 	ErrorMessage string
 
 	DeclRange hcl.Range
+}
+
+// validateSelfReferences looks for references in the check rule matching the
+// specified resource address, returning error diagnostics if such a reference
+// is found.
+func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resource) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+	refs, _ := lang.References(cr.Condition.Variables())
+	for _, ref := range refs {
+		var refAddr addrs.Resource
+
+		switch rs := ref.Subject.(type) {
+		case addrs.Resource:
+			refAddr = rs
+		case addrs.ResourceInstance:
+			refAddr = rs.Resource
+		default:
+			continue
+		}
+
+		if refAddr.Equal(addr) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Invalid reference in %s", checkType),
+				Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addr.String()),
+				Subject:  cr.Condition.Range().Ptr(),
+			})
+			break
+		}
+	}
+	return diags
 }
 
 // decodeCheckRuleBlock decodes the contents of the given block as a check rule.

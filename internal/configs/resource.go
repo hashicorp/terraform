@@ -245,6 +245,10 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 				case "precondition", "postcondition":
 					cr, moreDiags := decodeCheckRuleBlock(block, override)
 					diags = append(diags, moreDiags...)
+
+					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
+					diags = append(diags, moreDiags...)
+
 					switch block.Type {
 					case "precondition":
 						r.Preconditions = append(r.Preconditions, cr)
@@ -445,6 +449,10 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 				case "precondition", "postcondition":
 					cr, moreDiags := decodeCheckRuleBlock(block, override)
 					diags = append(diags, moreDiags...)
+
+					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
+					diags = append(diags, moreDiags...)
+
 					switch block.Type {
 					case "precondition":
 						r.Preconditions = append(r.Preconditions, cr)
