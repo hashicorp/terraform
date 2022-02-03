@@ -41,6 +41,18 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	diags = diags.Append(n.validateResource(ctx))
 
+	var self addrs.Referenceable
+	switch {
+	case n.Config.Count != nil:
+		self = n.Addr.Resource.Instance(addrs.IntKey(0))
+	case n.Config.ForEach != nil:
+		self = n.Addr.Resource.Instance(addrs.StringKey(""))
+	default:
+		self = n.Addr.Resource.Instance(addrs.NoKey)
+	}
+	diags = diags.Append(validateCheckRules(ctx, n.Config.Preconditions, nil))
+	diags = diags.Append(validateCheckRules(ctx, n.Config.Postconditions, self))
+
 	if managed := n.Config.Managed; managed != nil {
 		hasCount := n.Config.Count != nil
 		hasForEach := n.Config.ForEach != nil
@@ -461,6 +473,20 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	}
+
+	return diags
+}
+
+func validateCheckRules(ctx EvalContext, crs []*configs.CheckRule, self addrs.Referenceable) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, cr := range crs {
+		_, conditionDiags := ctx.EvaluateExpr(cr.Condition, cty.Bool, self)
+		diags = diags.Append(conditionDiags)
+
+		_, errorMessageDiags := ctx.EvaluateExpr(cr.ErrorMessage, cty.String, self)
+		diags = diags.Append(errorMessageDiags)
 	}
 
 	return diags
