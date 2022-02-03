@@ -109,6 +109,56 @@ func ParseModuleSource(raw string) (ModuleSource, error) {
 	return remoteAddr, nil
 }
 
+// ResolveRelativeModuleSource takes a child module source that might be
+// a local source intended to be interpreted relative to its parent, and
+// turns it into an absolute source address of the same type as the parent.
+//
+// ResolveRelativeModuleSource will not allow traversing out of a remote or
+// registry module package, and so will return an error if the child address
+// attempts that.
+func ResolveRelativeModuleSource(parent, child ModuleSource) (ModuleSource, error) {
+	childLocal, isLocal := child.(ModuleSourceLocal)
+	if !isLocal {
+		// Easy case: an absolute address creates a new baseline package
+		// for any downstream addresses.
+		return child, nil
+	}
+	if parent == nil {
+		// this is a weird thing to ask but we'll interpret it as if
+		// "child" is representing the root module address, and thus
+		// establishes the initial base address.
+		return child, nil
+	}
+
+	switch parent := parent.(type) {
+	case ModuleSourceLocal:
+		newPath := path.Join(string(parent), string(childLocal))
+		return ModuleSourceLocal(newPath), nil
+	case ModuleSourceRemote:
+		newPath := path.Join(parent.Subdir, string(childLocal))
+		if strings.HasPrefix(newPath, "../") {
+			return nil, fmt.Errorf("relative path %q traverses outside of the containing package %q", childLocal, parent.PackageAddr)
+		}
+		return ModuleSourceRemote{
+			PackageAddr: parent.PackageAddr,
+			Subdir:      newPath,
+		}, nil
+	case ModuleSourceRegistry:
+		newPath := path.Join(parent.Subdir, string(childLocal))
+		if strings.HasPrefix(newPath, "../") {
+			return nil, fmt.Errorf("relative path %q traverses outside of the containing package %q", childLocal, parent.PackageAddr)
+		}
+		return ModuleSourceRegistry{
+			PackageAddr: parent.PackageAddr,
+			Subdir:      newPath,
+		}, nil
+	default:
+		// Should not get here, because this should support all of the
+		// ModuleSource implementations defined elsewhere in this package.
+		panic(fmt.Sprintf("unsupported source address type %T", parent))
+	}
+}
+
 // ModuleSourceLocal is a ModuleSource representing a local path reference
 // from the caller's directory to the callee's directory within the same
 // module package.

@@ -44,7 +44,7 @@ variable "common_tags" {
   type = map(string)
 }
 
-component_group "network" {
+group "network" {
   components   = "./aws/network.tfcomponents.hcl"
   display_name = "Network"
 
@@ -56,7 +56,7 @@ component_group "network" {
   }
 }
 
-component_group "kubernetes" {
+group "kubernetes" {
   components   = "./aws/kubernetes-cluster.tfcomponents.hcl"
   display_name = "Kubernetes Cluster"
 

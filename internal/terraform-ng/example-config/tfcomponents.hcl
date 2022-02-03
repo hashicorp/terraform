@@ -51,13 +51,13 @@ variable "gcp" {
   })
 }
 
-component_group "aws" {
+group "aws" {
   components   = "./vendors/aws.tfcomponents.hcl"
   display_name = "Amazon Web Services"
   variables = {
     base_cidr_block = cidrsubnet(var.environment.base_cidr_block, 4, 1)
     regions         = {
-      for r in var.aws.regions : {
+      for r in var.aws.regions : r.name => {
         name                   = r.name
         availability_zones     = r.availability_zones
         max_availability_zones = 4
@@ -70,7 +70,7 @@ component_group "aws" {
   }
 }
 
-component_group "gcp" {
+group "gcp" {
   components   = "./vendors/gcp.tfcomponents.hcl"
   display_name = "Google Cloud Platform"
   variables = {
@@ -80,7 +80,7 @@ component_group "gcp" {
 }
 
 output "kubeconfigs" {
-  kubeconfigs = setunion(
+  value = setunion(
     values(component_group.aws.kubeconfigs),
     values(component_group.gcp.kubeconfigs),
   )

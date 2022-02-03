@@ -51,7 +51,7 @@ var envSetvariableCmd = &cobra.Command{
 
 		varName := args[1]
 		if !hclsyntax.ValidIdentifier(varName) {
-			cmd.PrintErrf("Invalid variable name\n\n", env, err)
+			cmd.PrintErrf("Invalid variable name %q\n\n", varName)
 			os.Exit(1)
 		}
 
