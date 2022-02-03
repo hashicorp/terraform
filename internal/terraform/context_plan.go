@@ -462,7 +462,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
-	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts, true)
+	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
@@ -517,7 +517,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	return plan, diags
 }
 
-func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
+func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	switch mode := opts.Mode; mode {
 	case plans.NormalMode:
 		graph, diags := (&PlanGraphBuilder{
@@ -527,7 +527,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
 			ForceReplace:       opts.ForceReplace,
-			Validate:           validate,
 			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
@@ -538,7 +537,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues: opts.SetVariables,
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
-			Validate:           validate,
 			skipRefresh:        opts.SkipRefresh,
 			skipPlanChanges:    true, // this activates "refresh only" mode.
 		}).Build(addrs.RootModuleInstance)
@@ -550,7 +548,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues: opts.SetVariables,
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
-			Validate:           validate,
 			skipRefresh:        opts.SkipRefresh,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags
@@ -714,7 +711,7 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 
 	opts := &PlanOpts{Mode: mode}
 
-	graph, _, moreDiags := c.planGraph(config, prevRunState, opts, false)
+	graph, _, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	return graph, diags
 }
