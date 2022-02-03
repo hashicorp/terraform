@@ -2561,7 +2561,7 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 		{
 			"test_resource.c.value",
 			"Invalid condition result",
-			"Invalid validation condition result value: a bool is required",
+			"Invalid condition result value: a bool is required",
 		},
 	}
 

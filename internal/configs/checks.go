@@ -2,10 +2,8 @@ package configs
 
 import (
 	"fmt"
-	"unicode"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
 )
@@ -24,12 +22,15 @@ type CheckRule struct {
 	// input variables can only refer to the variable that is being validated.
 	Condition hcl.Expression
 
-	// ErrorMessage is one or more full sentences, which would need to be in
+	// ErrorMessage should be one or more full sentences, which should be in
 	// English for consistency with the rest of the error message output but
-	// can in practice be in any language as long as it ends with a period.
-	// The message should describe what is required for the condition to return
-	// true in a way that would make sense to a caller of the module.
-	ErrorMessage string
+	// can in practice be in any language. The message should describe what is
+	// required for the condition to return true in a way that would make sense
+	// to a caller of the module.
+	//
+	// The error message expression has the same variables available for
+	// interpolation as the corresponding condition.
+	ErrorMessage hcl.Expression
 
 	DeclRange hcl.Range
 }
@@ -111,75 +112,10 @@ func decodeCheckRuleBlock(block *hcl.Block, override bool) (*CheckRule, hcl.Diag
 	}
 
 	if attr, exists := content.Attributes["error_message"]; exists {
-		moreDiags := gohcl.DecodeExpression(attr.Expr, nil, &cr.ErrorMessage)
-		diags = append(diags, moreDiags...)
-		if !moreDiags.HasErrors() {
-			const errSummary = "Invalid validation error message"
-			switch {
-			case cr.ErrorMessage == "":
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail:   "An empty string is not a valid nor useful error message.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			case !looksLikeSentences(cr.ErrorMessage):
-				// Because we're going to include this string verbatim as part
-				// of a bigger error message written in our usual style in
-				// English, we'll require the given error message to conform
-				// to that. We might relax this in future if e.g. we start
-				// presenting these error messages in a different way, or if
-				// Terraform starts supporting producing error messages in
-				// other human languages, etc.
-				// For pragmatism we also allow sentences ending with
-				// exclamation points, but we don't mention it explicitly here
-				// because that's not really consistent with the Terraform UI
-				// writing style.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errSummary,
-					Detail:   "The validation error message must be at least one full sentence starting with an uppercase letter and ending with a period or question mark.\n\nYour given message will be included as part of a larger Terraform error message, written as English prose. For broadly-shared modules we suggest using a similar writing style so that the overall result will be consistent.",
-					Subject:  attr.Expr.Range().Ptr(),
-				})
-			}
-		}
+		cr.ErrorMessage = attr.Expr
 	}
 
 	return cr, diags
-}
-
-// looksLikeSentence is a simple heuristic that encourages writing error
-// messages that will be presentable when included as part of a larger
-// Terraform error diagnostic whose other text is written in the Terraform
-// UI writing style.
-//
-// This is intentionally not a very strong validation since we're assuming
-// that module authors want to write good messages and might just need a nudge
-// about Terraform's specific style, rather than that they are going to try
-// to work around these rules to write a lower-quality message.
-func looksLikeSentences(s string) bool {
-	if len(s) < 1 {
-		return false
-	}
-	runes := []rune(s) // HCL guarantees that all strings are valid UTF-8
-	first := runes[0]
-	last := runes[len(runes)-1]
-
-	// If the first rune is a letter then it must be an uppercase letter.
-	// (This will only see the first rune in a multi-rune combining sequence,
-	// but the first rune is generally the letter if any are, and if not then
-	// we'll just ignore it because we're primarily expecting English messages
-	// right now anyway, for consistency with all of Terraform's other output.)
-	if unicode.IsLetter(first) && !unicode.IsUpper(first) {
-		return false
-	}
-
-	// The string must be at least one full sentence, which implies having
-	// sentence-ending punctuation.
-	// (This assumes that if a sentence ends with quotes then the period
-	// will be outside the quotes, which is consistent with Terraform's UI
-	// writing style.)
-	return last == '.' || last == '?' || last == '!'
 }
 
 var checkRuleBlockSchema = &hcl.BodySchema{

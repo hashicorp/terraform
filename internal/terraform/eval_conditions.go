@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -59,12 +60,20 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 
 		refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
 		ruleDiags = ruleDiags.Append(moreDiags)
+		moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
+		ruleDiags = ruleDiags.Append(moreDiags)
+		refs = append(refs, moreRefs...)
+
 		scope := ctx.EvaluationScope(self, keyData)
 		hclCtx, moreDiags := scope.EvalContext(refs)
 		ruleDiags = ruleDiags.Append(moreDiags)
 
 		result, hclDiags := rule.Condition.Value(hclCtx)
 		ruleDiags = ruleDiags.Append(hclDiags)
+
+		errorValue, errorDiags := rule.ErrorMessage.Value(hclCtx)
+		ruleDiags = ruleDiags.Append(errorDiags)
+
 		diags = diags.Append(ruleDiags)
 
 		if ruleDiags.HasErrors() {
@@ -91,7 +100,7 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     errInvalidCondition,
-				Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+				Detail:      fmt.Sprintf("Invalid condition result value: %s.", tfdiags.FormatError(err)),
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
@@ -99,16 +108,38 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 			continue
 		}
 
-		if result.False() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     typ.FailureSummary(),
-				Detail:      rule.ErrorMessage,
-				Subject:     rule.Condition.Range().Ptr(),
-				Expression:  rule.Condition,
-				EvalContext: hclCtx,
-			})
+		if result.True() {
+			continue
 		}
+
+		var errorMessage string
+		if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+			var err error
+			errorValue, err = convert.Convert(errorValue, cty.String)
+			if err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid error message",
+					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+					Subject:     rule.ErrorMessage.Range().Ptr(),
+					Expression:  rule.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+			} else {
+				errorMessage = strings.TrimSpace(errorValue.AsString())
+			}
+		}
+		if errorMessage == "" {
+			errorMessage = "Failed to evaluate condition error message."
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     typ.FailureSummary(),
+			Detail:      errorMessage,
+			Subject:     rule.Condition.Range().Ptr(),
+			Expression:  rule.Condition,
+			EvalContext: hclCtx,
+		})
 	}
 
 	return diags

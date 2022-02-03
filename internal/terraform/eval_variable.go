@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -205,11 +206,17 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	for _, validation := range config.Validations {
 		const errInvalidCondition = "Invalid variable validation result"
 		const errInvalidValue = "Invalid value for variable"
+		var ruleDiags tfdiags.Diagnostics
 
 		result, moreDiags := validation.Condition.Value(hclCtx)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition expression failed: %s", addr, validation.DeclRange, diags.Err().Error())
+		ruleDiags = ruleDiags.Append(moreDiags)
+		errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
+		ruleDiags = ruleDiags.Append(errorDiags)
+
+		diags = diags.Append(ruleDiags)
+
+		if ruleDiags.HasErrors() {
+			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition expression failed: %s", addr, validation.DeclRange, ruleDiags.Err().Error())
 		}
 		if !result.IsKnown() {
 			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", addr, validation.DeclRange)
@@ -245,25 +252,52 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 		// we discard the marks now.
 		result, _ = result.Unmark()
 
-		if result.False() {
-			if expr != nil {
+		if result.True() {
+			continue
+		}
+
+		var errorMessage string
+		if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+			var err error
+			errorValue, err = convert.Convert(errorValue, cty.String)
+			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errInvalidValue,
-					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
-					Subject:  expr.Range().Ptr(),
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid error message",
+					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
 				})
 			} else {
-				// Since we don't have a source expression for a root module
-				// variable, we'll just report the error from the perspective
-				// of the variable declaration itself.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  errInvalidValue,
-					Detail:   fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", validation.ErrorMessage, validation.DeclRange.String()),
-					Subject:  config.DeclRange.Ptr(),
-				})
+				errorMessage = strings.TrimSpace(errorValue.AsString())
 			}
+		}
+		if errorMessage == "" {
+			errorMessage = "Failed to evaluate condition error message."
+		}
+
+		if expr != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidValue,
+				Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+				Subject:     expr.Range().Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
+		} else {
+			// Since we don't have a source expression for a root module
+			// variable, we'll just report the error from the perspective
+			// of the variable declaration itself.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     errInvalidValue,
+				Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+				Subject:     config.DeclRange.Ptr(),
+				Expression:  validation.Condition,
+				EvalContext: hclCtx,
+			})
 		}
 	}
 

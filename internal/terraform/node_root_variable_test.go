@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -101,7 +102,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 							}
 							return cty.True, nil
 						}),
-						ErrorMessage: "Must be a number.",
+						ErrorMessage: hcltest.MockExprLiteral(cty.StringVal("Must be a number.")),
 					},
 				},
 			},
