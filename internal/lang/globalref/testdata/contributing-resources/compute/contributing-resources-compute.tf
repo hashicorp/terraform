@@ -20,6 +20,8 @@ locals {
       }
     ]
   ])
+
+  controllers = test_thing.controller
 }
 
 resource "test_thing" "worker" {
@@ -39,7 +41,7 @@ resource "test_thing" "load_balancer" {
   string = var.network.vpc_id
 
   dynamic "list" {
-    for_each = test_thing.controller
+    for_each = local.controllers
     content {
       z = list.value.string
     }

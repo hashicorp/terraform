@@ -21,6 +21,13 @@ func TestAnalyzerMetaReferences(t *testing.T) {
 		},
 		{
 			``,
+			`local.single`,
+			[]string{
+				"::test_thing.single.id",
+			},
+		},
+		{
+			``,
 			`test_thing.single`,
 			[]string{
 				"::local.a",

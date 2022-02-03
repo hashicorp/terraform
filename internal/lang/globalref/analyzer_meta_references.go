@@ -40,6 +40,8 @@ func (a *Analyzer) MetaReferences(ref Reference) []Reference {
 	switch targetAddr := ref.LocalRef.Subject.(type) {
 	case addrs.InputVariable:
 		return a.metaReferencesInputVariable(moduleAddr, targetAddr, remaining)
+	case addrs.LocalValue:
+		return a.metaReferencesLocalValue(moduleAddr, targetAddr, remaining)
 	case addrs.ModuleCallInstanceOutput:
 		return a.metaReferencesOutputValue(moduleAddr, targetAddr, remaining)
 	case addrs.ModuleCallInstance:
@@ -136,6 +138,23 @@ func (a *Analyzer) metaReferencesOutputValue(callerAddr addrs.ModuleInstance, ad
 	return absoluteRefs(calleeAddr, refs)
 }
 
+func (a *Analyzer) metaReferencesLocalValue(moduleAddr addrs.ModuleInstance, addr addrs.LocalValue, remain hcl.Traversal) []Reference {
+	modCfg := a.ModuleConfig(moduleAddr)
+	if modCfg == nil {
+		return nil
+	}
+
+	local := modCfg.Locals[addr.Name]
+	if local == nil {
+		return nil
+	}
+
+	// We don't check for errors here because we'll make a best effort to
+	// analyze whatever partial result HCL is able to extract.
+	refs, _ := lang.ReferencesInExpr(local.Expr)
+	return absoluteRefs(moduleAddr, refs)
+}
+
 func (a *Analyzer) metaReferencesModuleCall(callerAddr addrs.ModuleInstance, addr addrs.ModuleCallInstance, remain hcl.Traversal) []Reference {
 	calleeAddr := callerAddr.Child(addr.Call.Name, addr.Key)
 
@@ -181,6 +200,7 @@ func (a *Analyzer) metaReferencesResourceInstance(moduleAddr addrs.ModuleInstanc
 	if providerSchema == nil {
 		return nil
 	}
+
 	resourceTypeSchema, _ := providerSchema.SchemaForResourceAddr(addr.Resource)
 	if resourceTypeSchema == nil {
 		return nil

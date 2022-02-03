@@ -1,7 +1,7 @@
-
 locals {
   a = "hello world"
   b = 2
+  single = test_thing.single.id
 }
 
 resource "test_thing" "single" {
