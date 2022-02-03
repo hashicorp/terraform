@@ -365,19 +365,6 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 		return false
 	}
 
-	switch plan.UIMode {
-	case plans.RefreshOnlyMode:
-		view.streams.Println(format.WordWrap(
-			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
-			view.outputColumns(),
-		))
-	default:
-		view.streams.Println(format.WordWrap(
-			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
-			view.outputColumns(),
-		))
-	}
-
 	view.streams.Print(
 		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
 	)
@@ -420,6 +407,20 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 			format.DiffLanguageDetectedDrift,
 		))
 	}
+
+	switch plan.UIMode {
+	case plans.RefreshOnlyMode:
+		view.streams.Println(format.WordWrap(
+			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			view.outputColumns(),
+		))
+	default:
+		view.streams.Println(format.WordWrap(
+			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			view.outputColumns(),
+		))
+	}
+
 	return true
 }
 
