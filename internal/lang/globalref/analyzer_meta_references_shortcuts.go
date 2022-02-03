@@ -23,9 +23,9 @@ func (a *Analyzer) ReferencesFromOutputValue(addr addrs.AbsOutputValue) []Refere
 	return absoluteRefs(addr.Module, refs)
 }
 
-// ReferencesFromResource returns all of the direct references from the
-// definition of the resource instance at the given address. It doesn't
-// include any indirect references.
+// ReferencesFromResourceInstance returns all of the direct references from the
+// definition of the resource instance at the given address. It doesn't include
+// any indirect references.
 //
 // The result doesn't directly include references from a "count" or "for_each"
 // expression belonging to the associated resource, but it will include any
