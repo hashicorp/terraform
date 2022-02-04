@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -36,20 +37,15 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
-	// RelevantResources is a set of resource addresses that are either
-	// directly affected by proposed changes or may have indirectly contributed
-	// to them via references in expressions.
+	// RelevantAttributes is a set of resource addresses and attributes that are
+	// either directly affected by proposed changes or may have indirectly
+	// contributed to them via references in expressions.
 	//
 	// This is the result of a heuristic and is intended only as a hint to
 	// the UI layer in case it wants to emphasize or de-emphasize certain
 	// resources. Don't use this to drive any non-cosmetic behavior, especially
 	// including anything that would be subject to compatibility constraints.
-	//
-	// FIXME: This result currently doesn't survive round-tripping through a
-	// saved plan file, and so it'll be populated only for a freshly-created
-	// plan that has only existed in memory so far. When reloading a saved
-	// plan it will always appear as if there are no "relevant resources".
-	RelevantResources []addrs.AbsResource
+	RelevantAttributes []globalref.ResourceAttr
 
 	// PrevRunState and PriorState both describe the situation that the plan
 	// was derived from:

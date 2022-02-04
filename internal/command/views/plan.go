@@ -334,8 +334,8 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 	// If this is not a refresh-only plan, we will need to filter out any
 	// non-relevant changes to reduce plan output.
 	relevant := make(map[string]bool)
-	for _, r := range plan.RelevantResources {
-		relevant[r.String()] = true
+	for _, r := range plan.RelevantAttributes {
+		relevant[r.Resource.String()] = true
 	}
 
 	// In refresh-only mode, we show all resources marked as drifted,
