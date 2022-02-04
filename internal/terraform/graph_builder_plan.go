@@ -45,9 +45,6 @@ type PlanGraphBuilder struct {
 	// action instead. Create and Delete actions are not affected.
 	ForceReplace []addrs.AbsResourceInstance
 
-	// Validate will do structural validation of the graph.
-	Validate bool
-
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
@@ -72,9 +69,8 @@ type PlanGraphBuilder struct {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "PlanGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "PlanGraphBuilder",
 	}).Build(path)
 }
 

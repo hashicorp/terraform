@@ -58,7 +58,6 @@ func (c *Context) Validate(config *configs.Config) tfdiags.Diagnostics {
 	graph, moreDiags := ValidateGraphBuilder(&PlanGraphBuilder{
 		Config:             config,
 		Plugins:            c.plugins,
-		Validate:           true,
 		State:              states.NewState(),
 		RootVariableValues: varValues,
 	}).Build(addrs.RootModuleInstance)
