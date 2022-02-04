@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -52,6 +53,29 @@ func (s *Session) handleEval(line string) (string, tfdiags.Diagnostics) {
 	diags = diags.Append(valDiags)
 	if valDiags.HasErrors() {
 		return "", diags
+	}
+
+	// The raw mark is used only by the console-only `type` function, in order
+	// to allow display of a string value representation of the type without the
+	// usual HCL formatting. If we receive a string value with this mark, we do
+	// not want to format it any further.
+	//
+	// Due to mark propagation in cty, calling `type` as part of a larger
+	// expression can lead to other values being marked, which can in turn lead
+	// to unpredictable results. If any non-string value has the raw mark, we
+	// return a diagnostic explaining that this use of `type` is not permitted.
+	if marks.Contains(val, marks.Raw) {
+		if val.Type().Equals(cty.String) {
+			raw, _ := val.Unmark()
+			return raw.AsString(), diags
+		} else {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid use of type function",
+				"The console-only \"type\" function cannot be used as part of an expression.",
+			))
+			return "", diags
+		}
 	}
 
 	return FormatValue(val, 0), diags

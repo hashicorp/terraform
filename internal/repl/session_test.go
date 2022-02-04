@@ -120,6 +120,20 @@ func TestSession_basicState(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("type function", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			State: state,
+			Inputs: []testSessionInput{
+				{
+					Input: "type(test_instance.foo)",
+					Output: `object({
+    id: string,
+})`,
+				},
+			},
+		})
+	})
 }
 
 func TestSession_stateless(t *testing.T) {
@@ -178,6 +192,18 @@ func TestSession_stateless(t *testing.T) {
 			},
 		})
 	})
+
+	t.Run("type function cannot be used in expressions", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			Inputs: []testSessionInput{
+				{
+					Input:         `[for i in [1, "two", true]: type(i)]`,
+					Error:         true,
+					ErrorContains: "Invalid use of type function",
+				},
+			},
+		})
+	})
 }
 
 func testSession(t *testing.T, test testSessionTest) {
@@ -220,6 +246,9 @@ func testSession(t *testing.T, test testSessionTest) {
 	if diags.HasErrors() {
 		t.Fatalf("failed to create scope: %s", diags.Err())
 	}
+
+	// Ensure that any console-only functions are available
+	scope.ConsoleMode = true
 
 	// Build the session
 	s := &Session{
