@@ -83,16 +83,28 @@ func (r Reference) ModuleAddr() addrs.ModuleInstance {
 // Because not all references belong to resources, the extra boolean return
 // value indicates whether the returned address is valid.
 func (r Reference) ResourceAddr() (addrs.AbsResource, bool) {
-	switch addr := r.ContainerAddr.(type) {
+	moduleInstance := addrs.RootModuleInstance
+
+	switch container := r.ContainerAddr.(type) {
 	case addrs.ModuleInstance:
+		moduleInstance = container
+
+		switch ref := r.LocalRef.Subject.(type) {
+		case addrs.Resource:
+			return ref.Absolute(moduleInstance), true
+		case addrs.ResourceInstance:
+			return ref.ContainingResource().Absolute(moduleInstance), true
+		}
+
 		return addrs.AbsResource{}, false
+
 	case addrs.AbsResourceInstance:
-		return addr.ContainingResource(), true
+		return container.ContainingResource(), true
 	default:
 		// NOTE: We're intentionally using only a subset of possible
 		// addrs.Targetable implementations here, so anything else
 		// is invalid.
-		panic(fmt.Sprintf("reference has invalid container address type %T", addr))
+		panic(fmt.Sprintf("reference has invalid container address type %T", container))
 	}
 }
 
