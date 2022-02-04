@@ -9,7 +9,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -274,7 +276,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			}
 
 			view.streams.Println(format.ResourceChange(
-				rcs,
+				decodeChange(rcs, rSchema),
 				rSchema,
 				view.colorize,
 				format.DiffLanguageProposedChange,
@@ -401,7 +403,7 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 		}
 
 		view.streams.Println(format.ResourceChange(
-			rcs,
+			decodeChange(rcs, rSchema),
 			rSchema,
 			view.colorize,
 			format.DiffLanguageDetectedDrift,
@@ -422,6 +424,26 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 	}
 
 	return true
+}
+
+func decodeChange(change *plans.ResourceInstanceChangeSrc, schema *configschema.Block) *plans.ResourceInstanceChange {
+	changeV, err := change.Decode(schema.ImpliedType())
+	if err != nil {
+		// Should never happen in here, since we've already been through
+		// loads of layers of encode/decode of the planned changes before now.
+		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", change.Addr, err))
+	}
+
+	// We currently have an opt-out that permits the legacy SDK to return values
+	// that defy our usual conventions around handling of nesting blocks. To
+	// avoid the rendering code from needing to handle all of these, we'll
+	// normalize first.
+	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
+	// but we've added it here for now to reduce risk of unexpected impacts
+	// on other code in core.)
+	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
+	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
+	return changeV
 }
 
 const planHeaderIntro = `

@@ -234,6 +234,10 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 	}, err
 }
 
+func (rc *ResourceInstanceChange) Moved() bool {
+	return !rc.Addr.Equal(rc.PrevRunAddr)
+}
+
 // Simplify will, where possible, produce a change with a simpler action than
 // the receiever given a flag indicating whether the caller is dealing with
 // a normal apply or a destroy. This flag deals with the fact that Terraform

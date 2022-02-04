@@ -4857,10 +4857,6 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			case !beforeVal.IsKnown():
 				beforeVal = cty.UnknownVal(ty) // allow mistyped unknowns
 			}
-			before, err := plans.NewDynamicValue(beforeVal, ty)
-			if err != nil {
-				t.Fatal(err)
-			}
 
 			afterVal := tc.After
 			switch { // Some fixups to make the test cases a little easier to write
@@ -4868,10 +4864,6 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				afterVal = cty.NullVal(ty) // allow mistyped nulls
 			case !afterVal.IsKnown():
 				afterVal = cty.UnknownVal(ty) // allow mistyped unknowns
-			}
-			after, err := plans.NewDynamicValue(afterVal, ty)
-			if err != nil {
-				t.Fatal(err)
 			}
 
 			addr := addrs.Resource{
@@ -4887,7 +4879,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				prevRunAddr = addr
 			}
 
-			change := &plans.ResourceInstanceChangeSrc{
+			change := &plans.ResourceInstanceChange{
 				Addr:        addr,
 				PrevRunAddr: prevRunAddr,
 				DeposedKey:  tc.DeposedKey,
@@ -4895,12 +4887,10 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
-				ChangeSrc: plans.ChangeSrc{
-					Action:         tc.Action,
-					Before:         before,
-					After:          after,
-					BeforeValMarks: tc.BeforeValMarks,
-					AfterValMarks:  tc.AfterValMarks,
+				Change: plans.Change{
+					Action: tc.Action,
+					Before: beforeVal.MarkWithPaths(tc.BeforeValMarks),
+					After:  afterVal.MarkWithPaths(tc.AfterValMarks),
 				},
 				ActionReason:    tc.ActionReason,
 				RequiredReplace: tc.RequiredReplace,
