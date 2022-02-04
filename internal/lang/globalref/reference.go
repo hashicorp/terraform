@@ -3,7 +3,10 @@ package globalref
 import (
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Reference combines an addrs.Reference with the address of the module
@@ -125,6 +128,45 @@ func (r Reference) DebugString() string {
 	return r.ContainerAddr.String() + "::" + r.LocalRef.DisplayString()
 }
 
+// ResourceAttr converts the Reference value to a more specific ResourceAttr
+// value.
+//
+// Because not all references belong to resources, the extra boolean return
+// value indicates whether the returned address is valid.
+func (r Reference) ResourceAttr() (ResourceAttr, bool) {
+	res, ok := r.ResourceAddr()
+	if !ok {
+		return ResourceAttr{}, ok
+	}
+
+	traversal := r.LocalRef.Remaining
+
+	path := make(cty.Path, len(traversal))
+	for si, step := range traversal {
+		switch ts := step.(type) {
+		case hcl.TraverseRoot:
+			path[si] = cty.GetAttrStep{
+				Name: ts.Name,
+			}
+		case hcl.TraverseAttr:
+			path[si] = cty.GetAttrStep{
+				Name: ts.Name,
+			}
+		case hcl.TraverseIndex:
+			path[si] = cty.IndexStep{
+				Key: ts.Key,
+			}
+		default:
+			panic(fmt.Sprintf("unsupported traversal step %#v", step))
+		}
+	}
+
+	return ResourceAttr{
+		Resource: res,
+		Attr:     path,
+	}, true
+}
+
 // addrKey returns the referenceAddrKey value for the item that
 // this reference refers to, discarding any source location information.
 //
@@ -146,3 +188,15 @@ func (r Reference) addrKey() referenceAddrKey {
 // make it easier to see when we're intentionally using strings to uniquely
 // identify absolute reference addresses.
 type referenceAddrKey string
+
+// ResourceAttr represents a global resource and attribute reference.
+// This is a more specific form of the Reference type since it can only refer
+// to a specific AbsResource and one of its attributes.
+type ResourceAttr struct {
+	Resource addrs.AbsResource
+	Attr     cty.Path
+}
+
+func (r ResourceAttr) DebugString() string {
+	return r.Resource.String() + tfdiags.FormatCtyPath(r.Attr)
+}
