@@ -61,6 +61,15 @@ message Plan {
     // Backend is a description of the backend configuration and other related
     // settings at the time the plan was created.
     Backend backend = 13;
+
+    message resource_attr {
+       string resource = 1;
+       Path attr= 2;
+    };
+
+    // RelevantAttributes lists individual resource attributes from
+    // ResourceDrift which may have contributed to the plan changes.
+    repeated resource_attr relevant_attributes = 15;
 }
 
 // Mode describes the planning mode that created the plan.

@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
@@ -105,6 +106,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 
 		plan.DriftedResources = append(plan.DriftedResources, change)
+	}
+
+	for _, rawRA := range rawPlan.RelevantAttributes {
+		ra, err := resourceAttrFromTfplan(rawRA)
+		if err != nil {
+			return nil, err
+		}
+		plan.RelevantAttributes = append(plan.RelevantAttributes, ra)
 	}
 
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
@@ -407,6 +416,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
 	}
 
+	for _, ra := range plan.RelevantAttributes {
+		rawRA, err := resourceAttrToTfplan(ra)
+		if err != nil {
+			return err
+		}
+		rawPlan.RelevantAttributes = append(rawPlan.RelevantAttributes, rawRA)
+	}
+
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
 	}
@@ -443,6 +460,39 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 
 	return nil
+}
+
+func resourceAttrToTfplan(ra globalref.ResourceAttr) (*planproto.PlanResourceAttr, error) {
+	res := &planproto.PlanResourceAttr{}
+
+	res.Resource = ra.Resource.String()
+	attr, err := pathToTfplan(ra.Attr)
+	if err != nil {
+		return res, err
+	}
+	res.Attr = attr
+	return res, nil
+}
+
+func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceAttr, error) {
+	var res globalref.ResourceAttr
+	if ra.Resource == "" {
+		return res, fmt.Errorf("missing resource address from relevant attribute")
+	}
+
+	instAddr, diags := addrs.ParseAbsResourceInstanceStr(ra.Resource)
+	if diags.HasErrors() {
+		return res, fmt.Errorf("invalid resource instance address %q in relevant attributes: %w", ra.Resource, diags.Err())
+	}
+
+	res.Resource = instAddr
+	path, err := pathFromTfplan(ra.Attr)
+	if err != nil {
+		return res, fmt.Errorf("invalid path in %q relevant attribute: %s", res.Resource, err)
+	}
+
+	res.Attr = path
+	return res, nil
 }
 
 func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {

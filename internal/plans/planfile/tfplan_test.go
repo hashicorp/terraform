@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -156,6 +157,16 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		RelevantAttributes: []globalref.ResourceAttr{
+			{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				Attr: cty.GetAttrPath("boop").Index(cty.NumberIntVal(1)),
 			},
 		},
 		TargetAddrs: []addrs.Targetable{
