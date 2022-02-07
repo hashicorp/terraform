@@ -16,15 +16,12 @@ Usage: `terraform console [options]`
 
 This command provides an interactive command-line console for evaluating and
 experimenting with [expressions](/language/expressions).
-This is useful for testing interpolations before using them in configurations,
-and for interacting with any values currently saved in
-[state](/language/state).
+You can use it to test interpolations before using them in configurations
+and to interact with any values currently saved in
+[state](/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
+[built-in functions](/language/functions). You cannot use the console during a run because Terraform prevents read actions while it is writing new state.
 
-If the current state is empty or has not yet been created, the console can be
-used to experiment with the expression syntax and
-[built-in functions](/language/functions).
-
-You can close the console with the `exit` command or by pressing Control-C
+To close the console, enter the `exit` command or press Control-C
 or Control-D.
 
 For configurations using
