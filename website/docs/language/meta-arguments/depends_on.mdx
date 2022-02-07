@@ -61,7 +61,7 @@ resource "aws_instance" "example" {
   # dependency on the aws_iam_role_policy that Terraform cannot
   # automatically infer, so it must be declared explicitly:
   depends_on = [
-    aws_iam_role_policy.example,
+    aws_iam_role_policy.example
   ]
 }
 ```
