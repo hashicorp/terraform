@@ -454,6 +454,7 @@ func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas
 // only showing the attributes we're interested in.
 // The resulting change will be a NoOp if it has nothing relevant to the plan.
 func filterRefreshChange(change *plans.ResourceInstanceChange, contributing []globalref.ResourceAttr) plans.Change {
+
 	if change.Action == plans.NoOp {
 		return change.Change
 	}
@@ -462,7 +463,13 @@ func filterRefreshChange(change *plans.ResourceInstanceChange, contributing []gl
 	resAddr := change.Addr
 
 	for _, attr := range contributing {
-		if resAddr.Equal(attr.Resource) {
+		if !resAddr.ContainingResource().Equal(attr.Resource.ContainingResource()) {
+			continue
+		}
+
+		// If the contributing address has no instance key, then the
+		// contributing reference applies to all instances.
+		if attr.Resource.Resource.Key == addrs.NoKey || resAddr.Equal(attr.Resource) {
 			relevantAttrs = append(relevantAttrs, attr.Attr)
 		}
 	}
