@@ -7,7 +7,7 @@ description: |-
 
 # `substr` Function
 
-`substr` extracts a substring from a given string by offset and length.
+`substr` extracts a substring from a given string by offset and (maximum) length.
 
 ```hcl
 substr(string, offset, length)
@@ -34,5 +34,13 @@ string after the given offset will be returned.
 
 ```
 > substr("hello world", -5, -1)
+world
+```
+
+The length may be greater than the length of the string, in which case the substring
+will be the length of all remaining characters.
+
+```
+> substr("hello world", 6, 10)
 world
 ```
