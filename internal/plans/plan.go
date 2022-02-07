@@ -37,9 +37,9 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
-	// RelevantAttributes is a set of resource addresses and attributes that are
-	// either directly affected by proposed changes or may have indirectly
-	// contributed to them via references in expressions.
+	// RelevantAttributes is a set of resource instance addresses and
+	// attributes that are either directly affected by proposed changes or may
+	// have indirectly contributed to them via references in expressions.
 	//
 	// This is the result of a heuristic and is intended only as a hint to
 	// the UI layer in case it wants to emphasize or de-emphasize certain

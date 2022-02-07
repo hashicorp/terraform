@@ -56,8 +56,8 @@ func (a *Analyzer) MetaReferences(ref Reference) []Reference {
 		// this latter to distingish these two cases better.
 		return a.metaReferencesModuleCall(moduleAddr, targetAddr.Instance(addrs.NoKey), remaining)
 	case addrs.CountAttr, addrs.ForEachAttr:
-		if resourceAddr, ok := ref.ResourceAddr(); ok {
-			return a.metaReferencesCountOrEach(resourceAddr)
+		if resourceAddr, ok := ref.ResourceInstance(); ok {
+			return a.metaReferencesCountOrEach(resourceAddr.ContainingResource())
 		}
 		return nil
 	case addrs.ResourceInstance:

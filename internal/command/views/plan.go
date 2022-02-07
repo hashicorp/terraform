@@ -459,7 +459,7 @@ func filterRefreshChange(change *plans.ResourceInstanceChange, contributing []gl
 	}
 
 	var relevantAttrs []cty.Path
-	resAddr := change.Addr.ContainingResource()
+	resAddr := change.Addr
 
 	for _, attr := range contributing {
 		if resAddr.Equal(attr.Resource) {

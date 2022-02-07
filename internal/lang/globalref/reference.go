@@ -80,29 +80,27 @@ func (r Reference) ModuleAddr() addrs.ModuleInstance {
 	}
 }
 
-// ResourceAddr returns the address of the resource where the reference
+// ResourceInstance returns the address of the resource where the reference
 // would be resolved, if there is one.
 //
 // Because not all references belong to resources, the extra boolean return
 // value indicates whether the returned address is valid.
-func (r Reference) ResourceAddr() (addrs.AbsResource, bool) {
-	moduleInstance := addrs.RootModuleInstance
-
+func (r Reference) ResourceInstance() (addrs.AbsResourceInstance, bool) {
 	switch container := r.ContainerAddr.(type) {
 	case addrs.ModuleInstance:
-		moduleInstance = container
+		moduleInstance := container
 
 		switch ref := r.LocalRef.Subject.(type) {
 		case addrs.Resource:
-			return ref.Absolute(moduleInstance), true
+			return ref.Instance(addrs.NoKey).Absolute(moduleInstance), true
 		case addrs.ResourceInstance:
-			return ref.ContainingResource().Absolute(moduleInstance), true
+			return ref.Absolute(moduleInstance), true
 		}
 
-		return addrs.AbsResource{}, false
+		return addrs.AbsResourceInstance{}, false
 
 	case addrs.AbsResourceInstance:
-		return container.ContainingResource(), true
+		return container, true
 	default:
 		// NOTE: We're intentionally using only a subset of possible
 		// addrs.Targetable implementations here, so anything else
@@ -134,7 +132,7 @@ func (r Reference) DebugString() string {
 // Because not all references belong to resources, the extra boolean return
 // value indicates whether the returned address is valid.
 func (r Reference) ResourceAttr() (ResourceAttr, bool) {
-	res, ok := r.ResourceAddr()
+	res, ok := r.ResourceInstance()
 	if !ok {
 		return ResourceAttr{}, ok
 	}
@@ -193,7 +191,7 @@ type referenceAddrKey string
 // This is a more specific form of the Reference type since it can only refer
 // to a specific AbsResource and one of its attributes.
 type ResourceAttr struct {
-	Resource addrs.AbsResource
+	Resource addrs.AbsResourceInstance
 	Attr     cty.Path
 }
 

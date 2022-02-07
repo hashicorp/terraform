@@ -189,7 +189,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Changes:          changes,
 					DriftedResources: drs,
 					RelevantAttributes: []globalref.ResourceAttr{{
-						Resource: addr.ContainingResource(),
+						Resource: addr,
 						Attr:     cty.GetAttrPath("id"),
 					}},
 				}
