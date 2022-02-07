@@ -2,12 +2,14 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -560,4 +562,156 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			})
 		}
 	})
+}
+
+// These tests cover the JSON syntax configuration edge case handling,
+// the background of which is described in detail in comments in the
+// evalVariableValidations function. Future versions of Terraform may
+// be able to remove this behaviour altogether.
+func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
+	cfgSrc := `{
+  "variable": {
+    "valid": {
+      "type": "string",
+      "validation": {
+        "condition": "${var.valid != \"bar\"}",
+        "error_message": "Valid template string ${var.valid}"
+      }
+    },
+    "invalid": {
+      "type": "string",
+      "validation": {
+        "condition": "${var.invalid != \"bar\"}",
+        "error_message": "Invalid template string ${"
+      }
+    }
+  }
+}
+`
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf.json": cfgSrc,
+	})
+	variableConfigs := cfg.Module.Variables
+
+	// Because we loaded our pseudo-module from a temporary file, the
+	// declaration source ranges will have unpredictable filenames. We'll
+	// fix that here just to make things easier below.
+	for _, vc := range variableConfigs {
+		vc.DeclRange.Filename = "main.tf.json"
+		for _, v := range vc.Validations {
+			v.DeclRange.Filename = "main.tf.json"
+		}
+	}
+
+	tests := []struct {
+		varName  string
+		given    cty.Value
+		wantErr  []string
+		wantWarn []string
+	}{
+		// Valid variable validation declaration, assigned value which passes
+		// the condition generates no diagnostics.
+		{
+			varName: "valid",
+			given:   cty.StringVal("foo"),
+		},
+		// Assigning a value which fails the condition generates an error
+		// message with the expression successfully evaluated.
+		{
+			varName: "valid",
+			given:   cty.StringVal("bar"),
+			wantErr: []string{
+				"Invalid value for variable",
+				"Valid template string bar",
+			},
+		},
+		// Invalid variable validation declaration due to an unparseable
+		// template string. Assigning a value which passes the condition
+		// results in a warning about the error message.
+		{
+			varName: "invalid",
+			given:   cty.StringVal("foo"),
+			wantWarn: []string{
+				"Validation error message expression is invalid",
+				"Missing expression; Expected the start of an expression, but found the end of the file.",
+			},
+		},
+		// Assigning a value which fails the condition generates an error
+		// message including the configured string interpreted as a literal
+		// value, and the same warning diagnostic as above.
+		{
+			varName: "invalid",
+			given:   cty.StringVal("bar"),
+			wantErr: []string{
+				"Invalid value for variable",
+				"Invalid template string ${",
+			},
+			wantWarn: []string{
+				"Validation error message expression is invalid",
+				"Missing expression; Expected the start of an expression, but found the end of the file.",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s %#v", test.varName, test.given), func(t *testing.T) {
+			varAddr := addrs.InputVariable{Name: test.varName}.Absolute(addrs.RootModuleInstance)
+			varCfg := variableConfigs[test.varName]
+			if varCfg == nil {
+				t.Fatalf("invalid variable name %q", test.varName)
+			}
+
+			// Build a mock context to allow the function under test to
+			// retrieve the variable value and evaluate the expressions
+			ctx := &MockEvalContext{}
+
+			// We need a minimal scope to allow basic functions to be passed to
+			// the HCL scope
+			ctx.EvaluationScopeScope = &lang.Scope{}
+			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
+				if got, want := addr.String(), varAddr.String(); got != want {
+					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
+				}
+				return test.given
+			}
+
+			gotDiags := evalVariableValidations(
+				varAddr, varCfg, nil, ctx,
+			)
+
+			if len(test.wantErr) == 0 && len(test.wantWarn) == 0 {
+				if len(gotDiags) > 0 {
+					t.Errorf("no diags expected, got %s", gotDiags.Err().Error())
+				}
+			} else {
+			wantErrs:
+				for _, want := range test.wantErr {
+					for _, diag := range gotDiags {
+						if diag.Severity() != tfdiags.Error {
+							continue
+						}
+						desc := diag.Description()
+						if strings.Contains(desc.Summary, want) || strings.Contains(desc.Detail, want) {
+							continue wantErrs
+						}
+					}
+					t.Errorf("no error diagnostics found containing %q\ngot: %s", want, gotDiags.Err().Error())
+				}
+
+			wantWarns:
+				for _, want := range test.wantWarn {
+					for _, diag := range gotDiags {
+						if diag.Severity() != tfdiags.Warning {
+							continue
+						}
+						desc := diag.Description()
+						if strings.Contains(desc.Summary, want) || strings.Contains(desc.Detail, want) {
+							continue wantWarns
+						}
+					}
+					t.Errorf("no warning diagnostics found containing %q\ngot: %s", want, gotDiags.Err().Error())
+				}
+			}
+		})
+	}
 }
