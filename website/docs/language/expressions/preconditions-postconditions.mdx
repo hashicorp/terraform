@@ -335,11 +335,15 @@ Error: Resource postcondition failed
 The selected AMI must be tagged with the Component value "nomad-server".
 ```
 
-The `error_message` argument must always be a literal string, and should
-typically be written as a full sentence in a style similar to Terraform's own
-error messages. Terraform will show the given message alongside the name
-of the resource that detected the problem and any outside values used as part
-of the condition expression.
+The `error_message` argument can be any expression which evaluates to a string.
+This includes literal strings, heredocs, and template expressions. Multi-line
+error messages are supported, and lines with leading whitespace will not be
+word wrapped.
+
+Error message should typically be written as one or more full sentences in a
+style similar to Terraform's own error messages. Terraform will show the given
+message alongside the name of the resource that detected the problem and any
+outside values used as part of the condition expression.
 
 ## Preconditions or Postconditions?
 
