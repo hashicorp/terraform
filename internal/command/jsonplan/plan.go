@@ -33,17 +33,25 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift   []resourceChange  `json:"resource_drift,omitempty"`
-	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
-	OutputChanges   map[string]change `json:"output_changes,omitempty"`
-	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
-	Config          json.RawMessage   `json:"configuration,omitempty"`
+	ResourceDrift      []resourceChange  `json:"resource_drift,omitempty"`
+	ResourceChanges    []resourceChange  `json:"resource_changes,omitempty"`
+	OutputChanges      map[string]change `json:"output_changes,omitempty"`
+	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
+	Config             json.RawMessage   `json:"configuration,omitempty"`
+	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
 }
 
 func newPlan() *plan {
 	return &plan{
 		FormatVersion: FormatVersion,
 	}
+}
+
+// resourceAttr contains the address and attribute of an external for the
+// RelevantAttributes in the plan.
+type resourceAttr struct {
+	Resource string          `json:"resource"`
+	Attr     json.RawMessage `json:"attribute"`
 }
 
 // Change is the representation of a proposed change for an object.
@@ -149,6 +157,10 @@ func Marshal(
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
 		}
+	}
+
+	if err := output.marshalRelevantAttrs(p); err != nil {
+		return nil, fmt.Errorf("error marshaling relevant attributes for external changes: %s", err)
 	}
 
 	// output.ResourceChanges
@@ -482,6 +494,19 @@ func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.S
 	return nil
 }
 
+func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
+	for _, ra := range plan.RelevantAttributes {
+		addr := ra.Resource.String()
+		path, err := encodePath(ra.Attr)
+		if err != nil {
+			return err
+		}
+
+		p.RelevantAttributes = append(p.RelevantAttributes, resourceAttr{addr, path})
+	}
+	return nil
+}
+
 // omitUnknowns recursively walks the src cty.Value and returns a new cty.Value,
 // omitting any unknowns.
 //
@@ -655,26 +680,7 @@ func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	jsonPaths := make([]json.RawMessage, 0, len(pathList))
 
 	for _, path := range pathList {
-		steps := make([]json.RawMessage, 0, len(path))
-		for _, step := range path {
-			switch s := step.(type) {
-			case cty.IndexStep:
-				key, err := ctyjson.Marshal(s.Key, s.Key.Type())
-				if err != nil {
-					return nil, fmt.Errorf("Failed to marshal index step key %#v: %s", s.Key, err)
-				}
-				steps = append(steps, key)
-			case cty.GetAttrStep:
-				name, err := json.Marshal(s.Name)
-				if err != nil {
-					return nil, fmt.Errorf("Failed to marshal get attr step name %#v: %s", s.Name, err)
-				}
-				steps = append(steps, name)
-			default:
-				return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
-			}
-		}
-		jsonPath, err := json.Marshal(steps)
+		jsonPath, err := encodePath(path)
 		if err != nil {
 			return nil, err
 		}
@@ -682,4 +688,27 @@ func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	}
 
 	return json.Marshal(jsonPaths)
+}
+
+func encodePath(path cty.Path) (json.RawMessage, error) {
+	steps := make([]json.RawMessage, 0, len(path))
+	for _, step := range path {
+		switch s := step.(type) {
+		case cty.IndexStep:
+			key, err := ctyjson.Marshal(s.Key, s.Key.Type())
+			if err != nil {
+				return nil, fmt.Errorf("Failed to marshal index step key %#v: %s", s.Key, err)
+			}
+			steps = append(steps, key)
+		case cty.GetAttrStep:
+			name, err := json.Marshal(s.Name)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to marshal get attr step name %#v: %s", s.Name, err)
+			}
+			steps = append(steps, name)
+		default:
+			return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
+		}
+	}
+	return json.Marshal(steps)
 }
