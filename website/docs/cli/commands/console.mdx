@@ -19,7 +19,7 @@ experimenting with [expressions](/language/expressions).
 You can use it to test interpolations before using them in configurations
 and to interact with any values currently saved in
 [state](/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
-[built-in functions](/language/functions). You cannot use the console during a run because Terraform prevents read actions while it is writing new state.
+[built-in functions](/language/functions). The console holds a [lock on the state](/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
 
 To close the console, enter the `exit` command or press Control-C
 or Control-D.
