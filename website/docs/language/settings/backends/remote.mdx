@@ -14,7 +14,7 @@ The remote backend is unique among all other Terraform backends because it can b
 When using full remote operations, operations like `terraform plan` or `terraform apply` can be executed in Terraform
 Cloud's run environment, with log output streaming to the local terminal. Remote plans and applies use variable values from the associated Terraform Cloud workspace.
 
-Terraform Cloud can also be used with local operations, in which case only state is stored in the Terraform Cloud backend.
+You can also use Terraform Cloud with local operations, in which case only state is stored in the Terraform Cloud backend.
 
 ## Command Support
 
@@ -41,13 +41,11 @@ Currently the remote backend supports the following Terraform commands:
 
 ## Workspaces
 
-The remote backend can work with either a single remote Terraform Cloud workspace,
-or with multiple similarly-named remote workspaces (like `networking-dev`
-and `networking-prod`). The `workspaces` block of the backend configuration
+The remote backend can work with either a single remote Terraform Cloud workspace, or with multiple similarly-named remote workspaces (like `networking-dev` and `networking-prod`). The `workspaces` block of the backend configuration
 determines which mode it uses:
 
 - To use a single remote Terraform Cloud workspace, set `workspaces.name` to the
-  remote workspace's full name (like `networking`).
+  remote workspace's full name (like `networking-prod`).
 
 - To use multiple remote workspaces, set `workspaces.prefix` to a prefix used in
   all of the desired remote workspace names. For example, set
@@ -57,33 +55,47 @@ determines which mode it uses:
   used in a single Terraform configuration to multiple Terraform Cloud
   workspaces.
 
-When interacting with workspaces on the command line, Terraform uses
-shortened names without the common prefix. For example, if
-`prefix = "networking-"`, use `terraform workspace select prod` to switch to
-the Terraform CLI workspace `prod` within the current configuration. Remote
-Terraform operations such as `plan` and `apply` executed against that Terraform
-CLI workspace will be executed in the Terraform Cloud workspace `networking-prod`.
-
-Additionally, the [`terraform.workspace`](/language/state/workspaces#current-workspace-interpolation)
-expression shouldn't be used in Terraform configurations that use Terraform 1.0.x or earlier and run
-remote operations against Terraform Cloud workspaces. The reason for this is that
-prior to Terraform 1.1.0, Terraform Cloud workspaces only used the single `default` Terraform
-CLI workspace internally. In other words, if your Terraform configuration
-used `${terraform.workspace}` to return `dev` or `prod`, remote runs in Terraform Cloud
-would always evaluate it as `default` regardless of
-which workspace you had set with the `terraform workspace select` command. That
-would most likely not be what you wanted. (It is ok to use `terraform.workspace`
-in local operations, and with remote operations in workspaces configured to use Terraform 1.1.0 or later.)
 
 The backend configuration requires either `name` or `prefix`. Omitting both or
 setting both results in a configuration error.
 
 If previous state is present when you run `terraform init` and the corresponding
-remote workspaces are empty or absent, Terraform will create workspaces and/or
-update the remote state accordingly. However, if your workspace needs variables
-set or requires a specific version of Terraform for remote operations, we
+remote workspaces are empty or absent, Terraform will create workspaces and
+update the remote state accordingly. However, if your workspace requires variables or a specific version of Terraform for remote operations, we
 recommend that you create your remote workspaces on Terraform Cloud before
 running any remote operations against them.
+
+### Workspace Names
+
+Terraform uses shortened names without the common prefix to interact with workspaces on the command line. For example, if `prefix = "networking-"`, use `terraform workspace select prod` to switch to the Terraform CLI workspace `prod` within the current configuration. However, remote Terraform operations such as `plan` and `apply` for that Terraform CLI workspace will take place in the Terraform Cloud workspace `networking-prod`.
+
+Because of this, the [`terraform.workspace`](/language/state/workspaces#current-workspace-interpolation) interpolation expression produces different results depending on whether a remote workspace is configured to perform operations locally or remotely. For example, in a remote workspace called `networking-prod` created with `prefix = "networking-"` the expression produces the following:
+
+- For local operations, `terraform.workspace` = `prod`
+- For remote operations, `terraform.workspace`=  `networking-prod`
+
+Prior to Terraform version 1.1.0, Terraform Cloud workspaces used only the single `default` Terraform CLI workspace internally. So if a Terraform configuration used `terraform.workspace` to return `dev` or `prod`, remote runs in Terraform Cloud would always evaluate it as `default`, regardless of
+which workspace you set with the `terraform workspace select` command. Therefore, we do not recommend using `terraform.workspace` in Terraform configurations that use Terraform 1.0.x or earlier and run remote operations against Terraform Cloud workspaces.
+
+### Determining Run Environment
+
+If you need to determine whether a run is local or remote in your Terraform configuration, we recommend using [Terraform Cloud run environment variables](/cloud-docs/run/run-environment#environment-variables). The example below uses `TFC_RUN_ID`.
+
+```
+output "current_workspace_name" {
+  value = terraform.workspace
+}
+
+variable "TFC_RUN_ID" {
+  type    = string
+  default = ""
+}
+
+output "remote_execution_determine" {
+  value = "Remote run environment? %{if var.TFC_RUN_ID != ""}Yes%{else}No this is local%{endif}!"
+}
+```
+
 
 ## Example Configurations
 
