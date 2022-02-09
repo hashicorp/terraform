@@ -38,6 +38,7 @@ func Contains(val cty.Value, mark valueMark) bool {
 // Terraform.
 var Sensitive = valueMark("sensitive")
 
-// Raw is used to indicate to the repl that the value should be written without
-// any formatting.
-var Raw = valueMark("raw")
+// TypeType is used to indicate that the value contains a representation of
+// another value's type. This is part of the implementation of the console-only
+// `type` function.
+var TypeType = valueMark("typeType")

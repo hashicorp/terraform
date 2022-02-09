@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -193,11 +194,59 @@ func TestSession_stateless(t *testing.T) {
 		})
 	})
 
+	t.Run("type function", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			Inputs: []testSessionInput{
+				{
+					Input:  `type("foo")`,
+					Output: "string",
+				},
+			},
+		})
+	})
+
+	t.Run("type type is type", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			Inputs: []testSessionInput{
+				{
+					Input:  `type(type("foo"))`,
+					Output: "type",
+				},
+			},
+		})
+	})
+
+	t.Run("interpolating type with strings is not possible", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			Inputs: []testSessionInput{
+				{
+					Input:         `"quin${type([])}"`,
+					Error:         true,
+					ErrorContains: "Invalid template interpolation value",
+				},
+			},
+		})
+	})
+
 	t.Run("type function cannot be used in expressions", func(t *testing.T) {
 		testSession(t, testSessionTest{
 			Inputs: []testSessionInput{
 				{
 					Input:         `[for i in [1, "two", true]: type(i)]`,
+					Output:        "",
+					Error:         true,
+					ErrorContains: "Invalid use of type function",
+				},
+			},
+		})
+	})
+
+	t.Run("type equality checks are not permitted", func(t *testing.T) {
+		testSession(t, testSessionTest{
+			Inputs: []testSessionInput{
+				{
+					Input:         `type("foo") == type("bar")`,
+					Output:        "",
 					Error:         true,
 					ErrorContains: "Invalid use of type function",
 				},
@@ -310,4 +359,87 @@ type testSessionInput struct {
 	Error          bool // Error is true if error is expected
 	Exit           bool // Exit is true if exiting is expected
 	ErrorContains  string
+}
+
+func TestTypeString(t *testing.T) {
+	tests := []struct {
+		Input cty.Value
+		Want  string
+	}{
+		// Primititves
+		{
+			cty.StringVal("a"),
+			"string",
+		},
+		{
+			cty.NumberIntVal(42),
+			"number",
+		},
+		{
+			cty.BoolVal(true),
+			"bool",
+		},
+		// Collections
+		{
+			cty.EmptyObjectVal,
+			`object({})`,
+		},
+		{
+			cty.EmptyTupleVal,
+			`tuple([])`,
+		},
+		{
+			cty.ListValEmpty(cty.String),
+			`list(string)`,
+		},
+		{
+			cty.MapValEmpty(cty.String),
+			`map(string)`,
+		},
+		{
+			cty.SetValEmpty(cty.String),
+			`set(string)`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.StringVal("a")}),
+			`list(string)`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.ListVal([]cty.Value{cty.NumberIntVal(42)})}),
+			`list(list(number))`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.MapValEmpty(cty.String)}),
+			`list(map(string))`,
+		},
+		{
+			cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar"),
+			})}),
+			"list(\n    object({\n        foo: string,\n    }),\n)",
+		},
+		// Unknowns and Nulls
+		{
+			cty.UnknownVal(cty.String),
+			"string",
+		},
+		{
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"foo": cty.String,
+			})),
+			"object({\n    foo: string,\n})",
+		},
+		{ // irrelevant marks do nothing
+			cty.ListVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.StringVal("bar").Mark("ignore me"),
+			})}),
+			"list(\n    object({\n        foo: string,\n    }),\n)",
+		},
+	}
+	for _, test := range tests {
+		got := typeString(test.Input.Type())
+		if got != test.Want {
+			t.Errorf("wrong result:\n%s", cmp.Diff(got, test.Want))
+		}
+	}
 }
