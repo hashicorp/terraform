@@ -79,7 +79,7 @@ which workspace you set with the `terraform workspace select` command. Therefore
 
 ### Determining Run Environment
 
-To determine whether a run is local or remote, we recommend using [Terraform Cloud run environment variables](/cloud-docs/run/run-environment#environment-variables). The example below uses `TFC_RUN_ID`.
+If you need to determine whether a run is local or remote in your Terraform configuration, we recommend using [Terraform Cloud run environment variables](/cloud-docs/run/run-environment#environment-variables). The example below uses `TFC_RUN_ID`.
 
 ```
 output "current_workspace_name" {
