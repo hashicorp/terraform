@@ -17,10 +17,6 @@ func FormatValue(v cty.Value, indent int) string {
 	if !v.IsKnown() {
 		return "(known after apply)"
 	}
-	if v.Type().Equals(cty.String) && v.HasMark(marks.Raw) {
-		raw, _ := v.Unmark()
-		return raw.AsString()
-	}
 	if v.HasMark(marks.Sensitive) {
 		return "(sensitive)"
 	}
