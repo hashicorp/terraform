@@ -323,7 +323,7 @@ Because the configuration models are produced at a stage prior to expression eva
   // the configuration tree, flattened into a single map for convenience since
   // provider configurations are the one concept in Terraform that can span
   // across module boundaries.
-  "provider_configs": {
+  "provider_config": {
 
     // Keys in the provider_configs map are to be considered opaque by callers,
     // and used just for lookups using the "provider_config_key" property in each
@@ -332,6 +332,9 @@ Because the configuration models are produced at a stage prior to expression eva
 
       // "name" is the name of the provider without any alias
       "name": "aws",
+
+      // "full_name" is the fully-qualified provider name
+      "full_name": "registry.terraform.io/hashicorp/aws",
 
       // "alias" is the alias set for a non-default configuration, or unset for
       // a default configuration.
@@ -378,7 +381,9 @@ Because the configuration models are produced at a stage prior to expression eva
 
         // "provider_config_key" is the key into "provider_configs" (shown
         // above) for the provider configuration that this resource is
-        // associated with.
+        // associated with. If the provider configuration was passed into
+        // this module from the parent module, the key will point to the
+        // original provider config block.
         "provider_config_key": "opaque_provider_ref_aws",
 
         // "provisioners" is an optional field which describes any provisioners.
@@ -440,7 +445,7 @@ Because the configuration models are produced at a stage prior to expression eva
         // "module" is a representation of the configuration of the child module
         // itself, using the same structure as the "root_module" object,
         // recursively describing the full module tree.
-        "module": <module-configuration-representation>,
+        "module": <module-configuration-representation>
       }
     }
   }

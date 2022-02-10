@@ -576,6 +576,9 @@ func TestShow_json_output(t *testing.T) {
 			}
 			json.Unmarshal([]byte(byteValue), &want)
 
+			// Disregard format version to reduce needless test fixture churn
+			want.FormatVersion = got.FormatVersion
+
 			if !cmp.Equal(got, want) {
 				t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
 			}
@@ -666,6 +669,9 @@ func TestShow_json_output_sensitive(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	json.Unmarshal([]byte(byteValue), &want)
+
+	// Disregard format version to reduce needless test fixture churn
+	want.FormatVersion = got.FormatVersion
 
 	if !cmp.Equal(got, want) {
 		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
