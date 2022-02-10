@@ -1,5 +1,9 @@
 ## 1.1.6 (Unreleased)
 
+BUG FIXES:
+
+* cli: Prevent complex uses of the console-only `type` function. This function may only be used at the top level of console expressions, to display the type of a given value. Attempting to use this function in complex expressions will now display a diagnostic error instead of crashing. [GH-30476]
+
 ## 1.1.5 (February 02, 2022)
 
 ENHANCEMENTS:
