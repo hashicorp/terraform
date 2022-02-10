@@ -18,14 +18,14 @@ func TestRedactIfSensitive(t *testing.T) {
 			marks: []cty.ValueMarks{cty.NewValueMarks(marks.Sensitive)},
 			want:  "(sensitive value)",
 		},
-		"raw non-sensitive string": {
+		"marked non-sensitive string": {
 			value: "foo",
-			marks: []cty.ValueMarks{cty.NewValueMarks(marks.Raw)},
+			marks: []cty.ValueMarks{cty.NewValueMarks("boop")},
 			want:  `"foo"`,
 		},
-		"raw sensitive string": {
+		"sensitive string with other marks": {
 			value: "foo",
-			marks: []cty.ValueMarks{cty.NewValueMarks(marks.Raw), cty.NewValueMarks(marks.Sensitive)},
+			marks: []cty.ValueMarks{cty.NewValueMarks("boop"), cty.NewValueMarks(marks.Sensitive)},
 			want:  "(sensitive value)",
 		},
 		"sensitive number": {
