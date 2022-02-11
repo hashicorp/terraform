@@ -8,6 +8,14 @@ type ComponentCall struct {
 	Name string
 }
 
+func (addr ComponentCall) String() string {
+	return "component." + addr.Name
+}
+
+func (addr ComponentCall) UniqueKey() addrs.UniqueKey {
+	return addr // A ComponentCall can be its own UniqueKey, because it's ==-compatible
+}
+
 type Component struct {
 	Name string
 	Key  addrs.InstanceKey

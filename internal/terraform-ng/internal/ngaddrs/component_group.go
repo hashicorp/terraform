@@ -8,6 +8,14 @@ type ComponentGroupCall struct {
 	Name string
 }
 
+func (addr ComponentGroupCall) String() string {
+	return "group." + addr.Name
+}
+
+func (addr ComponentGroupCall) UniqueKey() addrs.UniqueKey {
+	return addr // A ComponentGroupCall can be its own UniqueKey, because it's ==-compatible
+}
+
 type ComponentGroupCallInstance struct {
 	Name string
 	Key  addrs.InstanceKey
