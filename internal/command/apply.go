@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -130,9 +129,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	// Render the resource count and outputs, unless we're using the remote
-	// backend locally, in which case these are rendered remotely
-	if rb, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend || rb.IsLocalOperations() {
+	// Render the resource count and outputs, unless those counts are being
+	// rendered already in a remote Terraform process.
+	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootModule().OutputValues)

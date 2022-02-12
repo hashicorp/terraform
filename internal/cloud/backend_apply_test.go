@@ -13,6 +13,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 	tfe "github.com/hashicorp/go-tfe"
+	mocks "github.com/hashicorp/go-tfe/mocks"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -576,7 +577,7 @@ func TestCloud_applyAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
@@ -778,7 +779,7 @@ func TestCloud_applyWithAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
@@ -1269,7 +1270,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	policyCheckMock := tfe.NewMockPolicyChecks(ctrl)
+	policyCheckMock := mocks.NewMockPolicyChecks(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(fmt.Sprintf("%s\n%s", sentinelSoftFail, applySuccessOneResourceAdded))
@@ -1289,7 +1290,7 @@ func TestCloud_applyPolicySoftFailAutoApproveSuccess(t *testing.T) {
 	policyCheckMock.EXPECT().Logs(gomock.Any(), gomock.Any()).Return(logs, nil)
 	policyCheckMock.EXPECT().Override(gomock.Any(), gomock.Any()).Return(nil, nil)
 	b.client.PolicyChecks = policyCheckMock
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs = strings.NewReader("\n\n\n1 added, 0 changed, 0 destroyed")
@@ -1348,7 +1349,7 @@ func TestCloud_applyPolicySoftFailAutoApprove(t *testing.T) {
 	defer bCleanup()
 	ctrl := gomock.NewController(t)
 
-	applyMock := tfe.NewMockApplies(ctrl)
+	applyMock := mocks.NewMockApplies(ctrl)
 	// This needs three new lines because we check for a minimum of three lines
 	// in the parsing of logs in `opApply` function.
 	logs := strings.NewReader(applySuccessOneResourceAdded)
@@ -1447,36 +1448,36 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 		localVersion  string
 		remoteVersion string
 		forceLocal    bool
-		hasOperations bool
+		executionMode string
 		wantErr       string
 	}{
 		"versions can be different for remote apply": {
 			localVersion:  "0.14.0",
 			remoteVersion: "0.13.5",
-			hasOperations: true,
+			executionMode: "remote",
 		},
 		"versions can be different for local apply": {
 			localVersion:  "0.14.0",
 			remoteVersion: "0.13.5",
-			hasOperations: false,
+			executionMode: "local",
 		},
 		"force local with remote operations and different versions is acceptable": {
 			localVersion:  "0.14.0",
 			remoteVersion: "0.14.0-acme-provider-bundle",
 			forceLocal:    true,
-			hasOperations: true,
+			executionMode: "remote",
 		},
 		"no error if versions are identical": {
 			localVersion:  "0.14.0",
 			remoteVersion: "0.14.0",
 			forceLocal:    true,
-			hasOperations: true,
+			executionMode: "remote",
 		},
 		"no error if force local but workspace has remote operations disabled": {
 			localVersion:  "0.14.0",
 			remoteVersion: "0.13.5",
 			forceLocal:    true,
-			hasOperations: false,
+			executionMode: "local",
 		},
 	}
 
@@ -1512,7 +1513,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 				b.organization,
 				b.WorkspaceMapping.Name,
 				tfe.WorkspaceUpdateOptions{
-					Operations:       tfe.Bool(tc.hasOperations),
+					ExecutionMode:    tfe.String(tc.executionMode),
 					TerraformVersion: tfe.String(tc.remoteVersion),
 				},
 			)
@@ -1566,7 +1567,7 @@ func TestCloud_applyVersionCheck(t *testing.T) {
 				hasRemote := strings.Contains(output, "Running apply in Terraform Cloud")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
 				hasResources := run.State.HasManagedResourceInstanceObjects()
-				if !tc.forceLocal && tc.hasOperations {
+				if !tc.forceLocal && !isLocalExecutionMode(tc.executionMode) {
 					if !hasRemote {
 						t.Errorf("missing TFC header in output: %s", output)
 					}

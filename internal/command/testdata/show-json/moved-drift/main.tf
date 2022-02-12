@@ -12,10 +12,6 @@ resource "test_instance" "should_refresh_with_move" {
   ami = "baz"
 }
 
-terraform {
-  experiments = [ config_driven_move ]
-}
-
 moved {
   from = test_instance.should_refresh
   to   = test_instance.should_refresh_with_move

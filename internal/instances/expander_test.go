@@ -199,14 +199,47 @@ func TestExpander(t *testing.T) {
 		}
 	})
 	t.Run("module single resource count2", func(t *testing.T) {
-		got := ex.ExpandModuleResource(
+		// Two different ways of asking the same question, which should
+		// both produce the same result.
+		// First: nested expansion of all instances of the resource across
+		// all instances of the module, but it's a single-instance module
+		// so the first level is a singleton.
+		got1 := ex.ExpandModuleResource(
 			mustModuleAddr(`single`),
 			count2ResourceAddr,
+		)
+		// Second: expansion of only instances belonging to a specific
+		// instance of the module, but again it's a single-instance module
+		// so there's only one to ask about.
+		got2 := ex.ExpandResource(
+			count2ResourceAddr.Absolute(
+				addrs.RootModuleInstance.Child("single", addrs.NoKey),
+			),
 		)
 		want := []addrs.AbsResourceInstance{
 			mustAbsResourceInstanceAddr(`module.single.test.count2[0]`),
 			mustAbsResourceInstanceAddr(`module.single.test.count2[1]`),
 		}
+		if diff := cmp.Diff(want, got1); diff != "" {
+			t.Errorf("wrong ExpandModuleResource result\n%s", diff)
+		}
+		if diff := cmp.Diff(want, got2); diff != "" {
+			t.Errorf("wrong ExpandResource result\n%s", diff)
+		}
+	})
+	t.Run("module single resource count2 with non-existing module instance", func(t *testing.T) {
+		got := ex.ExpandResource(
+			count2ResourceAddr.Absolute(
+				// Note: This is intentionally an invalid instance key,
+				// so we're asking about module.single[1].test.count2
+				// even though module.single doesn't have count set and
+				// therefore there is no module.single[1].
+				addrs.RootModuleInstance.Child("single", addrs.IntKey(1)),
+			),
+		)
+		// If the containing module instance doesn't exist then it can't
+		// possibly have any resource instances inside it.
+		want := ([]addrs.AbsResourceInstance)(nil)
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
 		}
@@ -260,6 +293,36 @@ func TestExpander(t *testing.T) {
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
 		}
+	})
+	t.Run("module count2 module count2 GetDeepestExistingModuleInstance", func(t *testing.T) {
+		t.Run("first step invalid", func(t *testing.T) {
+			got := ex.GetDeepestExistingModuleInstance(mustModuleInstanceAddr(`module.count2["nope"].module.count2[0]`))
+			want := addrs.RootModuleInstance
+			if !want.Equal(got) {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+		t.Run("second step invalid", func(t *testing.T) {
+			got := ex.GetDeepestExistingModuleInstance(mustModuleInstanceAddr(`module.count2[1].module.count2`))
+			want := mustModuleInstanceAddr(`module.count2[1]`)
+			if !want.Equal(got) {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+		t.Run("neither step valid", func(t *testing.T) {
+			got := ex.GetDeepestExistingModuleInstance(mustModuleInstanceAddr(`module.count2.module.count2["nope"]`))
+			want := addrs.RootModuleInstance
+			if !want.Equal(got) {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+			}
+		})
+		t.Run("both steps valid", func(t *testing.T) {
+			got := ex.GetDeepestExistingModuleInstance(mustModuleInstanceAddr(`module.count2[1].module.count2[0]`))
+			want := mustModuleInstanceAddr(`module.count2[1].module.count2[0]`)
+			if !want.Equal(got) {
+				t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+			}
+		})
 	})
 	t.Run("module count2 resource count2 resource count2", func(t *testing.T) {
 		got := ex.ExpandModuleResource(

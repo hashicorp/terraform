@@ -26,6 +26,11 @@ type ApplyGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
+	// RootVariableValues are the root module input variables captured as
+	// part of the plan object, which we must reproduce in the apply step
+	// to get a consistent result.
+	RootVariableValues InputValues
+
 	// Plugins is a library of the plug-in components (providers and
 	// provisioners) available for use.
 	Plugins *contextPlugins
@@ -88,7 +93,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config, Changes: b.Changes},

@@ -3,19 +3,18 @@ package oss
 import (
 	"errors"
 	"fmt"
+	"log"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-
-	"log"
-	"path"
-
-	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
 )
 
 const (
@@ -43,7 +42,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 			TableName: b.otsTable,
 		})
 		if err != nil {
-			return client, fmt.Errorf("Error describing table store %s: %#v", b.otsTable, err)
+			return client, fmt.Errorf("error describing table store %s: %#v", b.otsTable, err)
 		}
 	}
 
@@ -53,7 +52,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 func (b *Backend) Workspaces() ([]string, error) {
 	bucket, err := b.ossClient.Bucket(b.bucketName)
 	if err != nil {
-		return []string{""}, fmt.Errorf("Error getting bucket: %#v", err)
+		return []string{""}, fmt.Errorf("error getting bucket: %#v", err)
 	}
 
 	var options []oss.Option
@@ -135,7 +134,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		lockInfo.Operation = "init"
 		lockId, err := client.Lock(lockInfo)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to lock OSS state: %s", err)
+			return nil, fmt.Errorf("failed to lock OSS state: %s", err)
 		}
 
 		// Local helper function so we can call it multiple places

@@ -43,7 +43,10 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 		path[len(path)-1] = call.Name
 
 		var vc version.Constraints
+		haveVersionArg := false
 		if strings.TrimSpace(call.Version) != "" {
+			haveVersionArg = true
+
 			var err error
 			vc, err = version.NewConstraint(call.Version)
 			if err != nil {
@@ -56,13 +59,27 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			}
 		}
 
-		sourceAddr, err := addrs.ParseModuleSource(call.Source)
+		var sourceAddr addrs.ModuleSource
+		var err error
+		if haveVersionArg {
+			sourceAddr, err = addrs.ParseModuleSourceRegistry(call.Source)
+		} else {
+			sourceAddr, err = addrs.ParseModuleSource(call.Source)
+		}
 		if err != nil {
-			diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
-				Severity: tfconfig.DiagError,
-				Summary:  "Invalid module source address",
-				Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid source address %q: %s.", callName, call.Pos.Filename, call.Pos.Line, call.Source, err),
-			}))
+			if haveVersionArg {
+				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+					Severity: tfconfig.DiagError,
+					Summary:  "Invalid registry module source address",
+					Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid source address %q: %s.\n\nTerraform assumed that you intended a module registry source address because you also set the argument \"version\", which applies only to registry modules.", callName, call.Pos.Filename, call.Pos.Line, call.Source, err),
+				}))
+			} else {
+				diags = diags.Append(wrapDiagnostic(tfconfig.Diagnostic{
+					Severity: tfconfig.DiagError,
+					Summary:  "Invalid module source address",
+					Detail:   fmt.Sprintf("Module %q (declared at %s line %d) has invalid source address %q: %s.", callName, call.Pos.Filename, call.Pos.Line, call.Source, err),
+				}))
+			}
 			// If we didn't have a valid source address then we can't continue
 			// down the module tree with this one.
 			continue

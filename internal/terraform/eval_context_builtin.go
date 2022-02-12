@@ -313,7 +313,21 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, vals map[string]cty.Value) {
+func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
+	key := addrs.RootModuleInstance.String()
+	args := ctx.VariableValues[key]
+	if args == nil {
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
+	}
+	args[addr.Name] = v
+}
+
+func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
 	ctx.VariableValuesLock.Lock()
 	defer ctx.VariableValuesLock.Unlock()
 
@@ -321,18 +335,15 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 		panic("context path not set")
 	}
 
-	childPath := n.ModuleInstance(ctx.PathValue)
+	childPath := callAddr.ModuleInstance(ctx.PathValue)
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
 	key := childPath.String()
-
 	args := ctx.VariableValues[key]
 	if args == nil {
-		ctx.VariableValues[key] = vals
-		return
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
 	}
-
-	for k, v := range vals {
-		args[k] = v
-	}
+	args[varAddr.Name] = v
 }
 
 func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {

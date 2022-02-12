@@ -172,6 +172,16 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				result = append(result, refs...)
 			}
 		}
+
+		for _, check := range c.Preconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+		}
+		for _, check := range c.Postconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+		}
+
 		return result
 	}
 

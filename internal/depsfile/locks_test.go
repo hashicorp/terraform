@@ -3,6 +3,7 @@ package depsfile
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -137,4 +138,81 @@ func TestLocksEqualProviderAddress(t *testing.T) {
 		b.SetProvider(boopProvider, v2, v2EqConstraints, hashesB)
 		equalProviderAddressBothWays(t, a, b)
 	})
+}
+
+func TestLocksProviderSetRemove(t *testing.T) {
+	beepProvider := addrs.NewDefaultProvider("beep")
+	boopProvider := addrs.NewDefaultProvider("boop")
+	v2 := getproviders.MustParseVersion("2.0.0")
+	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
+	hash := getproviders.HashScheme("test").New("1")
+
+	locks := NewLocks()
+	if got, want := len(locks.AllProviders()), 0; got != want {
+		t.Fatalf("fresh locks object already has providers")
+	}
+
+	locks.SetProvider(boopProvider, v2, v2EqConstraints, []getproviders.Hash{hash})
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			boopProvider: {
+				addr:               boopProvider,
+				version:            v2,
+				versionConstraints: v2EqConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after SetProvider boop\n%s", diff)
+		}
+	}
+
+	locks.SetProvider(beepProvider, v2, v2GtConstraints, []getproviders.Hash{hash})
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			boopProvider: {
+				addr:               boopProvider,
+				version:            v2,
+				versionConstraints: v2EqConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+			beepProvider: {
+				addr:               beepProvider,
+				version:            v2,
+				versionConstraints: v2GtConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after SetProvider beep\n%s", diff)
+		}
+	}
+
+	locks.RemoveProvider(boopProvider)
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			beepProvider: {
+				addr:               beepProvider,
+				version:            v2,
+				versionConstraints: v2GtConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after RemoveProvider boop\n%s", diff)
+		}
+	}
+
+	locks.RemoveProvider(beepProvider)
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after RemoveProvider beep\n%s", diff)
+		}
+	}
 }

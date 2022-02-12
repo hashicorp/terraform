@@ -107,6 +107,11 @@ func ResourceChange(
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Resource.Resource))
 		case plans.ResourceInstanceDeleteBecauseNoModule:
+			// FIXME: Ideally we'd truncate addr.Module to reflect the earliest
+			// step that doesn't exist, so it's clearer which call this refers
+			// to, but we don't have enough information out here in the UI layer
+			// to decide that; only the "expander" in Terraform Core knows
+			// which module instance keys are actually declared.
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Module))
 		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
 			// We have some different variations of this one
@@ -461,10 +466,10 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
-		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result)
-		p.writeSkippedAttr(result.skippedAttributes, indent+4)
+		p.writeAttrsDiff(objS.Attributes, old, new, indent+4, path, result)
+		p.writeSkippedAttr(result.skippedAttributes, indent+6)
 		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 
 	case configschema.NestingList:
@@ -473,9 +478,6 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
 		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", indent+4))
-		p.writeActionSymbol(action)
-		p.buf.WriteString("{")
 
 		oldItems := ctyCollectionValues(old)
 		newItems := ctyCollectionValues(new)
@@ -489,48 +491,65 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		// commonLen is number of elements that exist in both lists, which
 		// will be presented as updates (~). Any additional items in one
 		// of the lists will be presented as either creates (+) or deletes (-)
-		// depending on which list they belong to.
+		// depending on which list they belong to. maxLen is the number of
+		// elements in that longer list.
 		var commonLen int
+		var maxLen int
 		// unchanged is the number of unchanged elements
 		var unchanged int
 
 		switch {
 		case len(oldItems) < len(newItems):
 			commonLen = len(oldItems)
+			maxLen = len(newItems)
 		default:
 			commonLen = len(newItems)
+			maxLen = len(oldItems)
 		}
-		for i := 0; i < commonLen; i++ {
+		for i := 0; i < maxLen; i++ {
 			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
-			oldItem := oldItems[i]
-			newItem := newItems[i]
-			if oldItem.RawEquals(newItem) {
+
+			var action plans.Action
+			var oldItem, newItem cty.Value
+			switch {
+			case i < commonLen:
+				oldItem = oldItems[i]
+				newItem = newItems[i]
+				if oldItem.RawEquals(newItem) {
+					action = plans.NoOp
+					unchanged++
+				} else {
+					action = plans.Update
+				}
+			case i < len(oldItems):
+				oldItem = oldItems[i]
+				newItem = cty.NullVal(oldItem.Type())
+				action = plans.Delete
+			case i < len(newItems):
+				newItem = newItems[i]
+				oldItem = cty.NullVal(newItem.Type())
+				action = plans.Create
+			default:
 				action = plans.NoOp
-				unchanged++
 			}
+
 			if action != plans.NoOp {
-				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
-				p.writeSkippedAttr(result.skippedAttributes, indent+8)
+				p.buf.WriteString(strings.Repeat(" ", indent+4))
+				p.writeActionSymbol(action)
+				p.buf.WriteString("{")
+
+				result := &blockBodyDiffResult{}
+				p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+8, path, result)
+				if action == plans.Update {
+					p.writeSkippedAttr(result.skippedAttributes, indent+10)
+				}
 				p.buf.WriteString("\n")
+
+				p.buf.WriteString(strings.Repeat(" ", indent+6))
+				p.buf.WriteString("},\n")
 			}
 		}
-		for i := commonLen; i < len(oldItems); i++ {
-			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
-			oldItem := oldItems[i]
-			newItem := cty.NullVal(oldItem.Type())
-			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
-			p.buf.WriteString("\n")
-		}
-		for i := commonLen; i < len(newItems); i++ {
-			path := append(path, cty.IndexStep{Key: cty.NumberIntVal(int64(i))})
-			newItem := newItems[i]
-			oldItem := cty.NullVal(newItem.Type())
-			p.writeAttrsDiff(objS.Attributes, oldItem, newItem, indent+6, path, result)
-			p.buf.WriteString("\n")
-		}
-		p.buf.WriteString(strings.Repeat(" ", indent+4))
-		p.buf.WriteString("},\n")
-		p.writeSkippedElems(unchanged, indent+4)
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
@@ -554,6 +573,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		}
 
 		p.buf.WriteString(" = [")
+
+		var unchanged int
 
 		for it := all.ElementIterator(); it.Next(); {
 			_, val := it.Element()
@@ -584,23 +605,29 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				newValue = val
 			}
 
+			if action == plans.NoOp {
+				unchanged++
+				continue
+			}
+
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+4))
 			p.writeActionSymbol(action)
 			p.buf.WriteString("{")
 
-			if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+			if p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1]) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
 
 			path := append(path, cty.IndexStep{Key: val})
-			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
 
 			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString(strings.Repeat(" ", indent+6))
 			p.buf.WriteString("},")
 		}
 		p.buf.WriteString("\n")
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
@@ -668,15 +695,15 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				}
 
 				path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
-				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
-				p.writeSkippedAttr(result.skippedAttributes, indent+8)
+				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
+				p.writeSkippedAttr(result.skippedAttributes, indent+10)
 				p.buf.WriteString("\n")
-				p.buf.WriteString(strings.Repeat(" ", indent+4))
+				p.buf.WriteString(strings.Repeat(" ", indent+6))
 				p.buf.WriteString("},\n")
 			}
 		}
 
-		p.writeSkippedElems(unchanged, indent+4)
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 		if !new.IsKnown() {

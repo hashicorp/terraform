@@ -164,6 +164,7 @@
         "provider_config": {
             "test": {
                 "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test",
                 "expressions": {
                     "region": {
                         "constant_value": "somewhere"

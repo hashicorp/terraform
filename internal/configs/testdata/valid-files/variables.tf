@@ -30,3 +30,15 @@ variable "sensitive_value" {
   }
   sensitive = true
 }
+
+variable "nullable" {
+  type = string
+  nullable = true
+  default = "ok"
+}
+
+variable "nullable_default_null" {
+  type = map(string)
+  nullable = true
+  default = null
+}

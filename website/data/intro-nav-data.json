@@ -1,0 +1,24 @@
+[
+  { "heading": "Introduction to Terraform" },
+  { "title": "What is Terraform?", "path": "" },
+  { "title": "Use Cases", "path": "use-cases" },
+  {
+    "title": "Get Started",
+    "href": "https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
+  },
+  { "title": "Terraform Editions", "path": "terraform-editions" },
+  { "title": "The Core Terraform Workflow", "path": "core-workflow" },
+  {
+    "title": "Terraform vs. Alternatives",
+    "routes": [
+      { "title": "Overview", "path": "vs" },
+      { "title": "Chef, Puppet, etc.", "path": "vs/chef-puppet" },
+      {
+        "title": "CloudFormation, Heat, etc.",
+        "path": "vs/cloudformation"
+      },
+      { "title": "Boto, Fog, etc.", "path": "vs/boto" },
+      { "title": "Custom Solutions", "path": "vs/custom" }
+    ]
+  }
+]

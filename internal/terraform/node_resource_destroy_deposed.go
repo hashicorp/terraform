@@ -249,7 +249,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyDiags := n.apply(ctx, state, change, nil, false)
+	state, _, applyDiags := n.apply(ctx, state, change, nil, false)
 	diags = diags.Append(applyDiags)
 	// don't return immediately on errors, we need to handle the state
 

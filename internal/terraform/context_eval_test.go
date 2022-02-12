@@ -54,7 +54,9 @@ func TestContextEval(t *testing.T) {
 		},
 	})
 
-	scope, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{})
+	scope, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
+		SetVariables: testInputValuesUnset(m.Module.Variables),
+	})
 	if diags.HasErrors() {
 		t.Fatalf("Eval errors: %s", diags.Err())
 	}

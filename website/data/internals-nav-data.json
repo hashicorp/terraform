@@ -1,0 +1,56 @@
+[
+  {
+    "title": "Credentials Helpers",
+    "path": "credentials-helpers"
+  },
+  {
+    "title": "Debugging Terraform",
+    "path": "debugging"
+  },
+  {
+    "title": "Module Registry Protocol",
+    "path": "module-registry-protocol"
+  },
+  {
+    "title": "Provider Network Mirror Protocol",
+    "path": "provider-network-mirror-protocol"
+  },
+  {
+    "title": "Provider Registry Protocol",
+    "path": "provider-registry-protocol"
+  },
+  {
+    "title": "Resource Graph",
+    "path": "graph"
+  },
+  {
+    "title": "Resource Lifecycle",
+    "path": "lifecycle"
+  },
+  {
+    "title": "Login Protocol",
+    "path": "login-protocol"
+  },
+  {
+    "title": "JSON Output Format",
+    "path": "json-format"
+  },
+  {
+    "title": "Remote Service Discovery",
+    "path": "remote-service-discovery"
+  },
+  {
+    "title": "Provider Metadata",
+    "path": "provider-meta"
+  },
+  {
+    "title": "Machine Readable UI",
+    "path": "machine-readable-ui",
+    "hidden": true
+  },
+  {
+    "title": "Archiving",
+    "path": "archiving",
+    "hidden": true
+  }
+]

@@ -23,8 +23,7 @@ type graphWalkOpts struct {
 	Changes    *plans.Changes
 	Config     *configs.Config
 
-	RootVariableValues InputValues
-	MoveResults        refactoring.MoveResults
+	MoveResults refactoring.MoveResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -98,16 +97,15 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 	}
 
 	return &ContextGraphWalker{
-		Context:            c,
-		State:              state,
-		Config:             opts.Config,
-		RefreshState:       refreshState,
-		PrevRunState:       prevRunState,
-		Changes:            changes.SyncWrapper(),
-		InstanceExpander:   instances.NewExpander(),
-		MoveResults:        opts.MoveResults,
-		Operation:          operation,
-		StopContext:        c.runContext,
-		RootVariableValues: opts.RootVariableValues,
+		Context:          c,
+		State:            state,
+		Config:           opts.Config,
+		RefreshState:     refreshState,
+		PrevRunState:     prevRunState,
+		Changes:          changes.SyncWrapper(),
+		InstanceExpander: instances.NewExpander(),
+		MoveResults:      opts.MoveResults,
+		Operation:        operation,
+		StopContext:      c.runContext,
 	}
 }

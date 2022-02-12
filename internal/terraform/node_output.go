@@ -237,8 +237,11 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	refs := make([]*addrs.Reference, 0, l)
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
+	for _, check := range c.Preconditions {
+		checkRefs, _ := lang.ReferencesInExpr(check.Condition)
+		refs = append(refs, checkRefs...)
+	}
 	return refs
-
 }
 
 // GraphNodeReferencer
@@ -265,6 +268,16 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		if err == nil {
 			val = change.After
 		}
+	}
+
+	checkDiags := evalCheckRules(
+		checkOutputPrecondition,
+		n.Config.Preconditions,
+		ctx, nil, EvalDataForNoInstanceKey,
+	)
+	diags = diags.Append(checkDiags)
+	if diags.HasErrors() {
+		return diags // failed preconditions prevent further evaluation
 	}
 
 	// If there was no change recorded, or the recorded change was not wholly

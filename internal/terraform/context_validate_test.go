@@ -1187,32 +1187,6 @@ resource "aws_instance" "foo" {
 	}
 }
 
-// Manually validate using the new PlanGraphBuilder
-func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
-	fixture := contextFixtureApplyVars(t)
-	opts := fixture.ContextOpts()
-	c := testContext2(t, opts)
-
-	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
-		Config:  fixture.Config,
-		State:   states.NewState(),
-		Plugins: c.plugins,
-	}).Build(addrs.RootModuleInstance)
-	if diags.HasErrors() {
-		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())
-	}
-	defer c.acquireRun("validate-test")()
-	walker, diags := c.walk(graph, walkValidate, &graphWalkOpts{
-		Config: fixture.Config,
-	})
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-	if len(walker.NonFatalDiagnostics) > 0 {
-		t.Fatal(walker.NonFatalDiagnostics.Err())
-	}
-}
-
 func TestContext2Validate_invalidOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -2025,6 +1999,96 @@ resource "test_object" "t" {
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
 	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"things": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "items" {
+  type = list(string)
+  default = []
+}
+
+resource "test_instance" "a" {
+  for_each = length(var.items) > 0 ? { default = {} } : {}
+}
+
+output "out" {
+  // Strictly speaking, this expression is incorrect because the map element
+  // type is a different type from the default value, and the lookup
+  // implementation expects to be able to convert the default to match the
+  // element type.
+  // There are two reasons this works which we need to maintain for
+  // compatibility. First during validation the 'test_instance.a' expression
+  // only returns a dynamic value, preventing any type comparison. Later during
+  // plan and apply 'test_instance.a' is an object and not a map, and the
+  // lookup implementation skips the type comparison when the keys are known
+  // statically.
+  value = lookup(test_instance.a, "default", { id = null })["id"]
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_nonNullableVariableDefaultValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+ module "first" {
+   source = "./mod"
+   input = null
+ }
+ `,
+
+		"mod/main.tf": `
+ variable "input" {
+   type        = string
+   default     = "default"
+   nullable    = false
+
+   // Validation expressions should receive the default with nullable=false and
+   // a null input.
+   validation {
+     condition     = var.input != null
+     error_message = "Input cannot be null!"
+   }
+ }
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
 
 	diags := ctx.Validate(m)
 	if diags.HasErrors() {

@@ -529,14 +529,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		// Create a workspace
 		options := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
+			Tags: b.WorkspaceMapping.tfeTags(),
 		}
-
-		var tags []*tfe.Tag
-		for _, tag := range b.WorkspaceMapping.Tags {
-			t := tfe.Tag{Name: tag}
-			tags = append(tags, &t)
-		}
-		options.Tags = tags
 
 		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
@@ -566,6 +560,17 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 				versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
 				b.CLI.Output(b.Colorize().Color(versionUnavailable))
 			}
+		}
+	}
+
+	if b.workspaceTagsRequireUpdate(workspace, b.WorkspaceMapping) {
+		options := tfe.WorkspaceAddTagsOptions{
+			Tags: b.WorkspaceMapping.tfeTags(),
+		}
+		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.organization, name)
+		err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
+		if err != nil {
+			return nil, fmt.Errorf("Error updating workspace %s: %v", name, err)
 		}
 	}
 
@@ -631,7 +636,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
+	if b.forceLocal || isLocalExecutionMode(w.ExecutionMode) {
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
@@ -820,9 +825,9 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return nil
 	}
 
-	// If the workspace has remote operations disabled, the remote Terraform
+	// If the workspace has execution-mode set to local, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if !workspace.Operations {
+	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
@@ -838,10 +843,13 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		return diags
 	}
 
-	// If the workspace has a literal Terraform version, see if we can use a
-	// looser version constraint.
 	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
-	if remoteVersion != nil {
+
+	// We can use a looser version constraint if the workspace specifies a
+	// literal Terraform version, and it is not a prerelease. The latter
+	// restriction is because we cannot compare prerelease versions with any
+	// operator other than simple equality.
+	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
 		v014 := version.Must(version.NewSemver("0.14.0"))
 		v120 := version.Must(version.NewSemver("1.2.0"))
 
@@ -883,7 +891,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 		tfversion.String(),
 		b.organization,
 		workspace.Name,
-		workspace.TerraformVersion,
+		remoteConstraint,
 	)
 	diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
 	return diags
@@ -908,6 +916,25 @@ func (b *Cloud) cliColorize() *colorstring.Colorize {
 		Colors:  colorstring.DefaultColors,
 		Disable: true,
 	}
+}
+
+func (b *Cloud) workspaceTagsRequireUpdate(workspace *tfe.Workspace, workspaceMapping WorkspaceMapping) bool {
+	if workspaceMapping.Strategy() != WorkspaceTagsStrategy {
+		return false
+	}
+
+	existingTags := map[string]struct{}{}
+	for _, t := range workspace.TagNames {
+		existingTags[t] = struct{}{}
+	}
+
+	for _, tag := range workspaceMapping.Tags {
+		if _, ok := existingTags[tag]; !ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 type WorkspaceMapping struct {
@@ -936,6 +963,25 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 		// Any other combination is invalid as each strategy is mutually exclusive
 		return WorkspaceInvalidStrategy
 	}
+}
+
+func isLocalExecutionMode(execMode string) bool {
+	return execMode == "local"
+}
+
+func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
+	var tags []*tfe.Tag
+
+	if wm.Strategy() != WorkspaceTagsStrategy {
+		return tags
+	}
+
+	for _, tag := range wm.Tags {
+		t := tfe.Tag{Name: tag}
+		tags = append(tags, &t)
+	}
+
+	return tags
 }
 
 func generalError(msg string, err error) error {
@@ -1005,7 +1051,7 @@ Please reach out to HashiCorp Support to resolve this issue.`
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(
 		`The 'workspaces' block configures how Terraform CLI maps its workspaces for this single
-configuration to workspaces within a Terraform Cloud organization. Three strategies are available:
+configuration to workspaces within a Terraform Cloud organization. Two strategies are available:
 
 [bold]tags[reset] - %s
 
@@ -1021,9 +1067,9 @@ be set, and 'terraform login' used instead; your credentials will then be fetche
 configuration file or configured credential helper.`
 
 	schemaDescriptionTags = `A set of tags used to select remote Terraform Cloud workspaces to be used for this single
-configuration.  New workspaces will automatically be tagged with these tag values.  Generally, this
+configuration. New workspaces will automatically be tagged with these tag values. Generally, this
 is the primary and recommended strategy to use.  This option conflicts with "name".`
 
-	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration When configured
-only the specified workspace can be used. This option conflicts with "tags".`
+	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
+When configured, only the specified workspace can be used. This option conflicts with "tags".`
 )

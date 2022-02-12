@@ -517,7 +517,7 @@ func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -2262,7 +2262,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -2288,7 +2288,7 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -2327,7 +2327,7 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 		Provisioners: provisioners,
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	// We'll marshal and unmarshal the plan here, to ensure that we have
@@ -3682,7 +3682,7 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -3713,7 +3713,7 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -4704,9 +4704,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -4753,9 +4751,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -5908,7 +5904,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 		})
 
 		// First plan and apply a create operation
-		plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+		plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 		assertNoErrors(t, diags)
 
 		state, diags = ctx.Apply(plan, m)
@@ -5929,9 +5925,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 		})
 
 		// First plan and apply a create operation
-		plan, diags := ctx.Plan(m, state, &PlanOpts{
-			Mode: plans.DestroyMode,
-		})
+		plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 		if diags.HasErrors() {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
@@ -7561,6 +7555,12 @@ func TestContext2Apply_vars(t *testing.T) {
 			Value:      cty.StringVal("us-east-1"),
 			SourceType: ValueFromCaller,
 		},
+		"bar": &InputValue{
+			// This one is not explicitly set but that's okay because it
+			// has a declared default, which Terraform Core will use instead.
+			Value:      cty.NilVal,
+			SourceType: ValueFromCaller,
+		},
 		"test_list": &InputValue{
 			Value: cty.ListVal([]cty.Value{
 				cty.StringVal("Hello"),
@@ -7876,7 +7876,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
@@ -7932,7 +7932,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
@@ -7951,7 +7951,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
@@ -8845,7 +8845,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 		Providers: Providers,
 	})
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan failed: %s", diags.Err())
 	}
@@ -8904,9 +8904,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		Providers: providers,
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan failed: %s", diags.Err())
 	}
@@ -9674,7 +9672,7 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 		Hooks:        []Hook{hook},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	diags.HasErrors()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
@@ -11687,7 +11685,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -11702,7 +11700,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -11720,6 +11718,7 @@ resource "test_resource" "foo" {
 	plan, diags = ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
+			"sensitive_id": &InputValue{Value: cty.NilVal},
 			"sensitive_var": &InputValue{
 				Value: cty.StringVal("bar"),
 			},
@@ -11759,7 +11758,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
@@ -11904,7 +11903,7 @@ resource "test_resource" "foo" {
 		)
 	})
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	addr := mustResourceInstanceAddr("test_resource.foo")
@@ -11954,7 +11953,7 @@ resource "test_resource" "foo" {
 	// but this seems rather suspicious and we should ideally figure out what
 	// this test was originally intending to do and make it do that.
 	oldPlan := plan
-	_, diags = ctx2.Plan(m2, state, DefaultPlanOpts)
+	_, diags = ctx2.Plan(m2, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 	stateWithoutSensitive, diags := ctx.Apply(oldPlan, m)
 	assertNoErrors(t, diags)
@@ -12206,7 +12205,7 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {

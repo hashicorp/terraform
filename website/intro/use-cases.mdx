@@ -1,0 +1,92 @@
+---
+layout: "intro"
+page_title: "Use Cases"
+sidebar_current: "use-cases"
+description: |-
+  Learn how  Terraform enables multi-cloud deployments, application management, policy compliance, and self-service infrastructure.
+---
+
+# Use Cases
+
+[HashiCorp Terraform](/intro/index.html) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
+
+This page describes popular Terraform use cases and provides related resources that you can use to create Terraform configurations and workflows.
+
+## Multi-Cloud Deployment
+Provisioning infrastructure across multiple clouds increases fault-tolerance, allowing for more graceful recovery from cloud provider outages. However, multi-cloud deployments add complexity because each provider has its own interfaces, tools, and workflows. Terraform lets you use the same workflow to manage multiple providers and handle cross-cloud dependencies. This simplifies management and orchestration for large-scale, multi-cloud infrastructures.
+
+### Resources
+
+- Try our [Deploy Federated Multi-Cloud Kubernetes Clusters](https://learn.hashicorp.com/tutorials/terraform/multicloud-kubernetes) tutorial to provision Kubernetes clusters in both Azure and AWS environments, configure Consul federation with mesh gateways across the two clusters, and deploy microservices across the two clusters to verify federation.
+- Browse the [Terraform Registry](https://registry.terraform.io/browse/providers) to find thousands of publicly available providers.
+
+
+## Application Infrastructure Deployment, Scaling, and Monitoring Tools
+
+You can use Terraform to efficiently deploy, release, scale, and monitor infrastructure for multi-tier applications. N-tier application architecture lets you scale application components independently and provides a separation of concerns. An application could consist of a pool of web servers that use a database tier, with additional tiers for API servers, caching servers, and routing meshes. Terraform allows you to manage the resources in each tier together, and automatically handles dependencies between tiers. For example, Terraform will deploy a database tier before provisioning the web servers that depend on it.
+
+### Resources
+
+- Try our [Automate Monitoring with the Terraform Datadog Provider](https://learn.hashicorp.com/tutorials/terraform/datadog-provider?in=terraform/applications) tutorial to deploy a demo Nginx application to a Kubernetes cluster with Helm and install the Datadog agent across the cluster. The Datadog agent reports the cluster health back to your Datadog dashboard.
+- Try our [Use Application Load Balancers for Blue-Green and Canary Deployments](https://learn.hashicorp.com/tutorials/terraform/blue-green-canary-tests-deployments) tutorial. You will provision the blue and green environments, add feature toggles to your Terraform configuration to define a list of potential deployment strategies, conduct a canary test, and incrementally promote your green environment.
+
+
+## Self-Service Clusters
+
+At a large organization, your centralized operations team may get many repetitive infrastructure requests. You can use Terraform to build a "self-serve" infrastructure model that lets product teams manage their own infrastructure independently. You can create and use Terraform modules that codify the standards for deploying and managing services in your organization, allowing teams to efficiently deploy services in compliance with your organization’s practices. Terraform Cloud can also integrate with ticketing systems like ServiceNow to automatically generate new infrastructure requests.
+
+### Resources
+
+- Try the [Use Modules from the Registry](https://learn.hashicorp.com/tutorials/terraform/module-use?in=terraform/modules) tutorial to get started using public modules in your Terraform configuration.
+Try the [Build and Use a Local Module](https://learn.hashicorp.com/tutorials/terraform/module-create?in=terraform/modules) tutorial on HashiCorp Learn to create a module to manage AWS S3 buckets.
+- Follow these [ServiceNow Service Catalog Integration Setup Instructions](/cloud-docs/integrations/service-now) to connect ServiceNow to Terraform Cloud.
+
+
+## Policy Compliance and Management
+
+Terraform can help you enforce policies on the types of resources teams can provision and use. Ticket-based review processes are a bottleneck that can slow down development. Instead, you can use Sentinel, a policy-as-code framework, to automatically enforce compliance and governance policies before Terraform makes infrastructure changes. Sentinel is available with the [Terraform Cloud team and governance](https://www.hashicorp.com/products/terraform/pricing) tier.
+
+### Resources
+
+- Try the [Control Costs with Policies](https://learn.hashicorp.com/tutorials/terraform/cost-estimation) tutorial on HashiCorp Learn to estimate the cost of infrastructure changes and define policy to limit it.
+
+- The [Sentinel documentation](/docs/cloud/sentinel/index.html) provides more in-depth information and a list of example policies that you can adapt for your use cases.
+
+
+## PaaS Application Setup
+Platform as a Service (PaaS) vendors like Heroku allow you to create  web applications and attach add-ons, such as databases or email providers. Heroku can elastically scale the number of dynos or workers, but most non-trivial applications need many add-ons and external services. You can use Terraform to codify the setup required for a Heroku application, configure a DNSimple to set a CNAME, and set up Cloudflare as a Content Delivery Network (CDN) for the app. Terraform can quickly and consistently do all of this without a web interface.
+
+### Resources
+
+Try the [Deploy, Manage, and Scale an Application on Heroku](https://learn.hashicorp.com/tutorials/terraform/heroku-provider?in=terraform/applications) tutorial on HashiCorp Learn manage an application’s lifecycle with Terraform.
+
+
+## Software Defined Networking
+
+Terraform can interact with Software Defined Networks (SDNs) to automatically configure the network according to the needs of the applications running in it. This lets you move from a ticket-based workflow to an automated one, reducing deployment times.
+
+For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://www.consul.io/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
+
+### Resources
+
+- Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?in=consul/network-infrastructure-automation) tutorial on HashiCorp Learn to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
+- Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-terraform-enterprise?in=consul/network-infrastructure-automation) tutorial on HashiCorp Learn to configure Consul-Terraform-Sync to interact with Terraform Enterprise and Terraform Cloud.
+
+
+## Kubernetes
+
+Kubernetes is an open-source workload scheduler for containerized applications. Terraform lets you both deploy a Kubernetes cluster and manage its resources (e.g., pods, deployments, services, etc.). You can also use the [Kubernetes Operator for Terraform](https://github.com/hashicorp/terraform-k8s) to manage cloud and on-prem infrastructure through a Kubernetes Custom Resource Definition (CRD) and Terraform Cloud.
+
+### Resources
+
+- Try the [Manage Kubernetes Resources via Terraform](https://learn.hashicorp.com/tutorials/terraform/kubernetes-provider?in=terraform/kubernetes) tutorial on HashiCorp Learn. You will use Terraform to schedule and expose a NGINX deployment on a Kubernetes cluster.
+- Try the [Deploy Infrastructure with the Terraform Cloud Operator for Kubernetes](https://learn.hashicorp.com/tutorials/terraform/kubernetes-operator) tutorial on HashiCorp Learn. You will configure and deploy the Operator to a Kubernetes cluster and use it to create a Terraform Cloud workspace and provision a message queue for an example application.
+
+
+## Parallel Environments
+
+You may have staging or QA environments that you use to test new applications before releasing them in production. As the production environment grows larger and more complex, it can be increasingly difficult to maintain an up-to-date environment for each stage of the development process. Terraform lets you rapidly spin up and decommission infrastructure for development, test, QA, and production. Using Terraform to create disposable environments as needed is more cost-efficient than maintaining each one indefinitely.
+
+
+## Software Demos
+You can use Terraform to create, provision, and bootstrap a demo on various cloud providers. This lets end users easily try the software on their own infrastructure and even enables them to adjust parameters like cluster size to more rigorously test tools at any scale.

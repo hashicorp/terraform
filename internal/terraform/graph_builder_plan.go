@@ -28,6 +28,11 @@ type PlanGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
+	// RootVariableValues are the raw input values for root input variables
+	// given by the caller, which we'll resolve into final values as part
+	// of the plan walk.
+	RootVariableValues InputValues
+
 	// Plugins is a library of plug-in components (providers and
 	// provisioners) available for use.
 	Plugins *contextPlugins
@@ -39,9 +44,6 @@ type PlanGraphBuilder struct {
 	// generated a NoOp or Update action then we'll force generating a replace
 	// action instead. Create and Delete actions are not affected.
 	ForceReplace []addrs.AbsResourceInstance
-
-	// Validate will do structural validation of the graph.
-	Validate bool
 
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
@@ -67,9 +69,8 @@ type PlanGraphBuilder struct {
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "PlanGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "PlanGraphBuilder",
 	}).Build(path)
 }
 
@@ -95,7 +96,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config},

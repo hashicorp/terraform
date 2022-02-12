@@ -2,10 +2,6 @@
 # conforms to the statements encoded in the resource names. It's for
 # TestImpliedMoveStatements only.
 
-terraform {
-  experiments = [config_driven_move]
-}
-
 resource "foo" "formerly_count" {
   # but not count anymore
 }
@@ -51,4 +47,8 @@ resource "foo" "ambiguous" {
   # this one doesn't have count in the config, but the test should
   # set it up to have both no-key and zero-key instances in the
   # state.
+}
+
+module "child" {
+  source = "./child"
 }

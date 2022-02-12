@@ -1,6 +1,7 @@
 package initwd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -41,7 +42,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -144,7 +145,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 		Wrapped: hooks,
 	}
 	fetcher := getmodules.NewPackageFetcher()
-	_, instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
+	_, instDiags := inst.installDescendentModules(ctx, fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
 	diags = append(diags, instDiags...)
 	if instDiags.HasErrors() {
 		return diags

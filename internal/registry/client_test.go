@@ -103,7 +103,7 @@ func TestLookupModuleVersions(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		resp, err := client.ModuleVersions(modsrc)
+		resp, err := client.ModuleVersions(context.Background(), modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -143,7 +143,7 @@ func TestInvalidRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := client.ModuleVersions(modsrc); err == nil {
+	if _, err := client.ModuleVersions(context.Background(), modsrc); err == nil {
 		t.Fatal("expected error")
 	}
 }
@@ -160,11 +160,11 @@ func TestRegistryAuth(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = client.ModuleVersions(mod)
+	_, err = client.ModuleVersions(context.Background(), mod)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = client.ModuleLocation(mod, "1.0.0")
+	_, err = client.ModuleLocation(context.Background(), mod, "1.0.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,11 +173,11 @@ func TestRegistryAuth(t *testing.T) {
 	client.services.SetCredentialsSource(nil)
 
 	// both should fail without auth
-	_, err = client.ModuleVersions(mod)
+	_, err = client.ModuleVersions(context.Background(), mod)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	_, err = client.ModuleLocation(mod, "1.0.0")
+	_, err = client.ModuleLocation(context.Background(), mod, "1.0.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -195,7 +195,7 @@ func TestLookupModuleLocationRelative(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := client.ModuleLocation(mod, "0.2.0")
+	got, err := client.ModuleLocation(context.Background(), mod, "0.2.0")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		}
 
 		s := NewClient(regDisco, nil)
-		resp, err := s.ModuleVersions(modsrc)
+		resp, err := s.ModuleVersions(context.Background(), modsrc)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -277,7 +277,7 @@ func TestLookupLookupModuleError(t *testing.T) {
 		return oldCheck(ctx, resp, err)
 	}
 
-	_, err = client.ModuleLocation(mod, "0.2.0")
+	_, err = client.ModuleLocation(context.Background(), mod, "0.2.0")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -299,7 +299,7 @@ func TestLookupModuleRetryError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := client.ModuleVersions(modsrc)
+	resp, err := client.ModuleVersions(context.Background(), modsrc)
 	if err == nil {
 		t.Fatal("expected requests to exceed retry", err)
 	}
@@ -328,7 +328,7 @@ func TestLookupModuleNoRetryError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := client.ModuleVersions(modsrc)
+	resp, err := client.ModuleVersions(context.Background(), modsrc)
 	if err == nil {
 		t.Fatal("expected request to fail", err)
 	}
@@ -354,7 +354,7 @@ func TestLookupModuleNetworkError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp, err := client.ModuleVersions(modsrc)
+	resp, err := client.ModuleVersions(context.Background(), modsrc)
 	if err == nil {
 		t.Fatal("expected request to fail", err)
 	}
