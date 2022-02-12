@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -291,6 +292,100 @@ func TestStateReplaceProvider_docs(t *testing.T) {
 
 	if got, want := c.Synopsis(), "Replace provider in the state"; got != want {
 		t.Fatalf("unexpected synopsis\nwant: %s\nfull output:\n%s", want, got)
+	}
+}
+
+func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "alpha",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"alpha","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "aws_instance",
+				Name: "beta",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"beta","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("aws"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "azurerm_virtual_machine",
+				Name: "gamma",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"gamma","baz":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewLegacyProvider("azurerm"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &StateReplaceProviderCommand{
+		StateMeta{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		},
+	}
+
+	inputBuf := &bytes.Buffer{}
+	ui.InputReader = inputBuf
+	inputBuf.WriteString("yes\n")
+
+	args := []string{
+		"-state", statePath,
+		"hashicorp/aws",
+		"acmecorp/aws",
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// State is unchanged
+	testStateOutput(t, statePath, testStateReplaceProviderOutputOriginal)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }
 

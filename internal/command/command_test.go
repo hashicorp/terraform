@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	svchost "github.com/hashicorp/terraform-svchost"
-
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -45,6 +44,7 @@ import (
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/version"
+	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -1107,4 +1107,33 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
 	streams, done := terminal.StreamsForTesting(t)
 	return views.NewView(streams), done
+}
+
+func TestCommand_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	meta := Meta{
+		Ui: ui,
+	}
+
+	diags := CheckRequiredVersion(&meta)
+	if diags == nil {
+		t.Fatalf("diagnostics should contain unmet version constraint, but is nil")
+	}
+
+	meta.showDiagnostics(diags)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
+	}
 }

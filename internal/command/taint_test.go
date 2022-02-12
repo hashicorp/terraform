@@ -494,7 +494,7 @@ func TestTaint_module(t *testing.T) {
 func TestTaint_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
-	testCopyDir(t, testFixturePath("taint-check-required-version"), td)
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
