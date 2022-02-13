@@ -1707,7 +1707,7 @@ func TestStateMvInvalidSourceAddress(t *testing.T) {
 		"foo.bar1",
 		"foo.bar2",
 	}
-	code := c.Run(args);
+	code := c.Run(args)
 	if code != 1 {
 		t.Fatalf("expected error code 1, got:\n%d", code)
 	}
