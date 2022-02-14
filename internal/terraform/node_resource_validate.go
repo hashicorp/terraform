@@ -390,21 +390,7 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				// use that to check whether the Attribute is Computed and
 				// non-Optional.
 				if !diags.HasErrors() {
-					path := make(cty.Path, len(traversal))
-					for si, step := range traversal {
-						switch ts := step.(type) {
-						case hcl.TraverseAttr:
-							path[si] = cty.GetAttrStep{
-								Name: ts.Name,
-							}
-						case hcl.TraverseIndex:
-							path[si] = cty.IndexStep{
-								Key: ts.Key,
-							}
-						default:
-							panic(fmt.Sprintf("unsupported traversal step %#v", step))
-						}
-					}
+					path := traversalToPath(traversal)
 
 					attrSchema := schema.AttributeByPath(path)
 
