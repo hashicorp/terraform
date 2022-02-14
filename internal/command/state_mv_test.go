@@ -1685,6 +1685,34 @@ func TestStateMvHelp(t *testing.T) {
 	}
 }
 
+func TestStateMvInvalidSourceAddress(t *testing.T) {
+	state := states.BuildState(func(s *states.SyncState) {})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"foo.bar1",
+		"foo.bar2",
+	}
+	code := c.Run(args)
+	if code != 1 {
+		t.Fatalf("expected error code 1, got:\n%d", code)
+	}
+}
+
 const testStateMvOutputOriginal = `
 test_instance.baz:
   ID = foo

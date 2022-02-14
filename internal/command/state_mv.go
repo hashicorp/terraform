@@ -176,6 +176,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			msgInvalidSource,
 			fmt.Sprintf("Cannot move %s: does not match anything in the current state.", sourceAddr),
 		))
+		c.showDiagnostics(diags)
+		return 1
 	}
 	for _, rawAddrFrom := range sourceAddrs {
 		switch addrFrom := rawAddrFrom.(type) {
