@@ -489,7 +489,7 @@ func TestNodeValidatableResource_ValidateResource_invalidDependsOn(t *testing.T)
 	}
 }
 
-func TestNodeValidatableResource_ValidateResource_invalidIgnoreChanges(t *testing.T) {
+func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesNonexistent(t *testing.T) {
 	mp := simpleMockProvider()
 	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
 		return providers.ValidateResourceConfigResponse{}
@@ -545,6 +545,89 @@ func TestNodeValidatableResource_ValidateResource_invalidIgnoreChanges(t *testin
 		t.Fatal("no error for invalid ignore_changes")
 	}
 	if got, want := diags.Err().Error(), "Unsupported attribute: This object has no argument, nested block, or exported attribute named \"nonexistent\""; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+}
+
+func TestNodeValidatableResource_ValidateResource_invalidIgnoreChangesComputed(t *testing.T) {
+	// construct a schema with a computed attribute
+	ms := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"computed_string": {
+				Type:     cty.String,
+				Computed: true,
+				Optional: false,
+			},
+		},
+	}
+
+	mp := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: ms},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: ms},
+			},
+		},
+	}
+
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
+	}
+
+	// We'll check a _valid_ config first, to make sure we're not failing
+	// for some other reason, and then make it invalid.
+	p := providers.Interface(mp)
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "test_object",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+		Managed: &configs.ManagedResource{
+			IgnoreChanges: []hcl.Traversal{
+				{
+					hcl.TraverseAttr{
+						Name: "test_string",
+					},
+				},
+			},
+		},
+	}
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
+	ctx.ProviderProvider = p
+
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
+	}
+
+	// Now we'll make it invalid by attempting to ignore a computed
+	// attribute.
+	rc.Managed.IgnoreChanges = append(rc.Managed.IgnoreChanges, hcl.Traversal{
+		hcl.TraverseAttr{
+			Name: "computed_string",
+		},
+	})
+
+	diags = node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("got unexpected error: %s", diags.ErrWithWarnings())
+	}
+	if got, want := diags.ErrWithWarnings().Error(), "Invalid ignore_changes: ignore_changes cannot be used with non-Optional Computed attributes. Please remove \"computed_string\" from ignore_changes."; !strings.Contains(got, want) {
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 }

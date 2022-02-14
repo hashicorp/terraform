@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -383,10 +384,40 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				moreDiags := schema.StaticValidateTraversal(traversal)
 				diags = diags.Append(moreDiags)
 
-				// TODO: we want to notify users that they can't use
-				// ignore_changes for computed attributes, but we don't have an
-				// easy way to correlate the config value, schema and
-				// traversal together.
+				// ignore_changes cannot be used for Computed attributes,
+				// unless they are also Optional.
+				// If the traversal was valid, convert it to a cty.Path and
+				// use that to check whether the Attribute is Computed and
+				// non-Optional.
+				if !diags.HasErrors() {
+					path := make(cty.Path, len(traversal))
+					for si, step := range traversal {
+						switch ts := step.(type) {
+						case hcl.TraverseAttr:
+							path[si] = cty.GetAttrStep{
+								Name: ts.Name,
+							}
+						case hcl.TraverseIndex:
+							path[si] = cty.IndexStep{
+								Key: ts.Key,
+							}
+						default:
+							panic(fmt.Sprintf("unsupported traversal step %#v", step))
+						}
+					}
+
+					attrSchema := schema.AttributeByPath(path)
+
+					if attrSchema != nil && !attrSchema.Optional && attrSchema.Computed {
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Invalid ignore_changes",
+							Detail:   fmt.Sprintf("ignore_changes cannot be used with non-Optional Computed attributes. Please remove \"%s\" from ignore_changes.", hcl2shim.FlatmapKeyFromPath(path)),
+
+							Subject: &n.Config.TypeRange,
+						})
+					}
+				}
 			}
 		}
 
