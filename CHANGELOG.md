@@ -1,9 +1,9 @@
-## 1.1.6 (Unreleased)
+## 1.1.6 (February 16, 2022)
 
 BUG FIXES:
 
-* cli: Prevent complex uses of the console-only `type` function. This function may only be used at the top level of console expressions, to display the type of a given value. Attempting to use this function in complex expressions will now display a diagnostic error instead of crashing. [GH-30476]
-* `terraform state mv`: Will now correctly exit with error code `1` when the specified resources cannot be found in state. Previously Terraform would display appropriate diagnostic errors, but exit successfully. [GH-29365]
+* cli: Prevent complex uses of the console-only `type` function. This function may only be used at the top level of console expressions, to display the type of a given value. Attempting to use this function in complex expressions will now display a diagnostic error instead of crashing. ([#30476](https://github.com/hashicorp/terraform/issues/30476))
+* `terraform state mv`: Will now correctly exit with error code `1` when the specified resources cannot be found in state. Previously Terraform would display appropriate diagnostic errors, but exit successfully. ([#29365](https://github.com/hashicorp/terraform/issues/29365))
 
 ## 1.1.5 (February 02, 2022)
 
