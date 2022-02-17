@@ -2,12 +2,12 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -395,10 +395,15 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 					attrSchema := schema.AttributeByPath(path)
 
 					if attrSchema != nil && !attrSchema.Optional && attrSchema.Computed {
+						// ignore_changes uses absolute traversal syntax in config despite
+						// using relative traversals, so we strip the leading "." added by
+						// FormatCtyPath for a better error message.
+						attrDisplayPath := strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")
+
 						diags = diags.Append(&hcl.Diagnostic{
 							Severity: hcl.DiagWarning,
 							Summary:  "Invalid ignore_changes",
-							Detail:   fmt.Sprintf("ignore_changes cannot be used with non-Optional Computed attributes. Please remove \"%s\" from ignore_changes.", hcl2shim.FlatmapKeyFromPath(path)),
+							Detail:   fmt.Sprintf("ignore_changes cannot be used with non-Optional Computed attributes. Please remove \"%s\" from ignore_changes.", attrDisplayPath),
 
 							Subject: &n.Config.TypeRange,
 						})
