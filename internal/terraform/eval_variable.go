@@ -90,27 +90,37 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
 		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
+		var detail string
+		var subject *hcl.Range
 		if nonFileSource != "" {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid value for input variable",
-				Detail: fmt.Sprintf(
-					"Unsuitable value for %s %s: %s.",
-					addr, nonFileSource, err,
-				),
-				Subject: cfg.DeclRange.Ptr(),
-			})
+			detail = fmt.Sprintf(
+				"Unsuitable value for %s %s: %s.",
+				addr, nonFileSource, err,
+			)
+			subject = cfg.DeclRange.Ptr()
 		} else {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid value for input variable",
-				Detail: fmt.Sprintf(
-					"The given value is not suitable for %s declared at %s: %s.",
-					addr, cfg.DeclRange.String(), err,
-				),
-				Subject: sourceRange.ToHCL().Ptr(),
-			})
+			detail = fmt.Sprintf(
+				"The given value is not suitable for %s declared at %s: %s.",
+				addr, cfg.DeclRange.String(), err,
+			)
+			subject = sourceRange.ToHCL().Ptr()
+
+			// In some workflows, the operator running terraform does not have access to the variables
+			// themselves. They are for example stored in encrypted files that will be used by the CI toolset
+			// and not by the operator directly. In such a case, the failing secret value should not be
+			// displayed to the operator
+			if cfg.Sensitive {
+				subject = nil
+				detail += fmt.Sprintf("\n\n%s is marked as sensitive. Invalid value defined at %s.", addr, sourceRange.ToHCL())
+			}
 		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid value for input variable",
+			Detail:   detail,
+			Subject:  subject,
+		})
 		// We'll return a placeholder unknown value to avoid producing
 		// redundant downstream errors.
 		return cty.UnknownVal(cfg.Type), diags

@@ -60,6 +60,11 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			type     = string
 			default  = true
 		}
+		variable "constrained_string_sensitive_required" {
+			sensitive = true
+			nullable  = false
+			type      = string
+		}
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -390,6 +395,14 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			``,
 		},
+
+		// sensitive
+		{
+			"constrained_string_sensitive_required",
+			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String),
+			``,
+		},
 	}
 
 	for _, test := range tests {
@@ -555,6 +568,63 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 
 					if got, want := diags.Err().Error(), test.WantNullErr; got != want {
 						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+					}
+				})
+			})
+		}
+	})
+
+	t.Run("SensitiveVariable error message variants, with source variants", func(t *testing.T) {
+		tests := []struct {
+			SourceType  ValueSourceType
+			SourceRange tfdiags.SourceRange
+			WantTypeErr string
+			HideSubject bool
+		}{
+			{
+				ValueFromUnknown,
+				tfdiags.SourceRange{},
+				"Invalid value for input variable: Unsuitable value for var.constrained_string_sensitive_required set from outside of the configuration: string required.",
+				false,
+			},
+			{
+				ValueFromConfig,
+				tfdiags.SourceRange{
+					Filename: "example.tf",
+					Start:    tfdiags.SourcePos(hcl.InitialPos),
+					End:      tfdiags.SourcePos(hcl.InitialPos),
+				},
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_sensitive_required declared at main.tf:46,3-51: string required.
+
+var.constrained_string_sensitive_required is marked as sensitive. Invalid value defined at example.tf:1,1-1.`,
+				true,
+			},
+		}
+
+		for _, test := range tests {
+			t.Run(fmt.Sprintf("%s %s", test.SourceType, test.SourceRange.StartString()), func(t *testing.T) {
+				varAddr := addrs.InputVariable{Name: "constrained_string_sensitive_required"}.Absolute(addrs.RootModuleInstance)
+				varCfg := variableConfigs[varAddr.Variable.Name]
+				t.Run("type error", func(t *testing.T) {
+					rawVal := &InputValue{
+						Value:       cty.EmptyObjectVal,
+						SourceType:  test.SourceType,
+						SourceRange: test.SourceRange,
+					}
+
+					_, diags := prepareFinalInputVariableValue(
+						varAddr, rawVal, varCfg,
+					)
+					if !diags.HasErrors() {
+						t.Fatalf("unexpected success; want error")
+					}
+
+					if got, want := diags.Err().Error(), test.WantTypeErr; got != want {
+						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
+					}
+
+					if test.HideSubject != (diags[0].Source().Subject == nil) {
+						t.Errorf("Subject (code context) should have been masked\ngot:  %v", diags[0].Source().Subject)
 					}
 				})
 			})
