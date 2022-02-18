@@ -239,27 +239,29 @@ func marshalProviderConfigs(
 		m[key] = p
 	}
 
-	// In child modules, providers defined in the parent module can be implicitly used.
-	// Such providers could have no requirements and configuration blocks defined.
-	if c.Parent != nil {
-		for req := range reqs {
-			// Implicit inheritance only applies to the default provider,
-			// so the provider name must be same as the provider type.
-			key := opaqueProviderKey(req.Type, c.Path.String())
-			if _, exists := m[key]; exists {
-				continue
-			}
-
-			parentKey := opaqueProviderKey(req.Type, c.Parent.Path.String())
-			p := providerConfig{
-				Name:          req.Type,
-				FullName:      req.String(),
-				ModuleAddress: c.Path.String(),
-				parentKey:     findSourceProviderKey(parentKey, req.String(), m),
-			}
-
-			m[key] = p
+	// Providers could be implicitly created or inherited from the parent module
+	// when no requirements and configuration block defined.
+	for req := range reqs {
+		// Only default providers could implicitly exist,
+		// so the provider name must be same as the provider type.
+		key := opaqueProviderKey(req.Type, c.Path.String())
+		if _, exists := m[key]; exists {
+			continue
 		}
+
+		p := providerConfig{
+			Name:          req.Type,
+			FullName:      req.String(),
+			ModuleAddress: c.Path.String(),
+		}
+
+		// In child modules, providers defined in the parent module can be implicitly used.
+		if c.Parent != nil {
+			parentKey := opaqueProviderKey(req.Type, c.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+		}
+
+		m[key] = p
 	}
 
 	// Must also visit our child modules, recursively.

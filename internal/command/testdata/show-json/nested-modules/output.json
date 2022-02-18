@@ -37,9 +37,7 @@
       "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
-        "actions": [
-          "create"
-        ],
+        "actions": ["create"],
         "before": null,
         "after": {
           "ami": "bar-var"
@@ -53,6 +51,13 @@
     }
   ],
   "configuration": {
+    "provider_config": {
+      "module.my_module.module.more:test": {
+        "module_address": "module.my_module.module.more",
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test"
+      }
+    },
     "root_module": {
       "module_calls": {
         "my_module": {
@@ -71,9 +76,7 @@
                       "provider_config_key": "module.my_module.module.more:test",
                       "expressions": {
                         "ami": {
-                          "references": [
-                            "var.test_var"
-                          ]
+                          "references": ["var.test_var"]
                         }
                       },
                       "schema_version": 0
