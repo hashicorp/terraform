@@ -38,23 +38,6 @@
             {
               "resources": [
                 {
-                  "address": "module.child.module.with_requirement.test_instance.test",
-                  "mode": "managed",
-                  "type": "test_instance",
-                  "name": "test",
-                  "provider_name": "registry.terraform.io/hashicorp/test",
-                  "schema_version": 0,
-                  "values": {
-                    "ami": "baz"
-                  },
-                  "sensitive_values": {}
-                }
-              ],
-              "address": "module.child.module.with_requirement"
-            },
-            {
-              "resources": [
-                {
                   "address": "module.child.module.no_requirements.test_instance.test",
                   "mode": "managed",
                   "type": "test_instance",
@@ -68,6 +51,23 @@
                 }
               ],
               "address": "module.child.module.no_requirements"
+            },
+            {
+              "resources": [
+                {
+                  "address": "module.child.module.with_requirement.test_instance.test",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "baz"
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.child.module.with_requirement"
             }
           ]
         }
@@ -243,6 +243,7 @@
               },
               "with_requirement": {
                 "source": "./nested",
+                "depends_on": ["module.no_requirements"],
                 "module": {
                   "resources": [
                     {

@@ -233,7 +233,7 @@ func marshalProviderConfigs(
 
 		if c.Parent != nil {
 			parentKey := opaqueProviderKey(pr.Name, c.Parent.Path.String())
-			p.parentKey = findSourceProviderKey(parentKey, m)
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
 		}
 
 		m[key] = p
@@ -255,7 +255,7 @@ func marshalProviderConfigs(
 				Name:          req.Type,
 				FullName:      req.String(),
 				ModuleAddress: c.Path.String(),
-				parentKey:     findSourceProviderKey(parentKey, m),
+				parentKey:     findSourceProviderKey(parentKey, req.String(), m),
 			}
 
 			m[key] = p
@@ -287,7 +287,7 @@ func marshalProviderConfigs(
 
 			key := opaqueProviderKey(moduleProviderName, cc.Path.String())
 			parentKey := opaqueProviderKey(parentProviderName, cc.Parent.Path.String())
-			p.parentKey = findSourceProviderKey(parentKey, m)
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
 
 			m[key] = p
 		}
@@ -545,14 +545,18 @@ func opaqueProviderKey(provider string, addr string) (key string) {
 // configuration which has no linked parent config. This is then
 // the source of the configuration used in this module call, so
 // we link to it directly
-func findSourceProviderKey(startKey string, m map[string]providerConfig) string {
-	parentKey := startKey
-	for {
-		parent, exists := m[parentKey]
-		if !exists || parent.parentKey == "" {
+func findSourceProviderKey(startKey string, fullName string, m map[string]providerConfig) string {
+	var parentKey string
+
+	key := startKey
+	for key != "" {
+		parent, exists := m[key]
+		if !exists || parent.FullName != fullName {
 			break
 		}
-		parentKey = parent.parentKey
+
+		parentKey = key
+		key = parent.parentKey
 	}
 
 	return parentKey

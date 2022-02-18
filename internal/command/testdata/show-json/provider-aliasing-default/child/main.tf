@@ -11,7 +11,8 @@ resource "test_instance" "test" {
 }
 
 module "with_requirement" {
-  source = "./nested"
+  source     = "./nested"
+  depends_on = [module.no_requirements]
 }
 
 module "no_requirements" {
