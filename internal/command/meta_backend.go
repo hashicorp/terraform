@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -990,6 +991,31 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags
 				}
+				// When migrating from local to TFC we do not need the original state file to remain
+				// on disk. This will look to make sure that it has been backed up and emptied, and
+				// then deletes it.
+				if c.Type == "cloud" {
+					if localS, ok := localState.(*statemgr.Filesystem); ok {
+						originalFile, err := os.Stat(localS.Path())
+						if err != nil {
+							diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+							return nil, diags
+						}
+						backupFile, err := os.Stat(localS.BackupPath())
+						if err != nil {
+							diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+							return nil, diags
+						}
+						if originalFile.Size() == 0 && backupFile.Size() > 0 {
+							log.Printf("[TRACE] Meta.Backend: deleting %s", localS.Path())
+							if err := os.Remove(localS.Path()); err != nil {
+								diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
+								return nil, diags
+							}
+						}
+					}
+				}
+				// This is a no-op function call for local state
 				if err := localState.PersistState(); err != nil {
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags

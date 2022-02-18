@@ -108,6 +108,10 @@ func (s *Filesystem) BackupPath() string {
 	return s.backupPath
 }
 
+func (s *Filesystem) Path() string {
+	return s.path
+}
+
 // State is an implementation of Reader.
 func (s *Filesystem) State() *states.State {
 	defer s.mutex()()
