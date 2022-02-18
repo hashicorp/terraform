@@ -597,7 +597,7 @@ func unknownAsBool(val cty.Value) cty.Value {
 			// Omit all of the "false"s for known values for more compact
 			// serialization
 			if !vAsBool.RawEquals(cty.False) {
-				vals[k.AsString()] = unknownAsBool(v)
+				vals[k.AsString()] = vAsBool
 			}
 		}
 		// The above transform may have changed the types of some of the
