@@ -293,6 +293,11 @@
                 "module_address": "module.module_test_foo",
                 "name": "test",
                 "full_name": "registry.terraform.io/hashicorp/test"
+            },
+            "module.module_test_bar:test": {
+                "module_address": "module.module_test_bar",
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
             }
         }
     }

@@ -231,6 +231,36 @@ func marshalProviderConfigs(
 			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
 		}
 
+		if c.Parent != nil {
+			parentKey := opaqueProviderKey(pr.Name, c.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+		}
+
+		m[key] = p
+	}
+
+	// Providers could be implicitly created or inherited from the parent module
+	// when no requirements and configuration block defined.
+	for req := range reqs {
+		// Only default providers could implicitly exist,
+		// so the provider name must be same as the provider type.
+		key := opaqueProviderKey(req.Type, c.Path.String())
+		if _, exists := m[key]; exists {
+			continue
+		}
+
+		p := providerConfig{
+			Name:          req.Type,
+			FullName:      req.String(),
+			ModuleAddress: c.Path.String(),
+		}
+
+		// In child modules, providers defined in the parent module can be implicitly used.
+		if c.Parent != nil {
+			parentKey := opaqueProviderKey(req.Type, c.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+		}
+
 		m[key] = p
 	}
 
@@ -259,22 +289,7 @@ func marshalProviderConfigs(
 
 			key := opaqueProviderKey(moduleProviderName, cc.Path.String())
 			parentKey := opaqueProviderKey(parentProviderName, cc.Parent.Path.String())
-
-			// Traverse up the module call tree until we find the provider
-			// configuration which has no linked parent config. This is then
-			// the source of the configuration used in this module call, so
-			// we link to it directly
-			for {
-				parent, exists := m[parentKey]
-				if !exists {
-					break
-				}
-				p.parentKey = parentKey
-				parentKey = parent.parentKey
-				if parentKey == "" {
-					break
-				}
-			}
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
 
 			m[key] = p
 		}
@@ -526,4 +541,25 @@ func opaqueProviderKey(provider string, addr string) (key string) {
 		key = fmt.Sprintf("%s:%s", addr, provider)
 	}
 	return key
+}
+
+// Traverse up the module call tree until we find the provider
+// configuration which has no linked parent config. This is then
+// the source of the configuration used in this module call, so
+// we link to it directly
+func findSourceProviderKey(startKey string, fullName string, m map[string]providerConfig) string {
+	var parentKey string
+
+	key := startKey
+	for key != "" {
+		parent, exists := m[key]
+		if !exists || parent.FullName != fullName {
+			break
+		}
+
+		parentKey = key
+		key = parent.parentKey
+	}
+
+	return parentKey
 }
