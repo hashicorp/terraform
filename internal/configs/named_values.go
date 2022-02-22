@@ -411,26 +411,6 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 		o.DependsOn = append(o.DependsOn, deps...)
 	}
 
-	for _, block := range content.Blocks {
-		switch block.Type {
-		case "precondition":
-			cr, moreDiags := decodeCheckRuleBlock(block, override)
-			diags = append(diags, moreDiags...)
-			o.Preconditions = append(o.Preconditions, cr)
-		case "postcondition":
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Postconditions are not allowed",
-				Detail:   "Output values can only have preconditions, not postconditions.",
-				Subject:  block.TypeRange.Ptr(),
-			})
-		default:
-			// The cases above should be exhaustive for all block types
-			// defined in the block type schema, so this shouldn't happen.
-			panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
-		}
-	}
-
 	return o, diags
 }
 

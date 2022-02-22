@@ -240,28 +240,6 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 
 			}
 
-			for _, block := range lcContent.Blocks {
-				switch block.Type {
-				case "precondition", "postcondition":
-					cr, moreDiags := decodeCheckRuleBlock(block, override)
-					diags = append(diags, moreDiags...)
-
-					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
-					diags = append(diags, moreDiags...)
-
-					switch block.Type {
-					case "precondition":
-						r.Preconditions = append(r.Preconditions, cr)
-					case "postcondition":
-						r.Postconditions = append(r.Postconditions, cr)
-					}
-				default:
-					// The cases above should be exhaustive for all block types
-					// defined in the lifecycle schema, so this shouldn't happen.
-					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
-				}
-			}
-
 		case "connection":
 			if seenConnection != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -442,28 +420,6 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 					Detail:   fmt.Sprintf("The lifecycle argument %q is defined only for managed resources (\"resource\" blocks), and is not valid for data resources.", name),
 					Subject:  attr.NameRange.Ptr(),
 				})
-			}
-
-			for _, block := range lcContent.Blocks {
-				switch block.Type {
-				case "precondition", "postcondition":
-					cr, moreDiags := decodeCheckRuleBlock(block, override)
-					diags = append(diags, moreDiags...)
-
-					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
-					diags = append(diags, moreDiags...)
-
-					switch block.Type {
-					case "precondition":
-						r.Preconditions = append(r.Preconditions, cr)
-					case "postcondition":
-						r.Postconditions = append(r.Postconditions, cr)
-					}
-				default:
-					// The cases above should be exhaustive for all block types
-					// defined in the lifecycle schema, so this shouldn't happen.
-					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
-				}
 			}
 
 		default:
