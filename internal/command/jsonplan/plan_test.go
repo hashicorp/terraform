@@ -304,3 +304,59 @@ func TestEncodePaths(t *testing.T) {
 		})
 	}
 }
+
+func deepObjectValue(depth int) cty.Value {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"a": cty.StringVal("a"),
+		"b": cty.NumberIntVal(2),
+		"c": cty.True,
+		"d": cty.UnknownVal(cty.String),
+	})
+
+	result := v
+
+	for i := 0; i < depth; i++ {
+		result = cty.ObjectVal(map[string]cty.Value{
+			"a": result,
+			"b": result,
+			"c": result,
+		})
+	}
+
+	return result
+}
+
+func BenchmarkUnknownAsBool_2(b *testing.B) {
+	value := deepObjectValue(2)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_3(b *testing.B) {
+	value := deepObjectValue(3)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_5(b *testing.B) {
+	value := deepObjectValue(5)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_7(b *testing.B) {
+	value := deepObjectValue(7)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_9(b *testing.B) {
+	value := deepObjectValue(9)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
