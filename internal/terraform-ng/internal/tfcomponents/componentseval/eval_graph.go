@@ -28,19 +28,6 @@ func (n *componentGraphNode) String() string {
 	return buf.String()
 }
 
-// componentGraphRefNode is a node type we use as an intermediate step during
-// component graph construction. These all get eliminated from the graph
-// before we return, so the final graph contains only componentGraphNode
-// instances with direct edges between them.
-type componentGraphRefNode struct {
-	Namespace []ngaddrs.ComponentGroupCall
-	SelfAddr  addrs.Referenceable
-	Refs      []*ngaddrs.Reference
-}
-
-// TODO: componentGraphRefNode should implement addrs.UniqueKeyer so we can
-// make unique keys to build the refNodes maps below.
-
 func newComponentGraph(root *componentstree.Node) (*dag.AcyclicGraph, tfdiags.Diagnostics) {
 	graph := &dag.AcyclicGraph{}
 	refNodes := make(map[addrs.UniqueKey]*componentGraphRefNode)
@@ -66,4 +53,12 @@ func addComponentGraphNodes(to *dag.AcyclicGraph, from *componentstree.Node, ref
 		)
 	}
 	return diags
+}
+
+type evalGraphNodeAddr struct {
+	GroupCallPath []ngaddrs.ComponentGroupCall
+	LocalAddr     addrs.Referenceable
+}
+
+type evalGraphNode interface {
 }

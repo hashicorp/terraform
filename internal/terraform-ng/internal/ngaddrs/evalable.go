@@ -1,10 +1,6 @@
 package ngaddrs
 
-import (
-	"github.com/hashicorp/terraform/internal/addrs"
-)
-
-type Referenceable interface {
+type Evalable interface {
 	// HACK: Since we currently have this split between addrs types and ngaddrs
 	// types, we can't define a Referenceable which can span across both
 	// packages while making it a closed set of implementations as we normally
@@ -20,12 +16,9 @@ type Referenceable interface {
 }
 
 // The following are all of the address types we intend to be assignable
-// to "Referenceable". Although the Go compiler will allow others, using them
+// to "Evalable". Although the Go compiler will allow others, using them
 // is always incorrect.
 var (
-	_ Referenceable = ComponentCall{}
-	_ Referenceable = ComponentGroupCall{}
-	_ Referenceable = addrs.InputVariable{}
-	_ Referenceable = addrs.LocalValue{}
-	_ Referenceable = addrs.ForEachAttr{}
+	_ Evalable = AbsComponentCall{}
+	_ Evalable = AbsComponentGroupCall{}
 )

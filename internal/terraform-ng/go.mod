@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform/internal/terraform-ng
 
-go 1.17
+go 1.18
 
 require github.com/hashicorp/terraform v1.1.4
 
