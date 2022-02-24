@@ -46,6 +46,8 @@ type ManagedResource struct {
 	IgnoreChanges       []hcl.Traversal
 	IgnoreAllChanges    bool
 
+	Unused []hcl.Traversal
+
 	CreateBeforeDestroySet bool
 	PreventDestroySet      bool
 }
@@ -175,6 +177,22 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 				valDiags := gohcl.DecodeExpression(attr.Expr, nil, &r.Managed.PreventDestroy)
 				diags = append(diags, valDiags...)
 				r.Managed.PreventDestroySet = true
+			}
+
+			if attr, exists := lcContent.Attributes["unused"]; exists {
+				exprs, listDiags := hcl.ExprList(attr.Expr)
+				diags = append(diags, listDiags...)
+
+				for _, expr := range exprs {
+					expr, shimDiags := shimTraversalInString(expr, false)
+					diags = append(diags, shimDiags...)
+
+					traversal, travDiags := hcl.RelTraversalForExpr(expr)
+					diags = append(diags, travDiags...)
+					if len(traversal) != 0 {
+						r.Managed.Unused = append(r.Managed.Unused, traversal)
+					}
+				}
 			}
 
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
@@ -639,6 +657,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ignore_changes",
+		},
+		{
+			Name: "unused",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{

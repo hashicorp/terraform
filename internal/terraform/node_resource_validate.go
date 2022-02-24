@@ -379,6 +379,38 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 		}
 
 		if n.Config.Managed != nil { // can be nil only in tests with poorly-configured mocks
+			for _, traversal := range n.Config.Managed.Unused {
+				// validate the unused traversals apply.
+				uDiags := schema.StaticValidateTraversal(traversal)
+				diags = diags.Append(uDiags)
+
+				// TODO KEM VALIDATE THAT UNUSED ARGUMENTS HAVE NOT BEEN EXPLICITLY DEFINED
+
+				// unused cannot be used for Required attributes.
+				// If the traversal was valid, convert it to a cty.Path
+				// and use that to check whether the Attribute is
+				// Required.
+				if !diags.HasErrors() {
+					path := traversalToPath(traversal)
+
+					attrSchema := schema.AttributeByPath(path)
+
+					if attrSchema != nil && attrSchema.Required {
+						// unused uses absolute traversal syntax in config despite
+						// using relative traversals, so we strip the leading "." added by
+						// FormatCtyPath for a better error message.
+						attrDisplayPath := strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")
+
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid unused element",
+							Detail:   fmt.Sprintf("Adding an attribute name to unused tells Terraform not to manage the value of this attribute. The attribute %s is required, so it must have a value set in configuration. This attribute therefore cannot be unused and must be removed from the unused list.", attrDisplayPath),
+							Subject:  &n.Config.TypeRange,
+						})
+					}
+				}
+			}
+
 			for _, traversal := range n.Config.Managed.IgnoreChanges {
 				// validate the ignore_changes traversals apply.
 				moreDiags := schema.StaticValidateTraversal(traversal)

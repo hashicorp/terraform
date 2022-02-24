@@ -633,3 +633,147 @@ The attribute computed_string is decided by the provider alone and therefore the
 		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
 	}
 }
+
+func TestNodeValidatableResource_ValidateResource_invalidUnusedNonexistent(t *testing.T) {
+	mp := simpleMockProvider()
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
+	}
+
+	// We'll check a _valid_ config first, to make sure we're not failing
+	// for some other reason, and then make it invalid.
+	p := providers.Interface(mp)
+	rc := &configs.Resource{
+		Mode:   addrs.ManagedResourceMode,
+		Type:   "test_object",
+		Name:   "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{}),
+		Managed: &configs.ManagedResource{
+			Unused: []hcl.Traversal{
+				{
+					hcl.TraverseAttr{
+						Name: "test_string",
+					},
+				},
+			},
+		},
+	}
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
+	ctx.ProviderProvider = p
+
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
+	}
+
+	// Now we'll make it invalid by attempting to ignore a nonexistent
+	// attribute.
+	rc.Managed.IgnoreChanges = append(rc.Managed.IgnoreChanges, hcl.Traversal{
+		hcl.TraverseAttr{
+			Name: "nonexistent",
+		},
+	})
+
+	diags = node.validateResource(ctx)
+	if !diags.HasErrors() {
+		t.Fatal("no error for invalid unused")
+	}
+	if got, want := diags.Err().Error(), "Unsupported attribute: This object has no argument, nested block, or exported attribute named \"nonexistent\""; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+}
+
+func TestNodeValidatableResource_ValidateResource_invalidUnusedRequired(t *testing.T) {
+	// construct a schema with a required attribute
+	ms := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"test_string": {
+				Type:     cty.String,
+				Optional: true,
+			},
+			"required_string": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	mp := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: ms},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: ms},
+			},
+		},
+	}
+
+	mp.ValidateResourceConfigFn = func(req providers.ValidateResourceConfigRequest) providers.ValidateResourceConfigResponse {
+		return providers.ValidateResourceConfigResponse{}
+	}
+
+	// We'll check a _valid_ config first, to make sure we're not failing
+	// for some other reason, and then make it invalid.
+	p := providers.Interface(mp)
+	rc := &configs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_object",
+		Name: "foo",
+		Config: configs.SynthBody("", map[string]cty.Value{
+			"required_string": cty.StringVal("val"),
+		}),
+		Managed: &configs.ManagedResource{
+			Unused: []hcl.Traversal{
+				{
+					hcl.TraverseAttr{
+						Name: "test_string",
+					},
+				},
+			},
+		},
+	}
+	node := NodeValidatableResource{
+		NodeAbstractResource: &NodeAbstractResource{
+			Addr:             mustConfigResourceAddr("test_foo.bar"),
+			Config:           rc,
+			ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		},
+	}
+
+	ctx := &MockEvalContext{}
+	ctx.installSimpleEval()
+
+	ctx.ProviderSchemaSchema = mp.ProviderSchema()
+	ctx.ProviderProvider = p
+
+	diags := node.validateResource(ctx)
+	if diags.HasErrors() {
+		t.Fatalf("error for supposedly-valid config: %s", diags.ErrWithWarnings())
+	}
+
+	// Now we'll make it invalid by attempting to add a required
+	// attribute to unused.
+	rc.Managed.Unused = append(rc.Managed.Unused, hcl.Traversal{
+		hcl.TraverseAttr{
+			Name: "required_string",
+		},
+	})
+
+	diags = node.validateResource(ctx)
+	if !diags.HasErrors() {
+		t.Fatal("unexpected success; want error")
+	}
+	if got, want := diags.ErrWithWarnings().Error(), `Invalid unused element: Adding an attribute name to unused tells Terraform not to manage the value of this attribute. The attribute required_string is required, so it must have a value set in configuration. This attribute therefore cannot be unused and must be removed from the unused list.`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error\ngot:  %s\nwant: Message containing %q", got, want)
+	}
+}

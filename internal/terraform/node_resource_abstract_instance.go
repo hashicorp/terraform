@@ -1141,7 +1141,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (ct
 	return ret, diags
 }
 
-// Convert the hcl.Traversal values we get form the configuration to the
+// Convert the hcl.Traversal values we get from the configuration to the
 // cty.Path values we need to operate on the cty.Values
 func traversalsToPaths(traversals []hcl.Traversal) []cty.Path {
 	paths := make([]cty.Path, len(traversals))
