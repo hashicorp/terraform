@@ -213,7 +213,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 		return nil
 	}
 
-	msgPrefix := "Cost estimation"
+	msgPrefix := "Cost Estimation"
 	started := time.Now()
 	updated := started
 	for i := 0; ; i++ {
@@ -260,7 +260,7 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 			deltaRepr := strings.Replace(ce.DeltaMonthlyCost, "-", "", 1)
 
 			if b.CLI != nil {
-				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+				b.CLI.Output(b.Colorize().Color("[bold]" + msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("Resources: %d of %d estimated", ce.MatchedResourcesCount, ce.ResourcesCount)))
 				b.CLI.Output(b.Colorize().Color(fmt.Sprintf("           $%s/mo %s$%s", ce.ProposedMonthlyCost, sign, deltaRepr)))
 
@@ -282,12 +282,12 @@ func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Ope
 					elapsed = fmt.Sprintf(
 						" (%s elapsed)", current.Sub(started).Truncate(30*time.Second))
 				}
-				b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+				b.CLI.Output(b.Colorize().Color("[bold]" + msgPrefix + ":\n"))
 				b.CLI.Output(b.Colorize().Color("Waiting for cost estimate to complete..." + elapsed + "\n"))
 			}
 			continue
 		case tfe.CostEstimateSkippedDueToTargeting:
-			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+			b.CLI.Output(b.Colorize().Color("[bold]" + msgPrefix + ":\n"))
 			b.CLI.Output("Not available for this plan, because it was created with the -target option.")
 			b.CLI.Output("\n------------------------------------------------------------------------")
 			return nil
@@ -334,15 +334,15 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		var msgPrefix string
 		switch pc.Scope {
 		case tfe.PolicyScopeOrganization:
-			msgPrefix = "Organization policy check"
+			msgPrefix = "Organization Policy Check"
 		case tfe.PolicyScopeWorkspace:
-			msgPrefix = "Workspace policy check"
+			msgPrefix = "Workspace Policy Check"
 		default:
 			msgPrefix = fmt.Sprintf("Unknown policy check (%s)", pc.Scope)
 		}
 
 		if b.CLI != nil {
-			b.CLI.Output(b.Colorize().Color(msgPrefix + ":\n"))
+			b.CLI.Output(b.Colorize().Color("[bold]" + msgPrefix + ":\n"))
 		}
 
 		if b.CLI != nil {
