@@ -136,7 +136,7 @@ func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output Inte
 func (b *Cloud) runTasks(ctx *IntegrationContext, output IntegrationOutputWriter, stageID string) error {
 	return b.runTasksWithTaskResults(ctx, output, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
 		options := tfe.TaskStageReadOptions{
-			Include: "task_results",
+			Include: []tfe.TaskStageIncludeOps{tfe.TaskStageTaskResults},
 		}
 
 		return b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
