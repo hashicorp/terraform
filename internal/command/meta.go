@@ -73,7 +73,7 @@ type Meta struct {
 	Ui               cli.Ui   // Ui for output
 
 	// Services provides access to remote endpoint information for
-	// "terraform-native' services running at a specific user-facing hostname.
+	// 'terraform-native' services running at a specific user-facing hostname.
 	Services *disco.Disco
 
 	// RunningInAutomation indicates that commands are being run by an
