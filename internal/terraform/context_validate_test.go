@@ -2095,3 +2095,293 @@ func TestContext2Validate_nonNullableVariableDefaultValidation(t *testing.T) {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 }
+
+func TestContext2Validate_precondition_good(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = length(var.input) > 0
+      error_message = "Input cannot be empty."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_precondition_badCondition(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = length(one(var.input)) == 1
+      error_message = "You can't do that."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_precondition_badErrorMessage(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = var.input != "foo"
+      error_message = "This is a bad use of a function: ${one(var.input)}."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_postcondition_good(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+resource "aws_instance" "test" {
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = length(self.foo) > 0
+      error_message = "Input cannot be empty."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_postcondition_badCondition(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	// This postcondition's condition expression does not refer to self, which
+	// is unrealistic. This is because at the time of writing the test, self is
+	// always an unknown value of dynamic type during validation. As a result,
+	// validation of conditions which refer to resource arguments is not
+	// possible until plan time. For now we exercise the code by referring to
+	// an input variable.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    postcondition {
+      condition     = length(one(var.input)) == 1
+      error_message = "You can't do that."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_postcondition_badErrorMessage(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+resource "aws_instance" "test" {
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = self.foo != "foo"
+      error_message = "This is a bad use of a function: ${one("foo")}."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}

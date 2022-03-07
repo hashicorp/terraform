@@ -345,6 +345,31 @@ func decodeVariableValidationBlock(varName string, block *hcl.Block, override bo
 		}
 	}
 
+	if vv.ErrorMessage != nil {
+		// The same applies to the validation error message, except that
+		// references are not required. A string literal is a valid error
+		// message.
+		goodRefs := 0
+		for _, traversal := range vv.ErrorMessage.Variables() {
+			ref, moreDiags := addrs.ParseRef(traversal)
+			if !moreDiags.HasErrors() {
+				if addr, ok := ref.Subject.(addrs.InputVariable); ok {
+					if addr.Name == varName {
+						goodRefs++
+						continue // Reference is valid
+					}
+				}
+			}
+			// If we fall out here then the reference is invalid.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference in variable validation",
+				Detail:   fmt.Sprintf("The error message for variable %q can only refer to the variable itself, using var.%s.", varName, varName),
+				Subject:  traversal.SourceRange().Ptr(),
+			})
+		}
+	}
+
 	return vv, diags
 }
 
