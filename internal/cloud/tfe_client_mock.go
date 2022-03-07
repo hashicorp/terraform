@@ -167,7 +167,7 @@ func newMockConfigurationVersions(client *MockClient) *MockConfigurationVersions
 	}
 }
 
-func (m *MockConfigurationVersions) List(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionListOptions) (*tfe.ConfigurationVersionList, error) {
+func (m *MockConfigurationVersions) List(ctx context.Context, workspaceID string, options *tfe.ConfigurationVersionListOptions) (*tfe.ConfigurationVersionList, error) {
 	cvl := &tfe.ConfigurationVersionList{}
 	for _, cv := range m.configVersions {
 		cvl.Items = append(cvl.Items, cv)
@@ -224,6 +224,14 @@ func (m *MockConfigurationVersions) Upload(ctx context.Context, url, path string
 	m.uploadPaths[cv.ID] = path
 	cv.Status = tfe.ConfigurationUploaded
 	return nil
+}
+
+func (m *MockConfigurationVersions) Archive(ctx context.Context, cvID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) Download(ctx context.Context, cvID string) ([]byte, error) {
+	panic("not implemented")
 }
 
 type MockCostEstimates struct {
@@ -320,7 +328,7 @@ func newMockOrganizations(client *MockClient) *MockOrganizations {
 	}
 }
 
-func (m *MockOrganizations) List(ctx context.Context, options tfe.OrganizationListOptions) (*tfe.OrganizationList, error) {
+func (m *MockOrganizations) List(ctx context.Context, options *tfe.OrganizationListOptions) (*tfe.OrganizationList, error) {
 	orgl := &tfe.OrganizationList{}
 	for _, org := range m.organizations {
 		orgl.Items = append(orgl.Items, org)
@@ -392,7 +400,7 @@ func (m *MockOrganizations) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-func (m *MockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Capacity, error) {
+func (m *MockOrganizations) ReadCapacity(ctx context.Context, name string) (*tfe.Capacity, error) {
 	var pending, running int
 	for _, r := range m.client.Runs.Runs {
 		if r.Status == tfe.RunPending {
@@ -404,7 +412,7 @@ func (m *MockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Cap
 	return &tfe.Capacity{Pending: pending, Running: running}, nil
 }
 
-func (m *MockOrganizations) Entitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
+func (m *MockOrganizations) ReadEntitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
 	return &tfe.Entitlements{
 		Operations:            true,
 		PrivateModuleRegistry: true,
@@ -415,7 +423,7 @@ func (m *MockOrganizations) Entitlements(ctx context.Context, name string) (*tfe
 	}, nil
 }
 
-func (m *MockOrganizations) RunQueue(ctx context.Context, name string, options tfe.RunQueueOptions) (*tfe.RunQueue, error) {
+func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, options tfe.ReadRunQueueOptions) (*tfe.RunQueue, error) {
 	rq := &tfe.RunQueue{}
 
 	for _, r := range m.client.Runs.Runs {
@@ -525,7 +533,7 @@ func (m *MockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 	}, nil
 }
 
-func (m *MockPlans) JSONOutput(ctx context.Context, planID string) ([]byte, error) {
+func (m *MockPlans) ReadJSONOutput(ctx context.Context, planID string) ([]byte, error) {
 	planOutput, ok := m.planOutputs[planID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -582,7 +590,7 @@ func (m *MockPolicyChecks) create(cvID, workspaceID string) (*tfe.PolicyCheck, e
 	return pc, nil
 }
 
-func (m *MockPolicyChecks) List(ctx context.Context, runID string, options tfe.PolicyCheckListOptions) (*tfe.PolicyCheckList, error) {
+func (m *MockPolicyChecks) List(ctx context.Context, runID string, options *tfe.PolicyCheckListOptions) (*tfe.PolicyCheckList, error) {
 	_, ok := m.client.Runs.Runs[runID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -714,7 +722,7 @@ func newMockRuns(client *MockClient) *MockRuns {
 	}
 }
 
-func (m *MockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) (*tfe.RunList, error) {
+func (m *MockRuns) List(ctx context.Context, workspaceID string, options *tfe.RunListOptions) (*tfe.RunList, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -926,7 +934,7 @@ func newMockStateVersions(client *MockClient) *MockStateVersions {
 	}
 }
 
-func (m *MockStateVersions) List(ctx context.Context, options tfe.StateVersionListOptions) (*tfe.StateVersionList, error) {
+func (m *MockStateVersions) List(ctx context.Context, options *tfe.StateVersionListOptions) (*tfe.StateVersionList, error) {
 	svl := &tfe.StateVersionList{}
 	for _, sv := range m.stateVersions {
 		svl.Items = append(svl.Items, sv)
@@ -982,11 +990,11 @@ func (m *MockStateVersions) ReadWithOptions(ctx context.Context, svID string, op
 	return sv, nil
 }
 
-func (m *MockStateVersions) Current(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
-	return m.CurrentWithOptions(ctx, workspaceID, nil)
+func (m *MockStateVersions) ReadCurrent(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
+	return m.ReadCurrentWithOptions(ctx, workspaceID, nil)
 }
 
-func (m *MockStateVersions) CurrentWithOptions(ctx context.Context, workspaceID string, options *tfe.StateVersionCurrentOptions) (*tfe.StateVersion, error) {
+func (m *MockStateVersions) ReadCurrentWithOptions(ctx context.Context, workspaceID string, options *tfe.StateVersionCurrentOptions) (*tfe.StateVersion, error) {
 	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -1013,7 +1021,7 @@ func (m *MockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 	return state, nil
 }
 
-func (m *MockStateVersions) Outputs(ctx context.Context, svID string, options tfe.StateVersionOutputsListOptions) ([]*tfe.StateVersionOutput, error) {
+func (m *MockStateVersions) ListOutputs(ctx context.Context, svID string, options *tfe.StateVersionOutputsListOptions) (*tfe.StateVersionOutputsList, error) {
 	panic("not implemented")
 }
 
@@ -1031,7 +1039,7 @@ func newMockVariables(client *MockClient) *MockVariables {
 	}
 }
 
-func (m *MockVariables) List(ctx context.Context, workspaceID string, options tfe.VariableListOptions) (*tfe.VariableList, error) {
+func (m *MockVariables) List(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {
 	vl := m.workspaces[workspaceID]
 	return vl, nil
 }
@@ -1090,21 +1098,22 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 	}
 }
 
-func (m *MockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
+func (m *MockWorkspaces) List(ctx context.Context, organization string, options *tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
 	wl := &tfe.WorkspaceList{}
-
 	// Get all the workspaces that match the Search value
 	searchValue := ""
-	if options.Search != nil {
-		searchValue = *options.Search
-	}
-
 	var ws []*tfe.Workspace
 	var tags []string
 
-	if options.Tags != nil {
-		tags = strings.Split(*options.Tags, ",")
+	if options != nil {
+		if len(options.Search) > 0 {
+			searchValue = options.Search
+		}
+		if len(options.Tags) > 0 {
+			tags = strings.Split(options.Tags, ",")
+		}
 	}
+
 	for _, w := range m.workspaceIDs {
 		wTags := make(map[string]struct{})
 		for _, wTag := range w.Tags {
@@ -1134,8 +1143,10 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 
 	numPages := (len(ws) / 20) + 1
 	currentPage := 1
-	if options.PageNumber != 0 {
-		currentPage = options.PageNumber
+	if options != nil {
+		if options.PageNumber != 0 {
+			currentPage = options.PageNumber
+		}
 	}
 	previousPage := currentPage - 1
 	nextPage := currentPage + 1
@@ -1372,7 +1383,7 @@ func (m *MockWorkspaces) UnassignSSHKey(ctx context.Context, workspaceID string)
 	panic("not implemented")
 }
 
-func (m *MockWorkspaces) RemoteStateConsumers(ctx context.Context, workspaceID string, options *tfe.RemoteStateConsumersListOptions) (*tfe.WorkspaceList, error) {
+func (m *MockWorkspaces) ListRemoteStateConsumers(ctx context.Context, workspaceID string, options *tfe.RemoteStateConsumersListOptions) (*tfe.WorkspaceList, error) {
 	panic("not implemented")
 }
 
@@ -1392,7 +1403,7 @@ func (m *MockWorkspaces) Readme(ctx context.Context, workspaceID string) (io.Rea
 	panic("not implemented")
 }
 
-func (m *MockWorkspaces) Tags(ctx context.Context, workspaceID string, options tfe.WorkspaceTagListOptions) (*tfe.TagList, error) {
+func (m *MockWorkspaces) ListTags(ctx context.Context, workspaceID string, options *tfe.WorkspaceTagListOptions) (*tfe.TagList, error) {
 	panic("not implemented")
 }
 

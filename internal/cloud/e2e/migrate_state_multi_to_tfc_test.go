@@ -71,7 +71,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -136,7 +136,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -202,7 +202,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -310,8 +310,8 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "app",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -411,8 +411,8 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "app",
 				})
 				if err != nil {
 					t.Fatal(err)

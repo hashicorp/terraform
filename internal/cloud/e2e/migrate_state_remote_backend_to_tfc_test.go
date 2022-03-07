@@ -165,8 +165,8 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "app",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -294,7 +294,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				if ws == nil {
 					t.Fatalf("Expected workspace %s to be present, but is not.", expectedName)
 				}
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -428,8 +428,8 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "app",
 				})
 				if err != nil {
 					t.Fatal(err)

@@ -110,7 +110,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 			// Skip checking the workspace queue when we are the current run.
 			if w.CurrentRun == nil || w.CurrentRun.ID != r.ID {
 				found := false
-				options := tfe.RunListOptions{}
+				options := &tfe.RunListOptions{}
 			runlist:
 				for {
 					rl, err := b.client.Runs.List(stopCtx, w.ID, options)
@@ -165,10 +165,10 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 				}
 			}
 
-			options := tfe.RunQueueOptions{}
+			options := tfe.ReadRunQueueOptions{}
 		search:
 			for {
-				rq, err := b.client.Organizations.RunQueue(stopCtx, b.organization, options)
+				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.organization, options)
 				if err != nil {
 					return r, generalError("Failed to retrieve queue", err)
 				}
@@ -191,7 +191,7 @@ func (b *Remote) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Oper
 			}
 
 			if position > 0 {
-				c, err := b.client.Organizations.Capacity(stopCtx, b.organization)
+				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.organization)
 				if err != nil {
 					return r, generalError("Failed to retrieve capacity", err)
 				}
