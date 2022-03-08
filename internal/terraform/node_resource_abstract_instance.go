@@ -1381,6 +1381,13 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	// to actually call the provider to read the data.
 	log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
 
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreApply(n.Addr, states.CurrentGen, plans.Read, cty.NullVal(configVal.Type()), configVal)
+	}))
+	if diags.HasErrors() {
+		return newVal, diags
+	}
+
 	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
 		TypeName:     n.Addr.ContainingResource().Resource.Type,
 		Config:       configVal,
@@ -1444,6 +1451,10 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	if len(pvm) > 0 {
 		newVal = newVal.MarkWithPaths(pvm)
 	}
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
+	}))
 
 	return newVal, diags
 }
@@ -1703,13 +1714,6 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags
 	}
 
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreApply(n.Addr, states.CurrentGen, planned.Action, planned.Before, planned.After)
-	}))
-	if diags.HasErrors() {
-		return nil, keyData, diags
-	}
-
 	config := *n.Config
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
@@ -1750,10 +1754,6 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		Value:  newVal,
 		Status: states.ObjectReady,
 	}
-
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
-	}))
 
 	return state, keyData, diags
 }

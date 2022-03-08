@@ -1428,7 +1428,9 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 		}),
 	}
 
+	hook := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
@@ -1448,6 +1450,13 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyDataBasicStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+
+	if !hook.PreApplyCalled {
+		t.Fatal("PreApply not called for data source read")
+	}
+	if !hook.PostApplyCalled {
+		t.Fatal("PostApply not called for data source read")
 	}
 }
 
