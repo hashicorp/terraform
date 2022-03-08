@@ -410,18 +410,6 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return noop, nil
 	}
 
-	// Call pre-diff hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(
-			absAddr, deposedKey.Generation(),
-			currentState.Value,
-			cty.NullVal(cty.DynamicPseudoType),
-		)
-	}))
-	if diags.HasErrors() {
-		return nil, diags
-	}
-
 	// Plan is always the same for a destroy. We don't need the provider's
 	// help for this one.
 	plan := &plans.ResourceInstanceChange{
@@ -436,17 +424,6 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		Private:      currentState.Private,
 		ProviderAddr: n.ResolvedProvider,
 	}
-
-	// Call post-diff hook
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(
-			absAddr,
-			deposedKey.Generation(),
-			plan.Action,
-			plan.Before,
-			plan.After,
-		)
-	}))
 
 	return plan, diags
 }
@@ -1567,13 +1544,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		}
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
-
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
-		}))
-		if diags.HasErrors() {
-			return nil, nil, keyData, diags
-		}
 		proposedNewVal = proposedNewVal.MarkWithPaths(configMarkPaths)
 
 		// Apply detects that the data source will need to be read by the After
@@ -1601,13 +1571,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		return plannedChange, plannedNewState, keyData, diags
 	}
 
-	// While this isn't a "diff", continue to call this for data sources.
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, configVal)
-	}))
-	if diags.HasErrors() {
-		return nil, nil, keyData, diags
-	}
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
@@ -1643,9 +1606,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		Status: states.ObjectReady,
 	}
 
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostDiff(n.Addr, states.CurrentGen, plans.Update, priorVal, newVal)
-	}))
 	return nil, plannedNewState, keyData, diags
 }
 

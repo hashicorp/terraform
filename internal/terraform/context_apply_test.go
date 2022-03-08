@@ -1512,10 +1512,8 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	}
 
 	wantHookCalls := []*testHookCall{
-		{"PreDiff", "data.null_data_source.testing"},
-		{"PostDiff", "data.null_data_source.testing"},
-		{"PreDiff", "data.null_data_source.testing"},
-		{"PostDiff", "data.null_data_source.testing"},
+		{"PreApply", "data.null_data_source.testing"},
+		{"PostApply", "data.null_data_source.testing"},
 		{"PostStateUpdate", ""},
 	}
 	if !reflect.DeepEqual(hook.Calls, wantHookCalls) {
