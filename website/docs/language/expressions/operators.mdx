@@ -103,3 +103,5 @@ The logical operators all expect bool values and produce bool values as results.
 Terraform does not have an operator for the "exclusive OR" operation. If you
 know that both operators are boolean values then exclusive OR is equivalent
 to the `!=` ("not equal") operator.
+
+The logical operators in Terraform do not short-circuit, meaning `var.foo || var.foo.bar` will produce an error message if `var.foo` is `null` because both `var.foo` and `var.foo.bar` are evaluated.
