@@ -1,6 +1,8 @@
 package tfdiags
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -23,6 +25,20 @@ const (
 	Error   Severity = 'E'
 	Warning Severity = 'W'
 )
+
+// ToHCL converts a Severity to the equivalent HCL diagnostic severity.
+func (s Severity) ToHCL() hcl.DiagnosticSeverity {
+	switch s {
+	case Warning:
+		return hcl.DiagWarning
+	case Error:
+		return hcl.DiagError
+	default:
+		// The above should always be exhaustive for all of the valid
+		// Severity values in this package.
+		panic(fmt.Sprintf("unknown diagnostic severity %s", s))
+	}
+}
 
 type Description struct {
 	Address string
