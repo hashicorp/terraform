@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -20,10 +21,11 @@ import (
 // passed in through the module call.
 //
 // The call argument is the ModuleCall for the provided Config cfg. The
-// noProviderConfig argument is passed down the call stack, indicating that the
-// module call, or a parent module call, has used a feature that precludes
-// providers from being configured at all within the module.
-func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfig bool) (diags hcl.Diagnostics) {
+// noProviderConfigRange argument is passed down the call stack, indicating
+// that the module call, or a parent module call, has used a feature (at the
+// specified source location) that precludes providers from being configured at
+// all within the module.
+func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConfigRange *hcl.Range) (diags hcl.Diagnostics) {
 	mod := cfg.Module
 
 	for name, child := range cfg.Children {
@@ -32,8 +34,24 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		// if the module call has any of count, for_each or depends_on,
 		// providers are prohibited from being configured in this module, or
 		// any module beneath this module.
-		nope := noProviderConfig || mc.Count != nil || mc.ForEach != nil || mc.DependsOn != nil
-		diags = append(diags, validateProviderConfigs(mc, child, nope)...)
+		// NOTE: If noProviderConfigRange was already set but we encounter
+		// a nested conflicting argument then we'll overwrite the caller's
+		// range, which allows us to report the problem as close to its
+		// cause as possible.
+		switch {
+		case mc.Count != nil:
+			noProviderConfigRange = mc.Count.Range().Ptr()
+		case mc.ForEach != nil:
+			noProviderConfigRange = mc.ForEach.Range().Ptr()
+		case mc.DependsOn != nil:
+			if len(mc.DependsOn) > 0 {
+				noProviderConfigRange = mc.DependsOn[0].SourceRange().Ptr()
+			} else {
+				// Weird! We'll just use the call itself, then.
+				noProviderConfigRange = mc.DeclRange.Ptr()
+			}
+		}
+		diags = append(diags, validateProviderConfigs(mc, child, noProviderConfigRange)...)
 	}
 
 	// the set of provider configuration names passed into the module, with the
@@ -42,11 +60,11 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 	// the set of empty configurations that could be proxy configurations, with
 	// the source range of the empty configuration block.
-	emptyConfigs := map[string]*hcl.Range{}
+	emptyConfigs := map[string]hcl.Range{}
 
 	// the set of provider with a defined configuration, with the source range
 	// of the configuration block declaration.
-	configured := map[string]*hcl.Range{}
+	configured := map[string]hcl.Range{}
 
 	// the set of configuration_aliases defined in the required_providers
 	// block, with the fully qualified provider type.
@@ -54,26 +72,22 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 	// the set of provider names defined in the required_providers block, and
 	// their provider types.
-	localNames := map[string]addrs.AbsProviderConfig{}
+	localNames := map[string]addrs.Provider{}
 
 	for _, pc := range mod.ProviderConfigs {
 		name := providerName(pc.Name, pc.Alias)
 		// Validate the config against an empty schema to see if it's empty.
 		_, pcConfigDiags := pc.Config.Content(&hcl.BodySchema{})
 		if pcConfigDiags.HasErrors() || pc.Version.Required != nil {
-			configured[name] = &pc.DeclRange
+			configured[name] = pc.DeclRange
 		} else {
-			emptyConfigs[name] = &pc.DeclRange
+			emptyConfigs[name] = pc.DeclRange
 		}
 	}
 
 	if mod.ProviderRequirements != nil {
 		for _, req := range mod.ProviderRequirements.RequiredProviders {
-			addr := addrs.AbsProviderConfig{
-				Module:   cfg.Path,
-				Provider: req.Type,
-			}
-			localNames[req.Name] = addr
+			localNames[req.Name] = req.Type
 			for _, alias := range req.Aliases {
 				addr := addrs.AbsProviderConfig{
 					Module:   cfg.Path,
@@ -125,11 +139,15 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			// configuration. We ignore empty configs, because they will
 			// already produce a warning.
 			if !(confOK || localOK) {
+				defAddr := addrs.NewDefaultProvider(name)
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
-					Summary:  fmt.Sprintf("Provider %s is undefined", name),
-					Detail: fmt.Sprintf("No provider named %s has been declared in %s.\n", name, moduleText) +
-						fmt.Sprintf("If you wish to refer to the %s provider within the module, add a provider configuration, or an entry in the required_providers block.", name),
+					Summary:  "Reference to undefined provider",
+					Detail: fmt.Sprintf(
+						"There is no explicit declaration for local provider name %q in %s, so Terraform is assuming you mean to pass a configuration for provider %q.\n\nTo clarify your intent and silence this warning, add to %s a required_providers entry named %q with source = %q, or a different source address if appropriate.",
+						name, moduleText, defAddr.ForDisplay(),
+						parentModuleText, name, defAddr.ForDisplay(),
+					),
 					Subject: &passed.InParent.NameRange,
 				})
 				continue
@@ -139,12 +157,16 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			// there won't be a configuration available at runtime if the
 			// parent module did not pass one in.
 			if !cfg.Path.IsRoot() && !(confOK || passedOK) {
+				defAddr := addrs.NewDefaultProvider(name)
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
-					Summary:  fmt.Sprintf("No configuration passed in for provider %s in %s", name, cfg.Path),
-					Detail: fmt.Sprintf("Provider %s is referenced within %s, but no configuration has been supplied.\n", name, moduleText) +
-						fmt.Sprintf("Add a provider named %s to the providers map for %s in %s.", name, cfg.Path, parentModuleText),
-					Subject: &passed.InParent.NameRange,
+					Summary:  "Missing required provider configuration",
+					Detail: fmt.Sprintf(
+						"The configuration for %s expects to inherit a configuration for provider %s with local name %q, but %s doesn't pass a configuration under that name.\n\nTo satisfy this requirement, add an entry for %q to the \"providers\" argument in the module %q block.",
+						moduleText, defAddr.ForDisplay(), name, parentModuleText,
+						name, parentCall.Name,
+					),
+					Subject: parentCall.DeclRange.Ptr(),
 				})
 			}
 		}
@@ -156,11 +178,20 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 	}
 
 	// there cannot be any configurations if no provider config is allowed
-	if len(configured) > 0 && noProviderConfig {
+	if len(configured) > 0 && noProviderConfigRange != nil {
+		// We report this from the perspective of the use of count, for_each,
+		// or depends_on rather than from inside the module, because the
+		// recipient of this message is more likely to be the author of the
+		// calling module (trying to use an older module that hasn't been
+		// updated yet) than of the called module.
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("Module %s contains provider configuration", cfg.Path),
-			Detail:   "Providers cannot be configured within modules using count, for_each or depends_on.",
+			Summary:  "Module is incompatible with count, for_each, and depends_on",
+			Detail: fmt.Sprintf(
+				"The module at %s is a legacy module which contains its own local provider configurations, and so calls to it may not use the count, for_each, or depends_on arguments.\n\nIf you also control the module %q, consider updating this module to instead expect provider configurations to be passed by its caller.",
+				cfg.Path, cfg.SourceAddr,
+			),
+			Subject: noProviderConfigRange,
 		})
 	}
 
@@ -170,8 +201,11 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Cannot override provider configuration",
-				Detail:   fmt.Sprintf("Provider %s is configured within the module %s and cannot be overridden.", name, cfg.Path),
-				Subject:  &passed.InChild.NameRange,
+				Detail: fmt.Sprintf(
+					"The configuration of %s has its own local configuration for %s, and so it cannot accept an overridden configuration provided by %s.",
+					moduleText, name, parentModuleText,
+				),
+				Subject: &passed.InChild.NameRange,
 			})
 		}
 	}
@@ -188,9 +222,12 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("No configuration for provider %s", name),
-			Detail: fmt.Sprintf("Configuration required for %s.\n", providerAddr) +
-				fmt.Sprintf("Add a provider named %s to the providers map for %s in %s.", name, cfg.Path, parentModuleText),
+			Summary:  "Missing required provider configuration",
+			Detail: fmt.Sprintf(
+				"The child module requires an additional configuration for provider %s, with the local name %q.\n\nRefer to the module's documentation to understand the intended purpose of this additional provider configuration, and then add an entry for %s in the \"providers\" meta-argument in the module block to choose which provider configuration the module should use for that purpose.",
+				providerAddr.Provider.ForDisplay(), name,
+				name,
+			),
 			Subject: &parentCall.DeclRange,
 		})
 	}
@@ -214,7 +251,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 		localAddr, localName := localNames[name]
 		if localName {
-			providerAddr = localAddr
+			providerAddr.Provider = localAddr
 		}
 
 		aliasAddr, configAlias := configAliases[name]
@@ -225,20 +262,30 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		_, emptyConfig := emptyConfigs[name]
 
 		if !(localName || configAlias || emptyConfig) {
-			severity := hcl.DiagError
 
 			// we still allow default configs, so switch to a warning if the incoming provider is a default
 			if providerAddr.Provider.IsDefault() {
-				severity = hcl.DiagWarning
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Reference to undefined provider",
+					Detail: fmt.Sprintf(
+						"There is no explicit declaration for local provider name %q in %s, so Terraform is assuming you mean to pass a configuration for %q.\n\nIf you also control the child module, add a required_providers entry named %q with the source address %q.",
+						name, moduleText, providerAddr.Provider.ForDisplay(),
+						name, providerAddr.Provider.ForDisplay(),
+					),
+					Subject: &passed.InChild.NameRange,
+				})
+			} else {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to undefined provider",
+					Detail: fmt.Sprintf(
+						"The child module does not declare any provider requirement with the local name %q.\n\nIf you also control the child module, you can add a required_providers entry named %q with the source address %q to accept this provider configuration.",
+						name, name, providerAddr.Provider.ForDisplay(),
+					),
+					Subject: &passed.InChild.NameRange,
+				})
 			}
-
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: severity,
-				Summary:  fmt.Sprintf("Provider %s is undefined", name),
-				Detail: fmt.Sprintf("Module %s does not declare a provider named %s.\n", cfg.Path, name) +
-					fmt.Sprintf("If you wish to specify a provider configuration for the module, add an entry for %s in the required_providers block within the module.", name),
-				Subject: &passed.InChild.NameRange,
-			})
 		}
 
 		// The provider being passed in must also be of the correct type.
@@ -264,40 +311,126 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		}
 
 		if !providerAddr.Provider.Equals(parentAddr.Provider) {
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid type for provider %s", providerAddr),
-				Detail: fmt.Sprintf("Cannot use configuration from %s for %s. ", parentAddr, providerAddr) +
-					"The given provider configuration is for a different provider type.",
-				Subject: &passed.InChild.NameRange,
-			})
+			// If this module declares the same source address for a different
+			// local name then we'll prefer to suggest changing to match
+			// the child module's chosen name, assuming that it was the local
+			// name that was wrong rather than the source address.
+			var otherLocalName string
+			for localName, sourceAddr := range localNames {
+				if sourceAddr.Equals(parentAddr.Provider) {
+					otherLocalName = localName
+					break
+				}
+			}
+
+			const errSummary = "Provider type mismatch"
+			if otherLocalName != "" {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errSummary,
+					Detail: fmt.Sprintf(
+						"The assigned configuration is for provider %q, but local name %q in %s represents %q.\n\nTo pass this configuration to the child module, use the local name %q instead.",
+						parentAddr.Provider.ForDisplay(), passed.InChild.Name,
+						parentModuleText, providerAddr.Provider.ForDisplay(),
+						otherLocalName,
+					),
+					Subject: &passed.InChild.NameRange,
+				})
+			} else {
+				// If there is no declared requirement for the provider the
+				// caller is trying to pass under any name then we'll instead
+				// report it as an unsuitable configuration to pass into the
+				// child module's provider configuration slot.
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errSummary,
+					Detail: fmt.Sprintf(
+						"The local name %q in %s represents provider %q, but %q in %s represents %q.\n\nEach provider has its own distinct configuration schema and provider types, so this module's %q can be assigned only a configuration for %s, which is not required by %s.",
+						passed.InParent, parentModuleText, parentAddr.Provider.ForDisplay(),
+						passed.InChild, moduleText, providerAddr.Provider.ForDisplay(),
+						passed.InChild, providerAddr.Provider.ForDisplay(),
+						moduleText,
+					),
+					Subject: passed.InParent.NameRange.Ptr(),
+				})
+			}
 		}
 	}
 
-	// Empty configurations are no longer needed
+	// Empty configurations are no longer needed. Since the replacement for
+	// this calls for one entry per provider rather than one entry per
+	// provider _configuration_, we'll first gather them up by provider
+	// and then report a single warning for each, whereby we can show a direct
+	// example of what the replacement should look like.
+	type ProviderReqSuggestion struct {
+		SourceAddr      addrs.Provider
+		SourceRanges    []hcl.Range
+		RequiredConfigs []string
+		AliasCount      int
+	}
+	providerReqSuggestions := make(map[string]*ProviderReqSuggestion)
 	for name, src := range emptyConfigs {
-		detail := fmt.Sprintf("Remove the %s provider block from %s.", name, cfg.Path)
-
-		isAlias := strings.Contains(name, ".")
-		_, isConfigAlias := configAliases[name]
-		_, isLocalName := localNames[name]
-
-		if isAlias && !isConfigAlias {
-			localName := strings.Split(name, ".")[0]
-			detail = fmt.Sprintf("Remove the %s provider block from %s. Add %s to the list of configuration_aliases for %s in required_providers to define the provider configuration name.", name, cfg.Path, name, localName)
+		providerLocalName := name
+		if idx := strings.IndexByte(providerLocalName, '.'); idx >= 0 {
+			providerLocalName = providerLocalName[:idx]
 		}
 
-		if !isAlias && !isLocalName {
-			// if there is no local name, add a note to include it in the
-			// required_provider block
-			detail += fmt.Sprintf("\nTo ensure the correct provider configuration is used, add %s to the required_providers configuration", name)
+		sourceAddr, ok := localNames[name]
+		if !ok {
+			sourceAddr = addrs.NewDefaultProvider(providerLocalName)
 		}
 
+		suggestion := providerReqSuggestions[providerLocalName]
+		if suggestion == nil {
+			providerReqSuggestions[providerLocalName] = &ProviderReqSuggestion{
+				SourceAddr: sourceAddr,
+			}
+			suggestion = providerReqSuggestions[providerLocalName]
+		}
+
+		if providerLocalName != name {
+			// It's an aliased provider config, then.
+			suggestion.AliasCount++
+		}
+
+		suggestion.RequiredConfigs = append(suggestion.RequiredConfigs, name)
+		suggestion.SourceRanges = append(suggestion.SourceRanges, src)
+	}
+	for name, suggestion := range providerReqSuggestions {
+		var buf strings.Builder
+
+		fmt.Fprintf(
+			&buf,
+			"Earlier versions of Terraform used empty provider blocks (\"proxy provider configurations\") for child modules to declare their need to be passed a provider configuration by their callers. That approach was ambiguous and is now deprecated.\n\nIf you control this module, you can migrate to the new declaration syntax by removing all of the empty provider %q blocks and then adding or updating an entry like the following to the required_providers block of %s:\n",
+			name, moduleText,
+		)
+		fmt.Fprintf(&buf, "    %s = {\n", name)
+		fmt.Fprintf(&buf, "      source = %q\n", suggestion.SourceAddr.ForDisplay())
+		if suggestion.AliasCount > 0 {
+			// A lexical sort is fine because all of these strings are
+			// guaranteed to start with the same provider local name, and
+			// so we're only really sorting by the alias part.
+			sort.Strings(suggestion.RequiredConfigs)
+			fmt.Fprintln(&buf, "      configuration_aliases = [")
+			for _, addrStr := range suggestion.RequiredConfigs {
+				fmt.Fprintf(&buf, "        %s,\n", addrStr)
+			}
+			fmt.Fprintln(&buf, "      ]")
+
+		}
+		fmt.Fprint(&buf, "    }")
+
+		// We're arbitrarily going to just take the one source range that
+		// sorts earliest here. Multiple should be rare, so this is only to
+		// ensure that we produce a deterministic result in the edge case.
+		sort.Slice(suggestion.SourceRanges, func(i, j int) bool {
+			return suggestion.SourceRanges[i].String() < suggestion.SourceRanges[j].String()
+		})
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
-			Summary:  "Empty provider configuration blocks are not required",
-			Detail:   detail,
-			Subject:  src,
+			Summary:  "Redundant empty provider block",
+			Detail:   buf.String(),
+			Subject:  suggestion.SourceRanges[0].Ptr(),
 		})
 	}
 
