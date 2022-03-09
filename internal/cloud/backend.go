@@ -601,28 +601,10 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 
 // Operation implements backend.Enhanced.
 func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	name := op.Workspace
-
 	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
 	if err != nil {
-		switch err {
-		case context.Canceled:
-			return nil, err
-		case tfe.ErrResourceNotFound:
-			return nil, fmt.Errorf(
-				"workspace %s not found\n\n"+
-					"For security, Terraform Cloud returns '404 Not Found' responses for resources\n"+
-					"for resources that a user doesn't have access to, in addition to resources that\n"+
-					"do not exist. If the resource does exist, please check the permissions of the provided token.",
-				name,
-			)
-		default:
-			return nil, fmt.Errorf(
-				"Terraform Cloud returned an unexpected error:\n\n%s",
-				err,
-			)
-		}
+		return nil, err
 	}
 
 	// Terraform remote version conflicts are not a concern for operations. We
@@ -967,6 +949,33 @@ func (wm WorkspaceMapping) Strategy() workspaceStrategy {
 
 func isLocalExecutionMode(execMode string) bool {
 	return execMode == "local"
+}
+
+func (b *Cloud) fetchWorkspace(ctx context.Context, organization string, workspace string) (*tfe.Workspace, error) {
+	// Retrieve the workspace for this operation.
+	w, err := b.client.Workspaces.Read(ctx, organization, workspace)
+	if err != nil {
+		switch err {
+		case context.Canceled:
+			return nil, err
+		case tfe.ErrResourceNotFound:
+			return nil, fmt.Errorf(
+				"workspace %s not found\n\n"+
+					"For security, Terraform Cloud returns '404 Not Found' responses for resources\n"+
+					"for resources that a user doesn't have access to, in addition to resources that\n"+
+					"do not exist. If the resource does exist, please check the permissions of the provided token.",
+				workspace,
+			)
+		default:
+			err := fmt.Errorf(
+				"Terraform Cloud returned an unexpected error:\n\n%s",
+				err,
+			)
+			return nil, err
+		}
+	}
+
+	return w, nil
 }
 
 func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {
