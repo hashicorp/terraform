@@ -51,7 +51,7 @@ func TestNodeValidatableResource_ValidateProvisioner_valid(t *testing.T) {
 		},
 	}
 
-	diags := node.validateProvisioner(ctx, pc, false, false)
+	diags := node.validateProvisioner(ctx, pc)
 	if diags.HasErrors() {
 		t.Fatalf("node.Eval failed: %s", diags.Err())
 	}
@@ -96,7 +96,7 @@ func TestNodeValidatableResource_ValidateProvisioner__warning(t *testing.T) {
 		}
 	}
 
-	diags := node.validateProvisioner(ctx, pc, false, false)
+	diags := node.validateProvisioner(ctx, pc)
 	if len(diags) != 1 {
 		t.Fatalf("wrong number of diagnostics in %s; want one warning", diags.ErrWithWarnings())
 	}
@@ -141,7 +141,7 @@ func TestNodeValidatableResource_ValidateProvisioner__connectionInvalid(t *testi
 		},
 	}
 
-	diags := node.validateProvisioner(ctx, pc, false, false)
+	diags := node.validateProvisioner(ctx, pc)
 	if !diags.HasErrors() {
 		t.Fatalf("node.Eval succeeded; want error")
 	}
