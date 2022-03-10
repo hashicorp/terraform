@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -41,17 +43,7 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	diags = diags.Append(n.validateResource(ctx))
 
-	var self addrs.Referenceable
-	switch {
-	case n.Config.Count != nil:
-		self = n.Addr.Resource.Instance(addrs.IntKey(0))
-	case n.Config.ForEach != nil:
-		self = n.Addr.Resource.Instance(addrs.StringKey(""))
-	default:
-		self = n.Addr.Resource.Instance(addrs.NoKey)
-	}
-	diags = diags.Append(validateCheckRules(ctx, n.Config.Preconditions, nil))
-	diags = diags.Append(validateCheckRules(ctx, n.Config.Postconditions, self))
+	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
 
 	if managed := n.Config.Managed; managed != nil {
 		hasCount := n.Config.Count != nil
@@ -478,14 +470,69 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	return diags
 }
 
-func validateCheckRules(ctx EvalContext, crs []*configs.CheckRule, self addrs.Referenceable) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Expression, wantTy cty.Type, self addrs.Referenceable, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	for _, cr := range crs {
-		_, conditionDiags := ctx.EvaluateExpr(cr.Condition, cty.Bool, self)
+	refs, refDiags := lang.ReferencesInExpr(expr)
+	diags = diags.Append(refDiags)
+
+	scope := ctx.EvaluationScope(self, keyData)
+
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
+
+	result, hclDiags := expr.Value(hclCtx)
+	diags = diags.Append(hclDiags)
+
+	return result, diags
+}
+
+func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	keyData := EvalDataForNoInstanceKey
+	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
+
+	if n.Config.Count != nil {
+		// For a resource that has count, we allow count.index but don't
+		// know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			CountIndex: cty.UnknownVal(cty.Number),
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key 0 here, which should return an unknown value of the
+		// expected type since none of these elements are known at this
+		// point anyway.
+		selfAddr = n.ResourceAddr().Resource.Instance(addrs.IntKey(0))
+	} else if n.Config.ForEach != nil {
+		// For a resource that has for_each, we allow each.value and each.key
+		// but don't know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key "" here, which should return an unknown value of the
+		// expected type since none of these elements are known at
+		// this point anyway.
+		selfAddr = n.ResourceAddr().Resource.Instance(addrs.StringKey(""))
+	}
+
+	for _, cr := range config.Preconditions {
+		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, nil, keyData)
 		diags = diags.Append(conditionDiags)
 
-		_, errorMessageDiags := ctx.EvaluateExpr(cr.ErrorMessage, cty.String, self)
+		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, nil, keyData)
+		diags = diags.Append(errorMessageDiags)
+	}
+
+	for _, cr := range config.Postconditions {
+		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, selfAddr, keyData)
+		diags = diags.Append(conditionDiags)
+
+		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, selfAddr, keyData)
 		diags = diags.Append(errorMessageDiags)
 	}
 

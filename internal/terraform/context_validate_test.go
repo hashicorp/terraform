@@ -2385,3 +2385,97 @@ resource "aws_instance" "test" {
 		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
 	}
 }
+
+func TestContext2Validate_precondition_count(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+locals {
+  foos = ["bar", "baz"]
+}
+
+resource "aws_instance" "test" {
+  count = 3
+  foo = local.foos[count.index]
+
+  lifecycle {
+    precondition {
+      condition     = count.index < length(local.foos)
+      error_message = "Insufficient foos."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_postcondition_forEach(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+locals {
+  foos = toset(["bar", "baz", "boop"])
+}
+
+resource "aws_instance" "test" {
+  for_each = local.foos
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = length(each.value) == 3
+      error_message = "Short foo required, not \"${each.key}\"."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
