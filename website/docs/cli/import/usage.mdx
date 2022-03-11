@@ -46,7 +46,7 @@ resource configuration:
 $ terraform import aws_instance.example i-abcd1234
 ```
 
-This command locates the AWS instance with ID `i-abcd1234`. Then it attaches
+This command locates the AWS EC2 instance with ID `i-abcd1234`. Then it attaches
 the existing settings of the instance, as described by the EC2 API, to the
 name `aws_instance.example` of a module. In this example the module path
 implies that the root module is used. Finally, the mapping is saved in the
