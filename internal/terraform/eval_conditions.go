@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -110,6 +111,10 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 			continue
 		}
 
+		// The condition result may be marked if the expression refers to a
+		// sensitive value.
+		result, _ = result.Unmark()
+
 		if result.True() {
 			continue
 		}
@@ -128,7 +133,23 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 					EvalContext: hclCtx,
 				})
 			} else {
-				errorMessage = strings.TrimSpace(errorValue.AsString())
+				if marks.Has(errorValue, marks.Sensitive) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: severity,
+
+						Summary: "Error message refers to sensitive values",
+						Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+
+You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+
+						Subject:     rule.ErrorMessage.Range().Ptr(),
+						Expression:  rule.ErrorMessage,
+						EvalContext: hclCtx,
+					})
+					errorMessage = "The error message included a sensitive value, so it will not be displayed."
+				} else {
+					errorMessage = strings.TrimSpace(errorValue.AsString())
+				}
 			}
 		}
 		if errorMessage == "" {
