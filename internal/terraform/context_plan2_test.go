@@ -2859,3 +2859,65 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestContext2Plan_preconditionSensitiveValues(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [preconditions_postconditions]
+}
+
+variable "boop" {
+  sensitive = true
+  type      = string
+}
+
+output "a" {
+  sensitive = true
+  value     = var.boop
+
+  precondition {
+    condition     = length(var.boop) <= 4
+    error_message = "Boop is too long, ${length(var.boop)} > 4"
+  }
+}
+`,
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		SetVariables: InputValues{
+			"boop": &InputValue{
+				Value:      cty.StringVal("bleep"),
+				SourceType: ValueFromCLIArg,
+			},
+		},
+	})
+	if !diags.HasErrors() {
+		t.Fatal("succeeded; want errors")
+	}
+	if got, want := len(diags), 2; got != want {
+		t.Errorf("wrong number of diags, got %d, want %d", got, want)
+	}
+	for _, diag := range diags {
+		desc := diag.Description()
+		if desc.Summary == "Module output value precondition failed" {
+			if got, want := desc.Detail, "The error message included a sensitive value, so it will not be displayed."; !strings.Contains(got, want) {
+				t.Errorf("unexpected detail\ngot: %s\nwant to contain %q", got, want)
+			}
+		} else if desc.Summary == "Error message refers to sensitive values" {
+			if got, want := desc.Detail, "The error expression used to explain this condition refers to sensitive values."; !strings.Contains(got, want) {
+				t.Errorf("unexpected detail\ngot: %s\nwant to contain %q", got, want)
+			}
+		} else {
+			t.Errorf("unexpected summary\ngot: %s", desc.Summary)
+		}
+	}
+}

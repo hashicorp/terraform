@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -710,6 +711,138 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 						}
 					}
 					t.Errorf("no warning diagnostics found containing %q\ngot: %s", want, gotDiags.Err().Error())
+				}
+			}
+		})
+	}
+}
+
+func TestEvalVariableValidations_sensitiveValues(t *testing.T) {
+	cfgSrc := `
+variable "foo" {
+  type      = string
+  sensitive = true
+  default   = "boop"
+
+  validation {
+    condition     = length(var.foo) == 4
+	error_message = "Foo must be 4 characters, not ${length(var.foo)}"
+  }
+}
+
+variable "bar" {
+  type      = string
+  sensitive = true
+  default   = "boop"
+
+  validation {
+    condition     = length(var.bar) == 4
+	error_message = "Bar must be 4 characters, not ${nonsensitive(length(var.bar))}."
+  }
+}
+`
+	cfg := testModuleInline(t, map[string]string{
+		"main.tf": cfgSrc,
+	})
+	variableConfigs := cfg.Module.Variables
+
+	// Because we loaded our pseudo-module from a temporary file, the
+	// declaration source ranges will have unpredictable filenames. We'll
+	// fix that here just to make things easier below.
+	for _, vc := range variableConfigs {
+		vc.DeclRange.Filename = "main.tf"
+		for _, v := range vc.Validations {
+			v.DeclRange.Filename = "main.tf"
+		}
+	}
+
+	tests := []struct {
+		varName string
+		given   cty.Value
+		wantErr []string
+	}{
+		// Validations pass on a sensitive variable with an error message which
+		// would generate a sensitive value
+		{
+			varName: "foo",
+			given:   cty.StringVal("boop"),
+		},
+		// Assigning a value which fails the condition generates a sensitive
+		// error message, which is elided and generates another error
+		{
+			varName: "foo",
+			given:   cty.StringVal("bap"),
+			wantErr: []string{
+				"Invalid value for variable",
+				"The error message included a sensitive value, so it will not be displayed.",
+				"Error message refers to sensitive values",
+			},
+		},
+		// Validations pass on a sensitive variable with a correctly defined
+		// error message
+		{
+			varName: "bar",
+			given:   cty.StringVal("boop"),
+		},
+		// Assigning a value which fails the condition generates a nonsensitive
+		// error message, which is displayed
+		{
+			varName: "bar",
+			given:   cty.StringVal("bap"),
+			wantErr: []string{
+				"Invalid value for variable",
+				"Bar must be 4 characters, not 3.",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s %#v", test.varName, test.given), func(t *testing.T) {
+			varAddr := addrs.InputVariable{Name: test.varName}.Absolute(addrs.RootModuleInstance)
+			varCfg := variableConfigs[test.varName]
+			if varCfg == nil {
+				t.Fatalf("invalid variable name %q", test.varName)
+			}
+
+			// Build a mock context to allow the function under test to
+			// retrieve the variable value and evaluate the expressions
+			ctx := &MockEvalContext{}
+
+			// We need a minimal scope to allow basic functions to be passed to
+			// the HCL scope
+			ctx.EvaluationScopeScope = &lang.Scope{}
+			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
+				if got, want := addr.String(), varAddr.String(); got != want {
+					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
+				}
+				if varCfg.Sensitive {
+					return test.given.Mark(marks.Sensitive)
+				} else {
+					return test.given
+				}
+			}
+
+			gotDiags := evalVariableValidations(
+				varAddr, varCfg, nil, ctx,
+			)
+
+			if len(test.wantErr) == 0 {
+				if len(gotDiags) > 0 {
+					t.Errorf("no diags expected, got %s", gotDiags.Err().Error())
+				}
+			} else {
+			wantErrs:
+				for _, want := range test.wantErr {
+					for _, diag := range gotDiags {
+						if diag.Severity() != tfdiags.Error {
+							continue
+						}
+						desc := diag.Description()
+						if strings.Contains(desc.Summary, want) || strings.Contains(desc.Detail, want) {
+							continue wantErrs
+						}
+					}
+					t.Errorf("no error diagnostics found containing %q\ngot: %s", want, gotDiags.Err().Error())
 				}
 			}
 		})
