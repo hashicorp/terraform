@@ -184,6 +184,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr().Resource,
 		repeatData,
+		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
 
@@ -361,6 +362,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		checkResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, addr, repeatData,
+		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
 

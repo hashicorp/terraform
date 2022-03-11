@@ -1,8 +1,6 @@
 package tfdiags
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -110,19 +108,9 @@ func (diags Diagnostics) ToHCL() hcl.Diagnostics {
 		fromExpr := diag.FromExpr()
 
 		hclDiag := &hcl.Diagnostic{
-			Summary: desc.Summary,
-			Detail:  desc.Detail,
-		}
-
-		switch severity {
-		case Warning:
-			hclDiag.Severity = hcl.DiagWarning
-		case Error:
-			hclDiag.Severity = hcl.DiagError
-		default:
-			// The above should always be exhaustive for all of the valid
-			// Severity values in this package.
-			panic(fmt.Sprintf("unknown diagnostic severity %s", severity))
+			Summary:  desc.Summary,
+			Detail:   desc.Detail,
+			Severity: severity.ToHCL(),
 		}
 		if source.Subject != nil {
 			hclDiag.Subject = source.Subject.ToHCL().Ptr()

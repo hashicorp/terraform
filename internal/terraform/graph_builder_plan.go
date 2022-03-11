@@ -99,7 +99,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{Config: b.Config, RefreshOnly: b.skipPlanChanges},
 
 		// Add orphan resources
 		&OrphanResourceInstanceTransformer{

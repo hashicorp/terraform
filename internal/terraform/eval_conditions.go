@@ -48,11 +48,13 @@ func (c checkType) FailureSummary() string {
 //
 // If any of the rules do not pass, the returned diagnostics will contain
 // errors. Otherwise, it will either be empty or contain only warnings.
-func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Referenceable, keyData instances.RepetitionData) (diags tfdiags.Diagnostics) {
+func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Referenceable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) (diags tfdiags.Diagnostics) {
 	if len(rules) == 0 {
 		// Nothing to do
 		return nil
 	}
+
+	severity := diagSeverity.ToHCL()
 
 	for _, rule := range rules {
 		const errInvalidCondition = "Invalid condition result"
@@ -85,7 +87,7 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 		}
 		if result.IsNull() {
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
+				Severity:    severity,
 				Summary:     errInvalidCondition,
 				Detail:      "Condition expression must return either true or false, not null.",
 				Subject:     rule.Condition.Range().Ptr(),
@@ -98,7 +100,7 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 		result, err = convert.Convert(result, cty.Bool)
 		if err != nil {
 			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
+				Severity:    severity,
 				Summary:     errInvalidCondition,
 				Detail:      fmt.Sprintf("Invalid condition result value: %s.", tfdiags.FormatError(err)),
 				Subject:     rule.Condition.Range().Ptr(),
@@ -118,7 +120,7 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 			errorValue, err = convert.Convert(errorValue, cty.String)
 			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
+					Severity:    severity,
 					Summary:     "Invalid error message",
 					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
 					Subject:     rule.ErrorMessage.Range().Ptr(),
@@ -133,7 +135,7 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 			errorMessage = "Failed to evaluate condition error message."
 		}
 		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
+			Severity:    severity,
 			Summary:     typ.FailureSummary(),
 			Detail:      errorMessage,
 			Subject:     rule.Condition.Range().Ptr(),

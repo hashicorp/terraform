@@ -2283,6 +2283,34 @@ resource "test_resource" "a" {
 		}
 	})
 
+	t.Run("precondition fail refresh-only", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+		_, diags := ctx.Plan(m, state, &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if len(diags) == 0 {
+			t.Fatalf("no diags, but should have warnings")
+		}
+		if got, want := diags.ErrWithWarnings().Error(), "Resource precondition failed: Wrong boop."; got != want {
+			t.Fatalf("wrong warning:\ngot:  %s\nwant: %q", got, want)
+		}
+		if !p.ReadResourceCalled {
+			t.Errorf("Provider's ReadResource wasn't called; should've been")
+		}
+	})
+
 	t.Run("postcondition fail", func(t *testing.T) {
 		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 			m := req.ProposedNewState.AsValueMap()
@@ -2308,7 +2336,108 @@ resource "test_resource" "a" {
 			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
 		}
 		if !p.PlanResourceChangeCalled {
-			t.Errorf("Provider's PlanResourceChangeCalled wasn't called; should've been")
+			t.Errorf("Provider's PlanResourceChange wasn't called; should've been")
+		}
+	})
+
+	t.Run("postcondition fail refresh-only", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+		p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+			newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+				if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "output"}) {
+					return cty.StringVal(""), nil
+				}
+				return v, nil
+			})
+			if err != nil {
+				// shouldn't get here
+				t.Fatalf("ReadResourceFn transform failed")
+				return providers.ReadResourceResponse{}
+			}
+			return providers.ReadResourceResponse{
+				NewState: newVal,
+			}
+		}
+		_, diags := ctx.Plan(m, state, &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if len(diags) == 0 {
+			t.Fatalf("no diags, but should have warnings")
+		}
+		if got, want := diags.ErrWithWarnings().Error(), "Resource postcondition failed: Output must not be blank."; got != want {
+			t.Fatalf("wrong warning:\ngot:  %s\nwant: %q", got, want)
+		}
+		if !p.ReadResourceCalled {
+			t.Errorf("Provider's ReadResource wasn't called; should've been")
+		}
+		if p.PlanResourceChangeCalled {
+			t.Errorf("Provider's PlanResourceChange was called; should'nt've been")
+		}
+	})
+
+	t.Run("precondition and postcondition fail refresh-only", func(t *testing.T) {
+		state := states.BuildState(func(s *states.SyncState) {
+			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
+				Status:    states.ObjectReady,
+			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		})
+		p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+			newVal, err := cty.Transform(req.PriorState, func(path cty.Path, v cty.Value) (cty.Value, error) {
+				if len(path) == 1 && path[0] == (cty.GetAttrStep{Name: "output"}) {
+					return cty.StringVal(""), nil
+				}
+				return v, nil
+			})
+			if err != nil {
+				// shouldn't get here
+				t.Fatalf("ReadResourceFn transform failed")
+				return providers.ReadResourceResponse{}
+			}
+			return providers.ReadResourceResponse{
+				NewState: newVal,
+			}
+		}
+		_, diags := ctx.Plan(m, state, &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if got, want := len(diags), 2; got != want {
+			t.Errorf("wrong number of warnings, got %d, want %d", got, want)
+		}
+		warnings := diags.ErrWithWarnings().Error()
+		wantWarnings := []string{
+			"Resource precondition failed: Wrong boop.",
+			"Resource postcondition failed: Output must not be blank.",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(warnings, want) {
+				t.Errorf("missing warning:\ngot:  %s\nwant to contain: %q", warnings, want)
+			}
+		}
+		if !p.ReadResourceCalled {
+			t.Errorf("Provider's ReadResource wasn't called; should've been")
+		}
+		if p.PlanResourceChangeCalled {
+			t.Errorf("Provider's PlanResourceChange was called; should'nt've been")
 		}
 	})
 }
@@ -2432,6 +2561,39 @@ resource "test_resource" "a" {
 		}
 	})
 
+	t.Run("precondition fail refresh-only", func(t *testing.T) {
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if len(diags) == 0 {
+			t.Fatalf("no diags, but should have warnings")
+		}
+		if got, want := diags.ErrWithWarnings().Error(), "Resource precondition failed: Wrong boop."; got != want {
+			t.Fatalf("wrong warning:\ngot:  %s\nwant: %q", got, want)
+		}
+		for _, res := range plan.Changes.Resources {
+			switch res.Addr.String() {
+			case "test_resource.a":
+				if res.Action != plans.Create {
+					t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+				}
+			case "data.test_data_source.a":
+				if res.Action != plans.Read {
+					t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+				}
+			default:
+				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
+			}
+		}
+	})
+
 	t.Run("postcondition fail", func(t *testing.T) {
 		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
@@ -2456,6 +2618,60 @@ resource "test_resource" "a" {
 		}
 		if !p.ReadDataSourceCalled {
 			t.Errorf("Provider's ReadDataSource wasn't called; should've been")
+		}
+	})
+
+	t.Run("postcondition fail refresh-only", func(t *testing.T) {
+		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"foo":     cty.StringVal("boop"),
+				"results": cty.ListValEmpty(cty.String),
+			}),
+		}
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("boop"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if got, want := diags.ErrWithWarnings().Error(), "Resource postcondition failed: Results cannot be empty."; got != want {
+			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+	})
+
+	t.Run("precondition and postcondition fail refresh-only", func(t *testing.T) {
+		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"foo":     cty.StringVal("nope"),
+				"results": cty.ListValEmpty(cty.String),
+			}),
+		}
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if got, want := len(diags), 2; got != want {
+			t.Errorf("wrong number of warnings, got %d, want %d", got, want)
+		}
+		warnings := diags.ErrWithWarnings().Error()
+		wantWarnings := []string{
+			"Resource precondition failed: Wrong boop.",
+			"Resource postcondition failed: Results cannot be empty.",
+		}
+		for _, want := range wantWarnings {
+			if !strings.Contains(warnings, want) {
+				t.Errorf("missing warning:\ngot:  %s\nwant to contain: %q", warnings, want)
+			}
 		}
 	})
 }
@@ -2528,6 +2744,36 @@ output "a" {
 		}
 		if got, want := diags.Err().Error(), "Module output value precondition failed: Wrong boop."; got != want {
 			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
+		}
+	})
+
+	t.Run("condition fail refresh-only", func(t *testing.T) {
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.RefreshOnlyMode,
+			SetVariables: InputValues{
+				"boop": &InputValue{
+					Value:      cty.StringVal("nope"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		if len(diags) == 0 {
+			t.Fatalf("no diags, but should have warnings")
+		}
+		if got, want := diags.ErrWithWarnings().Error(), "Module output value precondition failed: Wrong boop."; got != want {
+			t.Errorf("wrong warning:\ngot:  %s\nwant: %q", got, want)
+		}
+		addr := addrs.RootModuleInstance.OutputValue("a")
+		outputPlan := plan.Changes.OutputValue(addr)
+		if outputPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+		if got, want := outputPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := outputPlan.Action, plans.Create; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
 	})
 }

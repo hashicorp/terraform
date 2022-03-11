@@ -655,6 +655,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		checkResourcePrecondition,
 		n.Config.Preconditions,
 		ctx, nil, keyData,
+		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
@@ -1476,7 +1477,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentState *states.ResourceInstanceObject) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentState *states.ResourceInstanceObject, checkRuleSeverity tfdiags.Severity) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
@@ -1510,6 +1511,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		checkResourcePrecondition,
 		n.Config.Preconditions,
 		ctx, nil, keyData,
+		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
@@ -1689,6 +1691,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		checkResourcePrecondition,
 		n.Config.Preconditions,
 		ctx, nil, keyData,
+		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {

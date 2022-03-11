@@ -95,7 +95,12 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, state)
+	checkRuleSeverity := tfdiags.Error
+	if n.skipPlanChanges {
+		checkRuleSeverity = tfdiags.Warning
+	}
+
+	change, state, repeatData, planDiags := n.planDataSource(ctx, state, checkRuleSeverity)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -122,6 +127,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, addr.Resource, repeatData,
+		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
 
@@ -263,9 +269,28 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			checkResourcePostcondition,
 			n.Config.Postconditions,
 			ctx, addr.Resource, repeatData,
+			tfdiags.Error,
 		)
 		diags = diags.Append(checkDiags)
 	} else {
+		// In refresh-only mode we need to evaluate the for-each expression in
+		// order to supply the value to the pre- and post-condition check
+		// blocks. This has the unfortunate edge case of a refresh-only plan
+		// executing with a for-each map which has the same keys but different
+		// values, which could result in a post-condition check relying on that
+		// value being inaccurate. Unless we decide to store the value of the
+		// for-each expression in state, this is unavoidable.
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+		checkDiags := evalCheckRules(
+			checkResourcePrecondition,
+			n.Config.Preconditions,
+			ctx, nil, repeatData,
+			tfdiags.Warning,
+		)
+		diags = diags.Append(checkDiags)
+
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
 		// any output values refering to this will not react to the drift.
@@ -275,6 +300,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		if diags.HasErrors() {
 			return diags
 		}
+
+		// Here we also evaluate post-conditions after updating the working
+		// state, because we want to check against the result of the refresh.
+		// Unlike in normal planning mode, these checks are still evaluated
+		// even if pre-conditions generated diagnostics, because we have no
+		// planned changes to block.
+		checkDiags = evalCheckRules(
+			checkResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, addr.Resource, repeatData,
+			tfdiags.Warning,
+		)
+		diags = diags.Append(checkDiags)
 	}
 
 	return diags
