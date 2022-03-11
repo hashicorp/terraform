@@ -110,7 +110,6 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 		Plugins:            c.plugins,
 		Targets:            plan.TargetAddrs,
 		ForceReplace:       plan.ForceReplaceAddrs,
-		Validate:           validate,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {

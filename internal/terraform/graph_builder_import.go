@@ -30,9 +30,8 @@ type ImportGraphBuilder struct {
 // Build builds the graph according to the steps returned by Steps.
 func (b *ImportGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: true,
-		Name:     "ImportGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "ImportGraphBuilder",
 	}).Build(path)
 }
 
