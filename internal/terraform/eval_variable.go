@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
@@ -321,7 +322,23 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 					EvalContext: hclCtx,
 				})
 			} else {
-				errorMessage = strings.TrimSpace(errorValue.AsString())
+				if marks.Has(errorValue, marks.Sensitive) {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+
+						Summary: "Error message refers to sensitive values",
+						Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+
+You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+
+						Subject:     validation.ErrorMessage.Range().Ptr(),
+						Expression:  validation.ErrorMessage,
+						EvalContext: hclCtx,
+					})
+					errorMessage = "The error message included a sensitive value, so it will not be displayed."
+				} else {
+					errorMessage = strings.TrimSpace(errorValue.AsString())
+				}
 			}
 		}
 		if errorMessage == "" {
