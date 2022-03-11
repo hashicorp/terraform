@@ -30,6 +30,6 @@ terraform {
 
 You cannot use the CLI integration and a [state backend](/language/settings/backends) in the same configuration; they are mutually exclusive.
 A configuration can only provide one `cloud` block and the `cloud` block cannot refer to named values like input variables, locals, or data source attributes.
-Note that a `cloud` block can be overridden by a state backend in an [override file](/language/files/override#merging-terraform-blocks).
+Note, however, that a `cloud` block can be overridden by a state backend in an [override file](/language/files/override).
 
 Refer to [Using Terraform Cloud](/cli/cloud) in the Terraform CLI docs for more information.
