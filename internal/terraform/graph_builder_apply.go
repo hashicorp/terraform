@@ -46,17 +46,13 @@ type ApplyGraphBuilder struct {
 	// The apply step refers to these as part of verifying that the planned
 	// actions remain consistent between plan and apply.
 	ForceReplace []addrs.AbsResourceInstance
-
-	// Validate will do structural validation of the graph.
-	Validate bool
 }
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "ApplyGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "ApplyGraphBuilder",
 	}).Build(path)
 }
 

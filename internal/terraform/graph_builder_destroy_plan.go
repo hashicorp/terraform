@@ -35,9 +35,6 @@ type DestroyPlanGraphBuilder struct {
 	// Targets are resources to target
 	Targets []addrs.Targetable
 
-	// Validate will do structural validation of the graph.
-	Validate bool
-
 	// If set, skipRefresh will cause us stop skip refreshing any existing
 	// resource instances as part of our planning. This will cause us to fail
 	// to detect if an object has already been deleted outside of Terraform.
@@ -47,9 +44,8 @@ type DestroyPlanGraphBuilder struct {
 // See GraphBuilder
 func (b *DestroyPlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "DestroyPlanGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "DestroyPlanGraphBuilder",
 	}).Build(path)
 }
 

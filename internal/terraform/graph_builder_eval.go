@@ -43,9 +43,8 @@ type EvalGraphBuilder struct {
 // See GraphBuilder
 func (b *EvalGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: true,
-		Name:     "EvalGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "EvalGraphBuilder",
 	}).Build(path)
 }
 
