@@ -47,7 +47,7 @@ and `-auto-approve` is always enabled.
 Automatically applying the effect of a refresh is risky. If you have
 misconfigured credentials for one or more providers then Terraform may
 be misled into thinking that all of the managed objects have been deleted,
-and thus removes all of the tracked objects without any confirmation prompt.
+causing it to remove all of the tracked objects without any confirmation prompt.
 
 Instead, we recommend using the following command in order to get the same
 effect but with the opportunity to review the changes that Terraform has
