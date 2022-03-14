@@ -3,8 +3,9 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/hcl/v2"
 	"log"
+
+	"github.com/hashicorp/hcl/v2"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -104,6 +105,7 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 			return nil, nil, diags
 		}
 		if isLocalExecutionMode(w.ExecutionMode) {
+			fmt.Println("luces using local execution")
 			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.organization, remoteWorkspaceID)
 		} else {
 			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
@@ -114,18 +116,29 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 			}
 
 			if tfeVariables != nil {
+				fmt.Println("luces using remote execution and found remote vars")
+
 				if op.Variables == nil {
 					op.Variables = make(map[string]backend.UnparsedVariableValue)
+					fmt.Println("luces no preexisting op.Variables, creating an empty map")
+				} else {
+					fmt.Println("luces preexisting op.Variables, not creating a creating an empty map for:", op.Variables)
 				}
+
 				for _, v := range tfeVariables.Items {
 					if v.Category == tfe.CategoryTerraform {
 						if _, ok := op.Variables[v.Key]; !ok {
+							fmt.Println("luces this remote variable does not exists so we'll add to the map:", v.Key)
 							op.Variables[v.Key] = &remoteStoredVariableValue{
 								definition: v,
 							}
+						} else {
+							fmt.Println("luces variable exists locally, so we'll ignore remote one, even if we are remote execution mode!")
 						}
 					}
 				}
+			} else {
+				fmt.Println("luces using remote execution and NO remote vars")
 			}
 		}
 
