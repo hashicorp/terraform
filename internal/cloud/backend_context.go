@@ -3,8 +3,9 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/hcl/v2"
 	"log"
+
+	"github.com/hashicorp/hcl/v2"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -117,6 +118,7 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 				if op.Variables == nil {
 					op.Variables = make(map[string]backend.UnparsedVariableValue)
 				}
+
 				for _, v := range tfeVariables.Items {
 					if v.Category == tfe.CategoryTerraform {
 						if _, ok := op.Variables[v.Key]; !ok {
