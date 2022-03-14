@@ -415,8 +415,9 @@ table used for locking. During a `terraform plan`, when the state lock is put in
 Terraform stores the full statefile as a document with its partition key set 
 as the s3 object key. After the state lock is released, a digest of the updated
 statefile is placed in DynamoDB with a key similar to that of the original 
-statefile but suffixed with `-md5`. The example below shows an IAM policy that would allow the 
-role assumed for backend operations to perform these operations. 
+statefile but suffixed with `-md5`. A simple IAM policy that would allow the 
+role assumed for backend operations to perform the aforementioned operations is 
+shown below:
 
 ```json
 {
@@ -435,8 +436,8 @@ role assumed for backend operations to perform these operations.
         "Condition" : {
           "ForAllValues:StringEquals" : {
             "dynamodb:LeadingKeys" : [
-              "myorg-terraform-states/myapp/production/tfstate",
-              "myorg-terraform-states/myapp/production/tfstate-md5"
+              "myorg-terraform-states/myapp/production/tfstate", // during a state lock the full state file is stored with this key
+              "myorg-terraform-states/myapp/production/tfstate-md5" // after the lock is released a hash of the statefile's contents are stored with this key
             ]
           }
         }
@@ -444,6 +445,8 @@ role assumed for backend operations to perform these operations.
   ]
 }
 ```
+
+Refer to the [AWS documentation on DynamoDB fine-grained locking](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/specifying-conditions.html) for more details.
 
 ### Configuring Custom User-Agent Information
 
