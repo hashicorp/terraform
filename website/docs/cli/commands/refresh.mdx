@@ -44,7 +44,7 @@ Consequently, it supports all of the same options as
 plan file, it doesn't allow selecting a planning mode other than "refresh only",
 and `-auto-approve` is always enabled.
 
-Automatically applying the effect of a refresh is risky, because if you have
+Automatically applying the effect of a refresh is risky. If you have
 misconfigured credentials for one or more providers then Terraform may
 be misled into thinking that all of the managed objects have been deleted,
 and thus removes all of the tracked objects without any confirmation prompt.
