@@ -673,19 +673,14 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	return &remote.State{Client: client}, nil
 }
 
-// Operation implements backend.Enhanced.
-func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	// Get the remote workspace name.
-	name := op.Workspace
-	switch {
-	case op.Workspace == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		name = b.prefix + op.Workspace
-	}
+func isLocalExecutionMode(execMode string) bool {
+	return execMode == "local"
+}
 
+func (b *Remote) fetchWorkspace(ctx context.Context, organization string, name string) (*tfe.Workspace, error) {
+	remoteWorkspaceName := b.getRemoteWorkspaceName(name)
 	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
 	if err != nil {
 		switch err {
 		case context.Canceled:
@@ -695,15 +690,27 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. If the resource does exist, please check the rights for the used token.",
+					"to. If the resource does exist, please check the rights for the used token",
 				name,
 			)
 		default:
-			return nil, fmt.Errorf(
-				"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
+			err := fmt.Errorf(
+				"the configured \"remote\" backend encountered an unexpected error:\n\n%s",
 				err,
 			)
+			return nil, err
 		}
+	}
+
+	return w, nil
+}
+
+// Operation implements backend.Enhanced.
+func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Terraform remote version conflicts are not a concern for operations. We
@@ -718,7 +725,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
+	if b.forceLocal || isLocalExecutionMode(w.ExecutionMode) {
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
@@ -902,7 +909,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if !workspace.Operations {
+	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 
-	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2"
+
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -97,21 +98,34 @@ func (b *Cloud) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Ful
 			return nil, nil, diags
 		}
 
-		log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
-		tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
-		if err != nil && err != tfe.ErrResourceNotFound {
-			diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
+		// Retrieve the workspace for this operation.
+		w, err := b.fetchWorkspace(context.Background(), b.organization, op.Workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error loading workspace: %w", err))
 			return nil, nil, diags
 		}
-
-		if tfeVariables != nil {
-			if op.Variables == nil {
-				op.Variables = make(map[string]backend.UnparsedVariableValue)
+		if isLocalExecutionMode(w.ExecutionMode) {
+			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+		} else {
+			log.Printf("[TRACE] cloud: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+			tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
+			if err != nil && err != tfe.ErrResourceNotFound {
+				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
+				return nil, nil, diags
 			}
-			for _, v := range tfeVariables.Items {
-				if v.Category == tfe.CategoryTerraform {
-					op.Variables[v.Key] = &remoteStoredVariableValue{
-						definition: v,
+
+			if tfeVariables != nil {
+				if op.Variables == nil {
+					op.Variables = make(map[string]backend.UnparsedVariableValue)
+				}
+
+				for _, v := range tfeVariables.Items {
+					if v.Category == tfe.CategoryTerraform {
+						if _, ok := op.Variables[v.Key]; !ok {
+							op.Variables[v.Key] = &remoteStoredVariableValue{
+								definition: v,
+							}
+						}
 					}
 				}
 			}

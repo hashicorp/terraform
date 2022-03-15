@@ -82,22 +82,6 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 	}
 	ret.Config = config
 
-	// The underlying API expects us to use the opaque workspace id to request
-	// variables, so we'll need to look that up using our organization name
-	// and workspace name.
-	remoteWorkspaceID, err := b.getRemoteWorkspaceID(context.Background(), op.Workspace)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
-		return nil, nil, diags
-	}
-
-	log.Printf("[TRACE] backend/remote: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
-	tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
-	if err != nil && err != tfe.ErrResourceNotFound {
-		diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
-		return nil, nil, diags
-	}
-
 	if op.AllowUnsetVariables {
 		// If we're not going to use the variables in an operation we'll be
 		// more lax about them, stubbing out any unset ones as unknown.
@@ -105,14 +89,41 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 		// but not enough information to run a real operation (plan, apply, etc)
 		ret.PlanOpts.SetVariables = stubAllVariables(op.Variables, config.Module.Variables)
 	} else {
-		if tfeVariables != nil {
-			if op.Variables == nil {
-				op.Variables = make(map[string]backend.UnparsedVariableValue)
+		// The underlying API expects us to use the opaque workspace id to request
+		// variables, so we'll need to look that up using our organization name
+		// and workspace name.
+		remoteWorkspaceID, err := b.getRemoteWorkspaceID(context.Background(), op.Workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error finding remote workspace: %w", err))
+			return nil, nil, diags
+		}
+
+		w, err := b.fetchWorkspace(context.Background(), b.organization, op.Workspace)
+		if err != nil {
+			diags = diags.Append(fmt.Errorf("error loading workspace: %w", err))
+			return nil, nil, diags
+		}
+
+		if isLocalExecutionMode(w.ExecutionMode) {
+			log.Printf("[TRACE] skipping retrieving variables from workspace %s/%s (%s), workspace is in Local Execution mode", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+		} else {
+			log.Printf("[TRACE] backend/remote: retrieving variables from workspace %s/%s (%s)", remoteWorkspaceName, b.organization, remoteWorkspaceID)
+			tfeVariables, err := b.client.Variables.List(context.Background(), remoteWorkspaceID, tfe.VariableListOptions{})
+			if err != nil && err != tfe.ErrResourceNotFound {
+				diags = diags.Append(fmt.Errorf("error loading variables: %w", err))
+				return nil, nil, diags
 			}
-			for _, v := range tfeVariables.Items {
-				if v.Category == tfe.CategoryTerraform {
-					op.Variables[v.Key] = &remoteStoredVariableValue{
-						definition: v,
+			if tfeVariables != nil {
+				if op.Variables == nil {
+					op.Variables = make(map[string]backend.UnparsedVariableValue)
+				}
+				for _, v := range tfeVariables.Items {
+					if v.Category == tfe.CategoryTerraform {
+						if _, ok := op.Variables[v.Key]; !ok {
+							op.Variables[v.Key] = &remoteStoredVariableValue{
+								definition: v,
+							}
+						}
 					}
 				}
 			}

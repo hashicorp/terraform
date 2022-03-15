@@ -2,6 +2,9 @@ package remote
 
 import (
 	"context"
+	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"reflect"
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -232,4 +235,235 @@ func TestRemoteContextWithVars(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRemoteVariablesDoNotOverride(t *testing.T) {
+	catTerraform := tfe.CategoryTerraform
+
+	varName1 := "key1"
+	varName2 := "key2"
+	varName3 := "key3"
+
+	varValue1 := "value1"
+	varValue2 := "value2"
+	varValue3 := "value3"
+
+	tests := map[string]struct {
+		localVariables    map[string]backend.UnparsedVariableValue
+		remoteVariables   []*tfe.VariableCreateOptions
+		expectedVariables terraform.InputValues
+	}{
+		"no local variables": {
+			map[string]backend.UnparsedVariableValue{},
+			[]*tfe.VariableCreateOptions{
+				{
+					Key:      &varName1,
+					Value:    &varValue1,
+					Category: &catTerraform,
+				},
+				{
+					Key:      &varName2,
+					Value:    &varValue2,
+					Category: &catTerraform,
+				},
+				{
+					Key:      &varName3,
+					Value:    &varValue3,
+					Category: &catTerraform,
+				},
+			},
+			terraform.InputValues{
+				varName1: &terraform.InputValue{
+					Value:      cty.StringVal(varValue1),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName2: &terraform.InputValue{
+					Value:      cty.StringVal(varValue2),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName3: &terraform.InputValue{
+					Value:      cty.StringVal(varValue3),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+			},
+		},
+		"single conflicting local variable": {
+			map[string]backend.UnparsedVariableValue{
+				varName3: testUnparsedVariableValue(varValue3),
+			},
+			[]*tfe.VariableCreateOptions{
+				{
+					Key:      &varName1,
+					Value:    &varValue1,
+					Category: &catTerraform,
+				}, {
+					Key:      &varName2,
+					Value:    &varValue2,
+					Category: &catTerraform,
+				}, {
+					Key:      &varName3,
+					Value:    &varValue3,
+					Category: &catTerraform,
+				},
+			},
+			terraform.InputValues{
+				varName1: &terraform.InputValue{
+					Value:      cty.StringVal(varValue1),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName2: &terraform.InputValue{
+					Value:      cty.StringVal(varValue2),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName3: &terraform.InputValue{
+					Value:      cty.StringVal(varValue3),
+					SourceType: terraform.ValueFromNamedFile,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "fake.tfvars",
+						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					},
+				},
+			},
+		},
+		"no conflicting local variable": {
+			map[string]backend.UnparsedVariableValue{
+				varName3: testUnparsedVariableValue(varValue3),
+			},
+			[]*tfe.VariableCreateOptions{
+				{
+					Key:      &varName1,
+					Value:    &varValue1,
+					Category: &catTerraform,
+				}, {
+					Key:      &varName2,
+					Value:    &varValue2,
+					Category: &catTerraform,
+				},
+			},
+			terraform.InputValues{
+				varName1: &terraform.InputValue{
+					Value:      cty.StringVal(varValue1),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName2: &terraform.InputValue{
+					Value:      cty.StringVal(varValue2),
+					SourceType: terraform.ValueFromInput,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "",
+						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
+					},
+				},
+				varName3: &terraform.InputValue{
+					Value:      cty.StringVal(varValue3),
+					SourceType: terraform.ValueFromNamedFile,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "fake.tfvars",
+						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+						End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					},
+				},
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			configDir := "./testdata/variables"
+
+			b, bCleanup := testBackendDefault(t)
+			defer bCleanup()
+
+			_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+			defer configCleanup()
+
+			workspaceID, err := b.getRemoteWorkspaceID(context.Background(), backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			streams, _ := terminal.StreamsForTesting(t)
+			view := views.NewStateLocker(arguments.ViewHuman, views.NewView(streams))
+
+			op := &backend.Operation{
+				ConfigDir:    configDir,
+				ConfigLoader: configLoader,
+				StateLocker:  clistate.NewLocker(0, view),
+				Workspace:    backend.DefaultStateName,
+				Variables:    test.localVariables,
+			}
+
+			for _, v := range test.remoteVariables {
+				b.client.Variables.Create(context.TODO(), workspaceID, *v)
+			}
+
+			lr, _, diags := b.LocalRun(op)
+
+			if diags.HasErrors() {
+				t.Fatalf("unexpected error\ngot:  %s\nwant: <no error>", diags.Err().Error())
+			}
+			// When Context() succeeds, this should fail w/ "workspace already locked"
+			stateMgr, _ := b.StateMgr(backend.DefaultStateName)
+			if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err == nil {
+				t.Fatal("unexpected success locking state after Context")
+			}
+
+			actual := lr.PlanOpts.SetVariables
+			expected := test.expectedVariables
+
+			for expectedKey := range expected {
+				actualValue := actual[expectedKey]
+				expectedValue := expected[expectedKey]
+
+				if !reflect.DeepEqual(*actualValue, *expectedValue) {
+					t.Fatalf("unexpected variable '%s'\ngot:  %v\nwant: %v", expectedKey, actualValue, expectedValue)
+				}
+			}
+		})
+	}
+}
+
+type testUnparsedVariableValue string
+
+func (v testUnparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	return &terraform.InputValue{
+		Value:      cty.StringVal(string(v)),
+		SourceType: terraform.ValueFromNamedFile,
+		SourceRange: tfdiags.SourceRange{
+			Filename: "fake.tfvars",
+			Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+			End:      tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+		},
+	}, nil
 }
