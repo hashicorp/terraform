@@ -29,8 +29,8 @@ type parseKeyTestCase struct {
 }
 
 func compareSlices(got []byte, expected []byte) bool {
-	eEmpty := expected == nil || len(expected) == 0
-	gEmpty := got == nil || len(got) == 0
+	eEmpty := len(expected) == 0
+	gEmpty := len(got) == 0
 	if eEmpty != gEmpty {
 		return false
 	}

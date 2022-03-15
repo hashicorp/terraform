@@ -75,8 +75,8 @@ const validPlaintext = `{"animals":[{"species":"cheetah","genus":"acinonyx"}]}`
 const validEncryptedKey1 = `{"crypted":"e93e3e7ad3434055251f695865a13c11744b97e54cb7dee8f8fb40d1fb096b728f2a00606e7109f0720aacb15008b410cf2f92dd7989c2ff10b9712b6ef7d69ecdad1dccd2f1bddd127f0f0d87c79c3c062e03c2297614e2effa2fb1f4072d86df0dda4fc061"}`
 
 func compareSlices(got []byte, expected []byte) bool {
-	eEmpty := expected == nil || len(expected) == 0
-	gEmpty := got == nil || len(got) == 0
+	eEmpty := len(expected) == 0
+	gEmpty := len(got) == 0
 	if eEmpty != gEmpty {
 		return false
 	}
