@@ -178,9 +178,9 @@ type testDelegateBackend struct {
 	deleteErr bool
 }
 
-var errTestDelegateState = errors.New("State called")
-var errTestDelegateStates = errors.New("States called")
-var errTestDelegateDeleteState = errors.New("Delete called")
+var errTestDelegateState = errors.New("state called")
+var errTestDelegateStates = errors.New("states called")
+var errTestDelegateDeleteState = errors.New("delete called")
 
 func (b *testDelegateBackend) StateMgr(name string) (statemgr.Full, error) {
 	if b.stateErr {

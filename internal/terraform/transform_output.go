@@ -19,9 +19,13 @@ type OutputTransformer struct {
 	Config  *configs.Config
 	Changes *plans.Changes
 
-	// if this is a planed destroy, root outputs are still in the configuration
+	// If this is a planned destroy, root outputs are still in the configuration
 	// so we need to record that we wish to remove them
 	Destroy bool
+
+	// Refresh-only mode means that any failing output preconditions are
+	// reported as warnings rather than errors
+	RefreshOnly bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -80,18 +84,20 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 
 		case c.Path.IsRoot():
 			node = &NodeApplyableOutput{
-				Addr:   addr.Absolute(addrs.RootModuleInstance),
-				Config: o,
-				Change: rootChange,
+				Addr:        addr.Absolute(addrs.RootModuleInstance),
+				Config:      o,
+				Change:      rootChange,
+				RefreshOnly: t.RefreshOnly,
 			}
 
 		default:
 			node = &nodeExpandOutput{
-				Addr:    addr,
-				Module:  c.Path,
-				Config:  o,
-				Changes: changes,
-				Destroy: t.Destroy,
+				Addr:        addr,
+				Module:      c.Path,
+				Config:      o,
+				Changes:     changes,
+				Destroy:     t.Destroy,
+				RefreshOnly: t.RefreshOnly,
 			}
 		}
 

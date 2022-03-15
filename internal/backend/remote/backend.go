@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -91,6 +92,8 @@ type Remote struct {
 }
 
 var _ backend.Backend = (*Remote)(nil)
+var _ backend.Enhanced = (*Remote)(nil)
+var _ backend.Local = (*Remote)(nil)
 
 // New creates a new initialized remote backend.
 func New(services *disco.Disco) *Remote {
@@ -566,6 +569,17 @@ func (b *Remote) workspaces() ([]string, error) {
 	return names, nil
 }
 
+// WorkspaceNamePattern provides an appropriate workspace renaming pattern for backend migration
+// purposes (handled outside of this package), based on previous usage of this backend with the
+// 'prefix' workspace functionality. As of this writing, see meta_backend.migrate.go
+func (b *Remote) WorkspaceNamePattern() string {
+	if b.prefix != "" {
+		return b.prefix + "*"
+	}
+
+	return ""
+}
+
 // DeleteWorkspace implements backend.Enhanced.
 func (b *Remote) DeleteWorkspace(name string) error {
 	if b.workspace == "" && name == backend.DefaultStateName {
@@ -708,6 +722,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
+		log.Printf("[DEBUG] Remote backend is delegating %s to the local backend", op.Type)
 		return b.local.Operation(ctx, op)
 	}
 
@@ -752,6 +767,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 
 	// Do it.
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		defer stop()
 		defer cancel()
@@ -886,7 +902,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if workspace.Operations == false {
+	if !workspace.Operations {
 		return nil
 	}
 
@@ -915,9 +931,9 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 		// are aware of are:
 		//
 		// - 0.14.0 is guaranteed to be compatible with versions up to but not
-		//   including 1.1.0
-		v110 := version.Must(version.NewSemver("1.1.0"))
-		if tfversion.SemVer.LessThan(v110) && remoteVersion.LessThan(v110) {
+		//   including 1.2.0
+		v120 := version.Must(version.NewSemver("1.2.0"))
+		if tfversion.SemVer.LessThan(v120) && remoteVersion.LessThan(v120) {
 			return diags
 		}
 		// - Any new Terraform state version will require at least minor patch
@@ -959,22 +975,6 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 func (b *Remote) IsLocalOperations() bool {
 	return b.forceLocal
-}
-
-// Colorize returns the Colorize structure that can be used for colorizing
-// output. This is guaranteed to always return a non-nil value and so useful
-// as a helper to wrap any potentially colored strings.
-//
-// TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
-func (b *Remote) cliColorize() *colorstring.Colorize {
-	if b.CLIColor != nil {
-		return b.CLIColor
-	}
-
-	return &colorstring.Colorize{
-		Colors:  colorstring.DefaultColors,
-		Disable: true,
-	}
 }
 
 func generalError(msg string, err error) error {

@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -57,8 +56,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Outputs:   []*plans.OutputChangeSrc{},
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
-
-		ProviderSHA256s: map[string][]byte{},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 	}
 
 	switch rawPlan.UiMode {
@@ -99,6 +97,16 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		plan.Changes.Resources = append(plan.Changes.Resources, change)
 	}
 
+	for _, rawRC := range rawPlan.ResourceDrift {
+		change, err := resourceChangeFromTfplan(rawRC)
+		if err != nil {
+			// errors from resourceChangeFromTfplan already include context
+			return nil, err
+		}
+
+		plan.DriftedResources = append(plan.DriftedResources, change)
+	}
+
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
 		target, diags := addrs.ParseTargetStr(rawTargetAddr)
 		if diags.HasErrors() {
@@ -113,14 +121,6 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("plan contains invalid force-replace address %q: %s", addr, diags.Err())
 		}
 		plan.ForceReplaceAddrs = append(plan.ForceReplaceAddrs, addr)
-	}
-
-	for name, rawHashObj := range rawPlan.ProviderHashes {
-		if len(rawHashObj.Sha256) == 0 {
-			return nil, fmt.Errorf("no SHA256 hash for provider %q plugin", name)
-		}
-
-		plan.ProviderSHA256s[name] = rawHashObj.Sha256
 	}
 
 	for name, rawVal := range rawPlan.Variables {
@@ -157,12 +157,23 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 
 	ret := &plans.ResourceInstanceChangeSrc{}
 
-	moduleAddr := addrs.RootModuleInstance
-	if rawChange.ModulePath != "" {
-		var diags tfdiags.Diagnostics
-		moduleAddr, diags = addrs.ParseModuleInstanceStr(rawChange.ModulePath)
+	if rawChange.Addr == "" {
+		// If "Addr" isn't populated then seems likely that this is a plan
+		// file created by an earlier version of Terraform, which had the
+		// same information spread over various other fields:
+		// ModulePath, Mode, Name, Type, and InstanceKey.
+		return nil, fmt.Errorf("no instance address for resource instance change; perhaps this plan was created by a different version of Terraform?")
+	}
+
+	instAddr, diags := addrs.ParseAbsResourceInstanceStr(rawChange.Addr)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("invalid resource instance address %q: %w", rawChange.Addr, diags.Err())
+	}
+	prevRunAddr := instAddr
+	if rawChange.PrevRunAddr != "" {
+		prevRunAddr, diags = addrs.ParseAbsResourceInstanceStr(rawChange.PrevRunAddr)
 		if diags.HasErrors() {
-			return nil, diags.Err()
+			return nil, fmt.Errorf("invalid resource instance previous run address %q: %w", rawChange.PrevRunAddr, diags.Err())
 		}
 	}
 
@@ -172,37 +183,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 	}
 	ret.ProviderAddr = providerAddr
 
-	var mode addrs.ResourceMode
-	switch rawChange.Mode {
-	case planproto.ResourceInstanceChange_managed:
-		mode = addrs.ManagedResourceMode
-	case planproto.ResourceInstanceChange_data:
-		mode = addrs.DataResourceMode
-	default:
-		return nil, fmt.Errorf("resource has invalid mode %s", rawChange.Mode)
-	}
-
-	typeName := rawChange.Type
-	name := rawChange.Name
-
-	resAddr := addrs.Resource{
-		Mode: mode,
-		Type: typeName,
-		Name: name,
-	}
-
-	var instKey addrs.InstanceKey
-	switch rawTk := rawChange.InstanceKey.(type) {
-	case nil:
-	case *planproto.ResourceInstanceChange_Int:
-		instKey = addrs.IntKey(rawTk.Int)
-	case *planproto.ResourceInstanceChange_Str:
-		instKey = addrs.StringKey(rawTk.Str)
-	default:
-		return nil, fmt.Errorf("instance of %s has invalid key type %T", resAddr.Absolute(moduleAddr), rawChange.InstanceKey)
-	}
-
-	ret.Addr = resAddr.Instance(instKey).Absolute(moduleAddr)
+	ret.Addr = instAddr
+	ret.PrevRunAddr = prevRunAddr
 
 	if rawChange.DeposedKey != "" {
 		if len(rawChange.DeposedKey) != 8 {
@@ -236,6 +218,16 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
 		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoResourceConfig
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseWrongRepetition
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_COUNT_INDEX:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseCountIndex
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseEachKey
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoModule
 	default:
 		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
 	}
@@ -356,11 +348,11 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	rawPlan := &planproto.Plan{
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
-		ProviderHashes:   map[string]*planproto.Hash{},
 
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
+		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
 
 	switch plan.UIMode {
@@ -407,18 +399,20 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		rawPlan.ResourceChanges = append(rawPlan.ResourceChanges, rawRC)
 	}
 
+	for _, rc := range plan.DriftedResources {
+		rawRC, err := resourceChangeToTfplan(rc)
+		if err != nil {
+			return err
+		}
+		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
+	}
+
 	for _, targetAddr := range plan.TargetAddrs {
 		rawPlan.TargetAddrs = append(rawPlan.TargetAddrs, targetAddr.String())
 	}
 
 	for _, replaceAddr := range plan.ForceReplaceAddrs {
 		rawPlan.ForceReplaceAddrs = append(rawPlan.ForceReplaceAddrs, replaceAddr.String())
-	}
-
-	for name, hash := range plan.ProviderSHA256s {
-		rawPlan.ProviderHashes[name] = &planproto.Hash{
-			Sha256: hash,
-		}
 	}
 
 	for name, val := range plan.VariableValues {
@@ -454,35 +448,20 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
 	ret := &planproto.ResourceInstanceChange{}
 
-	ret.ModulePath = change.Addr.Module.String()
-
-	relAddr := change.Addr.Resource
-
-	switch relAddr.Resource.Mode {
-	case addrs.ManagedResourceMode:
-		ret.Mode = planproto.ResourceInstanceChange_managed
-	case addrs.DataResourceMode:
-		ret.Mode = planproto.ResourceInstanceChange_data
-	default:
-		return nil, fmt.Errorf("resource %s has unsupported mode %s", relAddr, relAddr.Resource.Mode)
+	if change.PrevRunAddr.Resource.Resource.Type == "" {
+		// Suggests that an old caller wasn't yet updated to populate this
+		// properly. All code that generates plans should populate this field,
+		// even if it's just to write in the same value as in change.Addr.
+		change.PrevRunAddr = change.Addr
 	}
 
-	ret.Type = relAddr.Resource.Type
-	ret.Name = relAddr.Resource.Name
-
-	switch tk := relAddr.Key.(type) {
-	case nil:
-		// Nothing to do, then.
-	case addrs.IntKey:
-		ret.InstanceKey = &planproto.ResourceInstanceChange_Int{
-			Int: int64(tk),
-		}
-	case addrs.StringKey:
-		ret.InstanceKey = &planproto.ResourceInstanceChange_Str{
-			Str: string(tk),
-		}
-	default:
-		return nil, fmt.Errorf("resource %s has unsupported instance key type %T", relAddr, relAddr.Key)
+	ret.Addr = change.Addr.String()
+	ret.PrevRunAddr = change.PrevRunAddr.String()
+	if ret.PrevRunAddr == ret.Addr {
+		// In the on-disk format we leave PrevRunAddr unpopulated in the common
+		// case where it's the same as Addr, and then fill it back in again on
+		// read.
+		ret.PrevRunAddr = ""
 	}
 
 	ret.DeposedKey = string(change.DeposedKey)
@@ -500,7 +479,7 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 
 	valChange, err := changeToTfplan(&change.ChangeSrc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to serialize resource %s change: %s", relAddr, err)
+		return nil, fmt.Errorf("failed to serialize resource %s change: %s", change.Addr, err)
 	}
 	ret.Change = valChange
 
@@ -513,8 +492,18 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
 	case plans.ResourceInstanceReplaceByRequest:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_COUNT_INDEX
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE
 	default:
-		return nil, fmt.Errorf("resource %s has unsupported action reason %s", relAddr, change.ActionReason)
+		return nil, fmt.Errorf("resource %s has unsupported action reason %s", change.Addr, change.ActionReason)
 	}
 
 	if len(change.Private) > 0 {

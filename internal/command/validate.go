@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -73,31 +71,11 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// "validate" is to check if the given module is valid regardless of
-	// input values, current state, etc. Therefore we populate all of the
-	// input values with unknown values of the expected type, allowing us
-	// to perform a type check without assuming any particular values.
-	varValues := make(terraform.InputValues)
-	for name, variable := range cfg.Module.Variables {
-		ty := variable.Type
-		if ty == cty.NilType {
-			// Can't predict the type at all, so we'll just mark it as
-			// cty.DynamicVal (unknown value of cty.DynamicPseudoType).
-			ty = cty.DynamicPseudoType
-		}
-		varValues[name] = &terraform.InputValue{
-			Value:      cty.UnknownVal(ty),
-			SourceType: terraform.ValueFromCLIArg,
-		}
-	}
-
 	opts, err := c.contextOpts()
 	if err != nil {
 		diags = diags.Append(err)
 		return diags
 	}
-	opts.Config = cfg
-	opts.Variables = varValues
 
 	tfCtx, ctxDiags := terraform.NewContext(opts)
 	diags = diags.Append(ctxDiags)
@@ -105,7 +83,7 @@ func (c *ValidateCommand) validate(dir string) tfdiags.Diagnostics {
 		return diags
 	}
 
-	validateDiags := tfCtx.Validate()
+	validateDiags := tfCtx.Validate(cfg)
 	diags = diags.Append(validateDiags)
 	return diags
 }

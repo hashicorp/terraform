@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
 
@@ -259,6 +260,128 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 	ignore := cmpopts.IgnoreUnexported(version.Constraint{}, cty.Value{}, hclsyntax.Body{})
 	if diff := cmp.Diff(want, got, ignore); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
+	}
+}
+
+func TestVerifyDependencySelections(t *testing.T) {
+	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
+	// TODO: Version Constraint Deprecation.
+	// Once we've removed the version argument from provider configuration
+	// blocks, this can go back to expected 0 diagnostics.
+	// assertNoDiagnostics(t, diags)
+	assertDiagnosticCount(t, diags, 1)
+	assertDiagnosticSummary(t, diags, "Version constraints inside provider configuration blocks are deprecated")
+
+	tlsProvider := addrs.NewProvider(
+		addrs.DefaultProviderRegistryHost,
+		"hashicorp", "tls",
+	)
+	happycloudProvider := addrs.NewProvider(
+		svchost.Hostname("tf.example.com"),
+		"awesomecorp", "happycloud",
+	)
+	nullProvider := addrs.NewDefaultProvider("null")
+	randomProvider := addrs.NewDefaultProvider("random")
+	impliedProvider := addrs.NewDefaultProvider("implied")
+	configuredProvider := addrs.NewDefaultProvider("configured")
+	grandchildProvider := addrs.NewDefaultProvider("grandchild")
+
+	tests := map[string]struct {
+		PrepareLocks func(*depsfile.Locks)
+		WantErrs     []string
+	}{
+		"empty locks": {
+			func(*depsfile.Locks) {
+				// Intentionally blank
+			},
+			[]string{
+				`provider registry.terraform.io/hashicorp/configured: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/grandchild: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/implied: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/null: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/random: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/tls: required by this configuration but no version is selected`,
+				`provider tf.example.com/awesomecorp/happycloud: required by this configuration but no version is selected`,
+			},
+		},
+		"suitable locks": {
+			func(locks *depsfile.Locks) {
+				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(nullProvider, getproviders.MustParseVersion("2.0.1"), nil, nil)
+				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+			},
+			nil,
+		},
+		"null provider constraints changed": {
+			func(locks *depsfile.Locks) {
+				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(nullProvider, getproviders.MustParseVersion("3.0.0"), nil, nil)
+				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+			},
+			[]string{
+				`provider registry.terraform.io/hashicorp/null: locked version selection 3.0.0 doesn't match the updated version constraints "~> 2.0.0, 2.0.1"`,
+			},
+		},
+		"null provider lock changed": {
+			func(locks *depsfile.Locks) {
+				// In this case, we set the lock file version constraints to
+				// match the configuration, and so our error message changes
+				// to not assume the configuration changed anymore.
+				locks.SetProvider(nullProvider, getproviders.MustParseVersion("3.0.0"), getproviders.MustParseVersionConstraints("~> 2.0.0, 2.0.1"), nil)
+
+				locks.SetProvider(configuredProvider, getproviders.MustParseVersion("1.4.0"), nil, nil)
+				locks.SetProvider(grandchildProvider, getproviders.MustParseVersion("0.1.0"), nil, nil)
+				locks.SetProvider(impliedProvider, getproviders.MustParseVersion("0.2.0"), nil, nil)
+				locks.SetProvider(randomProvider, getproviders.MustParseVersion("1.2.2"), nil, nil)
+				locks.SetProvider(tlsProvider, getproviders.MustParseVersion("3.0.1"), nil, nil)
+				locks.SetProvider(happycloudProvider, getproviders.MustParseVersion("0.0.1"), nil, nil)
+			},
+			[]string{
+				`provider registry.terraform.io/hashicorp/null: version constraints "~> 2.0.0, 2.0.1" don't match the locked version selection 3.0.0`,
+			},
+		},
+		"overridden provider": {
+			func(locks *depsfile.Locks) {
+				locks.SetProviderOverridden(happycloudProvider)
+			},
+			[]string{
+				// We still catch all of the other ones, because only happycloud was overridden
+				`provider registry.terraform.io/hashicorp/configured: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/grandchild: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/implied: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/null: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/random: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/tls: required by this configuration but no version is selected`,
+			},
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			depLocks := depsfile.NewLocks()
+			test.PrepareLocks(depLocks)
+			gotErrs := cfg.VerifyDependencySelections(depLocks)
+
+			var gotErrsStr []string
+			if gotErrs != nil {
+				gotErrsStr = make([]string, len(gotErrs))
+				for i, err := range gotErrs {
+					gotErrsStr[i] = err.Error()
+				}
+			}
+
+			if diff := cmp.Diff(test.WantErrs, gotErrsStr); diff != "" {
+				t.Errorf("wrong errors\n%s", diff)
+			}
+		})
 	}
 }
 

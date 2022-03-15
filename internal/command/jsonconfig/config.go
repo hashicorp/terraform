@@ -27,10 +27,12 @@ type config struct {
 // module boundaries.
 type providerConfig struct {
 	Name              string                 `json:"name,omitempty"`
+	FullName          string                 `json:"full_name,omitempty"`
 	Alias             string                 `json:"alias,omitempty"`
 	VersionConstraint string                 `json:"version_constraint,omitempty"`
 	ModuleAddress     string                 `json:"module_address,omitempty"`
 	Expressions       map[string]interface{} `json:"expressions,omitempty"`
+	parentKey         string
 }
 
 type module struct {
@@ -120,13 +122,21 @@ func Marshal(c *configs.Config, schemas *terraform.Schemas) ([]byte, error) {
 
 	pcs := make(map[string]providerConfig)
 	marshalProviderConfigs(c, schemas, pcs)
-	output.ProviderConfigs = pcs
 
 	rootModule, err := marshalModule(c, schemas, "")
 	if err != nil {
 		return nil, err
 	}
 	output.RootModule = rootModule
+
+	normalizeModuleProviderKeys(&rootModule, pcs)
+
+	for name, pc := range pcs {
+		if pc.parentKey != "" {
+			delete(pcs, name)
+		}
+	}
+	output.ProviderConfigs = pcs
 
 	ret, err := json.Marshal(output)
 	return ret, err
@@ -154,6 +164,7 @@ func marshalProviderConfigs(
 
 		p := providerConfig{
 			Name:          pc.Name,
+			FullName:      providerFqn.String(),
 			Alias:         pc.Alias,
 			ModuleAddress: c.Path.String(),
 			Expressions:   marshalExpressions(pc.Config, schema),
@@ -176,6 +187,30 @@ func marshalProviderConfigs(
 	// Ensure that any required providers with no associated configuration
 	// block are included in the set.
 	for k, pr := range c.Module.ProviderRequirements.RequiredProviders {
+		// If a provider has aliases defined, process those first.
+		for _, alias := range pr.Aliases {
+			// If there exists a value for this provider, we have nothing to add
+			// to it, so skip.
+			key := opaqueProviderKey(alias.StringCompact(), c.Path.String())
+			if _, exists := m[key]; exists {
+				continue
+			}
+			// Given no provider configuration block exists, the only fields we can
+			// fill here are the local name, FQN, module address, and version
+			// constraints.
+			p := providerConfig{
+				Name:          pr.Name,
+				FullName:      pr.Type.String(),
+				ModuleAddress: c.Path.String(),
+			}
+
+			if vc, ok := reqs[pr.Type]; ok {
+				p.VersionConstraint = getproviders.VersionConstraintsString(vc)
+			}
+
+			m[key] = p
+		}
+
 		// If there exists a value for this provider, we have nothing to add
 		// to it, so skip.
 		key := opaqueProviderKey(k, c.Path.String())
@@ -188,6 +223,7 @@ func marshalProviderConfigs(
 		// constraints.
 		p := providerConfig{
 			Name:          pr.Name,
+			FullName:      pr.Type.String(),
 			ModuleAddress: c.Path.String(),
 		}
 
@@ -195,11 +231,72 @@ func marshalProviderConfigs(
 			p.VersionConstraint = getproviders.VersionConstraintsString(vc)
 		}
 
+		if c.Parent != nil {
+			parentKey := opaqueProviderKey(pr.Name, c.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+		}
+
+		m[key] = p
+	}
+
+	// Providers could be implicitly created or inherited from the parent module
+	// when no requirements and configuration block defined.
+	for req := range reqs {
+		// Only default providers could implicitly exist,
+		// so the provider name must be same as the provider type.
+		key := opaqueProviderKey(req.Type, c.Path.String())
+		if _, exists := m[key]; exists {
+			continue
+		}
+
+		p := providerConfig{
+			Name:          req.Type,
+			FullName:      req.String(),
+			ModuleAddress: c.Path.String(),
+		}
+
+		// In child modules, providers defined in the parent module can be implicitly used.
+		if c.Parent != nil {
+			parentKey := opaqueProviderKey(req.Type, c.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+		}
+
 		m[key] = p
 	}
 
 	// Must also visit our child modules, recursively.
-	for _, cc := range c.Children {
+	for name, mc := range c.Module.ModuleCalls {
+		// Keys in c.Children are guaranteed to match those in c.Module.ModuleCalls
+		cc := c.Children[name]
+
+		// Add provider config map entries for passed provider configs,
+		// pointing at the passed configuration
+		for _, ppc := range mc.Providers {
+			// These provider names include aliases, if set
+			moduleProviderName := ppc.InChild.String()
+			parentProviderName := ppc.InParent.String()
+
+			// Look up the provider FQN from the module context, using the non-aliased local name
+			providerFqn := cc.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: ppc.InChild.Name})
+
+			// The presence of passed provider configs means that we cannot have
+			// any configuration expressions or version constraints here
+			p := providerConfig{
+				Name:          moduleProviderName,
+				FullName:      providerFqn.String(),
+				ModuleAddress: cc.Path.String(),
+			}
+
+			key := opaqueProviderKey(moduleProviderName, cc.Path.String())
+			parentKey := opaqueProviderKey(parentProviderName, cc.Parent.Path.String())
+			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
+
+			m[key] = p
+		}
+
+		// Finally, marshal any other provider configs within the called module.
+		// It is safe to do this last because it is invalid to configure a
+		// provider which has passed provider configs in the module call.
 		marshalProviderConfigs(cc, schemas, m)
 	}
 }
@@ -319,7 +416,9 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 	}
 
 	ret.Expressions = marshalExpressions(mc.Config, schema)
-	module, _ := marshalModule(c, schemas, mc.Name)
+
+	module, _ := marshalModule(c, schemas, c.Path.String())
+
 	ret.Module = module
 
 	if len(mc.DependsOn) > 0 {
@@ -342,11 +441,12 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
 	var rs []resource
 	for _, v := range resources {
+		providerConfigKey := opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr)
 		r := resource{
 			Address:           v.Addr().String(),
 			Type:              v.Type,
 			Name:              v.Name,
-			ProviderConfigKey: opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr),
+			ProviderConfigKey: providerConfigKey,
 		}
 
 		switch v.Mode {
@@ -416,6 +516,23 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 	return rs, nil
 }
 
+// Flatten all resource provider keys in a module and its descendents, such
+// that any resources from providers using a configuration passed through the
+// module call have a direct refernce to that provider configuration.
+func normalizeModuleProviderKeys(m *module, pcs map[string]providerConfig) {
+	for i, r := range m.Resources {
+		if pc, exists := pcs[r.ProviderConfigKey]; exists {
+			if _, hasParent := pcs[pc.parentKey]; hasParent {
+				m.Resources[i].ProviderConfigKey = pc.parentKey
+			}
+		}
+	}
+
+	for _, mc := range m.ModuleCalls {
+		normalizeModuleProviderKeys(&mc.Module, pcs)
+	}
+}
+
 // opaqueProviderKey generates a unique absProviderConfig-like string from the module
 // address and provider
 func opaqueProviderKey(provider string, addr string) (key string) {
@@ -424,4 +541,25 @@ func opaqueProviderKey(provider string, addr string) (key string) {
 		key = fmt.Sprintf("%s:%s", addr, provider)
 	}
 	return key
+}
+
+// Traverse up the module call tree until we find the provider
+// configuration which has no linked parent config. This is then
+// the source of the configuration used in this module call, so
+// we link to it directly
+func findSourceProviderKey(startKey string, fullName string, m map[string]providerConfig) string {
+	var parentKey string
+
+	key := startKey
+	for key != "" {
+		parent, exists := m[key]
+		if !exists || parent.FullName != fullName {
+			break
+		}
+
+		parentKey = key
+		key = parent.parentKey
+	}
+
+	return parentKey
 }

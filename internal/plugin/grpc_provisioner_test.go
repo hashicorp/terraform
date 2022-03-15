@@ -129,7 +129,8 @@ func (r *provisionRecorder) Output(s string) {
 }
 
 func TestGRPCProvisioner_Stop(t *testing.T) {
-	client := mockProvisionerClient(t)
+	ctrl := gomock.NewController(t)
+	client := mockproto.NewMockProvisionerClient(ctrl)
 	p := &GRPCProvisioner{
 		client: client,
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -24,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -540,11 +542,6 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	// Ask input
-	defer testInputMap(t, map[string]string{
-		"backend-migrate-to-new": "no",
-	})()
-
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	c := &InitCommand{
@@ -564,6 +561,95 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
 	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"hello","workspace_dir":null}`; got != want {
 		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+	}
+}
+
+func TestInit_backendMigrateWhileLocked(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-migrate-while-locked"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.2.3"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			ProviderSource:   providerSource,
+			Ui:               ui,
+			View:             view,
+		},
+	}
+
+	// Create some state, so the backend has something to migrate from
+	f, err := os.Create("local-state.tfstate")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = writeStateForTesting(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Lock the source state
+	unlock, err := testLockState(testDataDir, "local-state.tfstate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	// Attempt to migrate
+	args := []string{"-backend-config", "input.config", "-migrate-state", "-force-copy"}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected nonzero exit code: %s", ui.OutputWriter.String())
+	}
+
+	// Disabling locking should work
+	args = []string{"-backend-config", "input.config", "-migrate-state", "-force-copy", "-lock=false"}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("expected zero exit code, got %d: %s", code, ui.ErrorWriter.String())
+	}
+}
+
+func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-backend-config-file-change-migrate-existing"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			Ui:               ui,
+		},
+	}
+
+	oldState := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+
+	// we deliberately do not provide the answer for backend-migrate-copy-to-empty to trigger error
+	args := []string{"-migrate-state", "-backend-config", "input.config", "-input=true"}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("expected error")
+	}
+
+	// Read our backend config and verify new settings are not saved
+	state := testDataStateRead(t, filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if got, want := normalizeJSON(t, state.Backend.ConfigRaw), `{"path":"local-state.tfstate"}`; got != want {
+		t.Errorf("wrong config\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// without changing config, hash should not change
+	if oldState.Backend.Hash != state.Backend.Hash {
+		t.Errorf("backend hash should not have changed\ngot:  %d\nwant: %d", state.Backend.Hash, oldState.Backend.Hash)
 	}
 }
 
@@ -853,6 +939,318 @@ func TestInit_backendReinitConfigToExtra(t *testing.T) {
 	}
 }
 
+func TestInit_backendCloudInvalidOptions(t *testing.T) {
+	// There are various "terraform init" options that are only for
+	// traditional backends and not applicable to Terraform Cloud mode.
+	// For those, we want to return an explicit error rather than
+	// just silently ignoring them, so that users will be aware that
+	// Cloud mode has more of an expected "happy path" than the
+	// less-vertically-integrated backends do, and to avoid these
+	// unapplicable options becoming compatibility constraints for
+	// future evolution of Cloud mode.
+
+	// We use the same starting fixture for all of these tests, but some
+	// of them will customize it a bit as part of their work.
+	setupTempDir := func(t *testing.T) func() {
+		t.Helper()
+		td := tempDir(t)
+		testCopyDir(t, testFixturePath("init-cloud-simple"), td)
+		unChdir := testChdir(t, td)
+		return func() {
+			unChdir()
+			os.RemoveAll(td)
+		}
+	}
+
+	// Some of the tests need a non-empty placeholder state file to work
+	// with.
+	fakeState := states.BuildState(func(cb *states.SyncState) {
+		// Having a root module output value should be enough for this
+		// state file to be considered "non-empty" and thus a candidate
+		// for migration.
+		cb.SetOutputValue(
+			addrs.OutputValue{Name: "a"}.Absolute(addrs.RootModuleInstance),
+			cty.True,
+			false,
+		)
+	})
+	fakeStateFile := &statefile.File{
+		Lineage:          "boop",
+		Serial:           4,
+		TerraformVersion: version.Must(version.NewVersion("1.0.0")),
+		State:            fakeState,
+	}
+	var fakeStateBuf bytes.Buffer
+	err := statefile.WriteForTest(fakeStateFile, &fakeStateBuf)
+	if err != nil {
+		t.Error(err)
+	}
+	fakeStateBytes := fakeStateBuf.Bytes()
+
+	t.Run("-backend-config", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have -backend-config as a pragmatic way to dynamically set
+		// certain settings of backends that tend to vary depending on
+		// where Terraform is running, such as AWS authentication profiles
+		// that are naturally local only to the machine where Terraform is
+		// running. Those needs don't apply to Terraform Cloud, because
+		// the remote workspace encapsulates all of the details of how
+		// operations and state work in that case, and so the Cloud
+		// configuration is only about which workspaces we'll be working
+		// with.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-backend-config=anything"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -backend-config=... command line option is only for state backends, and
+is not applicable to Terraform Cloud-based configurations.
+
+To change the set of workspaces associated with this configuration, edit the
+Cloud configuration block in the root module.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-reconfigure", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// The -reconfigure option was originally imagined as a way to force
+		// skipping state migration when migrating between backends, but it
+		// has a historical flaw that it doesn't work properly when the
+		// initial situation is the implicit local backend with a state file
+		// present. The Terraform Cloud migration path has some additional
+		// steps to take care of more details automatically, and so
+		// -reconfigure doesn't really make sense in that context, particularly
+		// with its design bug with the handling of the implicit local backend.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-reconfigure"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -reconfigure option is for in-place reconfiguration of state backends
+only, and is not needed when changing Terraform Cloud settings.
+
+When using Terraform Cloud, initialization automatically activates any new
+Cloud configuration settings.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-reconfigure when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-reconfigure"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -reconfigure option is unsupported when migrating to Terraform Cloud,
+because activating Terraform Cloud involves some additional steps.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-migrate-state", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// In Cloud mode, migrating in or out always proposes migrating state
+		// and changing configuration while staying in cloud mode never migrates
+		// state, so this special option isn't relevant.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-migrate-state"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -migrate-state option is for migration between state backends only, and
+is not applicable when using Terraform Cloud.
+
+State storage is handled automatically by Terraform Cloud and so the state
+storage location is not configurable.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-migrate-state when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-migrate-state"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -migrate-state option is for migration between state backends only, and
+is not applicable when using Terraform Cloud.
+
+Terraform Cloud migration has additional steps, configured by interactive
+prompts.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-force-copy", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// In Cloud mode, migrating in or out always proposes migrating state
+		// and changing configuration while staying in cloud mode never migrates
+		// state, so this special option isn't relevant.
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-force-copy"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -force-copy option is for migration between state backends only, and is
+not applicable when using Terraform Cloud.
+
+State storage is handled automatically by Terraform Cloud and so the state
+storage location is not configurable.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+	t.Run("-force-copy when migrating in", func(t *testing.T) {
+		defer setupTempDir(t)()
+
+		// We have a slightly different error message for the case where we
+		// seem to be trying to migrate to Terraform Cloud with existing
+		// state or explicit backend already present.
+
+		if err := os.WriteFile("terraform.tfstate", fakeStateBytes, 0644); err != nil {
+			t.Fatal(err)
+		}
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				Ui:   ui,
+				View: view,
+			},
+		}
+		args := []string{"-force-copy"}
+		if code := c.Run(args); code == 0 {
+			t.Fatalf("unexpected success\n%s", ui.OutputWriter.String())
+		}
+
+		gotStderr := ui.ErrorWriter.String()
+		wantStderr := `
+Error: Invalid command-line option
+
+The -force-copy option is for migration between state backends only, and is
+not applicable when using Terraform Cloud.
+
+Terraform Cloud migration has additional steps, configured by interactive
+prompts.
+
+`
+		if diff := cmp.Diff(wantStderr, gotStderr); diff != "" {
+			t.Errorf("wrong error output\n%s", diff)
+		}
+	})
+
+}
+
 // make sure inputFalse stops execution on migrate
 func TestInit_inputFalse(t *testing.T) {
 	td := tempDir(t)
@@ -912,7 +1310,7 @@ func TestInit_inputFalse(t *testing.T) {
 	}
 
 	errMsg := ui.ErrorWriter.String()
-	if !strings.Contains(errMsg, "input disabled") {
+	if !strings.Contains(errMsg, "interactive input is disabled") {
 		t.Fatal("expected input disabled error, got", errMsg)
 	}
 
@@ -1368,7 +1766,45 @@ func TestInit_providerSource(t *testing.T) {
 	}
 }
 
-func TestInit_cancel(t *testing.T) {
+func TestInit_cancelModules(t *testing.T) {
+	// This test runs `terraform init` as if SIGINT (or similar on other
+	// platforms) were sent to it, testing that it is interruptible.
+
+	td := tempDir(t)
+	testCopyDir(t, testFixturePath("init-registry-module"), td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	// Our shutdown channel is pre-closed so init will exit as soon as it
+	// starts a cancelable portion of the process.
+	shutdownCh := make(chan struct{})
+	close(shutdownCh)
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		testingOverrides: metaOverridesForProvider(testProvider()),
+		Ui:               ui,
+		View:             view,
+		ShutdownCh:       shutdownCh,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	args := []string{}
+
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("succeeded; wanted error\n%s", ui.OutputWriter.String())
+	}
+
+	if got, want := ui.ErrorWriter.String(), `Module installation was canceled by an interrupt signal`; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
+	}
+}
+
+func TestInit_cancelProviders(t *testing.T) {
 	// This test runs `terraform init` as if SIGINT (or similar on other
 	// platforms) were sent to it, testing that it is interruptible.
 
@@ -1377,14 +1813,12 @@ func TestInit_cancel(t *testing.T) {
 	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	providerSource, closeSrc := newMockProviderSource(t, map[string][]string{
-		"test":      {"1.2.3", "1.2.4"},
-		"test-beta": {"1.2.4"},
-		"source":    {"1.2.2", "1.2.3", "1.2.1"},
-	})
-	defer closeSrc()
+	// Use a provider source implementation which is designed to hang indefinitely,
+	// to avoid a race between the closed shutdown channel and the provider source
+	// operations.
+	providerSource := &getproviders.HangingSource{}
 
-	// our shutdown channel is pre-closed so init will exit as soon as it
+	// Our shutdown channel is pre-closed so init will exit as soon as it
 	// starts a cancelable portion of the process.
 	shutdownCh := make(chan struct{})
 	close(shutdownCh)
@@ -1406,7 +1840,7 @@ func TestInit_cancel(t *testing.T) {
 	args := []string{}
 
 	if code := c.Run(args); code == 0 {
-		t.Fatalf("succeeded; wanted error")
+		t.Fatalf("succeeded; wanted error\n%s", ui.OutputWriter.String())
 	}
 	// Currently the first operation that is cancelable is provider
 	// installation, so our error message comes from there. If we
@@ -1613,6 +2047,59 @@ func TestInit_checkRequiredVersion(t *testing.T) {
 	}
 }
 
+// Verify that init will error out with an invalid version constraint, even if
+// there are other invalid configuration constructs.
+func TestInit_checkRequiredVersionFirst(t *testing.T) {
+	t.Run("root_module", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-check-required-version-first"), td)
+		defer testChdir(t, td)()
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		}
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, `Unsupported Terraform Core version`) {
+			t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+		}
+	})
+	t.Run("sub_module", func(t *testing.T) {
+		td := t.TempDir()
+		testCopyDir(t, testFixturePath("init-check-required-version-first-module"), td)
+		defer testChdir(t, td)()
+
+		ui := cli.NewMockUi()
+		view, _ := testView(t)
+		c := &InitCommand{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(testProvider()),
+				Ui:               ui,
+				View:             view,
+			},
+		}
+
+		args := []string{}
+		if code := c.Run(args); code != 1 {
+			t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+		}
+		errStr := ui.ErrorWriter.String()
+		if !strings.Contains(errStr, `Unsupported Terraform Core version`) {
+			t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+		}
+	})
+}
+
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := tempDir(t)
@@ -1718,6 +2205,11 @@ provider "registry.terraform.io/hashicorp/test" {
 }
 `)
 
+	emptyUpdatedLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+`)
+
 	cases := []struct {
 		desc      string
 		fixture   string
@@ -1737,12 +2229,30 @@ provider "registry.terraform.io/hashicorp/test" {
 			want:      updatedLockFile,
 		},
 		{
+			desc:      "unused provider",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{},
+			ok:        true,
+			want:      emptyUpdatedLockFile,
+		},
+		{
 			desc:      "readonly",
 			fixture:   "init-provider-lock-file",
 			providers: map[string][]string{"test": {"1.2.3"}},
 			input:     inputLockFile,
 			args:      []string{"-lockfile=readonly"},
 			ok:        true,
+			want:      inputLockFile,
+		},
+		{
+			desc:      "unused provider readonly",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{"-lockfile=readonly"},
+			ok:        false,
 			want:      inputLockFile,
 		},
 		{

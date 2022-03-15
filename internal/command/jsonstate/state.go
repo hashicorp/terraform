@@ -18,7 +18,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "0.2"
+const FormatVersion = "1.0"
 
 // state is the top-level representation of the json format of a terraform
 // state.

@@ -7,7 +7,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -51,7 +54,7 @@ func TestRoundtrip(t *testing.T) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs:   []*plans.OutputChangeSrc{},
 		},
-		ProviderSHA256s: map[string][]byte{},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": plans.DynamicValue([]byte("foo placeholder")),
 		},
@@ -71,13 +74,29 @@ func TestRoundtrip(t *testing.T) {
 		PriorState:   stateFileIn.State,
 	}
 
+	locksIn := depsfile.NewLocks()
+	locksIn.SetProvider(
+		addrs.NewDefaultProvider("boop"),
+		getproviders.MustParseVersion("1.0.0"),
+		getproviders.MustParseVersionConstraints(">= 1.0.0"),
+		[]getproviders.Hash{
+			getproviders.MustParseHash("fake:hello"),
+		},
+	)
+
 	workDir, err := ioutil.TempDir("", "tf-planfile")
 	if err != nil {
 		t.Fatal(err)
 	}
 	planFn := filepath.Join(workDir, "tfplan")
 
-	err = Create(planFn, snapIn, prevStateFileIn, stateFileIn, planIn)
+	err = Create(planFn, CreateArgs{
+		ConfigSnapshot:       snapIn,
+		PreviousRunStateFile: prevStateFileIn,
+		StateFile:            stateFileIn,
+		Plan:                 planIn,
+		DependencyLocks:      locksIn,
+	})
 	if err != nil {
 		t.Fatalf("failed to create plan file: %s", err)
 	}
@@ -134,6 +153,18 @@ func TestRoundtrip(t *testing.T) {
 		_, diags := pr.ReadConfig()
 		if diags.HasErrors() {
 			t.Errorf("when reading config: %s", diags.Err())
+		}
+	})
+
+	t.Run("ReadDependencyLocks", func(t *testing.T) {
+		locksOut, diags := pr.ReadDependencyLocks()
+		if diags.HasErrors() {
+			t.Fatalf("when reading config: %s", diags.Err())
+		}
+		got := locksOut.AllProviders()
+		want := locksIn.AllProviders()
+		if diff := cmp.Diff(want, got, cmp.AllowUnexported(depsfile.ProviderLock{})); diff != "" {
+			t.Errorf("provider locks did not survive round-trip\n%s", diff)
 		}
 	})
 }

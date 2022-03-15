@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -15,6 +16,7 @@ import (
 
 const tfstateFilename = "tfstate"
 const tfstatePreviousFilename = "tfstate-prev"
+const dependencyLocksFilename = ".terraform.lock.hcl" // matches the conventional name in an input configuration
 
 // Reader is the main type used to read plan files. Create a Reader by calling
 // Open.
@@ -188,6 +190,50 @@ func (r *Reader) ReadConfig() (*configs.Config, tfdiags.Diagnostics) {
 	diags = diags.Append(configDiags)
 
 	return config, diags
+}
+
+// ReadDependencyLocks reads the dependency lock information embedded in
+// the plan file.
+//
+// Some test codepaths create plan files without dependency lock information,
+// but all main codepaths should populate this. If reading a file without
+// the dependency information, this will return error diagnostics.
+func (r *Reader) ReadDependencyLocks() (*depsfile.Locks, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	for _, file := range r.zip.File {
+		if file.Name == dependencyLocksFilename {
+			r, err := file.Open()
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to read dependency locks from plan file",
+					fmt.Sprintf("Couldn't read the dependency lock information embedded in the plan file: %s.", err),
+				))
+				return nil, diags
+			}
+			src, err := ioutil.ReadAll(r)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to read dependency locks from plan file",
+					fmt.Sprintf("Couldn't read the dependency lock information embedded in the plan file: %s.", err),
+				))
+				return nil, diags
+			}
+			locks, moreDiags := depsfile.LoadLocksFromBytes(src, "<saved-plan>")
+			diags = diags.Append(moreDiags)
+			return locks, diags
+		}
+	}
+
+	// If we fall out here then this is a file without dependency information.
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Saved plan has no dependency lock information",
+		"The specified saved plan file does not include any dependency lock information. This is a bug in the previous run of Terraform that created this file.",
+	))
+	return nil, diags
 }
 
 // Close closes the file, after which no other operations may be performed.

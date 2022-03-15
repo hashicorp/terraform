@@ -1,0 +1,1220 @@
+[
+  { "heading": "Terraform Language" },
+  { "title": "Overview", "path": "" },
+  {
+    "title": "Attributes as Blocks - Configuration Language",
+    "path": "attr-as-blocks",
+    "hidden": true
+  },
+  {
+    "title": "Terraform v1.0 Compatibility Promises",
+    "path": "v1-compatibility-promises",
+    "hidden": true
+  },
+  {
+    "title": "Files and Directories",
+    "routes": [
+      { "title": "Overview", "path": "files" },
+      { "title": "Override Files", "path": "files/override" },
+      {
+        "title": "Dependency Lock File",
+        "path": "files/dependency-lock"
+      }
+    ]
+  },
+  {
+    "title": "Syntax",
+    "routes": [
+      { "title": "Overview", "path": "syntax" },
+      {
+        "title": "Configuration Syntax",
+        "path": "syntax/configuration"
+      },
+      {
+        "title": "JSON Configuration Syntax",
+        "path": "syntax/json"
+      },
+      { "title": "Style Conventions", "path": "syntax/style" }
+    ]
+  },
+  {
+    "title": "Resources",
+    "routes": [
+      { "title": "Overview", "path": "resources" },
+      { "title": "Resource Blocks", "path": "resources/syntax" },
+      {
+        "title": "Resource Behavior",
+        "path": "resources/behavior"
+      },
+      {
+        "title": "Meta-Arguments",
+        "routes": [
+          {
+            "title": "<code>depends_on</code>",
+            "href": "/language/meta-arguments/depends_on"
+          },
+          {
+            "title": "<code>count</code>",
+            "href": "/language/meta-arguments/count"
+          },
+          {
+            "title": "<code>for_each</code>",
+            "href": "/language/meta-arguments/for_each"
+          },
+          {
+            "title": "<code>provider</code>",
+            "href": "/language/meta-arguments/resource-provider"
+          },
+          {
+            "title": "<code>lifecycle</code>",
+            "href": "/language/meta-arguments/lifecycle"
+          }
+        ]
+      },
+      {
+        "title": "Provisioners",
+        "routes": [
+          {
+            "title": "Declaring Provisioners",
+            "path": "resources/provisioners/syntax"
+          },
+          {
+            "title": "Provisioner Connections",
+            "path": "resources/provisioners/connection"
+          },
+          {
+            "title": "Provisioners Without a Resource",
+            "path": "resources/provisioners/null_resource"
+          },
+          {
+            "title": "file",
+            "path": "resources/provisioners/file"
+          },
+          {
+            "title": "local-exec",
+            "path": "resources/provisioners/local-exec"
+          },
+          {
+            "title": "remote-exec",
+            "path": "resources/provisioners/remote-exec"
+          },
+          { "divider": true },
+          {
+            "title": "chef",
+            "path": "resources/provisioners/chef"
+          },
+          {
+            "title": "habitat",
+            "path": "resources/provisioners/habitat"
+          },
+          {
+            "title": "puppet",
+            "path": "resources/provisioners/puppet"
+          },
+          {
+            "title": "salt-masterless",
+            "path": "resources/provisioners/salt-masterless"
+          }
+        ]
+      }
+    ]
+  },
+  { "title": "Data Sources", "path": "data-sources" },
+  {
+    "title": "Meta-Arguments",
+    "hidden": true,
+    "routes": [
+      {
+        "title": "<code>count</code>",
+        "path": "meta-arguments/count"
+      },
+      {
+        "title": "<code>depends_on</code>",
+        "path": "meta-arguments/depends_on"
+      },
+      {
+        "title": "<code>for_each</code>",
+        "path": "meta-arguments/for_each"
+      },
+      {
+        "title": "<code>lifecycle</code>",
+        "path": "meta-arguments/lifecycle"
+      },
+      {
+        "title": "<code>providers</code>",
+        "path": "meta-arguments/module-providers"
+      },
+      {
+        "title": "<code>provider</code>",
+        "path": "meta-arguments/resource-provider"
+      }
+    ]
+  },
+
+  {
+    "title": "Providers",
+    "routes": [
+      { "title": "Overview", "path": "providers" },
+      {
+        "title": "Provider Configuration",
+        "path": "providers/configuration"
+      },
+      {
+        "title": "Provider Requirements",
+        "path": "providers/requirements"
+      },
+      {
+        "title": "Dependency Lock File",
+        "href": "/language/files/dependency-lock"
+      }
+    ]
+  },
+  {
+    "title": "Variables and Outputs",
+    "routes": [
+      { "title": "Overview", "path": "values" },
+      { "title": "Input Variables", "path": "values/variables" },
+      { "title": "Output Values", "path": "values/outputs" },
+      { "title": "Local Values", "path": "values/locals" }
+    ]
+  },
+  {
+    "title": "Modules",
+    "routes": [
+      { "title": "Overview", "path": "modules" },
+
+      { "title": "Module Blocks", "path": "modules/syntax" },
+      { "title": "Module Sources", "path": "modules/sources" },
+      {
+        "title": "Meta-Arguments",
+        "routes": [
+          {
+            "title": "<code>providers</code>",
+            "href": "/language/meta-arguments/module-providers"
+          },
+          {
+            "title": "<code>depends_on</code>",
+            "href": "/language/meta-arguments/depends_on"
+          },
+          {
+            "title": "<code>count</code>",
+            "href": "/language/meta-arguments/count"
+          },
+          {
+            "title": "<code>for_each</code>",
+            "href": "/language/meta-arguments/for_each"
+          }
+        ]
+      },
+      {
+        "title": "Module Development",
+        "routes": [
+          { "title": "Overview", "path": "modules/develop" },
+          {
+            "title": "Standard Module Structure",
+            "path": "modules/develop/structure"
+          },
+          {
+            "title": "Providers Within Modules",
+            "path": "modules/develop/providers"
+          },
+          {
+            "title": "Best Practices: Module Composition",
+            "path": "modules/develop/composition"
+          },
+          {
+            "title": "Publishing Modules",
+            "path": "modules/develop/publish"
+          },
+          {
+            "title": "Refactoring Modules",
+            "path": "modules/develop/refactoring"
+          }
+        ]
+      },
+      {
+        "title": "Module Testing Experiment",
+        "path": "modules/testing-experiment",
+        "hidden": true
+      }
+    ]
+  },
+  {
+    "title": "Expressions",
+    "routes": [
+      { "title": "Overview", "path": "expressions" },
+      { "title": "Types and Values", "path": "expressions/types" },
+      {
+        "title": "Strings and Templates",
+        "path": "expressions/strings"
+      },
+      {
+        "title": "References to Values",
+        "path": "expressions/references"
+      },
+      { "title": "Operators", "path": "expressions/operators" },
+      {
+        "title": "Function Calls",
+        "path": "expressions/function-calls"
+      },
+      {
+        "title": "Conditional Expressions",
+        "path": "expressions/conditionals"
+      },
+      { "title": "For Expressions", "path": "expressions/for" },
+      {
+        "title": "Splat Expressions",
+        "path": "expressions/splat"
+      },
+
+      {
+        "title": "Dynamic Blocks",
+        "path": "expressions/dynamic-blocks"
+      },
+      {
+        "title": "Type Constraints",
+        "path": "expressions/type-constraints"
+      },
+      {
+        "title": "Version Constraints",
+        "path": "expressions/version-constraints"
+      },
+      {
+        "title": "Pre and Postconditions",
+        "path": "expressions/preconditions-postconditions"
+      }
+    ]
+  },
+  {
+    "title": "Functions",
+    "routes": [
+      { "title": "Overview", "path": "functions" },
+      {
+        "title": "Numeric Functions",
+        "routes": [
+          { "title": "<code>abs</code>", "href": "/language/functions/abs" },
+          { "title": "<code>ceil</code>", "href": "/language/functions/ceil" },
+          {
+            "title": "<code>floor</code>",
+            "href": "/language/functions/floor"
+          },
+          { "title": "<code>log</code>", "href": "/language/functions/log" },
+          { "title": "<code>max</code>", "href": "/language/functions/max" },
+          { "title": "<code>min</code>", "href": "/language/functions/min" },
+          {
+            "title": "<code>parseint</code>",
+            "href": "/language/functions/parseint"
+          },
+          { "title": "<code>pow</code>", "href": "/language/functions/pow" },
+          {
+            "title": "<code>signum</code>",
+            "href": "/language/functions/signum"
+          }
+        ]
+      },
+      {
+        "title": "String Functions",
+        "routes": [
+          {
+            "title": "<code>chomp</code>",
+            "href": "/language/functions/chomp"
+          },
+          {
+            "title": "<code>format</code>",
+            "href": "/language/functions/format"
+          },
+          {
+            "title": "<code>formatlist</code>",
+            "href": "/language/functions/formatlist"
+          },
+          {
+            "title": "<code>indent</code>",
+            "href": "/language/functions/indent"
+          },
+          { "title": "<code>join</code>", "href": "/language/functions/join" },
+          {
+            "title": "<code>lower</code>",
+            "href": "/language/functions/lower"
+          },
+          {
+            "title": "<code>regex</code>",
+            "href": "/language/functions/regex"
+          },
+          {
+            "title": "<code>regexall</code>",
+            "href": "/language/functions/regexall"
+          },
+          {
+            "title": "<code>replace</code>",
+            "href": "/language/functions/replace"
+          },
+          {
+            "title": "<code>split</code>",
+            "href": "/language/functions/split"
+          },
+          {
+            "title": "<code>strrev</code>",
+            "href": "/language/functions/strrev"
+          },
+          {
+            "title": "<code>substr</code>",
+            "href": "/language/functions/substr"
+          },
+          {
+            "title": "<code>title</code>",
+            "href": "/language/functions/title"
+          },
+          { "title": "<code>trim</code>", "href": "/language/functions/trim" },
+          {
+            "title": "<code>trimprefix</code>",
+            "href": "/language/functions/trimprefix"
+          },
+          {
+            "title": "<code>trimsuffix</code>",
+            "href": "/language/functions/trimsuffix"
+          },
+          {
+            "title": "<code>trimspace</code>",
+            "href": "/language/functions/trimspace"
+          },
+          { "title": "<code>upper</code>", "href": "/language/functions/upper" }
+        ]
+      },
+      {
+        "title": "Collection Functions",
+        "routes": [
+          {
+            "title": "<code>alltrue</code>",
+            "href": "/language/functions/alltrue"
+          },
+          {
+            "title": "<code>anytrue</code>",
+            "href": "/language/functions/anytrue"
+          },
+          {
+            "title": "<code>chunklist</code>",
+            "href": "/language/functions/chunklist"
+          },
+          {
+            "title": "<code>coalesce</code>",
+            "href": "/language/functions/coalesce"
+          },
+          {
+            "title": "<code>coalescelist</code>",
+            "href": "/language/functions/coalescelist"
+          },
+          {
+            "title": "<code>compact</code>",
+            "href": "/language/functions/compact"
+          },
+          {
+            "title": "<code>concat</code>",
+            "href": "/language/functions/concat"
+          },
+          {
+            "title": "<code>contains</code>",
+            "href": "/language/functions/contains"
+          },
+          {
+            "title": "<code>distinct</code>",
+            "href": "/language/functions/distinct"
+          },
+          {
+            "title": "<code>element</code>",
+            "href": "/language/functions/element"
+          },
+          {
+            "title": "<code>flatten</code>",
+            "href": "/language/functions/flatten"
+          },
+          {
+            "title": "<code>index</code>",
+            "href": "/language/functions/index_function"
+          },
+          { "title": "<code>keys</code>", "href": "/language/functions/keys" },
+          {
+            "title": "<code>length</code>",
+            "href": "/language/functions/length"
+          },
+          { "title": "<code>list</code>", "href": "/language/functions/list" },
+          {
+            "title": "<code>lookup</code>",
+            "href": "/language/functions/lookup"
+          },
+          { "title": "<code>map</code>", "href": "/language/functions/map" },
+          {
+            "title": "<code>matchkeys</code>",
+            "href": "/language/functions/matchkeys"
+          },
+          {
+            "title": "<code>merge</code>",
+            "href": "/language/functions/merge"
+          },
+          { "title": "<code>one</code>", "href": "/language/functions/one" },
+          {
+            "title": "<code>range</code>",
+            "href": "/language/functions/range"
+          },
+          {
+            "title": "<code>reverse</code>",
+            "href": "/language/functions/reverse"
+          },
+          {
+            "title": "<code>setintersection</code>",
+            "href": "/language/functions/setintersection"
+          },
+          {
+            "title": "<code>setproduct</code>",
+            "href": "/language/functions/setproduct"
+          },
+          {
+            "title": "<code>setsubtract</code>",
+            "href": "/language/functions/setsubtract"
+          },
+          {
+            "title": "<code>setunion</code>",
+            "href": "/language/functions/setunion"
+          },
+          {
+            "title": "<code>slice</code>",
+            "href": "/language/functions/slice"
+          },
+          { "title": "<code>sort</code>", "href": "/language/functions/sort" },
+          { "title": "<code>sum</code>", "href": "/language/functions/sum" },
+          {
+            "title": "<code>transpose</code>",
+            "href": "/language/functions/transpose"
+          },
+          {
+            "title": "<code>values</code>",
+            "href": "/language/functions/values"
+          },
+          {
+            "title": "<code>zipmap</code>",
+            "href": "/language/functions/zipmap"
+          }
+        ]
+      },
+      {
+        "title": "Encoding Functions",
+        "routes": [
+          {
+            "title": "<code>base64decode</code>",
+            "href": "/language/functions/base64decode"
+          },
+          {
+            "title": "<code>base64encode</code>",
+            "href": "/language/functions/base64encode"
+          },
+          {
+            "title": "<code>base64gzip</code>",
+            "href": "/language/functions/base64gzip"
+          },
+          {
+            "title": "<code>csvdecode</code>",
+            "href": "/language/functions/csvdecode"
+          },
+          {
+            "title": "<code>jsondecode</code>",
+            "href": "/language/functions/jsondecode"
+          },
+          {
+            "title": "<code>jsonencode</code>",
+            "href": "/language/functions/jsonencode"
+          },
+          {
+            "title": "<code>textdecodebase64</code>",
+            "href": "/language/functions/textdecodebase64"
+          },
+          {
+            "title": "<code>textencodebase64</code>",
+            "href": "/language/functions/textencodebase64"
+          },
+          {
+            "title": "<code>urlencode</code>",
+            "href": "/language/functions/urlencode"
+          },
+          {
+            "title": "<code>yamldecode</code>",
+            "href": "/language/functions/yamldecode"
+          },
+          {
+            "title": "<code>yamlencode</code>",
+            "href": "/language/functions/yamlencode"
+          }
+        ]
+      },
+      {
+        "title": "Filesystem Functions",
+        "routes": [
+          {
+            "title": "<code>abspath</code>",
+            "href": "/language/functions/abspath"
+          },
+          {
+            "title": "<code>dirname</code>",
+            "href": "/language/functions/dirname"
+          },
+          {
+            "title": "<code>pathexpand</code>",
+            "href": "/language/functions/pathexpand"
+          },
+          {
+            "title": "<code>basename</code>",
+            "href": "/language/functions/basename"
+          },
+          { "title": "<code>file</code>", "href": "/language/functions/file" },
+          {
+            "title": "<code>fileexists</code>",
+            "href": "/language/functions/fileexists"
+          },
+          {
+            "title": "<code>fileset</code>",
+            "href": "/language/functions/fileset"
+          },
+          {
+            "title": "<code>filebase64</code>",
+            "href": "/language/functions/filebase64"
+          },
+          {
+            "title": "<code>templatefile</code>",
+            "href": "/language/functions/templatefile"
+          }
+        ]
+      },
+      {
+        "title": "Date and Time Functions",
+        "routes": [
+          {
+            "title": "<code>formatdate</code>",
+            "href": "/language/functions/formatdate"
+          },
+          {
+            "title": "<code>timeadd</code>",
+            "href": "/language/functions/timeadd"
+          },
+          {
+            "title": "<code>timestamp</code>",
+            "href": "/language/functions/timestamp"
+          }
+        ]
+      },
+      {
+        "title": "Hash and Crypto Functions",
+        "routes": [
+          {
+            "title": "<code>base64sha256</code>",
+            "href": "/language/functions/base64sha256"
+          },
+          {
+            "title": "<code>base64sha512</code>",
+            "href": "/language/functions/base64sha512"
+          },
+          {
+            "title": "<code>bcrypt</code>",
+            "href": "/language/functions/bcrypt"
+          },
+          {
+            "title": "<code>filebase64sha256</code>",
+            "href": "/language/functions/filebase64sha256"
+          },
+          {
+            "title": "<code>filebase64sha512</code>",
+            "href": "/language/functions/filebase64sha512"
+          },
+          {
+            "title": "<code>filemd5</code>",
+            "href": "/language/functions/filemd5"
+          },
+          {
+            "title": "<code>filesha1</code>",
+            "href": "/language/functions/filesha1"
+          },
+          {
+            "title": "<code>filesha256</code>",
+            "href": "/language/functions/filesha256"
+          },
+          {
+            "title": "<code>filesha512</code>",
+            "href": "/language/functions/filesha512"
+          },
+          { "title": "<code>md5</code>", "href": "/language/functions/md5" },
+          {
+            "title": "<code>rsadecrypt</code>",
+            "href": "/language/functions/rsadecrypt"
+          },
+          { "title": "<code>sha1</code>", "href": "/language/functions/sha1" },
+          {
+            "title": "<code>sha256</code>",
+            "href": "/language/functions/sha256"
+          },
+          {
+            "title": "<code>sha512</code>",
+            "href": "/language/functions/sha512"
+          },
+          { "title": "<code>uuid</code>", "href": "/language/functions/uuid" },
+          {
+            "title": "<code>uuidv5</code>",
+            "href": "/language/functions/uuidv5"
+          }
+        ]
+      },
+      {
+        "title": "IP Network Functions",
+        "routes": [
+          {
+            "title": "<code>cidrhost</code>",
+            "href": "/language/functions/cidrhost"
+          },
+          {
+            "title": "<code>cidrnetmask</code>",
+            "href": "/language/functions/cidrnetmask"
+          },
+          {
+            "title": "<code>cidrsubnet</code>",
+            "href": "/language/functions/cidrsubnet"
+          },
+          {
+            "title": "<code>cidrsubnets</code>",
+            "href": "/language/functions/cidrsubnets"
+          }
+        ]
+      },
+      {
+        "title": "Type Conversion Functions",
+        "routes": [
+          { "title": "<code>can</code>", "href": "/language/functions/can" },
+          {
+            "title": "<code>defaults</code>",
+            "href": "/language/functions/defaults"
+          },
+          {
+            "title": "<code>nonsensitive</code>",
+            "href": "/language/functions/nonsensitive"
+          },
+          {
+            "title": "<code>sensitive</code>",
+            "href": "/language/functions/sensitive"
+          },
+          {
+            "title": "<code>tobool</code>",
+            "href": "/language/functions/tobool"
+          },
+          {
+            "title": "<code>tolist</code>",
+            "href": "/language/functions/tolist"
+          },
+          {
+            "title": "<code>tomap</code>",
+            "href": "/language/functions/tomap"
+          },
+          {
+            "title": "<code>tonumber</code>",
+            "href": "/language/functions/tonumber"
+          },
+          {
+            "title": "<code>toset</code>",
+            "href": "/language/functions/toset"
+          },
+          {
+            "title": "<code>tostring</code>",
+            "href": "/language/functions/tostring"
+          },
+          { "title": "<code>try</code>", "href": "/language/functions/try" },
+          { "title": "<code>type</code>", "href": "/language/functions/type" }
+        ]
+      },
+      { "title": "abs", "path": "functions/abs", "hidden": true },
+      { "title": "abspath", "path": "functions/abspath", "hidden": true },
+      { "title": "alltrue", "path": "functions/alltrue", "hidden": true },
+      { "title": "anytrue", "path": "functions/anytrue", "hidden": true },
+      {
+        "title": "base64decode",
+        "path": "functions/base64decode",
+        "hidden": true
+      },
+      {
+        "title": "base64encode",
+        "path": "functions/base64encode",
+        "hidden": true
+      },
+      { "title": "base64gzip", "path": "functions/base64gzip", "hidden": true },
+      {
+        "title": "base64sha256",
+        "path": "functions/base64sha256",
+        "hidden": true
+      },
+      {
+        "title": "base64sha512",
+        "path": "functions/base64sha512",
+        "hidden": true
+      },
+      { "title": "basename", "path": "functions/basename", "hidden": true },
+      { "title": "bcrypt", "path": "functions/bcrypt", "hidden": true },
+      { "title": "can", "path": "functions/can", "hidden": true },
+      { "title": "ceil", "path": "functions/ceil", "hidden": true },
+      { "title": "chomp", "path": "functions/chomp", "hidden": true },
+      { "title": "chunklist", "path": "functions/chunklist", "hidden": true },
+      { "title": "cidrhost", "path": "functions/cidrhost", "hidden": true },
+      {
+        "title": "cidrnetmask",
+        "path": "functions/cidrnetmask",
+        "hidden": true
+      },
+      { "title": "cidrsubnet", "path": "functions/cidrsubnet", "hidden": true },
+      {
+        "title": "cidrsubnets",
+        "path": "functions/cidrsubnets",
+        "hidden": true
+      },
+      { "title": "coalesce", "path": "functions/coalesce", "hidden": true },
+      {
+        "title": "coalescelist",
+        "path": "functions/coalescelist",
+        "hidden": true
+      },
+      { "title": "compact", "path": "functions/compact", "hidden": true },
+      { "title": "concat", "path": "functions/concat", "hidden": true },
+      { "title": "contains", "path": "functions/contains", "hidden": true },
+      { "title": "csvdecode", "path": "functions/csvdecode", "hidden": true },
+      { "title": "defaults", "path": "functions/defaults", "hidden": true },
+      { "title": "dirname", "path": "functions/dirname", "hidden": true },
+      { "title": "distinct", "path": "functions/distinct", "hidden": true },
+      { "title": "element", "path": "functions/element", "hidden": true },
+      { "title": "file", "path": "functions/file", "hidden": true },
+      { "title": "filebase64", "path": "functions/filebase64", "hidden": true },
+      {
+        "title": "filebase64sha256",
+        "path": "functions/filebase64sha256",
+        "hidden": true
+      },
+      {
+        "title": "filebase64sha512",
+        "path": "functions/filebase64sha512",
+        "hidden": true
+      },
+      { "title": "fileexists", "path": "functions/fileexists", "hidden": true },
+      { "title": "filemd5", "path": "functions/filemd5", "hidden": true },
+      { "title": "fileset", "path": "functions/fileset", "hidden": true },
+      { "title": "filesha1", "path": "functions/filesha1", "hidden": true },
+      { "title": "filesha256", "path": "functions/filesha256", "hidden": true },
+      { "title": "filesha512", "path": "functions/filesha512", "hidden": true },
+      { "title": "flatten", "path": "functions/flatten", "hidden": true },
+      { "title": "floor", "path": "functions/floor", "hidden": true },
+      { "title": "format", "path": "functions/format", "hidden": true },
+      { "title": "formatdate", "path": "functions/formatdate", "hidden": true },
+      { "title": "formatlist", "path": "functions/formatlist", "hidden": true },
+      { "title": "indent", "path": "functions/indent", "hidden": true },
+      { "title": "index", "path": "functions/index_function", "hidden": true },
+      { "title": "join", "path": "functions/join", "hidden": true },
+      { "title": "jsondecode", "path": "functions/jsondecode", "hidden": true },
+      { "title": "jsonencode", "path": "functions/jsonencode", "hidden": true },
+      { "title": "keys", "path": "functions/keys", "hidden": true },
+      { "title": "length", "path": "functions/length", "hidden": true },
+      { "title": "list", "path": "functions/list", "hidden": true },
+      { "title": "log", "path": "functions/log", "hidden": true },
+      { "title": "lookup", "path": "functions/lookup", "hidden": true },
+      { "title": "lower", "path": "functions/lower", "hidden": true },
+      { "title": "map", "path": "functions/map", "hidden": true },
+      { "title": "matchkeys", "path": "functions/matchkeys", "hidden": true },
+      { "title": "max", "path": "functions/max", "hidden": true },
+      { "title": "md5", "path": "functions/md5", "hidden": true },
+      { "title": "merge", "path": "functions/merge", "hidden": true },
+      { "title": "min", "path": "functions/min", "hidden": true },
+      {
+        "title": "nonsensitive",
+        "path": "functions/nonsensitive",
+        "hidden": true
+      },
+      { "title": "one", "path": "functions/one", "hidden": true },
+      { "title": "parseint", "path": "functions/parseint", "hidden": true },
+      { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "pow", "path": "functions/pow", "hidden": true },
+      { "title": "range", "path": "functions/range", "hidden": true },
+      { "title": "regex", "path": "functions/regex", "hidden": true },
+      { "title": "regexall", "path": "functions/regexall", "hidden": true },
+      { "title": "replace", "path": "functions/replace", "hidden": true },
+      { "title": "reverse", "path": "functions/reverse", "hidden": true },
+      { "title": "rsadecrypt", "path": "functions/rsadecrypt", "hidden": true },
+      { "title": "sensitive", "path": "functions/sensitive", "hidden": true },
+      {
+        "title": "setintersection",
+        "path": "functions/setintersection",
+        "hidden": true
+      },
+      { "title": "setproduct", "path": "functions/setproduct", "hidden": true },
+      {
+        "title": "setsubtract",
+        "path": "functions/setsubtract",
+        "hidden": true
+      },
+      { "title": "setunion", "path": "functions/setunion", "hidden": true },
+      { "title": "sha1", "path": "functions/sha1", "hidden": true },
+      { "title": "sha256", "path": "functions/sha256", "hidden": true },
+      { "title": "sha512", "path": "functions/sha512", "hidden": true },
+      { "title": "signum", "path": "functions/signum", "hidden": true },
+      { "title": "slice", "path": "functions/slice", "hidden": true },
+      { "title": "sort", "path": "functions/sort", "hidden": true },
+      { "title": "split", "path": "functions/split", "hidden": true },
+      { "title": "strrev", "path": "functions/strrev", "hidden": true },
+      { "title": "substr", "path": "functions/substr", "hidden": true },
+      { "title": "sum", "path": "functions/sum", "hidden": true },
+      {
+        "title": "templatefile",
+        "path": "functions/templatefile",
+        "hidden": true
+      },
+      {
+        "title": "textdecodebase64",
+        "path": "functions/textdecodebase64",
+        "hidden": true
+      },
+      {
+        "title": "textencodebase64",
+        "path": "functions/textencodebase64",
+        "hidden": true
+      },
+      { "title": "timeadd", "path": "functions/timeadd", "hidden": true },
+      { "title": "timestamp", "path": "functions/timestamp", "hidden": true },
+      { "title": "title", "path": "functions/title", "hidden": true },
+      { "title": "tobool", "path": "functions/tobool", "hidden": true },
+      { "title": "tolist", "path": "functions/tolist", "hidden": true },
+      { "title": "tomap", "path": "functions/tomap", "hidden": true },
+      { "title": "tonumber", "path": "functions/tonumber", "hidden": true },
+      { "title": "toset", "path": "functions/toset", "hidden": true },
+      { "title": "tostring", "path": "functions/tostring", "hidden": true },
+      { "title": "transpose", "path": "functions/transpose", "hidden": true },
+      { "title": "trim", "path": "functions/trim", "hidden": true },
+      { "title": "trimprefix", "path": "functions/trimprefix", "hidden": true },
+      { "title": "trimspace", "path": "functions/trimspace", "hidden": true },
+      { "title": "trimsuffix", "path": "functions/trimsuffix", "hidden": true },
+      { "title": "try", "path": "functions/try", "hidden": true },
+      { "title": "type", "path": "functions/type", "hidden": true },
+      { "title": "upper", "path": "functions/upper", "hidden": true },
+      { "title": "urlencode", "path": "functions/urlencode", "hidden": true },
+      { "title": "uuid", "path": "functions/uuid", "hidden": true },
+      { "title": "uuidv5", "path": "functions/uuidv5", "hidden": true },
+      { "title": "values", "path": "functions/values", "hidden": true },
+      { "title": "yamldecode", "path": "functions/yamldecode", "hidden": true },
+      { "title": "yamlencode", "path": "functions/yamlencode", "hidden": true },
+      { "title": "zipmap", "path": "functions/zipmap", "hidden": true }
+    ]
+  },
+  {
+    "title": "Terraform Settings",
+    "routes": [
+      { "title": "Overview", "path": "settings" },
+      { "title": "Terraform Cloud", "path": "settings/terraform-cloud" },
+      {
+        "title": "Backends",
+        "routes": [
+          { "title": "Overview", "path": "settings/backends" },
+          {
+            "title": "Backend Configuration",
+            "path": "settings/backends/configuration"
+          },
+          {
+            "title": "Available Backends",
+            "routes": [
+              {
+                "title": "local",
+                "href": "/language/settings/backends/local"
+              },
+              {
+                "title": "remote",
+                "href": "/language/settings/backends/remote"
+              },
+              {
+                "title": "artifactory",
+                "href": "/language/settings/backends/artifactory"
+              },
+              {
+                "title": "azurerm",
+                "href": "/language/settings/backends/azurerm"
+              },
+              {
+                "title": "consul",
+                "href": "/language/settings/backends/consul"
+              },
+              {
+                "title": "cos",
+                "href": "/language/settings/backends/cos"
+              },
+              {
+                "title": "etcd",
+                "href": "/language/settings/backends/etcd"
+              },
+              {
+                "title": "etcdv3",
+                "href": "/language/settings/backends/etcdv3"
+              },
+              {
+                "title": "gcs",
+                "href": "/language/settings/backends/gcs"
+              },
+              {
+                "title": "http",
+                "href": "/language/settings/backends/http"
+              },
+              {
+                "title": "Kubernetes",
+                "href": "/language/settings/backends/kubernetes"
+              },
+              {
+                "title": "manta",
+                "href": "/language/settings/backends/manta"
+              },
+              {
+                "title": "oss",
+                "href": "/language/settings/backends/oss"
+              },
+              {
+                "title": "pg",
+                "href": "/language/settings/backends/pg"
+              },
+              {
+                "title": "s3",
+                "href": "/language/settings/backends/s3"
+              },
+              {
+                "title": "swift",
+                "href": "/language/settings/backends/swift"
+              }
+            ]
+          },
+          {
+            "title": "local",
+            "hidden": true,
+            "path": "settings/backends/local"
+          },
+          {
+            "title": "remote",
+            "hidden": true,
+            "path": "settings/backends/remote"
+          },
+          {
+            "title": "artifactory",
+            "hidden": true,
+            "path": "settings/backends/artifactory"
+          },
+          {
+            "title": "azurerm",
+            "hidden": true,
+            "path": "settings/backends/azurerm"
+          },
+          {
+            "title": "consul",
+            "hidden": true,
+            "path": "settings/backends/consul"
+          },
+          {
+            "title": "cos",
+            "hidden": true,
+            "path": "settings/backends/cos"
+          },
+          {
+            "title": "etcd",
+            "hidden": true,
+            "path": "settings/backends/etcd"
+          },
+          {
+            "title": "etcdv3",
+            "hidden": true,
+            "path": "settings/backends/etcdv3"
+          },
+          {
+            "title": "gcs",
+            "hidden": true,
+            "path": "settings/backends/gcs"
+          },
+          {
+            "title": "http",
+            "hidden": true,
+            "path": "settings/backends/http"
+          },
+          {
+            "title": "Kubernetes",
+            "hidden": true,
+            "path": "settings/backends/kubernetes"
+          },
+          {
+            "title": "manta",
+            "hidden": true,
+            "path": "settings/backends/manta"
+          },
+          {
+            "title": "oss",
+            "hidden": true,
+            "path": "settings/backends/oss"
+          },
+          {
+            "title": "pg",
+            "hidden": true,
+            "path": "settings/backends/pg"
+          },
+          {
+            "title": "s3",
+            "hidden": true,
+            "path": "settings/backends/s3"
+          },
+          {
+            "title": "swift",
+            "hidden": true,
+            "path": "settings/backends/swift"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "State",
+    "routes": [
+      { "title": "Overview", "path": "state" },
+      { "title": "Purpose", "path": "state/purpose" },
+      {
+        "title": "The <code>terraform_remote_state</code> Data Source",
+        "path": "state/remote-state-data"
+      },
+      {
+        "title": "Backends: State Storage and Locking",
+        "path": "state/backends"
+      },
+      {
+        "title": "Import Existing Resources",
+        "path": "state/import"
+      },
+      { "title": "Locking", "path": "state/locking" },
+      { "title": "Workspaces", "path": "state/workspaces" },
+      { "title": "Remote State", "path": "state/remote" },
+      {
+        "title": "Sensitive Data",
+        "path": "state/sensitive-data"
+      }
+    ]
+  },
+  {
+    "title": "Upgrade Guides",
+    "routes": [
+      { "title": "Overview", "path": "upgrade-guides" },
+      {
+        "title": "Upgrading to Terraform v1.1",
+        "path": "upgrade-guides/1-1"
+      },
+      {
+        "title": "Upgrading to Terraform v1.0",
+        "path": "upgrade-guides/1-0"
+      },
+      {
+        "title": "v1.0 Compatibility Promises",
+        "href": "/language/v1-compatibility-promises"
+      },
+      {
+        "title": "Upgrading to Terraform v0.15",
+        "path": "upgrade-guides/0-15"
+      },
+      {
+        "title": "Upgrading to Terraform v0.14",
+        "path": "upgrade-guides/0-14"
+      },
+      {
+        "title": "Upgrading to Terraform v0.13",
+        "path": "upgrade-guides/0-13"
+      },
+      {
+        "title": "Upgrading to Terraform v0.12",
+        "path": "upgrade-guides/0-12"
+      },
+      {
+        "title": "Upgrading to Terraform v0.11",
+        "path": "upgrade-guides/0-11"
+      },
+      {
+        "title": "Upgrading to Terraform v0.10",
+        "path": "upgrade-guides/0-10"
+      },
+      {
+        "title": "Upgrading to Terraform v0.9",
+        "path": "upgrade-guides/0-9"
+      },
+      {
+        "title": "Upgrading to Terraform v0.8",
+        "path": "upgrade-guides/0-8"
+      },
+      {
+        "title": "Upgrading to Terraform v0.7",
+        "path": "upgrade-guides/0-7"
+      }
+    ]
+  },
+  {
+    "title": "Historical docs: 0.11 and Older",
+    "routes": [
+      { "title": "Overview", "path": "configuration-0-11" },
+      {
+        "title": "Load Order and Semantics",
+        "path": "configuration-0-11/load"
+      },
+      {
+        "title": "Configuration Syntax",
+        "path": "configuration-0-11/syntax"
+      },
+      {
+        "title": "Interpolation Syntax",
+        "path": "configuration-0-11/interpolation"
+      },
+      {
+        "title": "Overrides",
+        "path": "configuration-0-11/override"
+      },
+      {
+        "title": "Resources",
+        "path": "configuration-0-11/resources"
+      },
+      {
+        "title": "Data Sources",
+        "path": "configuration-0-11/data-sources"
+      },
+      {
+        "title": "Providers",
+        "href": "/language/providers"
+      },
+      {
+        "title": "Variables",
+        "path": "configuration-0-11/variables"
+      },
+      {
+        "title": "Outputs",
+        "path": "configuration-0-11/outputs"
+      },
+      {
+        "title": "Local Values",
+        "path": "configuration-0-11/locals"
+      },
+      {
+        "title": "Modules",
+        "path": "configuration-0-11/modules"
+      },
+      {
+        "title": "Terraform",
+        "path": "configuration-0-11/terraform"
+      },
+      {
+        "title": "Provisioners",
+        "href": "/language/resources/provisioners"
+      },
+      {
+        "title": "Providers",
+        "path": "configuration-0-11/providers",
+        "hidden": true
+      },
+      {
+        "title": "Terraform Push (deprecated)",
+        "path": "configuration-0-11/terraform-enterprise"
+      },
+      {
+        "title": "Environment Variables",
+        "path": "configuration-0-11/environment-variables"
+      }
+    ]
+  }
+]

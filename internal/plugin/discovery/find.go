@@ -154,9 +154,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 
 		// Trim the .exe suffix used on Windows before we start wrangling
 		// the remainder of the path.
-		if strings.HasSuffix(baseName, ".exe") {
-			baseName = baseName[:len(baseName)-4]
-		}
+		baseName = strings.TrimSuffix(baseName, ".exe")
 
 		parts := strings.SplitN(baseName, "_v", 2)
 		name := parts[0]

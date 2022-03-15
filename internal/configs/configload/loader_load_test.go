@@ -91,8 +91,16 @@ func TestLoaderLoadConfig_loadDiags(t *testing.T) {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
 	}
 
-	_, diags := loader.LoadConfig(fixtureDir)
+	cfg, diags := loader.LoadConfig(fixtureDir)
 	if !diags.HasErrors() {
-		t.Fatalf("success; want error")
+		t.Fatal("success; want error")
+	}
+
+	if cfg == nil {
+		t.Fatal("partial config not returned with diagnostics")
+	}
+
+	if cfg.Module == nil {
+		t.Fatal("expected config module")
 	}
 }

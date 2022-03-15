@@ -23,19 +23,17 @@ type DestroyPlanGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
-	// provisioners) available for use.
-	Components contextComponentFactory
+	// RootVariableValues are the raw input values for root input variables
+	// given by the caller, which we'll resolve into final values as part
+	// of the plan walk.
+	RootVariableValues InputValues
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	// Plugins is a library of plug-in components (providers and
+	// provisioners) available for use.
+	Plugins *contextPlugins
 
 	// Targets are resources to target
 	Targets []addrs.Targetable
-
-	// Validate will do structural validation of the graph.
-	Validate bool
 
 	// If set, skipRefresh will cause us stop skip refreshing any existing
 	// resource instances as part of our planning. This will cause us to fail
@@ -46,9 +44,8 @@ type DestroyPlanGraphBuilder struct {
 // See GraphBuilder
 func (b *DestroyPlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "DestroyPlanGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "DestroyPlanGraphBuilder",
 	}).Build(path)
 }
 
@@ -94,14 +91,13 @@ func (b *DestroyPlanGraphBuilder) Steps() []GraphTransformer {
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Destruction ordering. We require this only so that
 		// targeting below will prune the correct things.
 		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		&TargetsTransformer{Targets: b.Targets},

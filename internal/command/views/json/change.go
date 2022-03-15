@@ -12,14 +12,22 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		Action:   changeAction(change.Action),
 		Reason:   changeReason(change.ActionReason),
 	}
+	if !change.Addr.Equal(change.PrevRunAddr) {
+		if c.Action == ActionNoOp {
+			c.Action = ActionMove
+		}
+		pr := newResourceAddr(change.PrevRunAddr)
+		c.PreviousResource = &pr
+	}
 
 	return c
 }
 
 type ResourceInstanceChange struct {
-	Resource ResourceAddr `json:"resource"`
-	Action   ChangeAction `json:"action"`
-	Reason   ChangeReason `json:"reason,omitempty"`
+	Resource         ResourceAddr  `json:"resource"`
+	PreviousResource *ResourceAddr `json:"previous_resource,omitempty"`
+	Action           ChangeAction  `json:"action"`
+	Reason           ChangeReason  `json:"reason,omitempty"`
 }
 
 func (c *ResourceInstanceChange) String() string {
@@ -30,6 +38,7 @@ type ChangeAction string
 
 const (
 	ActionNoOp    ChangeAction = "noop"
+	ActionMove    ChangeAction = "move"
 	ActionCreate  ChangeAction = "create"
 	ActionRead    ChangeAction = "read"
 	ActionUpdate  ChangeAction = "update"
@@ -64,6 +73,12 @@ const (
 	ReasonRequested    ChangeReason = "requested"
 	ReasonCannotUpdate ChangeReason = "cannot_update"
 	ReasonUnknown      ChangeReason = "unknown"
+
+	ReasonDeleteBecauseNoResourceConfig ChangeReason = "delete_because_no_resource_config"
+	ReasonDeleteBecauseWrongRepetition  ChangeReason = "delete_because_wrong_repetition"
+	ReasonDeleteBecauseCountIndex       ChangeReason = "delete_because_count_index"
+	ReasonDeleteBecauseEachKey          ChangeReason = "delete_because_each_key"
+	ReasonDeleteBecauseNoModule         ChangeReason = "delete_because_no_module"
 )
 
 func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason {
@@ -76,6 +91,16 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonRequested
 	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
 		return ReasonCannotUpdate
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		return ReasonDeleteBecauseNoResourceConfig
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		return ReasonDeleteBecauseWrongRepetition
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		return ReasonDeleteBecauseCountIndex
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		return ReasonDeleteBecauseEachKey
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		return ReasonDeleteBecauseNoModule
 	default:
 		// This should never happen, but there's no good way to guarantee
 		// exhaustive handling of the enum, so a generic fall back is better

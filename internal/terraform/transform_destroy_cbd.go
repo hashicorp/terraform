@@ -115,11 +115,6 @@ type CBDEdgeTransformer struct {
 	// any way possible. Either can be nil if not availabile.
 	Config *configs.Config
 	State  *states.State
-
-	// If configuration is present then Schemas is required in order to
-	// obtain schema information from providers and provisioners so we can
-	// properly resolve implicit dependencies.
-	Schemas *Schemas
 }
 
 func (t *CBDEdgeTransformer) Transform(g *Graph) error {

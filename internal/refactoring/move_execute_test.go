@@ -21,7 +21,10 @@ func TestApplyMoves(t *testing.T) {
 	}
 
 	moduleBoo, _ := addrs.ParseModuleInstanceStr("module.boo")
+	moduleBar, _ := addrs.ParseModuleInstanceStr("module.bar")
 	moduleBarKey, _ := addrs.ParseModuleInstanceStr("module.bar[0]")
+	moduleBooHoo, _ := addrs.ParseModuleInstanceStr("module.boo.module.hoo")
+	moduleBarHoo, _ := addrs.ParseModuleInstanceStr("module.bar.module.hoo")
 
 	instAddrs := map[string]addrs.AbsResourceInstance{
 		"foo.from": addrs.Resource{
@@ -84,6 +87,12 @@ func TestApplyMoves(t *testing.T) {
 			Name: "to",
 		}.Instance(addrs.IntKey(0)).Absolute(moduleBoo),
 
+		"module.bar.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBar),
+
 		"module.bar[0].foo.from": addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
 			Type: "foo",
@@ -113,15 +122,30 @@ func TestApplyMoves(t *testing.T) {
 			Type: "foo",
 			Name: "to",
 		}.Instance(addrs.IntKey(0)).Absolute(moduleBarKey),
+
+		"module.boo.module.hoo.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBooHoo),
+
+		"module.bar.module.hoo.foo.from": addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: "from",
+		}.Instance(addrs.NoKey).Absolute(moduleBarHoo),
 	}
 
-	emptyResults := map[addrs.UniqueKey]MoveResult{}
+	emptyResults := MoveResults{
+		Changes: map[addrs.UniqueKey]MoveSuccess{},
+		Blocked: map[addrs.UniqueKey]MoveBlocked{},
+	}
 
 	tests := map[string]struct {
 		Stmts []MoveStatement
 		State *states.State
 
-		WantResults       map[addrs.UniqueKey]MoveResult
+		WantResults       MoveResults
 		WantInstanceAddrs []string
 	}{
 		"no moves and empty state": {
@@ -161,15 +185,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["foo.from"].UniqueKey(): {
-					From: instAddrs["foo.from"],
-					To:   instAddrs["foo.to"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["foo.to"].UniqueKey(): {
+						From: instAddrs["foo.from"],
+						To:   instAddrs["foo.to"],
+					},
 				},
-				instAddrs["foo.to"].UniqueKey(): {
-					From: instAddrs["foo.from"],
-					To:   instAddrs["foo.to"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`foo.to`,
@@ -189,15 +212,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["foo.from[0]"].UniqueKey(): {
-					From: instAddrs["foo.from[0]"],
-					To:   instAddrs["foo.to[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["foo.to[0]"].UniqueKey(): {
+						From: instAddrs["foo.from[0]"],
+						To:   instAddrs["foo.to[0]"],
+					},
 				},
-				instAddrs["foo.to[0]"].UniqueKey(): {
-					From: instAddrs["foo.from[0]"],
-					To:   instAddrs["foo.to[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`foo.to[0]`,
@@ -218,19 +240,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["foo.from"].UniqueKey(): {
-					From: instAddrs["foo.from"],
-					To:   instAddrs["foo.mid"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["foo.to"].UniqueKey(): {
+						From: instAddrs["foo.from"],
+						To:   instAddrs["foo.to"],
+					},
 				},
-				instAddrs["foo.mid"].UniqueKey(): {
-					From: instAddrs["foo.mid"],
-					To:   instAddrs["foo.to"],
-				},
-				instAddrs["foo.to"].UniqueKey(): {
-					From: instAddrs["foo.mid"],
-					To:   instAddrs["foo.to"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`foo.to`,
@@ -251,15 +268,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["foo.from[0]"].UniqueKey(): {
-					From: instAddrs["foo.from[0]"],
-					To:   instAddrs["module.boo.foo.to[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.boo.foo.to[0]"].UniqueKey(): {
+						From: instAddrs["foo.from[0]"],
+						To:   instAddrs["module.boo.foo.to[0]"],
+					},
 				},
-				instAddrs["module.boo.foo.to[0]"].UniqueKey(): {
-					From: instAddrs["foo.from[0]"],
-					To:   instAddrs["module.boo.foo.to[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`module.boo.foo.to[0]`,
@@ -280,18 +296,58 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from[0]"],
+						To:   instAddrs["module.bar[0].foo.to[0]"],
+					},
 				},
-				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`module.bar[0].foo.to[0]`,
+			},
+		},
+
+		"module move with child module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.module.hoo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar.foo.from"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from"],
+						To:   instAddrs["module.bar.foo.from"],
+					},
+					instAddrs["module.bar.module.hoo.foo.from"].UniqueKey(): {
+						From: instAddrs["module.boo.module.hoo.foo.from"],
+						To:   instAddrs["module.bar.module.hoo.foo.from"],
+					},
+				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
+			},
+			[]string{
+				`module.bar.foo.from`,
+				`module.bar.module.hoo.foo.from`,
 			},
 		},
 
@@ -309,15 +365,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from[0]"],
+						To:   instAddrs["module.bar[0].foo.from[0]"],
+					},
 				},
-				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`module.bar[0].foo.from[0]`,
@@ -339,19 +394,14 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from[0]"],
+						To:   instAddrs["module.bar[0].foo.to[0]"],
+					},
 				},
-				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.bar[0].foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
-				},
-				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
-					From: instAddrs["module.bar[0].foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`module.bar[0].foo.to[0]`,
@@ -373,22 +423,248 @@ func TestApplyMoves(t *testing.T) {
 					providerAddr,
 				)
 			}),
-			map[addrs.UniqueKey]MoveResult{
-				instAddrs["module.boo.foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.boo.foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.from[0]"],
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from[0]"],
+						To:   instAddrs["module.bar[0].foo.to[0]"],
+					},
 				},
-				instAddrs["module.bar[0].foo.from[0]"].UniqueKey(): {
-					From: instAddrs["module.bar[0].foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
-				},
-				instAddrs["module.bar[0].foo.to[0]"].UniqueKey(): {
-					From: instAddrs["module.bar[0].foo.from[0]"],
-					To:   instAddrs["module.bar[0].foo.to[0]"],
-				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
 			},
 			[]string{
 				`module.bar[0].foo.to[0]`,
+			},
+		},
+
+		"move module instance to already-existing module instance": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.to[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				// Nothing moved, because the module.b address is already
+				// occupied by another module.
+				Changes: map[addrs.UniqueKey]MoveSuccess{},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{
+					instAddrs["module.bar[0].foo.from"].Module.UniqueKey(): {
+						Wanted: instAddrs["module.boo.foo.to[0]"].Module,
+						Actual: instAddrs["module.bar[0].foo.from"].Module,
+					},
+				},
+			},
+			[]string{
+				`module.bar[0].foo.from`,
+				`module.boo.foo.to[0]`,
+			},
+		},
+
+		"move resource to already-existing resource": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.to"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				// Nothing moved, because the from.to address is already
+				// occupied by another resource.
+				Changes: map[addrs.UniqueKey]MoveSuccess{},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{
+					instAddrs["foo.from"].ContainingResource().UniqueKey(): {
+						Wanted: instAddrs["foo.to"].ContainingResource(),
+						Actual: instAddrs["foo.from"].ContainingResource(),
+					},
+				},
+			},
+			[]string{
+				`foo.from`,
+				`foo.to`,
+			},
+		},
+
+		"move resource instance to already-existing resource instance": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "foo.from", "foo.to[0]"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.to[0]"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				// Nothing moved, because the from.to[0] address is already
+				// occupied by another resource instance.
+				Changes: map[addrs.UniqueKey]MoveSuccess{},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{
+					instAddrs["foo.from"].UniqueKey(): {
+						Wanted: instAddrs["foo.to[0]"],
+						Actual: instAddrs["foo.from"],
+					},
+				},
+			},
+			[]string{
+				`foo.from`,
+				`foo.to[0]`,
+			},
+		},
+		"move resource and containing module": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.boo", "module.bar[0]"),
+				testMoveStatement(t, "boo", "foo.from", "foo.to"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.boo.foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.bar[0].foo.to"].UniqueKey(): {
+						From: instAddrs["module.boo.foo.from"],
+						To:   instAddrs["module.bar[0].foo.to"],
+					},
+				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
+			},
+			[]string{
+				`module.bar[0].foo.to`,
+			},
+		},
+
+		"move module and then move resource into it": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.to"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+					instAddrs["module.boo.foo.from"].UniqueKey(): {
+						instAddrs["foo.from"],
+						instAddrs["module.boo.foo.from"],
+					},
+					instAddrs["module.boo.foo.to"].UniqueKey(): {
+						instAddrs["module.bar[0].foo.to"],
+						instAddrs["module.boo.foo.to"],
+					},
+				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{},
+			},
+			[]string{
+				`module.boo.foo.from`,
+				`module.boo.foo.to`,
+			},
+		},
+
+		"module move collides with resource move": {
+			[]MoveStatement{
+				testMoveStatement(t, "", "module.bar[0]", "module.boo"),
+				testMoveStatement(t, "", "foo.from", "module.boo.foo.from"),
+			},
+			states.BuildState(func(s *states.SyncState) {
+				s.SetResourceInstanceCurrent(
+					instAddrs["module.bar[0].foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+				s.SetResourceInstanceCurrent(
+					instAddrs["foo.from"],
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{}`),
+					},
+					providerAddr,
+				)
+			}),
+			MoveResults{
+				Changes: map[addrs.UniqueKey]MoveSuccess{
+
+					instAddrs["module.boo.foo.from"].UniqueKey(): {
+						instAddrs["module.bar[0].foo.from"],
+						instAddrs["module.boo.foo.from"],
+					},
+				},
+				Blocked: map[addrs.UniqueKey]MoveBlocked{
+					instAddrs["foo.from"].ContainingResource().UniqueKey(): {
+						Actual: instAddrs["foo.from"].ContainingResource(),
+						Wanted: instAddrs["module.boo.foo.from"].ContainingResource(),
+					},
+				},
+			},
+			[]string{
+				`foo.from`,
+				`module.boo.foo.from`,
 			},
 		},
 	}
@@ -397,7 +673,7 @@ func TestApplyMoves(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var stmtsBuf strings.Builder
 			for _, stmt := range test.Stmts {
-				fmt.Fprintf(&stmtsBuf, "- from: %s\n  to:   %s\n", stmt.From, stmt.To)
+				fmt.Fprintf(&stmtsBuf, "• from: %s\n  to:   %s\n", stmt.From, stmt.To)
 			}
 			t.Logf("move statements:\n%s", stmtsBuf.String())
 

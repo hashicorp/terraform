@@ -26,13 +26,14 @@ type ApplyGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
-	// Components is a factory for the plug-in components (providers and
-	// provisioners) available for use.
-	Components contextComponentFactory
+	// RootVariableValues are the root module input variables captured as
+	// part of the plan object, which we must reproduce in the apply step
+	// to get a consistent result.
+	RootVariableValues InputValues
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	// Plugins is a library of the plug-in components (providers and
+	// provisioners) available for use.
+	Plugins *contextPlugins
 
 	// Targets are resources to target. This is only required to make sure
 	// unnecessary outputs aren't included in the apply graph. The plan
@@ -45,17 +46,13 @@ type ApplyGraphBuilder struct {
 	// The apply step refers to these as part of verifying that the planned
 	// actions remain consistent between plan and apply.
 	ForceReplace []addrs.AbsResourceInstance
-
-	// Validate will do structural validation of the graph.
-	Validate bool
 }
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "ApplyGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "ApplyGraphBuilder",
 	}).Build(path)
 }
 
@@ -92,7 +89,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config, Changes: b.Changes},
@@ -116,14 +113,14 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&AttachResourceConfigTransformer{Config: b.Config},
 
 		// add providers
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, b.Config),
+		transformProviders(concreteProvider, b.Config),
 
 		// Remove modules no longer present in the config
 		&RemovedModuleTransformer{Config: b.Config, State: b.State},
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing
@@ -140,14 +137,12 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Destruction ordering
 		&DestroyEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 		&CBDEdgeTransformer{
-			Config:  b.Config,
-			State:   b.State,
-			Schemas: b.Schemas,
+			Config: b.Config,
+			State:  b.State,
 		},
 
 		// We need to remove configuration nodes that are not used at all, as
@@ -157,11 +152,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
-
-		// Add the node to fix the state count boundaries
-		&CountBoundaryTransformer{
-			Config: b.Config,
-		},
 
 		// Close opened plugin connections
 		&CloseProviderTransformer{},

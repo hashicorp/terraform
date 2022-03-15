@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -284,7 +285,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"Unsupported operation type: %s\n\n"+
+			"unsupported operation type: %s\n\n"+
 				"This is a bug in Terraform and should be reported. The local backend\n"+
 				"is built-in to Terraform and should always support all operations.",
 			op.Type)
@@ -313,6 +314,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 
 	// Do it
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		defer stop()
 		defer cancel()

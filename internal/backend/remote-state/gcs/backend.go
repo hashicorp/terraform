@@ -4,6 +4,7 @@ package gcs
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -139,6 +140,10 @@ func (b *Backend) configure(ctx context.Context) error {
 		contents, err := backend.ReadPathOrContents(creds)
 		if err != nil {
 			return fmt.Errorf("Error loading credentials: %s", err)
+		}
+
+		if !json.Valid([]byte(contents)) {
+			return fmt.Errorf("the string provided in credentials is neither valid json nor a valid file path")
 		}
 
 		credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
@@ -88,7 +88,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
 	opReq := c.Operation(b)
@@ -103,35 +103,64 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Determine the graph type
-	graphType := terraform.GraphTypePlan
-	if planFile != nil {
-		graphType = terraform.GraphTypeApply
+	if graphTypeStr == "" {
+		switch {
+		case lr.Plan != nil:
+			graphTypeStr = "apply"
+		default:
+			graphTypeStr = "plan"
+		}
 	}
 
-	if graphTypeStr != "" {
-		v, ok := terraform.GraphTypeMap[graphTypeStr]
-		if !ok {
-			c.Ui.Error(fmt.Sprintf("Invalid graph type requested: %s", graphTypeStr))
-			return 1
+	var g *terraform.Graph
+	var graphDiags tfdiags.Diagnostics
+	switch graphTypeStr {
+	case "plan":
+		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.NormalMode)
+	case "plan-refresh-only":
+		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.RefreshOnlyMode)
+	case "plan-destroy":
+		g, graphDiags = lr.Core.PlanGraphForUI(lr.Config, lr.InputState, plans.DestroyMode)
+	case "apply":
+		plan := lr.Plan
+
+		// Historically "terraform graph" would allow the nonsensical request to
+		// render an apply graph without a plan, so we continue to support that
+		// here, though perhaps one day this should be an error.
+		if lr.Plan == nil {
+			plan = &plans.Plan{
+				Changes:      plans.NewChanges(),
+				UIMode:       plans.NormalMode,
+				PriorState:   lr.InputState,
+				PrevRunState: lr.InputState,
+			}
 		}
 
-		graphType = v
+		g, graphDiags = lr.Core.ApplyGraphForUI(plan, lr.Config)
+	case "eval", "validate":
+		// Terraform v0.12 through v1.0 supported both of these, but the
+		// graph variants for "eval" and "validate" are purely implementation
+		// details and don't reveal anything (user-model-wise) that you can't
+		// see in the plan graph.
+		graphDiags = graphDiags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Graph type no longer available",
+			fmt.Sprintf("The graph type %q is no longer available. Use -type=plan instead to get a similar result.", graphTypeStr),
+		))
+	default:
+		graphDiags = graphDiags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Unsupported graph type",
+			`The -type=... argument must be either "plan", "plan-refresh-only", "plan-destroy", or "apply".`,
+		))
 	}
-
-	// Skip validation during graph generation - we want to see the graph even if
-	// it is invalid for some reason.
-	g, graphDiags := ctx.Graph(graphType, &terraform.ContextGraphOpts{
-		Verbose:  verbose,
-		Validate: false,
-	})
 	diags = diags.Append(graphDiags)
 	if graphDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -165,18 +194,12 @@ func (c *GraphCommand) Help() string {
 	helpText := `
 Usage: terraform [global options] graph [options]
 
-  Outputs the visual execution graph of Terraform resources according to
-  either the current configuration or an execution plan.
+  Produces a representation of the dependency graph between different
+  objects in the current configuration and state.
 
-  The graph is outputted in DOT format. The typical program that can
+  The graph is presented in the DOT language. The typical program that can
   read this format is GraphViz, but many web services are also available
   to read this format.
-
-  The -type flag can be used to control the type of graph shown. Terraform
-  creates different graphs for different operations. See the options below
-  for the list of types supported. The default type is "plan" if a
-  configuration is given, and "apply" if a plan file is passed as an
-  argument.
 
 Options:
 
@@ -186,8 +209,9 @@ Options:
   -draw-cycles     Highlight any cycles in the graph with colored edges.
                    This helps when diagnosing cycle errors.
 
-  -type=plan       Type of graph to output. Can be: plan, plan-destroy, apply,
-                   validate, input, refresh.
+  -type=plan       Type of graph to output. Can be: plan, plan-refresh-only,
+                   plan-destroy, or apply. By default Terraform chooses
+				   "plan", or "apply" if you also set the -plan=... option.
 
   -module-depth=n  (deprecated) In prior versions of Terraform, specified the
 				   depth of modules to show in the output.

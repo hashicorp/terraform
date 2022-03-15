@@ -8,11 +8,23 @@ import (
 // ImpliedType returns the cty.Type that would result from decoding a
 // configuration block using the receiving block schema.
 //
+// The type returned from Block.ImpliedType differs from the type returned by
+// hcldec.ImpliedType in that there will be no objects with optional
+// attributes, since this value is not to be used for the decoding of
+// configuration.
+//
 // ImpliedType always returns a result, even if the given schema is
 // inconsistent. Code that creates configschema.Block objects should be
 // tested using the InternalValidate method to detect any inconsistencies
 // that would cause this method to fall back on defaults and assumptions.
 func (b *Block) ImpliedType() cty.Type {
+	return b.specType().WithoutOptionalAttributesDeep()
+}
+
+// specType returns the cty.Type used for decoding a configuration
+// block using the receiving block schema. This is the type used internally by
+// hcldec to decode configuration.
+func (b *Block) specType() cty.Type {
 	if b == nil {
 		return cty.EmptyObject
 	}
@@ -32,6 +44,9 @@ func (b *Block) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
 	}
 	for _, blockS := range b.BlockTypes {
 		if blockS.ContainsSensitive() {
@@ -41,14 +56,20 @@ func (b *Block) ContainsSensitive() bool {
 	return false
 }
 
-// ImpliedType returns the cty.Type that would result from decoding a NestedType
-// Attribute using the receiving block schema.
+// ImpliedType returns the cty.Type that would result from decoding a
+// NestedType Attribute using the receiving block schema.
 //
 // ImpliedType always returns a result, even if the given schema is
 // inconsistent. Code that creates configschema.Object objects should be tested
 // using the InternalValidate method to detect any inconsistencies that would
 // cause this method to fall back on defaults and assumptions.
 func (o *Object) ImpliedType() cty.Type {
+	return o.specType().WithoutOptionalAttributesDeep()
+}
+
+// specType returns the cty.Type used for decoding a NestedType Attribute using
+// the receiving block schema.
+func (o *Object) specType() cty.Type {
 	if o == nil {
 		return cty.EmptyObject
 	}
@@ -56,7 +77,7 @@ func (o *Object) ImpliedType() cty.Type {
 	attrTys := make(map[string]cty.Type, len(o.Attributes))
 	for name, attrS := range o.Attributes {
 		if attrS.NestedType != nil {
-			attrTys[name] = attrS.NestedType.ImpliedType()
+			attrTys[name] = attrS.NestedType.specType()
 		} else {
 			attrTys[name] = attrS.Type
 		}
@@ -90,8 +111,8 @@ func (o *Object) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
-		if attrS.NestedType != nil {
-			return attrS.NestedType.ContainsSensitive()
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
 		}
 	}
 	return false

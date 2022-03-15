@@ -1457,6 +1457,285 @@ func TestSelectsModule(t *testing.T) {
 	}
 }
 
+func TestSelectsResource(t *testing.T) {
+	matchingResource := Resource{
+		Mode: ManagedResourceMode,
+		Type: "foo",
+		Name: "matching",
+	}
+	unmatchingResource := Resource{
+		Mode: ManagedResourceMode,
+		Type: "foo",
+		Name: "unmatching",
+	}
+	childMod := Module{
+		"child",
+	}
+	childModMatchingInst := ModuleInstance{
+		ModuleInstanceStep{Name: "child", InstanceKey: StringKey("matching")},
+	}
+	childModUnmatchingInst := ModuleInstance{
+		ModuleInstanceStep{Name: "child", InstanceKey: StringKey("unmatching")},
+	}
+
+	tests := []struct {
+		Endpoint *MoveEndpointInModule
+		Addr     AbsResource
+		Selects  bool
+	}{
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // exact match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: unmatchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: false, // wrong resource name
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: unmatchingResource.Instance(IntKey(1)).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: false, // wrong resource name
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(NoKey).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(IntKey(0)).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(StringKey("a")).Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(nil),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				module:     childMod,
+				relSubject: matchingResource.Absolute(nil),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // in one of the instances of the module where the statement was written
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // exact match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Instance(IntKey(2)).Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModMatchingInst),
+			Selects: true, // matches one instance
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: matchingResource.Absolute(childModMatchingInst),
+			},
+			Addr:    matchingResource.Absolute(childModUnmatchingInst),
+			Selects: false, // the containing module instance doesn't match
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: AbsModuleCall{
+					Module: mustParseModuleInstanceStr("module.foo[2]"),
+					Call:   ModuleCall{Name: "bar"},
+				},
+			},
+			Addr:    matchingResource.Absolute(mustParseModuleInstanceStr("module.foo[2]")),
+			Selects: false, // a module call can't match a resource
+		},
+		{
+			Endpoint: &MoveEndpointInModule{
+				relSubject: mustParseModuleInstanceStr("module.foo[2]"),
+			},
+			Addr:    matchingResource.Absolute(mustParseModuleInstanceStr("module.foo[2]")),
+			Selects: false, // a module instance can't match a resource
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]%s SelectsResource(%s)", i, test.Endpoint, test.Addr),
+			func(t *testing.T) {
+				if got, want := test.Endpoint.SelectsResource(test.Addr), test.Selects; got != want {
+					t.Errorf("wrong result\nReceiver: %s\nArgument: %s\ngot:  %t\nwant: %t", test.Endpoint, test.Addr, got, want)
+				}
+			},
+		)
+	}
+}
+
+func TestIsModuleMoveReIndex(t *testing.T) {
+	tests := []struct {
+		from, to AbsMoveable
+		expect   bool
+	}{
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.bar`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.bar[0]`),
+			expect: true,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar[0]`),
+			expect: true,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar["a"]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.foo`),
+			to:     mustParseModuleInstanceStr(`module.bar`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar`),
+			to:     mustParseModuleInstanceStr(`module.foo[0]`),
+			expect: false,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "bar"},
+			},
+			to:     mustParseModuleInstanceStr(`module.foo[0]`),
+			expect: false,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar["a"]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "foo"},
+			},
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.baz.module.baz`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.baz.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar[0].module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar[1].module.baz[0]`),
+			expect: true,
+		},
+		{
+			from: AbsModuleCall{
+				Call: ModuleCall{Name: "baz"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from: mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to: AbsModuleCall{
+				Call: ModuleCall{Name: "baz"},
+			},
+			expect: false,
+		},
+
+		{
+			from: AbsModuleCall{
+				Module: mustParseModuleInstanceStr(`module.bar[0]`),
+				Call:   ModuleCall{Name: "baz"},
+			},
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: true,
+		},
+
+		{
+			from: mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to: AbsModuleCall{
+				Module: mustParseModuleInstanceStr(`module.bar[0]`),
+				Call:   ModuleCall{Name: "baz"},
+			},
+			expect: true,
+		},
+
+		{
+			from:   mustParseModuleInstanceStr(`module.baz`),
+			to:     mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			expect: false,
+		},
+		{
+			from:   mustParseModuleInstanceStr(`module.bar.module.baz[0]`),
+			to:     mustParseModuleInstanceStr(`module.baz`),
+			expect: false,
+		},
+	}
+
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("[%02d]IsModuleMoveReIndex(%s, %s)", i, test.from, test.to),
+			func(t *testing.T) {
+				from := &MoveEndpointInModule{
+					relSubject: test.from,
+				}
+
+				to := &MoveEndpointInModule{
+					relSubject: test.to,
+				}
+
+				if got := from.IsModuleReIndex(to); got != test.expect {
+					t.Errorf("expected %t, got %t", test.expect, got)
+				}
+			},
+		)
+	}
+}
+
 func mustParseAbsResourceInstanceStr(s string) AbsResourceInstance {
 	r, diags := ParseAbsResourceInstanceStr(s)
 	if diags.HasErrors() {

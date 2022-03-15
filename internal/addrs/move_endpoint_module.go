@@ -2,6 +2,7 @@ package addrs
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -51,6 +52,27 @@ type MoveEndpointInModule struct {
 	relSubject AbsMoveable
 }
 
+// ImpliedMoveStatementEndpoint is a special constructor for MoveEndpointInModule
+// which is suitable only for constructing "implied" move statements, which
+// means that we inferred the statement automatically rather than building it
+// from an explicit block in the configuration.
+//
+// Implied move endpoints, just as for the statements they are embedded in,
+// have somewhat-related-but-imprecise source ranges, typically referring to
+// some general configuration construct that implied the statement, because
+// by definition there is no explicit move endpoint expression in this case.
+func ImpliedMoveStatementEndpoint(addr AbsResourceInstance, rng tfdiags.SourceRange) *MoveEndpointInModule {
+	// implied move endpoints always belong to the root module, because each
+	// one refers to a single resource instance inside a specific module
+	// instance, rather than all instances of the module where the resource
+	// was declared.
+	return &MoveEndpointInModule{
+		SourceRange: rng,
+		module:      RootModule,
+		relSubject:  addr,
+	}
+}
+
 func (e *MoveEndpointInModule) ObjectKind() MoveEndpointKind {
 	return absMoveableEndpointKind(e.relSubject)
 }
@@ -85,13 +107,31 @@ func (e *MoveEndpointInModule) String() string {
 	return buf.String()
 }
 
+// Equal returns true if the reciever represents the same matching pattern
+// as the other given endpoint, ignoring the source location information.
+//
+// This is not an optimized function and is here primarily to help with
+// writing concise assertions in test code.
+func (e *MoveEndpointInModule) Equal(other *MoveEndpointInModule) bool {
+	if (e == nil) != (other == nil) {
+		return false
+	}
+	if !e.module.Equal(other.module) {
+		return false
+	}
+	// This assumes that all of our possible "movables" are trivially
+	// comparable with reflect, which is true for all of them at the time
+	// of writing.
+	return reflect.DeepEqual(e.relSubject, other.relSubject)
+}
+
 // Module returns the address of the module where the receiving address was
 // declared.
 func (e *MoveEndpointInModule) Module() Module {
 	return e.module
 }
 
-// InModuleInstance returns an AbsMovable address which concatenates the
+// InModuleInstance returns an AbsMoveable address which concatenates the
 // given module instance address with the receiver's relative object selection
 // to produce one example of an instance that might be affected by this
 // move statement.
@@ -233,6 +273,37 @@ func (e *MoveEndpointInModule) SelectsModule(addr ModuleInstance) bool {
 	return true
 }
 
+// SelectsResource returns true if the receiver directly selects either
+// the given resource or one of its instances.
+func (e *MoveEndpointInModule) SelectsResource(addr AbsResource) bool {
+	// Only a subset of subject types can possibly select a resource, so
+	// we'll take care of those quickly before we do anything more expensive.
+	switch e.relSubject.(type) {
+	case AbsResource, AbsResourceInstance:
+		// okay
+	default:
+		return false // can't possibly match
+	}
+
+	if !e.SelectsModule(addr.Module) {
+		return false
+	}
+
+	// If we get here then we know the module part matches, so we only need
+	// to worry about the relative resource part.
+	switch relSubject := e.relSubject.(type) {
+	case AbsResource:
+		return addr.Resource.Equal(relSubject.Resource)
+	case AbsResourceInstance:
+		// We intentionally ignore the instance key, because we consider
+		// instances to be part of the resource they belong to.
+		return addr.Resource.Equal(relSubject.Resource.Resource)
+	default:
+		// We should've filtered out all other types above
+		panic(fmt.Sprintf("unsupported relSubject type %T", relSubject))
+	}
+}
+
 // moduleInstanceCanMatch indicates that modA can match modB taking into
 // account steps with an anyKey InstanceKey as wildcards. The comparison of
 // wildcard steps is done symmetrically, because varying portions of either
@@ -302,7 +373,7 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 	return false
 }
 
-// NestedWithin returns true if the reciever describes an address that is
+// NestedWithin returns true if the receiver describes an address that is
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
@@ -632,4 +703,38 @@ func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInM
 	default:
 		panic("unexpected object kind")
 	}
+}
+
+// IsModuleReIndex takes the From and To endpoints from a single move
+// statement, and returns true if the only changes are to module indexes, and
+// all non-absolute paths remain the same.
+func (from *MoveEndpointInModule) IsModuleReIndex(to *MoveEndpointInModule) bool {
+	// The statements must originate from the same module.
+	if !from.module.Equal(to.module) {
+		panic("cannot compare move expressions from different modules")
+	}
+
+	switch f := from.relSubject.(type) {
+	case AbsModuleCall:
+		switch t := to.relSubject.(type) {
+		case ModuleInstance:
+			// Generate a synthetic module to represent the full address of
+			// the module call. We're not actually comparing indexes, so the
+			// instance doesn't matter.
+			callAddr := f.Instance(NoKey).Module()
+			return callAddr.Equal(t.Module())
+		}
+
+	case ModuleInstance:
+		switch t := to.relSubject.(type) {
+		case AbsModuleCall:
+			callAddr := t.Instance(NoKey).Module()
+			return callAddr.Equal(f.Module())
+
+		case ModuleInstance:
+			return t.Module().Equal(f.Module())
+		}
+	}
+
+	return false
 }

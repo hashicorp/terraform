@@ -3,12 +3,13 @@ package command
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/helper/wrappedstreams"
 	"github.com/hashicorp/terraform/internal/repl"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/mitchellh/cli"
@@ -71,7 +72,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
 	opReq := c.Operation(b)
@@ -95,7 +96,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -112,14 +113,22 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Set up the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
-		Writer:      wrappedstreams.Stdout(),
-		ErrorWriter: wrappedstreams.Stderr(),
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
+	}
+
+	evalOpts := &terraform.EvalOpts{}
+	if lr.PlanOpts != nil {
+		// the LocalRun type is built primarily to support the main operations,
+		// so the variable values end up in the "PlanOpts" even though we're
+		// not actually making a plan.
+		evalOpts.SetVariables = lr.PlanOpts.SetVariables
 	}
 
 	// Before we can evaluate expressions, we must compute and populate any
 	// derived values (input variables, local values, output values)
 	// that are not stored in the persistent state.
-	scope, scopeDiags := ctx.Eval(addrs.RootModuleInstance)
+	scope, scopeDiags := lr.Core.Eval(lr.Config, lr.InputState, addrs.RootModuleInstance, evalOpts)
 	diags = diags.Append(scopeDiags)
 	if scope == nil {
 		// scope is nil if there are errors so bad that we can't even build a scope.
@@ -155,7 +164,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 	var lastResult string
-	scanner := bufio.NewScanner(wrappedstreams.Stdin())
+	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		result, exit, diags := session.Handle(strings.TrimSpace(scanner.Text()))
 		if diags.HasErrors() {

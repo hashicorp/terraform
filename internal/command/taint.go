@@ -102,7 +102,7 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Check remote Terraform version is compatible
-	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {

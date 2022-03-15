@@ -1,0 +1,480 @@
+name: Build Terraform CLI Packages
+
+# If you want to test changes to this file before merging to a main branch,
+# push them up to a branch whose name has the prefix "build-workflow-dev/",
+# which is a special prefix that triggers this workflow even though it's not
+# actually a release branch.
+
+# NOTE: This workflow is currently used only to verify that all commits to a
+# release branch are buildable. It's set up to generate some artifacts that
+# might in principle be consumed by a downstream release process, but currently
+# they are not used in this way and official Terraform CLI releases are instead
+# built using a separate process maintained elsewhere. We intend to adopt this
+# new process fully later, once other HashiCorp-internal tooling is ready.
+#
+# Currently this process produces what should be working packages but packages
+# NOT suitable for distribution to end-users as official releases, because it
+# doesn't include a step to ensure that "terraform version" (and similar) will
+# report the intended version number. Consequently we can safely use these
+# results for testing purposes, but not yet for release purposes. See the
+# "build" job below for a FIXME comment related to version numbers.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - 'v[0-9]+.[0-9]+'
+      - build-workflow-dev/*
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+env:
+  PKG_NAME: "terraform"
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  get-product-version:
+    name: "Determine intended Terraform version"
+    runs-on: ubuntu-latest
+    outputs:
+      product-version: ${{ steps.get-product-version.outputs.product-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Need all commits and tags to find a reasonable version number
+      - name: Git Describe
+        id: git-describe
+        run: |
+          git describe --first-parent
+          echo "::set-output name=raw-version::$(git describe --first-parent)"
+      - name: Decide version number
+        id: get-product-version
+        shell: bash
+        env:
+          RAW_VERSION: ${{ steps.git-describe.outputs.raw-version }}
+        run: |
+          echo "::set-output name=product-version::${RAW_VERSION#v}"
+      - name: Report chosen version number
+        run: |
+          [ -n "${{steps.get-product-version.outputs.product-version}}" ]
+          echo "::notice title=Terraform CLI Version::${{ steps.get-product-version.outputs.product-version }}"
+
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Determine Go version
+        id: get-go-version
+        # We use .go-version as our source of truth for current Go
+        # version, because "goenv" can react to it automatically.
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+
+  generate-metadata-file:
+    name: "Generate release metadata"
+    runs-on: ubuntu-latest
+    needs: get-product-version
+    outputs:
+      filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Generate package metadata
+        id: generate-metadata-file
+        uses: hashicorp/actions-generate-metadata@main
+        with:
+          version: ${{ needs.get-product-version.outputs.product-version }}
+          product: ${{ env.PKG_NAME }}
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: metadata.json
+          path: ${{ steps.generate-metadata-file.outputs.filepath }}
+
+  build:
+    name: Build for ${{ matrix.goos }}_${{ matrix.goarch }}
+    runs-on: ${{ matrix.runson }}
+    needs:
+      - get-product-version
+      - get-go-version
+    strategy:
+      matrix:
+        include:
+          - {goos: "freebsd", goarch: "386", runson: "ubuntu-latest"}
+          - {goos: "freebsd", goarch: "amd64", runson: "ubuntu-latest"}
+          - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest"}
+          - {goos: "linux", goarch: "386", runson: "ubuntu-latest"}
+          - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest"}
+          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest"}
+          - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest"}
+          - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest"}
+          - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest"}
+          - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest"}
+          - {goos: "windows", goarch: "386", runson: "ubuntu-latest"}
+          - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest"}
+          - {goos: "darwin", goarch: "amd64", runson: "macos-latest"}
+          - {goos: "darwin", goarch: "arm64", runson: "macos-latest"}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      # FIXME: We're not currently setting the hard-coded version string in
+      # version/version.go at any point here, which means that the packages
+      # this process builds are not suitable for release. Once we're using
+      # Go 1.18 we may begin using the version information automatically
+      # embedded by the Go toolchain, at which point we won't need any
+      # special steps during build, but failing that we'll need to rework
+      # the version/version.go package so we can more readily update it
+      # using linker flags rather than direct code modification.
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ACTIONSOS: ${{ matrix.runson }}
+        run: |
+          mkdir dist out
+          if [ "$ACTIONSOS" == "macos-latest" ] && [ "$GOOS" == "darwin" ]; then
+            # When building for macOS _on_ macOS we must force CGo to get
+            # correct hostname resolution behavior. (This must be conditional
+            # because other cross-compiles won't have suitable headers
+            # available to use CGo; darwin_amd64 has suitable headers to
+            # cross-build for darwin_arm64.)
+            export CGO_ENABLED=1
+          fi
+          go build -ldflags "-w -s" -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+
+  package-linux:
+    name: "Build Linux distro packages for ${{ matrix.arch }}"
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - build
+    strategy:
+      matrix:
+        include:
+          - {arch: "386"}
+          - {arch: "amd64"}
+          - {arch: "arm"}
+          - {arch: "arm64"}
+      fail-fast: false
+
+    env:
+      os: linux
+      arch: ${{matrix.arch}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@v2
+        id: clipkg
+        with:
+          name: terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        run: |
+          mkdir -p dist
+          (cd dist && unzip "../terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip")
+          mkdir -p out
+      - name: Build Linux distribution packages
+        uses: hashicorp/actions-packaging-linux@v1
+        with:
+          name: "terraform"
+          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
+          arch: ${{ matrix.arch }}
+          version: ${{ env.version }}
+          maintainer: "HashiCorp"
+          homepage: "https://terraform.io/"
+          license: "MPL-2.0"
+          binary: "dist/terraform"
+          deb_depends: "git"
+          rpm_depends: "git"
+      - name: Gather Linux distribution package filenames
+        run: |
+          echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
+          echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
+      - name: "Save .rpm package"
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.RPM_PACKAGE }}
+          path: out/${{ env.RPM_PACKAGE }}
+      - name: "Save .deb package"
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.DEB_PACKAGE }}
+          path: out/${{ env.DEB_PACKAGE }}
+
+  # TODO: homebrew packages for macOS
+  #package-homebrew:
+  #  name: Build Homebrew package for darwin_${{ matrix.arch }}
+  #  runs-on: macos-latest
+  #  needs:
+  #    - get-product-version
+  #    - build
+  #  strategy:
+  #    matrix:
+  #      arch: ["amd64", "arm64"]
+  #    fail-fast: false
+  # ...
+
+  package-docker:
+    name: Build Docker image for linux_${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - build
+    strategy:
+      matrix:
+        arch: ["amd64"]
+      fail-fast: false
+
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build Docker images
+        uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: default
+          arch: ${{matrix.arch}}
+          dockerfile: .github/workflows/build-Dockerfile
+          tags: |
+            docker.io/hashicorp/${{env.repo}}:${{env.version}}
+            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{env.repo}}:${{env.version}}
+
+  e2etest-build:
+    name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    needs: ["get-go-version"]
+    strategy:
+      matrix:
+        # We build test harnesses only for the v1.0 Compatibility Promises
+        # supported platforms. Even within that set, we can only run on
+        # architectures for which we have GitHub Actions runners available,
+        # which is currently only amd64 (x64).
+        # TODO: GitHub Actions does support _self-hosted_ arm and arm64
+        # runners, so we could potentially run some ourselves to run our
+        # tests there, but at the time of writing there is no documented
+        # support for darwin_arm64 (macOS on Apple Silicon).
+        include:
+          - {goos: "darwin", goarch: "amd64"}
+          #- {goos: "darwin", goarch: "arm64"}
+          - {goos: "windows", goarch: "amd64"}
+          - {goos: "linux", goarch: "amd64"}
+          #- {goos: "linux", goarch: "arm"}
+          #- {goos: "linux", goarch: "arm64"}
+      fail-fast: false
+
+    env:
+      build_script: ./internal/command/e2etest/make-archive.sh
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
+
+      - name: Build test harness package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          bash ./internal/command/e2etest/make-archive.sh
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: internal/command/e2etest/build/terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          if-no-files-found: error
+
+  e2etest-linux:
+    name: e2etest for linux_${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+      - build
+      - e2etest-build
+    strategy:
+      matrix:
+        include:
+          - {goarch: "amd64"}
+          #- {goarch: "arm64"}
+          #- {goarch: "arm"}
+      fail-fast: false
+
+    env:
+      os: linux
+      arch: ${{ matrix.goarch }}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      # NOTE: This intentionally _does not_ check out the source code
+      # for the commit/tag we're building, because by now we should
+      # have everything we need in the combination of CLI release package
+      # and e2etest package for this platform. (This helps ensure that we're
+      # really testing the release package and not inadvertently testing a
+      # fresh build from source.)
+      - name: "Download e2etest package"
+        uses: actions/download-artifact@v2
+        id: e2etestpkg
+        with:
+          name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@v2
+        id: clipkg
+        with:
+          name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        run: |
+          unzip "./terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+      - name: Run E2E Tests
+        run: |
+          TF_ACC=1 ./e2etest -test.v
+
+  e2etest-darwin:
+    name: e2etest for darwin_${{ matrix.goarch }}
+    runs-on: macos-latest
+    needs:
+      - get-product-version
+      - build
+      - e2etest-build
+    strategy:
+      matrix:
+        include:
+          - {goarch: "amd64"}
+          #- {goarch: "arm64"}
+      fail-fast: false
+
+    env:
+      os: darwin
+      arch: ${{ matrix.goarch }}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      # NOTE: This intentionally _does not_ check out the source code
+      # for the commit/tag we're building, because by now we should
+      # have everything we need in the combination of CLI release package
+      # and e2etest package for this platform. (This helps ensure that we're
+      # really testing the release package and not inadvertently testing a
+      # fresh build from source.)
+      - name: "Download e2etest package"
+        uses: actions/download-artifact@v2
+        id: e2etestpkg
+        with:
+          name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@v2
+        id: clipkg
+        with:
+          name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        run: |
+          unzip "./terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+      - name: Run E2E Tests
+        run: |
+          TF_ACC=1 ./e2etest -test.v
+
+  e2etest-windows:
+    name: e2etest for windows_${{ matrix.goarch }}
+    runs-on: windows-latest
+    needs:
+      - get-product-version
+      - build
+      - e2etest-build
+    strategy:
+      matrix:
+        include:
+          - {goarch: "amd64"}
+      fail-fast: false
+
+    env:
+      os: windows
+      arch: ${{ matrix.goarch }}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      # NOTE: This intentionally _does not_ check out the source code
+      # for the commit/tag we're building, because by now we should
+      # have everything we need in the combination of CLI release package
+      # and e2etest package for this platform. (This helps ensure that we're
+      # really testing the release package and not inadvertently testing a
+      # fresh build from source.)
+      - name: "Download e2etest package"
+        uses: actions/download-artifact@v2
+        id: e2etestpkg
+        with:
+          name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: "Download Terraform CLI package"
+        uses: actions/download-artifact@v2
+        id: clipkg
+        with:
+          name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
+          path: .
+      - name: Extract packages
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath 'terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip' -DestinationPath '.'
+          Expand-Archive -LiteralPath 'terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip' -DestinationPath '.'
+      - name: Run E2E Tests
+        env:
+          TF_ACC: 1
+        shell: cmd
+        run: |
+          e2etest.exe -test.v
+
+  docs-source-package:
+    name: "Build documentation bundle"
+    runs-on: ubuntu-latest
+    needs:
+      - get-product-version
+
+    env:
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v2
+      # FIXME: We should include some sort of pre-validation step here, to
+      # confirm that the doc content is mechanically valid so that the
+      # publishing pipeline will be able to render all content without errors.
+      - name: "Create documentation source bundle"
+        run: |
+          (cd website && zip -9 -r ../terraform-cli-docs-source_${{ env.version }}.zip .)
+      - uses: actions/upload-artifact@v2
+        with:
+          name: terraform-cli-docs-source_${{ env.version }}.zip
+          path: terraform-cli-docs-source_${{ env.version }}.zip
+          if-no-files-found: error

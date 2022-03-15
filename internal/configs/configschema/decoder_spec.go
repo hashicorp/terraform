@@ -121,7 +121,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			// implied type more complete, but if there are any
 			// dynamically-typed attributes inside we must use a tuple
 			// instead, at the expense of our type then not being predictable.
-			if blockS.Block.ImpliedType().HasDynamicTypes() {
+			if blockS.Block.specType().HasDynamicTypes() {
 				ret[name] = &hcldec.BlockTupleSpec{
 					TypeName: name,
 					Nested:   childSpec,
@@ -155,7 +155,7 @@ func (b *Block) DecoderSpec() hcldec.Spec {
 			// implied type more complete, but if there are any
 			// dynamically-typed attributes inside we must use a tuple
 			// instead, at the expense of our type then not being predictable.
-			if blockS.Block.ImpliedType().HasDynamicTypes() {
+			if blockS.Block.specType().HasDynamicTypes() {
 				ret[name] = &hcldec.BlockObjectSpec{
 					TypeName:   name,
 					Nested:     childSpec,
@@ -187,17 +187,13 @@ func (a *Attribute) decoderSpec(name string) hcldec.Spec {
 	}
 
 	if a.NestedType != nil {
-		// FIXME: a panic() is a bad UX. InternalValidate() can check Attribute
-		// schemas as well so a fix might be to call it when we get the schema
-		// from the provider in Context(). Since this could be a breaking
-		// change, we'd need to communicate well before adding that call.
 		if a.Type != cty.NilType {
 			panic("Invalid attribute schema: NestedType and Type cannot both be set. This is a bug in the provider.")
 		}
 
-		ty := a.NestedType.ImpliedType()
+		ty := a.NestedType.specType()
 		ret.Type = ty
-		ret.Required = a.Required || a.NestedType.MinItems > 0
+		ret.Required = a.Required
 		return ret
 	}
 

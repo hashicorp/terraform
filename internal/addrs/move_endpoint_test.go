@@ -12,7 +12,7 @@ import (
 func TestParseMoveEndpoint(t *testing.T) {
 	tests := []struct {
 		Input   string
-		WantRel AbsMoveable // funny intermediate subset of AbsMovable
+		WantRel AbsMoveable // funny intermediate subset of AbsMoveable
 		WantErr string
 	}{
 		{

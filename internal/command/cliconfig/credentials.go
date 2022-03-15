@@ -46,7 +46,7 @@ func (c *Config) CredentialsSource(helperPlugins pluginDiscovery.PluginMetaSet) 
 	for givenType, givenConfig := range c.CredentialsHelpers {
 		available := helperPlugins.WithName(givenType)
 		if available.Count() == 0 {
-			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", helperType)
+			log.Printf("[ERROR] Unable to find credentials helper %q; ignoring", givenType)
 			break
 		}
 

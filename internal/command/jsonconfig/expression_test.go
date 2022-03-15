@@ -80,6 +80,29 @@ func TestMarshalExpressions(t *testing.T) {
 				},
 			},
 		},
+		{
+			hcltest.MockBody(&hcl.BodyContent{
+				Blocks: hcl.Blocks{
+					{
+						Type: "block_to_attr",
+						Body: hcltest.MockBody(&hcl.BodyContent{
+
+							Attributes: hcl.Attributes{
+								"foo": {
+									Name: "foo",
+									Expr: hcltest.MockExprTraversalSrc(`module.foo.bar`),
+								},
+							},
+						}),
+					},
+				},
+			}),
+			expressions{
+				"block_to_attr": expression{
+					References: []string{"module.foo.bar", "module.foo"},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -88,6 +111,11 @@ func TestMarshalExpressions(t *testing.T) {
 				"foo": {
 					Type:     cty.String,
 					Optional: true,
+				},
+				"block_to_attr": {
+					Type: cty.List(cty.Object(map[string]cty.Type{
+						"foo": cty.String,
+					})),
 				},
 			},
 		}

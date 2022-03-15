@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -42,6 +43,7 @@ type MockEvalContext struct {
 	ProviderSchemaCalled bool
 	ProviderSchemaAddr   addrs.AbsProviderConfig
 	ProviderSchemaSchema *ProviderSchema
+	ProviderSchemaError  error
 
 	CloseProviderCalled   bool
 	CloseProviderAddr     addrs.AbsProviderConfig
@@ -70,6 +72,7 @@ type MockEvalContext struct {
 	ProvisionerSchemaCalled bool
 	ProvisionerSchemaName   string
 	ProvisionerSchemaSchema *configschema.Block
+	ProvisionerSchemaError  error
 
 	CloseProvisionersCalled bool
 
@@ -108,13 +111,21 @@ type MockEvalContext struct {
 	PathCalled bool
 	PathPath   addrs.ModuleInstance
 
-	SetModuleCallArgumentsCalled bool
-	SetModuleCallArgumentsModule addrs.ModuleCallInstance
-	SetModuleCallArgumentsValues map[string]cty.Value
+	SetRootModuleArgumentCalled bool
+	SetRootModuleArgumentAddr   addrs.InputVariable
+	SetRootModuleArgumentValue  cty.Value
+	SetRootModuleArgumentFunc   func(addr addrs.InputVariable, v cty.Value)
+
+	SetModuleCallArgumentCalled     bool
+	SetModuleCallArgumentModuleCall addrs.ModuleCallInstance
+	SetModuleCallArgumentVariable   addrs.InputVariable
+	SetModuleCallArgumentValue      cty.Value
+	SetModuleCallArgumentFunc       func(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value)
 
 	GetVariableValueCalled bool
 	GetVariableValueAddr   addrs.AbsInputVariableInstance
 	GetVariableValueValue  cty.Value
+	GetVariableValueFunc   func(addr addrs.AbsInputVariableInstance) cty.Value // supersedes GetVariableValueValue
 
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
@@ -127,6 +138,9 @@ type MockEvalContext struct {
 
 	PrevRunStateCalled bool
 	PrevRunStateState  *states.SyncState
+
+	MoveResultsCalled  bool
+	MoveResultsResults refactoring.MoveResults
 
 	InstanceExpanderCalled   bool
 	InstanceExpanderExpander *instances.Expander
@@ -169,10 +183,10 @@ func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Inter
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) *ProviderSchema {
+func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
-	return c.ProviderSchemaSchema
+	return c.ProviderSchemaSchema, c.ProviderSchemaError
 }
 
 func (c *MockEvalContext) CloseProvider(addr addrs.AbsProviderConfig) error {
@@ -210,10 +224,10 @@ func (c *MockEvalContext) Provisioner(n string) (provisioners.Interface, error) 
 	return c.ProvisionerProvisioner, nil
 }
 
-func (c *MockEvalContext) ProvisionerSchema(n string) *configschema.Block {
+func (c *MockEvalContext) ProvisionerSchema(n string) (*configschema.Block, error) {
 	c.ProvisionerSchemaCalled = true
 	c.ProvisionerSchemaName = n
-	return c.ProvisionerSchemaSchema
+	return c.ProvisionerSchemaSchema, c.ProvisionerSchemaError
 }
 
 func (c *MockEvalContext) CloseProvisioners() error {
@@ -315,15 +329,31 @@ func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	return c.PathPath
 }
 
-func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, values map[string]cty.Value) {
-	c.SetModuleCallArgumentsCalled = true
-	c.SetModuleCallArgumentsModule = n
-	c.SetModuleCallArgumentsValues = values
+func (c *MockEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
+	c.SetRootModuleArgumentCalled = true
+	c.SetRootModuleArgumentAddr = addr
+	c.SetRootModuleArgumentValue = v
+	if c.SetRootModuleArgumentFunc != nil {
+		c.SetRootModuleArgumentFunc(addr, v)
+	}
+}
+
+func (c *MockEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
+	c.SetModuleCallArgumentCalled = true
+	c.SetModuleCallArgumentModuleCall = callAddr
+	c.SetModuleCallArgumentVariable = varAddr
+	c.SetModuleCallArgumentValue = v
+	if c.SetModuleCallArgumentFunc != nil {
+		c.SetModuleCallArgumentFunc(callAddr, varAddr, v)
+	}
 }
 
 func (c *MockEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
 	c.GetVariableValueCalled = true
 	c.GetVariableValueAddr = addr
+	if c.GetVariableValueFunc != nil {
+		return c.GetVariableValueFunc(addr)
+	}
 	return c.GetVariableValueValue
 }
 
@@ -345,6 +375,11 @@ func (c *MockEvalContext) RefreshState() *states.SyncState {
 func (c *MockEvalContext) PrevRunState() *states.SyncState {
 	c.PrevRunStateCalled = true
 	return c.PrevRunStateState
+}
+
+func (c *MockEvalContext) MoveResults() refactoring.MoveResults {
+	c.MoveResultsCalled = true
+	return c.MoveResultsResults
 }
 
 func (c *MockEvalContext) InstanceExpander() *instances.Expander {

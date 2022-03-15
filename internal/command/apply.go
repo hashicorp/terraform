@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -29,8 +28,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
-	// Propagate -no-color for the remote backend's legacy use of Ui. This
-	// should be removed when the remote backend is migrated to views.
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
 	c.Meta.color = !common.NoColor
 	c.Meta.Color = c.Meta.color
 
@@ -45,8 +45,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
-	var view views.Apply
-	view = views.NewApply(args.ViewType, c.Destroy, c.View)
+	view := views.NewApply(args.ViewType, c.Destroy, c.View)
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -130,9 +129,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	// Render the resource count and outputs, unless we're using the remote
-	// backend locally, in which case these are rendered remotely
-	if rb, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend || rb.IsLocalOperations() {
+	// Render the resource count and outputs, unless those counts are being
+	// rendered already in a remote Terraform process.
+	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootModule().OutputValues)

@@ -249,7 +249,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	os.MkdirAll(suiteDirs.ModulesDir, 0755) // if this fails then we'll ignore it and let InstallModules below fail instead
 	reg := c.registryClient()
 	moduleInst := initwd.NewModuleInstaller(suiteDirs.ModulesDir, reg)
-	_, moreDiags := moduleInst.InstallModules(configDir, true, nil)
+	_, moreDiags := moduleInst.InstallModules(ctx, configDir, true, nil)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return suiteDirs, diags
@@ -495,7 +495,16 @@ func (c *TestCommand) testSuiteProviders(suiteDirs testCommandSuiteDirs, testPro
 	return ret, diags
 }
 
-func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory, state *states.State, plan *plans.Plan, destroy bool) (*terraform.Context, tfdiags.Diagnostics) {
+type testSuiteRunContext struct {
+	Core *terraform.Context
+
+	PlanMode   plans.Mode
+	Config     *configs.Config
+	InputState *states.State
+	Changes    *plans.Changes
+}
+
+func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory, state *states.State, plan *plans.Plan, destroy bool) (*testSuiteRunContext, tfdiags.Diagnostics) {
 	var changes *plans.Changes
 	if plan != nil {
 		changes = plan.Changes
@@ -506,8 +515,7 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 		planMode = plans.DestroyMode
 	}
 
-	return terraform.NewContext(&terraform.ContextOpts{
-		Config:    suiteDirs.Config,
+	tfCtx, diags := terraform.NewContext(&terraform.ContextOpts{
 		Providers: providerFactories,
 
 		// We just use the provisioners from the main Meta here, because
@@ -519,73 +527,83 @@ func (c *TestCommand) testSuiteContext(suiteDirs testCommandSuiteDirs, providerF
 		Meta: &terraform.ContextMeta{
 			Env: "test_" + suiteDirs.SuiteName,
 		},
-
-		State:    state,
-		Changes:  changes,
-		PlanMode: planMode,
 	})
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return &testSuiteRunContext{
+		Core: tfCtx,
+
+		PlanMode:   planMode,
+		Config:     suiteDirs.Config,
+		InputState: state,
+		Changes:    changes,
+	}, diags
 }
 
 func (c *TestCommand) testSuitePlan(ctx context.Context, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: create plan for suite %q", suiteDirs.SuiteName)
-	tfCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, nil, false)
+	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, nil, false)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	// We'll also validate as part of planning, since the "terraform plan"
-	// command would typically do that and so inconsistencies we detect only
-	// during planning typically produce error messages saying that they are
-	// a bug in Terraform.
-	// (It's safe to use the same context for both validate and plan, because
-	// validate doesn't generate any new sticky content inside the context
-	// as plan and apply both do.)
-	moreDiags := tfCtx.Validate()
+	// We'll also validate as part of planning, to ensure that the test
+	// configuration would pass "terraform validate". This is actually
+	// largely redundant with the runCtx.Core.Plan call below, but was
+	// included here originally because Plan did _originally_ assume that
+	// an earlier Validate had already passed, but now does its own
+	// validation work as (mostly) a superset of validate.
+	moreDiags := runCtx.Core.Validate(runCtx.Config)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}
 
-	plan, moreDiags := tfCtx.Plan()
+	plan, moreDiags := runCtx.Core.Plan(
+		runCtx.Config, runCtx.InputState, &terraform.PlanOpts{Mode: runCtx.PlanMode},
+	)
 	diags = diags.Append(moreDiags)
 	return plan, diags
 }
 
 func (c *TestCommand) testSuiteApply(ctx context.Context, plan *plans.Plan, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: apply plan for suite %q", suiteDirs.SuiteName)
-	tfCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, plan, false)
+	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, nil, plan, false)
 	if diags.HasErrors() {
 		// To make things easier on the caller, we'll return a valid empty
 		// state even in this case.
 		return states.NewState(), diags
 	}
 
-	state, moreDiags := tfCtx.Apply()
+	state, moreDiags := runCtx.Core.Apply(plan, runCtx.Config)
 	diags = diags.Append(moreDiags)
 	return state, diags
 }
 
 func (c *TestCommand) testSuiteDestroy(ctx context.Context, state *states.State, suiteDirs testCommandSuiteDirs, providerFactories map[addrs.Provider]providers.Factory) (*states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] terraform test: plan to destroy any existing objects for suite %q", suiteDirs.SuiteName)
-	tfCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, state, nil, true)
+	runCtx, diags := c.testSuiteContext(suiteDirs, providerFactories, state, nil, true)
 	if diags.HasErrors() {
 		return state, diags
 	}
 
-	plan, moreDiags := tfCtx.Plan()
+	plan, moreDiags := runCtx.Core.Plan(
+		runCtx.Config, runCtx.InputState, &terraform.PlanOpts{Mode: runCtx.PlanMode},
+	)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return state, diags
 	}
 
 	log.Printf("[TRACE] terraform test: apply the plan to destroy any existing objects for suite %q", suiteDirs.SuiteName)
-	tfCtx, moreDiags = c.testSuiteContext(suiteDirs, providerFactories, state, plan, true)
+	runCtx, moreDiags = c.testSuiteContext(suiteDirs, providerFactories, state, plan, true)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return state, diags
 	}
 
-	state, moreDiags = tfCtx.Apply()
+	state, moreDiags = runCtx.Core.Apply(plan, runCtx.Config)
 	diags = diags.Append(moreDiags)
 	return state, diags
 }

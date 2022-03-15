@@ -80,7 +80,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	protocGenGoGrpcExec, err := buildProtocGenGoGrpc(workDir)
+	_, err = buildProtocGenGoGrpc(workDir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	protocGenGoGrpcExec, err = filepath.Abs(protocGenGoExec)
+	protocGenGoGrpcExec, err := filepath.Abs(protocGenGoExec)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -17,20 +17,21 @@ type ImportGraphBuilder struct {
 	// Module is a configuration to build the graph from. See ImportOpts.Config.
 	Config *configs.Config
 
-	// Components is the factory for our available plugin components.
-	Components contextComponentFactory
+	// RootVariableValues are the raw input values for root input variables
+	// given by the caller, which we'll resolve into final values as part
+	// of the plan walk.
+	RootVariableValues InputValues
 
-	// Schemas is the repository of schemas we will draw from to analyse
-	// the configuration.
-	Schemas *Schemas
+	// Plugins is a library of plug-in components (providers and
+	// provisioners) available for use.
+	Plugins *contextPlugins
 }
 
 // Build builds the graph according to the steps returned by Steps.
 func (b *ImportGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: true,
-		Name:     "ImportGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "ImportGraphBuilder",
 	}).Build(path)
 }
 
@@ -56,7 +57,7 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		&ConfigTransformer{Config: config},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config},
@@ -67,11 +68,11 @@ func (b *ImportGraphBuilder) Steps() []GraphTransformer {
 		// Add the import steps
 		&ImportStateTransformer{Targets: b.ImportTargets, Config: b.Config},
 
-		TransformProviders(b.Components.ResourceProviders(), concreteProvider, config),
+		transformProviders(concreteProvider, config),
 
 		// Must attach schemas before ReferenceTransformer so that we can
 		// analyze the configuration to find references.
-		&AttachSchemaTransformer{Schemas: b.Schemas, Config: b.Config},
+		&AttachSchemaTransformer{Plugins: b.Plugins, Config: b.Config},
 
 		// Create expansion nodes for all of the module calls. This must
 		// come after all other transformers that create nodes representing

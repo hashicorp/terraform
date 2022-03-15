@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -24,7 +23,6 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
-	"github.com/mitchellh/panicwrap"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
@@ -35,12 +33,6 @@ const (
 
 	// The parent process will create a file to collect crash logs
 	envTmpLogPath = "TF_TEMP_LOG_PATH"
-
-	// Environment variable name used for smuggling true stderr terminal
-	// settings into a panicwrap child process. This is an implementation
-	// detail, subject to change in future, and should not ever be directly
-	// set by an end-user.
-	envTerminalPanicwrapWorkaround = "TF_PANICWRAP_STDERR"
 )
 
 // ui wraps the primary output cli.Ui, and redirects Warn calls to Output
@@ -54,67 +46,6 @@ func (u *ui) Warn(msg string) {
 	u.Ui.Output(msg)
 }
 
-func main() {
-	os.Exit(realMain())
-}
-
-func realMain() int {
-	var wrapConfig panicwrap.WrapConfig
-
-	// don't re-exec terraform as a child process for easier debugging
-	if os.Getenv("TF_FORK") == "0" {
-		return wrappedMain()
-	}
-
-	if !panicwrap.Wrapped(&wrapConfig) {
-		// We always send logs to a temporary file that we use in case
-		// there is a panic. Otherwise, we delete it.
-		logTempFile, err := ioutil.TempFile("", "terraform-log")
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't set up logging tempfile: %s", err)
-			return 1
-		}
-		// Now that we have the file, close it and leave it for the wrapped
-		// process to write to.
-		logTempFile.Close()
-		defer os.Remove(logTempFile.Name())
-
-		// store the path in the environment for the wrapped executable
-		os.Setenv(envTmpLogPath, logTempFile.Name())
-
-		// We also need to do our terminal initialization before we fork,
-		// because the child process doesn't necessarily have access to
-		// the true stderr in order to initialize it.
-		streams, err := terminal.Init()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to initialize terminal: %s", err)
-			return 1
-		}
-
-		// We need the child process to behave _as if_ connected to the real
-		// stderr, even though panicwrap is about to add a pipe in the way,
-		// so we'll smuggle the true stderr information in an environment
-		// varible.
-		streamState := streams.StateForAfterPanicWrap()
-		os.Setenv(envTerminalPanicwrapWorkaround, fmt.Sprintf("%t:%d", streamState.StderrIsTerminal, streamState.StderrWidth))
-
-		// Create the configuration for panicwrap and wrap our executable
-		wrapConfig.Handler = logging.PanicHandler(logTempFile.Name())
-		wrapConfig.IgnoreSignals = ignoreSignals
-		wrapConfig.ForwardSignals = forwardSignals
-		exitStatus, err := panicwrap.Wrap(&wrapConfig)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Couldn't start Terraform: %s", err)
-			return 1
-		}
-
-		return exitStatus
-	}
-
-	// Call the real main
-	return wrappedMain()
-}
-
 func init() {
 	Ui = &ui{&cli.BasicUi{
 		Writer:      os.Stdout,
@@ -123,7 +54,13 @@ func init() {
 	}}
 }
 
-func wrappedMain() int {
+func main() {
+	os.Exit(realMain())
+}
+
+func realMain() int {
+	defer logging.PanicHandler()
+
 	var err error
 
 	tmpLogPath := os.Getenv(envTmpLogPath)
@@ -142,22 +79,13 @@ func wrappedMain() int {
 	log.Printf(
 		"[INFO] Terraform version: %s %s",
 		Version, VersionPrerelease)
+	for _, depMod := range version.InterestingDependencies() {
+		log.Printf("[DEBUG] using %s %s", depMod.Path, depMod.Version)
+	}
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 
-	// This is the recieving end of our workaround to retain the metadata
-	// about the real stderr even though we're talking to it via the panicwrap
-	// pipe. See the call to StateForAfterPanicWrap above for the producer
-	// part of this.
-	var streamState *terminal.PrePanicwrapState
-	if raw := os.Getenv(envTerminalPanicwrapWorkaround); raw != "" {
-		streamState = &terminal.PrePanicwrapState{}
-		if _, err := fmt.Sscanf(raw, "%t:%d", &streamState.StderrIsTerminal, &streamState.StderrWidth); err != nil {
-			log.Printf("[WARN] %s is set but is incorrectly-formatted: %s", envTerminalPanicwrapWorkaround, err)
-			streamState = nil // leave it unset for a normal init, then
-		}
-	}
-	streams, err := terminal.ReinitInsidePanicwrap(streamState)
+	streams, err := terminal.Init()
 	if err != nil {
 		Ui.Error(fmt.Sprintf("Failed to configure the terminal: %s", err))
 		return 1
@@ -391,9 +319,7 @@ func wrappedMain() int {
 	// plugins crashing
 	if exitCode != 0 {
 		for _, panicLog := range logging.PluginPanics() {
-			// we don't write this to Error, or else panicwrap will think this
-			// process panicked
-			Ui.Info(panicLog)
+			Ui.Error(panicLog)
 		}
 	}
 

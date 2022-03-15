@@ -46,18 +46,36 @@ var moduleSourceLocalPrefixes = []string{
 	"..\\",
 }
 
+// ParseModuleSource parses a module source address as given in the "source"
+// argument inside a "module" block in the configuration.
+//
+// For historical reasons this syntax is a bit overloaded, supporting three
+// different address types:
+//   - Local paths starting with either ./ or ../, which are special because
+//     Terraform considers them to belong to the same "package" as the caller.
+//   - Module registry addresses, given as either NAMESPACE/NAME/SYSTEM or
+//     HOST/NAMESPACE/NAME/SYSTEM, in which case the remote registry serves
+//     as an indirection over the third address type that follows.
+//   - Various URL-like and other heuristically-recognized strings which
+//     we currently delegate to the external library go-getter.
+//
+// There is some ambiguity between the module registry addresses and go-getter's
+// very liberal heuristics and so this particular function will typically treat
+// an invalid registry address as some other sort of remote source address
+// rather than returning an error. If you know that you're expecting a
+// registry address in particular, use ParseModuleSourceRegistry instead, which
+// can therefore expose more detailed error messages about registry address
+// parsing in particular.
 func ParseModuleSource(raw string) (ModuleSource, error) {
-	for _, prefix := range moduleSourceLocalPrefixes {
-		if strings.HasPrefix(raw, prefix) {
-			localAddr, err := parseModuleSourceLocal(raw)
-			if err != nil {
-				// This is to make sure we really return a nil ModuleSource in
-				// this case, rather than an interface containing the zero
-				// value of ModuleSourceLocal.
-				return nil, err
-			}
-			return localAddr, nil
+	if isModuleSourceLocal(raw) {
+		localAddr, err := parseModuleSourceLocal(raw)
+		if err != nil {
+			// This is to make sure we really return a nil ModuleSource in
+			// this case, rather than an interface containing the zero
+			// value of ModuleSourceLocal.
+			return nil, err
 		}
+		return localAddr, nil
 	}
 
 	// For historical reasons, whether an address is a registry
@@ -71,7 +89,7 @@ func ParseModuleSource(raw string) (ModuleSource, error) {
 	// the registry source parse error gets returned to the caller,
 	// which is annoying but has been true for many releases
 	// without it posing a serious problem in practice.)
-	if ret, err := parseModuleSourceRegistry(raw); err == nil {
+	if ret, err := ParseModuleSourceRegistry(raw); err == nil {
 		return ret, nil
 	}
 
@@ -150,6 +168,15 @@ func parseModuleSourceLocal(raw string) (ModuleSourceLocal, error) {
 	return ModuleSourceLocal(clean), nil
 }
 
+func isModuleSourceLocal(raw string) bool {
+	for _, prefix := range moduleSourceLocalPrefixes {
+		if strings.HasPrefix(raw, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s ModuleSourceLocal) moduleSource() {}
 
 func (s ModuleSourceLocal) String() string {
@@ -194,6 +221,30 @@ const DefaultModuleRegistryHost = svchost.Hostname("registry.terraform.io")
 
 var moduleRegistryNamePattern = regexp.MustCompile("^[0-9A-Za-z](?:[0-9A-Za-z-_]{0,62}[0-9A-Za-z])?$")
 var moduleRegistryTargetSystemPattern = regexp.MustCompile("^[0-9a-z]{1,64}$")
+
+// ParseModuleSourceRegistry is a variant of ParseModuleSource which only
+// accepts module registry addresses, and will reject any other address type.
+//
+// Use this instead of ParseModuleSource if you know from some other surrounding
+// context that an address is intended to be a registry address rather than
+// some other address type, which will then allow for better error reporting
+// due to the additional information about user intent.
+func ParseModuleSourceRegistry(raw string) (ModuleSource, error) {
+	// Before we delegate to the "real" function we'll just make sure this
+	// doesn't look like a local source address, so we can return a better
+	// error message for that situation.
+	if isModuleSourceLocal(raw) {
+		return ModuleSourceRegistry{}, fmt.Errorf("can't use local directory %q as a module registry address", raw)
+	}
+
+	ret, err := parseModuleSourceRegistry(raw)
+	if err != nil {
+		// This is to make sure we return a nil ModuleSource, rather than
+		// a non-nil ModuleSource containing a zero-value ModuleSourceRegistry.
+		return nil, err
+	}
+	return ret, nil
+}
 
 func parseModuleSourceRegistry(raw string) (ModuleSourceRegistry, error) {
 	var err error
@@ -298,11 +349,10 @@ func parseModuleRegistryTargetSystem(given string) (string, error) {
 	// Similar to the names in provider source addresses, we defined these
 	// to be compatible with what filesystems and typical remote systems
 	// like GitHub allow in names. Unfortunately we didn't end up defining
-	// these exactly equivalently: provider names can only use dashes as
-	// punctuation, whereas module names can use underscores. So here we're
-	// using some regular expressions from the original module source
-	// implementation, rather than using the IDNA rules as we do in
-	// ParseProviderPart.
+	// these exactly equivalently: provider names can't use dashes or
+	// underscores. So here we're using some regular expressions from the
+	// original module source implementation, rather than using the IDNA rules
+	// as we do in ParseProviderPart.
 
 	if !moduleRegistryTargetSystemPattern.MatchString(given) {
 		return "", fmt.Errorf("must be between one and 64 ASCII letters or digits")

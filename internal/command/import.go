@@ -204,7 +204,7 @@ func (c *ImportCommand) Run(args []string) int {
 	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
 	// Check remote Terraform version is compatible
-	remoteVersionDiags := c.remoteBackendVersionCheck(b, opReq.Workspace)
+	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
@@ -212,7 +212,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	ctx, state, ctxDiags := local.Context(opReq)
+	lr, state, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -230,13 +230,18 @@ func (c *ImportCommand) Run(args []string) int {
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.
-	newState, importDiags := ctx.Import(&terraform.ImportOpts{
+	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
-			&terraform.ImportTarget{
+			{
 				Addr: addr,
 				ID:   args[1],
 			},
 		},
+
+		// The LocalRun idea is designed around our primary operations, so
+		// the input variables end up represented as plan options even though
+		// this particular operation isn't really a plan.
+		SetVariables: lr.PlanOpts.SetVariables,
 	})
 	diags = diags.Append(importDiags)
 	if diags.HasErrors() {

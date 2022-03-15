@@ -142,6 +142,12 @@ func New() backend.Backend {
 				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
 			},
+			"use_microsoft_graph": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Should Terraform obtain an MSAL auth token and use Microsoft Graph rather than Azure Active Directory?",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSGRAPH", false),
+			},
 		},
 	}
 
@@ -181,6 +187,7 @@ type BackendConfig struct {
 	TenantID                      string
 	UseMsi                        bool
 	UseAzureADAuthentication      bool
+	UseMicrosoftGraph             bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -212,6 +219,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		TenantID:                      data.Get("tenant_id").(string),
 		UseMsi:                        data.Get("use_msi").(bool),
 		UseAzureADAuthentication:      data.Get("use_azuread_auth").(bool),
+		UseMicrosoftGraph:             data.Get("use_microsoft_graph").(bool),
 	}
 
 	armClient, err := buildArmClient(context.TODO(), config)

@@ -1,8 +1,3 @@
-terraform {
-  # For the moment this is experimental
-  experiments = [config_driven_move]
-}
-
 moved {
   from = test.foo
   to   = test.bar

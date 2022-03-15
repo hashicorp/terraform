@@ -1,6 +1,7 @@
 package local
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,19 +11,21 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
-func TestLocalContext(t *testing.T) {
+func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -38,19 +41,22 @@ func TestLocalContext(t *testing.T) {
 		StateLocker:  stateLocker,
 	}
 
-	_, _, diags := b.Context(op)
+	_, _, diags := b.LocalRun(op)
 	if diags.HasErrors() {
 		t.Fatalf("unexpected error: %s", diags.Err().Error())
 	}
 
-	// Context() retains a lock on success
+	// LocalRun() retains a lock on success
 	assertBackendStateLocked(t, b)
 }
 
-func TestLocalContext_error(t *testing.T) {
-	configDir := "./testdata/apply"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+func TestLocalRun_error(t *testing.T) {
+	configDir := "./testdata/invalid"
+	b := TestLocal(t)
+
+	// This backend will return an error when asked to RefreshState, which
+	// should then cause LocalRun to return with the state unlocked.
+	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -66,19 +72,18 @@ func TestLocalContext_error(t *testing.T) {
 		StateLocker:  stateLocker,
 	}
 
-	_, _, diags := b.Context(op)
+	_, _, diags := b.LocalRun(op)
 	if !diags.HasErrors() {
 		t.Fatal("unexpected success")
 	}
 
-	// Context() unlocks the state on failure
+	// LocalRun() unlocks the state on failure
 	assertBackendStateUnlocked(t, b)
 }
 
-func TestLocalContext_stalePlan(t *testing.T) {
+func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -124,10 +129,16 @@ func TestLocalContext_stalePlan(t *testing.T) {
 	stateFile := statefile.New(plan.PriorState, "boop", 2)
 
 	// Roundtrip through serialization as expected by the operation
-	outDir := testTempDir(t)
+	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	if err := planfile.Create(planPath, configload.NewEmptySnapshot(), prevStateFile, stateFile, plan); err != nil {
+	planfileArgs := planfile.CreateArgs{
+		ConfigSnapshot:       configload.NewEmptySnapshot(),
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+	}
+	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
 	planFile, err := planfile.Open(planPath)
@@ -147,11 +158,76 @@ func TestLocalContext_stalePlan(t *testing.T) {
 		StateLocker:  stateLocker,
 	}
 
-	_, _, diags := b.Context(op)
+	_, _, diags := b.LocalRun(op)
 	if !diags.HasErrors() {
 		t.Fatal("unexpected success")
 	}
 
-	// Context() unlocks the state on failure
+	// LocalRun() unlocks the state on failure
 	assertBackendStateUnlocked(t, b)
+}
+
+type backendWithStateStorageThatFailsRefresh struct {
+}
+
+var _ backend.Backend = backendWithStateStorageThatFailsRefresh{}
+
+func (b backendWithStateStorageThatFailsRefresh) StateMgr(workspace string) (statemgr.Full, error) {
+	return &stateStorageThatFailsRefresh{}, nil
+}
+
+func (b backendWithStateStorageThatFailsRefresh) ConfigSchema() *configschema.Block {
+	return &configschema.Block{}
+}
+
+func (b backendWithStateStorageThatFailsRefresh) PrepareConfig(in cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	return in, nil
+}
+
+func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Diagnostics {
+	return nil
+}
+
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, error) {
+	return []string{"default"}, nil
+}
+
+type stateStorageThatFailsRefresh struct {
+	locked bool
+}
+
+func (s *stateStorageThatFailsRefresh) Lock(info *statemgr.LockInfo) (string, error) {
+	if s.locked {
+		return "", fmt.Errorf("already locked")
+	}
+	s.locked = true
+	return "locked", nil
+}
+
+func (s *stateStorageThatFailsRefresh) Unlock(id string) error {
+	if !s.locked {
+		return fmt.Errorf("not locked")
+	}
+	s.locked = false
+	return nil
+}
+
+func (s *stateStorageThatFailsRefresh) State() *states.State {
+	return nil
+}
+
+func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func (s *stateStorageThatFailsRefresh) RefreshState() error {
+	return fmt.Errorf("intentionally failing for testing purposes")
+}
+
+func (s *stateStorageThatFailsRefresh) PersistState() error {
+	return fmt.Errorf("unimplemented")
 }

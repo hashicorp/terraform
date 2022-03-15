@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"context"
 	"flag"
 	"io"
 	"io/ioutil"
@@ -61,7 +62,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -119,7 +120,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(cfgPath, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), cfgPath, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -166,6 +167,23 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
 	return func() (providers.Interface, error) {
+		if p, ok := rp.(*MockProvider); ok {
+			// make sure none of the methods were "called" on this new instance
+			p.GetProviderSchemaCalled = false
+			p.ValidateProviderConfigCalled = false
+			p.ValidateResourceConfigCalled = false
+			p.ValidateDataResourceConfigCalled = false
+			p.UpgradeResourceStateCalled = false
+			p.ConfigureProviderCalled = false
+			p.StopCalled = false
+			p.ReadResourceCalled = false
+			p.PlanResourceChangeCalled = false
+			p.ApplyResourceChangeCalled = false
+			p.ImportResourceStateCalled = false
+			p.ReadDataSourceCalled = false
+			p.CloseCalled = false
+		}
+
 		return rp, nil
 	}
 }

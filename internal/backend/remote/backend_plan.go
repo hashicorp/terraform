@@ -17,6 +17,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -38,7 +39,7 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		return nil, diags.Err()
 	}
 
-	if op.Parallelism != defaultParallelism {
+	if b.ContextOpts != nil && b.ContextOpts.Parallelism != defaultParallelism {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
@@ -319,6 +320,8 @@ in order to capture the filesystem context the remote workspace expects:
 	// cancellable after that period, we attempt to cancel it.
 	if lockTimeout := op.StateLocker.Timeout(); lockTimeout > 0 {
 		go func() {
+			defer logging.PanicHandler()
+
 			select {
 			case <-stopCtx.Done():
 				return

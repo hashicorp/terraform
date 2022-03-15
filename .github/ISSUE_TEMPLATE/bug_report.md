@@ -53,11 +53,6 @@ Full debug output can be obtained by running Terraform with the environment vari
 Debug output may contain sensitive information. Please review it before posting publicly, and if you are concerned feel free to encrypt the files using the HashiCorp security public key.
 -->
 
-### Crash Output
-<!--
-If the console output indicates that Terraform crashed, please share a link to a GitHub Gist containing the output of the `crash.log` file.
--->
-
 ### Expected Behavior
 <!--
 What should have happened?

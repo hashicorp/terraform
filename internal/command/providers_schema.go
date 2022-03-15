@@ -68,7 +68,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// we expect that the config dir is the cwd
 	cwd, err := os.Getwd()
@@ -89,14 +89,20 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// Get the context
-	ctx, _, ctxDiags := local.Context(opReq)
+	lr, _, ctxDiags := local.LocalRun(opReq)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	schemas := ctx.Schemas()
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	jsonSchemas, err := jsonprovider.Marshal(schemas)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to marshal provider schemas to json: %s", err))

@@ -166,7 +166,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 
 	changeApply, err = n.readDiff(ctx, providerSchema)
 	diags = diags.Append(err)
-	if diags.HasErrors() {
+	if changeApply == nil || diags.HasErrors() {
 		return diags
 	}
 
@@ -210,7 +210,7 @@ func (n *NodeDestroyResourceInstance) managedResourceExecute(ctx EvalContext) (d
 	// Managed resources need to be destroyed, while data sources
 	// are only removed from state.
 	// we pass a nil configuration to apply because we are destroying
-	s, d := n.apply(ctx, state, changeApply, nil, false)
+	s, _, d := n.apply(ctx, state, changeApply, nil, false)
 	state, diags = s, diags.Append(d)
 	// we don't return immediately here on error, so that the state can be
 	// finalized

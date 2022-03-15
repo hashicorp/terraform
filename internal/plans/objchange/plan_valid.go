@@ -39,11 +39,11 @@ func AssertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 func assertPlanValid(schema *configschema.Block, priorState, config, plannedState cty.Value, path cty.Path) []error {
 	var errs []error
 	if plannedState.IsNull() && !config.IsNull() {
-		errs = append(errs, path.NewErrorf("planned for absense but config wants existence"))
+		errs = append(errs, path.NewErrorf("planned for absence but config wants existence"))
 		return errs
 	}
 	if config.IsNull() && !plannedState.IsNull() {
-		errs = append(errs, path.NewErrorf("planned for existence but config wants absense"))
+		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
 	if plannedState.IsNull() {
@@ -317,11 +317,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 	var errs []error
 
 	if planned.IsNull() && !config.IsNull() {
-		errs = append(errs, path.NewErrorf("planned for absense but config wants existence"))
+		errs = append(errs, path.NewErrorf("planned for absence but config wants existence"))
 		return errs
 	}
 	if config.IsNull() && !planned.IsNull() {
-		errs = append(errs, path.NewErrorf("planned for existence but config wants absense"))
+		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
 	if planned.IsNull() {
@@ -349,10 +349,6 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		for it := planned.ElementIterator(); it.Next(); {
 			idx, plannedEV := it.Element()
 			path := append(path, cty.IndexStep{Key: idx})
-			if !plannedEV.IsKnown() {
-				errs = append(errs, path.NewErrorf("element representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
-				continue
-			}
 			if !config.HasIndex(idx).True() {
 				continue // should never happen since we checked the lengths above
 			}
@@ -368,94 +364,55 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 
 	case configschema.NestingMap:
 		// A NestingMap might either be a map or an object, depending on
-		// whether there are dynamically-typed attributes inside, but
-		// that's decided statically and so all values will have the same
-		// kind.
-		if planned.Type().IsObjectType() {
-			plannedAtys := planned.Type().AttributeTypes()
-			configAtys := config.Type().AttributeTypes()
-			for k := range plannedAtys {
-				if _, ok := configAtys[k]; !ok {
-					errs = append(errs, path.NewErrorf("block key %q from plan is not present in config", k))
-					continue
-				}
-				path := append(path, cty.GetAttrStep{Name: k})
+		// whether there are dynamically-typed attributes inside, so we will
+		// break these down to maps to handle them both in the same manner.
+		plannedVals := map[string]cty.Value{}
+		configVals := map[string]cty.Value{}
+		priorVals := map[string]cty.Value{}
 
-				plannedEV := planned.GetAttr(k)
-				if !plannedEV.IsKnown() {
-					errs = append(errs, path.NewErrorf("element representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
-					continue
-				}
-				configEV := config.GetAttr(k)
-				priorEV := cty.NullVal(schema.ImpliedType())
-				if !prior.IsNull() && prior.Type().HasAttribute(k) {
-					priorEV = prior.GetAttr(k)
-				}
-				moreErrs := assertPlannedAttrsValid(schema.Attributes, priorEV, configEV, plannedEV, path)
-				errs = append(errs, moreErrs...)
+		if !planned.IsNull() {
+			plannedVals = planned.AsValueMap()
+		}
+		if !config.IsNull() {
+			configVals = config.AsValueMap()
+		}
+		if !prior.IsNull() {
+			priorVals = prior.AsValueMap()
+		}
+
+		for k, plannedEV := range plannedVals {
+			configEV, ok := configVals[k]
+			if !ok {
+				errs = append(errs, path.NewErrorf("map key %q from plan is not present in config", k))
+				continue
 			}
-			for k := range configAtys {
-				if _, ok := plannedAtys[k]; !ok {
-					errs = append(errs, path.NewErrorf("block key %q from config is not present in plan", k))
-					continue
-				}
+			path := append(path, cty.GetAttrStep{Name: k})
+
+			priorEV, ok := priorVals[k]
+			if !ok {
+				priorEV = cty.NullVal(schema.ImpliedType())
 			}
-		} else {
-			plannedL := planned.LengthInt()
-			configL := config.LengthInt()
-			if plannedL != configL {
-				errs = append(errs, path.NewErrorf("block count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
-				return errs
-			}
-			for it := planned.ElementIterator(); it.Next(); {
-				idx, plannedEV := it.Element()
-				path := append(path, cty.IndexStep{Key: idx})
-				if !plannedEV.IsKnown() {
-					errs = append(errs, path.NewErrorf("element representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
-					continue
-				}
-				k := idx.AsString()
-				if !config.HasIndex(idx).True() {
-					errs = append(errs, path.NewErrorf("block key %q from plan is not present in config", k))
-					continue
-				}
-				configEV := config.Index(idx)
-				priorEV := cty.NullVal(schema.ImpliedType())
-				if !prior.IsNull() && prior.HasIndex(idx).True() {
-					priorEV = prior.Index(idx)
-				}
-				moreErrs := assertPlannedObjectValid(schema, priorEV, configEV, plannedEV, path)
-				errs = append(errs, moreErrs...)
-			}
-			for it := config.ElementIterator(); it.Next(); {
-				idx, _ := it.Element()
-				if !planned.HasIndex(idx).True() {
-					errs = append(errs, path.NewErrorf("block key %q from config is not present in plan", idx.AsString()))
-					continue
-				}
+			moreErrs := assertPlannedAttrsValid(schema.Attributes, priorEV, configEV, plannedEV, path)
+			errs = append(errs, moreErrs...)
+		}
+		for k := range configVals {
+			if _, ok := plannedVals[k]; !ok {
+				errs = append(errs, path.NewErrorf("map key %q from config is not present in plan", k))
+				continue
 			}
 		}
 
 	case configschema.NestingSet:
-		// Because set elements have no identifier with which to correlate
-		// them, we can't robustly validate the plan for a nested block
-		// backed by a set, and so unfortunately we need to just trust the
-		// provider to do the right thing. :(
-		//
-		// (In principle we could correlate elements by matching the
-		// subset of attributes explicitly set in config, except for the
-		// special diff suppression rule which allows for there to be a
-		// planned value that is constructed by mixing part of a prior
-		// value with part of a config value, creating an entirely new
-		// element that is not present in either prior nor config.)
-		for it := planned.ElementIterator(); it.Next(); {
-			idx, plannedEV := it.Element()
-			path := append(path, cty.IndexStep{Key: idx})
-			if !plannedEV.IsKnown() {
-				errs = append(errs, path.NewErrorf("element representing nested block must not be unknown itself; set nested attribute values to unknown instead"))
-				continue
-			}
+		plannedL := planned.LengthInt()
+		configL := config.LengthInt()
+		if plannedL != configL {
+			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+			return errs
 		}
+		// Because set elements have no identifier with which to correlate
+		// them, we can't robustly validate the plan for a nested object
+		// backed by a set, and so unfortunately we need to just trust the
+		// provider to do the right thing.
 	}
 
 	return errs

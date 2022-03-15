@@ -18,11 +18,6 @@
 
 set -eu
 
-# Make sure we're debugging the process where the code is actually running.
-# (This also, as a side effect, causes raw logs to go directly to stderr,
-# and panics to be expressed directly, since we lose the log/panic wrapper.)
-export TF_FORK=0
-
 echo "Launching Terraform in a headless debug session"
 echo "Connect to it using: dlv connect 127.0.0.1:2345"
 echo "(Terraform takes a long time to build and launch in this mode; some logs will appear below)"

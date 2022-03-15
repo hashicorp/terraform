@@ -1,11 +1,8 @@
 package command
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -36,46 +33,21 @@ func (m *Meta) storePluginPath(pluginPath []string) error {
 		return nil
 	}
 
-	path := filepath.Join(m.DataDir(), PluginPathFile)
+	m.fixupMissingWorkingDir()
 
 	// remove the plugin dir record if the path was set to an empty string
 	if len(pluginPath) == 1 && (pluginPath[0] == "") {
-		err := os.Remove(path)
-		if !os.IsNotExist(err) {
-			return err
-		}
-		return nil
+		return m.WorkingDir.SetForcedPluginDirs(nil)
 	}
 
-	js, err := json.MarshalIndent(pluginPath, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	// if this fails, so will WriteFile
-	os.MkdirAll(m.DataDir(), 0755)
-
-	return ioutil.WriteFile(path, js, 0644)
+	return m.WorkingDir.SetForcedPluginDirs(pluginPath)
 }
 
 // Load the user-defined plugin search path into Meta.pluginPath if the file
 // exists.
 func (m *Meta) loadPluginPath() ([]string, error) {
-	js, err := ioutil.ReadFile(filepath.Join(m.DataDir(), PluginPathFile))
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	var pluginPath []string
-	if err := json.Unmarshal(js, &pluginPath); err != nil {
-		return nil, err
-	}
-
-	return pluginPath, nil
+	m.fixupMissingWorkingDir()
+	return m.WorkingDir.ForcedPluginDirs()
 }
 
 // the default location for automatically installed plugins

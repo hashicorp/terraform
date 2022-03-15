@@ -105,7 +105,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 	if err := foo.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if v := foo.State(); v.HasResources() {
+	if v := foo.State(); v.HasManagedResourceInstanceObjects() {
 		t.Fatalf("should be empty: %s", v)
 	}
 
@@ -116,7 +116,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 	if err := bar.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if v := bar.State(); v.HasResources() {
+	if v := bar.State(); v.HasManagedResourceInstanceObjects() {
 		t.Fatalf("should be empty: %s", v)
 	}
 
@@ -168,7 +168,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing foo:", err)
 		}
 		fooState = foo.State()
-		if fooState.HasResources() {
+		if fooState.HasManagedResourceInstanceObjects() {
 			t.Fatal("after writing a resource to bar, foo now has resources too")
 		}
 
@@ -181,7 +181,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing foo:", err)
 		}
 		fooState = foo.State()
-		if fooState.HasResources() {
+		if fooState.HasManagedResourceInstanceObjects() {
 			t.Fatal("after writing a resource to bar and re-reading foo, foo now has resources too")
 		}
 
@@ -194,7 +194,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 			t.Fatal("error refreshing bar:", err)
 		}
 		barState = bar.State()
-		if !barState.HasResources() {
+		if !barState.HasManagedResourceInstanceObjects() {
 			t.Fatal("after writing a resource instance object to bar and re-reading it, the object has vanished")
 		}
 	}
@@ -237,7 +237,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 	if err := foo.RefreshState(); err != nil {
 		t.Fatalf("bad: %s", err)
 	}
-	if v := foo.State(); v.HasResources() {
+	if v := foo.State(); v.HasManagedResourceInstanceObjects() {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again

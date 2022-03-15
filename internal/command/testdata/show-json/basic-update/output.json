@@ -1,5 +1,5 @@
 {
-    "format_version": "0.2",
+    "format_version": "1.0",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -68,7 +68,7 @@
         }
     },
     "prior_state": {
-        "format_version": "0.2",
+        "format_version": "1.0",
         "values": {
             "outputs": {
                 "test": {
@@ -96,6 +96,12 @@
         }
     },
     "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
         "root_module": {
             "outputs": {
                 "test": {

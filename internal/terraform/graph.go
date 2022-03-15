@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -39,10 +40,24 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 
 	// Walk the graph.
 	walkFn := func(v dag.Vertex) (diags tfdiags.Diagnostics) {
+		// the walkFn is called asynchronously, and needs to be recovered
+		// separately in the case of a panic.
+		defer logging.PanicHandler()
+
 		log.Printf("[TRACE] vertex %q: starting visit (%T)", dag.VertexName(v), v)
 
 		defer func() {
-			log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					if diag.Severity() == tfdiags.Error {
+						desc := diag.Description()
+						log.Printf("[ERROR] vertex %q error: %s", dag.VertexName(v), desc.Summary)
+					}
+				}
+				log.Printf("[TRACE] vertex %q: visit complete, with errors", dag.VertexName(v))
+			} else {
+				log.Printf("[TRACE] vertex %q: visit complete", dag.VertexName(v))
+			}
 		}()
 
 		// vertexCtx is the context that we use when evaluating. This

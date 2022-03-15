@@ -14,11 +14,10 @@ func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *state
 	module := testModule(t, mod)
 
 	applyBuilder := &ApplyGraphBuilder{
-		Config:     module,
-		Changes:    changes,
-		Components: simpleMockComponentFactory(),
-		Schemas:    simpleTestSchemas(),
-		State:      state,
+		Config:  module,
+		Changes: changes,
+		Plugins: simpleMockPluginLibrary(),
+		State:   state,
 	}
 	g, err := (&BasicGraphBuilder{
 		Steps: cbdTestSteps(applyBuilder.Steps()),
@@ -47,7 +46,12 @@ func cbdTestSteps(steps []GraphTransformer) []GraphTransformer {
 		panic("CBDEdgeTransformer not found")
 	}
 
-	return steps[:i+1]
+	// re-add the root node so we have a valid graph for a walk, then reduce
+	// the graph for less output
+	steps = append(steps[:i+1], &CloseRootModuleTransformer{})
+	steps = append(steps, &TransitiveReductionTransformer{})
+
+	return steps
 }
 
 // remove extra nodes for easier test comparisons
@@ -106,7 +110,6 @@ func TestCBDEdgeTransformer(t *testing.T) {
 	expected := regexp.MustCompile(strings.TrimSpace(`
 (?m)test_object.A
 test_object.A \(destroy deposed \w+\)
-  test_object.A
   test_object.B
 test_object.B
   test_object.A
@@ -179,11 +182,9 @@ func TestCBDEdgeTransformerMulti(t *testing.T) {
 	expected := regexp.MustCompile(strings.TrimSpace(`
 (?m)test_object.A
 test_object.A \(destroy deposed \w+\)
-  test_object.A
   test_object.C
 test_object.B
 test_object.B \(destroy deposed \w+\)
-  test_object.B
   test_object.C
 test_object.C
   test_object.A
@@ -254,7 +255,6 @@ func TestCBDEdgeTransformer_depNonCBDCount(t *testing.T) {
 	expected := regexp.MustCompile(strings.TrimSpace(`
 (?m)test_object.A
 test_object.A \(destroy deposed \w+\)
-  test_object.A
   test_object.B\[0\]
   test_object.B\[1\]
 test_object.B\[0\]
@@ -340,12 +340,10 @@ func TestCBDEdgeTransformer_depNonCBDCountBoth(t *testing.T) {
 	expected := regexp.MustCompile(strings.TrimSpace(`
 test_object.A\[0\]
 test_object.A\[0\] \(destroy deposed \w+\)
-  test_object.A\[0\]
   test_object.B\[0\]
   test_object.B\[1\]
 test_object.A\[1\]
 test_object.A\[1\] \(destroy deposed \w+\)
-  test_object.A\[1\]
   test_object.B\[0\]
   test_object.B\[1\]
 test_object.B\[0\]

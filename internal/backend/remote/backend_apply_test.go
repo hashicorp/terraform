@@ -14,9 +14,11 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -43,14 +45,19 @@ func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.
 	stateLockerView := views.NewStateLocker(arguments.ViewHuman, view)
 	operationView := views.NewOperation(arguments.ViewHuman, false, view)
 
+	// Many of our tests use an overridden "null" provider that's just in-memory
+	// inside the test process, not a separate plugin on disk.
+	depLocks := depsfile.NewLocks()
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/null"))
+
 	return &backend.Operation{
-		ConfigDir:    configDir,
-		ConfigLoader: configLoader,
-		Parallelism:  defaultParallelism,
-		PlanRefresh:  true,
-		StateLocker:  clistate.NewLocker(timeout, stateLockerView),
-		Type:         backend.OperationTypeApply,
-		View:         operationView,
+		ConfigDir:       configDir,
+		ConfigLoader:    configLoader,
+		PlanRefresh:     true,
+		StateLocker:     clistate.NewLocker(timeout, stateLockerView),
+		Type:            backend.OperationTypeApply,
+		View:            operationView,
+		DependencyLocks: depLocks,
 	}, configCleanup, done
 }
 
@@ -223,7 +230,10 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.Parallelism = 3
+	if b.ContextOpts == nil {
+		b.ContextOpts = &terraform.ContextOpts{}
+	}
+	b.ContextOpts.Parallelism = 3
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -299,11 +309,11 @@ func TestRemote_applyWithoutRefresh(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh set
 	// to false.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*cloud.MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(false, run.Refresh); diff != "" {
 			t.Errorf("wrong Refresh setting in the created run\n%s", diff)
 		}
@@ -368,11 +378,11 @@ func TestRemote_applyWithRefreshOnly(t *testing.T) {
 
 	// We should find a run inside the mock client that has refresh-only set
 	// to true.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*cloud.MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff(true, run.RefreshOnly); diff != "" {
 			t.Errorf("wrong RefreshOnly setting in the created run\n%s", diff)
 		}
@@ -439,11 +449,11 @@ func TestRemote_applyWithTarget(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// target address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*cloud.MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.TargetAddrs); diff != "" {
 			t.Errorf("wrong TargetAddrs in the created run\n%s", diff)
 		}
@@ -514,11 +524,11 @@ func TestRemote_applyWithReplace(t *testing.T) {
 
 	// We should find a run inside the mock client that has the same
 	// refresh address we requested above.
-	runsAPI := b.client.Runs.(*mockRuns)
-	if got, want := len(runsAPI.runs), 1; got != want {
+	runsAPI := b.client.Runs.(*cloud.MockRuns)
+	if got, want := len(runsAPI.Runs), 1; got != want {
 		t.Fatalf("wrong number of runs in the mock client %d; want %d", got, want)
 	}
-	for _, run := range runsAPI.runs {
+	for _, run := range runsAPI.Runs {
 		if diff := cmp.Diff([]string{"null_resource.foo"}, run.ReplaceAddrs); diff != "" {
 			t.Errorf("wrong ReplaceAddrs in the created run\n%s", diff)
 		}
@@ -767,9 +777,7 @@ func TestRemote_applyApprovedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{
-			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
-		},
+		tfe.WorkspaceListOptions{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
@@ -843,9 +851,7 @@ func TestRemote_applyDiscardedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{
-			ListOptions: tfe.ListOptions{PageNumber: 2, PageSize: 10},
-		},
+		tfe.WorkspaceListOptions{},
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
@@ -999,7 +1005,7 @@ func TestRemote_applyForceLocal(t *testing.T) {
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
-	if !run.State.HasResources() {
+	if !run.State.HasManagedResourceInstanceObjects() {
 		t.Fatalf("expected resources in state")
 	}
 }
@@ -1062,7 +1068,7 @@ func TestRemote_applyWorkspaceWithoutOperations(t *testing.T) {
 	if output := done(t).Stdout(); !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
 	}
-	if !run.State.HasResources() {
+	if !run.State.HasManagedResourceInstanceObjects() {
 		t.Fatalf("expected resources in state")
 	}
 }
@@ -1594,7 +1600,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 			}
 
 			// RUN: prepare the apply operation and run it
-			op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+			op, configCleanup, _ := testOperationApply(t, "./testdata/apply")
 			defer configCleanup()
 
 			streams, done := terminal.StreamsForTesting(t)
@@ -1637,7 +1643,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 				output := b.CLI.(*cli.MockUi).OutputWriter.String()
 				hasRemote := strings.Contains(output, "Running apply in the remote backend")
 				hasSummary := strings.Contains(output, "1 added, 0 changed, 0 destroyed")
-				hasResources := run.State.HasResources()
+				hasResources := run.State.HasManagedResourceInstanceObjects()
 				if !tc.forceLocal && tc.hasOperations {
 					if !hasRemote {
 						t.Errorf("missing remote backend header in output: %s", output)

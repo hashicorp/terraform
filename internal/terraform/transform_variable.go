@@ -13,6 +13,8 @@ import (
 // reach them.
 type RootVariableTransformer struct {
 	Config *configs.Config
+
+	RawValues InputValues
 }
 
 func (t *RootVariableTransformer) Transform(g *Graph) error {
@@ -31,7 +33,8 @@ func (t *RootVariableTransformer) Transform(g *Graph) error {
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Config: v,
+			Config:   v,
+			RawValue: t.RawValues[v.Name],
 		}
 		g.Add(node)
 	}

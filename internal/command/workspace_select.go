@@ -68,7 +68,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	// This command will not write state
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	name := args[0]
 	if !validWorkspaceName(name) {
@@ -117,7 +117,6 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 
 func (c *WorkspaceSelectCommand) AutocompleteArgs() complete.Predictor {
 	return completePredictSequence{
-		complete.PredictNothing, // the "select" subcommand itself (already matched)
 		c.completePredictWorkspaceName(),
 		complete.PredictDirs(""),
 	}

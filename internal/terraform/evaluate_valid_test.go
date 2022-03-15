@@ -69,21 +69,19 @@ For example, to correlate with indices of a referring resource, use:
 	cfg := testModule(t, "static-validate-refs")
 	evaluator := &Evaluator{
 		Config: cfg,
-		Schemas: &Schemas{
-			Providers: map[addrs.Provider]*ProviderSchema{
-				addrs.NewDefaultProvider("aws"): {
-					ResourceTypes: map[string]*configschema.Block{
-						"aws_instance": {},
-					},
-				},
-				addrs.MustParseProviderSourceString("foobar/beep"): {
-					ResourceTypes: map[string]*configschema.Block{
-						// intentional mismatch between resource type prefix and provider type
-						"boop_instance": {},
-					},
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+			addrs.NewDefaultProvider("aws"): {
+				ResourceTypes: map[string]*configschema.Block{
+					"aws_instance": {},
 				},
 			},
-		},
+			addrs.MustParseProviderSourceString("foobar/beep"): {
+				ResourceTypes: map[string]*configschema.Block{
+					// intentional mismatch between resource type prefix and provider type
+					"boop_instance": {},
+				},
+			},
+		}),
 	}
 
 	for _, test := range tests {

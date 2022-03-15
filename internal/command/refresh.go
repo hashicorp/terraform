@@ -17,17 +17,24 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
+
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
 
 	// Parse and validate flags
 	args, diags := arguments.ParseRefresh(rawArgs)
 
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
-	var view views.Refresh
-	view = views.NewRefresh(args.ViewType, c.View)
+	view := views.NewRefresh(args.ViewType, c.View)
 
 	if diags.HasErrors() {
 		view.Diagnostics(diags)

@@ -538,6 +538,67 @@ func TestCoerceValue(t *testing.T) {
 			}),
 			``,
 		},
+		"nested types": {
+			// handle NestedTypes
+			&Block{
+				Attributes: map[string]*Attribute{
+					"foo": {
+						NestedType: &Object{
+							Nesting: NestingList,
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"baz": {
+									Type:     cty.Map(cty.String),
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+					"fob": {
+						NestedType: &Object{
+							Nesting: NestingSet,
+							Attributes: map[string]*Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("beep"),
+						"baz": cty.NullVal(cty.Map(cty.String)),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"bar": cty.StringVal("boop"),
+						"baz": cty.NullVal(cty.Map(cty.String)),
+					}),
+				}),
+				"fob": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+				}))),
+			}),
+			``,
+		},
 	}
 
 	for name, test := range tests {

@@ -27,27 +27,8 @@ import (
 // paths used to load configuration, because we want to prefer recording
 // relative paths in source code references within the configuration.
 func (m *Meta) normalizePath(path string) string {
-	var err error
-
-	// First we will make it absolute so that we have a consistent place
-	// to start.
-	path, err = filepath.Abs(path)
-	if err != nil {
-		// We'll just accept what we were given, then.
-		return path
-	}
-
-	cwd, err := os.Getwd()
-	if err != nil || !filepath.IsAbs(cwd) {
-		return path
-	}
-
-	ret, err := filepath.Rel(cwd, path)
-	if err != nil {
-		return path
-	}
-
-	return ret
+	m.fixupMissingWorkingDir()
+	return m.WorkingDir.NormalizePath(path)
 }
 
 // loadConfig reads a configuration from the given directory, which should
@@ -155,6 +136,12 @@ func (m *Meta) loadBackendConfig(rootDir string) (*configs.Backend, tfdiags.Diag
 	if diags.HasErrors() {
 		return nil, diags
 	}
+
+	if mod.CloudConfig != nil {
+		backendConfig := mod.CloudConfig.ToBackendConfig()
+		return &backendConfig, nil
+	}
+
 	return mod.Backend, nil
 }
 
@@ -177,26 +164,37 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 }
 
 // installModules reads a root module from the given directory and attempts
-// recursively install all of its descendent modules.
+// recursively to install all of its descendent modules.
 //
 // The given hooks object will be notified of installation progress, which
-// can then be relayed to the end-user. The moduleUiInstallHooks type in
+// can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
 	rootDir = m.normalizePath(rootDir)
 
 	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("failed to create local modules directory: %s", err))
-		return diags
+		return true, diags
 	}
 
 	inst := m.moduleInstaller()
-	_, moreDiags := inst.InstallModules(rootDir, upgrade, hooks)
+
+	// Installation can be aborted by interruption signals
+	ctx, done := m.InterruptibleContext()
+	defer done()
+
+	_, moreDiags := inst.InstallModules(ctx, rootDir, upgrade, hooks)
 	diags = diags.Append(moreDiags)
-	return diags
+
+	if ctx.Err() == context.Canceled {
+		m.showDiagnostics(diags)
+		m.Ui.Error("Module installation was canceled by an interrupt signal.")
+		return true, diags
+	}
+
+	return false, diags
 }
 
 // initDirFromModule initializes the given directory (which should be
@@ -205,15 +203,23 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 //
 // Internally this runs similar steps to installModules.
 // The given hooks object will be notified of installation progress, which
-// can then be relayed to the end-user. The moduleUiInstallHooks type in
+// can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+	// Installation can be aborted by interruption signals
+	ctx, done := m.InterruptibleContext()
+	defer done()
+
 	targetDir = m.normalizePath(targetDir)
-	moreDiags := initwd.DirFromModule(targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	moreDiags := initwd.DirFromModule(ctx, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
 	diags = diags.Append(moreDiags)
-	return diags
+	if ctx.Err() == context.Canceled {
+		m.showDiagnostics(diags)
+		m.Ui.Error("Module initialization was canceled by an interrupt signal.")
+		return true, diags
+	}
+	return false, diags
 }
 
 // inputForSchema uses interactive prompts to try to populate any

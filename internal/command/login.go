@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
@@ -311,13 +312,9 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 }
 
 func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
-	c.Ui.Output(
-		fmt.Sprintf(
-			c.Colorize().Color(strings.TrimSpace(`
+	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
 [green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
-`)),
-		) + "\n",
-	)
+` + "\n")))
 }
 
 func (c *LoginCommand) logMOTDError(err error) {
@@ -454,6 +451,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		}),
 	}
 	go func() {
+		defer logging.PanicHandler()
 		err := server.Serve(listener)
 		if err != nil && err != http.ErrServerClosed {
 			diags = diags.Append(tfdiags.Sourceless(

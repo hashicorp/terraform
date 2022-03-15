@@ -51,9 +51,14 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	}
 	if ov.Type != cty.NilType {
 		v.Type = ov.Type
+		v.ConstraintType = ov.ConstraintType
 	}
 	if ov.ParsingMode != 0 {
 		v.ParsingMode = ov.ParsingMode
+	}
+	if ov.NullableSet {
+		v.Nullable = ov.Nullable
+		v.NullableSet = ov.NullableSet
 	}
 
 	// If the override file overrode type without default or vice-versa then
@@ -67,7 +72,7 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 	// constraint but the converted value cannot. In practice, this situation
 	// should be rare since most of our conversions are interchangable.
 	if v.Default != cty.NilVal {
-		val, err := convert.Convert(v.Default, v.Type)
+		val, err := convert.Convert(v.Default, v.ConstraintType)
 		if err != nil {
 			// What exactly we'll say in the error message here depends on whether
 			// it was Default or Type that was overridden here.
@@ -98,6 +103,16 @@ func (v *Variable) merge(ov *Variable) hcl.Diagnostics {
 			}
 		} else {
 			v.Default = val
+		}
+
+		// ensure a null default wasn't merged in when it is not allowed
+		if !v.Nullable && v.Default.IsNull() {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid default value for variable",
+				Detail:   "A null default value is not valid when nullable=false.",
+				Subject:  &ov.DeclRange,
+			})
 		}
 	}
 
@@ -226,6 +241,9 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		}
 		if len(or.Managed.IgnoreChanges) != 0 {
 			r.Managed.IgnoreChanges = or.Managed.IgnoreChanges
+		}
+		if or.Managed.IgnoreAllChanges {
+			r.Managed.IgnoreAllChanges = true
 		}
 		if or.Managed.PreventDestroySet {
 			r.Managed.PreventDestroy = or.Managed.PreventDestroy

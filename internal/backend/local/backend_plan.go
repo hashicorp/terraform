@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -54,7 +55,7 @@ func (b *Local) opPlan(
 	}
 
 	// Get our context
-	tfCtx, configSnap, opState, ctxDiags := b.context(op)
+	lr, configSnap, opState, ctxDiags := b.localRun(op)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -70,19 +71,22 @@ func (b *Local) opPlan(
 		}
 	}()
 
-	runningOp.State = tfCtx.State()
+	// Since planning doesn't immediately change the persisted state, the
+	// resulting state is always just the input state.
+	runningOp.State = lr.InputState
 
 	// Perform the plan in a goroutine so we can be interrupted
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
+		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: plan calling Plan")
-		plan, planDiags = tfCtx.Plan()
+		plan, planDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 	}()
 
-	if b.opWait(doneCh, stopCtx, cancelCtx, tfCtx, opState, op.View) {
+	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
 		// If we get in here then the operation was cancelled, which is always
 		// considered to be a failure.
 		log.Printf("[INFO] backend/local: plan operation was force-cancelled by interrupt")
@@ -131,7 +135,13 @@ func (b *Local) opPlan(
 		}
 
 		log.Printf("[INFO] backend/local: writing plan output to: %s", path)
-		err := planfile.Create(path, configSnap, prevStateFile, plannedStateFile, plan)
+		err := planfile.Create(path, planfile.CreateArgs{
+			ConfigSnapshot:       configSnap,
+			PreviousRunStateFile: prevStateFile,
+			StateFile:            plannedStateFile,
+			Plan:                 plan,
+			DependencyLocks:      op.DependencyLocks,
+		})
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -144,7 +154,13 @@ func (b *Local) opPlan(
 	}
 
 	// Render the plan
-	op.View.Plan(plan, tfCtx.Schemas())
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+	op.View.Plan(plan, schemas)
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered

@@ -43,15 +43,15 @@ type GraphNodeAttachProvisionerSchema interface {
 // GraphNodeAttachProvisionerSchema, looks up the needed schemas for each
 // and then passes them to a method implemented by the node.
 type AttachSchemaTransformer struct {
-	Schemas *Schemas
+	Plugins *contextPlugins
 	Config  *configs.Config
 }
 
 func (t *AttachSchemaTransformer) Transform(g *Graph) error {
-	if t.Schemas == nil {
+	if t.Plugins == nil {
 		// Should never happen with a reasonable caller, but we'll return a
 		// proper error here anyway so that we'll fail gracefully.
-		return fmt.Errorf("AttachSchemaTransformer used with nil Schemas")
+		return fmt.Errorf("AttachSchemaTransformer used with nil Plugins")
 	}
 
 	for _, v := range g.Vertices() {
@@ -62,7 +62,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 			typeName := addr.Resource.Type
 			providerFqn := tv.Provider()
 
-			schema, version := t.Schemas.ResourceTypeConfig(providerFqn, mode, typeName)
+			schema, version, err := t.Plugins.ResourceTypeSchema(providerFqn, mode, typeName)
+			if err != nil {
+				return fmt.Errorf("failed to read schema for %s in %s: %s", addr, providerFqn, err)
+			}
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No resource schema available for %s", addr)
 				continue
@@ -73,8 +76,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 
 		if tv, ok := v.(GraphNodeAttachProviderConfigSchema); ok {
 			providerAddr := tv.ProviderAddr()
-			schema := t.Schemas.ProviderConfig(providerAddr.Provider)
-
+			schema, err := t.Plugins.ProviderConfigSchema(providerAddr.Provider)
+			if err != nil {
+				return fmt.Errorf("failed to read provider configuration schema for %s: %s", providerAddr.Provider, err)
+			}
 			if schema == nil {
 				log.Printf("[ERROR] AttachSchemaTransformer: No provider config schema available for %s", providerAddr)
 				continue
@@ -86,7 +91,10 @@ func (t *AttachSchemaTransformer) Transform(g *Graph) error {
 		if tv, ok := v.(GraphNodeAttachProvisionerSchema); ok {
 			names := tv.ProvisionedBy()
 			for _, name := range names {
-				schema := t.Schemas.ProvisionerConfig(name)
+				schema, err := t.Plugins.ProvisionerSchema(name)
+				if err != nil {
+					return fmt.Errorf("failed to read provisioner configuration schema for %q: %s", name, err)
+				}
 				if schema == nil {
 					log.Printf("[ERROR] AttachSchemaTransformer: No schema available for provisioner %q on %q", name, dag.VertexName(v))
 					continue
