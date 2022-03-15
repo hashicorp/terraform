@@ -154,7 +154,7 @@ original block. If both the base block and the override block both set
 The presence of a block defining a backend (either `cloud` or `backend`) in an override
 file always takes precedence over a block defining a backend in the original configuration.
 That is, if a `cloud` block is set within the original configuration and a `backend` block is
-set in the override file, Terraform will use the `backend` block specified in the override file as the
-configuration's backend upon merging. Similarly, if a `backend` block is set within the original
-configuration and a `cloud` block is set in the override file, Terraform will use the `cloud`
-block specified in the override file as the configuration's backend upon merging.
+set in the override file, Terraform will use the `backend` block specified in the override file upon merging.
+Similarly, if a `backend` block is set within the original configuration and a `cloud` block
+is set in the override file, Terraform will use the `cloud` block specified in the override
+file upon merging.
