@@ -1620,7 +1620,10 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Update
 				}
 
-				if action == plans.NoOp && !p.verbose {
+				// TODO: If in future we have a schema associated with this
+				// object, we should pass the attribute's schema to
+				// identifyingAttribute here.
+				if action == plans.NoOp && !p.verbose && !identifyingAttribute(k, nil) {
 					suppressedElements++
 					continue
 				}
