@@ -527,6 +527,10 @@ var SumFunc = function.New(&function.Spec{
 		if s.IsNull() {
 			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
 		}
+		s, err = convert.Convert(s, cty.Number)
+		if err != nil {
+			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
+		}
 		for _, v := range arg[1:] {
 			if v.IsNull() {
 				return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
