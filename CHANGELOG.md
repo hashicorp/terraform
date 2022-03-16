@@ -1,5 +1,9 @@
 ## 1.1.8 (Unreleased)
 
+BUG FIXES:
+
+* functions: Fix error when `sum()` function is called with a collection of string-encoded numbers, such as `sum(["1", "2", "3"])`. [GH-30684]
+
 ## 1.1.7 (March 02, 2022)
 
 BUG FIXES:
