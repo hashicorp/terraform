@@ -1629,6 +1629,15 @@ func TestSum(t *testing.T) {
 			cty.NilVal,
 			"can't compute sum of opposing infinities",
 		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1"),
+				cty.StringVal("2"),
+				cty.StringVal("3"),
+			}),
+			cty.NumberIntVal(6),
+			"",
+		},
 	}
 
 	for _, test := range tests {
