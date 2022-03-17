@@ -23,7 +23,9 @@ func Serve(ctx context.Context, opts ServeOpts) error {
 		Handshake: handshakeConfig,
 		ProtoVersions: map[int]rpcplugin.ServerVersion{
 			1: version1{
-				getCoreOpts: opts.GetCoreOpts,
+				getCoreOpts:   opts.GetCoreOpts,
+				cwd:           opts.WorkingDir,
+				cwdModulesDir: opts.ModulesDir,
 			},
 		},
 	})

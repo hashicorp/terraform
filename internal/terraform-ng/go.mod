@@ -35,6 +35,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734 // indirect
+	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.11.2 // indirect
@@ -45,7 +46,9 @@ require (
 	github.com/mitchellh/go-testing-interface v1.0.4 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/oklog/run v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
@@ -66,8 +69,8 @@ require (
 )
 
 require (
+	github.com/hashicorp/go-plugin v1.4.3
 	github.com/hashicorp/hcl/v2 v2.11.1
-	github.com/spf13/afero v1.6.0 // indirect
 	github.com/spf13/cobra v1.3.0
 	github.com/zclconf/go-cty v1.10.0
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
@@ -76,5 +79,3 @@ require (
 )
 
 replace github.com/hashicorp/terraform => ../../
-
-replace github.com/hashicorp/terraform-workflow-lang => ../../../terraform-workflow-lang
