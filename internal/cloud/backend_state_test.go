@@ -33,7 +33,7 @@ func TestRemoteClient_stateLock(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
+	remote.TestRemoteLocks(t, s1.(*State).Client, s2.(*State).Client)
 }
 
 func TestRemoteClient_withRunID(t *testing.T) {

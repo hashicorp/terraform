@@ -117,7 +117,33 @@ func testRemoteClient(t *testing.T) remote.Client {
 		t.Fatalf("error: %v", err)
 	}
 
-	return raw.(*remote.State).Client
+	return raw.(*State).Client
+}
+
+func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
+	b, cleanup := testBackendWithName(t)
+
+	// Get a new mock client to use for adding outputs
+	mc := NewMockClient()
+
+	mc.StateVersionOutputs.create("svo-abcd", &tfe.StateVersionOutput{
+		ID:        "svo-abcd",
+		Value:     "foobar",
+		Sensitive: true,
+		Type:      "string",
+		Name:      "sensitive_output",
+	})
+
+	mc.StateVersionOutputs.create("svo-zyxw", &tfe.StateVersionOutput{
+		ID:    "svo-zyxw",
+		Value: "bazqux",
+		Type:  "string",
+		Name:  "nonsensitive_output",
+	})
+
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
+
+	return b, cleanup
 }
 
 func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
@@ -149,6 +175,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 

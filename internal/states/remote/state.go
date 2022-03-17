@@ -46,6 +46,19 @@ func (s *State) State() *states.State {
 	return s.state.DeepCopy()
 }
 
+func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	if err := s.RefreshState(); err != nil {
+		return nil, fmt.Errorf("Failed to load state: %s", err)
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.RootModule().OutputValues, nil
+}
+
 // StateForMigration is part of our implementation of statemgr.Migrator.
 func (s *State) StateForMigration() *statefile.File {
 	s.mu.Lock()

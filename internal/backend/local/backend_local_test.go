@@ -220,6 +220,10 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
 	return fmt.Errorf("unimplemented")
 }
