@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -628,7 +627,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
-	return &remote.State{Client: client}, nil
+	return NewState(client), nil
 }
 
 // Operation implements backend.Enhanced.
