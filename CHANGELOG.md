@@ -11,6 +11,7 @@ ENHANCEMENTS:
 * When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about post-plan [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks). [GH-30141]
 * Error messages for preconditions, postconditions, and custom variable validations are now evaluated as expressions, allowing interpolation of relevant values into the output. [GH-30613]
 * There are some small improvements to the error and warning messages Terraform will emit in the case of invalid provider configuration passing between modules. There are no changes to which situations will produce errors and warnings, but the messages now include additional information intended to clarify what problem Terraform is describing and how to address it. [GH-30639]
+* When running `terraform plan`, only show external changes which may have contributed to the current plan [GH-30486]
 
 BUG FIXES:
 
