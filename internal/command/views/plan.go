@@ -9,9 +9,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // The Plan view is used for the plan command.
@@ -96,37 +100,7 @@ func (v *PlanJSON) HelpPrompt() {
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
 func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
-	// In refresh-only mode, we show all resources marked as drifted,
-	// including those which have moved without other changes. In other plan
-	// modes, move-only changes will be rendered in the planned changes, so
-	// we skip them here.
-	var driftedResources []*plans.ResourceInstanceChangeSrc
-	if plan.UIMode == plans.RefreshOnlyMode {
-		driftedResources = plan.DriftedResources
-	} else {
-		for _, dr := range plan.DriftedResources {
-			if dr.Action != plans.NoOp {
-				driftedResources = append(driftedResources, dr)
-			}
-		}
-	}
-
-	haveRefreshChanges := len(driftedResources) > 0
-	if haveRefreshChanges {
-		renderChangesDetectedByRefresh(driftedResources, schemas, view)
-		switch plan.UIMode {
-		case plans.RefreshOnlyMode:
-			view.streams.Println(format.WordWrap(
-				"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
-				view.outputColumns(),
-			))
-		default:
-			view.streams.Println(format.WordWrap(
-				"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
-				view.outputColumns(),
-			))
-		}
-	}
+	haveRefreshChanges := renderChangesDetectedByRefresh(plan, schemas, view)
 
 	counts := map[plans.Action]int{}
 	var rChanges []*plans.ResourceInstanceChangeSrc
@@ -304,7 +278,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			}
 
 			view.streams.Println(format.ResourceChange(
-				rcs,
+				decodeChange(rcs, rSchema),
 				rSchema,
 				view.colorize,
 				format.DiffLanguageProposedChange,
@@ -360,12 +334,66 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 // renderChangesDetectedByRefresh returns true if it produced at least one
 // line of output, and guarantees to always produce whole lines terminated
 // by newline characters.
-func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas, view *View) {
+func renderChangesDetectedByRefresh(plan *plans.Plan, schemas *terraform.Schemas, view *View) (rendered bool) {
+	// If this is not a refresh-only plan, we will need to filter out any
+	// non-relevant changes to reduce plan output.
+	relevant := make(map[string]bool)
+	for _, r := range plan.RelevantAttributes {
+		relevant[r.Resource.String()] = true
+	}
+
+	var changes []*plans.ResourceInstanceChange
+	for _, rcs := range plan.DriftedResources {
+		providerSchema := schemas.ProviderSchema(rcs.ProviderAddr.Provider)
+		if providerSchema == nil {
+			// Should never happen
+			view.streams.Printf("(schema missing for %s)\n\n", rcs.ProviderAddr)
+			continue
+		}
+		rSchema, _ := providerSchema.SchemaForResourceAddr(rcs.Addr.Resource.Resource)
+		if rSchema == nil {
+			// Should never happen
+			view.streams.Printf("(schema missing for %s)\n\n", rcs.Addr)
+			continue
+		}
+
+		changes = append(changes, decodeChange(rcs, rSchema))
+	}
+
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+	var drs []*plans.ResourceInstanceChange
+	if plan.UIMode == plans.RefreshOnlyMode {
+		drs = changes
+	} else {
+		for _, dr := range changes {
+			change := filterRefreshChange(dr, plan.RelevantAttributes)
+			if change.Action != plans.NoOp {
+				dr.Change = change
+				drs = append(drs, dr)
+			}
+		}
+	}
+
+	if len(drs) == 0 {
+		return false
+	}
+
+	// In an empty plan, we don't show any outside changes, because nothing in
+	// the plan could have been affected by those changes. If a user wants to
+	// see all external changes, then a refresh-only plan should be executed
+	// instead.
+	if plan.Changes.Empty() && plan.UIMode != plans.RefreshOnlyMode {
+		return false
+	}
+
 	view.streams.Print(
 		view.colorize.Color("[reset]\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform[reset]\n\n"),
 	)
 	view.streams.Print(format.WordWrap(
-		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\":\n\n",
+		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\" which may have affected this plan:\n\n",
 		view.outputColumns(),
 	))
 
@@ -403,6 +431,111 @@ func renderChangesDetectedByRefresh(drs []*plans.ResourceInstanceChangeSrc, sche
 			format.DiffLanguageDetectedDrift,
 		))
 	}
+
+	switch plan.UIMode {
+	case plans.RefreshOnlyMode:
+		view.streams.Println(format.WordWrap(
+			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			view.outputColumns(),
+		))
+	default:
+		view.streams.Println(format.WordWrap(
+			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			view.outputColumns(),
+		))
+	}
+
+	return true
+}
+
+// Filter individual resource changes for display based on the attributes which
+// may have contributed to the plan as a whole. In order to continue to use the
+// existing diff renderer, we are going to create a fake change for display,
+// only showing the attributes we're interested in.
+// The resulting change will be a NoOp if it has nothing relevant to the plan.
+func filterRefreshChange(change *plans.ResourceInstanceChange, contributing []globalref.ResourceAttr) plans.Change {
+
+	if change.Action == plans.NoOp {
+		return change.Change
+	}
+
+	var relevantAttrs []cty.Path
+	resAddr := change.Addr
+
+	for _, attr := range contributing {
+		if !resAddr.ContainingResource().Equal(attr.Resource.ContainingResource()) {
+			continue
+		}
+
+		// If the contributing address has no instance key, then the
+		// contributing reference applies to all instances.
+		if attr.Resource.Resource.Key == addrs.NoKey || resAddr.Equal(attr.Resource) {
+			relevantAttrs = append(relevantAttrs, attr.Attr)
+		}
+	}
+
+	// If no attributes are relevant in this resource, then we can turn this
+	// onto a NoOp change for display.
+	if len(relevantAttrs) == 0 {
+		return plans.Change{
+			Action: plans.NoOp,
+			Before: change.Before,
+			After:  change.Before,
+		}
+	}
+
+	// We have some attributes in this change which were marked as relevant, so
+	// we are going to take the Before value and add in only those attributes
+	// from the After value which may have contributed to the plan.
+	before := change.Before
+	after, _ := cty.Transform(before, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		for i, attrPath := range relevantAttrs {
+			// If the current value is null, but we are only a prefix of the
+			// affected path, we need to take the value from this point since
+			// we can't recurse any further into the object. This has the
+			// possibility of pulling in extra attribute changes we're not
+			// concerned with, but we can take this as "close enough" for now.
+			if (v.IsNull() && attrPath.HasPrefix(path)) || attrPath.Equals(path) {
+				// remove the path from further consideration
+				relevantAttrs = append(relevantAttrs[:i], relevantAttrs[i+1:]...)
+
+				v, err := path.Apply(change.After)
+				return v, err
+			}
+		}
+		return v, nil
+	})
+
+	action := change.Action
+	if before.RawEquals(after) {
+		action = plans.NoOp
+	}
+
+	return plans.Change{
+		Action: action,
+		Before: before,
+		After:  after,
+	}
+}
+
+func decodeChange(change *plans.ResourceInstanceChangeSrc, schema *configschema.Block) *plans.ResourceInstanceChange {
+	changeV, err := change.Decode(schema.ImpliedType())
+	if err != nil {
+		// Should never happen in here, since we've already been through
+		// loads of layers of encode/decode of the planned changes before now.
+		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", change.Addr, err))
+	}
+
+	// We currently have an opt-out that permits the legacy SDK to return values
+	// that defy our usual conventions around handling of nesting blocks. To
+	// avoid the rendering code from needing to handle all of these, we'll
+	// normalize first.
+	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
+	// but we've added it here for now to reduce risk of unexpected impacts
+	// on other code in core.)
+	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
+	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
+	return changeV
 }
 
 const planHeaderIntro = `

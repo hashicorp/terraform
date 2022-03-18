@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -35,6 +36,16 @@ type Plan struct {
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
+
+	// RelevantAttributes is a set of resource instance addresses and
+	// attributes that are either directly affected by proposed changes or may
+	// have indirectly contributed to them via references in expressions.
+	//
+	// This is the result of a heuristic and is intended only as a hint to
+	// the UI layer in case it wants to emphasize or de-emphasize certain
+	// resources. Don't use this to drive any non-cosmetic behavior, especially
+	// including anything that would be subject to compatibility constraints.
+	RelevantAttributes []globalref.ResourceAttr
 
 	// PrevRunState and PriorState both describe the situation that the plan
 	// was derived from:

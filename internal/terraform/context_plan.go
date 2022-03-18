@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -199,6 +200,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+	diags = diags.Append(rDiags)
+
+	plan.RelevantAttributes = relevantAttrs
 	return plan, diags
 }
 
@@ -285,6 +290,10 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	// objects that would need to be created.
 	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
+	// We don't populate RelevantResources for a refresh-only plan, because
+	// they never have any planned actions and so no resource can ever be
+	// "relevant" per the intended meaning of that field.
+
 	return plan, diags
 }
 
@@ -357,6 +366,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = pendingPlan.PrevRunState
 	}
 
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
+	diags = diags.Append(rDiags)
+
+	destroyPlan.RelevantAttributes = relevantAttrs
 	return destroyPlan, diags
 }
 
@@ -735,4 +748,53 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 			itemsBuf.String(),
 		),
 	)
+}
+
+// referenceAnalyzer returns a globalref.Analyzer object to help with
+// global analysis of references within the configuration that's attached
+// to the receiving context.
+func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State) (*globalref.Analyzer, tfdiags.Diagnostics) {
+	schemas, diags := c.Schemas(config, state)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return globalref.NewAnalyzer(config, schemas.Providers), diags
+}
+
+// relevantResourcesForPlan implements the heuristic we use to populate the
+// RelevantResources field of returned plans.
+func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
+	azr, diags := c.referenceAnalyzer(config, plan.PriorState)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	var refs []globalref.Reference
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.NoOp {
+			continue
+		}
+
+		moreRefs := azr.ReferencesFromResourceInstance(change.Addr)
+		refs = append(refs, moreRefs...)
+	}
+
+	for _, change := range plan.Changes.Outputs {
+		if change.Action == plans.NoOp {
+			continue
+		}
+
+		moreRefs := azr.ReferencesFromOutputValue(change.Addr)
+		refs = append(refs, moreRefs...)
+	}
+
+	var contributors []globalref.ResourceAttr
+
+	for _, ref := range azr.ContributingResourceReferences(refs...) {
+		if res, ok := ref.ResourceAttr(); ok {
+			contributors = append(contributors, res)
+		}
+	}
+
+	return contributors, diags
 }
