@@ -1131,6 +1131,92 @@ func TestResourceChange_JSON(t *testing.T) {
 	runTestCases(t, testCases)
 }
 
+func TestResourceChange_listObject(t *testing.T) {
+	testCases := map[string]testCase{
+		// https://github.com/hashicorp/terraform/issues/30641
+		"updating non-identifying attribute": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"accounts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("1"),
+						"name":   cty.StringVal("production"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("2"),
+						"name":   cty.StringVal("staging"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("3"),
+						"name":   cty.StringVal("disaster-recovery"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"accounts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("1"),
+						"name":   cty.StringVal("production"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("2"),
+						"name":   cty.StringVal("staging"),
+						"status": cty.StringVal("EXPLODED"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("3"),
+						"name":   cty.StringVal("disaster-recovery"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"accounts": {
+						Type: cty.List(cty.Object(map[string]cty.Type{
+							"id":     cty.String,
+							"name":   cty.String,
+							"status": cty.String,
+						})),
+					},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ accounts = [
+            {
+                id     = "1"
+                name   = "production"
+                status = "ACTIVE"
+            },
+          ~ {
+                id     = "2"
+                name   = "staging"
+              ~ status = "ACTIVE" -> "EXPLODED"
+            },
+            {
+                id     = "3"
+                name   = "disaster-recovery"
+                status = "ACTIVE"
+            },
+        ]
+      ~ id       = "i-02ae66f368e8518a9" -> (known after apply)
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
 func TestResourceChange_primitiveList(t *testing.T) {
 	testCases := map[string]testCase{
 		"in-place update - creation": {
