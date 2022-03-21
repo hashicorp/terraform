@@ -16,12 +16,14 @@ manual intervention is necessary with the remote state.
 
 Usage: `terraform state push [options] PATH`
 
-This command will push the state specified by PATH to the currently
+This command pushes the state specified by PATH to the currently
 configured [backend](/language/settings/backends).
 
 If PATH is "-" then the state data to push is read from stdin. This data
 is loaded completely into memory and verified prior to being written to
 the destination state.
+
+-> **Note:** Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state push | sc terraform.tfstate`.
 
 Terraform will perform a number of safety checks to prevent you from
 making changes that appear to be unsafe:
