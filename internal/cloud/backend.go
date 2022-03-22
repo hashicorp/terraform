@@ -113,7 +113,7 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 			},
 			"organization": {
 				Type:        cty.String,
-				Required:    true,
+				Optional:    true,
 				Description: schemaDescriptionOrganization,
 			},
 			"token": {
@@ -152,8 +152,13 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		return obj, diags
 	}
 
+	// check if organization is specified in the config.
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(invalidOrganizationConfigMissingValue)
+		// organization is specified in the config but is invalid, so
+		// we'll fallback on TF_ORGANIZATION
+		if val := os.Getenv("TF_ORGANIZATION"); val == "" {
+			diags = diags.Append(invalidOrganizationConfigMissingValue)
+		}
 	}
 
 	WorkspaceMapping := WorkspaceMapping{}
@@ -342,8 +347,14 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 		b.hostname = defaultHostname
 	}
 
-	// Get the organization.
-	if val := obj.GetAttr("organization"); !val.IsNull() {
+	// We can have two options, setting the organization via the config
+	// or using TF_ORGANIZATION. Since PrepareConfig() validates that one of these
+	// values must exist, we'll initially set it to the env var and override it if
+	// specified in the configuration.
+	b.organization = os.Getenv("TF_ORGANIZATION")
+
+	// Check if the organization is present and valid in the config.
+	if val := obj.GetAttr("organization"); !val.IsNull() && val.AsString() != "" {
 		b.organization = val.AsString()
 	}
 

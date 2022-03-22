@@ -146,6 +146,119 @@ func TestCloud_PrepareConfig(t *testing.T) {
 	}
 }
 
+func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
+	cases := map[string]struct {
+		config      cty.Value
+		vars        map[string]string
+		expectedErr string
+	}{
+		"with no organization": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_ORGANIZATION": "example-org",
+			},
+		},
+		"with no organization attribute or env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars:        map[string]string{},
+			expectedErr: `Invalid organization value: The "organization" attribute value must not be empty.`,
+		},
+	}
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		for k, v := range tc.vars {
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
+		_, valDiags := b.PrepareConfig(tc.config)
+		if valDiags.Err() != nil && tc.expectedErr != "" {
+			actualErr := valDiags.Err().Error()
+			if !strings.Contains(actualErr, tc.expectedErr) {
+				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			}
+		}
+	}
+}
+
+func TestCloud_configWithEnvVars(t *testing.T) {
+	cases := map[string]struct {
+		config               cty.Value
+		vars                 map[string]string
+		expectedOrganization string
+	}{
+		"with no organization specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_ORGANIZATION": "hashicorp",
+			},
+			expectedOrganization: "hashicorp",
+		},
+		"with both organization and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_ORGANIZATION": "we-should-not-see-this",
+			},
+			expectedOrganization: "hashicorp",
+		},
+	}
+
+	for name, tc := range cases {
+		s := testServer(t)
+		b := New(testDisco(s))
+
+		for k, v := range tc.vars {
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
+		_, valDiags := b.PrepareConfig(tc.config)
+		if valDiags.Err() != nil {
+			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+		}
+
+		diags := b.Configure(tc.config)
+		if diags.Err() != nil {
+			t.Fatalf("%s: unexpected configuration result: %v", name, valDiags.Err())
+		}
+
+		if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
+			t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
+		}
+	}
+}
+
 func TestCloud_config(t *testing.T) {
 	cases := map[string]struct {
 		config  cty.Value
