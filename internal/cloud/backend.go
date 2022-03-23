@@ -273,7 +273,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check if the organization exists by reading its entitlements.
-	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
+	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
@@ -452,10 +452,10 @@ func (b *Cloud) Workspaces() ([]string, error) {
 
 	// Otherwise, multiple workspaces are being mapped. Query Terraform Cloud for all the remote
 	// workspaces by the provided mapping strategy.
-	options := tfe.WorkspaceListOptions{}
+	options := &tfe.WorkspaceListOptions{}
 	if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
 		taglist := strings.Join(b.WorkspaceMapping.Tags, ",")
-		options.Tags = &taglist
+		options.Tags = taglist
 	}
 
 	for {

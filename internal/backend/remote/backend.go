@@ -321,7 +321,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check if the organization exists by reading its entitlements.
-	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
+	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
@@ -527,12 +527,12 @@ func (b *Remote) Workspaces() ([]string, error) {
 
 // workspaces returns a filtered list of remote workspace names.
 func (b *Remote) workspaces() ([]string, error) {
-	options := tfe.WorkspaceListOptions{}
+	options := &tfe.WorkspaceListOptions{}
 	switch {
 	case b.workspace != "":
-		options.Search = tfe.String(b.workspace)
+		options.Search = b.workspace
 	case b.prefix != "":
-		options.Search = tfe.String(b.prefix)
+		options.Search = b.prefix
 	}
 
 	// Create a slice to contain all the names.
