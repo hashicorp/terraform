@@ -169,7 +169,7 @@ func TestDiagnostic(t *testing.T) {
 [red]│[reset]   on test.tf line 1:
 [red]│[reset]    1: test [underline]source[reset] code
 [red]│[reset]     [dark_gray]├────────────────[reset]
-[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] is a string, known only after apply
+[red]│[reset]     [dark_gray]│[reset] [bold]boop.beep[reset] contains an unknown string expression
 [red]│[reset]
 [red]│[reset] Whatever shall we do?
 [red]╵[reset]
