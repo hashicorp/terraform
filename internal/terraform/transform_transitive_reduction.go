@@ -1,8 +1,8 @@
 package terraform
 
-// TransitiveReductionTransformer is a GraphTransformer that performs
+// TransitiveReductionTransformer is a GraphTransformer that
 // finds the transitive reduction of the graph. For a definition of
-// transitive reduction, see Wikipedia.
+// transitive reduction, see [Wikipedia](https://en.wikipedia.org/wiki/Transitive_reduction).
 type TransitiveReductionTransformer struct{}
 
 func (t *TransitiveReductionTransformer) Transform(g *Graph) error {
