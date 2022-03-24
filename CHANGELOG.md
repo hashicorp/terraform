@@ -21,6 +21,10 @@ BUG FIXES:
 * Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. [GH-29972]
 * Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address. [GH-30703]
 
+UPGRADE NOTES:
+
+* The Terraform Cloud integration relies on the Go-TFE SDK. Terraform has upgraded this dependency to use its new major version 1.0 [GH-30626]. [Go-TFE v1.0.0 CHANGELOG](https://github.com/hashicorp/go-tfe/releases/tag/v1.0.0).
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
