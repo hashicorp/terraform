@@ -61,7 +61,7 @@ var CidrNetmaskFunc = function.New(&function.Spec{
 		}
 
 		if network.IP.To4() == nil {
-			return cty.UnknownVal(cty.String), fmt.Errorf("IPv6 is invalid")
+			return cty.UnknownVal(cty.String), fmt.Errorf("IPv6 addresses cannot have a netmask: %s", args[0].AsString())
 		}
 
 		return cty.StringVal(ipaddr.IP(network.Mask).String()), nil
