@@ -82,6 +82,13 @@ The `cloud` block supports the following configuration arguments:
   `credentials` in the
   [CLI config file](/cli/config/config-file#credentials).
 
+### Environment Variables
+
+Alternatively, the `cloud` block can be configured with the following environment variables:
+
+- `TF_ORGANIZATION` - The name of the organization. Serves as a fallback for `organization`
+    in the cloud configuration. If both are specified, the configuration takes precedence. 
+
 ## Excluding Files from Upload with .terraformignore
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/cloud-docs/run/cli),
