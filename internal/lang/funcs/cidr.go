@@ -60,6 +60,10 @@ var CidrNetmaskFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), fmt.Errorf("invalid CIDR expression: %s", err)
 		}
 
+		if network.IP.To4() == nil {
+			return cty.UnknownVal(cty.String), fmt.Errorf("IPv6 addresses cannot have a netmask: %s", args[0].AsString())
+		}
+
 		return cty.StringVal(ipaddr.IP(network.Mask).String()), nil
 	},
 })
