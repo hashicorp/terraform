@@ -19,7 +19,7 @@ BUG FIXES:
 * `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. [GH-30138]
 * Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). [GH-30517]
 * Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. [GH-29972]
-
+* Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address. [GH-30703]
 
 ## Previous Releases
 
