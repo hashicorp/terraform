@@ -201,6 +201,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		config               cty.Value
 		vars                 map[string]string
 		expectedOrganization string
+		expectedHostname     string
 	}{
 		"with no organization specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -232,6 +233,36 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			},
 			expectedOrganization: "hashicorp",
 		},
+		"with no hostname specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_HOSTNAME": "app.terraform.io",
+			},
+			expectedHostname: "app.terraform.io",
+		},
+		"with hostname and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("app.terraform.io"),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_HOSTNAME": "mycool.tfe-host.io",
+			},
+			expectedHostname: "app.terraform.io",
+		},
 	}
 
 	for name, tc := range cases {
@@ -255,6 +286,10 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 
 		if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
 			t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
+		}
+
+		if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
+			t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
 		}
 	}
 }
