@@ -8,8 +8,8 @@ description: >-
 
 # File Provisioner
 
-The `file` provisioner is used to copy files or directories from the machine
-executing Terraform to the newly created resource. The `file` provisioner
+The `file` provisioner copies files or directories from the machine
+running Terraform to the newly created resource. The `file` provisioner
 supports both `ssh` and `winrm` type [connections](/language/resources/provisioners/connection).
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
@@ -46,6 +46,8 @@ resource "aws_instance" "web" {
   }
 }
 ```
+
+-> **Note:** When the `file` provisioner communicates with a Windows system over SSH, you must configure OpenSSH to run the commands with `cmd.exe` and not PowerShell. PowerShell causes file parsing errors because it is incompatible with both Unix shells and the Windows command interpreter.
 
 ## Argument Reference
 
