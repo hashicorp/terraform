@@ -157,7 +157,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		// organization is specified in the config but is invalid, so
 		// we'll fallback on TF_ORGANIZATION
 		if val := os.Getenv("TF_ORGANIZATION"); val == "" {
-			diags = diags.Append(invalidOrganizationConfigMissingValue)
+			diags = diags.Append(missingConfigAttributeAndEnvVar("organization", "TF_ORGANIZATION"))
 		}
 	}
 

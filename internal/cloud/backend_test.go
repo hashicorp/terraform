@@ -86,7 +86,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			expectedErr: `Invalid organization value: The "organization" attribute value must not be empty.`,
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_ORGANIZATION.`,
 		},
 		"null workspace": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -173,7 +173,7 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars:        map[string]string{},
-			expectedErr: `Invalid organization value: The "organization" attribute value must not be empty.`,
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_ORGANIZATION.`,
 		},
 	}
 
