@@ -14,31 +14,9 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-type checkType int
-
-const (
-	checkInvalid               checkType = 0
-	checkResourcePrecondition  checkType = 1
-	checkResourcePostcondition checkType = 2
-	checkOutputPrecondition    checkType = 3
-)
-
-func (c checkType) FailureSummary() string {
-	switch c {
-	case checkResourcePrecondition:
-		return "Resource precondition failed"
-	case checkResourcePostcondition:
-		return "Resource postcondition failed"
-	case checkOutputPrecondition:
-		return "Module output value precondition failed"
-	default:
-		// This should not happen
-		return "Failed condition for invalid check type"
-	}
-}
 
 // evalCheckRules ensures that all of the given check rules pass against
 // the given HCL evaluation context.
@@ -49,7 +27,9 @@ func (c checkType) FailureSummary() string {
 //
 // If any of the rules do not pass, the returned diagnostics will contain
 // errors. Otherwise, it will either be empty or contain only warnings.
-func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Referenceable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) (diags tfdiags.Diagnostics) {
+func evalCheckRules(typ addrs.CheckType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if len(rules) == 0 {
 		// Nothing to do
 		return nil
@@ -57,113 +37,146 @@ func evalCheckRules(typ checkType, rules []*configs.CheckRule, ctx EvalContext, 
 
 	severity := diagSeverity.ToHCL()
 
-	for _, rule := range rules {
-		const errInvalidCondition = "Invalid condition result"
-		var ruleDiags tfdiags.Diagnostics
+	for i, rule := range rules {
+		checkAddr := self.Check(typ, i)
 
-		refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
-		ruleDiags = ruleDiags.Append(moreDiags)
-		moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
-		ruleDiags = ruleDiags.Append(moreDiags)
-		refs = append(refs, moreRefs...)
-
-		scope := ctx.EvaluationScope(self, keyData)
-		hclCtx, moreDiags := scope.EvalContext(refs)
-		ruleDiags = ruleDiags.Append(moreDiags)
-
-		result, hclDiags := rule.Condition.Value(hclCtx)
-		ruleDiags = ruleDiags.Append(hclDiags)
-
-		errorValue, errorDiags := rule.ErrorMessage.Value(hclCtx)
-		ruleDiags = ruleDiags.Append(errorDiags)
-
+		conditionResult, ruleDiags := evalCheckRule(typ, rule, ctx, self, keyData, severity)
 		diags = diags.Append(ruleDiags)
+		ctx.Conditions().SetResult(checkAddr, conditionResult)
+	}
 
-		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] evalCheckRules: %s: %s", typ.FailureSummary(), ruleDiags.Err().Error())
+	return diags
+}
+
+func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (*plans.ConditionResult, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	const errInvalidCondition = "Invalid condition result"
+
+	refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
+	diags = diags.Append(moreDiags)
+	moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
+	diags = diags.Append(moreDiags)
+	refs = append(refs, moreRefs...)
+
+	conditionResult := &plans.ConditionResult{
+		Address: self,
+		Result:  cty.UnknownVal(cty.Bool),
+		Type:    typ,
+	}
+
+	var selfReference addrs.Referenceable
+	// Only resource postconditions can refer to self
+	if typ == addrs.ResourcePostcondition {
+		switch s := self.(type) {
+		case addrs.AbsResourceInstance:
+			selfReference = s.Resource
+		default:
+			panic(fmt.Sprintf("Invalid self reference type %t", self))
 		}
+	}
+	scope := ctx.EvaluationScope(selfReference, keyData)
 
-		if !result.IsKnown() {
-			continue // We'll wait until we've learned more, then.
-		}
-		if result.IsNull() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    severity,
-				Summary:     errInvalidCondition,
-				Detail:      "Condition expression must return either true or false, not null.",
-				Subject:     rule.Condition.Range().Ptr(),
-				Expression:  rule.Condition,
-				EvalContext: hclCtx,
-			})
-			continue
-		}
-		var err error
-		result, err = convert.Convert(result, cty.Bool)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    severity,
-				Summary:     errInvalidCondition,
-				Detail:      fmt.Sprintf("Invalid condition result value: %s.", tfdiags.FormatError(err)),
-				Subject:     rule.Condition.Range().Ptr(),
-				Expression:  rule.Condition,
-				EvalContext: hclCtx,
-			})
-			continue
-		}
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
 
-		// The condition result may be marked if the expression refers to a
-		// sensitive value.
-		result, _ = result.Unmark()
+	result, hclDiags := rule.Condition.Value(hclCtx)
+	diags = diags.Append(hclDiags)
 
-		if result.True() {
-			continue
-		}
+	errorValue, errorDiags := rule.ErrorMessage.Value(hclCtx)
+	diags = diags.Append(errorDiags)
 
-		var errorMessage string
-		if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
-			var err error
-			errorValue, err = convert.Convert(errorValue, cty.String)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    severity,
-					Summary:     "Invalid error message",
-					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
-					Subject:     rule.ErrorMessage.Range().Ptr(),
-					Expression:  rule.ErrorMessage,
-					EvalContext: hclCtx,
-				})
-			} else {
-				if marks.Has(errorValue, marks.Sensitive) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: severity,
+	if diags.HasErrors() {
+		log.Printf("[TRACE] evalCheckRule: %s: %s", typ, diags.Err().Error())
+	}
 
-						Summary: "Error message refers to sensitive values",
-						Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+	if !result.IsKnown() {
+		// We'll wait until we've learned more, then.
+		return conditionResult, diags
+	}
 
-You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
-
-						Subject:     rule.ErrorMessage.Range().Ptr(),
-						Expression:  rule.ErrorMessage,
-						EvalContext: hclCtx,
-					})
-					errorMessage = "The error message included a sensitive value, so it will not be displayed."
-				} else {
-					errorMessage = strings.TrimSpace(errorValue.AsString())
-				}
-			}
-		}
-		if errorMessage == "" {
-			errorMessage = "Failed to evaluate condition error message."
-		}
+	if result.IsNull() {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity:    severity,
-			Summary:     typ.FailureSummary(),
-			Detail:      errorMessage,
+			Summary:     errInvalidCondition,
+			Detail:      "Condition expression must return either true or false, not null.",
 			Subject:     rule.Condition.Range().Ptr(),
 			Expression:  rule.Condition,
 			EvalContext: hclCtx,
 		})
+		conditionResult.Result = cty.False
+		conditionResult.ErrorMessage = "Condition expression must return either true or false, not null."
+		return conditionResult, diags
+	}
+	var err error
+	result, err = convert.Convert(result, cty.Bool)
+	if err != nil {
+		detail := fmt.Sprintf("Invalid condition result value: %s.", tfdiags.FormatError(err))
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    severity,
+			Summary:     errInvalidCondition,
+			Detail:      detail,
+			Subject:     rule.Condition.Range().Ptr(),
+			Expression:  rule.Condition,
+			EvalContext: hclCtx,
+		})
+		conditionResult.Result = cty.False
+		conditionResult.ErrorMessage = detail
+		return conditionResult, diags
 	}
 
-	return diags
+	// The condition result may be marked if the expression refers to a
+	// sensitive value.
+	result, _ = result.Unmark()
+	conditionResult.Result = result
+
+	if result.True() {
+		return conditionResult, diags
+	}
+
+	var errorMessage string
+	if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+		var err error
+		errorValue, err = convert.Convert(errorValue, cty.String)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    severity,
+				Summary:     "Invalid error message",
+				Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+				Subject:     rule.ErrorMessage.Range().Ptr(),
+				Expression:  rule.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+		} else {
+			if marks.Has(errorValue, marks.Sensitive) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: severity,
+
+					Summary: "Error message refers to sensitive values",
+					Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+
+You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+
+					Subject:     rule.ErrorMessage.Range().Ptr(),
+					Expression:  rule.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+				errorMessage = "The error message included a sensitive value, so it will not be displayed."
+			} else {
+				errorMessage = strings.TrimSpace(errorValue.AsString())
+			}
+		}
+	}
+	if errorMessage == "" {
+		errorMessage = "Failed to evaluate condition error message."
+	}
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity:    severity,
+		Summary:     fmt.Sprintf("%s failed", typ.Description()),
+		Detail:      errorMessage,
+		Subject:     rule.Condition.Range().Ptr(),
+		Expression:  rule.Condition,
+		EvalContext: hclCtx,
+	})
+	conditionResult.ErrorMessage = errorMessage
+	return conditionResult, diags
 }

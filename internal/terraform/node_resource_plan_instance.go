@@ -124,9 +124,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
 	checkDiags := evalCheckRules(
-		checkResourcePostcondition,
+		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
-		ctx, addr.Resource, repeatData,
+		ctx, addr, repeatData,
 		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
@@ -266,9 +266,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// (Note that some preconditions will end up being skipped during
 		// planning, because their conditions depend on values not yet known.)
 		checkDiags := evalCheckRules(
-			checkResourcePostcondition,
+			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
-			ctx, addr.Resource, repeatData,
+			ctx, n.ResourceInstanceAddr(), repeatData,
 			tfdiags.Error,
 		)
 		diags = diags.Append(checkDiags)
@@ -284,9 +284,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 		checkDiags := evalCheckRules(
-			checkResourcePrecondition,
+			addrs.ResourcePrecondition,
 			n.Config.Preconditions,
-			ctx, nil, repeatData,
+			ctx, addr, repeatData,
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)
@@ -307,9 +307,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// even if pre-conditions generated diagnostics, because we have no
 		// planned changes to block.
 		checkDiags = evalCheckRules(
-			checkResourcePostcondition,
+			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
-			ctx, addr.Resource, repeatData,
+			ctx, addr, repeatData,
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)

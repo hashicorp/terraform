@@ -679,6 +679,103 @@ func TestShow_json_output_sensitive(t *testing.T) {
 	}
 }
 
+// Failing conditions are only present in JSON output for refresh-only plans,
+// so we test that separately here.
+func TestShow_json_output_conditions_refresh_only(t *testing.T) {
+	td := tempDir(t)
+	inputDir := "testdata/show-json/conditions"
+	testCopyDir(t, inputDir, td)
+	defer os.RemoveAll(td)
+	defer testChdir(t, td)()
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
+	defer close()
+
+	p := showFixtureSensitiveProvider()
+
+	// init
+	ui := new(cli.MockUi)
+	ic := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			ProviderSource:   providerSource,
+		},
+	}
+	if code := ic.Run([]string{}); code != 0 {
+		t.Fatalf("init failed\n%s", ui.ErrorWriter)
+	}
+
+	// plan
+	planView, planDone := testView(t)
+	pc := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             planView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{
+		"-refresh-only",
+		"-out=terraform.plan",
+		"-var=ami=bad-ami",
+		"-state=for-refresh.tfstate",
+	}
+	code := pc.Run(args)
+	planOutput := planDone(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
+	}
+
+	// show
+	showView, showDone := testView(t)
+	sc := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             showView,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args = []string{
+		"-json",
+		"terraform.plan",
+	}
+	defer os.Remove("terraform.plan")
+	code = sc.Run(args)
+	showOutput := showDone(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, showOutput.Stderr())
+	}
+
+	// compare JSON output to wanted output
+	var got, want plan
+
+	gotString := showOutput.Stdout()
+	json.Unmarshal([]byte(gotString), &got)
+
+	wantFile, err := os.Open("output-refresh-only.json")
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	defer wantFile.Close()
+	byteValue, err := ioutil.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("unexpected err: %s", err)
+	}
+	json.Unmarshal([]byte(byteValue), &want)
+
+	// Disregard format version to reduce needless test fixture churn
+	want.FormatVersion = got.FormatVersion
+
+	if !cmp.Equal(got, want) {
+		t.Fatalf("wrong result:\n %v\n", cmp.Diff(got, want))
+	}
+}
+
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
 	fixtureDir := "testdata/show-json-state"

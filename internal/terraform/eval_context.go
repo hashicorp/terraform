@@ -159,6 +159,10 @@ type EvalContext interface {
 	// the global state.
 	State() *states.SyncState
 
+	// Conditions returns the writer object that can be used to store condition
+	// block results as they are evaluated.
+	Conditions() *plans.ConditionsSync
+
 	// RefreshState returns a wrapper object that provides safe concurrent
 	// access to the state used to store the most recently refreshed resource
 	// values.

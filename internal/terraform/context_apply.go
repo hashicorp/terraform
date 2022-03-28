@@ -35,6 +35,7 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		Config:     config,
 		InputState: workingState,
 		Changes:    plan.Changes,
+		Conditions: plan.Conditions,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)

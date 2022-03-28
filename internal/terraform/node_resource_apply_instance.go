@@ -180,9 +180,9 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
 	checkDiags := evalCheckRules(
-		checkResourcePostcondition,
+		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
-		ctx, n.ResourceInstanceAddr().Resource,
+		ctx, n.ResourceInstanceAddr(),
 		repeatData,
 		tfdiags.Error,
 	)
@@ -359,9 +359,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
 	checkDiags := evalCheckRules(
-		checkResourcePostcondition,
+		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
-		ctx, addr, repeatData,
+		ctx, n.ResourceInstanceAddr(), repeatData,
 		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
