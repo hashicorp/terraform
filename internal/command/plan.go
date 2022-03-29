@@ -221,7 +221,7 @@ Plan Customization Options:
                       its resource address. If the plan would've normally
                       produced an update or no-op action for this instance,
                       Terraform will plan to replace it instead. You can use
-                      this option multiple times to include more than one object.
+                      this option multiple times to replace more than one object.
 
   -target=resource    Limit the planning operation to only the given module,
                       resource, or resource instance and all of its
