@@ -411,13 +411,9 @@ to only a single state object within an S3 bucket is shown below:
 ```
 
 It is also possible to apply fine-grained access control to the DynamoDB
-table used for locking. During a `terraform plan`, when the state lock is put in place,
-Terraform stores the full statefile as a document with its partition key set 
-as the s3 object key. After the state lock is released, a digest of the updated
-statefile is placed in DynamoDB with a key similar to that of the original 
-statefile but suffixed with `-md5`. A simple IAM policy that would allow the 
-role assumed for backend operations to perform the aforementioned operations is 
-shown below:
+table used for locking. When Terraform puts the state lock in place during `terraform plan`, it stores the full state file as a document and sets the s3 object key as the partition key for the document. After the state lock is released, Terraform places a digest of the updated state file in DynamoDB. The key is similar to the one for the original state file, but is suffixed with `-md5`. 
+
+The example below shows a simple IAM policy that allows the backend operations role to perform these operations:
 
 ```json
 {
