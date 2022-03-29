@@ -1121,7 +1121,7 @@ func TestCommand_checkRequiredVersion(t *testing.T) {
 		Ui: ui,
 	}
 
-	diags := CheckRequiredVersion(&meta)
+	diags := meta.checkRequiredVersion()
 	if diags == nil {
 		t.Fatalf("diagnostics should contain unmet version constraint, but is nil")
 	}

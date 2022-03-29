@@ -56,7 +56,7 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	if diags := CheckRequiredVersion(&c.Meta); diags != nil {
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
 		return 1
 	}

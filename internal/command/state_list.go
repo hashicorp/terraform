@@ -33,11 +33,6 @@ func (c *StateListCommand) Run(args []string) int {
 		c.Meta.statePath = statePath
 	}
 
-	if diags := CheckRequiredVersion(&c.Meta); diags != nil {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
 	if backendDiags.HasErrors() {

@@ -32,11 +32,6 @@ func (c *StateShowCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
-	if diags := CheckRequiredVersion(&c.Meta); diags != nil {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {

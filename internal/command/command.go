@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Set to true when we're testing
@@ -71,37 +68,4 @@ func ModulePath(args []string) (string, error) {
 	}
 
 	return path, nil
-}
-
-// CheckRequiredVersion loads the config and check if the
-// core version requirements are satisfied.
-func CheckRequiredVersion(c *Meta) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
-
-	loader, err := c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		return diags
-	}
-
-	pwd, err := os.Getwd()
-	fmt.Println(pwd)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
-		return diags
-	}
-
-	config, configDiags := loader.LoadConfig(pwd)
-	if configDiags.HasErrors() {
-		diags = diags.Append(configDiags)
-		return diags
-	}
-
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	if versionDiags.HasErrors() {
-		diags = diags.Append(versionDiags)
-		return diags
-	}
-
-	return nil
 }
