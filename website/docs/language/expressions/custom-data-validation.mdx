@@ -6,13 +6,13 @@ description: >-
 
 # Custom Data Validation
 
-You can create validation checks for configuration requirements that return detailed error messages to consumers. Custom validations are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+You can create validation checks with custom error messages for several types of objects in a configuration. Custom validations are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
 You can create custom validations with the following types of expressions.
 - Add [`validation` blocks](input-variable-validation) inside input `variable` blocks.
-- Add []`precondition` and `postcondition`](#preconditions-and-postconditions) blocks inside `lifecycle` blocks and `precondition` blocks inside `output blocks`.
+- Add [`precondition` and `postcondition`](#preconditions-and-postconditions) blocks inside `lifecycle` blocks and `precondition` blocks inside `output blocks`.
 
-The `validation`, `precondition`, and `postcondition` blocks all require a [`condition` attribute](#condition-expressions) that describes the validation requirements and an [`error_message` attribute](#error-messages) that contains explanatory text that Terraform will display to the user.
+All of these methods require a [`condition` attribute](#condition-expressions) that describes the validation requirements and an [`error_message` attribute](#error-messages) that contains explanatory text that Terraform will display to the user.
 
 -> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later. Preconditions and postconditions are available in Terraform CLI v1.2.0 and later.
 
@@ -135,7 +135,7 @@ We recommend also considering the following factors.
 - Whether it is helpful to declare the same or similar conditions as both preconditions and postconditions. This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
 
 
-## Usage Examples
+### Usage Examples
 
 The following example shows possible uses for variable validation, preconditions and postconditions.
 
@@ -245,7 +245,7 @@ The preconditions, and postconditions declare the following assumptions and guar
     problem immediately, before any other components rely on the
     insecurely-configured component.
 
-##  Condition Expressions
+## Condition Expressions
 
 The variable `validation` block and the `precondition` and `postcondition` blocks all require an argument named `condition`, whose value is a boolean expression which should return `true` if the intended assumption holds or `false` if it does not.
 
@@ -256,8 +256,6 @@ Condition expressions have the following requirements.
 
 You can use any of Terraform's built-in functions or language operators
 in a condition as long as the expression is valid and returns a boolean result.
-
-## Common Condition Expression Features
 
 Because condition expressions must produce boolean results, they can often
 use built-in functions and language features that are less common elsewhere
