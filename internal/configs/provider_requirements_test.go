@@ -30,6 +30,9 @@ var (
 		if x.DeclRange != y.DeclRange {
 			return false
 		}
+		if x.ImpliedFrom != y.ImpliedFrom {
+			return false
+		}
 		return true
 	})
 	blockRange = hcl.Range{
@@ -68,6 +71,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Type:        addrs.NewDefaultProvider("default"),
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
+						ImpliedFrom: "default",
 					},
 				},
 				DeclRange: blockRange,
@@ -129,6 +133,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Type:        addrs.NewDefaultProvider("legacy"),
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
+						ImpliedFrom: "legacy",
 					},
 					"my-test": {
 						Name:        "my-test",
@@ -163,6 +168,7 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 						Type:        addrs.NewDefaultProvider("test"),
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
+						ImpliedFrom: "test",
 					},
 				},
 				DeclRange: blockRange,

@@ -334,6 +334,20 @@ func (c *Config) ProviderRequirementsByModule() (*ModuleRequirements, hcl.Diagno
 	return ret, diags
 }
 
+// BackCompatImpliedProviderSources is a funny single-purpose function that reports
+// which of the module-specific provider requirements described in
+// ModuleRequirements are _not_ supported by explicit provider source
+// declarations in a required_providers block of the associated module.
+//
+// This is here only to support some messaging in the "terraform init"
+// command's provider installer which tries to explain which specific modules
+// are lacking explicit provider source specifications so that the user
+// can either directly update them or file a bug with an upstream module
+// maintainer.
+func (rp *RequiredProviders) BackCompatImpliedProviderSources() {
+
+}
+
 // addProviderRequirements is the main part of the ProviderRequirements
 // implementation, gradually mutating a shared requirements object to
 // eventually return. If the recurse argument is true, the requirements will

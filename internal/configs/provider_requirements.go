@@ -20,6 +20,17 @@ type RequiredProvider struct {
 	Requirement VersionConstraint
 	DeclRange   hcl.Range
 	Aliases     []addrs.LocalProviderConfig
+
+	// If the Type field contains the result of calling
+	// addrs.ImpliedProviderForUnqualifiedType to guess a source address for
+	// a provider requirement not explicitly declared, ImpliedFrom contains
+	// the string that was passed to addrs.ImpliedProviderForUnqualifiedType.
+	// If empty, the Type field contains a representation of an
+	// explicitly-specified source location.
+	// (If set, this will typically be the same as Name due to how our implication
+	// rules work, but is separated to capture the difference in meaning
+	// compared to that field.)
+	ImpliedFrom string
 }
 
 type RequiredProviders struct {
@@ -63,6 +74,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 			rp.Requirement = vc
 			rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+			rp.ImpliedFrom = pType
 			ret.RequiredProviders[name] = rp
 
 			continue
@@ -236,6 +248,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 				})
 			} else {
 				rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+				rp.ImpliedFrom = pType
 			}
 		}
 
@@ -244,3 +257,4 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 
 	return ret, diags
 }
+
