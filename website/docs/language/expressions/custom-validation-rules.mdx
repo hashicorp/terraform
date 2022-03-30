@@ -1,10 +1,10 @@
 ---
-page_title: Custom Data Validation - Configuration Language
+page_title: Custom Validation Rules - Configuration Language
 description: >-
-  Validate requirements so Terraform can produce more detailed error messages.
+  Validate requirements for variables, outputs, and within lifecycle blocks so Terraform can produce better error messages in context.
 ---
 
-# Custom Data Validation
+# Custom Validation Rules
 
 You can create validation checks with custom error messages for several types of objects in a configuration. Custom validations are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
@@ -43,9 +43,7 @@ in that case.
 
 ## Input Variable Validation
 
-To specify custom validation rules for a variable, add a `validation` block within the corresponding `variable` block.
-
-The following example checks whether the AMI ID has valid syntax.
+To specify custom validation rules for a variable, add a `validation` block within the corresponding `variable` block. The following example checks whether the AMI ID has valid syntax.
 
 ```hcl
 variable "image_id" {
@@ -81,38 +79,19 @@ If `condition` evaluates to `false`, Terraform will produce an [error message](#
 
 ## Preconditions and Postconditions
 
-Terraform checks a precondition _before_ evaluating the object it is associated with, and checks a postcondition _after_ evaluating the object.
+Terraform checks a precondition _before_ evaluating the object it is associated with, and checks a postcondition _after_ evaluating the object. You can add preconditions and postconditions within the following configuration blocks.
 
-Terraform supports preconditions and postconditions in the following locations.
+The `lifecycle` block inside a `resource` or `data` block can include both `precondition` and `postcondition` blocks associated with the containing resource.
 
-* The `lifecycle` block inside a `resource` or `data` block can include both
-  `precondition` and `postcondition` blocks associated with the containing
-  resource.
+- Terraform evaluates resource preconditions before evaluating the resource's configuration arguments. Resource preconditions can take precedence over argument evaluation errors.
+- Terraform evaluates resource postconditions after planning and after applying changes to a managed resource, or after reading from a data resource. Resource postcondition failures will therefore prevent applying changes to other resources that depend on the failing resource.
 
-    Terraform evaluates resource preconditions before evaluating the resource's
-    configuration arguments. Resource preconditions can take precedence over
-    argument evaluation errors.
+An `output` block can include a `precondition`  block.
 
-    Terraform evaluates resource postconditions after planning and after
-    applying changes to a managed resource, or after reading from a data
-    resource. Resource postcondition failures will therefore prevent applying
-    changes to other resources that depend on the failing resource.
-
-* An `output` block declaring an output value can include a `precondition`
-  block.
-
-    Terraform evaluates output value preconditions before evaluating the
-    `value` expression to finalize the result. Output value preconditions
-    can take precedence over potential errors in the `value` expression.
-
-    Output value preconditions can be particularly useful in a root module,
-    to prevent saving an invalid new output value in the state and to preserve
-    the value from the previous apply, if any.
-
-    Output value preconditions can serve a symmetrical purpose to input
-    variable `validation` blocks: whereas input variable validation checks
-    assumptions the module makes about its inputs, output value preconditions
-    check guarantees that the module makes about its outputs.
+- Terraform evaluates output value preconditions before evaluating the
+`value` expression to finalize the result. Output value preconditions can take precedence over potential errors in the `value` expression.
+- Preconditions can be particularly useful in a root module to prevent saving an invalid new output value in the state and to preserve the value from the previous apply, if any.
+- Preconditions can serve a symmetrical purpose to input variable `validation` blocks. Whereas input variable validation checks assumptions the module makes about its inputs, output value preconditions check guarantees that the module makes about its outputs.
 
 ### When to Use Preconditions and PostConditions
 
@@ -137,7 +116,7 @@ We recommend also considering the following factors.
 
 ### Usage Examples
 
-The following example shows possible uses for variable validation, preconditions and postconditions.
+The following example shows several possible uses for preconditions and postconditions.
 
 ```hcl
 variable "aws_ami_id" {
@@ -212,38 +191,17 @@ output "api_base_url" {
 }
 ```
 
-The preconditions, and postconditions declare the following assumptions and guarantees.
+The preconditions and postconditions declare the following assumptions and guarantees.
 
-* The AMI ID must refer to an AMI that exists and that has been tagged as
-  being intended for the component "nomad-server".
+- **The AMI ID must refer to an AMI that exists and that has been tagged with "nomad-server".** This would detect if the caller accidentally provided an AMI intended for some other system component, which might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
 
-    This would detect if the caller accidentally provided an AMI intended for
-    some other system component, which might otherwise be detected only after
-    booting the EC2 instance and noticing that the expected network service
-    isn't running. Terraform can therefore detect that problem earlier and
-    return a more actionable error message for it.
+- **The AMI ID must refer to an AMI that contains an operating system for the
+  `x86_64` architecture.** This would detect if the caller accidentally built an AMI for a different
+    architecture, which may not be able to run the software this virtual machine is intended to host.
 
-* The AMI ID must refer to an AMI which contains an operating system for the
-  `x86_64` architecture.
+- **The EC2 instance must be allocated a private DNS hostname.** In Amazon Web Services, EC2 instances are assigned private DNS hostnames only if they belong to a virtual network configured in a certain way. This would detect if the selected virtual network is not configured correctly, giving explicit feedback to prompt the user to debug the network settings.
 
-    This would detect if the caller accidentally built an AMI for a different
-    architecture, which might therefore not be able to run the software this
-    virtual machine is intended to host.
-
-* The EC2 instance must be allocated a private DNS hostname.
-
-    In AWS, EC2 instances are assigned private DNS hostnames only if they
-    belong to a virtual network configured in a certain way. This would
-    detect if the selected virtual network is not configured correctly,
-    giving explicit feedback to prompt the user to debug the network settings.
-
-* The EC2 instance will have an encrypted root volume.
-
-    This ensures that the root volume is encrypted even though the software
-    running in this EC2 instance would probably still operate as expected
-    on an unencrypted volume. Therefore Terraform can draw attention to the
-    problem immediately, before any other components rely on the
-    insecurely-configured component.
+- **The EC2 instance will have an encrypted root volume.** This ensures that the root volume is encrypted even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the insecurely-configured component.
 
 ## Condition Expressions
 
@@ -255,100 +213,84 @@ Condition expressions have the following requirements.
 - For preconditions and postconditions, the expression can refer to any other objects in the same module, as long as the references don't create any cyclic dependencies. Resource postconditions can additionally refer to attributes of each instance of the resource where they are configured, using the special symbol `self`. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
 
 You can use any of Terraform's built-in functions or language operators
-in a condition as long as the expression is valid and returns a boolean result.
+in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly
+useful when writing condition expressions.
 
-Because condition expressions must produce boolean results, they can often
-use built-in functions and language features that are less common elsewhere
-in the Terraform language. The following language features are particularly
-useful when writing condition expressions:
+### `contains` Function
+You can use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
 
-* You can use the built-in function `contains` to test whether a given
-  value is one of a set of predefined valid values:
+```hcl
+  condition = contains(["STAGE", "PROD"], var.environment)
+```
 
-    ```hcl
-      condition = contains(["STAGE", "PROD"], var.environment)
-    ```
+### Boolean Operators
+You can use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple simpler conditions together.
 
-* You can use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to
-  combine multiple simpler conditions together:
+```hcl
+  condition = var.name != "" && lower(var.name) == var.name
+  ```
 
-    ```hcl
-      condition = var.name != "" && lower(var.name) == var.name
-    ```
+### `length`
 
-* You can require a non-empty list or map by testing the collection's length:
+You can require a non-empty list or map by testing the collection's length.
 
-    ```hcl
-      condition = length(var.items) != 0
-    ```
+```hcl
+  condition = length(var.items) != 0
+```
+This is a better approach than directly comparing with another collection using `==` or `!=`, because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
 
-    This is a better approach than directly comparing with another collection
-    using `==` or `!=`, because the comparison operators can only return `true`
-    if both operands have exactly the same type, which is often ambiguous
-    for empty collections.
+### `for` Expressions
+You can use `for` expressions which produce lists of boolean results
+themselves in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
 
-* You can use `for` expressions which produce lists of boolean results
-  themselves in conjunction with the functions `alltrue` and `anytrue` to
-  test whether a condition holds for all or for any elements of a collection:
+```hcl
+  condition = alltrue([
+    for v in var.instances : contains(["t2.micro", "m3.medium"], v.type)
+  ])
+```
 
-    ```hcl
-      condition = alltrue([
-        for v in var.instances : contains(["t2.micro", "m3.medium"], v.type)
-      ])
-    ```
+### `can` Function
 
-* You can use the `can` function to concisely use the validity of an expression
-  as a condition. It returns `true` if its given expression evaluates
-  successfully and `false` if it returns any error, so you can use various
-  other functions that typically return errors as a part of your condition
-  expressions.
+You can use the `can` function to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
 
-    For example, you can use `can` with `regex` to test if a string matches
-    a particular pattern, because `regex` returns an error when given a
-    non-matching string:
+For example, you can use `can` with `regex` to test if a string matches a particular pattern, because `regex` returns an error when given a non-matching string.
 
-    ```hcl
-      condition = can(regex("^[a-z]+$", var.name)
-    ```
+```hcl
+  condition = can(regex("^[a-z]+$", var.name)
+```
 
-    You can also use `can` with the type conversion functions to test whether
-    a value is convertible to a type or type constraint:
+You can also use `can` with the type conversion functions to test whether a value is convertible to a type or type constraint.
 
-    ```hcl
-      # This remote output value must have a value that can
-      # be used as a string, which includes strings themselves
-      # but also allows numbers and boolean values.
-      condition = can(tostring(data.terraform_remote_state.example.outputs["name"]))
-    ```
+```hcl
+  # This remote output value must have a value that can
+  # be used as a string, which includes strings themselves
+  # but also allows numbers and boolean values.
+  condition = can(tostring(data.terraform_remote_state.example.outputs["name"]))
+```
 
-    ```hcl
-      # This remote output value must be convertible to a list
-      # type of with element type.
-      condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
-    ```
+```hcl
+  # This remote output value must be convertible to a list
+  # type of with element type.
+  condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
+```
 
-    You can also use `can` with attribute access or index operators to
-    concisely test whether a collection or structural value has a particular
-    element or index:
+You can also use `can` with attribute access or index operators to concisely test whether a collection or structural value has a particular element or index.
 
-    ```hcl
-      # var.example must have an attribute named "foo"
-      condition = can(var.example.foo)
-    ```
+```hcl
+  # var.example must have an attribute named "foo"
+  condition = can(var.example.foo)  ```
 
-    ```hcl
-      # var.example must be a sequence with at least one element
-      condition = can(var.example[0])
-      # (although it would typically be clearer to write this as a
-      # test like length(var.example) > 0 to better represent the
-      # intent of the condition.)
-    ```
+```hcl
+  # var.example must be a sequence with at least one element
+  condition = can(var.example[0])
+  # (although it would typically be clearer to write this as a
+  # test like length(var.example) > 0 to better represent the
+  # intent of the condition.)
+```
 
 ## Error Messages
 
-Each `validation`, `precondition` or `postcondition` block must include an argument
-`error_message`, which provides some custom error sentences that Terraform
-will include as part of error messages when it detects an unmet condition.
+Each `validation`, `precondition` or `postcondition` block must include an argument `error_message`, which contains the text that Terraform will include as part of error messages when it detects an unmet condition.
 
 ```
 Error: Resource postcondition failed
@@ -362,12 +304,12 @@ Error: Resource postcondition failed
 The selected AMI must be tagged with the Component value "nomad-server".
 ```
 
-The `error_message` argument can be any expression which evaluates to a string.
+The `error_message` argument can be any expression that evaluates to a string.
 This includes literal strings, heredocs, and template expressions. Multi-line
 error messages are supported, and lines with leading whitespace will not be
 word wrapped.
 
-Error message should typically be written as one or more full sentences in a
+We recommend writing error messages as one or more full sentences in a
 style similar to Terraform's own error messages. Terraform will show the given
 message alongside the name of the resource that detected the problem and any
 outside values used as part of the condition expression.
