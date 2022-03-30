@@ -1,31 +1,143 @@
 ---
-page_title: Preconditions and Postconditions - Configuration Language
+page_title: Custom Data Validation - Configuration Language
+description: >-
+  Validate requirements so Terraform can produce more detailed error messages.
 ---
 
-# Preconditions and Postconditions
+# Custom Data Validation
 
-Terraform providers can automatically detect and report problems related to
-the remote system they are interacting with, but they typically do so using
-language that describes implementation details of the target system, which
-can sometimes make it hard to find the root cause of the problem in your
-Terraform configuration.
+You can create validation checks for configuration requirements that return detailed error messages to consumers. Custom validations are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Preconditions and postconditions allow you to optionally describe the
-assumptions you are making as a module author, so that Terraform can detect
-situations where those assumptions don't hold and potentially return an
-error earlier or an error with better context about where the problem
-originated.
+You can create custom validations with the following types of expressions.
+- Add [`validation` blocks](input-variable-validation) inside input `variable` blocks.
+- Add []`precondition` and `postcondition`](#preconditions-and-postconditions) blocks inside `lifecycle` blocks and `precondition` blocks inside `output blocks`.
 
-Preconditions and postconditions both follow a similar structure, and differ
-only in when Terraform evaluates them: Terraform checks a precondition prior
-to evaluating the object it is associated with, and a postcondition _after_
-evaluating the object. That means that preconditions are useful for stating
-assumptions about data from elsewhere that the resource configuration relies
-on, while postconditions are more useful for stating assumptions about the
-result of the resource itself.
+The `validation`, `precondition`, and `postcondition` blocks all require a [`condition` attribute](#condition-expressions) that describes the validation requirements and an [`error_message` attribute](#error-messages) that contains explanatory text that Terraform will display to the user.
 
-The following example shows some different possible uses of preconditions and
-postconditions.
+-> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later. Preconditions and postconditions are available in Terraform CLI v1.2.0 and later.
+
+## When Terraform Evaluates Custom Validations
+
+Terraform will evaluate the conditions specified in `validation`,`precondition`, and `postcondition` blocks as early as possible.
+
+If the condition expression depends on a resource attribute that won't be known
+until the apply phase then Terraform will delay checking the condition until
+the apply phase, but Terraform can check all other expressions during the
+planning phase, and therefore block applying a plan that would violate the
+conditions.
+
+For example, Terraform would typically be able to detect invalid AMI tags during the planning phase, as long as `var.aws_ami_id` is not derived from another resource. However, Terraform will not detect a non-encrypted root volume until the EC2 instance is created during the apply step because that condition depends on the root volume's assigned ID, which AWS decides only when the EC2 instance is actually started.
+
+For conditions which Terraform must defer to the apply phase, a _precondition_
+will prevent taking whatever action was planned for a related resource, whereas
+a _postcondition_ will merely halt processing after that action was already
+taken, preventing any downstream actions that rely on it but not undoing the
+action.
+
+Terraform typically has less information during the initial creation of a
+full configuration than when applying subsequent changes to that configuration.
+Conditions checked only during apply during initial creation may therefore
+be checked during planning on subsequent updates, detecting problems sooner
+in that case.
+
+
+## Input Variable Validation
+
+To specify custom validation rules for a variable, add a `validation` block within the corresponding `variable` block.
+
+The following example checks whether the AMI ID has valid syntax.
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    condition     = length(var.image_id) > 4 && substr(var.image_id, 0, 4) == "ami-"
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+The [`condition` argument](#condition-expressions) is an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid.
+
+If the failure of an expression is the basis of the validation decision, use [the `can` function](/language/functions/can) to detect such errors, as demonstrated in the following example.
+
+```hcl
+variable "image_id" {
+  type        = string
+  description = "The id of the machine image (AMI) to use for the server."
+
+  validation {
+    # regex(...) fails if it cannot find a match
+    condition     = can(regex("^ami-", var.image_id))
+    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
+  }
+}
+```
+
+If `condition` evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple `validation` blocks, Terraform returns error messages for _all_ failed conditions.
+
+
+## Preconditions and Postconditions
+
+Terraform checks a precondition _before_ evaluating the object it is associated with, and checks a postcondition _after_ evaluating the object.
+
+Terraform supports preconditions and postconditions in the following locations.
+
+* The `lifecycle` block inside a `resource` or `data` block can include both
+  `precondition` and `postcondition` blocks associated with the containing
+  resource.
+
+    Terraform evaluates resource preconditions before evaluating the resource's
+    configuration arguments. Resource preconditions can take precedence over
+    argument evaluation errors.
+
+    Terraform evaluates resource postconditions after planning and after
+    applying changes to a managed resource, or after reading from a data
+    resource. Resource postcondition failures will therefore prevent applying
+    changes to other resources that depend on the failing resource.
+
+* An `output` block declaring an output value can include a `precondition`
+  block.
+
+    Terraform evaluates output value preconditions before evaluating the
+    `value` expression to finalize the result. Output value preconditions
+    can take precedence over potential errors in the `value` expression.
+
+    Output value preconditions can be particularly useful in a root module,
+    to prevent saving an invalid new output value in the state and to preserve
+    the value from the previous apply, if any.
+
+    Output value preconditions can serve a symmetrical purpose to input
+    variable `validation` blocks: whereas input variable validation checks
+    assumptions the module makes about its inputs, output value preconditions
+    check guarantees that the module makes about its outputs.
+
+### When to Use Preconditions and PostConditions
+
+You can often implement a validation check as either a postcondition of the resource producing the data or as a precondition of a resource or output value using the data. To decide which is most appropriate, consider whether the check is representing either an assumption or a guarantee.
+
+- **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
+
+    Assumptions should typically be written as preconditions, so that future maintainers can find them close to the other expressions that rely on that condition, and know more about what different variations that resource is intended to allow.
+
+- **Guarantee:** A characteristic or behavior of an object that the rest of
+    the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
+
+    Guarantees should typically be written as postconditions, so that
+    future maintainers can find them close to the resource configuration that  is responsible for implementing those guarantees and more easily see which behaviors are important to preserve when changing the configuration.
+
+We recommend also considering the following factors.
+
+- Which resource or output value would be most helpful to report in the error message. Terraform will always report errors in the location where the condition was declared.
+- Which approach is more convenient. If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
+- Whether it is helpful to declare the same or similar conditions as both preconditions and postconditions. This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
+
+
+## Usage Examples
+
+The following example shows possible uses for variable validation, preconditions and postconditions.
 
 ```hcl
 variable "aws_ami_id" {
@@ -100,15 +212,7 @@ output "api_base_url" {
 }
 ```
 
-The input variable validation rule, preconditions, and postconditions in the
-above example declare explicitly some assumptions and guarantees that the
-module developer is making in the design of this module:
-
-* The caller of the module must provide a syntactically-valid AMI ID in the
-  `aws_ami_id` input variable.
-
-    This would detect if the caller accidentally assigned an AMI name to the
-    argument, instead of an AMI ID.
+The preconditions, and postconditions declare the following assumptions and guarantees.
 
 * The AMI ID must refer to an AMI that exists and that has been tagged as
   being intended for the component "nomad-server".
@@ -141,65 +245,19 @@ module developer is making in the design of this module:
     problem immediately, before any other components rely on the
     insecurely-configured component.
 
-Writing explicit preconditions and postconditions is always optional, but it
-can be helpful to users and future maintainers of a Terraform module by
-capturing assumptions that might otherwise be only implied, and by allowing
-Terraform to check those assumptions and halt more quickly if they don't
-hold in practice for a particular set of input variables.
+##  Condition Expressions
 
-## Precondition and Postcondition Locations
+The variable `validation` block and the `precondition` and `postcondition` blocks all require an argument named `condition`, whose value is a boolean expression which should return `true` if the intended assumption holds or `false` if it does not.
 
-Terraform supports preconditions and postconditions in a number of different
-locations in a module:
+Condition expressions have the following requirements.
 
-* The `lifecycle` block inside a `resource` or `data` block can include both
-  `precondition` and `postcondition` blocks associated with the containing
-  resource.
+- For variables, the expression can refer only to the variable that the condition applies to, and must not produce errors.
+- For preconditions and postconditions, the expression can refer to any other objects in the same module, as long as the references don't create any cyclic dependencies. Resource postconditions can additionally refer to attributes of each instance of the resource where they are configured, using the special symbol `self`. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
 
-    Terraform evaluates resource preconditions before evaluating the resource's
-    configuration arguments. Resource preconditions can take precedence over
-    argument evaluation errors.
+You can use any of Terraform's built-in functions or language operators
+in a condition as long as the expression is valid and returns a boolean result.
 
-    Terraform evaluates resource postconditions after planning and after
-    applying changes to a managed resource, or after reading from a data
-    resource. Resource postcondition failures will therefore prevent applying
-    changes to other resources that depend on the failing resource.
-
-* An `output` block declaring an output value can include a `precondition`
-  block.
-
-    Terraform evaluates output value preconditions before evaluating the
-    `value` expression to finalize the result. Output value preconditions
-    can take precedence over potential errors in the `value` expression.
-
-    Output value preconditions can be particularly useful in a root module,
-    to prevent saving an invalid new output value in the state and to preserve
-    the value from the previous apply, if any.
-
-    Output value preconditions can serve a symmetrical purpose to input
-    variable `validation` blocks: whereas input variable validation checks
-    assumptions the module makes about its inputs, output value preconditions
-    check guarantees that the module makes about its outputs.
-
-## Condition Expressions
-
-`precondition` and `postcondition` blocks both require an argument named
-`condition`, whose value is a boolean expression which should return `true`
-if the intended assumption holds or `false` if it does not.
-
-Preconditions and postconditions can both refer to any other objects in the
-same module, as long as the references don't create any cyclic dependencies.
-
-Resource postconditions can additionally refer to attributes of each instance
-of the resource where they are configured, using the special symbol `self`.
-For example, `self.private_dns` refers to the `private_dns` attribute of
-each instance of the containing resource.
-
-Condition expressions are otherwise just normal Terraform expressions, and
-so you can use any of Terraform's built-in functions or language operators
-as long as the expression is valid and returns a boolean result.
-
-### Common Condition Expression Features
+## Common Condition Expression Features
 
 Because condition expressions must produce boolean results, they can often
 use built-in functions and language features that are less common elsewhere
@@ -274,7 +332,7 @@ useful when writing condition expressions:
     You can also use `can` with attribute access or index operators to
     concisely test whether a collection or structural value has a particular
     element or index:
-    
+
     ```hcl
       # var.example must have an attribute named "foo"
       condition = can(var.example.foo)
@@ -288,38 +346,9 @@ useful when writing condition expressions:
       # intent of the condition.)
     ```
 
-## Early Evaluation
-
-Terraform will evaluate conditions as early as possible.
-
-If the condition expression depends on a resource attribute that won't be known
-until the apply phase then Terraform will delay checking the condition until
-the apply phase, but Terraform can check all other expressions during the
-planning phase, and therefore block applying a plan that would violate the
-conditions.
-
-In the earlier example on this page, Terraform would typically be able to
-detect invalid AMI tags during the planning phase, as long as `var.aws_ami_id`
-is not itself derived from another resource. However, Terraform will not
-detect a non-encrypted root volume until the EC2 instance was already created
-during the apply step, because that condition depends on the root volume's
-assigned ID, which AWS decides only when the EC2 instance is actually started.
-
-For conditions which Terraform must defer to the apply phase, a _precondition_
-will prevent taking whatever action was planned for a related resource, whereas
-a _postcondition_ will merely halt processing after that action was already
-taken, preventing any downstream actions that rely on it but not undoing the
-action.
-
-Terraform typically has less information during the initial creation of a
-full configuration than when applying subsequent changes to that configuration.
-Conditions checked only during apply during initial creation may therefore
-be checked during planning on subsequent updates, detecting problems sooner
-in that case.
-
 ## Error Messages
 
-Each `precondition` or `postcondition` block must include an argument
+Each `validation`, `precondition` or `postcondition` block must include an argument
 `error_message`, which provides some custom error sentences that Terraform
 will include as part of error messages when it detects an unmet condition.
 
@@ -345,51 +374,3 @@ style similar to Terraform's own error messages. Terraform will show the given
 message alongside the name of the resource that detected the problem and any
 outside values used as part of the condition expression.
 
-## Preconditions or Postconditions?
-
-Because preconditions can refer to the result attributes of other resources
-in the same module, it's typically true that a particular check could be
-implemented either as a postcondition of the resource producing the data
-or as a precondition of a resource or output value using the data.
-
-To decide which is most appropriate for a particular situation, consider
-whether the check is representing either an assumption or a guarantee:
-
-* An _assumption_ is a condition that must be true in order for the
-  configuration of a particular resource to be usable. In the earlier
-  example on this page, the `aws_instance` configuration had the _assumption_
-  that the given AMI will always be for the `x86_64` CPU architecture.
-
-    Assumptions should typically be written as preconditions, so that future
-    maintainers can find them close to the other expressions that rely on
-    that condition, and thus know more about what different variations that
-    resource is intended to allow.
-
-* A _guarantee_ is a characteristic or behavior of an object that the rest of
-  the configuration ought to be able to rely on. In the earlier example on
-  this page, the `aws_instance` configuration had the _guarantee_ that the
-  EC2 instance will be running in a network that assigns it a private DNS
-  record.
-
-    Guarantees should typically be written as postconditions, so that
-    future maintainers can find them close to the resource configuration that
-    is responsible for implementing those guarantees and more easily see
-    which behaviors are important to preserve when changing the configuration.
-
-In practice though, the distinction between these two is subjective: is the
-AMI being tagged as Component `"nomad-server"` a guarantee about the AMI or
-an assumption made by the EC2 instance? To decide, it might help to consider
-which resource or output value would be most helpful to report in a resulting
-error message, because Terraform will always report errors in the location
-where the condition was declared.
-
-The decision between the two may also be a matter of convenience. If a
-particular resource has many dependencies that _all_ make an assumption about
-that resource then it can be pragmatic to declare that just once as a
-post-condition of the resource, rather than many times as preconditions on
-each of the dependencies.
-
-It may sometimes be helpful to declare the same or similar conditions as both
-preconditions _and_ postconditions, particularly if the postcondition is
-in a different module than the precondition, so that they can verify one
-another as the two modules evolve independently.
