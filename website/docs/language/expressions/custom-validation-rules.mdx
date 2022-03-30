@@ -209,8 +209,8 @@ The variable `validation` block and the `precondition` and `postcondition` block
 
 Condition expressions have the following requirements.
 
-- For variables, the expression can refer only to the variable that the condition applies to, and must not produce errors.
-- For preconditions and postconditions, the expression can refer to any other objects in the same module, as long as the references don't create any cyclic dependencies. Resource postconditions can additionally refer to attributes of each instance of the resource where they are configured, using the special symbol `self`. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
+- For variable `validation` blocks, the expression can refer only to the variable that the condition applies to and must not produce errors.
+- For `precondition` and `postcondition` blocks, the expression can refer to any other objects in the same module, as long as the references don't create any cyclic dependencies. Resource postconditions can additionally refer to attributes of each instance of the resource where they are configured, using the special symbol `self`. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
 
 You can use any of Terraform's built-in functions or language operators
 in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly
@@ -230,7 +230,7 @@ You can use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combin
   condition = var.name != "" && lower(var.name) == var.name
   ```
 
-### `length`
+### `length` Function
 
 You can require a non-empty list or map by testing the collection's length.
 
