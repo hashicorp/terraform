@@ -89,6 +89,8 @@ Alternatively, the `cloud` block can be configured with the following environmen
 - `TF_ORGANIZATION` - The name of the organization. Serves as a fallback for `organization`
     in the cloud configuration. If both are specified, the configuration takes precedence. 
 
+- `TF_HOSTNAME` - The hostname of a Terraform Enterprise installation. Serves as a fallback if `hostname` is not specified in the cloud configuration. If both are specified, the configuration takes precendence. 
+
 ## Excluding Files from Upload with .terraformignore
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/cloud-docs/run/cli),

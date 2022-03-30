@@ -341,9 +341,10 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Get the hostname.
+	b.hostname = os.Getenv("TF_HOSTNAME")
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
 		b.hostname = val.AsString()
-	} else {
+	} else if b.hostname == "" {
 		b.hostname = defaultHostname
 	}
 
