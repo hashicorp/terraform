@@ -1,5 +1,13 @@
 ## 1.2.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* The official Linux packages for the v1.2 series now require Linux kernel version 2.6.32 or later.
+* When making outgoing HTTPS or other TLS connections as a client, Terraform now requires the server to support TLS v1.2. TLS v1.0 and v1.1 are no longer supported. Any safely up-to-date server should support TLS 1.2, and mainstream web browsers have required it since 2020.
+* When making outgoing HTTPS or other TLS connections as a client, Terraform will no longer accept CA certificates signed using the SHA-1 hash function. Publicly trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
+
+(Note: the changes to Terraform's requirements when interacting with TLS servers apply only to requests made by Terraform CLI itself, such as provider/module installation and state storage requests. Terraform provider plugins include their own TLS clients which may have different requirements, and may add new requirements in their own releases, independently of Terraform CLI changes.)
+
 NEW FEATURES:
 
 * `precondition` and `postcondition` check blocks for resources, data sources, and module output values: module authors can now document assumptions and assertions about configuration and state values. If these conditions are not met, Terraform will report a custom error message to the user and halt further evaluation.
@@ -13,7 +21,8 @@ ENHANCEMENTS:
 * There are some small improvements to the error and warning messages Terraform will emit in the case of invalid provider configuration passing between modules. There are no changes to which situations will produce errors and warnings, but the messages now include additional information intended to clarify what problem Terraform is describing and how to address it. ([#30639](https://github.com/hashicorp/terraform/issues/30639))
 * When running `terraform plan`, only show external changes which may have contributed to the current plan ([#30486](https://github.com/hashicorp/terraform/issues/30486))
 * Add `TF_ORGANIZATION` environment variable fallback for `organization` in the cloud configuration
-* Add `TF_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration 
+* Add `TF_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration
+* When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. [GH-30768]
 
 BUG FIXES:
 
