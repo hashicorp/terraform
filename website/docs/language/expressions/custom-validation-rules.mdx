@@ -93,7 +93,7 @@ An `output` block can include a `precondition`  block.
 - Preconditions can be particularly useful in a root module to prevent saving an invalid new output value in the state and to preserve the value from the previous apply, if any.
 - Preconditions can serve a symmetrical purpose to input variable `validation` blocks. Whereas input variable validation checks assumptions the module makes about its inputs, output value preconditions check guarantees that the module makes about its outputs.
 
-### When to Use Preconditions and PostConditions
+### Choosing Between Preconditions and PostConditions
 
 You can often implement a validation check as either a postcondition of the resource producing the data or as a precondition of a resource or output value using the data. To decide which is most appropriate, consider whether the check is representing either an assumption or a guarantee.
 
