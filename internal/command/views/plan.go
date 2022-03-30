@@ -487,24 +487,44 @@ func filterRefreshChange(change *plans.ResourceInstanceChange, contributing []gl
 	// We have some attributes in this change which were marked as relevant, so
 	// we are going to take the Before value and add in only those attributes
 	// from the After value which may have contributed to the plan.
+
+	// If the types don't match because the schema is dynamic, we may not be
+	// able to apply the paths to the new values.
+	// if we encounter a path that does not apply correctly and the types do
+	// not match overall, just assume we need the entire value.
+	isDynamic := !change.Before.Type().Equals(change.After.Type())
+	failedApply := false
+
 	before := change.Before
 	after, _ := cty.Transform(before, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		for i, attrPath := range relevantAttrs {
-			// If the current value is null, but we are only a prefix of the
-			// affected path, we need to take the value from this point since
-			// we can't recurse any further into the object. This has the
-			// possibility of pulling in extra attribute changes we're not
-			// concerned with, but we can take this as "close enough" for now.
-			if (v.IsNull() && attrPath.HasPrefix(path)) || attrPath.Equals(path) {
+			// We match prefix in case we are traversing any null or dynamic
+			// values and enter in via a shorter path. The traversal is
+			// depth-first, so we will always hit the longest match first.
+			if attrPath.HasPrefix(path) {
 				// remove the path from further consideration
 				relevantAttrs = append(relevantAttrs[:i], relevantAttrs[i+1:]...)
 
-				v, err := path.Apply(change.After)
-				return v, err
+				applied, err := path.Apply(change.After)
+				if err != nil {
+					failedApply = true
+					// Assume the types match for now, and failure to apply is
+					// because a parent value is null. If there were dynamic
+					// types we'll just restore the entire value.
+					return cty.NullVal(v.Type()), nil
+				}
+
+				return applied, err
 			}
 		}
 		return v, nil
 	})
+
+	// A contributing attribute path did not match the after value type in some
+	// way, so restore the entire change.
+	if isDynamic && failedApply {
+		after = change.After
+	}
 
 	action := change.Action
 	if before.RawEquals(after) {
