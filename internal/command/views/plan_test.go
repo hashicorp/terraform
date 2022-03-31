@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -123,5 +124,270 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 				},
 			},
 		},
+	}
+}
+
+func TestFilterRefreshChange(t *testing.T) {
+	tests := map[string]struct {
+		paths                   []cty.Path
+		before, after, expected cty.Value
+	}{
+		"attr was null": {
+			// nested attr was null
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("attr_null_before").GetAttr("b"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"attr_null_before": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("old"),
+						"b": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"attr_null_before": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"attr_null_before": cty.ObjectVal(map[string]cty.Value{
+						// we old picked the change in b
+						"a": cty.StringVal("old"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+		},
+		"object was null": {
+			// nested object attrs were null
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("obj_null_before").GetAttr("b"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_before": cty.NullVal(cty.Object(map[string]cty.Type{
+						"a": cty.String,
+						"b": cty.String,
+					})),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("old"),
+					}),
+				}),
+			}),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_before": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_before": cty.ObjectVal(map[string]cty.Value{
+						// optimally "a" would be null, but we need to take the
+						// entire object since it was null before.
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("old"),
+					}),
+				}),
+			}),
+		},
+		"object becomes null": {
+			// nested object attr becoming null
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("obj_null_after").GetAttr("a"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("old"),
+						"b": cty.StringVal("old"),
+					}),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("old"),
+					}),
+				}),
+			}),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_after": cty.NullVal(cty.Object(map[string]cty.Type{
+						"a": cty.String,
+						"b": cty.String,
+					})),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"obj_null_after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.NullVal(cty.String),
+						"b": cty.StringVal("old"),
+					}),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("old"),
+					}),
+				}),
+			}),
+		},
+		"dynamic adding values": {
+			// dynamic gaining values
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("after").GetAttr("a"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.DynamicVal,
+			}),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					// the entire attr object is taken here because there is
+					// nothing to compare within the before value
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+					// "other" is picked up here too this time, because we need
+					// to take the entire dynamic "attr" value
+					"other": cty.ObjectVal(map[string]cty.Value{
+						"o": cty.StringVal("new"),
+					}),
+				}),
+			}),
+		},
+		"whole object becomes null": {
+			// whole object becomes null
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("after").GetAttr("a"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("old"),
+						"b": cty.StringVal("old"),
+					}),
+				}),
+			}),
+			after: cty.NullVal(cty.Object(map[string]cty.Type{
+				"attr": cty.DynamicPseudoType,
+			})),
+			// since we have a dynamic type we have to take the entire object
+			// because the paths may not apply between versions.
+			expected: cty.NullVal(cty.Object(map[string]cty.Type{
+				"attr": cty.DynamicPseudoType,
+			})),
+		},
+		"whole object was null": {
+			// whole object was null
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("after").GetAttr("a"),
+			},
+			before: cty.NullVal(cty.Object(map[string]cty.Type{
+				"attr": cty.DynamicPseudoType,
+			})),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+		},
+		"restructured dynamic": {
+			// dynamic value changing structure significantly
+			paths: []cty.Path{
+				cty.GetAttrPath("attr").GetAttr("list").IndexInt(1).GetAttr("a"),
+			},
+			before: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"a": cty.StringVal("old"),
+						}),
+					}),
+				}),
+			}),
+			after: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+			// the path does not apply at all to the new object, so we must
+			// take all the changes
+			expected: cty.ObjectVal(map[string]cty.Value{
+				"attr": cty.ObjectVal(map[string]cty.Value{
+					"after": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("new"),
+						"b": cty.StringVal("new"),
+					}),
+				}),
+			}),
+		},
+	}
+
+	for k, tc := range tests {
+		t.Run(k, func(t *testing.T) {
+			addr, diags := addrs.ParseAbsResourceInstanceStr("test_resource.a")
+			if diags != nil {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+
+			change := &plans.ResourceInstanceChange{
+				Addr: addr,
+				Change: plans.Change{
+					Before: tc.before,
+					After:  tc.after,
+					Action: plans.Update,
+				},
+			}
+
+			var contributing []globalref.ResourceAttr
+			for _, p := range tc.paths {
+				contributing = append(contributing, globalref.ResourceAttr{
+					Resource: addr,
+					Attr:     p,
+				})
+			}
+
+			res := filterRefreshChange(change, contributing)
+			if !res.After.RawEquals(tc.expected) {
+				t.Errorf("\nexpected: %#v\ngot:      %#v\n", tc.expected, res.After)
+			}
+		})
 	}
 }
