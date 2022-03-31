@@ -32,6 +32,7 @@ BUG FIXES:
 * Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. ([#29972](https://github.com/hashicorp/terraform/issues/29972))
 * Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address. ([#30703](https://github.com/hashicorp/terraform/issues/30703))
 * When performing advanced state management with the `terraform state` commands, Terraform now checks the `required_version` field in the configuration before proceeding. ([#30511](https://github.com/hashicorp/terraform/pull/30511))
+* Terraform will no longer crash with "invalid memory address or nil pointer dereference" error during a `terraform apply` command. ([#30773](https://github.com/hashicorp/terraform/pull/30773))
 
 UPGRADE NOTES:
 
