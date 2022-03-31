@@ -178,21 +178,27 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		s := testServer(t)
-		b := New(testDisco(s))
+		t.Run(name, func(t *testing.T) {
+			s := testServer(t)
+			b := New(testDisco(s))
 
-		for k, v := range tc.vars {
-			os.Setenv(k, v)
-			defer os.Unsetenv(k)
-		}
-
-		_, valDiags := b.PrepareConfig(tc.config)
-		if valDiags.Err() != nil && tc.expectedErr != "" {
-			actualErr := valDiags.Err().Error()
-			if !strings.Contains(actualErr, tc.expectedErr) {
-				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
 			}
-		}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil && tc.expectedErr != "" {
+				actualErr := valDiags.Err().Error()
+				if !strings.Contains(actualErr, tc.expectedErr) {
+					t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+				}
+			}
+		})
 	}
 }
 
@@ -266,31 +272,38 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		s := testServer(t)
-		b := New(testDisco(s))
+		t.Run(name, func(t *testing.T) {
+			s := testServer(t)
+			b := New(testDisco(s))
 
-		for k, v := range tc.vars {
-			os.Setenv(k, v)
-			defer os.Unsetenv(k)
-		}
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
 
-		_, valDiags := b.PrepareConfig(tc.config)
-		if valDiags.Err() != nil {
-			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
-		}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
 
-		diags := b.Configure(tc.config)
-		if diags.Err() != nil {
-			t.Fatalf("%s: unexpected configuration result: %v", name, valDiags.Err())
-		}
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil {
+				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			}
 
-		if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
-			t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
-		}
+			diags := b.Configure(tc.config)
+			if diags.Err() != nil {
+				t.Fatalf("%s: unexpected configuration result: %v", name, diags.Err())
+			}
 
-		if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
-			t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
-		}
+			if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
+				t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
+			}
+
+			if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
+				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
+			}
+		})
 	}
 }
 
