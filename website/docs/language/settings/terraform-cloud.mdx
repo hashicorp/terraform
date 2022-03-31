@@ -20,6 +20,7 @@ You can configure the Terraform Cloud CLI integration by adding a nested `cloud`
 terraform {
   cloud {
     organization = "example_corp"
+    hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
 
     workspaces {
       tags = ["app"]
@@ -27,6 +28,8 @@ terraform {
   }
 }
 ```
+
+Without specifying the `hostname`, it defaults to app.terraform.io for Terraform Cloud. For Terraform Enterprise installations, include the `hostname` configuration argument.  
 
 You cannot use the CLI integration and a [state backend](/language/settings/backends) in the same configuration; they are mutually exclusive. A configuration can only provide one `cloud` block and the `cloud` block cannot refer to named values like input variables, locals, or data source attributes.
 
