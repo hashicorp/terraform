@@ -320,6 +320,9 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
+	if configureDiags.HasErrors() {
+		return nil, diags
+	}
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backend.CLI); ok {
