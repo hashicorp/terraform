@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	svchost "github.com/hashicorp/terraform-svchost"
-
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"

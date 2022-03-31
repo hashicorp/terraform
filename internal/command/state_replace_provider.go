@@ -42,6 +42,11 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// Parse from/to arguments into providers

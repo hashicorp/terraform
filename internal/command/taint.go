@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -10,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -58,30 +56,7 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the config and check the core version requirements are satisfied
-	loader, err := c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	config, configDiags := loader.LoadConfig(pwd)
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	diags = diags.Append(versionDiags)
-	if diags.HasErrors() {
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
 		return 1
 	}

@@ -37,6 +37,11 @@ func (c *StateRmCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get the state
 	stateMgr, err := c.State()
 	if err != nil {
