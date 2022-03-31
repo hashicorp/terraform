@@ -4,6 +4,7 @@ BUG FIXES:
 
 * cli: Fix missing identifying attributes (e.g. "id", "name") when displaying plan diffs with nested objects. [GH-30685]
 * functions: Fix error when `sum()` function is called with a collection of string-encoded numbers, such as `sum(["1", "2", "3"])`. [GH-30684]
+* Terraform will no longer crash with "invalid memory address or nil pointer dereference" error during a `terraform apply` command. ([#30780](https://github.com/hashicorp/terraform/pull/30780))
 
 ## 1.1.7 (March 02, 2022)
 
@@ -92,7 +93,7 @@ This release is covered by the [Terraform v1.0 Compatibility Promises](https://w
 * `terraform apply` with a previously-saved plan file will now verify that the provider plugin packages used to create the plan fully match the ones used during apply, using the same checksum scheme that Terraform normally uses for the dependency lock file. Previously Terraform was checking consistency of plugins from a plan file using a legacy mechanism which covered only the main plugin executable, not any other files that might be distributed alongside in the plugin package.
 
     This additional check should not affect typical plugins that conform to the expectation that a plugin package's contents are immutable once released, but may affect a hypothetical in-house plugin that intentionally modifies extra files in its package directory somehow between plan and apply. If you have such a plugin, you'll need to change its approach to store those files in some other location separate from the package directory. This is a minor compatibility break motivated by increasing the assurance that plugins have not been inadvertently or maliciously modified between plan and apply.
-* `terraform state mv` will now error when legacy `-backup` or `-backup-out` options are used without the `-state` option on non-local backends. These options operate on a local state file only. Previously, these options were accepted but ignored silently when used with non-local backends. 
+* `terraform state mv` will now error when legacy `-backup` or `-backup-out` options are used without the `-state` option on non-local backends. These options operate on a local state file only. Previously, these options were accepted but ignored silently when used with non-local backends.
 * In the AzureRM backend, the new opt-in option `use_microsoft_graph` switches to using MSAL authentication tokens and Microsoft Graph rather than using ADAL tokens and Azure Active Directory Graph, which is now [deprecated by Microsoft](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-faq). The new mode will become the default in Terraform v1.2, so please plan to migrate to using this setting and test with your own Azure AD tenant prior to the Terraform v1.2 release.
 
 ENHANCEMENTS:
