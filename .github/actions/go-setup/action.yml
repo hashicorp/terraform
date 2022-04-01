@@ -1,0 +1,41 @@
+name: 'Set Up Go Toolchain'
+description: 'Installs the Go toolchain specified in .go-version.'
+outputs:
+  go-version:
+    description: "Go toolchain version"
+    value: ${{ steps.go.outputs.go-version }}
+  gopath:
+    description: "GOPATH location"
+    value: ${{ steps.go.outputs.gopath }}
+  goenv:
+    description: "Path to the 'goenv' executable"
+    value: ${{ steps.go.outputs.goenv }}
+  goenv-bin-dir:
+    description: "Path to the directory containing the 'goenv' executable"
+    value: ${{ steps.go.outputs.goenv-bin-dir }}
+  go:
+    description: "Path to the 'go' executable"
+    value: ${{ steps.go.outputs.go }}
+runs:
+  using: "composite"
+  steps:
+    # We use goenv to make sure we're always using the same Go version we'd
+    # use for releases, as recorded in the .go-version file.
+    - name: "Install Go"
+      id: go
+      shell: bash
+      run: |
+        git clone https://github.com/syndbg/goenv.git ~/.goenv
+        # "install" makes sure we have the .go-version-selected toolchain
+        # available in goenv's repository of toolchains.
+        # (this creates ~/.goenv/versions/VERSION/... to serve as GOROOT)
+        ~/.goenv/bin/goenv install
+        # "rehash" generates the wrapper scripts that goenv uses to
+        # select the correct executables for the selected toolchain.
+        # (this is what creates the ~/.goenv/shims/go we refer to below)
+        ~/.goenv/bin/goenv rehash
+        echo "::set-output name=go-version::$(~/.goenv/bin/goenv version-name)"
+        echo "::set-output name=gopath::$HOME/go/$(~/.goenv/bin/goenv version-name)"
+        echo "::set-output name=goenv::$HOME/.goenv/bin/goenv"
+        echo "::set-output name=goenv-bin-dir::$HOME/.goenv/bin"
+        echo "::set-output name=go::$HOME/.goenv/shims/go"

@@ -33,30 +33,23 @@ jobs:
       - name: "Fetch source code"
         uses: actions/checkout@v2
 
-      # For our Go tests in particular we use goenv to make sure we're always
-      # using the same Go version we'd use for releases, as recorded in the
-      # .go-version file.
       - name: "Install Go"
         id: go
-        run: |
-          git clone https://github.com/syndbg/goenv.git ~/.goenv
-          ~/.goenv/bin/goenv install
-          ~/.goenv/bin/goenv rehash
-          echo "::set-output name=go-version::$(~/.goenv/bin/goenv version-name)"
+        uses: ./.github/actions/go-setup
 
-      # Note: this cache is shared with the "e2e-tests" job, so must always
-      # have identical configuration its corresponding step.
+      # NOTE: This cache is shared with the e2e-tests job, so the corresponding
+      # step in that job must always be identical to this one.
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
-          path: "~/go/${{steps.go.outputs.go-version}}/pkg"
+          path: "${{steps.go.outputs.gopath}}/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
           restore-keys: |
             go-mod-
 
       - name: "go.mod and go.sum consistency check"
         run: |
-          ~/.goenv/shims/go mod tidy
+          "${{steps.go.outputs.go}}" mod tidy
           if [[ -n "$(git status --porcelain)" ]]; then
             echo "go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
             exit 1
@@ -64,7 +57,7 @@ jobs:
 
       - name: "Unit tests"
         run: |
-          ~/.goenv/shims/go test ./...
+          "${{steps.go.outputs.go}}" test ./...
 
       # We'll also deal with some general consistency/lint/style checks
       # here just because they are relatively fast and so not worth running
@@ -75,7 +68,7 @@ jobs:
           # We do need to fully init goenv in this one case because we're
           # going to run Go indirectly via make and some shell scripts, so
           # we need PATH set up correctly.
-          export PATH=~/.goenv/bin:$PATH
+          export PATH="${{steps.go.outputs.goenv-bin-dir}}":$PATH
           eval "$(goenv init -)"
           go version
           make fmtcheck generate staticcheck exhaustive protobuf
@@ -97,27 +90,20 @@ jobs:
       - name: "Fetch source code"
         uses: actions/checkout@v2
 
-      # For our Go tests in particular we use goenv to make sure we're always
-      # using the same Go version we'd use for releases, as recorded in the
-      # .go-version file.
       - name: "Install Go"
         id: go
-        run: |
-          git clone https://github.com/syndbg/goenv.git ~/.goenv
-          ~/.goenv/bin/goenv install
-          ~/.goenv/bin/goenv rehash
-          echo "::set-output name=go-version::$(~/.goenv/bin/goenv version-name)"
+        uses: ./.github/actions/go-setup
 
-      # Note: this cache is shared with the "unit-tests" job, so must always
-      # have identical configuration its corresponding step.
+      # NOTE: This cache is shared with the e2e-tests job, so the corresponding
+      # step in that job must always be identical to this one.
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
-          path: "~/go/${{steps.go.outputs.go-version}}/pkg"
+          path: "${{steps.go.outputs.gopath}}/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
           restore-keys: |
             go-mod-
 
       - name: "End-to-end tests"
         run: |
-          TF_ACC=1 ~/.goenv/shims/go test -v ./internal/command/e2etest
+          TF_ACC=1 "${{steps.go.outputs.go}}" test -v ./internal/command/e2etest
