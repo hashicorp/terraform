@@ -5,6 +5,7 @@ BUG FIXES:
 * cli: Fix missing identifying attributes (e.g. "id", "name") when displaying plan diffs with nested objects. [GH-30685]
 * functions: Fix error when `sum()` function is called with a collection of string-encoded numbers, such as `sum(["1", "2", "3"])`. [GH-30684]
 * When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier. [GH-30766]
+* Terraform will no longer crash in the `terraform apply` phase if an error occurs during backend configuration. ([#30780](https://github.com/hashicorp/terraform/pull/30780))
 
 ## 1.1.7 (March 02, 2022)
 
