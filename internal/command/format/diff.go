@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -337,6 +338,7 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 	blankBeforeBlocks := false
 
 	attrNames := make([]string, 0, len(attrsS))
+	displayAttrNames := make(map[string]string, len(attrsS))
 	attrNameLen := 0
 	for name := range attrsS {
 		oldVal := ctyGetAttrMaybeNull(old, name)
@@ -350,8 +352,9 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		}
 
 		attrNames = append(attrNames, name)
-		if len(name) > attrNameLen {
-			attrNameLen = len(name)
+		displayAttrNames[name] = displayAttributeName(name)
+		if len(displayAttrNames[name]) > attrNameLen {
+			attrNameLen = len(displayAttrNames[name])
 		}
 	}
 	sort.Strings(attrNames)
@@ -365,7 +368,7 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		newVal := ctyGetAttrMaybeNull(new, name)
 
 		result.bodyWritten = true
-		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+		skipped := p.writeAttrDiff(displayAttrNames[name], attrS, oldVal, newVal, attrNameLen, indent, path)
 		if skipped {
 			result.skippedAttributes++
 		}
@@ -1127,23 +1130,26 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
+		displayAttrNames := make(map[string]string, len(atys))
 		nameLen := 0
 		for attrName := range atys {
 			attrNames = append(attrNames, attrName)
-			if len(attrName) > nameLen {
-				nameLen = len(attrName)
+			displayAttrNames[attrName] = displayAttributeName(attrName)
+			if len(displayAttrNames[attrName]) > nameLen {
+				nameLen = len(displayAttrNames[attrName])
 			}
 		}
 		sort.Strings(attrNames)
 
 		for _, attrName := range attrNames {
 			val := val.GetAttr(attrName)
+			displayAttrName := displayAttrNames[attrName]
 
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
-			p.buf.WriteString(attrName)
-			p.buf.WriteString(strings.Repeat(" ", nameLen-len(attrName)))
+			p.buf.WriteString(displayAttrName)
+			p.buf.WriteString(strings.Repeat(" ", nameLen-len(displayAttrName)))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
 		}
@@ -1475,21 +1481,24 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			p.buf.WriteString("\n")
 
 			var allKeys []string
+			displayKeys := make(map[string]string)
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 			for it := new.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 
@@ -1532,8 +1541,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
-				p.writeValue(kV, action, indent+4)
-				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.writeValue(cty.StringVal(displayKeys[k]), action, indent+4)
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(displayKeys[k])))
 				p.buf.WriteString(" = ")
 				switch action {
 				case plans.Create, plans.NoOp:
@@ -1580,21 +1589,24 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			forcesNewResource := p.pathForcesNewResource(path)
 
 			var allKeys []string
+			displayKeys := make(map[string]string)
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 			for it := new.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 
@@ -1632,8 +1644,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
-				p.buf.WriteString(k)
-				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.buf.WriteString(displayKeys[k])
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(displayKeys[k])))
 				p.buf.WriteString(" = ")
 
 				switch action {
@@ -2017,4 +2029,11 @@ func (p *blockBodyDiffPrinter) writeSkippedElems(skipped, indent int) {
 		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 		p.buf.WriteString("\n")
 	}
+}
+
+func displayAttributeName(name string) string {
+	if !hclsyntax.ValidIdentifier(name) {
+		return fmt.Sprintf("%q", name)
+	}
+	return name
 }
