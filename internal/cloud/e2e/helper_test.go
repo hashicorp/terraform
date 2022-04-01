@@ -251,6 +251,6 @@ findTfVersion:
 	}
 
 	if !hasVersion {
-		t.Skip(fmt.Sprintf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version))
+		t.Skipf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version)
 	}
 }
