@@ -78,18 +78,14 @@ func (c *LogoutCommand) Run(args []string) int {
 		return 1
 	}
 
-	// credsCtx might not be set if we're using a mock credentials source
-	// in a test, but it should always be set in normal use.
-	if credsCtx != nil {
-		switch credsCtx.Location {
-		case cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("No credentials for %s are stored.\n", dispHostname))
-			return 0
-		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the configured\n%q credentials helper.\n", dispHostname, credsCtx.HelperType))
-		case cliconfig.CredentialsInPrimaryFile:
-			c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the following file:\n    %s\n", dispHostname, credsCtx.LocalFilename))
-		}
+	switch credsCtx.Location {
+	case cliconfig.CredentialsNotAvailable:
+		c.Ui.Output(fmt.Sprintf("No credentials for %s are stored.\n", dispHostname))
+		return 0
+	case cliconfig.CredentialsViaHelper:
+		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the configured\n%q credentials helper.\n", dispHostname, credsCtx.HelperType))
+	case cliconfig.CredentialsInPrimaryFile:
+		c.Ui.Output(fmt.Sprintf("Removing the stored credentials for %s from the following file:\n    %s\n", dispHostname, credsCtx.LocalFilename))
 	}
 
 	err = creds.ForgetForHost(hostname)
