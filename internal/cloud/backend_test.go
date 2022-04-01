@@ -175,6 +175,25 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 			vars:        map[string]string{},
 			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_ORGANIZATION.`,
 		},
+		"null workspace": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "my-workspace",
+			},
+		},
+		"organization and workspace env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"TF_ORGANIZATION": "hashicorp",
+				"TF_WORKSPACE":    "my-workspace",
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -204,10 +223,12 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 
 func TestCloud_configWithEnvVars(t *testing.T) {
 	cases := map[string]struct {
-		config               cty.Value
-		vars                 map[string]string
-		expectedOrganization string
-		expectedHostname     string
+		config                cty.Value
+		vars                  map[string]string
+		expectedOrganization  string
+		expectedHostname      string
+		expectedWorkspaceName string
+		expectedErr           string
 	}{
 		"with no organization specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -269,6 +290,36 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			},
 			expectedHostname: "app.terraform.io",
 		},
+		"an invalid workspace env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("app.terraform.io"),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.NullVal(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+					"tags": cty.Set(cty.String),
+				})),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "i-dont-exist-in-org",
+			},
+			expectedErr: `Invalid workspace selection: "i-dont-exist-in-org" was not found in organization hashicorp`,
+		},
+		"workspaces and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("app.terraform.io"),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "mt-doom",
+			},
+			expectedWorkspaceName: "prod",
+		},
 	}
 
 	for name, tc := range cases {
@@ -292,8 +343,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			}
 
 			diags := b.Configure(tc.config)
-			if diags.Err() != nil {
-				t.Fatalf("%s: unexpected configuration result: %v", name, diags.Err())
+			if (diags.Err() != nil || tc.expectedErr != "") &&
+				(diags.Err() == nil || !strings.Contains(diags.Err().Error(), tc.expectedErr)) {
+				t.Fatalf("%s: unexpected configure result: %v", name, diags.Err())
 			}
 
 			if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
@@ -302,6 +354,10 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 
 			if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
 				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
+			}
+
+			if tc.expectedWorkspaceName != "" && tc.expectedWorkspaceName != b.WorkspaceMapping.Name {
+				t.Fatalf("%s: workspace name not valid: %s, expected: %s", name, b.WorkspaceMapping.Name, tc.expectedWorkspaceName)
 			}
 		})
 	}

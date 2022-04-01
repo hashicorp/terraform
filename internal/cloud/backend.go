@@ -172,6 +172,8 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				log.Panicf("An unxpected error occurred: %s", err)
 			}
 		}
+	} else {
+		WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	switch WorkspaceMapping.Strategy() {
@@ -376,6 +378,8 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 			b.WorkspaceMapping.Tags = tags
 		}
+	} else {
+		b.WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	// Determine if we are forced to use the local backend.
