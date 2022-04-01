@@ -1,0 +1,123 @@
+# This workflow is a collection of "quick checks" that should be reasonable
+# to run for any new commit to this repository in principle.
+#
+# The main purpose of this workflow is to represent checks that we want to
+# run prior to reviewing and merging a pull request. We should therefore aim
+# for these checks to complete in no more than a few minutes in the common
+# case.
+#
+# The build.yml workflow includes some additional checks we run only for
+# already-merged changes to release branches and tags, as a compromise to
+# keep the PR feedback relatively fast. The intent is that checks.yml should
+# catch most problems but that build.yml might occasionally by the one to catch
+# more esoteric situations, such as architecture-specific or OS-specific
+# misbehavior.
+
+name: Quick Checks
+
+on:
+  push:
+
+# This workflow runs for not-yet-reviewed external contributions and so it
+# intentionally has no write access and only limited read access to the
+# repository.
+permissions:
+  contents: read
+
+jobs:
+  unit-tests:
+    name: "Unit Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@v2
+
+      # For our Go tests in particular we use goenv to make sure we're always
+      # using the same Go version we'd use for releases, as recorded in the
+      # .go-version file.
+      - name: "Install Go"
+        id: go
+        run: |
+          git clone https://github.com/syndbg/goenv.git ~/.goenv
+          ~/.goenv/bin/goenv install
+          ~/.goenv/bin/goenv rehash
+          echo "::set-output name=go-version::$(~/.goenv/bin/goenv version-name)"
+
+      # Note: this cache is shared with the "e2e-tests" job, so must always
+      # have identical configuration its corresponding step.
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: "~/go/${{steps.go.outputs.go-version}}/pkg"
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: "go.mod and go.sum consistency check"
+        run: |
+          ~/.goenv/shims/go mod tidy
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
+            exit 1
+          fi
+
+      - name: "Unit tests"
+        run: |
+          ~/.goenv/shims/go test ./...
+
+      # We'll also deal with some general consistency/lint/style checks
+      # here just because they are relatively fast and so not worth running
+      # concurrently given the cost of _yet again_ installing Go and checking
+      # out the source code in another worker.
+      - name: "Code consistency checks"
+        run: |
+          # We do need to fully init goenv in this one case because we're
+          # going to run Go indirectly via make and some shell scripts, so
+          # we need PATH set up correctly.
+          export PATH=~/.goenv/bin:$PATH
+          eval "$(goenv init -)"
+          go version
+          make fmtcheck generate staticcheck exhaustive protobuf
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
+            git status --porcelain
+            exit 1
+          fi
+
+  e2e-tests:
+    # This is an intentionally-limited form of our E2E test run which only
+    # covers Terraform running on Linux. The build.yml workflow runs these
+    # tests across various other platforms in order to catch the rare exception
+    # that might leak through this.
+    name: "End-to-end Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@v2
+
+      # For our Go tests in particular we use goenv to make sure we're always
+      # using the same Go version we'd use for releases, as recorded in the
+      # .go-version file.
+      - name: "Install Go"
+        id: go
+        run: |
+          git clone https://github.com/syndbg/goenv.git ~/.goenv
+          ~/.goenv/bin/goenv install
+          ~/.goenv/bin/goenv rehash
+          echo "::set-output name=go-version::$(~/.goenv/bin/goenv version-name)"
+
+      # Note: this cache is shared with the "unit-tests" job, so must always
+      # have identical configuration its corresponding step.
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: "~/go/${{steps.go.outputs.go-version}}/pkg"
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: "End-to-end tests"
+        run: |
+          TF_ACC=1 ~/.goenv/shims/go test -v ./internal/command/e2etest
