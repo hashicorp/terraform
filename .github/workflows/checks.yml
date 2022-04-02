@@ -42,8 +42,9 @@ jobs:
         with:
           go-version: ${{ steps.go.outputs.version }}
 
-      # NOTE: This cache is shared with the e2e-tests job, so the corresponding
-      # step in that job must always be identical to this one.
+      # NOTE: This cache is shared so the following step must always be
+      # identical across the unit-tests, e2e-tests, and consistency-checks
+      # jobs, or else weird things could happen.
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -52,30 +53,9 @@ jobs:
           restore-keys: |
             go-mod-
 
-      - name: "go.mod and go.sum consistency check"
-        run: |
-          go mod tidy
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
-            exit 1
-          fi
-
       - name: "Unit tests"
         run: |
           go test ./...
-
-      # We'll also deal with some general consistency/lint/style checks
-      # here just because they are relatively fast and so not worth running
-      # concurrently given the cost of _yet again_ installing Go and checking
-      # out the source code in another worker.
-      - name: "Code consistency checks"
-        run: |
-          make fmtcheck generate staticcheck exhaustive protobuf
-          if [[ -n "$(git status --porcelain)" ]]; then
-            echo "Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
-            git status --porcelain
-            exit 1
-          fi
 
   e2e-tests:
     # This is an intentionally-limited form of our E2E test run which only
@@ -98,8 +78,9 @@ jobs:
         with:
           go-version: ${{ steps.go.outputs.version }}
 
-      # NOTE: This cache is shared with the e2e-tests job, so the corresponding
-      # step in that job must always be identical to this one.
+      # NOTE: This cache is shared so the following step must always be
+      # identical across the unit-tests, e2e-tests, and consistency-checks
+      # jobs, or else weird things could happen.
       - name: Cache Go modules
         uses: actions/cache@v3
         with:
@@ -111,3 +92,48 @@ jobs:
       - name: "End-to-end tests"
         run: |
           TF_ACC=1 go test -v ./internal/command/e2etest
+
+  consistency-checks:
+    name: "Code Consistency Checks"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@v2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+
+      # NOTE: This cache is shared so the following step must always be
+      # identical across the unit-tests, e2e-tests, and consistency-checks
+      # jobs, or else weird things could happen.
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: "~/go/pkg"
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: "go.mod and go.sum consistency check"
+        run: |
+          go mod tidy
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo >&2 "ERROR: go.mod/go.sum are not up-to-date. Run 'go mod tidy' and then commit the updated files."
+            exit 1
+          fi
+
+      - name: "Code consistency checks"
+        run: |
+          make fmtcheck generate staticcheck exhaustive protobuf
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
+            git >&2 status --porcelain
+            exit 1
+          fi
