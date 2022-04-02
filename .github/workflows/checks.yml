@@ -129,6 +129,14 @@ jobs:
             exit 1
           fi
 
+      - name: Cache protobuf tools
+        uses: actions/cache@v3
+        with:
+          path: "tools/protobuf-compile/.workdir"
+          key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
+          restore-keys: |
+            protobuf-tools-
+
       - name: "Code consistency checks"
         run: |
           make fmtcheck generate staticcheck exhaustive protobuf
