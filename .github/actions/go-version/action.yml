@@ -1,0 +1,23 @@
+name: 'Determine Go Toolchain Version'
+description: 'Uses the .go-version file to determine which Go toolchain to use for any Go-related actions downstream.'
+outputs:
+  version:
+    description: "Go toolchain version"
+    value: ${{ steps.go.outputs.version }}
+runs:
+  using: "composite"
+  steps:
+    # We use goenv to make sure we're always using the same Go version we'd
+    # use for releases, as recorded in the .go-version file.
+    - name: "Determine Go version"
+      id: go
+      shell: bash
+      # We use .go-version as our source of truth for current Go
+      # version, because "goenv" can react to it automatically.
+      # However, we don't actually use goenv for our automated
+      # steps in GitHub Actions, because it's primarily for
+      # interactive use in shells and makes things unnecessarily
+      # complex for automation.
+      run: |
+        echo "Building with Go $(cat .go-version)"
+        echo "::set-output name=version::$(cat .go-version)"

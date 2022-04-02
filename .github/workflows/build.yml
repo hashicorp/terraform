@@ -68,17 +68,13 @@ jobs:
     name: "Determine Go toolchain version"
     runs-on: ubuntu-latest
     outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
+      go-version: ${{ steps.get-go-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v2
       - name: Determine Go version
         id: get-go-version
-        # We use .go-version as our source of truth for current Go
-        # version, because "goenv" can react to it automatically.
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+        uses: ./.github/actions/go-version
 
   generate-metadata-file:
     name: "Generate release metadata"
