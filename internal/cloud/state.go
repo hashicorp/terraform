@@ -68,7 +68,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	so, err := s.Client.client.StateVersionOutputs.ReadCurrent(ctx, s.Client.workspace.ID)
 
 	if err != nil {
-		return nil, fmt.Errorf("Could not read state version outputs: %w", err)
+		return nil, fmt.Errorf("could not read state version outputs: %w", err)
 	}
 
 	result := make(map[string]*states.OutputValue)

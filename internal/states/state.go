@@ -19,7 +19,7 @@ import (
 // so when accessing a State object concurrently it is the caller's
 // responsibility to ensure that only one write is in progress at a time
 // and that reads only occur when no write is in progress. The most common
-// way to acheive this is to wrap the State in a SyncState and use the
+// way to achieve this is to wrap the State in a SyncState and use the
 // higher-level atomic operations supported by that type.
 type State struct {
 	// Modules contains the state for each module. The keys in this map are
@@ -412,7 +412,7 @@ func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
 // MaybeMoveAbsResource moves the given src AbsResource's current state to the
 // new dst address. This function will succeed if both the src address does not
 // exist in state and the dst address does; the return value indicates whether
-// or not the move occured. This function will panic if either the src does not
+// or not the move occurred. This function will panic if either the src does not
 // exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
 	// Get the source and destinatation addresses from state.
