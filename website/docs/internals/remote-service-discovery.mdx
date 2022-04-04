@@ -90,8 +90,8 @@ At present, the following service identifiers are in use:
 ## Authentication
 
 If credentials for the given hostname are available in
-[the CLI config](/cli/config/config-file) then they will be included
-in the request for the discovery document.
+[the CLI config, by a credential helper, or using a host-specific environment variable](/cli/config/config-file#Credentials)
+then they will be included in the request for the discovery document.
 
 The credentials may also be provided to endpoints declared in the discovery
 document, depending on the requirements of the service in question.

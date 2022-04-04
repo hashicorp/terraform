@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -113,6 +114,29 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 	}
 }
 
+// hostCredentialsFromEnv returns a token credential by searching for a hostname-specific
+// environment variable. If the variable based on the hostname is not defined, nil is returned.
+// Variable names must have dot characters translated to underscores, which are normally not
+// allowed in DNS names. For example, token credentials for app.terraform.io should be set
+// in the variable named TF_TOKEN_app_terraform_io. Internationalized hostnames containing
+// non-ASCII characters expressed as variable names are expected to be in the "comparison" form,
+// such as "TF_TOKEN_xn--caf-dma_fr" for the hostname "café.fr"
+func hostCredentialsFromEnv(host svchost.Hostname) svcauth.HostCredentials {
+	if len(host) == 0 {
+		return nil
+	}
+
+	// Convert dots to underscores when looking for environment configuration for a specific host.
+	// DNS names do not allow underscore characters so this is unambiguous.
+	variableName := fmt.Sprintf("TF_TOKEN_%s", strings.ReplaceAll(host.String(), ".", "_"))
+
+	if token, ok := os.LookupEnv(variableName); ok {
+		return svcauth.HostCredentialsToken(token)
+	}
+
+	return nil
+}
+
 // CredentialsSource is an implementation of svcauth.CredentialsSource
 // that can read and write the CLI configuration, and possibly also delegate
 // to a credentials helper when configured.
@@ -153,11 +177,18 @@ type CredentialsSource struct {
 var _ svcauth.CredentialsSource = (*CredentialsSource)(nil)
 
 func (s *CredentialsSource) ForHost(host svchost.Hostname) (svcauth.HostCredentials, error) {
+	// The first order of precedence for credentials is a host-specific environment variable
+	if envCreds := hostCredentialsFromEnv(host); envCreds != nil {
+		return envCreds, nil
+	}
+
+	// Then, any credentials block present in the CLI config
 	v, ok := s.configured[host]
 	if ok {
 		return svcauth.HostCredentialsFromObject(v), nil
 	}
 
+	// And finally, the credentials helper
 	if s.helper != nil {
 		return s.helper.ForHost(host)
 	}

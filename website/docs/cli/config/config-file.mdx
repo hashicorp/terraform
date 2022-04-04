@@ -115,12 +115,22 @@ is available at multiple hostnames, use only one of them consistently.
 Terraform Cloud responds to API calls at both its current hostname
 `app.terraform.io`, and its historical hostname `atlas.hashicorp.com`.
 
-### Credentials Helpers
+### Environment Variable Credentials
 
 If you would prefer not to store your API tokens directly in the CLI
-configuration as described in the previous section, you can optionally instruct
-Terraform to use a different credentials storage mechanism by configuring a
-special kind of plugin program called a _credentials helper_.
+configuration, you may use a host-specific environment variable. For example,
+the value of a variable named `TF_TOKEN_app_terraform_io` will be used as an
+Authorization: Bearer token whenever making service requests to the hostname
+"app.terraform.io".
+
+Internationalized domain names should be converted to their [punycode equivalent](https://www.charset.org/punycode)
+with an ACE prefix when used as a variable name. For example, token credentials
+for 例えば.com should be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
+
+### Credentials Helpers
+
+Finally, you may instruct Terraform to use a different credentials storage mechanism
+by configuring a special kind of plugin program called a _credentials helper_.
 
 ```hcl
 credentials_helper "example" {
