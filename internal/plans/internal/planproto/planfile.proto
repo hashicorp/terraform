@@ -44,6 +44,11 @@ message Plan {
     // at apply time.
     repeated OutputChange output_changes = 4;
 
+    // An undordered set of condition block results for the entire
+    // configuration. This set includes unknown results for conditions which
+    // can only be evaluated at apply time.
+    repeated ConditionResult condition_results = 19;
+
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
     // configuration.
@@ -205,6 +210,38 @@ message OutputChange {
     // in "change" is sensitive and should not be shown directly in any
     // rendered plan.
     bool sensitive = 3;
+}
+
+// ConditionType defines the type of condition block used to generate a result.
+enum ConditionType {
+	INVALID                = 0;
+	RESOURCE_PRECONDITION  = 1;
+	RESOURCE_POSTCONDITION = 2;
+	OUTPUT_PRECONDITION    = 3;
+}
+
+message ConditionResult {
+    // Address of the object containing the condition.
+    string addr = 1;
+
+    // Globally-unique address of the condition block. This is a run-specific
+    // identifier and is only stored in the plan in order to reconstruct the
+    // set of condition results.
+    string condition_addr = 2;
+
+    // Result indicates the value of the condition expression, which is
+    // true if the condition succeeds, false if it fails, and unknown if the
+    // condition depends on values which are only known at apply time.
+    oneof result {
+      bool value = 3;
+      bool unknown = 4;
+    }
+
+    // Type of the condition block.
+    ConditionType type = 5;
+
+    // Custom error message for a failing condition.
+    string error_message = 6;
 }
 
 // DynamicValue represents a value whose type is not decided until runtime,

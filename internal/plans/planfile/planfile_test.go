@@ -50,6 +50,7 @@ func TestRoundtrip(t *testing.T) {
 	// Minimal plan too, since the serialization of the tfplan portion of the
 	// file is tested more fully in tfplan_test.go .
 	planIn := &plans.Plan{
+		Conditions: plans.Conditions{},
 		Changes: &plans.Changes{
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 			Outputs:   []*plans.OutputChangeSrc{},

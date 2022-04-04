@@ -484,10 +484,12 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
+	conditions := plans.NewConditions()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:      config,
 		InputState:  prevRunState,
 		Changes:     changes,
+		Conditions:  conditions,
 		MoveResults: moveResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
@@ -521,6 +523,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	plan := &plans.Plan{
 		UIMode:           opts.Mode,
 		Changes:          changes,
+		Conditions:       conditions,
 		DriftedResources: driftedResources,
 		PrevRunState:     prevRunState,
 		PriorState:       priorState,

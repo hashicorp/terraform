@@ -133,6 +133,9 @@ type MockEvalContext struct {
 	StateCalled bool
 	StateState  *states.SyncState
 
+	ConditionsCalled     bool
+	ConditionsConditions *plans.ConditionsSync
+
 	RefreshStateCalled bool
 	RefreshStateState  *states.SyncState
 
@@ -365,6 +368,11 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) Conditions() *plans.ConditionsSync {
+	c.ConditionsCalled = true
+	return c.ConditionsConditions
 }
 
 func (c *MockEvalContext) RefreshState() *states.SyncState {

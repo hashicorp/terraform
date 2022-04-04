@@ -39,6 +39,7 @@ type plan struct {
 	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
 	Config             json.RawMessage   `json:"configuration,omitempty"`
 	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
+	Conditions         []conditionResult `json:"condition_results,omitempty"`
 }
 
 func newPlan() *plan {
@@ -175,6 +176,12 @@ func Marshal(
 	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
+	}
+
+	// output.Conditions
+	err = output.marshalConditionResults(p.Conditions)
+	if err != nil {
+		return nil, fmt.Errorf("error in marshaling condition results: %s", err)
 	}
 
 	// output.PriorState
@@ -473,6 +480,27 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
+	return nil
+}
+
+func (p *plan) marshalConditionResults(conditions plans.Conditions) error {
+	for addr, c := range conditions {
+		cr := conditionResult{
+			checkAddress: addr,
+			Address:      c.Address.String(),
+			Type:         c.Type.String(),
+			ErrorMessage: c.ErrorMessage,
+		}
+		if c.Result.IsKnown() {
+			cr.Result = c.Result.True()
+		} else {
+			cr.Unknown = true
+		}
+		p.Conditions = append(p.Conditions, cr)
+	}
+	sort.Slice(p.Conditions, func(i, j int) bool {
+		return p.Conditions[i].checkAddress < p.Conditions[j].checkAddress
+	})
 	return nil
 }
 
