@@ -1,7 +1,3 @@
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "ami" {
   type    = string
   default = "ami-test"

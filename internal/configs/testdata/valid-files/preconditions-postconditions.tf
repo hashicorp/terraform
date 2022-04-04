@@ -1,7 +1,3 @@
-terraform {
-  experiments = [preconditions_postconditions] # WARNING: Experimental feature "preconditions_postconditions" is active
-}
-
 resource "test" "test" {
   lifecycle {
     precondition {
