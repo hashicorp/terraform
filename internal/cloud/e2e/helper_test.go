@@ -191,6 +191,51 @@ output "val" {
 `, tfeHostname, org, name)
 }
 
+func terraformConfigCloudBackendOmitOrg(workspaceName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+
+	workspaces {
+	  name = "%s"
+	}
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, workspaceName)
+}
+
+func terraformConfigCloudBackendOmitWorkspaces(orgName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+	organization = "%s"
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, orgName)
+}
+
+func terraformConfigCloudBackendOmitConfig() string {
+	return `
+terraform {
+  cloud {}
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`
+}
+
 func writeMainTF(t *testing.T, block string, dir string) {
 	f, err := os.Create(fmt.Sprintf("%s/main.tf", dir))
 	if err != nil {
