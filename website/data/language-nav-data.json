@@ -280,8 +280,8 @@
         "path": "expressions/version-constraints"
       },
       {
-        "title": "Custom Validation Rules",
-        "path": "expressions/custom-validation-rules"
+        "title": "Custom Conditions",
+        "path": "expressions/custom-conditions"
       }
     ]
   },

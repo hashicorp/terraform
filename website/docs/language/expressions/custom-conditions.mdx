@@ -1,14 +1,16 @@
 ---
-page_title: Custom Validation Rules - Configuration Language
+page_title: Custom Conditions - Configuration Language
 description: >-
   Validate requirements for variables, outputs, and within lifecycle blocks so Terraform can produce better error messages in context.
 ---
 
-# Custom Validation Rules
+# Custom Conditions
 
-You can create validation checks with custom error messages for several types of objects in a configuration. Custom validations are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+You can create custom conditions that produce custom error messages for several types of objects in a configuration. For example, you may want to check to whether an incoming image ID is formatted properly.
 
-You can create custom validations with the following types of expressions.
+Custom condition checks are optional, but they can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+You can create custom conditions with the following types of expressions.
 - Add [`validation` blocks](input-variable-validation) inside input `variable` blocks.
 - Add [`precondition` and `postcondition`](#preconditions-and-postconditions) blocks inside `lifecycle` blocks and `precondition` blocks inside `output blocks`.
 
