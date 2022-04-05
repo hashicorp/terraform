@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -15,9 +14,8 @@ import (
 // These are the main tests for the "terraform test" command.
 func TestTest(t *testing.T) {
 	t.Run("passes", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("test-passes"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		streams, close := terminal.StreamsForTesting(t)
@@ -85,9 +83,8 @@ Success! All of the test assertions passed.
 		}
 	})
 	t.Run("fails", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("test-fails"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		streams, close := terminal.StreamsForTesting(t)

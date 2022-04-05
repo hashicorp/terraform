@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"os"
 	"strings"
 	"testing"
 
@@ -14,9 +13,8 @@ import (
 
 func TestStatePush_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-good"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "replace.tfstate")
@@ -45,9 +43,8 @@ func TestStatePush_empty(t *testing.T) {
 
 func TestStatePush_lockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-good"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -61,7 +58,7 @@ func TestStatePush_lockedState(t *testing.T) {
 		},
 	}
 
-	unlock, err := testLockState(testDataDir, "local-state.tfstate")
+	unlock, err := testLockState(t, testDataDir, "local-state.tfstate")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,9 +75,8 @@ func TestStatePush_lockedState(t *testing.T) {
 
 func TestStatePush_replaceMatch(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-replace-match"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "replace.tfstate")
@@ -109,9 +105,8 @@ func TestStatePush_replaceMatch(t *testing.T) {
 
 func TestStatePush_replaceMatchStdin(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-replace-match"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "replace.tfstate")
@@ -147,9 +142,8 @@ func TestStatePush_replaceMatchStdin(t *testing.T) {
 
 func TestStatePush_lineageMismatch(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-bad-lineage"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "local-state.tfstate")
@@ -178,9 +172,8 @@ func TestStatePush_lineageMismatch(t *testing.T) {
 
 func TestStatePush_serialNewer(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-serial-newer"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "local-state.tfstate")
@@ -209,9 +202,8 @@ func TestStatePush_serialNewer(t *testing.T) {
 
 func TestStatePush_serialOlder(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-push-serial-older"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected := testStateRead(t, "replace.tfstate")
@@ -239,9 +231,8 @@ func TestStatePush_serialOlder(t *testing.T) {
 }
 
 func TestStatePush_forceRemoteState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()
 
@@ -294,9 +285,8 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 
 func TestStatePush_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()

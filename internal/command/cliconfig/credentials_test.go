@@ -1,9 +1,7 @@
 package cliconfig
 
 import (
-	"io/ioutil"
 	"net/http"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -88,11 +86,7 @@ func TestCredentialsForHost(t *testing.T) {
 }
 
 func TestCredentialsStoreForget(t *testing.T) {
-	d, err := ioutil.TempDir("", "terraform-cliconfig-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 
 	mockCredsFilename := filepath.Join(d, "credentials.tfrc.json")
 

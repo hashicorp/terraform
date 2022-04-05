@@ -185,11 +185,7 @@ func TestFilesystem_backup(t *testing.T) {
 func TestFilesystem_backupAndReadPath(t *testing.T) {
 	defer testOverrideVersion(t, "1.2.3")()
 
-	workDir, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("failed to create temporary directory: %s", err)
-	}
-	defer os.RemoveAll(workDir)
+	workDir := t.TempDir()
 
 	markerOutput := addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
 

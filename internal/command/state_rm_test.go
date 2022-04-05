@@ -354,8 +354,7 @@ func TestStateRm_backupExplicit(t *testing.T) {
 }
 
 func TestStateRm_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -377,9 +376,8 @@ func TestStateRm_noState(t *testing.T) {
 }
 
 func TestStateRm_needsInit(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-change"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -406,9 +404,8 @@ func TestStateRm_needsInit(t *testing.T) {
 }
 
 func TestStateRm_backendState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	state := states.BuildState(func(s *states.SyncState) {
@@ -488,9 +485,8 @@ func TestStateRm_backendState(t *testing.T) {
 
 func TestStateRm_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	state := states.BuildState(func(s *states.SyncState) {

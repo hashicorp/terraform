@@ -576,11 +576,7 @@ func TestAccUploadFile(t *testing.T) {
 		t.Fatalf("error creating communicator: %s", err)
 	}
 
-	tmpDir, err := ioutil.TempDir("", "communicator")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	content := []byte("this is the file content")
 	source := bytes.NewReader(content)

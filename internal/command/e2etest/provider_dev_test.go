@@ -28,8 +28,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	}
 	t.Parallel()
 
-	tf := e2e.NewBinary(terraformBin, "testdata/provider-dev-override")
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, "testdata/provider-dev-override")
 
 	// In order to do a decent end-to-end test for this case we will need a
 	// real enough provider plugin to try to run and make sure we are able

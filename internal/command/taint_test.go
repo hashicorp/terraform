@@ -72,7 +72,7 @@ func TestTaint_lockedState(t *testing.T) {
 	})
 	statePath := testStateFile(t, state)
 
-	unlock, err := testLockState(testDataDir, statePath)
+	unlock, err := testLockState(t, testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,8 +102,7 @@ func TestTaint_lockedState(t *testing.T) {
 
 func TestTaint_backup(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -147,8 +146,7 @@ func TestTaint_backup(t *testing.T) {
 
 func TestTaint_backupDisable(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -215,8 +213,7 @@ func TestTaint_badState(t *testing.T) {
 
 func TestTaint_defaultState(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -259,8 +256,7 @@ func TestTaint_defaultState(t *testing.T) {
 
 func TestTaint_defaultWorkspaceState(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	state := states.BuildState(func(s *states.SyncState) {
 		s.SetResourceInstanceCurrent(
@@ -392,8 +388,7 @@ because -allow-missing was set.
 
 func TestTaint_stateOut(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -493,9 +488,8 @@ func TestTaint_module(t *testing.T) {
 
 func TestTaint_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Write the temp state

@@ -32,8 +32,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestGet_multipleArgs(t *testing.T) {
-	wd, cleanup := tempWorkingDir(t)
-	defer cleanup()
+	wd := tempWorkingDir(t)
 	defer testChdir(t, wd.RootModuleDir())()
 
 	ui := cli.NewMockUi()

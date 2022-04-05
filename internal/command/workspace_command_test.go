@@ -20,9 +20,8 @@ import (
 
 func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	newCmd := &WorkspaceNewCommand{}
@@ -64,9 +63,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 // This also ensures we switch to the correct env after each call
 func TestWorkspace_createAndList(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// make sure a vars file doesn't interfere
@@ -113,9 +111,8 @@ func TestWorkspace_createAndList(t *testing.T) {
 // Create some workspaces and test the show output.
 func TestWorkspace_createAndShow(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// make sure a vars file doesn't interfere
@@ -182,9 +179,8 @@ func TestWorkspace_createAndShow(t *testing.T) {
 // Don't allow names that aren't URL safe
 func TestWorkspace_createInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
@@ -220,9 +216,8 @@ func TestWorkspace_createInvalid(t *testing.T) {
 }
 
 func TestWorkspace_createWithState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()
 
@@ -291,9 +286,8 @@ func TestWorkspace_createWithState(t *testing.T) {
 }
 
 func TestWorkspace_delete(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// create the workspace directories
@@ -345,9 +339,8 @@ func TestWorkspace_delete(t *testing.T) {
 }
 
 func TestWorkspace_deleteInvalid(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// choose an invalid workspace name
@@ -378,9 +371,8 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 }
 
 func TestWorkspace_deleteWithState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// create the workspace directories

@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"testing"
 
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -31,13 +32,8 @@ type binary struct {
 // cannot be found, or if an error occurs while _copying_ the fixture files,
 // this function will panic. Tests should be written to assume that this
 // function always succeeds.
-func NewBinary(binaryPath, workingDir string) *binary {
-	tmpDir, err := ioutil.TempDir("", "binary-e2etest")
-	if err != nil {
-		panic(err)
-	}
-
-	tmpDir, err = filepath.EvalSymlinks(tmpDir)
+func NewBinary(t *testing.T, binaryPath, workingDir string) *binary {
+	tmpDir, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		panic(err)
 	}
@@ -211,6 +207,7 @@ func (b *binary) Plan(path string) (*plans.Plan, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer pr.Close()
 	plan, err := pr.ReadPlan()
 	if err != nil {
 		return nil, err
@@ -236,21 +233,6 @@ func (b *binary) SetLocalState(state *states.State) error {
 		State:   state,
 	}
 	return statefile.Write(sf, f)
-}
-
-// Close cleans up the temporary resources associated with the object,
-// including its working directory. It is not valid to call Cmd or Run
-// after Close returns.
-//
-// This method does _not_ stop any running child processes. It's the
-// caller's responsibility to also terminate those _before_ closing the
-// underlying binary object.
-//
-// This function is designed to run under "defer", so it doesn't actually
-// do any error handling and will leave dangling temporary files on disk
-// if any errors occur while cleaning up.
-func (b *binary) Close() {
-	os.RemoveAll(b.workDir)
 }
 
 func GoBuild(pkgPath, tmpPrefix string) string {
