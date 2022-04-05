@@ -303,7 +303,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			vars: map[string]string{
 				"TF_WORKSPACE": "i-dont-exist-in-org",
 			},
-			expectedErr: `Invalid workspace selection: "i-dont-exist-in-org" was not found in organization hashicorp`,
+			expectedErr: `Invalid workspace selection: Terraform failed to find workspace "i-dont-exist-in-org" in organization hashicorp`,
 		},
 		"workspaces and env var specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
