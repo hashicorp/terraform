@@ -75,6 +75,9 @@ type resource struct {
 	// offering "google_compute_instance".
 	ProviderName string `json:"provider_name"`
 
+	// ProviderAlias indicates the alias of the associated provider, if any.
+	ProviderAlias string `json:"provider_alias,omitempty"`
+
 	// SchemaVersion indicates which version of the resource type schema the
 	// "values" property conforms to.
 	SchemaVersion uint64 `json:"schema_version"`
@@ -287,11 +290,12 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 			resAddr := r.Addr.Resource
 
 			current := resource{
-				Address:      r.Addr.Instance(k).String(),
-				Index:        k,
-				Type:         resAddr.Type,
-				Name:         resAddr.Name,
-				ProviderName: r.ProviderConfig.Provider.String(),
+				Address:       r.Addr.Instance(k).String(),
+				Index:         k,
+				Type:          resAddr.Type,
+				Name:          resAddr.Name,
+				ProviderName:  r.ProviderConfig.Provider.String(),
+				ProviderAlias: r.ProviderConfig.Alias,
 			}
 
 			switch resAddr.Mode {

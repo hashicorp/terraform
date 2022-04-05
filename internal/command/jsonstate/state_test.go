@@ -177,18 +177,20 @@ func TestMarshalResources(t *testing.T) {
 					ProviderConfig: addrs.AbsProviderConfig{
 						Provider: addrs.NewDefaultProvider("test"),
 						Module:   addrs.RootModule,
+						Alias:    "alias",
 					},
 				},
 			},
 			testSchemas(),
 			[]resource{
 				{
-					Address:      "test_thing.bar",
-					Mode:         "managed",
-					Type:         "test_thing",
-					Name:         "bar",
-					Index:        addrs.InstanceKey(nil),
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					Address:       "test_thing.bar",
+					Mode:          "managed",
+					Type:          "test_thing",
+					Name:          "bar",
+					Index:         addrs.InstanceKey(nil),
+					ProviderName:  "registry.terraform.io/hashicorp/test",
+					ProviderAlias: "alias",
 					AttributeValues: attributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
