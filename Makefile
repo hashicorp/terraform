@@ -26,23 +26,41 @@ staticcheck:
 exhaustive:
 	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
 
-website:
-	@echo "==> Downloading latest Docker image..."
-	@docker pull hashicorp/terraform-website:full
-	@echo "==> Starting core website in Docker..."
-	@docker run \
-		--interactive \
+PWD=$$(pwd)
+DOCKER_IMAGE="hashicorp/terraform-website:full"
+DOCKER_IMAGE_LOCAL="terraform-website-local"
+DOCKER_RUN_FLAGS=--interactive \
 		--rm \
 		--tty \
 		--workdir "/website" \
 		--volume "$(shell pwd):/website/ext/terraform" \
+		--volume "$(shell pwd)/website:/website/preview" \
 		--publish "3000:3000" \
-		hashicorp/terraform-website:full \
-		npm start
+		-e "IS_CONTENT_PREVIEW=true" \
+		-e "PREVIEW_FROM_REPO=terraform" \
+		-e "NAV_DATA_DIRNAME=./preview/data" \
+		-e "CONTENT_DIRNAME=./preview/docs"
+
+# Default: run this if working on the website locally to run in watch mode.
+website:
+	@echo "==> Downloading latest Docker image..."
+	@docker pull ${DOCKER_IMAGE}
+	@echo "==> Starting website in Docker..."
+	@docker run ${DOCKER_RUN_FLAGS} ${DOCKER_IMAGE} npm start
+
+website/local:
+	@echo "==> Starting website in Docker..."
+	@docker run ${DOCKER_RUN_FLAGS} ${DOCKER_IMAGE_LOCAL} npm start
+
+.PHONY: website/build-local
+website/build-local:
+	@echo "==> Building local Docker image"
+	@docker build https://github.com/hashicorp/terraform-website.git\#kevin/terraform-split \
+		-t $(DOCKER_IMAGE_LOCAL)
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test staticcheck
+.PHONY: fmtcheck generate protobuf website website-test staticcheck website/local website/build-local
