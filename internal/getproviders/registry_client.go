@@ -437,7 +437,7 @@ func (c *registryClient) getFile(url *url.URL) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s", resp.Status)
+		return nil, fmt.Errorf("%s returned from %s", resp.Status, resp.Request.URL)
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
