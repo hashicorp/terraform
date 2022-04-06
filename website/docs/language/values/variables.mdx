@@ -160,7 +160,7 @@ commentary for module maintainers, use comments.
 
 -> This feature was introduced in Terraform CLI v0.13.0.
 
-In addition to Type Constraints, you can specify custom validation rules for a particular variable using a `validation` block nested within the corresponding `variable` block. The example below checks whether the AMI ID has the correct syntax.
+You can specify custom validation rules for a particular variable by adding a `validation` block within the corresponding `variable` block. The example below checks whether the AMI ID has the correct syntax.
 
 ```hcl
 variable "image_id" {

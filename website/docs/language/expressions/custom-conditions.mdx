@@ -21,9 +21,11 @@ This page explains the following:
 
 -> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later.
 
-To specify custom validation conditions for a variable, add one or more `validation` blocks within the corresponding `variable` block.
+Add one or more `validation` blocks within the `variable` block to specify custom conditions.
 
-The [`condition` argument](#condition-expressions) is an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple `validation` blocks, Terraform returns error messages for all failed conditions.
+Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer only to the containing variable and must not produce errors.
+
+If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple `validation` blocks, Terraform returns error messages for all failed conditions.
 
 The following example checks whether the AMI ID has valid syntax.
 
@@ -63,7 +65,11 @@ Use `precondition` and `postcondition` blocks to create custom rules for resourc
 
 Terraform checks a precondition _before_ evaluating the object it is associated with and checks a postcondition _after_ evaluating the object. Terraform evaluates custom conditions as early as possible, but must defer conditions that depend on unknown values until the apply phase. Refer to [Delaying Evaluation Until Apply](#delaying-evaluation-until-apply) for more details.
 
-Each precondition and postcondition requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple preconditions or postconditions, Terraform returns error messages for all failed conditions.
+### Usage
+
+Each precondition and postcondition requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. The expression can refer to any other objects in the same module, as long as the references do not create cyclic dependencies. Resource postconditions can also use the symbol `self` to refer to attributes of each instance of the resource where they are configured. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
+
+If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple preconditions or postconditions, Terraform returns error messages for all failed conditions.
 
 The following example uses a postcondition to detect if the caller accidentally provided an AMI intended for the wrong system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
 
@@ -84,15 +90,15 @@ data "aws_ami" "example" {
 
 You can add `precondition` and `postcondition` blocks in the following locations within your configuration.
 
-### Resources and Data Sources
+#### Resources and Data Sources
 
-The `lifecycle` block inside a `resource` or `data` block can include both `precondition` and `postcondition` blocks associated with the containing resource. Terraform evaluates these blocks as follows:
+The `lifecycle` block inside a `resource` or `data` block can include both `precondition` and `postcondition` blocks. Terraform evaluates these blocks as follows:
 
 - Preconditions after evaluating existing `count` and `for_each` arguments. This lets Terraform evaluate the precondition separately for each instance and then make `each.key`, `count.index`, etc. available to those conditions.
 - Preconditions before evaluating the resource's configuration arguments. Preconditions can take precedence over argument evaluation errors.
 - Postconditions after planning and applying changes to a managed resource, or after reading from a data source. Postcondition failures prevent changes to other resources that depend on the failing resource.
 
-### Outputs
+#### Outputs
 
 An `output` block can include a `precondition`  block.
 
@@ -100,16 +106,16 @@ Preconditions can serve a symmetrical purpose to input variable `validation` blo
 
 Terraform evaluates output value preconditions before evaluating the `value` expression to finalize the result. Preconditions can take precedence over potential errors in the `value` expression.
 
-### Usage Examples
+### Examples
 
 The following example shows use cases for preconditions and postconditions. The preconditions and postconditions declare the following assumptions and guarantees.
 
 - **The AMI ID must refer to an AMI that contains an operating system for the
-`x86_64` architecture.** This would detect if the caller accidentally built an AMI for a different architecture, which may not be able to run the software this virtual machine is intended to host.
+`x86_64` architecture.** The precondition would detect if the caller accidentally built an AMI for a different architecture, which may not be able to run the software this virtual machine is intended to host.
 
-- **The EC2 instance must be allocated a private DNS hostname.** In Amazon Web Services, EC2 instances are assigned private DNS hostnames only if they belong to a virtual network configured in a certain way. This would detect if the selected virtual network is not configured correctly, giving explicit feedback to prompt the user to debug the network settings.
+- **The EC2 instance must be allocated a private DNS hostname.** In Amazon Web Services, EC2 instances are assigned private DNS hostnames only if they belong to a virtual network configured in a certain way. The postcondition would detect if the selected virtual network is not configured correctly, prompting the user to debug the network settings.
 
-- **The EC2 instance will have an encrypted root volume.** This ensures that the root volume is encrypted even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the component.
+- **The EC2 instance will have an encrypted root volume.** The precondition ensures that the root volume is encrypted, even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the component.
 
 ```hcl
 
@@ -177,24 +183,21 @@ We recommend also considering the following factors.
 
 Input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
 
-Condition expressions have the following requirements.
-
-- **Input variable validation:** The expression can refer only to the variable that the condition applies to and must not produce errors.
-- **Preconditions and postconditions:** The expression can refer to any other objects in the same module, as long as the references do not create cyclic dependencies. Resource postconditions can also use the symbol `self` to refer to attributes of each instance of the resource where they are configured. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
-
 You can use any of Terraform's built-in functions or language operators
 in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly
 useful when writing condition expressions.
 
 ### `contains` Function
-You can use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
+
+Use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
 
 ```hcl
   condition = contains(["STAGE", "PROD"], var.environment)
 ```
 
 ### Boolean Operators
-You can use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple simpler conditions together.
+
+Use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
 
 ```hcl
   condition = var.name != "" && lower(var.name) == var.name
@@ -202,16 +205,16 @@ You can use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combin
 
 ### `length` Function
 
-You can require a non-empty list or map by testing the collection's length.
+Require a non-empty list or map by testing the collection's length.
 
 ```hcl
   condition = length(var.items) != 0
 ```
-This is a better approach than directly comparing with another collection using `==` or `!=`, because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
+This is a better approach than directly comparing with another collection using `==` or `!=`. This is because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
 
 ### `for` Expressions
-You can use `for` expressions which produce lists of boolean results
-themselves in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
+
+Use `for` expressions in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
 
 ```hcl
   condition = alltrue([
@@ -221,9 +224,9 @@ themselves in conjunction with the functions `alltrue` and `anytrue` to test whe
 
 ### `can` Function
 
-You can use the `can` function to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
+Use the `can` function to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
 
-For example, you can use `can` with `regex` to test if a string matches a particular pattern, because `regex` returns an error when given a non-matching string.
+For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
 
 ```hcl
   condition = can(regex("^[a-z]+$", var.name)
@@ -244,7 +247,7 @@ You can also use `can` with the type conversion functions to test whether a valu
   condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
 ```
 
-You can also use `can` with attribute access or index operators to concisely test whether a collection or structural value has a particular element or index.
+You can also use `can` with attribute access or index operators to test whether a collection or structural value has a particular element or index.
 
 ```hcl
   # var.example must have an attribute named "foo"
@@ -280,9 +283,9 @@ error messages are supported, and lines with leading whitespace will not be
 word wrapped.
 
 We recommend writing error messages as one or more full sentences in a
-style similar to Terraform's own error messages. Terraform will show the given
+style similar to Terraform's own error messages. Terraform will show the
 message alongside the name of the resource that detected the problem and any
-outside values included in the condition expression.
+external values included in the condition expression.
 
 ## Delaying Evaluation Until Apply
 
@@ -297,5 +300,5 @@ During the apply phase, a failed _precondition_
 will prevent Terraform from implementing planned actions for the associated resource. However, a failed _postcondition_ will halt processing after Terraform has already implemented these actions. The failed postcondition prevents any further downstream actions that rely on the resource, but does not undo the actions Terraform has already taken.
 
 Terraform typically has less information during the initial creation of a
-full configuration than when applying subsequent changes. Therefore, conditions checked during apply for initial creation may be checked earlier during planning for subsequent updates.
+full configuration than when applying subsequent changes. Therefore, conditions checked during apply for initial creation may be checked during planning for subsequent updates.
 

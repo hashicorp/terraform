@@ -133,7 +133,7 @@ The following meta-arguments are documented on separate pages:
 
 ## Custom Conditions
 
-You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the resource operates. The following examples creates a postcondition that checks whether the AMI is properly configured.
+You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the resource operates. The following examples creates a precondition that checks whether the AMI is properly configured.
 
 ```hcl
 resource "aws_instance" "example" {
