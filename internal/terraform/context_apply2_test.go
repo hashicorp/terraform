@@ -741,10 +741,6 @@ resource "test_object" "b" {
 func TestContext2Apply_resourcePostcondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "boop" {
   type = string
 }

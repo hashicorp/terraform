@@ -2109,10 +2109,6 @@ func TestContext2Validate_precondition_good(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "input" {
   type    = string
   default = "foo"
@@ -2156,10 +2152,6 @@ func TestContext2Validate_precondition_badCondition(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "input" {
   type    = string
   default = "foo"
@@ -2206,10 +2198,6 @@ func TestContext2Validate_precondition_badErrorMessage(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "input" {
   type    = string
   default = "foo"
@@ -2256,10 +2244,6 @@ func TestContext2Validate_postcondition_good(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 resource "aws_instance" "test" {
   foo = "foo"
 
@@ -2304,10 +2288,6 @@ func TestContext2Validate_postcondition_badCondition(t *testing.T) {
 	// an input variable.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "input" {
   type    = string
   default = "foo"
@@ -2354,10 +2334,6 @@ func TestContext2Validate_postcondition_badErrorMessage(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 resource "aws_instance" "test" {
   foo = "foo"
 
@@ -2399,10 +2375,6 @@ func TestContext2Validate_precondition_count(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 locals {
   foos = ["bar", "baz"]
 }
@@ -2446,10 +2418,6 @@ func TestContext2Validate_postcondition_forEach(t *testing.T) {
 	})
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 locals {
   foos = toset(["bar", "baz", "boop"])
 }

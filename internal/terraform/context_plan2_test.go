@@ -2182,10 +2182,6 @@ func TestContext2Plan_moduleExpandOrphansResourceInstance(t *testing.T) {
 func TestContext2Plan_resourcePreconditionPostcondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "boop" {
   type = string
 }
@@ -2445,10 +2441,6 @@ resource "test_resource" "a" {
 func TestContext2Plan_dataSourcePreconditionPostcondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "boop" {
   type = string
 }
@@ -2714,10 +2706,6 @@ resource "test_resource" "a" {
 func TestContext2Plan_outputPrecondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "boop" {
   type = string
 }
@@ -2883,10 +2871,6 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.condition, func(t *testing.T) {
 			main := fmt.Sprintf(`
-			terraform {
-				experiments = [preconditions_postconditions]
-			}
-
 			resource "test_resource" "a" {
 				value = var.boop
 				lifecycle {
@@ -2932,10 +2916,6 @@ func TestContext2Plan_preconditionSensitiveValues(t *testing.T) {
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [preconditions_postconditions]
-}
-
 variable "boop" {
   sensitive = true
   type      = string
