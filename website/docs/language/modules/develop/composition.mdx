@@ -186,6 +186,29 @@ be given inline as a single resource, but we can also compose together multiple
 modules as described elsewhere on this page in situations where the
 dependencies themselves are complicated enough to benefit from abstractions.
 
+## Assumptions and Guarantees
+
+Every module has implicit assumptions and guarantees that define what data it expects and what data it produces for consumers.
+
+- **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
+- **Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
+
+We recommend using [custom conditions](/language/expressions/custom-conditions) help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
+
+```hcl
+output "api_base_url" {
+  value = "https://${aws_instance.example.private_dns}:8433/"
+
+  # The EC2 instance must have an encrypted root volume.
+  precondition {
+    condition     = data.aws_ebs_volume.example.encrypted
+    error_message = "The server's root volume is not encrypted."
+  }
+}
+```
+
 ## Multi-cloud Abstractions
 
 Terraform itself intentionally does not attempt to abstract over similar

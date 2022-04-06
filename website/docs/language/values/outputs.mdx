@@ -62,6 +62,27 @@ In a parent module, outputs of child modules are available in expressions as
 `web_server` declared an output named `instance_ip_addr`, you could access that
 value as `module.web_server.instance_ip_addr`.
 
+
+## Custom Conditions
+
+You can use `precondition` blocks to specify guarantees about output data. The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
+
+```hcl
+output "api_base_url" {
+  value = "https://${aws_instance.example.private_dns}:8433/"
+
+  # The EC2 instance must have an encrypted root volume.
+  precondition {
+    condition     = data.aws_ebs_volume.example.encrypted
+    error_message = "The server's root volume is not encrypted."
+  }
+}
+```
+
+Custom conditions can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+Refer to [Custom Conditions](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+
 ## Optional Arguments
 
 `output` blocks can optionally include `description`, `sensitive`, and `depends_on` arguments, which are described in the following sections.

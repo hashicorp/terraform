@@ -131,6 +131,30 @@ The following meta-arguments are documented on separate pages:
 - [`lifecycle`, for lifecycle customizations](/language/meta-arguments/lifecycle)
 - [`provisioner`, for taking extra actions after resource creation](/language/resources/provisioners/syntax)
 
+## Custom Conditions
+
+You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the resource operates. The following examples creates a postcondition that checks whether the AMI is properly configured.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abc123"
+
+  lifecycle {
+    # The AMI ID must refer to an AMI that contains an operating system
+    # for the `x86_64` architecture.
+    precondition {
+      condition     = data.aws_ami.example.architecture == "x86_64"
+      error_message = "The selected AMI must be for the x86_64 architecture."
+    }
+  }
+}
+```
+
+Custom conditions can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+Refer to [Custom Conditions](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+
 ## Operation Timeouts
 
 Some resource types provide a special `timeouts` nested block argument that
