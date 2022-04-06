@@ -261,6 +261,55 @@ You can also use `can` with attribute access or index operators to test whether 
   # intent of the condition.)
 ```
 
+### `self` Object
+
+Use the `self` object in postcondition blocks to refer to attributes of the instance under evaluation.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abc123"
+
+  lifecycle {
+    postcondition {
+      condition     = self.instance_state == "running"
+      error_message = "EC2 instance must be running."
+    }
+  }
+}
+```
+
+### `each` and `count` Objects
+
+In blocks where `for_each` or `count` are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
+
+```hcl
+variable "vpc_cidrs" {
+  type = set(string)
+}
+
+data "aws_vpc" "example" {
+  for_each = var.vpc_cidrs
+
+  filter {
+    name   = "cidr"
+    values = [each.key]
+  }
+}
+
+resource "aws_internet_gateway" "example" {
+  for_each = aws_vpc.example
+  vpc_id = each.value.id
+
+  lifecycle {
+    precondition {
+      condition     = aws_vpc.example[each.key].state == "available"
+      error_message = "VPC ${each.key} must be available."
+    }
+  }
+}
+```
+
 ## Error Messages
 
 Input variable validations, preconditions, and postconditions all must include the `error_message` argument. This contains the text that Terraform will include as part of error messages when it detects an unmet condition.
