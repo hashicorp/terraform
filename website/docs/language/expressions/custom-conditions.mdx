@@ -10,16 +10,18 @@ You can create conditions that produce custom error messages for several types o
 
 Custom conditions can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Use the following types of expressions to create custom conditions.
-- [Validation](#input-variable-validation) for input variables
-- [Preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs
+This page explains the following:
+  - Creating [validation conditions](#input-variable-validation) for input variables
+  - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs
+  - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
+  - When Terraform [evaluates custom conditions](#delaying-evaluation-until-apply) during the plan and apply cycle
 
 
 ## Input Variable Validation
 
 -> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later.
 
-To specify custom validation rules for a variable, add one or more `validation` blocks within the corresponding `variable` block.
+To specify custom validation conditions for a variable, add one or more `validation` blocks within the corresponding `variable` block.
 
 The [`condition` argument](#condition-expressions) is an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple `validation` blocks, Terraform returns error messages for all failed conditions.
 
@@ -57,11 +59,30 @@ variable "image_id" {
 
 -> **Note:** Preconditions and postconditions are available in Terraform CLI v1.2.0 and later.
 
-Use `precondition` and `postcondition` blocks to add custom conditions to resources, data sources, and output values. Terraform checks a precondition _before_ evaluating the object it is associated with, and checks a postcondition _after_ evaluating the object.
+Use `precondition` and `postcondition` blocks to create custom rules for resources, data sources, and outputs.
 
-Terraform evaluates these custom conditions as early as possibly in the plan and apply cycle, but must wait to evaluate conditions that depend on unknown values until the apply phase. Refer to [Delaying Evaluation Until Apply](#delaying-evaluation-until-apply) for more details.
+Terraform checks a precondition _before_ evaluating the object it is associated with and checks a postcondition _after_ evaluating the object. Terraform evaluates custom conditions as early as possible, but must defer conditions that depend on unknown values until the apply phase. Refer to [Delaying Evaluation Until Apply](#delaying-evaluation-until-apply) for more details.
 
-You can add preconditions and postconditions within the following configuration blocks.
+Each `precondition` and `postcondition` block requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple precondition or postcondition blocks, Terraform returns error messages for all failed conditions.
+
+The following example uses a `postcondition` to detect if the caller accidentally provided an AMI intended for the wrong system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
+
+``` hcl
+data "aws_ami" "example" {
+  id = var.aws_ami_id
+
+  lifecycle {
+    # The AMI ID must refer to an existing AMI that has the tag "nomad-server".
+    postcondition {
+      condition     = self.tags["Component"] == "nomad-server"
+      error_message = "The selected AMI must be tagged with the
+      Component value \"nomad-server\"."
+    }
+  }
+}
+```
+
+You can add `precondition` and `postcondition` blocks in the following locations within your configuration.
 
 ### Resources and Data Sources
 
@@ -81,9 +102,7 @@ Terraform evaluates output value preconditions before evaluating the `value` exp
 
 ### Usage Examples
 
-The following example shows several use cases for preconditions and postconditions. The preconditions and postconditions declare the following assumptions and guarantees.
-
-- **The AMI ID must refer to an existing AMI that has the tag "nomad-server".** This would detect if the caller accidentally provided an AMI intended for some other system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
+The following example shows use cases for preconditions and postconditions. The preconditions and postconditions declare the following assumptions and guarantees.
 
 - **The AMI ID must refer to an AMI that contains an operating system for the
 `x86_64` architecture.** This would detect if the caller accidentally built an AMI for a different architecture, which may not be able to run the software this virtual machine is intended to host.
@@ -93,18 +112,6 @@ The following example shows several use cases for preconditions and postconditio
 - **The EC2 instance will have an encrypted root volume.** This ensures that the root volume is encrypted even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the component.
 
 ```hcl
-data "aws_ami" "example" {
-  id = var.aws_ami_id
-
-  lifecycle {
-    # The AMI ID must refer to an existing AMI that has the tag "nomad-server".
-    postcondition {
-      condition     = self.tags["Component"] == "nomad-server"
-      error_message = "The selected AMI must be tagged with the
-      Component value \"nomad-server\"."
-    }
-  }
-}
 
 resource "aws_instance" "example" {
   instance_type = "t2.micro"
@@ -150,20 +157,14 @@ output "api_base_url" {
 }
 ```
 
-
 ### Choosing Between Preconditions and PostConditions
 
 You can often implement a validation check as either a postcondition of the resource producing the data or as a precondition of a resource or output value using the data. To decide which is most appropriate, consider whether the check is representing either an assumption or a guarantee.
 
-- **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
-
-    Assumptions should typically be written as preconditions, so that future maintainers can find them close to the other expressions that rely on that condition, and know more about what different variations that resource is intended to allow.
-
-- **Guarantee:** A characteristic or behavior of an object that the rest of
-    the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
-
-    Guarantees should typically be written as postconditions, so that
-    future maintainers can find them close to the resource configuration that  is responsible for implementing those guarantees and more easily see which behaviors are important to preserve when changing the configuration.
+| Type | Definition | Expression to Use |
+| -----|------------|--------------|
+| Assumption | A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture. | Preconditions, so that future maintainers can find them close to the other expressions that rely on that condition. This lets them understand more about what that resource is intended to allow.|
+| Guarantee | A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record. | Postconditions, so that future maintainers can find them close to the resource configuration that is responsible for implementing those guarantees. This lets them more easily determine which behaviors they should preserve when changing the configuration. |
 
 We recommend also considering the following factors.
 
@@ -174,12 +175,12 @@ We recommend also considering the following factors.
 
 ## Condition Expressions
 
-The variable `validation` block and the `precondition` and `postcondition` blocks all require an argument named `condition`, whose value is a boolean expression which should return `true` if the intended assumption holds or `false` if it does not.
+Input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
 
 Condition expressions have the following requirements.
 
-- For variable `validation` blocks, the expression can refer only to the variable that the condition applies to and must not produce errors.
-- For `precondition` and `postcondition` blocks, the expression can refer to any other objects in the same module, as long as the references don't create any cyclic dependencies. Resource postconditions can additionally refer to attributes of each instance of the resource where they are configured, using the special symbol `self`. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
+- **Input variable validation:** The expression can refer only to the variable that the condition applies to and must not produce errors.
+- **Preconditions and postconditions:** The expression can refer to any other objects in the same module, as long as the references do not create cyclic dependencies. Resource postconditions can also use the symbol `self` to refer to attributes of each instance of the resource where they are configured. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
 
 You can use any of Terraform's built-in functions or language operators
 in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly
