@@ -63,9 +63,9 @@ Use `precondition` and `postcondition` blocks to create custom rules for resourc
 
 Terraform checks a precondition _before_ evaluating the object it is associated with and checks a postcondition _after_ evaluating the object. Terraform evaluates custom conditions as early as possible, but must defer conditions that depend on unknown values until the apply phase. Refer to [Delaying Evaluation Until Apply](#delaying-evaluation-until-apply) for more details.
 
-Each `precondition` and `postcondition` block requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple precondition or postcondition blocks, Terraform returns error messages for all failed conditions.
+Each precondition and postcondition requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple preconditions or postconditions, Terraform returns error messages for all failed conditions.
 
-The following example uses a `postcondition` to detect if the caller accidentally provided an AMI intended for the wrong system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
+The following example uses a postcondition to detect if the caller accidentally provided an AMI intended for the wrong system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
 
 ``` hcl
 data "aws_ami" "example" {
@@ -260,7 +260,7 @@ You can also use `can` with attribute access or index operators to concisely tes
 
 ## Error Messages
 
-Each `validation`, `precondition` or `postcondition` block must include an argument `error_message`, which contains the text that Terraform will include as part of error messages when it detects an unmet condition.
+Input variable validations, preconditions, and postconditions all must include the `error_message` argument. This contains the text that Terraform will include as part of error messages when it detects an unmet condition.
 
 ```
 Error: Resource postcondition failed
@@ -282,7 +282,7 @@ word wrapped.
 We recommend writing error messages as one or more full sentences in a
 style similar to Terraform's own error messages. Terraform will show the given
 message alongside the name of the resource that detected the problem and any
-outside values used as part of the condition expression.
+outside values included in the condition expression.
 
 ## Delaying Evaluation Until Apply
 
