@@ -63,7 +63,7 @@ In a parent module, outputs of child modules are available in expressions as
 value as `module.web_server.instance_ip_addr`.
 
 
-## Custom Conditions
+## Custom Condition Checks
 
 You can use `precondition` blocks to specify guarantees about output data. The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
 
@@ -81,7 +81,7 @@ output "api_base_url" {
 
 Custom conditions can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Conditions](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 ## Optional Arguments
 

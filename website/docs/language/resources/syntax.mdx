@@ -131,7 +131,7 @@ The following meta-arguments are documented on separate pages:
 - [`lifecycle`, for lifecycle customizations](/language/meta-arguments/lifecycle)
 - [`provisioner`, for taking extra actions after resource creation](/language/resources/provisioners/syntax)
 
-## Custom Conditions
+## Custom Condition Checks
 
 You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the resource operates. The following examples creates a precondition that checks whether the AMI is properly configured.
 
@@ -153,7 +153,7 @@ resource "aws_instance" "example" {
 
 Custom conditions can help capture assumptions that might be only implied, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Conditions](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 ## Operation Timeouts
 
