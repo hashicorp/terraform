@@ -188,10 +188,11 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	runOptions := tfe.RunCreateOptions{
+		AutoApply:            tfe.Bool(op.AutoApprove),
 		ConfigurationVersion: cv,
+		Message:              stringPtr(os.Getenv("TFE_RUN_MESSAGE"), true),
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
-		AutoApply:            tfe.Bool(op.AutoApprove),
 	}
 
 	switch op.PlanMode {

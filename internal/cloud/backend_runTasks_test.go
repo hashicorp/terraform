@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -50,6 +51,7 @@ func newMockIntegrationContext(b *Cloud, t *testing.T) (*IntegrationContext, *te
 	// Create a pending run to block this run.
 	r, err := b.client.Runs.Create(ctx, tfe.RunCreateOptions{
 		ConfigurationVersion: c,
+		Message:              stringPtr(os.Getenv("TFE_RUN_MESSAGE"), true),
 		Workspace:            w,
 	})
 	if err != nil {
