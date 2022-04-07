@@ -39,6 +39,131 @@ The condition can be any expression that resolves to a boolean value. This will
 usually be an expression that uses the equality, comparison, or logical
 operators.
 
+The following language features are particularly useful when writing condition expressions.
+
+### `contains` Function
+
+Use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
+
+```hcl
+  condition = contains(["STAGE", "PROD"], var.environment)
+```
+
+### Boolean Operators
+
+Use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
+
+```hcl
+  condition = var.name != "" && lower(var.name) == var.name
+  ```
+
+### `length` Function
+
+Require a non-empty list or map by testing the collection's length.
+
+```hcl
+  condition = length(var.items) != 0
+```
+This is a better approach than directly comparing with another collection using `==` or `!=`. This is because the comparison operators can only return `true` if both operands have exactly the same type, which is often ambiguous for empty collections.
+
+### `for` Expressions
+
+Use `for` expressions in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
+
+```hcl
+  condition = alltrue([
+    for v in var.instances : contains(["t2.micro", "m3.medium"], v.type)
+  ])
+```
+
+### `can` Function
+
+Use the `can` function to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
+
+For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
+
+```hcl
+  condition = can(regex("^[a-z]+$", var.name)
+```
+
+You can also use `can` with the type conversion functions to test whether a value is convertible to a type or type constraint.
+
+```hcl
+  # This remote output value must have a value that can
+  # be used as a string, which includes strings themselves
+  # but also allows numbers and boolean values.
+  condition = can(tostring(data.terraform_remote_state.example.outputs["name"]))
+```
+
+```hcl
+  # This remote output value must be convertible to a list
+  # type of with element type.
+  condition = can(tolist(data.terraform_remote_state.example.outputs["items"]))
+```
+
+You can also use `can` with attribute access or index operators to test whether a collection or structural value has a particular element or index.
+
+```hcl
+  # var.example must have an attribute named "foo"
+  condition = can(var.example.foo)  ```
+
+```hcl
+  # var.example must be a sequence with at least one element
+  condition = can(var.example[0])
+  # (although it would typically be clearer to write this as a
+  # test like length(var.example) > 0 to better represent the
+  # intent of the condition.)
+```
+
+### `self` Object
+
+Use the `self` object in postcondition blocks to refer to attributes of the instance under evaluation.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abc123"
+
+  lifecycle {
+    postcondition {
+      condition     = self.instance_state == "running"
+      error_message = "EC2 instance must be running."
+    }
+  }
+}
+```
+
+### `each` and `count` Objects
+
+In blocks where `for_each` or `count` are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
+
+```hcl
+variable "vpc_cidrs" {
+  type = set(string)
+}
+
+data "aws_vpc" "example" {
+  for_each = var.vpc_cidrs
+
+  filter {
+    name   = "cidr"
+    values = [each.key]
+  }
+}
+
+resource "aws_internet_gateway" "example" {
+  for_each = aws_vpc.example
+  vpc_id = each.value.id
+
+  lifecycle {
+    precondition {
+      condition     = aws_vpc.example[each.key].state == "available"
+      error_message = "VPC ${each.key} must be available."
+    }
+  }
+}
+```
+
 ## Result Types
 
 The two result values may be of any type, but they must both
