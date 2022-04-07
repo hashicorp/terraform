@@ -114,7 +114,7 @@ The following example shows use cases for preconditions and postconditions. The 
 
 - **The EC2 instance must be allocated a private DNS hostname.** In Amazon Web Services, EC2 instances are assigned private DNS hostnames only if they belong to a virtual network configured in a certain way. The postcondition would detect if the selected virtual network is not configured correctly, prompting the user to debug the network settings.
 
-- **The EC2 instance will have an encrypted root volume.** The precondition ensures that the root volume is encrypted, even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the component.
+- **The EC2 instance will have an encrypted root volume.** The precondition ensures that the root volume is encrypted, even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the new EC2 instance.
 
 ```hcl
 
