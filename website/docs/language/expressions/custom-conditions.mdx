@@ -63,7 +63,7 @@ variable "image_id" {
 
 Use `precondition` and `postcondition` blocks to create custom rules for resources, data sources, and outputs.
 
-Terraform checks a precondition _before_ evaluating the object it is associated with and checks a postcondition _after_ evaluating the object. Terraform evaluates custom conditions as early as possible, but must defer conditions that depend on unknown values until the apply phase. Refer to [Delaying Evaluation Until Apply](#delaying-evaluation-until-apply) for more details.
+Terraform checks a precondition _before_ evaluating the object it is associated with and checks a postcondition _after_ evaluating the object. Terraform evaluates custom conditions as early as possible, but must defer conditions that depend on unknown values until the apply phase. Refer to [Conditions Checked Only During Apply](#conditions-checked-only-during-apply) for more details.
 
 ### Usage
 
@@ -91,11 +91,10 @@ You can add `precondition` and `postcondition` blocks in the following locations
 
 #### Resources and Data Sources
 
-The `lifecycle` block inside a `resource` or `data` block can include both `precondition` and `postcondition` blocks. Terraform evaluates these blocks as follows:
+The `lifecycle` block inside a `resource` or `data` block can include both `precondition` and `postcondition` blocks.
 
-- Preconditions after evaluating existing `count` and `for_each` arguments. This lets Terraform evaluate the precondition separately for each instance and then make `each.key`, `count.index`, etc. available to those conditions.
-- Preconditions before evaluating the resource's configuration arguments. Preconditions can take precedence over argument evaluation errors.
-- Postconditions after planning and applying changes to a managed resource, or after reading from a data source. Postcondition failures prevent changes to other resources that depend on the failing resource.
+- Terraform evaluates `precondition` blocks after evaluating existing `count` and `for_each` arguments. This lets Terraform evaluate the precondition separately for each instance and then make `each.key`, `count.index`, etc. available to those conditions. Terraform also evaluates preconditions before evaluating the resource's configuration arguments. Preconditions can take precedence over argument evaluation errors.
+- Terraform evaluates `postcondition` blocks after planning and applying changes to a managed resource, or after reading from a data source. Postcondition failures prevent changes to other resources that depend on the failing resource.
 
 #### Outputs
 
@@ -166,12 +165,15 @@ output "api_base_url" {
 
 You can often implement a validation check as either a postcondition of the resource producing the data or as a precondition of a resource or output value using the data. To decide which is most appropriate, consider whether the check is representing either an assumption or a guarantee.
 
-| Type | Definition | Condition Type to Use |
-| -----|------------|--------------|
-| Assumption | A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture. | Preconditions, so that future maintainers can find them close to the other expressions that rely on that condition. This lets them understand more about what that resource is intended to allow.|
-| Guarantee | A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record. | Postconditions, so that future maintainers can find them close to the resource configuration that is responsible for implementing those guarantees. This lets them more easily determine which behaviors they should preserve when changing the configuration. |
+**Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
 
-We recommend also considering the following factors.
+We recommend using preconditions for assumptions, so that future maintainers can find them close to the other expressions that rely on that condition. This lets them understand more about what that resource is intended to allow.
+
+**Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
+
+We recommend using postconditions for guarantees, so that future maintainers can find them close to the resource configuration that is responsible for implementing those guarantees. This lets them more easily determine which behaviors they should preserve when changing the configuration.
+
+You should also consider the following factors.
 
 - Which resource or output value would be most helpful to report in the error message. Terraform will always report errors in the location where the condition was declared.
 - Which approach is more convenient. If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
@@ -335,7 +337,7 @@ style similar to Terraform's own error messages. Terraform will show the
 message alongside the name of the resource that detected the problem and any
 external values included in the condition expression.
 
-## Delaying Evaluation Until Apply
+## Conditions Checked Only During Apply
 
 Terraform evaluates custom conditions as early as possible.
 
