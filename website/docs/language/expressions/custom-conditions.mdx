@@ -14,7 +14,7 @@ This page explains the following:
   - Creating [validation conditions](#input-variable-validation) for input variables
   - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
-  - When Terraform [evaluates custom conditions](#delaying-evaluation-until-apply) during the plan and apply cycle
+  - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
 
 
 ## Input Variable Validation
@@ -185,7 +185,7 @@ You should also consider the following factors.
 Input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
 
 You can use any of Terraform's built-in functions or language operators
-in a condition as long as the expression is valid and returns a boolean result. Refer to [Conditional Expressions](/language/expressions/conditionals) for more details and examples.
+in a condition as long as the expression is valid and returns a boolean result. Refer to [Conditional Expressions](/language/expressions/conditionals#conditions) for more details and examples.
 
 ## Error Messages
 
