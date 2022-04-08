@@ -2,7 +2,6 @@ package initwd
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -214,10 +213,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	// - tmpdir/local-modules (with contents of testdata/local-modules)
 	// - tmpdir/empty: the workDir we CD into for the test
 	// - tmpdir/empty/target (target, the destination for init -from-module)
-	tmpDir, err := ioutil.TempDir("", "terraform-configload")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tmpDir := t.TempDir()
 	fromModuleDir := filepath.Join(tmpDir, "local-modules")
 	workDir := filepath.Join(tmpDir, "empty")
 	if err := os.Mkdir(fromModuleDir, os.ModePerm); err != nil {
@@ -242,8 +238,9 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to switch to temp dir %s: %s", tmpDir, err)
 	}
-	defer os.Chdir(oldDir)
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		os.Chdir(oldDir)
+	})
 
 	hooks := &testInstallHooks{}
 

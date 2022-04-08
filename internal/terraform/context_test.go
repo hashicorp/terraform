@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -613,8 +611,8 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 	})
 }
 
-// contextForPlanViaFile is a helper that creates a temporary plan file, then
-// reads it back in again and produces a ContextOpts object containing the
+// contextOptsForPlanViaFile is a helper that creates a temporary plan file,
+// then reads it back in again and produces a ContextOpts object containing the
 // planned changes, prior state and config from the plan file.
 //
 // This is intended for testing the separated plan/apply workflow in a more
@@ -623,12 +621,8 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 // our context tests try to exercise lots of stuff at once and so having them
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
-func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
-	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer os.RemoveAll(dir)
+func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
+	dir := t.TempDir()
 
 	// We'll just create a dummy statefile.File here because we're not going
 	// to run through any of the codepaths that care about Lineage/Serial/etc
@@ -655,7 +649,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	}
 
 	filename := filepath.Join(dir, "tfplan")
-	err = planfile.Create(filename, planfile.CreateArgs{
+	err := planfile.Create(filename, planfile.CreateArgs{
 		ConfigSnapshot:       configSnap,
 		PreviousRunStateFile: prevStateFile,
 		StateFile:            stateFile,

@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -297,9 +296,8 @@ func TestStateReplaceProvider_docs(t *testing.T) {
 
 func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	state := states.BuildState(func(s *states.SyncState) {

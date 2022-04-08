@@ -69,8 +69,7 @@ func TestShow_noArgsNoState(t *testing.T) {
 
 func TestShow_noArgsWithState(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 	// Create the default state
 	testStateFileDefault(t, testState())
 
@@ -484,10 +483,9 @@ func TestShow_json_output(t *testing.T) {
 		}
 
 		t.Run(entry.Name(), func(t *testing.T) {
-			td := tempDir(t)
+			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
 			expectError := strings.Contains(entry.Name(), "error")
@@ -588,10 +586,9 @@ func TestShow_json_output(t *testing.T) {
 }
 
 func TestShow_json_output_sensitive(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	inputDir := "testdata/show-json-sensitive"
 	testCopyDir(t, inputDir, td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
@@ -682,10 +679,9 @@ func TestShow_json_output_sensitive(t *testing.T) {
 // Failing conditions are only present in JSON output for refresh-only plans,
 // so we test that separately here.
 func TestShow_json_output_conditions_refresh_only(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	inputDir := "testdata/show-json/conditions"
 	testCopyDir(t, inputDir, td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{"test": {"1.2.3"}})
@@ -790,10 +786,9 @@ func TestShow_json_output_state(t *testing.T) {
 		}
 
 		t.Run(entry.Name(), func(t *testing.T) {
-			td := tempDir(t)
+			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -865,9 +860,8 @@ func TestShow_json_output_state(t *testing.T) {
 
 func TestShow_planWithNonDefaultStateLineage(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("show"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Write default state file with a testing lineage ("fake-for-testing")

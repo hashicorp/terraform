@@ -160,9 +160,8 @@ func TestImport_providerConfig(t *testing.T) {
 
 // "remote" state provided by the "local" backend
 func TestImport_remoteState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := "imported.tfstate"
@@ -273,9 +272,8 @@ func TestImport_remoteState(t *testing.T) {
 
 // early failure on import should not leave stale lock
 func TestImport_initializationErrorShouldUnlock(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := "imported.tfstate"
@@ -800,9 +798,8 @@ func TestImport_missingModuleConfig(t *testing.T) {
 }
 
 func TestImportModuleVarFile(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-var-file"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)
@@ -875,9 +872,8 @@ func TestImportModuleVarFile(t *testing.T) {
 // uses the traversal foo.bar.baz in a local. A default value in the child
 // module of {} causes this local evaluation to error, breaking import.
 func TestImportModuleInputVariableEvaluation(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-input-variable"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)

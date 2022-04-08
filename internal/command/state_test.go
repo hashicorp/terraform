@@ -25,8 +25,7 @@ func testStateBackups(t *testing.T, dir string) []string {
 }
 
 func TestStateDefaultBackupExtension(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	s, err := (&StateMeta{}).State()
 	if err != nil {

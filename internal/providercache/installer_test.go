@@ -3,11 +3,9 @@ package providercache
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -1443,11 +1441,7 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 	source := getproviders.NewFilesystemMirrorSource("testdata/cachedir")
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath := t.TempDir()
 
 	// set up the installer using the temporary directory and filesystem source
 	platform := getproviders.Platform{OS: "linux", Arch: "amd64"}
@@ -1545,11 +1539,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 	defer close()
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath := t.TempDir()
 
 	version0 := getproviders.MustParseVersionConstraints("0.1.0") // supports protocol version 1.0
 	version1 := getproviders.MustParseVersion("1.2.0")            // this is the expected result in tests with a match
@@ -1860,8 +1850,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 // In order to be able to compare the recorded temp dir paths, we need to
 // normalize the path to match what the installer would report.
 func tmpDir(t *testing.T) string {
-	d := t.TempDir()
-	unlinked, err := filepath.EvalSymlinks(d)
+	unlinked, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

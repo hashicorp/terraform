@@ -27,8 +27,7 @@ func TestProvisionerPlugin(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	tf := e2e.NewBinary(terraformBin, "testdata/provisioner-plugin")
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, "testdata/provisioner-plugin")
 
 	// In order to do a decent end-to-end test for this case we will need a
 	// real enough provisioner plugin to try to run and make sure we are able

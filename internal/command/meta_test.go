@@ -181,9 +181,8 @@ func TestMeta_initStatePaths(t *testing.T) {
 }
 
 func TestMeta_Env(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	m := new(Meta)
@@ -257,9 +256,8 @@ func TestMeta_Workspace_override(t *testing.T) {
 }
 
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// this is an invalid workspace name
@@ -294,9 +292,8 @@ func TestMeta_process(t *testing.T) {
 	defer func() { test = true }()
 
 	// Create a temporary directory for our cwd
-	d := tempDir(t)
+	d := t.TempDir()
 	os.MkdirAll(d, 0755)
-	defer os.RemoveAll(d)
 	defer testChdir(t, d)()
 
 	// At one point it was the responsibility of this process function to
@@ -391,9 +388,8 @@ func TestMeta_process(t *testing.T) {
 
 func TestCommand_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()

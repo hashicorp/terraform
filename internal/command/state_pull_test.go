@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -12,9 +11,8 @@ import (
 
 func TestStatePull(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected, err := ioutil.ReadFile("local-state.tfstate")
@@ -43,8 +41,7 @@ func TestStatePull(t *testing.T) {
 }
 
 func TestStatePull_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -68,9 +65,8 @@ func TestStatePull_noState(t *testing.T) {
 
 func TestStatePull_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("command-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()

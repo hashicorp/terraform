@@ -1,7 +1,6 @@
 package planfile
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -85,11 +84,7 @@ func TestRoundtrip(t *testing.T) {
 		},
 	)
 
-	workDir, err := ioutil.TempDir("", "tf-planfile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	planFn := filepath.Join(workDir, "tfplan")
+	planFn := filepath.Join(t.TempDir(), "tfplan")
 
 	err = Create(planFn, CreateArgs{
 		ConfigSnapshot:       snapIn,

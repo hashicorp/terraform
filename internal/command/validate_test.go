@@ -65,9 +65,8 @@ func TestValidateCommand(t *testing.T) {
 func TestValidateCommandWithTfvarsFile(t *testing.T) {
 	// Create a temporary working directory that is empty because this test
 	// requires scanning the current working directory by validate command.
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("validate-valid/with-tfvars-file"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	view, done := testView(t)

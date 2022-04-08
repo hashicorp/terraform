@@ -43,10 +43,9 @@ func TestProvidersSchema_output(t *testing.T) {
 			continue
 		}
 		t.Run(entry.Name(), func(t *testing.T) {
-			td := tempDir(t)
+			td := t.TempDir()
 			inputDir := filepath.Join(fixtureDir, entry.Name())
 			testCopyDir(t, inputDir, td)
-			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{

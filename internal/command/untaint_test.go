@@ -75,7 +75,7 @@ func TestUntaint_lockedState(t *testing.T) {
 		)
 	})
 	statePath := testStateFile(t, state)
-	unlock, err := testLockState(testDataDir, statePath)
+	unlock, err := testLockState(t, testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -106,8 +106,7 @@ func TestUntaint_lockedState(t *testing.T) {
 
 func TestUntaint_backup(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -162,8 +161,7 @@ test_instance.foo:
 
 func TestUntaint_backupDisable(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -234,8 +232,7 @@ func TestUntaint_badState(t *testing.T) {
 
 func TestUntaint_defaultState(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -282,8 +279,7 @@ test_instance.foo:
 
 func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
@@ -420,8 +416,7 @@ because -allow-missing was set.
 
 func TestUntaint_stateOut(t *testing.T) {
 	// Get a temp cwd
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	// Write the temp state
 	state := states.BuildState(func(s *states.SyncState) {
