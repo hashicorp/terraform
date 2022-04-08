@@ -437,6 +437,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool) {
 
 	p.buf.WriteString("\n")
+	p.writeSensitivityWarning(old, new, indent, action, false)
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
@@ -444,6 +445,14 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	p.buf.WriteString(name)
 	p.buf.WriteString(p.color.Color("[reset]"))
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
+
+	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
+		p.buf.WriteString(" = (sensitive value)")
+		if p.pathForcesNewResource(path) {
+			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+		}
+		return
+	}
 
 	result := &blockBodyDiffResult{}
 	switch objS.Nesting {
