@@ -127,7 +127,7 @@ func stripRemovedStateAttributes(state []byte, ty cty.Type) []byte {
 	if err != nil {
 		// we just log any errors here, and let the normal decode process catch
 		// invalid JSON.
-		log.Printf("[ERROR] UpgradeResourceState: %s", err)
+		log.Printf("[ERROR] UpgradeResourceState: stripRemovedStateAttributes: %s", err)
 		return state
 	}
 
