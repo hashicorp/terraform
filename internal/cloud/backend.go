@@ -172,6 +172,8 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				log.Panicf("An unxpected error occurred: %s", err)
 			}
 		}
+	} else {
+		WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	switch WorkspaceMapping.Strategy() {
@@ -296,6 +298,16 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
+	if ws, ok := os.LookupEnv("TF_WORKSPACE"); ok {
+		if ws == b.WorkspaceMapping.Name || b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
+			diag := b.validWorkspaceEnvVar(context.Background(), b.organization, ws)
+			if diag != nil {
+				diags = diags.Append(diag)
+				return diags
+			}
+		}
+	}
+
 	// Check for the minimum version of Terraform Enterprise required.
 	//
 	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
@@ -376,6 +388,8 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 			b.WorkspaceMapping.Tags = tags
 		}
+	} else {
+		b.WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	// Determine if we are forced to use the local backend.
@@ -988,6 +1002,72 @@ func (b *Cloud) fetchWorkspace(ctx context.Context, organization string, workspa
 	}
 
 	return w, nil
+}
+
+// validWorkspaceEnvVar ensures we have selected a valid workspace using TF_WORKSPACE:
+// First, it ensures the workspace specified by TF_WORKSPACE exists in the organization
+// Second, if tags are specified in the configuration, it ensures TF_WORKSPACE belongs to the set
+// of available workspaces with those given tags.
+func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspace string) tfdiags.Diagnostic {
+	// first ensure the workspace exists
+	_, err := b.client.Workspaces.Read(ctx, organization, workspace)
+	if err != nil && err != tfe.ErrResourceNotFound {
+		return tfdiags.Sourceless(
+			tfdiags.Error,
+			"Terraform Cloud returned an unexpected error",
+			err.Error(),
+		)
+	}
+
+	if err == tfe.ErrResourceNotFound {
+		return tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid workspace selection",
+			fmt.Sprintf(`Terraform failed to find workspace %q in organization %s.`, workspace, organization),
+		)
+	}
+
+	// if the configuration has specified tags, we need to ensure TF_WORKSPACE
+	// is a valid member
+	if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
+		opts := &tfe.WorkspaceListOptions{}
+		opts.Tags = strings.Join(b.WorkspaceMapping.Tags, ",")
+
+		for {
+			wl, err := b.client.Workspaces.List(ctx, b.organization, opts)
+			if err != nil {
+				return tfdiags.Sourceless(
+					tfdiags.Error,
+					"Terraform Cloud returned an unexpected error",
+					err.Error(),
+				)
+			}
+
+			for _, ws := range wl.Items {
+				if ws.Name == workspace {
+					return nil
+				}
+			}
+
+			if wl.CurrentPage >= wl.TotalPages {
+				break
+			}
+
+			opts.PageNumber = wl.NextPage
+		}
+
+		return tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid workspace selection",
+			fmt.Sprintf(
+				"Terraform failed to find workspace %q with the tags specified in your configuration:\n[%s]",
+				workspace,
+				strings.ReplaceAll(opts.Tags, ",", ", "),
+			),
+		)
+	}
+
+	return nil
 }
 
 func (wm WorkspaceMapping) tfeTags() []*tfe.Tag {

@@ -84,12 +84,17 @@ The `cloud` block supports the following configuration arguments:
 
 ### Environment Variables
 
-Alternatively, the `cloud` block can be configured with the following environment variables:
+You can use environment variables to configure one or more `cloud` block attributes. This is helpful when you want to configure Terraform as part of a Continuous Integration (CI) pipeline. Terraform only reads these variables if the corresponding attribute is omitted from your configuration file. If you choose to configure the `cloud` block entirely through environment variables, you must still add an empty `cloud` block in your configuration file.
+
+Use the following environment variables to configure the `cloud` block:
+
 
 - `TF_ORGANIZATION` - The name of the organization. Serves as a fallback for `organization`
     in the cloud configuration. If both are specified, the configuration takes precedence. 
 
 - `TF_HOSTNAME` - The hostname of a Terraform Enterprise installation. Serves as a fallback if `hostname` is not specified in the cloud configuration. If both are specified, the configuration takes precendence. 
+
+- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace.  If the `workspaces` attribute is not included in your configuration file, the `cloud` block interprets `TF_WORKSPACE` as the `name` value of the `workspaces` attribute. The workspace must exist in the organization specified in the configuration or `TF_ORGANIZATION`. If the `cloud` block uses tags, Terraform Cloud will return an error if the value of `TF_WORKSPACE` is not included in the set of tags. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for more details.
 
 ## Excluding Files from Upload with .terraformignore
 
