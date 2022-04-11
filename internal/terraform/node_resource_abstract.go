@@ -394,14 +394,6 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 
 	obj, err := src.Decode(schema.ImpliedType())
 	if err != nil {
-		// In the case of a data source which contains incompatible state
-		// migrations, we can just ignore decoding errors and skip comparing
-		// the prior state.
-		if addr.Resource.Resource.Mode == addrs.DataResourceMode {
-			log.Printf("[DEBUG] readResourceInstanceState: data source schema change for %s prevents decoding: %s", addr, err)
-			return nil, diags
-		}
-
 		diags = diags.Append(err)
 	}
 
