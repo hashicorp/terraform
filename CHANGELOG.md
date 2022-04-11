@@ -1,5 +1,9 @@
 ## 1.1.9 (Unreleased)
 
+BUG FIXES:
+
+* cli: Fix crash when using sensitive values in sets. [GH-30825]
+
 ## 1.1.8 (April 07, 2022)
 
 BUG FIXES:
