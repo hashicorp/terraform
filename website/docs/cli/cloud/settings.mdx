@@ -94,7 +94,7 @@ Use the following environment variables to configure the `cloud` block:
 
 - `TF_HOSTNAME` - The hostname of a Terraform Enterprise installation. Serves as a fallback if `hostname` is not specified in the cloud configuration. If both are specified, the configuration takes precendence. 
 
-- `TF_WORKSPACE` - The workspace to select from the available set. The `cloud` block interprets this variable as the `name` value of the `workspaces` attribute. The `cloud` block only reads this variable if the `workspaces` block is not included in your configuration file. When you supply `TF_WORKSPACE`, Terraform also uses it to select the workspace locally. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for more details.
+- `TF_WORKSPACE` - The workspace to select from. The `cloud` block interprets this variable as the `name` value of the `workspaces` attribute if the `workspaces` attrribute is not included in your configuration file. Furthermore, it validates that `TF_WORKSPACE` exists in the organization specified in your configuration or `TF_ORGANIZATION`. Alternatively, this variable can also be used to select a workspace if you specify tags in your `cloud` configuration, returning an error if `TF_WORKSPACE` is not included in the set of tags specified in your configuration. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for more details.
 
 ## Excluding Files from Upload with .terraformignore
 
