@@ -25,4 +25,4 @@ fi
 cd "$PREVIEW_DIR"
 
 # Run the terraform-website content-repo start script
-REPO=terraform IS_CONTENT_PREVIEW=true npm run build:deploy-preview
+REPO=terraform PREVIEW_FROM_REPO=terraform NAV_DATA_DIRNAME=./preview/data CONTENT_DIRNAME=./preview/docs IS_CONTENT_PREVIEW=true npm run build:deploy-preview
