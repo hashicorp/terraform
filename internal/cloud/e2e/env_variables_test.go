@@ -10,6 +10,7 @@ import (
 
 func Test_cloud_organization_env_var(t *testing.T) {
 	t.Parallel()
+	skipIfMissingEnvVar(t)
 
 	ctx := context.Background()
 	org, cleanup := createOrganization(t)
@@ -54,6 +55,7 @@ func Test_cloud_organization_env_var(t *testing.T) {
 
 func Test_cloud_workspace_name_env_var(t *testing.T) {
 	t.Parallel()
+	skipIfMissingEnvVar(t)
 
 	org, orgCleanup := createOrganization(t)
 	t.Cleanup(orgCleanup)
@@ -126,6 +128,7 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 
 func Test_cloud_workspace_tags_env_var(t *testing.T) {
 	t.Parallel()
+	skipIfMissingEnvVar(t)
 
 	org, orgCleanup := createOrganization(t)
 	t.Cleanup(orgCleanup)
@@ -206,6 +209,7 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 
 func Test_cloud_null_config(t *testing.T) {
 	t.Parallel()
+	skipIfMissingEnvVar(t)
 
 	org, cleanup := createOrganization(t)
 	t.Cleanup(cleanup)
