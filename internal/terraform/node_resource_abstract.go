@@ -143,12 +143,17 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
 
+		for _, expr := range c.TriggersReplacement {
+			refs, _ = lang.ReferencesInExpr(expr)
+			result = append(result, refs...)
+		}
+
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
 			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+			result = append(result, refs...)
 		}
 
-		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
 				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
