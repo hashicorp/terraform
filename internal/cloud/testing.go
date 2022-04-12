@@ -178,6 +178,44 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	return b, s.Close
 }
 
+// testUnconfiguredBackend is used for testing the configuration of the backend
+// with the mock client
+func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	// Normally, the client is created during configuration, but the configuration uses the
+	// client to read entitlements.
+	var err error
+	b.client, err = tfe.NewClient(&tfe.Config{
+		Token: "fake-token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Get a new mock client.
+	mc := NewMockClient()
+
+	// Replace the services we use with our mock services.
+	b.CLI = cli.NewMockUi()
+	b.client.Applies = mc.Applies
+	b.client.ConfigurationVersions = mc.ConfigurationVersions
+	b.client.CostEstimates = mc.CostEstimates
+	b.client.Organizations = mc.Organizations
+	b.client.Plans = mc.Plans
+	b.client.PolicyChecks = mc.PolicyChecks
+	b.client.Runs = mc.Runs
+	b.client.StateVersions = mc.StateVersions
+	b.client.Variables = mc.Variables
+	b.client.Workspaces = mc.Workspaces
+
+	// Set local to a local test backend.
+	b.local = testLocalBackend(t, b)
+
+	return b, s.Close
+}
+
 func testLocalBackend(t *testing.T, cloud *Cloud) backend.Enhanced {
 	b := backendLocal.NewWithBackend(cloud)
 

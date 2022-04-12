@@ -253,30 +253,32 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	cfg := &tfe.Config{
-		Address:      service.String(),
-		BasePath:     service.Path,
-		Token:        token,
-		Headers:      make(http.Header),
-		RetryLogHook: b.retryLogHook,
-	}
+	if b.client == nil {
+		cfg := &tfe.Config{
+			Address:      service.String(),
+			BasePath:     service.Path,
+			Token:        token,
+			Headers:      make(http.Header),
+			RetryLogHook: b.retryLogHook,
+		}
 
-	// Set the version header to the current version.
-	cfg.Headers.Set(tfversion.Header, tfversion.Version)
-	cfg.Headers.Set(headerSourceKey, headerSourceValue)
+		// Set the version header to the current version.
+		cfg.Headers.Set(tfversion.Header, tfversion.Version)
+		cfg.Headers.Set(headerSourceKey, headerSourceValue)
 
-	// Create the TFC/E API client.
-	b.client, err = tfe.NewClient(cfg)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to create the Terraform Cloud/Enterprise client",
-			fmt.Sprintf(
-				`Encountered an unexpected error while creating the `+
-					`Terraform Cloud/Enterprise client: %s.`, err,
-			),
-		))
-		return diags
+		// Create the TFC/E API client.
+		b.client, err = tfe.NewClient(cfg)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to create the Terraform Cloud/Enterprise client",
+				fmt.Sprintf(
+					`Encountered an unexpected error while creating the `+
+						`Terraform Cloud/Enterprise client: %s.`, err,
+				),
+			))
+			return diags
+		}
 	}
 
 	// Check if the organization exists by reading its entitlements.
@@ -383,7 +385,7 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 			var tags []string
 			err := gocty.FromCtyValue(val, &tags)
 			if err != nil {
-				log.Panicf("An unxpected error occurred: %s", err)
+				log.Panicf("An unexpected error occurred: %s", err)
 			}
 
 			b.WorkspaceMapping.Tags = tags
