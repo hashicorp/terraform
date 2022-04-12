@@ -118,12 +118,22 @@ Terraform Cloud responds to API calls at both its current hostname
 ### Environment Variable Credentials
 
 If you would prefer not to store your API tokens directly in the CLI
-configuration, you may use a host-specific environment variable. Environment variable names should be the prefix `TF_TOKEN_` added to the domain name. For example,
-the value of a variable named `TF_TOKEN_app_terraform_io` will be used as a bearer authorization token when the CLI makes service requests to the hostname "app.terraform.io".
+configuration, you may use a host-specific environment variable. Environment variable names should
+have the prefix `TF_TOKEN_` added to the domain name, with periods encoded as underscores.
+For example, the value of a variable named `TF_TOKEN_app_terraform_io` will be used as a
+bearer authorization token when the CLI makes service requests to the hostname "app.terraform.io".
 
-Internationalized domain names should be converted to their [punycode equivalent](https://www.charset.org/punycode)
+Domain names containing non-ASCII characters should be converted to
+their [punycode equivalent](https://www.charset.org/punycode)
 with an ACE prefix when used as a variable name. For example, token credentials
-for 例えば.com should be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
+for 例えば.com must be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
+
+Hyphens are allowed within variable names by certain tools, such as the `env` utility,
+but are not valid POSIX variable names. Therefore, it can be tricky to
+set them with interactive tools such as bash or zsh so you may encode
+hyphens as double underscores. For example, a token for the domain name "café.fr" can
+be set by either `TF_TOKEN_xn--caf-dma_fr` or `TF_TOKEN_xn____caf__dma_fr` if that is more
+convenient. If both are defined, the variable containing hyphens is preferred.
 
 ### Credentials Helpers
 
@@ -152,6 +162,16 @@ Terraform does not include any credentials helpers in the main distribution.
 To learn how to write and install your own credentials helpers to integrate
 with existing in-house credentials management systems, see
 [the guide to Credentials Helper internals](/internals/credentials-helpers).
+
+### Credentials Source Priority Order
+
+Credentials found in an environment variable for a particular service host
+as described above will be preferred over those in CLI config as set by `terraform login`.
+If neither are set, any configured credentials helper will be consulted.
+
+~> **Note:** For users of [terraform-credentials-helper](https://github.com/apparentlymart/terraform-credentials-env), this priority has been effectively reversed following the
+release of Terraform 1.2. Previously, credentials found within CLI config or set by
+`terraform login` were preferred to `TF_TOKEN_*` variables.
 
 ## Provider Installation
 
