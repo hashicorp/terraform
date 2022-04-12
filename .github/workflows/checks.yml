@@ -100,6 +100,38 @@ jobs:
         run: |
           TF_ACC=1 go test -v ./internal/command/e2etest
 
+  cloud-e2e-tests:
+    name: "Cloud End-to-end Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@v2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+
+      # NOTE: This cache is shared so the following step must always be
+      # identical across the unit-tests, e2e-tests, and consistency-checks
+      # jobs, or else weird things could happen.
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: "~/go/pkg"
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      - name: "Cloud e2e tests"
+        run: |
+          TFE_HOSTNAME=${{ secrets.TFE_HOSTNAME }} TFE_TOKEN=${{ secrets.TFE_TOKEN }} TF_ACC=1 go test -v ./internal/cloud/e2e
+
   consistency-checks:
     name: "Code Consistency Checks"
     runs-on: ubuntu-latest
