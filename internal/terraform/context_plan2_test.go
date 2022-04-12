@@ -2964,6 +2964,73 @@ output "a" {
 	}
 }
 
+func TestContext2Plan_triggeredBy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  count = 1
+  test_string = "new"
+}
+resource "test_object" "b" {
+  count = 1
+  test_string = test_object.a[count.index].test_string
+  lifecycle {
+    # the change to test_string in the other resource should trigger replacement
+    replace_triggered_by = [ test_object.a[count.index].test_string ]
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.a[0]"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"test_string":"old"}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+		s.SetResourceInstanceCurrent(
+			mustResourceInstanceAddr("test_object.b[0]"),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{}`),
+				Status:    states.ObjectReady,
+			},
+			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		)
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+	for _, c := range plan.Changes.Resources {
+		switch c.Addr.String() {
+		case "test_object.a[0]":
+			if c.Action != plans.Update {
+				t.Fatalf("unexpected %s change for %s\n", c.Action, c.Addr)
+			}
+		case "test_object.b[0]":
+			if c.Action != plans.DeleteThenCreate {
+				t.Fatalf("unexpected %s change for %s\n", c.Action, c.Addr)
+			}
+		default:
+			t.Fatal("unexpected change", c.Addr, c.Action)
+		}
+	}
+}
+
 func TestContext2Plan_dataSchemaChange(t *testing.T) {
 	// We can't decode the prior state when a data source upgrades the schema
 	// in an incompatible way. Since prior state for data sources is purely

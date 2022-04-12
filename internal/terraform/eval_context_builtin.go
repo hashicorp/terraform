@@ -349,6 +349,15 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	// single change.
 	change := changes[0]
 
+	// Make sure the change is actionable. A create or delete action will have
+	// a change in value, but are not valid for our purposes here.
+	switch change.ChangeSrc.Action {
+	case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
+		// OK
+	default:
+		return nil, false, diags
+	}
+
 	// Since we have a traversal after the resource reference, we will need to
 	// decode the changes, which means we need a schema.
 	providerAddr := change.ProviderAddr
