@@ -117,6 +117,11 @@ type EvalContext interface {
 	// evaluating. Set this to nil if the "self" object should not be available.
 	EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics)
 
+	// EvaluateReplaceTriggeredBy takes the raw reference expression from the
+	// config, and returns the evaluated *addrs.Reference along with a boolean
+	// indicating if that reference forces replacement.
+	EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics)
+
 	// EvaluationScope returns a scope that can be used to evaluate reference
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope

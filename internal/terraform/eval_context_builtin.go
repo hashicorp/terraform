@@ -282,7 +282,113 @@ func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Ty
 	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
+
+	// get the reference to lookup changes in the plan
+	ref, diags := evalReplaceTriggeredByExpr(expr, repData)
+	if diags.HasErrors() {
+		return nil, false, diags
+	}
+
+	var changes []*plans.ResourceInstanceChangeSrc
+	// store the address once we get it for validation
+	var resourceAddr addrs.Resource
+
+	// The reference is either a resource or resource instance
+	switch sub := ref.Subject.(type) {
+	case addrs.Resource:
+		resourceAddr = sub
+		rc := sub.InModule(ctx.Path().Module())
+		changes = ctx.Changes().GetChangesForConfigResource(rc)
+		// FIXME: Needs to be restricted to the same module!
+		//        The other caller actually needs the same condition, so we can
+		//        change this method to cover both use cases.
+	case addrs.ResourceInstance:
+		resourceAddr = sub.ContainingResource()
+		rc := sub.Absolute(ctx.Path())
+		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		if change != nil {
+			// we'll generate an error below if there was no change
+			changes = append(changes, change)
+		}
+	}
+
+	// Do some validation to make sure we are expecting a change at all
+	cfg := ctx.Evaluator.Config.Descendent(ctx.Path().Module())
+	resCfg := cfg.Module.ResourceByAddr(resourceAddr)
+	if resCfg == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared resource`,
+			Detail:   fmt.Sprintf(`A resource %s has not been declared in %s`, ref.Subject, moduleDisplayAddr(ctx.Path())),
+			Subject:  expr.Range().Ptr(),
+		})
+		return nil, false, diags
+	}
+
+	if len(changes) == 0 {
+		// If the resource is valid there should always be at least one change.
+		diags = diags.Append(fmt.Errorf("no change found for %s in %s", ref.Subject, moduleDisplayAddr(ctx.Path())))
+		return nil, false, diags
+	}
+
+	// If we don't have a traversal beyond the resource, then we can just look
+	// for any change.
+	if len(ref.Remaining) == 0 {
+		for _, c := range changes {
+			if c.ChangeSrc.Action != plans.NoOp {
+				return ref, true, diags
+			}
+		}
+
+		// no change triggered
+		return nil, false, diags
+	}
+
+	// This must be an instances to have a remaining traversal, which means a
+	// single change.
+	change := changes[0]
+
+	// Since we have a traversal after the resource reference, we will need to
+	// decode the changes, which means we need a schema.
+	providerAddr := change.ProviderAddr
+	schema, err := ctx.ProviderSchema(providerAddr)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	resAddr := change.Addr.ContainingResource().Resource
+	resSchema, _ := schema.SchemaForResourceType(resAddr.Mode, resAddr.Type)
+	ty := resSchema.ImpliedType()
+
+	before, err := change.ChangeSrc.Before.Decode(ty)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	after, err := change.ChangeSrc.After.Decode(ty)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	path := traversalToPath(ref.Remaining)
+	attrBefore, _ := path.Apply(before)
+	attrAfter, _ := path.Apply(after)
+
+	if attrBefore == cty.NilVal || attrAfter == cty.NilVal {
+		replace := attrBefore != attrAfter
+		return ref, replace, diags
+	}
+
+	replace := !attrBefore.RawEquals(attrAfter)
+
+	return ref, replace, diags
+}
+
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData instances.RepetitionData) *lang.Scope {
 	if !ctx.pathSet {
 		panic("context path not set")
 	}
