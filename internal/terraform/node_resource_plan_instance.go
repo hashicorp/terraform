@@ -5,9 +5,11 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -192,6 +194,23 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
+
+		// add this instance to n.forceReplace if replacement is triggered by
+		// another change
+		repData := instances.RepetitionData{}
+		switch k := addr.Resource.Key.(type) {
+		case addrs.IntKey:
+			repData.CountIndex = k.Value()
+		case addrs.StringKey:
+			repData.EachKey = k.Value()
+			repData.EachValue = cty.DynamicVal
+		}
+
+		diags = diags.Append(n.replaceTriggered(ctx, repData))
+		if diags.HasErrors() {
+			return diags
+		}
+
 		change, instancePlanState, repeatData, planDiags := n.plan(
 			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
@@ -294,6 +313,33 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)
+	}
+
+	return diags
+}
+
+// replaceTriggered checks if this instance needs to be replace due to a change
+// in a replace_triggered_by reference. If replacement is required, the
+// instance address is added to forceReplace
+func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, expr := range n.Config.TriggersReplacement {
+		_, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			continue
+		}
+
+		if replace {
+			// FIXME: forceReplace accomplishes the same goal, however we will
+			// want a new way to signal why this resource was replaced in the
+			// plan.
+			// EvalauteReplaceTriggeredBy returns a reference to store
+			// somewhere for this purpose too.
+			n.forceReplace = append(n.forceReplace, n.Addr)
+		}
+
 	}
 
 	return diags
