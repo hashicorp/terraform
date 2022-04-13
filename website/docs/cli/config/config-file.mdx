@@ -122,18 +122,12 @@ configuration, you may use a host-specific environment variable. Environment var
 have the prefix `TF_TOKEN_` added to the domain name, with periods encoded as underscores.
 For example, the value of a variable named `TF_TOKEN_app_terraform_io` will be used as a
 bearer authorization token when the CLI makes service requests to the hostname "app.terraform.io".
+If multiple variables evaluate to the same hostname, Terraform will use the one defined later in the
+operating system's variable table.
 
-Domain names containing non-ASCII characters should be converted to
-their [punycode equivalent](https://www.charset.org/punycode)
-with an ACE prefix when used as a variable name. For example, token credentials
-for 例えば.com must be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
+When using domain names as a variable name, you must convert domain names containing non-ASCII characters to their [punycode equivalent](https://www.charset.org/punycode) with an ACE prefix. For example, token credentials for 例えば.com must be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
 
-Hyphens are allowed within variable names by certain tools, such as the `env` utility,
-but are not valid POSIX variable names. Therefore, it can be tricky to
-set them with interactive tools such as bash or zsh so you may encode
-hyphens as double underscores. For example, a token for the domain name "café.fr" can
-be set by either `TF_TOKEN_xn--caf-dma_fr` or `TF_TOKEN_xn____caf__dma_fr` if that is more
-convenient. If both are defined, the variable containing hyphens is preferred.
+Some tools like the `env` utility allow hyphens in variable names, but hyphens create invalid POSIX variable names. Therefore, you can encode hyphens as double underscores when you set variables with interactive tools like Bash or Zsh. For example, you can set a token for the domain name "café.fr" as either `TF_TOKEN_xn--caf-dma_fr` or `TF_TOKEN_xn____caf__dma_fr`. If both are defined, Terraform will use the version containing hyphens.
 
 ### Credentials Helpers
 
