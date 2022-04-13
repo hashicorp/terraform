@@ -22,7 +22,7 @@ ENHANCEMENTS:
 * When running `terraform plan`, only show external changes which may have contributed to the current plan ([#30486](https://github.com/hashicorp/terraform/issues/30486))
 * Add `TF_ORGANIZATION` environment variable fallback for `organization` in the cloud configuration
 * Add `TF_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration
-* When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. [GH-30768]
+* When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. ([#30768](https://github.com/hashicorp/terraform/issues/30768))
 
 BUG FIXES:
 
@@ -32,7 +32,7 @@ BUG FIXES:
 * Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. ([#29972](https://github.com/hashicorp/terraform/issues/29972))
 * Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address. ([#30703](https://github.com/hashicorp/terraform/issues/30703))
 * When performing advanced state management with the `terraform state` commands, Terraform now checks the `required_version` field in the configuration before proceeding. ([#30511](https://github.com/hashicorp/terraform/pull/30511))
-* When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier. [GH-30766]
+* When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier. ([#30766](https://github.com/hashicorp/terraform/issues/30766))
 
 UPGRADE NOTES:
 
