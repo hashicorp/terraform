@@ -1473,24 +1473,21 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			p.buf.WriteString("\n")
 
 			var allKeys []string
-			displayKeys := make(map[string]string)
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				displayKeys[keyStr] = displayAttributeName(keyStr)
-				if len(displayKeys[keyStr]) > keyLen {
-					keyLen = len(displayKeys[keyStr])
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
 				}
 			}
 			for it := new.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				displayKeys[keyStr] = displayAttributeName(keyStr)
-				if len(displayKeys[keyStr]) > keyLen {
-					keyLen = len(displayKeys[keyStr])
+				if len(keyStr) > keyLen {
+					keyLen = len(keyStr)
 				}
 			}
 
@@ -1533,8 +1530,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
-				p.writeValue(cty.StringVal(displayKeys[k]), action, indent+4)
-				p.buf.WriteString(strings.Repeat(" ", keyLen-len(displayKeys[k])))
+				p.writeValue(cty.StringVal(k), action, indent+4)
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
 				p.buf.WriteString(" = ")
 				switch action {
 				case plans.Create, plans.NoOp:
