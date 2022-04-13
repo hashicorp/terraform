@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * cli: Fix crash when using sensitive values in sets. [GH-30825]
+* cli: Fix double-quoted map keys when rendering a diff. [GH-30855]
 
 ## 1.1.8 (April 07, 2022)
 
