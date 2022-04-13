@@ -2,6 +2,7 @@ package cliconfig
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
