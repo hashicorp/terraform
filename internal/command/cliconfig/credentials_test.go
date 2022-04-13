@@ -2,13 +2,14 @@ package cliconfig
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 )
 
@@ -81,6 +82,78 @@ func TestCredentialsForHost(t *testing.T) {
 		}
 		if got, want := testReqAuthHeader(t, creds), ""; got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("set in environment", func(t *testing.T) {
+		envName := "TF_TOKEN_configured_example_com"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		expectedToken := "configured-by-env"
+		os.Setenv(envName, expectedToken)
+
+		creds, err := credSrc.ForHost(svchost.Hostname("configured.example.com"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("punycode name set in environment", func(t *testing.T) {
+		envName := "TF_TOKEN_env_xn--eckwd4c7cu47r2wf_com"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		expectedToken := "configured-by-env"
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("env.ドメイン名例.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("hyphens can be encoded as double underscores", func(t *testing.T) {
+		envName := "TF_TOKEN_env_xn____caf__dma_fr"
+		expectedToken := "configured-by-fallback"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("env.café.fr")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
 		}
 	})
 }

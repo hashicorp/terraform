@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -113,6 +114,47 @@ func (c *Config) credentialsSource(helperType string, helper svcauth.Credentials
 	}
 }
 
+// hostCredentialsFromEnv returns a token credential by searching for a hostname-specific
+// environment variable. The host parameter is expected to be in the "comparison" form,
+// for example, hostnames containing non-ASCII characters like "café.fr"
+// should be expressed as "xn--caf-dma.fr". If the variable based on the hostname is not
+// defined, nil is returned. Variable names must have dot characters translated to
+// underscores, which are not allowed in DNS names. For example, token credentials
+// for app.terraform.io should be set in the variable named TF_TOKEN_app_terraform_io.
+//
+// Hyphen characters are allowed in environment variable names, but are not valid POSIX
+// variable names. Usually, it's still possible to set variable names with hyphens using
+// utilities like env or docker. But, as a fallback, host names may encode their
+// hyphens as double underscores in the variable name. For the example "café.fr",
+// the variable name "TF_TOKEN_xn____caf__dma_fr" or "TF_TOKEN_xn--caf-dma_fr"
+// may be used.
+func hostCredentialsFromEnv(host svchost.Hostname) svcauth.HostCredentials {
+	if len(host) == 0 {
+		return nil
+	}
+
+	// Convert dots to underscores when looking for environment configuration for a specific host.
+	// DNS names do not allow underscore characters so this is unambiguous.
+	translated := strings.ReplaceAll(host.String(), ".", "_")
+
+	if token, ok := os.LookupEnv(fmt.Sprintf("TF_TOKEN_%s", translated)); ok {
+		return svcauth.HostCredentialsToken(token)
+	}
+
+	if strings.ContainsRune(translated, '-') {
+		// This host name contains a hyphen. Replace hyphens with double underscores as a fallback
+		// (see godoc above for details)
+		translated = strings.ReplaceAll(host.String(), "-", "__")
+		translated = strings.ReplaceAll(translated, ".", "_")
+
+		if token, ok := os.LookupEnv(fmt.Sprintf("TF_TOKEN_%s", translated)); ok {
+			return svcauth.HostCredentialsToken(token)
+		}
+	}
+
+	return nil
+}
+
 // CredentialsSource is an implementation of svcauth.CredentialsSource
 // that can read and write the CLI configuration, and possibly also delegate
 // to a credentials helper when configured.
@@ -153,11 +195,18 @@ type CredentialsSource struct {
 var _ svcauth.CredentialsSource = (*CredentialsSource)(nil)
 
 func (s *CredentialsSource) ForHost(host svchost.Hostname) (svcauth.HostCredentials, error) {
+	// The first order of precedence for credentials is a host-specific environment variable
+	if envCreds := hostCredentialsFromEnv(host); envCreds != nil {
+		return envCreds, nil
+	}
+
+	// Then, any credentials block present in the CLI config
 	v, ok := s.configured[host]
 	if ok {
 		return svcauth.HostCredentialsFromObject(v), nil
 	}
 
+	// And finally, the credentials helper
 	if s.helper != nil {
 		return s.helper.ForHost(host)
 	}
