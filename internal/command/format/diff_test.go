@@ -2115,6 +2115,7 @@ func TestResourceChange_map(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
 					"new-key": cty.StringVal("new-element"),
+					"be:ep":   cty.StringVal("boop"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -2129,6 +2130,7 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + map_field = {
+          + "be:ep"   = "boop"
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
@@ -2148,6 +2150,7 @@ func TestResourceChange_map(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
 					"new-key": cty.StringVal("new-element"),
+					"be:ep":   cty.StringVal("boop"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -2162,6 +2165,7 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
+          + "be:ep"   = "boop"
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
@@ -2183,9 +2187,10 @@ func TestResourceChange_map(t *testing.T) {
 				"id":  cty.UnknownVal(cty.String),
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("aaaa"),
-					"b": cty.StringVal("bbbb"),
-					"c": cty.StringVal("cccc"),
+					"a":   cty.StringVal("aaaa"),
+					"b":   cty.StringVal("bbbb"),
+					"b:b": cty.StringVal("bbbb"),
+					"c":   cty.StringVal("cccc"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -2200,7 +2205,8 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
-          + "b" = "bbbb"
+          + "b"   = "bbbb"
+          + "b:b" = "bbbb"
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
