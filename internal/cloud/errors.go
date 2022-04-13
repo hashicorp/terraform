@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,6 +9,18 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// String based errors
+var (
+	errApplyDiscarded                    = errors.New("Apply discarded.")
+	errDestroyDiscarded                  = errors.New("Destroy discarded.")
+	errRunApproved                       = errors.New("approved using the UI or API")
+	errRunDiscarded                      = errors.New("discarded using the UI or API")
+	errRunOverridden                     = errors.New("overridden using the UI or API")
+	errApplyNeedsUIConfirmation          = errors.New("Cannot confirm apply due to -input=false. Please handle run confirmation in the UI.")
+	errPolicyOverrideNeedsUIConfirmation = errors.New("Cannot override soft failed policy checks when -input=false. Please open the run in the UI to override.")
+)
+
+// Diagnostic error messages
 var (
 	invalidWorkspaceConfigMissingValues = tfdiags.AttributeValue(
 		tfdiags.Error,
