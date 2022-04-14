@@ -23,6 +23,7 @@ ENHANCEMENTS:
 * Add `TF_ORGANIZATION` environment variable fallback for `organization` in the cloud configuration
 * Add `TF_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration
 * When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. ([#30768](https://github.com/hashicorp/terraform/issues/30768))
+* Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
 
 BUG FIXES:
 
