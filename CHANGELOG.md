@@ -11,7 +11,6 @@ UPGRADE NOTES:
 NEW FEATURES:
 
 * `precondition` and `postcondition` check blocks for resources, data sources, and module output values: module authors can now document assumptions and assertions about configuration and state values. If these conditions are not met, Terraform will report a custom error message to the user and halt further evaluation.
-* Terraform now supports [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks), a Terraform Cloud integration for executing remote operations, for the post plan stage of a run.
 
 ENHANCEMENTS:
 
@@ -22,6 +21,7 @@ ENHANCEMENTS:
 * When running `terraform plan`, only show external changes which may have contributed to the current plan ([#30486](https://github.com/hashicorp/terraform/issues/30486))
 * Add `TF_ORGANIZATION` environment variable fallback for `organization` in the cloud configuration
 * Add `TF_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration
+* `TF_WORKSPACE` can now be used to configure the `workspaces` attribute in your cloud configuration
 * When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. ([#30768](https://github.com/hashicorp/terraform/issues/30768))
 * Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
 
