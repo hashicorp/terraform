@@ -84,7 +84,8 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// However, note that we don't have any explicit mechanism for upgrading
 	// data resource results as we do for managed resources, and so the
 	// prevRunState might not conform to the current schema if the
-	// previous run was with a different provider version.
+	// previous run was with a different provider version. In that case the
+	// snapshot will be null if we could not decode it at all.
 	diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
 	if diags.HasErrors() {
 		return diags
