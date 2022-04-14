@@ -264,12 +264,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, readDiags = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diffApply = reducePlan(addr, diffApply, false)
 	// reducePlan may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
