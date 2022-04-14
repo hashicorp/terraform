@@ -324,9 +324,20 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	// Retrieve the run to get its current status.
-	r, err = b.client.Runs.Read(stopCtx, r.ID)
+	runID := r.ID
+	r, err = b.client.Runs.ReadWithOptions(stopCtx, runID, &tfe.RunReadOptions{
+		Include: "task_stages",
+	})
 	if err != nil {
-		return r, generalError("Failed to retrieve run", err)
+		// This error would be expected for older versions of TFE that do not allow
+		// fetching task_stages.
+		if strings.HasSuffix(err.Error(), "Invalid include parameter") {
+			r, err = b.client.Runs.Read(stopCtx, runID)
+		}
+
+		if err != nil {
+			return r, generalError("Failed to retrieve run", err)
+		}
 	}
 
 	// If the run is canceled or errored, we still continue to the
@@ -334,6 +345,22 @@ in order to capture the filesystem context the remote workspace expects:
 	// results available. In the case of a hard-failed policy check, the
 	// status of the run will be "errored", but there is still policy
 	// information which should be shown.
+
+	// Await post-plan run tasks
+	integration := &IntegrationContext{
+		B:             b,
+		StopContext:   stopCtx,
+		CancelContext: cancelCtx,
+		Op:            op,
+		Run:           r,
+	}
+
+	if stageID := getTaskStageIDByName(r.TaskStages, tfe.PostPlan); stageID != nil {
+		err = b.runTasks(integration, integration.BeginOutput("Run Tasks (post-plan)"), *stageID)
+		if err != nil {
+			return r, err
+		}
+	}
 
 	// Show any cost estimation output.
 	if r.CostEstimate != nil {
@@ -352,6 +379,19 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	return r, nil
+}
+
+func getTaskStageIDByName(stages []*tfe.TaskStage, stageName tfe.Stage) *string {
+	if len(stages) == 0 {
+		return nil
+	}
+
+	for _, stage := range stages {
+		if stage.Stage == stageName {
+			return &stage.ID
+		}
+	}
+	return nil
 }
 
 const planDefaultHeader = `
