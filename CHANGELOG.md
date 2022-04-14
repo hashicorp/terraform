@@ -6,6 +6,9 @@ BUG FIXES:
 * cli: Fix double-quoted map keys when rendering a diff. [GH-30855]
 * core: Prevent errors when handling a data source with incompatible schema changes [GH-30830]
 
+ENHANCEMENTS:
+* cli: Terraform now supports [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks), a Terraform Cloud integration for executing remote operations, for the post plan stage of a run.
+
 ## 1.1.8 (April 07, 2022)
 
 BUG FIXES:
