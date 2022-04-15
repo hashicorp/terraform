@@ -298,11 +298,8 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	switch sub := ref.Subject.(type) {
 	case addrs.Resource:
 		resourceAddr = sub
-		rc := sub.InModule(ctx.Path().Module())
-		changes = ctx.Changes().GetChangesForConfigResource(rc)
-		// FIXME: Needs to be restricted to the same module!
-		//        The other caller actually needs the same condition, so we can
-		//        change this method to cover both use cases.
+		rc := sub.Absolute(ctx.Path())
+		changes = ctx.Changes().GetChangesForAbsResource(rc)
 	case addrs.ResourceInstance:
 		resourceAddr = sub.ContainingResource()
 		rc := sub.Absolute(ctx.Path())
