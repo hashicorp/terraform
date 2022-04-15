@@ -80,7 +80,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
 
-// GetChangesForConfigResource searched the set of resource instance
+// GetChangesForConfigResource searches the set of resource instance
 // changes and returns all changes related to a given configuration address.
 // This is be used to find possible changes related to a configuration
 // reference.
@@ -103,7 +103,7 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 	return changes
 }
 
-// GetChangesForAbsResource searched the set of resource instance
+// GetChangesForAbsResource searches the set of resource instance
 // changes and returns all changes related to a given configuration address.
 //
 // If no such changes exist, nil is returned.
