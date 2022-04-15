@@ -156,6 +156,56 @@ func TestCredentialsForHost(t *testing.T) {
 			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
 		}
 	})
+
+	t.Run("periods are ok", func(t *testing.T) {
+		envName := "TF_TOKEN_configured.example.com"
+		expectedToken := "configured-by-env"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("configured.example.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("casing is insensitive", func(t *testing.T) {
+		envName := "TF_TOKEN_CONFIGUREDUPPERCASE_EXAMPLE_COM"
+		expectedToken := "configured-by-env"
+
+		os.Setenv(envName, expectedToken)
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		hostname, _ := svchost.ForComparison("configureduppercase.example.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
 }
 
 func TestCredentialsStoreForget(t *testing.T) {
