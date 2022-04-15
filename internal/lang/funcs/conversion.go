@@ -30,9 +30,10 @@ func MakeToFunc(wantTy cty.Type) function.Function {
 				// messages to be more appropriate for an explicit type
 				// conversion, whereas the cty function system produces
 				// messages aimed at _implicit_ type conversions.
-				Type:        cty.DynamicPseudoType,
-				AllowNull:   true,
-				AllowMarked: true,
+				Type:             cty.DynamicPseudoType,
+				AllowNull:        true,
+				AllowMarked:      true,
+				AllowDynamicType: true,
 			},
 		},
 		Type: func(args []cty.Value) (cty.Type, error) {
