@@ -336,7 +336,9 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	// for any change.
 	if len(ref.Remaining) == 0 {
 		for _, c := range changes {
-			if c.ChangeSrc.Action != plans.NoOp {
+			switch c.ChangeSrc.Action {
+			// Only immediate changes to the resource will trigger replacement.
+			case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
 				return ref, true, diags
 			}
 		}
