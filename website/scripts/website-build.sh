@@ -6,6 +6,7 @@ CLONE_DIR=website-preview
 CURRENT_GIT_BRANCH=$(git branch --show-current)
 
 echo "CURRENT_GIT_BRANCH is $CURRENT_GIT_BRANCH"
+echo "Current Directory is $(pwd)"
 
 from_cache=false
 
