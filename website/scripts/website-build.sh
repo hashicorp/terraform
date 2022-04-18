@@ -3,10 +3,10 @@ REPO_TO_CLONE=terraform-website
 # Set the subdirectory name for the terraform-website app
 PREVIEW_DIR=website-preview
 CLONE_DIR=website-preview
-CURRENT_GIT_BRANCH=$(git branch --show-current)
+# https://vercel.com/docs/concepts/projects/environment-variables#system-environment-variables
+CURRENT_GIT_BRANCH=$VERCEL_GIT_COMMIT_REF
 
 echo "CURRENT_GIT_BRANCH is $CURRENT_GIT_BRANCH"
-echo "Current Directory is $(pwd)"
 
 from_cache=false
 
