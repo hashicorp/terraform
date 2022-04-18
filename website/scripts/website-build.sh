@@ -3,7 +3,9 @@ REPO_TO_CLONE=terraform-website
 # Set the subdirectory name for the terraform-website app
 PREVIEW_DIR=website-preview
 CLONE_DIR=website-preview
-# https://vercel.com/docs/concepts/projects/environment-variables#system-environment-variables
+# Get the git branch of the commit that triggered the deploy preview
+# - https://vercel.com/docs/concepts/projects/environment-variables#system-environment-variables
+# This will power remote image assets in local and deploy previews
 CURRENT_GIT_BRANCH=$VERCEL_GIT_COMMIT_REF
 
 echo "CURRENT_GIT_BRANCH is $CURRENT_GIT_BRANCH"
