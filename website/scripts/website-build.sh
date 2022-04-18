@@ -29,4 +29,5 @@ PREVIEW_FROM_REPO=terraform \
 NAV_DATA_DIRNAME=../data \
 CONTENT_DIRNAME=../docs \
 IS_CONTENT_PREVIEW=true \
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD) \
 npm run build:deploy-preview

@@ -39,7 +39,8 @@ DOCKER_RUN_FLAGS=--interactive \
 		-e "IS_CONTENT_PREVIEW=true" \
 		-e "PREVIEW_FROM_REPO=terraform" \
 		-e "NAV_DATA_DIRNAME=./preview/data" \
-		-e "CONTENT_DIRNAME=./preview/docs"
+		-e "CONTENT_DIRNAME=./preview/docs" \
+		-e "CURRENT_GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)"
 
 # Default: run this if working on the website locally to run in watch mode.
 website:
