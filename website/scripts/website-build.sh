@@ -3,6 +3,7 @@ REPO_TO_CLONE=terraform-website
 # Set the subdirectory name for the terraform-website app
 PREVIEW_DIR=website-preview
 CLONE_DIR=website-preview
+CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 from_cache=false
 
@@ -29,5 +30,5 @@ PREVIEW_FROM_REPO=terraform \
 NAV_DATA_DIRNAME=../data \
 CONTENT_DIRNAME=../docs \
 IS_CONTENT_PREVIEW=true \
-CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD) \
+CURRENT_GIT_BRANCH=$CURRENT_GIT_BRANCH \
 npm run build:deploy-preview
