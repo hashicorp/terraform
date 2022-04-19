@@ -56,7 +56,7 @@ website/local:
 .PHONY: website/build-local
 website/build-local:
 	@echo "==> Building local Docker image"
-	@docker build https://github.com/hashicorp/terraform-website.git\#kevin/terraform-split \
+	@docker build https://github.com/hashicorp/terraform-website.git\#master \
 		-t $(DOCKER_IMAGE_LOCAL)
 
 # disallow any parallelism (-j) for Make. This is necessary since some
