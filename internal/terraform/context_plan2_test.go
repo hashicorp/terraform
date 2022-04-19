@@ -3025,6 +3025,9 @@ resource "test_object" "b" {
 			if c.Action != plans.DeleteThenCreate {
 				t.Fatalf("unexpected %s change for %s\n", c.Action, c.Addr)
 			}
+			if c.ActionReason != plans.ResourceInstanceReplaceByTriggers {
+				t.Fatalf("incorrect reason for change: %s\n", c.ActionReason)
+			}
 		default:
 			t.Fatal("unexpected change", c.Addr, c.Action)
 		}
