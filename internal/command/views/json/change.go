@@ -68,11 +68,12 @@ func changeAction(action plans.Action) ChangeAction {
 type ChangeReason string
 
 const (
-	ReasonNone         ChangeReason = ""
-	ReasonTainted      ChangeReason = "tainted"
-	ReasonRequested    ChangeReason = "requested"
-	ReasonCannotUpdate ChangeReason = "cannot_update"
-	ReasonUnknown      ChangeReason = "unknown"
+	ReasonNone               ChangeReason = ""
+	ReasonTainted            ChangeReason = "tainted"
+	ReasonRequested          ChangeReason = "requested"
+	ReasonReplaceTriggeredBy ChangeReason = "replace_triggered_by"
+	ReasonCannotUpdate       ChangeReason = "cannot_update"
+	ReasonUnknown            ChangeReason = "unknown"
 
 	ReasonDeleteBecauseNoResourceConfig ChangeReason = "delete_because_no_resource_config"
 	ReasonDeleteBecauseWrongRepetition  ChangeReason = "delete_because_wrong_repetition"
@@ -91,6 +92,8 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonRequested
 	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
 		return ReasonCannotUpdate
+	case plans.ResourceInstanceReplaceByTriggers:
+		return ReasonReplaceTriggeredBy
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 		return ReasonDeleteBecauseNoResourceConfig
 	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
