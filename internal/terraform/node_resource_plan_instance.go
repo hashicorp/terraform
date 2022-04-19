@@ -33,6 +33,10 @@ type NodePlannableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	// replaceTriggeredBy stores references from replace_triggered_by which
+	// triggered this instance to be replaced.
+	replaceTriggeredBy []*addrs.Reference
 }
 
 var (
@@ -219,6 +223,13 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
+		// FIXME: here we udpate the change to reflect the reason for
+		// replacement, but we still overload forceReplace to get the correct
+		// change planned.
+		if len(n.replaceTriggeredBy) > 0 {
+			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
+		}
+
 		diags = diags.Append(n.checkPreventDestroy(change))
 		if diags.HasErrors() {
 			return diags
@@ -325,21 +336,27 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	var diags tfdiags.Diagnostics
 
 	for _, expr := range n.Config.TriggersReplacement {
-		_, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
+		ref, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
 		diags = diags.Append(evalDiags)
 		if diags.HasErrors() {
 			continue
 		}
 
 		if replace {
-			// FIXME: forceReplace accomplishes the same goal, however we will
-			// want a new way to signal why this resource was replaced in the
-			// plan.
+			// FIXME: forceReplace accomplishes the same goal, however we may
+			// want to communicate more information about which resource
+			// Rather than further complicating the plan method with more
+			// options, we can refactor both of these featured later.
+			n.forceReplace = append(n.forceReplace, n.Addr)
+			//
+			// triggered the replacement in the plan.
 			// EvalauteReplaceTriggeredBy returns a reference to store
 			// somewhere for this purpose too.
-			n.forceReplace = append(n.forceReplace, n.Addr)
-		}
+			log.Printf("[DEBUG] ReplaceTriggeredBy forcing replacement of %s due to change in %s", n.Addr, ref.DisplayString())
 
+			n.replaceTriggeredBy = append(n.replaceTriggeredBy, ref)
+			break
+		}
 	}
 
 	return diags
