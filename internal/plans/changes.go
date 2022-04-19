@@ -360,6 +360,11 @@ const (
 	// planning option.)
 	ResourceInstanceReplaceByRequest ResourceInstanceChangeActionReason = 'R'
 
+	// ResourceInstanceReplaceByTriggers indicates that the resource instance
+	// is planned to be replaced because of a corresponding change in a
+	// replace_triggered_by reference.
+	ResourceInstanceReplaceByTriggers ResourceInstanceChangeActionReason = 'D'
+
 	// ResourceInstanceReplaceBecauseCannotUpdate indicates that the resource
 	// instance is planned to be replaced because the provider has indicated
 	// that a requested change cannot be applied as an update.
