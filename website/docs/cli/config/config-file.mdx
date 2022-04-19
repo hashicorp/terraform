@@ -117,17 +117,21 @@ Terraform Cloud responds to API calls at both its current hostname
 
 ### Environment Variable Credentials
 
-If you would prefer not to store your API tokens directly in the CLI
-configuration, you may use a host-specific environment variable. Environment variable names should
-have the prefix `TF_TOKEN_` added to the domain name, with periods encoded as underscores.
-For example, the value of a variable named `TF_TOKEN_app_terraform_io` will be used as a
-bearer authorization token when the CLI makes service requests to the hostname "app.terraform.io".
-If multiple variables evaluate to the same hostname, Terraform will use the one defined later in the
-operating system's variable table.
+If you would prefer not to store your API tokens directly in the CLI configuration, you may use
+a host-specific environment variable. Environment variable names should have the prefix
+`TF_TOKEN_` added to the domain name, with periods encoded as underscores. For example, the
+value of a variable named `TF_TOKEN_app_terraform_io` will be used as a bearer authorization
+token when the CLI makes service requests to the hostname `app.terraform.io`.
 
-When using domain names as a variable name, you must convert domain names containing non-ASCII characters to their [punycode equivalent](https://www.charset.org/punycode) with an ACE prefix. For example, token credentials for 例えば.com must be set in a variable called `TF_TOKEN_xn--r8j3dr99h_com`.
+You must convert domain names containing non-ASCII characters to their [punycode equivalent](https://www.charset.org/punycode)
+with an ACE prefix. For example, token credentials for 例えば.com must be set in a variable
+called `TF_TOKEN_xn--r8j3dr99h_com`.
 
-Some tools like the `env` utility allow hyphens in variable names, but hyphens create invalid POSIX variable names. Therefore, you can encode hyphens as double underscores when you set variables with interactive tools like Bash or Zsh. For example, you can set a token for the domain name "café.fr" as either `TF_TOKEN_xn--caf-dma_fr` or `TF_TOKEN_xn____caf__dma_fr`. If both are defined, Terraform will use the version containing hyphens.
+Hyphens are also valid within host names but usually invalid as variable names and
+may be encoded as double underscores. For example, you can set a token for the domain name
+`café.fr` as `TF_TOKEN_xn--caf-dma.fr`, `TF_TOKEN_xn--caf-dma_fr`,  or `TF_TOKEN_xn____caf__dma_fr`.
+If multiple variables evaluate to the same hostname, Terraform will choose the one defined last
+in the operating system's variable table.
 
 ### Credentials Helpers
 
