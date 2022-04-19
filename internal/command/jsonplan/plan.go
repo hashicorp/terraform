@@ -392,6 +392,8 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "replace_because_tainted"
 		case plans.ResourceInstanceReplaceByRequest:
 			r.ActionReason = "replace_by_request"
+		case plans.ResourceInstanceReplaceByTriggers:
+			r.ActionReason = "replace_by_triggers"
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 			r.ActionReason = "delete_because_no_resource_config"
 		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
