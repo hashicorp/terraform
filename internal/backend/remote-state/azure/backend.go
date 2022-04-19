@@ -146,7 +146,7 @@ func New() backend.Backend {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Should Terraform obtain an MSAL auth token and use Microsoft Graph rather than Azure Active Directory?",
-				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSGRAPH", false),
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSGRAPH", true),
 			},
 		},
 	}
