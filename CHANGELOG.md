@@ -31,16 +31,17 @@ ENHANCEMENTS:
 * When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. ([#30768](https://github.com/hashicorp/terraform/issues/30768))
 * The AzureRM Backend now defaults to using MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication. ([#30891](https://github.com/hashicorp/terraform/issues/30891))
 * Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
+* Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). ([#30517](https://github.com/hashicorp/terraform/issues/30517))
 
 BUG FIXES:
 
 * Terraform now handles type constraints, nullability, and custom variable validation properly for root module variables. Previously there was an order of operations problem where the nullability and custom variable validation were checked too early, prior to dealing with the type constraints, and thus that logic could potentially "see" an incorrectly-typed value in spite of the type constraint, leading to incorrect errors. ([#29959](https://github.com/hashicorp/terraform/issues/29959))
-* `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. ([#30138](https://github.com/hashicorp/terraform/issues/30138))
-* Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). ([#30517](https://github.com/hashicorp/terraform/issues/30517))
-* Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. ([#29972](https://github.com/hashicorp/terraform/issues/29972))
-* Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address. ([#30703](https://github.com/hashicorp/terraform/issues/30703))
+* Applying the various type conversion functions like `tostring`, `tonumber`, etc to `null` will now return a null value of the intended type. For example, `tostring(null)` converts from a null value of an unknown type to a null value of string type. Terraform can often handle such conversions automatically when needed, but explicit annotations like this can help Terraform to understand author intent when inferring type conversions for complex-typed values. [GH-30879]
+* Terraform now outputs an error when `cidrnetmask()` is called with an IPv6 address, as it was previously documented to do. ([#30703](https://github.com/hashicorp/terraform/issues/30703))
 * When performing advanced state management with the `terraform state` commands, Terraform now checks the `required_version` field in the configuration before proceeding. ([#30511](https://github.com/hashicorp/terraform/pull/30511))
 * When rendering a diff, Terraform now quotes the name of any object attribute whose string representation is not a valid identifier. ([#30766](https://github.com/hashicorp/terraform/issues/30766))
+* Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. ([#29972](https://github.com/hashicorp/terraform/issues/29972))
+* `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. ([#30138](https://github.com/hashicorp/terraform/issues/30138))
 
 UPGRADE NOTES:
 
