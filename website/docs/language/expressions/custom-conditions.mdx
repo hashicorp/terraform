@@ -189,20 +189,22 @@ in a condition as long as the expression is valid and returns a boolean result.
 
 The following language features are particularly useful when writing condition expressions.
 
+### Logical Operators
+
+Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
+
+```hcl
+  condition = var.name != "" && lower(var.name) == var.name
+```
+
+You can also use arithmetic (e.g. `a+b`), equality (eg., `a==b`) and comparison operators (e.g., `a<b`) in condition expressions. Refer to [Arithmetic and Logical Operators](/language/expressions/operators) for details.
+
 ### `contains` Function
 
 Use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
 
 ```hcl
   condition = contains(["STAGE", "PROD"], var.environment)
-```
-
-### Boolean Operators
-
-Use the boolean operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multiple conditions together.
-
-```hcl
-  condition = var.name != "" && lower(var.name) == var.name
 ```
 
 ### `length` Function
