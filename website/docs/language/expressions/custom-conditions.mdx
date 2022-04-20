@@ -165,13 +165,19 @@ output "api_base_url" {
 
 You can often implement a validation check as either a postcondition of the resource producing the data or as a precondition of a resource or output value using the data. To decide which is most appropriate, consider whether the check is representing either an assumption or a guarantee.
 
-**Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
+#### Use Preconditions for Assumptions
+
+An assumption is a condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
 
 We recommend using preconditions for assumptions, so that future maintainers can find them close to the other expressions that rely on that condition. This lets them understand more about what that resource is intended to allow.
 
-**Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
+#### Use Postconditions for Guarantees
+
+A guarantee is a characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
 
 We recommend using postconditions for guarantees, so that future maintainers can find them close to the resource configuration that is responsible for implementing those guarantees. This lets them more easily determine which behaviors they should preserve when changing the configuration.
+
+#### Additional Decision Factors
 
 You should also consider the following factors.
 
@@ -197,11 +203,11 @@ Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multip
   condition = var.name != "" && lower(var.name) == var.name
 ```
 
-You can also use arithmetic (e.g. `a+b`), equality (eg., `a==b`) and comparison operators (e.g., `a<b`) in condition expressions. Refer to [Arithmetic and Logical Operators](/language/expressions/operators) for details.
+You can also use arithmetic operators (e.g. `a + b`), equality operators (eg., `a == b`) and comparison operators (e.g., `a < b`). Refer to [Arithmetic and Logical Operators](/language/expressions/operators) for details.
 
 ### `contains` Function
 
-Use the built-in function `contains` to test whether a given value is one of a set of predefined valid values.
+Use the [`contains` function](/language/functions/contains) to test whether a given value is one of a set of predefined valid values.
 
 ```hcl
   condition = contains(["STAGE", "PROD"], var.environment)
@@ -209,7 +215,7 @@ Use the built-in function `contains` to test whether a given value is one of a s
 
 ### `length` Function
 
-Require a non-empty list or map by testing the collection's length.
+Use the [`length` function](/language/functions/length) to test a collection's length and require a non-empty list or map.
 
 ```hcl
   condition = length(var.items) != 0
@@ -218,7 +224,7 @@ This is a better approach than directly comparing with another collection using 
 
 ### `for` Expressions
 
-Use `for` expressions in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
+Use [`for` expressions](/language/expressions/for) in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
 
 ```hcl
   condition = alltrue([
@@ -228,7 +234,7 @@ Use `for` expressions in conjunction with the functions `alltrue` and `anytrue` 
 
 ### `can` Function
 
-Use the `can` function to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
+Use the [`can` function](/language/functions/can) to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
 
 For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
 
@@ -285,7 +291,7 @@ resource "aws_instance" "example" {
 
 ### `each` and `count` Objects
 
-In blocks where `for_each` or `count` are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
+In blocks where [`for_each`](/language/meta-arguments/for_each) or [`count`](/language/meta-arguments/count)  are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
 
 ```hcl
 variable "vpc_cidrs" {
@@ -312,38 +318,6 @@ resource "aws_internet_gateway" "example" {
     }
   }
 }
-```
-
-## Result Types
-
-The two result values may be of any type, but they must both
-be of the _same_ type so that Terraform can determine what type the whole
-conditional expression will return without knowing the condition value.
-
-If the two result expressions don't produce the same type then Terraform will
-attempt to find a type that they can both convert to, and make those
-conversions automatically if so.
-
-For example, the following expression is valid and will always return a string,
-because in Terraform all numbers can convert automatically to a string using
-decimal digits:
-
-```hcl
-var.example ? 12 : "hello"
-```
-
-Relying on this automatic conversion behavior can be confusing for those who
-are not familiar with Terraform's conversion rules though, so we recommend
-being explicit using type conversion functions in any situation where there may
-be some uncertainty about the expected result type.
-
-The following example is contrived because it would be easier to write the
-constant `"12"` instead of the type conversion in this case, but shows how to
-use [`tostring`](/language/functions/tostring) to explicitly convert a number to
-a string.
-
-```hcl
-var.example ? tostring(12) : "hello"
 ```
 
 ## Error Messages
