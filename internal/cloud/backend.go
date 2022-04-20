@@ -155,9 +155,9 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	// check if organization is specified in the config.
 	if val := obj.GetAttr("organization"); val.IsNull() || val.AsString() == "" {
 		// organization is specified in the config but is invalid, so
-		// we'll fallback on TF_ORGANIZATION
-		if val := os.Getenv("TF_ORGANIZATION"); val == "" {
-			diags = diags.Append(missingConfigAttributeAndEnvVar("organization", "TF_ORGANIZATION"))
+		// we'll fallback on TF_CLOUD_ORGANIZATION
+		if val := os.Getenv("TF_CLOUD_ORGANIZATION"); val == "" {
+			diags = diags.Append(missingConfigAttributeAndEnvVar("organization", "TF_CLOUD_ORGANIZATION"))
 		}
 	}
 
@@ -355,7 +355,7 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Get the hostname.
-	b.hostname = os.Getenv("TF_HOSTNAME")
+	b.hostname = os.Getenv("TF_CLOUD_HOSTNAME")
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
 		b.hostname = val.AsString()
 	} else if b.hostname == "" {
@@ -363,10 +363,10 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// We can have two options, setting the organization via the config
-	// or using TF_ORGANIZATION. Since PrepareConfig() validates that one of these
+	// or using TF_CLOUD_ORGANIZATION. Since PrepareConfig() validates that one of these
 	// values must exist, we'll initially set it to the env var and override it if
 	// specified in the configuration.
-	b.organization = os.Getenv("TF_ORGANIZATION")
+	b.organization = os.Getenv("TF_CLOUD_ORGANIZATION")
 
 	// Check if the organization is present and valid in the config.
 	if val := obj.GetAttr("organization"); !val.IsNull() && val.AsString() != "" {

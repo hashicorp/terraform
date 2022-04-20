@@ -17,7 +17,7 @@ func Test_cloud_organization_env_var(t *testing.T) {
 	t.Cleanup(cleanup)
 
 	cases := testCases{
-		"with TF_ORGANIZATION set": {
+		"with TF_CLOUD_ORGANIZATION set": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
@@ -50,7 +50,7 @@ func Test_cloud_organization_env_var(t *testing.T) {
 		},
 	}
 
-	testRunner(t, cases, 0, fmt.Sprintf("TF_ORGANIZATION=%s", org.Name))
+	testRunner(t, cases, 0, fmt.Sprintf("TF_CLOUD_ORGANIZATION=%s", org.Name))
 }
 
 func Test_cloud_workspace_name_env_var(t *testing.T) {
@@ -258,7 +258,7 @@ func Test_cloud_null_config(t *testing.T) {
 	}
 
 	testRunner(t, cases, 1,
-		fmt.Sprintf(`TF_ORGANIZATION=%s`, org.Name),
-		fmt.Sprintf(`TF_HOSTNAME=%s`, tfeHostname),
+		fmt.Sprintf(`TF_CLOUD_ORGANIZATION=%s`, org.Name),
+		fmt.Sprintf(`TF_CLOUD_HOSTNAME=%s`, tfeHostname),
 		fmt.Sprintf(`TF_WORKSPACE=%s`, wk.Name))
 }
