@@ -586,14 +586,14 @@ func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagno
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid replace_triggered_by expression",
-				Detail:   "Missing resource reference in replace_triggered_by_expression.",
+				Detail:   "Missing resource reference in replace_triggered_by expression.",
 				Subject:  expr.Range().Ptr(),
 			})
 		case resourceCount > 1:
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid replace_triggered_by expression",
-				Detail:   "Multiple resource references in replace_triggered_by_expression.",
+				Detail:   "Multiple resource references in replace_triggered_by expression.",
 				Subject:  expr.Range().Ptr(),
 			})
 		}
