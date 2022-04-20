@@ -1,5 +1,7 @@
 ---
 page_title: Terraform Cloud Settings - Terraform CLI
+description: >-
+  Configure the Terraform Cloud CLI integration.
 ---
 
 # Terraform Cloud Settings
@@ -88,12 +90,11 @@ You can use environment variables to configure one or more `cloud` block attribu
 
 Use the following environment variables to configure the `cloud` block:
 
-- `TF_CLOUD_ORGANIZATION` - The name of the organization. Serves as a fallback for `organization`
-    in the cloud configuration. If both are specified, the configuration takes precedence. 
+- `TF_CLOUD_ORGANIZATION` - The name of the organization. Terraform reads this variable when `organization` omitted from the `cloud` block`. If both are specified, the configuration takes precedence.
 
-- `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Serves as a fallback if `hostname` is not specified in the cloud configuration. If both are specified, the configuration takes precendence. 
+- `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Terraform reads this when `hostname` is omitted from the `cloud` block. If both are specified, the configuration takes precendence.
 
-- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace.  If the `workspaces` attribute is not included in your configuration file, the `cloud` block interprets `TF_WORKSPACE` as the `name` value of the `workspaces` attribute. The workspace must exist in the organization specified in the configuration or `TF_ORGANIZATION`. You can set this variable if the `cloud` block in your configuration uses tags. However, Terraform Cloud will return an error if the value of `TF_WORKSPACE` is not included in the set of tags. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for more details.
+- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. Terraform Cloud will not create a new workspace from this variable; the workspace must exist in the organization specified in the `cloud` block or `TF_ORGANIZATION`. Unlike the `workspaces` attribute, you can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also sets your local workspace. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for more details.
 
 ## Excluding Files from Upload with .terraformignore
 
