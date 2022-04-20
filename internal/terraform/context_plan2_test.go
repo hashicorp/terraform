@@ -2963,3 +2963,66 @@ output "a" {
 		}
 	}
 }
+
+func TestContext2Plan_dataSchemaChange(t *testing.T) {
+	// We can't decode the prior state when a data source upgrades the schema
+	// in an incompatible way. Since prior state for data sources is purely
+	// informational, decoding should be skipped altogether.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_object" "a" {
+  obj {
+    # args changes from a list to a map
+    args = {
+      val = "string"
+	}
+  }
+}
+`,
+	})
+
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		DataSources: map[string]*configschema.Block{
+			"test_object": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"obj": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"args": {Type: cty.Map(cty.String), Optional: true},
+							},
+						},
+						Nesting: configschema.NestingSet,
+					},
+				},
+			},
+		},
+	})
+
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
+	}
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(mustResourceInstanceAddr(`data.test_object.a`), &states.ResourceInstanceObjectSrc{
+			AttrsJSON: []byte(`{"id":"old","obj":[{"args":["string"]}]}`),
+			Status:    states.ObjectReady,
+		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+}

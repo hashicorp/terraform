@@ -389,10 +389,6 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	}
 	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
-		// Note that we don't have any channel to return warnings here. We'll
-		// accept that for now since warnings during a schema upgrade would
-		// be pretty weird anyway, since this operation is supposed to seem
-		// invisible to the user.
 		return nil, diags
 	}
 

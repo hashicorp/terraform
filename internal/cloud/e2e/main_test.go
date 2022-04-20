@@ -98,11 +98,15 @@ func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...strin
 
 			var orgName string
 			for index, op := range tc.operations {
-				if orgCount == 1 {
+				switch orgCount {
+				case 0:
+					orgName = ""
+				case 1:
 					orgName = orgNames[0]
-				} else {
+				default:
 					orgName = orgNames[index]
 				}
+
 				op.prep(t, orgName, tf.WorkDir())
 				for _, tfCmd := range op.commands {
 					cmd := tf.Cmd(tfCmd.command...)

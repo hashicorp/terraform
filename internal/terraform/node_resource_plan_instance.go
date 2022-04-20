@@ -71,25 +71,6 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, readDiags := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// We'll save a snapshot of what we just read from the state into the
-	// prevRunState which will capture the result read in the previous
-	// run, possibly tweaked by any upgrade steps that
-	// readResourceInstanceState might've made.
-	// However, note that we don't have any explicit mechanism for upgrading
-	// data resource results as we do for managed resources, and so the
-	// prevRunState might not conform to the current schema if the
-	// previous run was with a different provider version.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
@@ -100,7 +81,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, state, checkRuleSeverity)
+	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags

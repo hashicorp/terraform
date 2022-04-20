@@ -1477,7 +1477,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentState *states.ResourceInstanceObject, checkRuleSeverity tfdiags.Severity) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
@@ -1500,9 +1500,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy)
-	if currentState != nil {
-		priorVal = currentState.Value
-	}
 
 	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
@@ -1515,9 +1512,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, states.CurrentGen, priorVal, diags.Err())
-		}))
 		return nil, nil, keyData, diags // failed preconditions prevent further evaluation
 	}
 
@@ -1529,9 +1523,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	}
 
 	unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
-	// We drop marks on the values used here as the result is only
-	// temporarily used for validation.
-	unmarkedPriorVal, _ := priorVal.UnmarkDeep()
 
 	configKnown := configVal.IsWhollyKnown()
 	// If our configuration contains any unknown values, or we depend on any
@@ -1579,28 +1570,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
-	}
-
-	// if we have a prior value, we can check for any irregularities in the response
-	if !priorVal.IsNull() {
-		// While we don't propose planned changes for data sources, we can
-		// generate a proposed value for comparison to ensure the data source
-		// is returning a result following the rules of the provider contract.
-		proposedVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
-		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
-			// Resources have the LegacyTypeSystem field to signal when they are
-			// using an SDK which may not produce precise values. While data
-			// sources are read-only, they can still return a value which is not
-			// compatible with the config+schema. Since we can't detect the legacy
-			// type system, we can only warn about this for now.
-			var buf strings.Builder
-			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
-				n.ResolvedProvider, n.Addr)
-			for _, err := range errs {
-				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
-			}
-			log.Print(buf.String())
-		}
 	}
 
 	plannedNewState := &states.ResourceInstanceObject{

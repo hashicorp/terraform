@@ -1,10 +1,13 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlanDestroyableResourceInstance represents a resource that is ready
@@ -37,6 +40,19 @@ func (n *NodePlanDestroyableResourceInstance) DestroyAddr() *addrs.AbsResourceIn
 
 // GraphNodeEvalable
 func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+	addr := n.ResourceInstanceAddr()
+
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		return n.managedResourceExecute(ctx, op)
+	case addrs.DataResourceMode:
+		return n.dataResourceExecute(ctx, op)
+	default:
+		panic(fmt.Errorf("unsupported resource mode %s", n.Config.Mode))
+	}
+}
+
+func (n *NodePlanDestroyableResourceInstance) managedResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	addr := n.ResourceInstanceAddr()
 
 	// Declare a bunch of variables that are used for state during
@@ -84,4 +100,23 @@ func (n *NodePlanDestroyableResourceInstance) Execute(ctx EvalContext, op walkOp
 
 	diags = diags.Append(n.writeChange(ctx, change, ""))
 	return diags
+}
+
+func (n *NodePlanDestroyableResourceInstance) dataResourceExecute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
+
+	// We may not be able to read a prior data source from the state if the
+	// schema was upgraded and we are destroying before ever refreshing that
+	// data source. Regardless, a data source  "destroy" is simply writing a
+	// null state, which we can do with a null prior state too.
+	change := &plans.ResourceInstanceChange{
+		Addr:        n.ResourceInstanceAddr(),
+		PrevRunAddr: n.prevRunAddr(ctx),
+		Change: plans.Change{
+			Action: plans.Delete,
+			Before: cty.NullVal(cty.DynamicPseudoType),
+			After:  cty.NullVal(cty.DynamicPseudoType),
+		},
+		ProviderAddr: n.ResolvedProvider,
+	}
+	return diags.Append(n.writeChange(ctx, change, ""))
 }
