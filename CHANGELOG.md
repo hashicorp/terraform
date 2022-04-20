@@ -1,10 +1,10 @@
-## 1.1.9 (Unreleased)
+## 1.1.9 (April 20, 2022)
 
 BUG FIXES:
 
-* cli: Fix crash when using sensitive values in sets. [GH-30825]
-* cli: Fix double-quoted map keys when rendering a diff. [GH-30855]
-* core: Prevent errors when handling a data source with incompatible schema changes [GH-30830]
+* cli: Fix crash when using sensitive values in sets. ([#30825](https://github.com/hashicorp/terraform/issues/30825))
+* cli: Fix double-quoted map keys when rendering a diff. ([#30855](https://github.com/hashicorp/terraform/issues/30855))
+* core: Prevent errors when handling a data source with incompatible schema changes ([#30830](https://github.com/hashicorp/terraform/issues/30830))
 
 ENHANCEMENTS:
 * cli: Terraform now supports [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks), a Terraform Cloud integration for executing remote operations, for the post plan stage of a run.
