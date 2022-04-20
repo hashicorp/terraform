@@ -86,7 +86,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_ORGANIZATION.`,
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
 		},
 		"null workspace": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -161,7 +161,7 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars: map[string]string{
-				"TF_ORGANIZATION": "example-org",
+				"TF_CLOUD_ORGANIZATION": "example-org",
 			},
 		},
 		"with no organization attribute or env var": {
@@ -173,7 +173,7 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars:        map[string]string{},
-			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_ORGANIZATION.`,
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
 		},
 		"null workspace": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -190,8 +190,8 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 				"workspaces":   cty.NullVal(cty.String),
 			}),
 			vars: map[string]string{
-				"TF_ORGANIZATION": "hashicorp",
-				"TF_WORKSPACE":    "my-workspace",
+				"TF_CLOUD_ORGANIZATION": "hashicorp",
+				"TF_WORKSPACE":          "my-workspace",
 			},
 		},
 	}
@@ -242,7 +242,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars: map[string]string{
-				"TF_ORGANIZATION": "hashicorp",
+				"TF_CLOUD_ORGANIZATION": "hashicorp",
 			},
 			expectedOrganization: "hashicorp",
 		},
@@ -257,7 +257,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars: map[string]string{
-				"TF_ORGANIZATION": "we-should-not-see-this",
+				"TF_CLOUD_ORGANIZATION": "we-should-not-see-this",
 			},
 			expectedOrganization: "hashicorp",
 		},
@@ -272,7 +272,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars: map[string]string{
-				"TF_HOSTNAME": "private.hashicorp.engineering",
+				"TF_CLOUD_HOSTNAME": "private.hashicorp.engineering",
 			},
 			expectedHostname: "private.hashicorp.engineering",
 		},
@@ -287,7 +287,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				}),
 			}),
 			vars: map[string]string{
-				"TF_HOSTNAME": "mycool.tfe-host.io",
+				"TF_CLOUD_HOSTNAME": "mycool.tfe-host.io",
 			},
 			expectedHostname: "private.hashicorp.engineering",
 		},
@@ -386,9 +386,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"workspaces":   cty.NullVal(cty.String),
 			}),
 			vars: map[string]string{
-				"TF_ORGANIZATION": "mordor",
-				"TF_WORKSPACE":    "mt-doom",
-				"TF_HOSTNAME":     "mycool.tfe-host.io",
+				"TF_CLOUD_ORGANIZATION": "mordor",
+				"TF_WORKSPACE":          "mt-doom",
+				"TF_CLOUD_HOSTNAME":     "mycool.tfe-host.io",
 			},
 			expectedOrganization:  "mordor",
 			expectedWorkspaceName: "mt-doom",
