@@ -21,11 +21,9 @@ This page explains the following:
 
 -> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later.
 
-Add one or more `validation` blocks within the `variable` block to specify custom conditions.
+Add one or more `validation` blocks within the `variable` block to specify custom conditions. Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer only to the containing variable and must not produce errors.
 
-Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer only to the containing variable and must not produce errors.
-
-If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple `validation` blocks, Terraform returns error messages for all failed conditions.
+If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple validations, Terraform returns error messages for all failed conditions.
 
 The following example checks whether the AMI ID has valid syntax.
 
@@ -67,11 +65,11 @@ Terraform checks a precondition _before_ evaluating the object it is associated 
 
 ### Usage
 
-Each precondition and postcondition requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. The expression can refer to any other objects in the same module, as long as the references do not create cyclic dependencies. Resource postconditions can also use the symbol `self` to refer to attributes of each instance of the resource where they are configured. For example, `self.private_dns` refers to the `private_dns` attribute of each instance of the containing resource.
+Each precondition and postcondition requires a [`condition` argument](#condition-expressions). This is an expression that must return `true` if the conditition is fufilled or `false` if it is invalid. The expression can refer to any other objects in the same module, as long as the references do not create cyclic dependencies. Resource postconditions can also use the [`self` object](#self-object) to refer to attributes of each instance of the resource where they are configured.
 
 If the condition evaluates to `false`, Terraform will produce an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple preconditions or postconditions, Terraform returns error messages for all failed conditions.
 
-The following example uses a postcondition to detect if the caller accidentally provided an AMI intended for the wrong system component. This might otherwise be detected only after booting the EC2 instance and noticing that the expected network service is not running.
+The following example uses a postcondition to detect if the caller accidentally provided an AMI intended for the wrong system component.
 
 ``` hcl
 data "aws_ami" "example" {
@@ -86,8 +84,6 @@ data "aws_ami" "example" {
   }
 }
 ```
-
-You can add `precondition` and `postcondition` blocks in the following locations within your configuration.
 
 #### Resources and Data Sources
 
@@ -179,11 +175,11 @@ We recommend using postconditions for guarantees, so that future maintainers can
 
 #### Additional Decision Factors
 
-You should also consider the following factors.
+You should also consider the following questions when creating preconditions and postconditions.
 
-- Which resource or output value would be most helpful to report in the error message. Terraform will always report errors in the location where the condition was declared.
-- Which approach is more convenient. If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
-- Whether it is helpful to declare the same or similar conditions as both preconditions and postconditions. This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
+- Which resource or output value would be most helpful to report in the error message? Terraform will always report errors in the location where the condition was declared.
+- Which approach is more convenient? If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
+- Is it helpful to declare the same or similar conditions as both preconditions and postconditions? This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
 
 
 ## Condition Expressions
@@ -191,9 +187,7 @@ You should also consider the following factors.
 Input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
 
 You can use any of Terraform's built-in functions or language operators
-in a condition as long as the expression is valid and returns a boolean result.
-
-The following language features are particularly useful when writing condition expressions.
+in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly useful when writing condition expressions.
 
 ### Logical Operators
 
@@ -359,5 +353,5 @@ During the apply phase, a failed _precondition_
 will prevent Terraform from implementing planned actions for the associated resource. However, a failed _postcondition_ will halt processing after Terraform has already implemented these actions. The failed postcondition prevents any further downstream actions that rely on the resource, but does not undo the actions Terraform has already taken.
 
 Terraform typically has less information during the initial creation of a
-full configuration than when applying subsequent changes. Therefore, conditions checked during apply for initial creation may be checked during planning for subsequent updates.
+full configuration than when applying subsequent changes. Therefore, Terraform may check conditions during apply for initial creation and then check them during planning for subsequent updates.
 
