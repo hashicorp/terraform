@@ -95,7 +95,6 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 				Addr:        addr,
 				Module:      c.Path,
 				Config:      o,
-				Changes:     changes,
 				Destroy:     t.Destroy,
 				RefreshOnly: t.RefreshOnly,
 			}

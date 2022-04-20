@@ -191,6 +191,7 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	defer cs.lock.Unlock()
 
 	addrStr := addr.String()
+
 	for i, o := range cs.changes.Outputs {
 		if o.Addr.String() != addrStr {
 			continue
