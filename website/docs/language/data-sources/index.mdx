@@ -122,6 +122,29 @@ referencing the managed resource values through a `local` value.
 
 ~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
+## Custom Condition Checks
+
+You can use `precondition` and `postcondition` blocks to specify assumptions and guarantees about how the data source operates. The following examples creates a postcondition that checks whether the AMI has the correct tags.
+
+``` hcl
+data "aws_ami" "example" {
+  id = var.aws_ami_id
+
+  lifecycle {
+    # The AMI ID must refer to an existing AMI that has the tag "nomad-server".
+    postcondition {
+      condition     = self.tags["Component"] == "nomad-server"
+      error_message = "tags[\"Component\"] must be \"nomad-server\"."
+    }
+  }
+}
+```
+
+Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+
+
 ## Multiple Resource Instances
 
 Data resources support [`count`](/language/meta-arguments/count)

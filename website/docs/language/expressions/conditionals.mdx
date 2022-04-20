@@ -39,6 +39,14 @@ The condition can be any expression that resolves to a boolean value. This will
 usually be an expression that uses the equality, comparison, or logical
 operators.
 
+### Custom Condition Checks
+
+You can create conditions that produce custom error messages for several types of objects in a configuration. For example, you can add a condition to an input variable that checks whether incoming image IDs are formatted properly.
+
+Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+Refer to [Custom Condition Checks](/language/expressions/custom-conditions#input-variable-validation) for details.
+
 ## Result Types
 
 The two result values may be of any type, but they must both

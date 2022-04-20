@@ -110,6 +110,30 @@ The following arguments can be used within a `lifecycle` block:
   Only attributes defined by the resource type can be ignored.
   `ignore_changes` cannot be applied to itself or to any other meta-arguments.
 
+## Custom Condition Checks
+
+You can add `precondition` and `postcondition` blocks with a `lifecycle` block to specify assumptions and guarantees about how resources and data sources operate. The following examples creates a precondition that checks whether the AMI is properly configured.
+
+```hcl
+resource "aws_instance" "example" {
+  instance_type = "t2.micro"
+  ami           = "ami-abc123"
+
+  lifecycle {
+    # The AMI ID must refer to an AMI that contains an operating system
+    # for the `x86_64` architecture.
+    precondition {
+      condition     = data.aws_ami.example.architecture == "x86_64"
+      error_message = "The selected AMI must be for the x86_64 architecture."
+    }
+  }
+}
+```
+
+Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+
+Refer to [Custom Conditions](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+
 ## Literal Values Only
 
 The `lifecycle` settings all affect how Terraform constructs and traverses

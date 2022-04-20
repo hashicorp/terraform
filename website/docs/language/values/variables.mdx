@@ -160,9 +160,7 @@ commentary for module maintainers, use comments.
 
 -> This feature was introduced in Terraform CLI v0.13.0.
 
-In addition to Type Constraints as described above, a module author can specify
-arbitrary custom validation rules for a particular variable using a `validation`
-block nested within the corresponding `variable` block:
+You can specify custom validation rules for a particular variable by adding a `validation` block within the corresponding `variable` block. The example below checks whether the AMI ID has the correct syntax.
 
 ```hcl
 variable "image_id" {
@@ -175,38 +173,7 @@ variable "image_id" {
   }
 }
 ```
-
-The `condition` argument is an expression that must use the value of the
-variable to return `true` if the value is valid, or `false` if it is invalid.
-The expression can refer only to the variable that the condition applies to,
-and _must not_ produce errors.
-
-If the failure of an expression is the basis of the validation decision, use
-[the `can` function](/language/functions/can) to detect such errors. For example:
-
-```hcl
-variable "image_id" {
-  type        = string
-  description = "The id of the machine image (AMI) to use for the server."
-
-  validation {
-    # regex(...) fails if it cannot find a match
-    condition     = can(regex("^ami-", var.image_id))
-    error_message = "The image_id value must be a valid AMI id, starting with \"ami-\"."
-  }
-}
-```
-
-If `condition` evaluates to `false`, Terraform will produce an error message
-that includes the result of the `error_message` expression. The error message
-should be at least one full sentence explaining the constraint that failed,
-using a sentence structure similar to the above examples.
-
-Error messages can be literal strings, heredocs, or template expressions. The
-only valid reference in an error message is the variable under validation.
-
-Multiple `validation` blocks can be declared in which case error messages
-will be returned for _all_ failed conditions.
+Refer to [Custom Condition Checks](/language/expressions/custom-conditions#input-variable-validation) for more details.
 
 ### Suppressing Values in CLI Output
 
@@ -319,7 +286,7 @@ may assign the value `null` to the variable.
 ```
 variable "example" {
   type     = string
-  nullable = false 
+  nullable = false
 }
 ```
 
