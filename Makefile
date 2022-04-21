@@ -1,5 +1,20 @@
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 VERSION?="0.3.44"
+PWD=$$(pwd)
+DOCKER_IMAGE="hashicorp/terraform-website:full"
+DOCKER_IMAGE_LOCAL="hashicorp-terraform-website-local"
+DOCKER_RUN_FLAGS=--interactive \
+	--rm \
+	--tty \
+	--workdir "/website" \
+	--volume "$(shell pwd):/website/ext/terraform" \
+	--volume "$(shell pwd)/website:/website/preview" \
+	--publish "3000:3000" \
+	-e "IS_CONTENT_PREVIEW=true" \
+	-e "PREVIEW_FROM_REPO=terraform" \
+	-e "NAV_DATA_DIRNAME=./preview/data" \
+	-e "CONTENT_DIRNAME=./preview/docs" \
+	-e "CURRENT_GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)"
 
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
@@ -25,22 +40,6 @@ staticcheck:
 
 exhaustive:
 	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
-
-PWD=$$(pwd)
-DOCKER_IMAGE="hashicorp/terraform-website:full"
-DOCKER_IMAGE_LOCAL="terraform-website-local"
-DOCKER_RUN_FLAGS=--interactive \
-		--rm \
-		--tty \
-		--workdir "/website" \
-		--volume "$(shell pwd):/website/ext/terraform" \
-		--volume "$(shell pwd)/website:/website/preview" \
-		--publish "3000:3000" \
-		-e "IS_CONTENT_PREVIEW=true" \
-		-e "PREVIEW_FROM_REPO=terraform" \
-		-e "NAV_DATA_DIRNAME=./preview/data" \
-		-e "CONTENT_DIRNAME=./preview/docs" \
-		-e "CURRENT_GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)"
 
 # Default: run this if working on the website locally to run in watch mode.
 website:
