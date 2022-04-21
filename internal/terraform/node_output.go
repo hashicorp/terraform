@@ -22,7 +22,6 @@ type nodeExpandOutput struct {
 	Addr        addrs.OutputValue
 	Module      addrs.Module
 	Config      *configs.Output
-	Changes     []*plans.OutputChangeSrc
 	Destroy     bool
 	RefreshOnly bool
 }
@@ -52,6 +51,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	expander := ctx.InstanceExpander()
+	changes := ctx.Changes()
 
 	var g Graph
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -59,7 +59,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Find any recorded change for this output
 		var change *plans.OutputChangeSrc
-		for _, c := range n.Changes {
+		parent, call := module.Call()
+		for _, c := range changes.GetOutputChanges(parent, call) {
 			if c.Addr.String() == absAddr.String() {
 				change = c
 				break

@@ -64,6 +64,40 @@ jobs:
         run: |
           go test ./...
 
+  race-tests:
+    name: "Race Tests"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Fetch source code"
+        uses: actions/checkout@v2
+
+      - name: Determine Go version
+        id: go
+        uses: ./.github/actions/go-version
+
+      - name: Install Go toolchain
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ steps.go.outputs.version }}
+
+      # NOTE: This cache is shared so the following step must always be
+      # identical across the unit-tests, e2e-tests, and consistency-checks
+      # jobs, or else weird things could happen.
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: "~/go/pkg"
+          key: go-mod-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-mod-
+
+      # The race detector add significant time to the unit tests, so only run
+      # it for select packages.
+      - name: "Race detector"
+        run: |
+          go test -race ./internal/terraform ./internal/command
+
   e2e-tests:
     # This is an intentionally-limited form of our E2E test run which only
     # covers Terraform running on Linux. The build.yml workflow runs these

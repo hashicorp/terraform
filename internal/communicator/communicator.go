@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -71,6 +72,10 @@ func New(v cty.Value) (Communicator, error) {
 var maxBackoffDelay = 20 * time.Second
 var initialBackoffDelay = time.Second
 
+// in practice we want to abort the retry asap, but for tests we need to
+// synchronize the return.
+var retryTestWg *sync.WaitGroup
+
 // Fatal is an interface that error values can return to halt Retry
 type Fatal interface {
 	FatalError() error
@@ -88,6 +93,10 @@ func Retry(ctx context.Context, f func() error) error {
 	var errVal atomic.Value
 	doneCh := make(chan struct{})
 	go func() {
+		if retryTestWg != nil {
+			defer retryTestWg.Done()
+		}
+
 		defer close(doneCh)
 
 		delay := time.Duration(0)
