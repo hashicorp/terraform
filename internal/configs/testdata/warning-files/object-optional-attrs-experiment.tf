@@ -7,6 +7,7 @@ terraform {
 variable "a" {
   type = object({
     foo = optional(string)
+    bar = optional(bool, true)
   })
 }
 
