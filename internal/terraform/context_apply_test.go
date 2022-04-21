@@ -11984,8 +11984,17 @@ terraform {
 
 variable "in" {
   type = object({
-	required = string
-	optional = optional(string)
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+    nested   = optional(
+      map(object({
+        a = optional(string, "foo")
+        b = optional(number, 5)
+      })), {
+        "boop": {}
+      }
+    )
   })
 }
 
@@ -12023,6 +12032,73 @@ output "out" {
 		// Because "optional" was marked as optional, it got silently filled
 		// in as a null value of string type rather than returning an error.
 		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" was marked as optional with a default value,
+		// and since it was omitted should be filled in with that default.
+		"default": cty.True,
+
+		// Nested is a complex structure which has fully described defaults,
+		// so again it should be filled with the default structure.
+		"nested": cty.MapVal(map[string]cty.Value{
+			"boop": cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.NumberIntVal(5),
+			}),
+		}),
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestContext2Apply_moduleVariableOptionalAttributesDefault(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  experiments = [module_variable_optional_attrs]
+}
+
+variable "in" {
+  type    = object({
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+  })
+  default = {
+    required = "boop"
+  }
+}
+
+output "out" {
+  value = var.in
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ObjectVal(map[string]cty.Value{
+		"required": cty.StringVal("boop"),
+
+		// "optional" is not present in the variable default, so it is filled
+		// with null.
+		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" is not present in the variable default, so its
+		// value is replaced with the type's specified default.
+		"default": cty.True,
 	})
 	if !want.RawEquals(got) {
 		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
