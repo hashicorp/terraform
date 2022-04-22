@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Generate package metadata
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@main
+        uses: hashicorp/actions-generate-metadata@v1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
