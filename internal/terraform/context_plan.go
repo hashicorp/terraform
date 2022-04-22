@@ -204,7 +204,23 @@ The -target option is not for routine use, and is provided only for exceptional 
 	diags = diags.Append(rDiags)
 
 	plan.RelevantAttributes = relevantAttrs
+	diags = diags.Append(c.checkApplyGraph(plan, config))
+
 	return plan, diags
+}
+
+// checkApplyGraph builds the apply graph out of the current plan to
+// check for any errors that may arise once the planned changes are added to
+// the graph. This allows terraform to report errors (mostly cycles) during
+// plan that would otherwise only crop up during apply
+func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
+	if plan.Changes.Empty() {
+		log.Println("[DEBUG] no planned changes, skipping apply graph check")
+		return nil
+	}
+	log.Println("[DEBUG] building apply graph to check for errors")
+	_, _, diags := c.applyGraph(plan, config, true)
+	return diags
 }
 
 var DefaultPlanOpts = &PlanOpts{

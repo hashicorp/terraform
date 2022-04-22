@@ -3096,3 +3096,60 @@ data "test_object" "a" {
 	_, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_applyGraphError(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+resource "test_object" "b" {
+	depends_on = [test_object.a]
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	// Here we introduce a cycle via state which only shows up in the apply
+	// graph where the actual destroy instances are connected in the graph.
+	// This could happen for example when a user has an existing state with
+	// stored dependencies, and changes the config in such a way that
+	// contradicts the stored dependencies.
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"a"}`),
+			Dependencies: []addrs.ConfigResource{mustResourceInstanceAddr("test_object.b").ContainingResource().Config()},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.b").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectTainted,
+			AttrsJSON: []byte(`{"test_string":"b"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if !diags.HasErrors() {
+		t.Fatal("cycle error not detected")
+	}
+
+	msg := diags.ErrWithWarnings().Error()
+	if !strings.Contains(msg, "Cycle") {
+		t.Fatalf("no cycle error found:\n got: %s\n", msg)
+	}
+}
