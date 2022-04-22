@@ -17,6 +17,7 @@ NEW FEATURES:
 
 * `precondition` and `postcondition` check blocks for resources, data sources, and module output values: module authors can now document assumptions and assertions about configuration and state values. If these conditions are not met, Terraform will report a custom error message to the user and halt further evaluation.
 * You may specify remote network service credentials using an environment variable named after the host name with a `TF_TOKEN_` prefix. For example, the value of a variable named `TF_TOKEN_app_terraform_io` will be used as a bearer authorization token when the CLI makes service requests to the host name "app.terraform.io".
+* `replace_triggered_by` is a new `lifecycle` argument which allows one to configure the replacement of a resource based on changes in a dependency.
 
 ENHANCEMENTS:
 
