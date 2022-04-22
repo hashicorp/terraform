@@ -110,6 +110,43 @@ The following arguments can be used within a `lifecycle` block:
   Only attributes defined by the resource type can be ignored.
   `ignore_changes` cannot be applied to itself or to any other meta-arguments.
 
+* `replace_triggered_by` (list of resource references) - A list of expressions
+  referencing managed resources, instances, or instance attributes can be
+  supplied to `replace_triggered_by` to force replacement of the parent
+  resource when there is a change in the referenced value. When the containing
+  resource is using `count` or `for_each`, `count.index` or `each.key` may be
+  used in the expression to index specific instances.
+
+  `replace_triggered_by` is used to couple the lifecycles of otherwise
+  independent resources, allowing the configurable replacement of a resource
+  based on conditions in a dependency. Given the three classes of references
+  allowed in `replace_triggered_by`, the following conditions can apply:
+  - If the reference is to a resource with multiple instances, a plan to
+    update or replace any instance will trigger replacement.
+  - If the reference is to a single resource instance, a plan to update or
+    replace that instance will trigger replacement.
+  - If the reference is to a single attribute of a resource instance, any
+    difference in the before and after value will trigger replacement.
+
+  Only managed resources are allowed in the `replace_triggered_by` arguments.
+  Because the `replace_triggered_by` expressions are used to lookup changes in
+  managed resources, the `replace_triggered_by` argument can be modified
+  without forcing replacement.
+
+  ```hcl
+  resource "aws_appautoscaling_target" "ecs_target" {
+    # ...
+    lifecycle {
+      replace_triggered_by = [
+        # This resource must be replaced each time the aws_ecs_service is replaced.
+        # If we don't want to trigger on every change, we can use a computed
+        # attribute like id to trigger only on instance replacement.
+        aws_ecs_service.svc.id
+      ]
+    }
+  }
+  ```
+
 ## Custom Condition Checks
 
 You can add `precondition` and `postcondition` blocks with a `lifecycle` block to specify assumptions and guarantees about how resources and data sources operate. The following examples creates a precondition that checks whether the AMI is properly configured.
