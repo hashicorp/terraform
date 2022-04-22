@@ -61,6 +61,21 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 
 }
 
+// InstancesForAbsResource returns the planned change for the current objects
+// of the resource instances of the given address, if any. Returns nil if no
+// changes are planned.
+func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
+	var changes []*ResourceInstanceChangeSrc
+	for _, rc := range c.Resources {
+		resAddr := rc.Addr.ContainingResource()
+		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			changes = append(changes, rc)
+		}
+	}
+
+	return changes
+}
+
 // InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
@@ -344,6 +359,11 @@ const (
 	// to be using ReplaceAddrs. (On the command line, the -replace=...
 	// planning option.)
 	ResourceInstanceReplaceByRequest ResourceInstanceChangeActionReason = 'R'
+
+	// ResourceInstanceReplaceByTriggers indicates that the resource instance
+	// is planned to be replaced because of a corresponding change in a
+	// replace_triggered_by reference.
+	ResourceInstanceReplaceByTriggers ResourceInstanceChangeActionReason = 'D'
 
 	// ResourceInstanceReplaceBecauseCannotUpdate indicates that the resource
 	// instance is planned to be replaced because the provider has indicated

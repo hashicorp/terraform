@@ -25,6 +25,7 @@ resource "aws_security_group" "firewall" {
 }
 
 resource "aws_instance" "web" {
+  count = 2
   ami = "ami-1234"
   security_groups = [
     "foo",
@@ -39,4 +40,10 @@ resource "aws_instance" "web" {
   depends_on = [
     aws_security_group.firewall,
   ]
+}
+
+resource "aws_instance" "depends" {
+  lifecycle {
+    replace_triggered_by = [ aws_instance.web[1], aws_security_group.firewall.id ]
+  }
 }

@@ -5,9 +5,11 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -31,6 +33,10 @@ type NodePlannableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	// replaceTriggeredBy stores references from replace_triggered_by which
+	// triggered this instance to be replaced.
+	replaceTriggeredBy []*addrs.Reference
 }
 
 var (
@@ -192,12 +198,36 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
+
+		// add this instance to n.forceReplace if replacement is triggered by
+		// another change
+		repData := instances.RepetitionData{}
+		switch k := addr.Resource.Key.(type) {
+		case addrs.IntKey:
+			repData.CountIndex = k.Value()
+		case addrs.StringKey:
+			repData.EachKey = k.Value()
+			repData.EachValue = cty.DynamicVal
+		}
+
+		diags = diags.Append(n.replaceTriggered(ctx, repData))
+		if diags.HasErrors() {
+			return diags
+		}
+
 		change, instancePlanState, repeatData, planDiags := n.plan(
 			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
+		}
+
+		// FIXME: here we udpate the change to reflect the reason for
+		// replacement, but we still overload forceReplace to get the correct
+		// change planned.
+		if len(n.replaceTriggeredBy) > 0 {
+			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
 		diags = diags.Append(n.checkPreventDestroy(change))
@@ -294,6 +324,36 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)
+	}
+
+	return diags
+}
+
+// replaceTriggered checks if this instance needs to be replace due to a change
+// in a replace_triggered_by reference. If replacement is required, the
+// instance address is added to forceReplace
+func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, expr := range n.Config.TriggersReplacement {
+		ref, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			continue
+		}
+
+		if replace {
+			// FIXME: forceReplace accomplishes the same goal, however we may
+			// want to communicate more information about which resource
+			// triggered the replacement in the plan.
+			// Rather than further complicating the plan method with more
+			// options, we can refactor both of these features later.
+			n.forceReplace = append(n.forceReplace, n.Addr)
+			log.Printf("[DEBUG] ReplaceTriggeredBy forcing replacement of %s due to change in %s", n.Addr, ref.DisplayString())
+
+			n.replaceTriggeredBy = append(n.replaceTriggeredBy, ref)
+			break
+		}
 	}
 
 	return diags

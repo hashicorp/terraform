@@ -6,8 +6,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	hcljson "github.com/hashicorp/hcl/v2/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Resource represents a "resource" or "data" block in a module or file.
@@ -26,6 +29,8 @@ type Resource struct {
 	Postconditions []*CheckRule
 
 	DependsOn []hcl.Traversal
+
+	TriggersReplacement []hcl.Expression
 
 	// Managed is populated only for Mode = addrs.ManagedResourceMode,
 	// containing the additional fields that apply to managed resources.
@@ -177,6 +182,13 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 				r.Managed.PreventDestroySet = true
 			}
 
+			if attr, exists := lcContent.Attributes["replace_triggered_by"]; exists {
+				exprs, hclDiags := decodeReplaceTriggeredBy(attr.Expr)
+				diags = diags.Extend(hclDiags)
+
+				r.TriggersReplacement = append(r.TriggersReplacement, exprs...)
+			}
+
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
 
 				// ignore_changes can either be a list of relative traversals
@@ -237,7 +249,6 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 					}
 
 				}
-
 			}
 
 			for _, block := range lcContent.Blocks {
@@ -481,6 +492,115 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 	return r, diags
 }
 
+// decodeReplaceTriggeredBy decodes and does basic validation of the
+// replace_triggered_by expressions, ensuring they only contains references to
+// a single resource, and the only extra variables are count.index or each.key.
+func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagnostics) {
+	// Since we are manually parsing the replace_triggered_by argument, we
+	// need to specially handle json configs, in which case the values will
+	// be json strings rather than hcl. To simplify parsing however we will
+	// decode the individual list elements, rather than the entire expression.
+	isJSON := hcljson.IsJSONExpression(expr)
+
+	exprs, diags := hcl.ExprList(expr)
+
+	for i, expr := range exprs {
+		if isJSON {
+			// We can abuse the hcl json api and rely on the fact that calling
+			// Value on a json expression with no EvalContext will return the
+			// raw string. We can then parse that as normal hcl syntax, and
+			// continue with the decoding.
+			v, ds := expr.Value(nil)
+			diags = diags.Extend(ds)
+			if diags.HasErrors() {
+				continue
+			}
+
+			expr, ds = hclsyntax.ParseExpression([]byte(v.AsString()), "", expr.Range().Start)
+			diags = diags.Extend(ds)
+			if diags.HasErrors() {
+				continue
+			}
+			// make sure to swap out the expression we're returning too
+			exprs[i] = expr
+		}
+
+		refs, refDiags := lang.ReferencesInExpr(expr)
+		for _, diag := range refDiags {
+			severity := hcl.DiagError
+			if diag.Severity() == tfdiags.Warning {
+				severity = hcl.DiagWarning
+			}
+
+			desc := diag.Description()
+
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: severity,
+				Summary:  desc.Summary,
+				Detail:   desc.Detail,
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		resourceCount := 0
+		for _, ref := range refs {
+			switch sub := ref.Subject.(type) {
+			case addrs.Resource, addrs.ResourceInstance:
+				resourceCount++
+
+			case addrs.ForEachAttr:
+				if sub.Name != "key" {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid each reference in replace_triggered_by expression",
+						Detail:   "Only each.key may be used in replace_triggered_by.",
+						Subject:  expr.Range().Ptr(),
+					})
+				}
+			case addrs.CountAttr:
+				if sub.Name != "index" {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid count reference in replace_triggered_by expression",
+						Detail:   "Only count.index may be used in replace_triggered_by.",
+						Subject:  expr.Range().Ptr(),
+					})
+				}
+			default:
+				// everything else should be simple traversals
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid reference in replace_triggered_by expression",
+					Detail:   "Only resources, count.index, and each.key may be used in replace_triggered_by.",
+					Subject:  expr.Range().Ptr(),
+				})
+			}
+		}
+
+		switch {
+		case resourceCount == 0:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid replace_triggered_by expression",
+				Detail:   "Missing resource reference in replace_triggered_by expression.",
+				Subject:  expr.Range().Ptr(),
+			})
+		case resourceCount > 1:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid replace_triggered_by expression",
+				Detail:   "Multiple resource references in replace_triggered_by expression.",
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+	}
+	return exprs, diags
+}
+
 type ProviderConfigRef struct {
 	Name       string
 	NameRange  hcl.Range
@@ -639,6 +759,9 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		},
 		{
 			Name: "ignore_changes",
+		},
+		{
+			Name: "replace_triggered_by",
 		},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
