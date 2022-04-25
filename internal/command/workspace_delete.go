@@ -25,9 +25,11 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 	var force bool
 	var stateLock bool
+	var ifExists bool
 	var stateLockTimeout time.Duration
 	cmdFlags := c.Meta.defaultFlagSet("workspace delete")
 	cmdFlags.BoolVar(&force, "force", false, "force removal of a non-empty workspace")
+	cmdFlags.BoolVar(&ifExists, "if-exists", false, "do not exit with an error if workspace doesn't exist")
 	cmdFlags.BoolVar(&stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&stateLockTimeout, "lock-timeout", 0, "lock timeout")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -86,6 +88,14 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	}
 
 	if !exists {
+		if ifExists {
+			c.Ui.Output(
+				c.Colorize().Color(
+					fmt.Sprintf(envDoesNotExist, workspace),
+				),
+			)
+			return 0
+		}
 		c.Ui.Error(fmt.Sprintf(strings.TrimSpace(envDoesNotExist), workspace))
 		return 1
 	}
@@ -211,6 +221,8 @@ Usage: terraform [global options] workspace delete [OPTIONS] NAME
 Options:
 
   -force             Remove even a non-empty workspace.
+
+  -if-exists         Do not exit with an error if workspace doesn't exist.
 
   -lock=false        Don't hold a state lock during the operation. This is
                      dangerous if others might concurrently run commands
