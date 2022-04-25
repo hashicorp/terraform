@@ -45,10 +45,6 @@ BUG FIXES:
 * Terraform will prioritize local terraform variables over remote terraform variables in operations such as `import`, `plan`, `refresh` and `apply` for workspaces in local execution mode. This behavior applies to both `remote` backend and the `cloud` integration configuration. ([#29972](https://github.com/hashicorp/terraform/issues/29972))
 * `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. ([#30138](https://github.com/hashicorp/terraform/issues/30138))
 
-UPGRADE NOTES:
-
-* The Terraform Cloud integration relies on the Go-TFE SDK. Terraform has upgraded this dependency to use its new major version 1.0 [[#30626](https://github.com/hashicorp/terraform/issues/30626)]. [Go-TFE v1.0.0 CHANGELOG](https://github.com/hashicorp/go-tfe/releases/tag/v1.0.0).
-
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
