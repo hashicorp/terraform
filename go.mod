@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform
 require (
 	cloud.google.com/go/storage v1.10.0
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.11.22
+	github.com/Azure/go-autorest/autorest v0.11.24
 	github.com/Netflix/go-expect v0.0.0-20211003183012-e1a7c020ce25
 	github.com/agext/levenshtein v1.2.3
 	github.com/aliyun/alibaba-cloud-sdk-go v1.61.1501
@@ -33,7 +33,7 @@ require (
 	github.com/hashicorp/consul/api v1.9.1
 	github.com/hashicorp/consul/sdk v0.8.0
 	github.com/hashicorp/errwrap v1.1.0
-	github.com/hashicorp/go-azure-helpers v0.18.0
+	github.com/hashicorp/go-azure-helpers v0.31.1
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-getter v1.5.10
@@ -53,7 +53,7 @@ require (
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/lib/pq v1.10.3
 	github.com/lusis/go-artifactory v0.0.0-20160115162124-7e4ce345df82
-	github.com/manicminer/hamilton v0.35.0
+	github.com/manicminer/hamilton v0.44.0
 	github.com/masterzen/winrm v0.0.0-20200615185753-c42b5136ff88
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mattn/go-shellwords v1.0.4
@@ -82,7 +82,7 @@ require (
 	github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20210428180535-15715dcf1ace
-	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
@@ -104,7 +104,7 @@ require (
 require (
 	cloud.google.com/go v0.81.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.17 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.18 // indirect
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.4 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0 // indirect
@@ -134,7 +134,7 @@ require (
 	github.com/go-logr/logr v1.2.0 // indirect
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.1.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
@@ -156,6 +156,7 @@ require (
 	github.com/klauspost/compress v1.11.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/kr/pty v1.1.5 // indirect
+	github.com/manicminer/hamilton-autorest v0.2.0 // indirect
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mitchellh/go-testing-interface v1.0.4 // indirect
