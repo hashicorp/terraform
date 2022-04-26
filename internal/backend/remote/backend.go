@@ -256,24 +256,25 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Retrieve the token for this host as configured in the credentials
-	// section of the CLI Config File.
-	token, err := b.token()
-	if err != nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
-			"", // no description is needed here, the error is clear
-			cty.Path{cty.GetAttrStep{Name: "hostname"}},
-		))
-		return diags
+	// Get the token from the config.
+	var token string
+	if val := obj.GetAttr("token"); !val.IsNull() {
+		token = val.AsString()
 	}
 
-	// Get the token from the config if no token was configured for this
-	// host in credentials section of the CLI Config File.
+	// Retrieve the token for this host as configured in the credentials
+	// section of the CLI Config File if no token was configured for this
+	// host in the config.
 	if token == "" {
-		if val := obj.GetAttr("token"); !val.IsNull() {
-			token = val.AsString()
+		token, err = b.token()
+		if err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				strings.ToUpper(err.Error()[:1])+err.Error()[1:],
+				"", // no description is needed here, the error is clear
+				cty.Path{cty.GetAttrStep{Name: "hostname"}},
+			))
+			return diags
 		}
 	}
 
