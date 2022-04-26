@@ -120,10 +120,7 @@ References trigger replacement in the following conditions:
   - If the reference is to a single attribute of a resource instance, any
     change to the attribute value will trigger replacement.
 
-  Only managed resources are allowed in the `replace_triggered_by` arguments.
-  Because the `replace_triggered_by` expressions are used to lookup changes in
-  managed resources, the `replace_triggered_by` argument can be modified
-  without forcing replacement.
+  You can only reference managed resources in `replace_triggered_by` expressions. This lets you modify these expressions without forcing replacement.
 
   ```hcl
   resource "aws_appautoscaling_target" "ecs_target" {
