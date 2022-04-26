@@ -154,6 +154,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 
 	// Set local to a local test backend.
 	b.local = testLocalBackend(t, b)
+	b.input = true
 
 	ctx := context.Background()
 

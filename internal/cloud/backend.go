@@ -89,6 +89,10 @@ type Cloud struct {
 	ignoreVersionConflict bool
 
 	runningInAutomation bool
+
+	// input stores the value of the -input flag, since it will be used
+	// to determine whether or not to ask the user for approval of a run.
+	input bool
 }
 
 var _ backend.Backend = (*Cloud)(nil)
