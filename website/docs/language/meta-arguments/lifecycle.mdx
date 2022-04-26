@@ -110,23 +110,15 @@ The following arguments can be used within a `lifecycle` block:
   Only attributes defined by the resource type can be ignored.
   `ignore_changes` cannot be applied to itself or to any other meta-arguments.
 
-* `replace_triggered_by` (list of resource references) - A list of expressions
-  referencing managed resources, instances, or instance attributes can be
-  supplied to `replace_triggered_by` to force replacement of the parent
-  resource when there is a change in the referenced value. When the containing
-  resource is using `count` or `for_each`, `count.index` or `each.key` may be
-  used in the expression to index specific instances.
+* `replace_triggered_by` (list of resource references) - Forces Terraform to replace the parent resource when there is a change to a referenced resource or resource attribute. Supply a list of expressions referencing managed resources, instances, or instance attributes. When the containing resource uses `count` or `for_each`, you can use `count.index` or `each.key` in the expression to index specific instances. 
 
-  `replace_triggered_by` is used to couple the lifecycles of otherwise
-  independent resources, allowing the configurable replacement of a resource
-  based on conditions in a dependency. Given the three classes of references
-  allowed in `replace_triggered_by`, the following conditions can apply:
+References trigger replacement in the following conditions:
   - If the reference is to a resource with multiple instances, a plan to
     update or replace any instance will trigger replacement.
   - If the reference is to a single resource instance, a plan to update or
     replace that instance will trigger replacement.
   - If the reference is to a single attribute of a resource instance, any
-    difference in the before and after value will trigger replacement.
+    change to the attribute value will trigger replacement.
 
   Only managed resources are allowed in the `replace_triggered_by` arguments.
   Because the `replace_triggered_by` expressions are used to lookup changes in
