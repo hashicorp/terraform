@@ -130,9 +130,8 @@ References trigger replacement in the following conditions:
     # ...
     lifecycle {
       replace_triggered_by = [
-        # This resource must be replaced each time the aws_ecs_service is replaced.
-        # If we don't want to trigger on every change, we can use a computed
-        # attribute like id to trigger only on instance replacement.
+        # Replace `aws_appautoscaling_target` each time this instance of 
+        # the `aws_ecs_service` is replaced.
         aws_ecs_service.svc.id
       ]
     }
