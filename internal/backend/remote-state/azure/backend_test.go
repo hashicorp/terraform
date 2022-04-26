@@ -39,7 +39,7 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
-func TestBackendAccessKeyBasic(t *testing.T) {
+func TestAccBackendAccessKeyBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -65,7 +65,7 @@ func TestBackendAccessKeyBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendSASTokenBasic(t *testing.T) {
+func TestAccBackendSASTokenBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -95,7 +95,35 @@ func TestBackendSASTokenBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendADALAzureADAuthBasic(t *testing.T) {
+func TestAccBackendOIDCBasic(t *testing.T) {
+	testAccAzureBackend(t)
+	rs := acctest.RandString(4)
+	res := testResourceNames(rs, "testState")
+	armClient := buildTestClient(t, res)
+
+	ctx := context.TODO()
+	err := armClient.buildTestResources(ctx, &res)
+	defer armClient.destroyTestResources(ctx, res)
+	if err != nil {
+		t.Fatalf("Error creating Test Resources: %q", err)
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"storage_account_name": res.storageAccountName,
+		"container_name":       res.storageContainerName,
+		"key":                  res.storageKeyName,
+		"resource_group_name":  res.resourceGroup,
+		"use_oidc":             true,
+		"subscription_id":      os.Getenv("ARM_SUBSCRIPTION_ID"),
+		"tenant_id":            os.Getenv("ARM_TENANT_ID"),
+		"environment":          os.Getenv("ARM_ENVIRONMENT"),
+		"endpoint":             os.Getenv("ARM_ENDPOINT"),
+	})).(*Backend)
+
+	backend.TestBackendStates(t, b)
+}
+
+func TestAccBackendADALAzureADAuthBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -123,7 +151,7 @@ func TestBackendADALAzureADAuthBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendADALManagedServiceIdentityBasic(t *testing.T) {
+func TestAccBackendADALManagedServiceIdentityBasic(t *testing.T) {
 	testAccAzureBackendRunningInAzure(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -151,7 +179,7 @@ func TestBackendADALManagedServiceIdentityBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendADALServicePrincipalClientCertificateBasic(t *testing.T) {
+func TestAccBackendADALServicePrincipalClientCertificateBasic(t *testing.T) {
 	testAccAzureBackend(t)
 
 	clientCertPassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
@@ -188,7 +216,7 @@ func TestBackendADALServicePrincipalClientCertificateBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendADALServicePrincipalClientSecretBasic(t *testing.T) {
+func TestAccBackendADALServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -217,7 +245,7 @@ func TestBackendADALServicePrincipalClientSecretBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendADALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
+func TestAccBackendADALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	testAccAzureBackend(t)
 
 	// this is only applicable for Azure Stack.
@@ -253,7 +281,7 @@ func TestBackendADALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendMSALAzureADAuthBasic(t *testing.T) {
+func TestAccBackendMSALAzureADAuthBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -282,7 +310,7 @@ func TestBackendMSALAzureADAuthBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendMSALManagedServiceIdentityBasic(t *testing.T) {
+func TestAccBackendMSALManagedServiceIdentityBasic(t *testing.T) {
 	testAccAzureBackendRunningInAzure(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -311,7 +339,7 @@ func TestBackendMSALManagedServiceIdentityBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendMSALServicePrincipalClientCertificateBasic(t *testing.T) {
+func TestAccBackendMSALServicePrincipalClientCertificateBasic(t *testing.T) {
 	testAccAzureBackend(t)
 
 	clientCertPassword := os.Getenv("ARM_CLIENT_CERTIFICATE_PASSWORD")
@@ -349,7 +377,7 @@ func TestBackendMSALServicePrincipalClientCertificateBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendMSALServicePrincipalClientSecretBasic(t *testing.T) {
+func TestAccBackendMSALServicePrincipalClientSecretBasic(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -379,7 +407,7 @@ func TestBackendMSALServicePrincipalClientSecretBasic(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendMSALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
+func TestAccBackendMSALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	testAccAzureBackend(t)
 
 	// this is only applicable for Azure Stack.
@@ -416,7 +444,7 @@ func TestBackendMSALServicePrincipalClientSecretCustomEndpoint(t *testing.T) {
 	backend.TestBackendStates(t, b)
 }
 
-func TestBackendAccessKeyLocked(t *testing.T) {
+func TestAccBackendAccessKeyLocked(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")
@@ -454,7 +482,7 @@ func TestBackendAccessKeyLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlockInWS(t, b1, b2, "foo")
 }
 
-func TestBackendServicePrincipalLocked(t *testing.T) {
+func TestAccBackendServicePrincipalLocked(t *testing.T) {
 	testAccAzureBackend(t)
 	rs := acctest.RandString(4)
 	res := testResourceNames(rs, "testState")

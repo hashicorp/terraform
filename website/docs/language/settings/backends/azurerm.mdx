@@ -46,6 +46,24 @@ terraform {
 
 ***
 
+When authenticating using OpenID Connect (OIDC):
+
+```hcl
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "abcd1234"
+    container_name       = "tfstate"
+    key                  = "prod.terraform.tfstate"
+    use_oidc             = true
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+***
+
 When authenticating using Azure AD Authentication:
 
 ```hcl
@@ -129,6 +147,25 @@ data "terraform_remote_state" "foo" {
     container_name       = "terraform-state"
     key                  = "prod.terraform.tfstate"
     use_msi              = true
+    subscription_id      = "00000000-0000-0000-0000-000000000000"
+    tenant_id            = "00000000-0000-0000-0000-000000000000"
+  }
+}
+```
+
+***
+
+When authenticating using OpenID Connect (OIDC):
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "StorageAccount-ResourceGroup"
+    storage_account_name = "terraform123abc"
+    container_name       = "terraform-state"
+    key                  = "prod.terraform.tfstate"
+    use_oidc             = true
     subscription_id      = "00000000-0000-0000-0000-000000000000"
     tenant_id            = "00000000-0000-0000-0000-000000000000"
   }
@@ -228,6 +265,18 @@ When authenticating using the Managed Service Identity (MSI) - the following fie
 -> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
 
 * `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
+
+***
+
+When authenticating using a Service Principal with OpenID Connect (OIDC) - the following fields are also supported:
+
+* `oidc_request_url` - (Optional) The URL for the OIDC provider from which to request an ID token. This can also be sourced from the `ARM_OIDC_REQUEST_URL` or `ACTIONS_ID_TOKEN_REQUEST_URL` environment variables.
+
+* `oidc_request_token` - (Optional) The bearer token for the request to the OIDC provider. This can also be sourced from the `ARM_OIDC_REQUEST_TOKEN` or `ACTIONS_ID_TOKEN_REQUEST_TOKEN` environment variables.
+
+* `use_oidc` - (Optional) Should OIDC authentication be used? This can also be sourced from the `ARM_USE_OIDC` environment variable.
+
+~> **Note:** When using OIDC for authentication, `use_microsoft_graph` must be set to `true` (which is the default).
 
 ***
 
