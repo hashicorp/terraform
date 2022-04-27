@@ -31,6 +31,7 @@ ENHANCEMENTS:
 * `TF_WORKSPACE` can now be used to configure the `workspaces` attribute in your cloud configuration
 * When running on macOS, Terraform will now use platform APIs to validate certificates presented by TLS (HTTPS) servers. This may change exactly which root certificates Terraform will accept as valid. ([#30768](https://github.com/hashicorp/terraform/issues/30768))
 * The AzureRM Backend now defaults to using MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication. ([#30891](https://github.com/hashicorp/terraform/issues/30891))
+* The AzureRM Backend now supports authenticating as a service principal using OpenID Connect. ([#30936](https://github.com/hashicorp/terraform/pull/30936))
 * Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
 * Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). ([#30517](https://github.com/hashicorp/terraform/issues/30517))
 * JSON plan and state output now includes exact type representations for output values. ([#30945](https://github.com/hashicorp/terraform/issues/30945))
