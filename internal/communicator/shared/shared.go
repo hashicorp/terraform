@@ -81,7 +81,7 @@ var ConnectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"proxy_port": {
-			Type:     cty.String,
+			Type:     cty.Number,
 			Optional: true,
 		},
 		"proxy_user_name": {

@@ -117,16 +117,13 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 
 The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP proxy.
 
-* `proxy_scheme` - http or https
-
-* `proxy_host` - Setting this enables the SSH over HTTP connection. This host
-  will be connected to first, and then the `host` or `bastion_host` connection will be made from there.
-
-* `proxy_port` - The port to use connect to the proxy host.
-
-* `proxy_user_name` - The username to use connect to the private proxy host.
-
-* `proxy_user_password` - The password to use connect to the private proxy host.
+| Argument | Description | Default |
+|---------------|-------------|---------|
+| `proxy_scheme` | http or https | |
+| `proxy_host` | Setting this enables the SSH over HTTP connection. This host will be connected to first, and then the `host` or `bastion_host` connection will be made from there. | |
+| `proxy_port` | The port to use connect to the proxy host. | |
+| `proxy_user_name` | The username to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
+| `proxy_user_password` | The password to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
 
 ## How Provisioners Execute Remote Scripts
 

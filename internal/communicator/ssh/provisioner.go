@@ -10,7 +10,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -124,11 +123,9 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 		case "proxy_host":
 			connInfo.ProxyHost = v.AsString()
 		case "proxy_port":
-			p, err := strconv.ParseUint(v.AsString(), 10, 16)
-			if err != nil {
+			if err := gocty.FromCtyValue(v, &connInfo.ProxyPort); err != nil {
 				return nil, err
 			}
-			connInfo.ProxyPort = uint16(p)
 		case "proxy_user_name":
 			connInfo.ProxyUserName = v.AsString()
 		case "proxy_user_password":
@@ -279,7 +276,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 
 	if connInfo.ProxyHost != "" {
 		p = newProxyInfo(
-			connInfo.ProxyHost+":"+strconv.FormatUint(uint64(connInfo.ProxyPort), 10),
+			fmt.Sprintf("%s:%d", connInfo.ProxyHost, connInfo.ProxyPort),
 			connInfo.ProxyScheme,
 			connInfo.ProxyUserName,
 			connInfo.ProxyUserPassword,

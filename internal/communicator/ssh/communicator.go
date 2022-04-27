@@ -792,7 +792,7 @@ func ConnectFunc(network, addr string, p *proxyInfo) func() (net.Conn, error) {
 		// Wrap connection to host if proxy server is configured
 		if p != nil {
 			RegisterDialerType()
-			c, err = NewHttpProxyConn(p, addr)
+			c, err = newHttpProxyConn(p, addr)
 		} else {
 			c, err = net.DialTimeout(network, addr, 15*time.Second)
 		}
@@ -831,7 +831,7 @@ func BastionConnectFunc(
 			var bReq <-chan *ssh.Request
 
 			RegisterDialerType()
-			pConn, err = NewHttpProxyConn(p, bAddr)
+			pConn, err = newHttpProxyConn(p, bAddr)
 
 			if err != nil {
 				return nil, fmt.Errorf("Error connecting to proxy: %s", err)
