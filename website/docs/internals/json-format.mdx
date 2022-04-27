@@ -217,6 +217,7 @@ The following example illustrates the structure of a `<values-representation>`:
   "outputs": {
     "private_ip": {
       "value": "192.168.3.2",
+      "type": "string",
       "sensitive": false
     }
   },
@@ -306,6 +307,8 @@ The following example illustrates the structure of a `<values-representation>`:
 ```
 
 The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+
+Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
 Only the "current" object for each resource instance is described. "Deposed" objects are not reflected in this structure at all; in plan representations, you can refer to the change representations for further details.
 

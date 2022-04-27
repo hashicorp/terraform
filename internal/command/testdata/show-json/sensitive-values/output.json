@@ -9,6 +9,7 @@
         "outputs": {
             "test": {
                 "sensitive": true,
+                "type": "string",
                 "value": "boop"
             }
         },
@@ -74,6 +75,7 @@
             "outputs": {
                 "test": {
                     "sensitive": true,
+                    "type": "string",
                     "value": "boop"
                 }
             },
