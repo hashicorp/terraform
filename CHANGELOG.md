@@ -33,6 +33,7 @@ ENHANCEMENTS:
 * The AzureRM Backend now defaults to using MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication. ([#30891](https://github.com/hashicorp/terraform/issues/30891))
 * Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
 * Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). ([#30517](https://github.com/hashicorp/terraform/issues/30517))
+* JSON plan and state output now includes exact type representations for output values. ([#30945](https://github.com/hashicorp/terraform/issues/30945))
 
 BUG FIXES:
 
