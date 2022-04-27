@@ -172,6 +172,20 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 		}
 	}
 
+	if c.connInfo.ProxyHost != "" {
+		o.Output(fmt.Sprintf(
+			"Using configured proxy host...\n"+
+				"  ProxyHost: %s\n"+
+				"  ProxyPort: %d\n"+
+				"  ProxyUserName: %s\n"+
+				"  ProxyUserPassword: %t",
+			c.connInfo.ProxyHost,
+			c.connInfo.ProxyPort,
+			c.connInfo.ProxyUserName,
+			c.connInfo.ProxyUserPassword != "",
+		))
+	}
+
 	hostAndPort := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
 	log.Printf("[DEBUG] Connecting to %s for SSH", hostAndPort)
 	c.conn, err = c.config.connection()
@@ -770,9 +784,19 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 // ConnectFunc is a convenience method for returning a function
 // that just uses net.Dial to communicate with the remote end that
 // is suitable for use with the SSH communicator configuration.
-func ConnectFunc(network, addr string) func() (net.Conn, error) {
+func ConnectFunc(network, addr string, p *proxyInfo) func() (net.Conn, error) {
 	return func() (net.Conn, error) {
-		c, err := net.DialTimeout(network, addr, 15*time.Second)
+		var c net.Conn
+		var err error
+
+		// Wrap connection to host if proxy server is configured
+		if p != nil {
+			RegisterDialerType()
+			c, err = newHttpProxyConn(p, addr)
+		} else {
+			c, err = net.DialTimeout(network, addr, 15*time.Second)
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -792,10 +816,38 @@ func BastionConnectFunc(
 	bAddr string,
 	bConf *ssh.ClientConfig,
 	proto string,
-	addr string) func() (net.Conn, error) {
+	addr string,
+	p *proxyInfo) func() (net.Conn, error) {
 	return func() (net.Conn, error) {
 		log.Printf("[DEBUG] Connecting to bastion: %s", bAddr)
-		bastion, err := ssh.Dial(bProto, bAddr, bConf)
+		var bastion *ssh.Client
+		var err error
+
+		// Wrap connection to bastion server if proxy server is configured
+		if p != nil {
+			var pConn net.Conn
+			var bConn ssh.Conn
+			var bChans <-chan ssh.NewChannel
+			var bReq <-chan *ssh.Request
+
+			RegisterDialerType()
+			pConn, err = newHttpProxyConn(p, bAddr)
+
+			if err != nil {
+				return nil, fmt.Errorf("Error connecting to proxy: %s", err)
+			}
+
+			bConn, bChans, bReq, err = ssh.NewClientConn(pConn, bAddr, bConf)
+
+			if err != nil {
+				return nil, fmt.Errorf("Error creating new client connection via proxy: %s", err)
+			}
+
+			bastion = ssh.NewClient(bConn, bChans, bReq)
+		} else {
+			bastion, err = ssh.Dial(bProto, bAddr, bConf)
+		}
+
 		if err != nil {
 			return nil, fmt.Errorf("Error connecting to bastion: %s", err)
 		}
