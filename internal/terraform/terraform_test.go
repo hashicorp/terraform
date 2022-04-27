@@ -57,6 +57,9 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// change its interface at this late stage.
 	loader, _ := configload.NewLoaderForTests(t)
 
+	// We need to be able to exercise experimental features in our integration tests.
+	loader.AllowLanguageExperiments(true)
+
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
@@ -110,6 +113,9 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
+
+	// We need to be able to exercise experimental features in our integration tests.
+	loader.AllowLanguageExperiments(true)
 
 	// Test modules usually do not refer to remote sources, and for local
 	// sources only this ultimately just records all of the module paths
