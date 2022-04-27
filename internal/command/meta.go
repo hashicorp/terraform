@@ -130,6 +130,24 @@ type Meta struct {
 	// just trusting that someone else did it before running Terraform.
 	UnmanagedProviders map[addrs.Provider]*plugin.ReattachConfig
 
+	// AllowExperimentalFeatures controls whether a command that embeds this
+	// Meta is permitted to make use of experimental Terraform features.
+	//
+	// Set this field only during the initial creation of Meta. If you change
+	// this field after calling methods of type Meta then the resulting
+	// behavior is undefined.
+	//
+	// In normal code this would be set by package main only in builds
+	// explicitly marked as being alpha releases or development snapshots,
+	// making experimental features unavailable otherwise. Test code may
+	// choose to set this if it needs to exercise experimental features.
+	//
+	// Some experiments predated the addition of this setting, and may
+	// therefore still be available even if this flag is false. Our intent
+	// is that all/most _future_ experiments will be unavailable unless this
+	// flag is set, to reinforce that experiments are not for production use.
+	AllowExperimentalFeatures bool
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------

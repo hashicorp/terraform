@@ -26,7 +26,7 @@ var disableExperimentWarnings = ""
 // the experiments are known before we process the result of the module config,
 // and thus we can take into account which experiments are active when deciding
 // how to decode.
-func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
+func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.Diagnostics) {
 	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
 
 	ret := experiments.NewSet()
@@ -84,9 +84,18 @@ func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
 		}
 
 		exps, expDiags := decodeExperimentsAttr(attr)
-		diags = append(diags, expDiags...)
-		if !expDiags.HasErrors() {
-			ret = experiments.SetUnion(ret, exps)
+		if allowed {
+			diags = append(diags, expDiags...)
+			if !expDiags.HasErrors() {
+				ret = experiments.SetUnion(ret, exps)
+			}
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Module uses experimental features",
+				Detail:   "Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
 		}
 	}
 
@@ -144,7 +153,7 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  fmt.Sprintf("Experimental feature %q is active", exp.Keyword()),
-					Detail:   "Experimental features are subject to breaking changes in future minor or patch releases, based on feedback.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+					Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 					Subject:  expr.Range().Ptr(),
 				})
 			}

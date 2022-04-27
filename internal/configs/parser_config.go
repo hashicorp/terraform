@@ -45,7 +45,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	// We'll load the experiments first because other decoding logic in the
 	// loop below might depend on these experiments.
 	var expDiags hcl.Diagnostics
-	file.ActiveExperiments, expDiags = sniffActiveExperiments(body)
+	file.ActiveExperiments, expDiags = sniffActiveExperiments(body, p.allowExperiments)
 	diags = append(diags, expDiags...)
 
 	content, contentDiags := body.Content(configFileSchema)
