@@ -38,6 +38,7 @@ type stateValues struct {
 type output struct {
 	Sensitive bool            `json:"sensitive"`
 	Value     json.RawMessage `json:"value,omitempty"`
+	Type      json.RawMessage `json:"type,omitempty"`
 }
 
 // module is the representation of a module in state. This can be the root module
@@ -180,12 +181,18 @@ func marshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, 
 
 	ret := make(map[string]output)
 	for k, v := range outputs {
-		ov, err := ctyjson.Marshal(v.Value, v.Value.Type())
+		ty := v.Value.Type()
+		ov, err := ctyjson.Marshal(v.Value, ty)
+		if err != nil {
+			return ret, err
+		}
+		ot, err := ctyjson.MarshalType(ty)
 		if err != nil {
 			return ret, err
 		}
 		ret[k] = output{
 			Value:     ov,
+			Type:      ot,
 			Sensitive: v.Sensitive,
 		}
 	}

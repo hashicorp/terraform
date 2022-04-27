@@ -137,6 +137,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 			map[string]output{
 				"bar": {
 					Sensitive: false,
+					Type:      json.RawMessage(`"string"`),
 					Value:     json.RawMessage(`"after"`),
 				},
 			},

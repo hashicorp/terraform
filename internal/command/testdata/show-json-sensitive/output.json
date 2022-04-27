@@ -9,6 +9,7 @@
         "outputs": {
             "test": {
                 "sensitive": true,
+                "type": "string",
                 "value": "bar"
             }
         },
@@ -71,6 +72,7 @@
             "outputs": {
                 "test": {
                     "sensitive": true,
+                    "type": "string",
                     "value": "bar"
                 }
             },

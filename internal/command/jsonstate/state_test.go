@@ -36,6 +36,7 @@ func TestMarshalOutputs(t *testing.T) {
 				"test": {
 					Sensitive: true,
 					Value:     json.RawMessage(`"sekret"`),
+					Type:      json.RawMessage(`"string"`),
 				},
 			},
 			false,
@@ -51,6 +52,39 @@ func TestMarshalOutputs(t *testing.T) {
 				"test": {
 					Sensitive: false,
 					Value:     json.RawMessage(`"not_so_sekret"`),
+					Type:      json.RawMessage(`"string"`),
+				},
+			},
+			false,
+		},
+		{
+			map[string]*states.OutputValue{
+				"mapstring": {
+					Sensitive: false,
+					Value: cty.MapVal(map[string]cty.Value{
+						"beep": cty.StringVal("boop"),
+					}),
+				},
+				"setnumber": {
+					Sensitive: false,
+					Value: cty.SetVal([]cty.Value{
+						cty.NumberIntVal(3),
+						cty.NumberIntVal(5),
+						cty.NumberIntVal(7),
+						cty.NumberIntVal(11),
+					}),
+				},
+			},
+			map[string]output{
+				"mapstring": {
+					Sensitive: false,
+					Value:     json.RawMessage(`{"beep":"boop"}`),
+					Type:      json.RawMessage(`["map","string"]`),
+				},
+				"setnumber": {
+					Sensitive: false,
+					Value:     json.RawMessage(`[3,5,7,11]`),
+					Type:      json.RawMessage(`["set","number"]`),
 				},
 			},
 			false,
@@ -67,10 +101,8 @@ func TestMarshalOutputs(t *testing.T) {
 		} else if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
-		eq := reflect.DeepEqual(got, test.Want)
-		if !eq {
-			// printing the output isn't terribly useful, but it does help indicate which test case failed
-			t.Fatalf("wrong result:\nGot: %#v\nWant: %#v\n", got, test.Want)
+		if !cmp.Equal(test.Want, got) {
+			t.Fatalf("wrong result:\n%s", cmp.Diff(test.Want, got))
 		}
 	}
 }
