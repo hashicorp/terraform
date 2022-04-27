@@ -113,6 +113,18 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 | `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/language/functions/file). | The value of the `private_key` field. |
 | `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/language/functions/file). |
 
+## Connection through a HTTP Proxy with SSH
+
+The `ssh` connection also supports the following fields to facilitate connections by SSH over HTTP proxy.
+
+| Argument | Description | Default |
+|---------------|-------------|---------|
+| `proxy_scheme` | http or https | |
+| `proxy_host` | Setting this enables the SSH over HTTP connection. This host will be connected to first, and then the `host` or `bastion_host` connection will be made from there. | |
+| `proxy_port` | The port to use connect to the proxy host. | |
+| `proxy_user_name` | The username to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
+| `proxy_user_password` | The password to use connect to the private proxy host. This argument should be specified only if authentication is required for the HTTP Proxy server. | |
+
 ## How Provisioners Execute Remote Scripts
 
 Provisioners which execute commands on a remote system via a protocol such as
