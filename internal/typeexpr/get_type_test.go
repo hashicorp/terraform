@@ -1,6 +1,7 @@
 package typeexpr
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/gohcl"
@@ -245,10 +246,42 @@ func TestGetType(t *testing.T) {
 			cty.List(cty.Map(cty.EmptyTuple)),
 			``,
 		},
+
+		// Optional modifier
+		{
+			`object({name=string,age=optional(number)})`,
+			true,
+			cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+				"name": cty.String,
+				"age":  cty.Number,
+			}, []string{"age"}),
+			``,
+		},
+		{
+			`object({name=string,age=optional(number)})`,
+			false,
+			cty.Object(map[string]cty.Type{
+				"name": cty.String,
+				"age":  cty.Number,
+			}),
+			`Optional attribute modifier is only for type constraints, not for exact types.`,
+		},
+		{
+			`optional(string)`,
+			false,
+			cty.DynamicPseudoType,
+			`Keyword "optional" is valid only as a modifier for object type attributes.`,
+		},
+		{
+			`optional`,
+			false,
+			cty.DynamicPseudoType,
+			`The keyword "optional" is not a valid type specification.`,
+		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.Source, func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s (constraint=%v)", test.Source, test.Constraint), func(t *testing.T) {
 			expr, diags := hclsyntax.ParseExpression([]byte(test.Source), "", hcl.Pos{Line: 1, Column: 1})
 			if diags.HasErrors() {
 				t.Fatalf("failed to parse: %s", diags)
