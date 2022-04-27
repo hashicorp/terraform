@@ -81,11 +81,16 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		// Managed Service Identity
 		MsiEndpoint: config.MsiEndpoint,
 
+		// OIDC
+		IDTokenRequestURL:   config.OIDCRequestURL,
+		IDTokenRequestToken: config.OIDCRequestToken,
+
 		// Feature Toggles
 		SupportsAzureCliToken:          true,
 		SupportsClientCertAuth:         true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
+		SupportsOIDCAuth:               config.UseOIDC,
 		UseMicrosoftGraph:              config.UseMicrosoftGraph,
 	}
 	armConfig, err := builder.Build()
@@ -106,13 +111,13 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	sender := sender.BuildSender("backend/remote-state/azure")
 	var auth autorest.Authorizer
 	if builder.UseMicrosoftGraph {
-		log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Resource Manager..")
+		log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Resource Manager..")
 		auth, err = armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Resource Manager..")
+		log.Printf("[DEBUG] Obtaining an ADAL / Azure Active Directory Graph token for Resource Manager..")
 		auth, err = armConfig.GetADALToken(ctx, sender, oauthConfig, env.TokenAudience)
 		if err != nil {
 			return nil, err
@@ -121,14 +126,14 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 
 	if config.UseAzureADAuthentication {
 		if builder.UseMicrosoftGraph {
-			log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Storage..")
+			log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Storage..")
 			storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
 			if err != nil {
 				return nil, err
 			}
 			client.azureAdStorageAuth = &storageAuth
 		} else {
-			log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Storage..")
+			log.Printf("[DEBUG] Obtaining an ADAL / Azure Active Directory Graph token for Storage..")
 			storageAuth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.ResourceIdentifiers.Storage)
 			if err != nil {
 				return nil, err
