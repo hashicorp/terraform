@@ -106,6 +106,7 @@ type change struct {
 
 type output struct {
 	Sensitive bool            `json:"sensitive"`
+	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
