@@ -104,13 +104,13 @@ func TestGetType(t *testing.T) {
 			`any()`,
 			false,
 			cty.DynamicPseudoType,
-			`Primitive type keyword "any" does not expect arguments.`,
+			`Type constraint keyword "any" does not expect arguments.`,
 		},
 		{
 			`any()`,
 			true,
 			cty.DynamicPseudoType,
-			`Primitive type keyword "any" does not expect arguments.`,
+			`Type constraint keyword "any" does not expect arguments.`,
 		},
 		{
 			`list(string)`,

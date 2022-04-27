@@ -77,11 +77,18 @@ func getType(expr hcl.Expression, constraint bool) (cty.Type, hcl.Diagnostics) {
 	}
 
 	switch call.Name {
-	case "bool", "string", "number", "any":
+	case "bool", "string", "number":
 		return cty.DynamicPseudoType, hcl.Diagnostics{{
 			Severity: hcl.DiagError,
 			Summary:  invalidTypeSummary,
 			Detail:   fmt.Sprintf("Primitive type keyword %q does not expect arguments.", call.Name),
+			Subject:  &call.ArgsRange,
+		}}
+	case "any":
+		return cty.DynamicPseudoType, hcl.Diagnostics{{
+			Severity: hcl.DiagError,
+			Summary:  invalidTypeSummary,
+			Detail:   fmt.Sprintf("Type constraint keyword %q does not expect arguments.", call.Name),
 			Subject:  &call.ArgsRange,
 		}}
 	}
