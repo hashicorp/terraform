@@ -258,11 +258,29 @@ func TestGetType(t *testing.T) {
 			``,
 		},
 		{
+			`object({name=string,meta=optional(any)})`,
+			true,
+			cty.ObjectWithOptionalAttrs(map[string]cty.Type{
+				"name": cty.String,
+				"meta": cty.DynamicPseudoType,
+			}, []string{"meta"}),
+			``,
+		},
+		{
 			`object({name=string,age=optional(number)})`,
 			false,
 			cty.Object(map[string]cty.Type{
 				"name": cty.String,
 				"age":  cty.Number,
+			}),
+			`Optional attribute modifier is only for type constraints, not for exact types.`,
+		},
+		{
+			`object({name=string,meta=optional(any)})`,
+			false,
+			cty.Object(map[string]cty.Type{
+				"name": cty.String,
+				"meta": cty.DynamicPseudoType,
 			}),
 			`Optional attribute modifier is only for type constraints, not for exact types.`,
 		},
