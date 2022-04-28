@@ -96,7 +96,7 @@ jobs:
       # it for select packages.
       - name: "Race detector"
         run: |
-          go test -race ./internal/terraform ./internal/command
+          go test -race ./internal/terraform ./internal/command ./internal/states
 
   e2e-tests:
     # This is an intentionally-limited form of our E2E test run which only
