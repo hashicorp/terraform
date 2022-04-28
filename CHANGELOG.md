@@ -1,5 +1,9 @@
 ## 1.1.10 (Unreleased)
 
+BUG FIXES:
+
+* core: Fix data race when serializing multiple instances to state which share the same dependencies [GH-30958]
+
 ## 1.1.9 (April 20, 2022)
 
 BUG FIXES:
