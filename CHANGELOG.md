@@ -35,6 +35,7 @@ ENHANCEMENTS:
 * Show remote host in error message for clarity when installation of provider fails ([#30810](https://github.com/hashicorp/terraform/issues/30810))
 * Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). ([#30517](https://github.com/hashicorp/terraform/issues/30517))
 * JSON plan and state output now includes exact type representations for output values. ([#30945](https://github.com/hashicorp/terraform/issues/30945))
+* The `ssh` provisioner connection now supports SSH over HTTP proxy. ([#30274](https://github.com/hashicorp/terraform/pull/30274))
 
 BUG FIXES:
 
