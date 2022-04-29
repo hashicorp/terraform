@@ -167,6 +167,8 @@ we recommend using the `-var-file` option instead, and write your actual values
 in a separate file so that Terraform can parse them directly, rather than
 interpreting the result of your shell's parsing.
 
+~> **Warning:** Terraform will error if you include a space before or after the equals sign (e.g., `-var "length = 2"`).
+
 To use `-var` on a Unix-style shell on a system like Linux or macOS we
 recommend writing the option argument in single quotes `'` to ensure the
 shell will interpret the value literally:
