@@ -534,6 +534,70 @@ new line
     }
 `,
 		},
+		"read during apply because of unknown configuration": {
+			Action:       plans.Read,
+			ActionReason: plans.ResourceInstanceReadBecauseConfigUnknown,
+			Mode:         addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+  # (config refers to values not yet known)
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
+		"read during apply because of pending changes to upstream dependency": {
+			Action:       plans.Read,
+			ActionReason: plans.ResourceInstanceReadBecauseDependencyPending,
+			Mode:         addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+  # (depends on a resource or a module with changes pending)
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
+		"read during apply for unspecified reason": {
+			Action: plans.Read,
+			Mode:   addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
 		"show all identifying attributes even if unchanged": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
