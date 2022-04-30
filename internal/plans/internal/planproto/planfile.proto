@@ -147,6 +147,8 @@ enum ResourceInstanceActionReason {
     DELETE_BECAUSE_EACH_KEY = 7;
     DELETE_BECAUSE_NO_MODULE = 8;
     REPLACE_BY_TRIGGERS = 9;
+    READ_BECAUSE_CONFIG_UNKNOWN = 10;
+    READ_BECAUSE_DEPENDENCY_PENDING = 11;
 }
 
 message ResourceInstanceChange {

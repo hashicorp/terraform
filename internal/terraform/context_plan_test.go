@@ -1786,6 +1786,9 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 		}),
 		rc.After,
 	)
+	if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseConfigUnknown; got != want {
+		t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
+	}
 }
 
 func TestContext2Plan_computedInFunction(t *testing.T) {
@@ -1985,6 +1988,10 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	rc, err := rcs.Decode(ty)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseConfigUnknown; got != want {
+		t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
 	}
 
 	// foo should now be unknown
@@ -6295,8 +6302,21 @@ data "test_data_source" "e" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
+
+	rc := plan.Changes.ResourceInstance(addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "test_data_source",
+		Name: "d",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+	if rc != nil {
+		if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseDependencyPending; got != want {
+			t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
+		}
+	} else {
+		t.Error("no change for test_data_source.e")
+	}
 }
 
 func TestContext2Plan_skipRefresh(t *testing.T) {
