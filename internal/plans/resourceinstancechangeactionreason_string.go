@@ -18,38 +18,46 @@ func _() {
 	_ = x[ResourceInstanceDeleteBecauseCountIndex-67]
 	_ = x[ResourceInstanceDeleteBecauseEachKey-69]
 	_ = x[ResourceInstanceDeleteBecauseNoModule-77]
+	_ = x[ResourceInstanceReadBecauseConfigUnknown-63]
+	_ = x[ResourceInstanceReadBecauseDependencyPending-33]
 }
 
 const (
 	_ResourceInstanceChangeActionReason_name_0 = "ResourceInstanceChangeNoReason"
-	_ResourceInstanceChangeActionReason_name_1 = "ResourceInstanceDeleteBecauseCountIndexResourceInstanceReplaceByTriggersResourceInstanceDeleteBecauseEachKeyResourceInstanceReplaceBecauseCannotUpdate"
-	_ResourceInstanceChangeActionReason_name_2 = "ResourceInstanceDeleteBecauseNoModuleResourceInstanceDeleteBecauseNoResourceConfig"
-	_ResourceInstanceChangeActionReason_name_3 = "ResourceInstanceReplaceByRequest"
-	_ResourceInstanceChangeActionReason_name_4 = "ResourceInstanceReplaceBecauseTainted"
-	_ResourceInstanceChangeActionReason_name_5 = "ResourceInstanceDeleteBecauseWrongRepetition"
+	_ResourceInstanceChangeActionReason_name_1 = "ResourceInstanceReadBecauseDependencyPending"
+	_ResourceInstanceChangeActionReason_name_2 = "ResourceInstanceReadBecauseConfigUnknown"
+	_ResourceInstanceChangeActionReason_name_3 = "ResourceInstanceDeleteBecauseCountIndexResourceInstanceReplaceByTriggersResourceInstanceDeleteBecauseEachKeyResourceInstanceReplaceBecauseCannotUpdate"
+	_ResourceInstanceChangeActionReason_name_4 = "ResourceInstanceDeleteBecauseNoModuleResourceInstanceDeleteBecauseNoResourceConfig"
+	_ResourceInstanceChangeActionReason_name_5 = "ResourceInstanceReplaceByRequest"
+	_ResourceInstanceChangeActionReason_name_6 = "ResourceInstanceReplaceBecauseTainted"
+	_ResourceInstanceChangeActionReason_name_7 = "ResourceInstanceDeleteBecauseWrongRepetition"
 )
 
 var (
-	_ResourceInstanceChangeActionReason_index_1 = [...]uint8{0, 39, 72, 108, 150}
-	_ResourceInstanceChangeActionReason_index_2 = [...]uint8{0, 37, 82}
+	_ResourceInstanceChangeActionReason_index_3 = [...]uint8{0, 39, 72, 108, 150}
+	_ResourceInstanceChangeActionReason_index_4 = [...]uint8{0, 37, 82}
 )
 
 func (i ResourceInstanceChangeActionReason) String() string {
 	switch {
 	case i == 0:
 		return _ResourceInstanceChangeActionReason_name_0
+	case i == 33:
+		return _ResourceInstanceChangeActionReason_name_1
+	case i == 63:
+		return _ResourceInstanceChangeActionReason_name_2
 	case 67 <= i && i <= 70:
 		i -= 67
-		return _ResourceInstanceChangeActionReason_name_1[_ResourceInstanceChangeActionReason_index_1[i]:_ResourceInstanceChangeActionReason_index_1[i+1]]
+		return _ResourceInstanceChangeActionReason_name_3[_ResourceInstanceChangeActionReason_index_3[i]:_ResourceInstanceChangeActionReason_index_3[i+1]]
 	case 77 <= i && i <= 78:
 		i -= 77
-		return _ResourceInstanceChangeActionReason_name_2[_ResourceInstanceChangeActionReason_index_2[i]:_ResourceInstanceChangeActionReason_index_2[i+1]]
+		return _ResourceInstanceChangeActionReason_name_4[_ResourceInstanceChangeActionReason_index_4[i]:_ResourceInstanceChangeActionReason_index_4[i+1]]
 	case i == 82:
-		return _ResourceInstanceChangeActionReason_name_3
-	case i == 84:
-		return _ResourceInstanceChangeActionReason_name_4
-	case i == 87:
 		return _ResourceInstanceChangeActionReason_name_5
+	case i == 84:
+		return _ResourceInstanceChangeActionReason_name_6
+	case i == 87:
+		return _ResourceInstanceChangeActionReason_name_7
 	default:
 		return "ResourceInstanceChangeActionReason(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

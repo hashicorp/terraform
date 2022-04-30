@@ -1525,15 +1525,23 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
 
 	configKnown := configVal.IsWhollyKnown()
+	depsPending := n.dependenciesHavePendingChanges(ctx)
 	// If our configuration contains any unknown values, or we depend on any
 	// unknown values then we must defer the read to the apply phase by
 	// producing a "Read" change for this resource, and a placeholder value for
 	// it in the state.
-	if n.forcePlanReadData(ctx) || !configKnown {
-		if configKnown {
-			log.Printf("[TRACE] planDataSource: %s configuration is fully known, but we're forcing a read plan to be created", n.Addr)
-		} else {
+	if depsPending || !configKnown {
+		var reason plans.ResourceInstanceChangeActionReason
+		switch {
+		case !configKnown:
 			log.Printf("[TRACE] planDataSource: %s configuration not fully known yet, so deferring to apply phase", n.Addr)
+			reason = plans.ResourceInstanceReadBecauseConfigUnknown
+		case depsPending:
+			// NOTE: depsPending can be true at the same time as configKnown
+			// is false; configKnown takes precedence because it's more
+			// specific.
+			log.Printf("[TRACE] planDataSource: %s configuration is fully known, at least one dependency has changes pending", n.Addr)
+			reason = plans.ResourceInstanceReadBecauseDependencyPending
 		}
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
@@ -1550,6 +1558,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 				Before: priorVal,
 				After:  proposedNewVal,
 			},
+			ActionReason: reason,
 		}
 
 		plannedNewState := &states.ResourceInstanceObject{
@@ -1580,10 +1589,11 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	return nil, plannedNewState, keyData, diags
 }
 
-// forcePlanReadData determines if we need to override the usual behavior of
-// immediately reading from the data source where possible, instead forcing us
-// to generate a plan.
-func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
+// dependenciesHavePendingChanges determines whether any managed resource the
+// receiver depends on has a change pending in the plan, in which case we'd
+// need to override the usual behavior of immediately reading from the data
+// source where possible, and instead defer the read until the apply step.
+func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalContext) bool {
 	nModInst := n.Addr.Module
 	nMod := nModInst.Module()
 
