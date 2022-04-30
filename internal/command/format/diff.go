@@ -71,7 +71,13 @@ func ResourceChange(
 	case plans.Create:
 		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be created"), dispAddr))
 	case plans.Read:
-		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)"), dispAddr))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply"), dispAddr))
+		switch change.ActionReason {
+		case plans.ResourceInstanceReadBecauseConfigUnknown:
+			buf.WriteString("\n  # (config refers to values not yet known)")
+		case plans.ResourceInstanceReadBecauseDependencyPending:
+			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		}
 	case plans.Update:
 		switch language {
 		case DiffLanguageProposedChange:
@@ -166,7 +172,7 @@ func ResourceChange(
 		))
 	case addrs.DataResourceMode:
 		buf.WriteString(fmt.Sprintf(
-			"data %q %q ",
+			"data %q %q",
 			addr.Resource.Resource.Type,
 			addr.Resource.Resource.Name,
 		))

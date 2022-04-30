@@ -405,6 +405,10 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "delete_because_each_key"
 		case plans.ResourceInstanceDeleteBecauseNoModule:
 			r.ActionReason = "delete_because_no_module"
+		case plans.ResourceInstanceReadBecauseConfigUnknown:
+			r.ActionReason = "read_because_config_unknown"
+		case plans.ResourceInstanceReadBecauseDependencyPending:
+			r.ActionReason = "read_because_dependency_pending"
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}

@@ -173,6 +173,13 @@ For ease of consumption by callers, the plan representation includes a partial r
       // - "delete_because_each_key": The corresponding resource uses for_each,
       //   but the instance key doesn't match any of the keys in the
       //   currently-configured for_each value.
+      // - "read_because_config_unknown": For a data resource, Terraform cannot
+      //   read the data during the plan phase because of values in the
+      //   configuration that won't be known until the apply phase.
+      // - "read_because_dependency_pending": For a data resource, Terraform
+      //   cannot read the data during the plan phase because the data
+      //   resource depends on at least one managed resource that also has
+      //   a pending change in the same plan.
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.

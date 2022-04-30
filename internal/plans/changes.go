@@ -407,6 +407,18 @@ const (
 	// potentially multiple nested modules could all contribute conflicting
 	// specific reasons for a particular instance to no longer be declared.
 	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
+
+	// ResourceInstanceReadBecauseConfigUnknown indicates that the resource
+	// must be read during apply (rather than during planning) because its
+	// configuration contains unknown values. This reason applies only to
+	// data resources.
+	ResourceInstanceReadBecauseConfigUnknown ResourceInstanceChangeActionReason = '?'
+
+	// ResourceInstanceReadBecauseDependencyPending indicates that the resource
+	// must be read during apply (rather than during planning) because it
+	// depends on a managed resource instance which has its own changes
+	// pending.
+	ResourceInstanceReadBecauseDependencyPending ResourceInstanceChangeActionReason = '!'
 )
 
 // OutputChange describes a change to an output value.
