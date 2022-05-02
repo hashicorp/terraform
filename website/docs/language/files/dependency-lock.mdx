@@ -366,9 +366,11 @@ this command.
 
 ### Providers that are no longer required
 
-If you remove the last dependency on a particular provider from your
-configuration, then `terraform init` will remove any existing lock file entry
-for that provider.
+To determine whether there still exists a dependency on a given provider,
+Terraform uses two sources of truth: the configuration itself, and the state.
+If you remove the last dependency on a particular provider from both your
+configuration and state, then `terraform init` will remove any existing lock
+file entry for that provider.
 
 ```diff
 --- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
