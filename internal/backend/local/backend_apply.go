@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -15,6 +16,9 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// test hook called between plan+apply during opApply
+var testHookStopPlanApply func()
 
 func (b *Local) opApply(
 	stopCtx context.Context,
@@ -87,6 +91,22 @@ func (b *Local) opApply(
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		op.View.Plan(plan, schemas)
+
+		if testHookStopPlanApply != nil {
+			testHookStopPlanApply()
+		}
+
+		// Check if we've been stopped before going through confirmation, or
+		// skipping confirmation in the case of -auto-approve.
+		// This can currently happen if a single stop request was received
+		// during the final batch of resource plan calls, so no operations were
+		// forced to abort, and no errors were returned from Plan.
+		if stopCtx.Err() != nil {
+			diags = diags.Append(errors.New("execution halted"))
+			runningOp.Result = backend.OperationFailure
+			op.ReportResult(runningOp, diags)
+			return
+		}
 
 		if mustConfirm {
 			var desc, query string
