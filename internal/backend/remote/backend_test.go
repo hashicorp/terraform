@@ -567,7 +567,7 @@ func TestRemote_VerifyWorkspaceTerraformVersion(t *testing.T) {
 		{"0.14.0", "0.14.1", true, false},
 		{"0.14.0", "1.0.99", true, false},
 		{"0.14.0", "1.1.0", true, false},
-		{"0.14.0", "1.2.0", true, true},
+		{"0.14.0", "1.3.0", true, true},
 		{"1.2.0", "1.2.99", true, false},
 		{"1.2.0", "1.3.0", true, true},
 		{"0.15.0", "latest", true, false},
