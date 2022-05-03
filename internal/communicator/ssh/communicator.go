@@ -170,20 +170,20 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 				c.connInfo.BastionHostKey != "",
 			))
 		}
-	}
 
-	if c.connInfo.ProxyHost != "" {
-		o.Output(fmt.Sprintf(
-			"Using configured proxy host...\n"+
-				"  ProxyHost: %s\n"+
-				"  ProxyPort: %d\n"+
-				"  ProxyUserName: %s\n"+
-				"  ProxyUserPassword: %t",
-			c.connInfo.ProxyHost,
-			c.connInfo.ProxyPort,
-			c.connInfo.ProxyUserName,
-			c.connInfo.ProxyUserPassword != "",
-		))
+		if c.connInfo.ProxyHost != "" {
+			o.Output(fmt.Sprintf(
+				"Using configured proxy host...\n"+
+					"  ProxyHost: %s\n"+
+					"  ProxyPort: %d\n"+
+					"  ProxyUserName: %s\n"+
+					"  ProxyUserPassword: %t",
+				c.connInfo.ProxyHost,
+				c.connInfo.ProxyPort,
+				c.connInfo.ProxyUserName,
+				c.connInfo.ProxyUserPassword != "",
+			))
+		}
 	}
 
 	hostAndPort := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
