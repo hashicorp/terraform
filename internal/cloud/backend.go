@@ -865,12 +865,12 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	// operator other than simple equality.
 	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
 		v014 := version.Must(version.NewSemver("0.14.0"))
-		v120 := version.Must(version.NewSemver("1.2.0"))
+		v130 := version.Must(version.NewSemver("1.3.0"))
 
 		// Versions from 0.14 through the early 1.x series should be compatible
-		// (though we don't know about 1.2 yet).
-		if remoteVersion.GreaterThanOrEqual(v014) && remoteVersion.LessThan(v120) {
-			early1xCompatible, err := version.NewConstraint(fmt.Sprintf(">= 0.14.0, < %s", v120.String()))
+		// (though we don't know about 1.3 yet).
+		if remoteVersion.GreaterThanOrEqual(v014) && remoteVersion.LessThan(v130) {
+			early1xCompatible, err := version.NewConstraint(fmt.Sprintf(">= 0.14.0, < %s", v130.String()))
 			if err != nil {
 				panic(err)
 			}
@@ -879,7 +879,7 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 
 		// Any future new state format will require at least a minor version
 		// increment, so x.y.* will always be compatible with each other.
-		if remoteVersion.GreaterThanOrEqual(v120) {
+		if remoteVersion.GreaterThanOrEqual(v130) {
 			rwvs := remoteVersion.Segments64()
 			if len(rwvs) >= 3 {
 				// ~> x.y.0
