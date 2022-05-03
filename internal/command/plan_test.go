@@ -575,6 +575,51 @@ func TestPlan_vars(t *testing.T) {
 	}
 }
 
+func TestPlan_varsInvalid(t *testing.T) {
+	testCases := []struct {
+		args    []string
+		wantErr string
+	}{
+		{
+			[]string{"-var", "foo"},
+			`The given -var option "foo" is not correctly specified.`,
+		},
+		{
+			[]string{"-var", "foo = bar"},
+			`Variable name "foo " is invalid due to trailing space.`,
+		},
+	}
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer testChdir(t, td)()
+
+	for _, tc := range testCases {
+		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
+			p := planVarsFixtureProvider()
+			view, done := testView(t)
+			c := &PlanCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			}
+
+			code := c.Run(tc.args)
+			output := done(t)
+			if code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
+			}
+
+			got := output.Stderr()
+			if !strings.Contains(got, tc.wantErr) {
+				t.Fatalf("bad error output, want %q, got:\n%s", tc.wantErr, got)
+			}
+		})
+	}
+}
+
 func TestPlan_varsUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
