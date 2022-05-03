@@ -1,0 +1,17 @@
+[
+  { "title": "Intro to Terraform", "href": "/intro" },
+  { "title": "Configuration Language", "href": "/language" },
+  { "title": "Terraform CLI", "href": "/cli" },
+  { "title": "Terraform Cloud", "href": "/cloud-docs" },
+  { "title": "Terraform Enterprise", "href": "/enterprise" },
+  { "title": "Provider Use", "href": "/language/providers" },
+  { "title": "Plugin Development", "href": "/plugin" },
+  { "title": "Registry Publishing", "href": "/registry" },
+  {
+    "title": "Integration Program",
+    "path": "partnerships"
+  },
+  { "title": "Terraform Tools", "path": "terraform-tools" },
+  { "title": "CDK for Terraform", "href": "/cdktf" },
+  { "title": "Glossary", "path": "glossary" }
+]
