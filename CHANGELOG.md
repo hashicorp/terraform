@@ -49,9 +49,9 @@ BUG FIXES:
 * `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. ([#30138](https://github.com/hashicorp/terraform/issues/30138))
 * The local token configuration in the `cloud` and `remote` backend now has higher priority than the token specified in a CLI configuration. ([#30664](https://github.com/hashicorp/terraform/issues/30664)) 
 * The `cloud` integration now gracefully exits when `-input=false` and an operation requires some user input.
-* The ssh client for provisioners is updated to use newer key algorithms, allowing it to connect to more recent versions of openssh servers [GH-30962]
-* A cancellation in the CLI may not be caught when using `-auto-approve`, causing unintended changes to be applied [GH-30979]
-* A provider failing to return a schema could result in a panic [GH-30987]
+* The ssh client for provisioners is updated to use newer key algorithms, allowing it to connect to more recent versions of openssh servers ([#30962](https://github.com/hashicorp/terraform/issues/30962))
+* A cancellation in the CLI may not be caught when using `-auto-approve`, causing unintended changes to be applied ([#30979](https://github.com/hashicorp/terraform/issues/30979))
+* A provider failing to return a schema could result in a panic ([#30987](https://github.com/hashicorp/terraform/issues/30987))
 
 ## Previous Releases
 
