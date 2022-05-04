@@ -51,7 +51,7 @@ BUG FIXES:
 * The `cloud` integration now gracefully exits when `-input=false` and an operation requires some user input.
 * The ssh client for provisioners is updated to use newer key algorithms, allowing it to connect to more recent versions of openssh servers [GH-30962]
 * A cancellation in the CLI may not be caught when using `-auto-approve`, causing unintended changes to be applied [GH-30979]
-* A provider failing to return a schema could result in a panic [GH-30655]
+* A provider failing to return a schema could result in a panic [GH-30987]
 
 ## Previous Releases
 
