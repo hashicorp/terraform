@@ -1,4 +1,4 @@
-## 1.2.0 (Unreleased)
+## 1.2.0-rc1 (Unreleased)
 
 UPGRADE NOTES:
 
