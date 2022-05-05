@@ -390,6 +390,20 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		//-----------------------------------------------------------
+		// Metadata
+		//-----------------------------------------------------------
+
+		"metadata": func() (cli.Command, error) {
+			return &command.MetadataCommand{}, nil
+		},
+
+		"metadata functions": func() (cli.Command, error) {
+			return &command.MetadataFunctionsCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	PrimaryCommands = []string{
