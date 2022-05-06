@@ -288,7 +288,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.scheme, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "plan", r, w)
@@ -403,7 +403,7 @@ Preparing the remote plan...
 
 const runHeader = `
 [reset][yellow]To view this run in a browser, visit:
-https://%s/app/%s/%s/runs/%s[reset]
+%s://%s/app/%s/%s/runs/%s[reset]
 `
 
 // The newline in this error is to make it look good in the CLI!
