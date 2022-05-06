@@ -34,6 +34,7 @@ import (
 
 const (
 	defaultHostname    = "app.terraform.io"
+	defaultScheme      = "https"
 	defaultParallelism = 10
 	tfeServiceID       = "tfe.v2"
 	headerSourceKey    = "X-Terraform-Integration"
@@ -62,6 +63,9 @@ type Cloud struct {
 
 	// hostname of Terraform Cloud or Terraform Enterprise
 	hostname string
+
+	// scheme of Terraform Cloud or Terraform Enterprise
+	scheme string
 
 	// organization is the organization that contains the target workspaces.
 	organization string
@@ -114,6 +118,11 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: schemaDescriptionHostname,
+			},
+			"scheme": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: schemaDescriptionScheme,
 			},
 			"organization": {
 				Type:        cty.String,
@@ -366,6 +375,14 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 		b.hostname = defaultHostname
 	}
 
+	// Get the hostname.
+	b.scheme = os.Getenv("TF_CLOUD_SCHEME")
+	if val := obj.GetAttr("scheme"); !val.IsNull() && val.AsString() != "" {
+		b.scheme = val.AsString()
+	} else if b.scheme == "" {
+		b.scheme = defaultScheme
+	}
+
 	// We can have two options, setting the organization via the config
 	// or using TF_CLOUD_ORGANIZATION. Since PrepareConfig() validates that one of these
 	// values must exist, we'll initially set it to the env var and override it if
@@ -411,6 +428,7 @@ func (b *Cloud) discover() (*url.URL, error) {
 		return nil, err
 	}
 
+	fmt.Printf("Going to fail right after this line: %#v\n", hostname)
 	host, err := b.services.Discover(hostname)
 	if err != nil {
 		return nil, err
@@ -421,6 +439,9 @@ func (b *Cloud) discover() (*url.URL, error) {
 	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
 		return nil, err
 	}
+
+	// Explicitly assign the scheme so that HTTP or HTTPS may be specified
+	service.Scheme = b.scheme
 
 	return service, err
 }
@@ -1165,6 +1186,9 @@ configuration to workspaces within a Terraform Cloud organization. Two strategie
 [bold]name[reset] - %s`, schemaDescriptionTags, schemaDescriptionName)
 
 	schemaDescriptionHostname = `The Terraform Enterprise hostname to connect to. This optional argument defaults to app.terraform.io
+for use with Terraform Cloud.`
+
+	schemaDescriptionScheme = `The scheme to connect to Terraform Enterprise with. This optional argument defaults to https
 for use with Terraform Cloud.`
 
 	schemaDescriptionOrganization = `The name of the organization containing the targeted workspace(s).`
