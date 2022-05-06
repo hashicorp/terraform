@@ -257,9 +257,17 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
+	scheme := "https"
+	if val := obj.GetAttr("scheme"); !val.IsNull() {
+		scheme = val.AsString()
+	}
+	if !strings.HasSuffix(scheme, "://") {
+		scheme = scheme + "://"
+	}
+
 	if b.client == nil {
 		cfg := &tfe.Config{
-			Address:      service.String(),
+			Address:      fmt.Sprintf("%s%s", scheme, service.Hostname()),
 			BasePath:     service.Path,
 			Token:        token,
 			Headers:      make(http.Header),
