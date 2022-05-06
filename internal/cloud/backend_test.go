@@ -228,12 +228,14 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		vars                  map[string]string
 		expectedOrganization  string
 		expectedHostname      string
+		expectedScheme        string
 		expectedWorkspaceName string
 		expectedErr           string
 	}{
 		"with no organization specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -249,6 +251,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		"with both organization and env var specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -264,6 +267,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		"with no hostname specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -279,6 +283,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		"with hostname and env var specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.StringVal("private.hashicorp.engineering"),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -291,9 +296,26 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			},
 			expectedHostname: "private.hashicorp.engineering",
 		},
+		"with scheme and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.StringVal("http"),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_SCHEME": "https",
+			},
+			expectedScheme: "http",
+		},
 		"an invalid workspace env var": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.NullVal(cty.Object(map[string]cty.Type{
@@ -309,6 +331,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		"workspaces and env var specified": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("mordor"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -333,6 +356,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			},
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("mordor"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -364,6 +388,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			},
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("mordor"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -381,6 +406,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		"with everything set as env vars": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.NullVal(cty.String),
 				"workspaces":   cty.NullVal(cty.String),
@@ -389,10 +415,12 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"TF_CLOUD_ORGANIZATION": "mordor",
 				"TF_WORKSPACE":          "mt-doom",
 				"TF_CLOUD_HOSTNAME":     "mycool.tfe-host.io",
+				"TF_CLOUD_SCHEME":       "http",
 			},
 			expectedOrganization:  "mordor",
 			expectedWorkspaceName: "mt-doom",
 			expectedHostname:      "mycool.tfe-host.io",
+			expectedScheme:        "http",
 		},
 	}
 
@@ -434,6 +462,10 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
 			}
 
+			if tc.expectedScheme != "" && tc.expectedScheme != b.scheme {
+				t.Fatalf("%s: scheme not valid: %s, expected: %s", name, b.scheme, tc.expectedScheme)
+			}
+
 			if tc.expectedWorkspaceName != "" && tc.expectedWorkspaceName != b.WorkspaceMapping.Name {
 				t.Fatalf("%s: workspace name not valid: %s, expected: %s", name, b.WorkspaceMapping.Name, tc.expectedWorkspaceName)
 			}
@@ -450,6 +482,7 @@ func TestCloud_config(t *testing.T) {
 		"with_an_unknown_host": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.StringVal("nonexisting.local"),
+				"scheme":       cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -463,6 +496,7 @@ func TestCloud_config(t *testing.T) {
 		"without_a_token": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.StringVal("localhost"),
+				"scheme":       cty.StringVal("http"),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -475,6 +509,7 @@ func TestCloud_config(t *testing.T) {
 		"with_tags": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -490,6 +525,7 @@ func TestCloud_config(t *testing.T) {
 		"with_a_name": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -501,6 +537,7 @@ func TestCloud_config(t *testing.T) {
 		"without_a_name_tags": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -513,6 +550,7 @@ func TestCloud_config(t *testing.T) {
 		"with_both_a_name_and_tags": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -554,6 +592,7 @@ func TestCloud_config(t *testing.T) {
 func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 	config := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -590,6 +629,7 @@ func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 func TestCloud_configVerifyMinimumTFEVersionInAutomation(t *testing.T) {
 	config := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -633,6 +673,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 
 	config := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -683,6 +724,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 	cases := map[string]struct {
 		obj                   cty.Value
 		expectedHostname      string
+		expectedScheme        string
 		expectedOrganziation  string
 		expectedWorkspaceName string
 		expectedWorkspaceTags []string
@@ -695,36 +737,42 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
+				"scheme":       cty.StringVal("https"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.StringVal("prod"),
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
 			expectedHostname:     "hashicorp.com",
+			expectedScheme:       "https",
 			expectedOrganziation: "hashicorp",
 		},
-		"with hostname not set, set to default hostname": {
+		"with hostname and scheme not set, set to default hostname and scheme": {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.NullVal(cty.String),
+				"scheme":       cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.StringVal("prod"),
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
 			expectedHostname:     defaultHostname,
+			expectedScheme:       defaultScheme,
 			expectedOrganziation: "hashicorp",
 		},
 		"with workspace name set": {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
+				"scheme":       cty.StringVal("https"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.StringVal("prod"),
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
 			expectedHostname:      "hashicorp.com",
+			expectedScheme:        "hashicorp.com",
 			expectedOrganziation:  "hashicorp",
 			expectedWorkspaceName: "prod",
 		},
@@ -732,6 +780,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
+				"scheme":       cty.StringVal("https"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.NullVal(cty.String),
 					"tags": cty.SetVal(
@@ -742,6 +791,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 				}),
 			}),
 			expectedHostname:      "hashicorp.com",
+			expectedScheme:        "https",
 			expectedOrganziation:  "hashicorp",
 			expectedWorkspaceTags: []string{"billing"},
 		},
@@ -749,12 +799,14 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
+				"scheme":       cty.StringVal("https"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
 					"name": cty.NullVal(cty.String),
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
 			expectedHostname:     "hashicorp.com",
+			expectedScheme:       "https",
 			expectedOrganziation: "hashicorp",
 			setEnv: func() {
 				os.Setenv("TF_FORCE_LOCAL_BACKEND", "1")
@@ -785,6 +837,9 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 
 		if tc.expectedHostname != "" && b.hostname != tc.expectedHostname {
 			t.Fatalf("%s: expected hostname %s to match configured hostname %s", name, b.hostname, tc.expectedHostname)
+		}
+		if tc.expectedScheme != "" && b.scheme != tc.expectedScheme {
+			t.Fatalf("%s: expected scheme %s to match configured scheme %s", name, b.scheme, tc.expectedScheme)
 		}
 		if tc.expectedOrganziation != "" && b.organization != tc.expectedOrganziation {
 			t.Fatalf("%s: expected organization (%s) to match configured organization (%s)", name, b.organization, tc.expectedOrganziation)

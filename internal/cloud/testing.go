@@ -68,6 +68,7 @@ func testInput(t *testing.T, answers map[string]string) *mockInput {
 func testBackendWithName(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -81,6 +82,7 @@ func testBackendWithName(t *testing.T) (*Cloud, func()) {
 func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -98,6 +100,7 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
+		"scheme":       cty.NullVal(cty.String),
 		"organization": cty.StringVal("no-operations"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
