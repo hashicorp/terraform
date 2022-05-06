@@ -66,7 +66,7 @@ This special behavior can be useful for modules that accept optional input
 variables whose default value is `null` to represent the absence of any value. This allows the module to adapt the variable value for Terraform language features designed to work with collections. For example:
 
 ```
-variable "website" {
+variable "website_setting" {
   type = object({
     index_document = string
     error_document = string
@@ -78,7 +78,7 @@ resource "aws_s3_bucket" "example" {
   # ...
 
   dynamic "website" {
-    for_each = var.website[*]
+    for_each = var.website_setting[*]
     content {
       index_document = website.value.index_document
       error_document = website.value.error_document
