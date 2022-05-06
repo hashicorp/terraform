@@ -428,8 +428,15 @@ func (b *Cloud) discover() (*url.URL, error) {
 		return nil, err
 	}
 
-	fmt.Printf("Going to fail right after this line: %#v\n", hostname)
-	host, err := b.services.Discover(hostname)
+	var host *disco.Host
+	switch b.scheme {
+	case "https":
+		host, err = b.services.Discover(hostname)
+	case "http":
+		host, err = b.services.DiscoverHTTP(hostname)
+	default:
+		err = fmt.Errorf("unsupported scheme %q provided", b.scheme)
+	}
 	if err != nil {
 		return nil, err
 	}
