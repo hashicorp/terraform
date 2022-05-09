@@ -1,5 +1,8 @@
 ## 1.3.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* Terraform will now show a slightly different note in the plan output if a data resource read is deferred to the apply step due to it depending on a managed resource that has changes pending. [GH-30971]
 
 ## Previous Releases
 
