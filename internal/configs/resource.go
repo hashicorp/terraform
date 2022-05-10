@@ -89,6 +89,12 @@ func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 	}
 }
 
+// HasCustomConditions returns true if and only if the resource has at least
+// one author-specified custom condition.
+func (r *Resource) HasCustomConditions() bool {
+	return len(r.Postconditions) != 0 || len(r.Preconditions) != 0
+}
+
 func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{

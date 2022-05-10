@@ -92,11 +92,13 @@ The `lifecycle` block inside a `resource` or `data` block can include both `prec
 - Terraform evaluates `precondition` blocks after evaluating existing `count` and `for_each` arguments. This lets Terraform evaluate the precondition separately for each instance and then make `each.key`, `count.index`, etc. available to those conditions. Terraform also evaluates preconditions before evaluating the resource's configuration arguments. Preconditions can take precedence over argument evaluation errors.
 - Terraform evaluates `postcondition` blocks after planning and applying changes to a managed resource, or after reading from a data source. Postcondition failures prevent changes to other resources that depend on the failing resource.
 
+In most cases, we do not recommend including both a `data` block and a `resource` block that both represent the same object in the same configuration. Doing so can prevent Terraform from understanding that the `data` block result can be affected by changes in the `resource` block. However, when you need to check a result of a `resource` block that the resource itself does not directly export, you can use a `data` block to check that object safely as long as you place the check as a direct `postcondition` of the `data` block. This tells Terraform that the `data` block is serving as a check of an object defined elsewhere, allowing Terraform to perform actions in the correct order.
+
 #### Outputs
 
 An `output` block can include a `precondition`  block.
 
-Preconditions can serve a symmetrical purpose to input variable `validation` blocks. Whereas input variable validation checks assumptions the module makes about its inputs, preconditions check guarantees that the module makes about its outputs. You can use preconditions to prevent Terraform from saving an invalid new output value in the state. You can also use them to preserve the output value from the previous apply, if applicable.
+Preconditions can serve a symmetrical purpose to input variable `validation` blocks. Whereas input variable validation checks assumptions the module makes about its inputs, preconditions check guarantees that the module makes about its outputs. You can use preconditions to prevent Terraform from saving an invalid new output value in the state. You can also use them to preserve a valid output value from the previous apply, if applicable.
 
 Terraform evaluates output value preconditions before evaluating the `value` expression to finalize the result. Preconditions can take precedence over potential errors in the `value` expression.
 
@@ -144,16 +146,23 @@ data "aws_ebs_volume" "example" {
     name = "volume-id"
     values = [aws_instance.example.root_block_device.volume_id]
   }
+
+  # Whenever a data resource is verifying the result of a managed resource
+  # declared in the same configuration, you MUST write the checks as
+  # postconditions of the data resource. This ensures Terraform will wait
+  # to read the data resource until after any changes to the managed resource
+  # have completed.
+  lifecycle {
+    # The EC2 instance will have an encrypted root volume.
+    postcondition {
+      condition     = self.encrypted
+      error_message = "The server's root volume is not encrypted."
+    }
+  }
 }
 
 output "api_base_url" {
   value = "https://${aws_instance.example.private_dns}:8433/"
-
-  # The EC2 instance will have an encrypted root volume.
-  precondition {
-    condition     = data.aws_ebs_volume.example.encrypted
-    error_message = "The server's root volume is not encrypted."
-  }
 }
 ```
 
