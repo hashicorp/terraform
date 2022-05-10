@@ -1137,7 +1137,7 @@ func (m *ModuleState) View(id string) *ModuleState {
 	}
 
 	r := m.deepcopy()
-	for k, _ := range r.Resources {
+	for k := range r.Resources {
 		if id == k || strings.HasPrefix(k, id+".") {
 			continue
 		}
@@ -1224,7 +1224,7 @@ func (m *ModuleState) String() string {
 	}
 
 	names := make([]string, 0, len(m.Resources))
-	for name, _ := range m.Resources {
+	for name := range m.Resources {
 		names = append(names, name)
 	}
 
