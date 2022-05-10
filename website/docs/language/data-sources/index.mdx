@@ -78,18 +78,23 @@ in more detail in the following sections.
 
 ## Data Resource Behavior
 
-If the query constraint arguments for a data resource refer only to constant
-values or values that are already known, the data resource will be read and its
-state updated during Terraform's "refresh" phase, which runs prior to creating a plan.
-This ensures that the retrieved data is available for use during planning and
-so Terraform's plan will show the actual values obtained.
+Terraform reads data resources during the planning phase when possible, but
+announces in the plan when it must defer reading resources until the apply
+phase to preserve the order of operations. Terraform defers reading data
+resources in the following situations:
+* At least one of the given arguments is a managed resource attribute or
+  other value that Terraform cannot predict until the apply step.
+* The data resource depends directly on a managed resource that itself has
+  planned changes in the current plan.
+* The data resource has
+  [custom conditions](#custom-condition-checks)
+  and it depends directly or indirectly on a managed resource that itself
+  has planned changes in the current plan.
 
-Query constraint arguments may refer to values that cannot be determined until
-after configuration is applied, such as the id of a managed resource that has
-not been created yet. In this case, reading from the data source is deferred
-until the apply phase, and any references to the results of the data resource
-elsewhere in configuration will themselves be unknown until after the
-configuration has been applied.
+Refer to [Data Resource Dependencies](#data-resource-dependencies) for details
+on what it means for a data resource to depend on other objects. Any resulting
+attribute of such a data resource will be unknown during planning, so it cannot
+be used in situations where values must be fully known.
 
 ## Local-only Data Sources
 
@@ -118,7 +123,9 @@ In order to ensure that data sources are accessing the most up to date
 information possible in a wide variety of use cases, arguments directly
 referencing managed resources are treated the same as if the resource was
 listed in `depends_on`. This behavior can be avoided when desired by indirectly
-referencing the managed resource values through a `local` value.
+referencing the managed resource values through a `local` value, unless the
+data resource itself has
+[custom conditions](#custom-condition-checks).
 
 ~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
