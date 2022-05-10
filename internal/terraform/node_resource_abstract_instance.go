@@ -1601,7 +1601,20 @@ func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalCo
 	// changes, since they won't show up as changes in the
 	// configuration.
 	changes := ctx.Changes()
-	for _, d := range n.dependsOn {
+
+	depsToUse := n.dependsOn
+
+	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		if n.Config.HasCustomConditions() {
+			// For a data resource with custom conditions we need to look at
+			// the full set of resource dependencies -- both direct and
+			// indirect -- because an upstream update might be what's needed
+			// in order to make a condition pass.
+			depsToUse = n.Dependencies
+		}
+	}
+
+	for _, d := range depsToUse {
 		if d.Resource.Mode == addrs.DataResourceMode {
 			// Data sources have no external side effects, so they pose a need
 			// to delay this read. If they do have a change planned, it must be
