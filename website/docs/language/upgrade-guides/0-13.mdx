@@ -54,7 +54,8 @@ upgrade process.
 For this upgrade in particular, completing the upgrade will require running
 `terraform apply` with Terraform 0.13 after upgrading in order to apply some
 upgrades to the Terraform state, and we recommend doing that with no other
-changes pending.
+changes pending. If using Terraform Cloud, you can follow the
+[speculative plan upgrade process](/cloud-docs/run/ui#upgrading-terraform-using-speculative-plans).
 
 ## Explicit Provider Source Locations
 
