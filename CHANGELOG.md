@@ -26,7 +26,7 @@ ENHANCEMENTS:
 * Error messages for preconditions, postconditions, and custom variable validations are now evaluated as expressions, allowing interpolation of relevant values into the output. ([#30613](https://github.com/hashicorp/terraform/issues/30613))
 * There are some small improvements to the error and warning messages Terraform will emit in the case of invalid provider configuration passing between modules. There are no changes to which situations will produce errors and warnings, but the messages now include additional information intended to clarify what problem Terraform is describing and how to address it. ([#30639](https://github.com/hashicorp/terraform/issues/30639))
 * When running `terraform plan`, only show external changes which may have contributed to the current plan ([#30486](https://github.com/hashicorp/terraform/issues/30486))
-* Terraform will now show a slightly different note in the plan output if a data resource read is deferred to the apply step due to it depending on a managed resource that has changes pending. [GH-30971]
+* Terraform will now show a slightly different note in the plan output if a data resource read is deferred to the apply step due to it depending on a managed resource that has changes pending. ([#30971](https://github.com/hashicorp/terraform/issues/30971))
 * Add `TF_CLOUD_ORGANIZATION` environment variable fallback for `organization` in the cloud configuration
 * Add `TF_CLOUD_HOSTNAME` environment variable fallback for `hostname` in the cloud configuration
 * `TF_WORKSPACE` can now be used to configure the `workspaces` attribute in your cloud configuration
