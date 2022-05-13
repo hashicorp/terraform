@@ -110,8 +110,11 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 			// and not by the operator directly. In such a case, the failing secret value should not be
 			// displayed to the operator
 			if cfg.Sensitive {
-				subject = nil
-				detail += fmt.Sprintf("\n\n%s is marked as sensitive. Invalid value defined at %s.", addr, sourceRange.ToHCL())
+				detail = fmt.Sprintf(
+					"The given value is not suitable for %s, which is sensitive: %s. Invalid value defined at %s.",
+					addr, err, sourceRange.ToHCL(),
+				)
+				subject = cfg.DeclRange.Ptr()
 			}
 		}
 

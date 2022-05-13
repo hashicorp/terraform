@@ -590,13 +590,11 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			{
 				ValueFromConfig,
 				tfdiags.SourceRange{
-					Filename: "example.tf",
+					Filename: "example.tfvars",
 					Start:    tfdiags.SourcePos(hcl.InitialPos),
 					End:      tfdiags.SourcePos(hcl.InitialPos),
 				},
-				`Invalid value for input variable: The given value is not suitable for var.constrained_string_sensitive_required declared at main.tf:46,3-51: string required.
-
-var.constrained_string_sensitive_required is marked as sensitive. Invalid value defined at example.tf:1,1-1.`,
+				`Invalid value for input variable: The given value is not suitable for var.constrained_string_sensitive_required, which is sensitive: string required. Invalid value defined at example.tfvars:1,1-1.`,
 				true,
 			},
 		}
@@ -623,8 +621,10 @@ var.constrained_string_sensitive_required is marked as sensitive. Invalid value 
 						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, want)
 					}
 
-					if test.HideSubject != (diags[0].Source().Subject == nil) {
-						t.Errorf("Subject (code context) should have been masked\ngot:  %v", diags[0].Source().Subject)
+					if test.HideSubject {
+						if got, want := diags[0].Source().Subject.StartString(), test.SourceRange.StartString(); got == want {
+							t.Errorf("Subject start should have been hidden, but was %s", got)
+						}
 					}
 				})
 			})
