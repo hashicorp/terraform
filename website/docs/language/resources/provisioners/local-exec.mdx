@@ -57,6 +57,12 @@ The following arguments are supported:
 * `environment` - (Optional) block of key value pairs representing the
   environment of the executed command. inherits the current process environment.
 
+* `when` - (Optional) If provided, specifies the timing when the command will
+  be executed. If `when = destroy` is specified, the provisioner will run when
+  the resource it is defined within is destroyed. See
+  [Destroy-Time Provisioners](/language/resources/provisioners/syntax#destroy-time-provisioners)
+  for more details.
+
 ### Interpreter Examples
 
 ```hcl
