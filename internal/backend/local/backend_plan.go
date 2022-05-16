@@ -97,6 +97,21 @@ func (b *Local) opPlan(
 
 	diags = diags.Append(planDiags)
 	if planDiags.HasErrors() {
+		// We'll make a best effort to render a partial plan Terraform Core
+		// generated, if any. Terraform Core guarantees that if it returns
+		// a non-nil plan along with errors then the plan won't necessarily
+		// contain all of the needed actions but that any it does include
+		// will be properly-formed.
+		if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
+			schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+			// If schema loading returns errors then we'll just give up and
+			// ignore them to avoid distracting from the plan-time errors we're
+			// mainly trying to report here.
+			if !moreDiags.HasErrors() {
+				op.View.FailedPlan(plan, schemas)
+			}
+		}
+
 		op.ReportResult(runningOp, diags)
 		return
 	}

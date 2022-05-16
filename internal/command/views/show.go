@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
@@ -40,7 +41,7 @@ var _ Show = (*ShowHuman)(nil)
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	if plan != nil {
-		renderPlan(plan, schemas, v.view)
+		renderPlan(plan, schemas, true, v.view)
 	} else {
 		if stateFile == nil {
 			v.view.streams.Println("No state.")

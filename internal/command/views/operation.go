@@ -25,6 +25,7 @@ type Operation interface {
 
 	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	Plan(plan *plans.Plan, schemas *terraform.Schemas)
+	FailedPlan(plan *plans.Plan, schemas *terraform.Schemas)
 	PlanNextStep(planPath string)
 
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -86,7 +87,11 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	renderPlan(plan, schemas, v.view)
+	renderPlan(plan, schemas, true, v.view)
+}
+
+func (v *OperationHuman) FailedPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+	renderPlan(plan, schemas, false, v.view)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -207,6 +212,47 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 	if len(rootModuleOutputs) > 0 {
 		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
 	}
+}
+
+// Similar to Plan but only includes the "planned" messages, and not the
+// summary which would be misleading because the given plan is probably
+// incomplete.
+func (v *OperationJSON) FailedPlan(plan *plans.Plan, schemas *terraform.Schemas) {
+	for _, dr := range plan.DriftedResources {
+		// In refresh-only mode, we output all resources marked as drifted,
+		// including those which have moved without other changes. In other plan
+		// modes, move-only changes will be included in the planned changes, so
+		// we skip them here.
+		if dr.Action != plans.NoOp || plan.UIMode == plans.RefreshOnlyMode {
+			v.view.ResourceDrift(json.NewResourceInstanceChange(dr))
+		}
+	}
+
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.Delete && change.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+			// Avoid rendering data sources on deletion
+			continue
+		}
+
+		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) {
+			v.view.PlannedChange(json.NewResourceInstanceChange(change))
+		}
+	}
+
+	var rootModuleOutputs []*plans.OutputChangeSrc
+	for _, output := range plan.Changes.Outputs {
+		if !output.Addr.Module.IsRoot() {
+			continue
+		}
+		rootModuleOutputs = append(rootModuleOutputs, output)
+	}
+	if len(rootModuleOutputs) > 0 {
+		v.view.Outputs(json.OutputsFromChanges(rootModuleOutputs))
+	}
+
+	// We'll also explicitly indicate that the plan failed, as a substitute
+	// for the "change summary" we'd normally generate in the successful case.
+	v.view.PlanFailed()
 }
 
 func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {

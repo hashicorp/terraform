@@ -103,6 +103,13 @@ func (v *JSONView) ResourceDrift(c *json.ResourceInstanceChange) {
 	)
 }
 
+func (v *JSONView) PlanFailed() {
+	v.log.Info(
+		"Planning failed",
+		"type", json.MessagePlanErrored,
+	)
+}
+
 func (v *JSONView) ChangeSummary(cs *json.ChangeSummary) {
 	v.log.Info(
 		cs.String(),

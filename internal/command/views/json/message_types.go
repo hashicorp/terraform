@@ -12,6 +12,7 @@ const (
 	MessageResourceDrift MessageType = "resource_drift"
 	MessagePlannedChange MessageType = "planned_change"
 	MessageChangeSummary MessageType = "change_summary"
+	MessagePlanErrored   MessageType = "plan_errored"
 	MessageOutputs       MessageType = "outputs"
 
 	// Hook-driven messages

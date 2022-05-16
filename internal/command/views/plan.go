@@ -99,7 +99,7 @@ func (v *PlanJSON) HelpPrompt() {
 
 // The plan renderer is used by the Operation view (for plan and apply
 // commands) and the Show view (for the show command).
-func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
+func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, succeeded bool, view *View) {
 	haveRefreshChanges := renderChangesDetectedByRefresh(plan, schemas, view)
 
 	counts := map[plans.Action]int{}
@@ -136,6 +136,14 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
 		// that we already would've presented above.
+
+		if !succeeded {
+			// If the plan operation didn't succeed then we don't have enough
+			// information to confidently assert that there are no changes:
+			// we know only that we didn't find any changes before we
+			// encountered an error.
+			return
+		}
 
 		switch plan.UIMode {
 		case plans.RefreshOnlyMode:
@@ -244,7 +252,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	}
 
 	if len(rChanges) > 0 {
-		view.streams.Printf("\nTerraform will perform the following actions:\n\n")
+		if succeeded {
+			view.streams.Printf("\nTerraform will perform the following actions:\n\n")
+		} else {
+			view.streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n\n")
+		}
 
 		// Note: we're modifying the backing slice of this plan object in-place
 		// here. The ordering of resource changes in a plan is not significant,
@@ -298,10 +310,15 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 				stats[change.Action]++
 			}
 		}
-		view.streams.Printf(
-			view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
-			stats[plans.Create], stats[plans.Update], stats[plans.Delete],
-		)
+		if succeeded {
+			// We skip showing the summary if we didn't succeed because it
+			// could be misleading to show only a partial tally of what
+			// we were able to plan before encountering an error.
+			view.streams.Printf(
+				view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+				stats[plans.Create], stats[plans.Update], stats[plans.Delete],
+			)
+		}
 	}
 
 	// If there is at least one planned change to the root module outputs
@@ -312,7 +329,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 				format.OutputChanges(changedRootModuleOutputs, view.colorize),
 		)
 
-		if len(counts) == 0 {
+		if succeeded && len(counts) == 0 {
 			// If we have output changes but not resource changes then we
 			// won't have output any indication about the changes at all yet,
 			// so we need some extra context about what it would mean to
