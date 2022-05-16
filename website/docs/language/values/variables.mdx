@@ -194,7 +194,7 @@ values in cleartext. For more information, see
 
 Declare a variable as sensitive by setting the `sensitive` argument to `true`:
 
-```
+```hcl
 variable "user_information" {
   type = object({
     name    = string
@@ -283,7 +283,7 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 The `nullable` argument in a variable block controls whether the module caller
 may assign the value `null` to the variable.
 
-```
+```hcl
 variable "example" {
   type     = string
   nullable = false
