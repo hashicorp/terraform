@@ -129,7 +129,7 @@ resource "aws_instance" "example" {
 
     # The EC2 instance must be allocated a public DNS hostname.
     postcondition {
-      condition    = self.public_dns != ""
+      condition     = self.public_dns != ""
       error_message = "EC2 instance must be in a VPC that has public DNS hostnames enabled."
     }
   }
