@@ -109,7 +109,7 @@ The following example shows use cases for preconditions and postconditions. The 
 - **The AMI ID must refer to an AMI that contains an operating system for the
 `x86_64` architecture.** The precondition would detect if the caller accidentally built an AMI for a different architecture, which may not be able to run the software this virtual machine is intended to host.
 
-- **The EC2 instance must be allocated a private DNS hostname.** In Amazon Web Services, EC2 instances are assigned private DNS hostnames only if they belong to a virtual network configured in a certain way. The postcondition would detect if the selected virtual network is not configured correctly, prompting the user to debug the network settings.
+- **The EC2 instance must be allocated a public DNS hostname.** In Amazon Web Services, EC2 instances are assigned public DNS hostnames only if they belong to a virtual network configured in a certain way. The postcondition would detect if the selected virtual network is not configured correctly, prompting the user to debug the network settings.
 
 - **The EC2 instance will have an encrypted root volume.** The precondition ensures that the root volume is encrypted, even though the software running in this EC2 instance would probably still operate as expected on an unencrypted volume. This lets Terraform produce an error immediately, before any other components rely on the new EC2 instance.
 
@@ -127,10 +127,10 @@ resource "aws_instance" "example" {
       error_message = "The selected AMI must be for the x86_64 architecture."
     }
 
-    # The EC2 instance must be allocated a private DNS hostname.
+    # The EC2 instance must be allocated a public DNS hostname.
     postcondition {
-      condition     = self.private_dns != ""
-      error_message = "EC2 instance must be in a VPC that has private DNS hostnames enabled."
+      condition     = self.public_dns != ""
+      error_message = "EC2 instance must be in a VPC that has public DNS hostnames enabled."
     }
   }
 }
