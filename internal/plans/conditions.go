@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -27,6 +28,39 @@ type ConditionResult struct {
 
 func NewConditions() Conditions {
 	return make(Conditions)
+}
+
+// CheckStates returns the state-oriented representation of the condition
+// results, ready to be written into an updated state.
+//
+// The result should entirely replace any previously-recorded check states,
+// rather than attempting any sort of merging, to ensure that checks which
+// were removed from the configuration or excluded from the run will not
+// hang around with misleading stale results.
+func (c Conditions) CheckStates() []states.Check {
+	if len(c) == 0 {
+		return nil
+	}
+
+	ret := make([]states.Check, 0, len(c))
+	for _, result := range c {
+		cs := states.Check{}
+		cs.Object = result.Address
+		cs.ErrorMessage = result.ErrorMessage
+		switch result.Result {
+		case cty.True:
+			cs.Status = states.CheckPassed
+		case cty.False:
+			cs.Status = states.CheckFailed
+		default:
+			// NOTE: If Result is populated with any unexpected value beyond
+			// the three described in the Conditions docs, we'll treat it
+			// just as pending as a placeholder.
+			cs.Status = states.CheckPending
+		}
+		ret = append(ret, cs)
+	}
+	return ret
 }
 
 func (c Conditions) SyncWrapper() *ConditionsSync {

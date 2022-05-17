@@ -75,8 +75,11 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 
 	case walkPlan, walkPlanDestroy:
 		state = inputState.DeepCopy().SyncWrapper()
-		refreshState = inputState.DeepCopy().SyncWrapper()
 		prevRunState = inputState.DeepCopy().SyncWrapper()
+
+		refreshStateDirect := inputState.DeepCopy()
+		refreshStateDirect.Checks = nil // this should be updated after planning
+		refreshState = refreshStateDirect.SyncWrapper()
 
 	default:
 		state = inputState.DeepCopy().SyncWrapper()

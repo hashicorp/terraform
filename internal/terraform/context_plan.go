@@ -535,6 +535,8 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	priorState := walker.RefreshState.Close()
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
+	priorState.Checks = conditions.CheckStates()
+	log.Printf("conditions %#v", priorState.Checks)
 
 	plan := &plans.Plan{
 		UIMode:           opts.Mode,

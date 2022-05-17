@@ -50,6 +50,10 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		newState.PruneResourceHusks()
 	}
 
+	// Update the state's record of the conditions based on what we learned
+	// during apply.
+	newState.Checks = plan.Conditions.CheckStates()
+
 	if len(plan.TargetAddrs) > 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
