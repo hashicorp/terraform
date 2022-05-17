@@ -1097,6 +1097,10 @@
     "routes": [
       { "title": "Overview", "path": "upgrade-guides" },
       {
+        "title": "Upgrading to Terraform v1.2",
+        "path": "upgrade-guides/1-2"
+      },
+      {
         "title": "Upgrading to Terraform v1.1",
         "path": "upgrade-guides/1-1"
       },

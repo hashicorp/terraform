@@ -1,0 +1,59 @@
+---
+page_title: Upgrading to Terraform v1.2
+description: Upgrading to Terraform v1.2
+---
+
+# Upgrading to Terraform v1.2
+
+Terraform v1.2 is a minor release in the stable Terraform v1.0 series, and so
+this release should not require any unusual upgrade steps for most users.
+
+Terraform v1.2 continues to honor
+[the Terraform v1.0 Compatibility Promises](/language/v1-compatibility-promises),
+but there are some behavior changes outside of those promises that may affect a
+small number of users, described in the following sections.
+
+* [Terraform requires Linux kernel 2.6.32 or later](#terraform-requires-linux-kernel-2-6-32-or-later)
+* [Remote servers must support TLSv1.2](#remote-servers-must-support-tlsv1-2)
+* [TLS Certificates signed with SHA-1 are no longer supported](#tls-certificates-signed-with-sha-1-are-no-longer-supported)
+* [terraform-credentials-env functionality is now built into the Terraform CLI](#terraform-credentials-env-functionality-is-now-built-into-the-terraform-cli)
+
+## Terraform requires Linux kernel 2.6.32 or later
+
+The runtime which Terraform uses no longer supports Linux kernels prior to
+2.6.32. With that in mind, the official releases of Terraform v1.2 for Linux
+require distributions using kernel 2.6.32 or later. The CLI behavior on earlier
+kernel versions is undefined.
+
+## Remote servers must support TLSv1.2
+
+When making outgoing HTTPS or other TLS connections as a client, Terraform now
+requires the server to support TLS v1.2. TLS v1.0 and v1.1 are no longer
+supported. Any safely up-to-date server should support TLS 1.2, and mainstream
+web browsers have required it since 2020.
+
+## TLS Certificates signed with SHA-1 are no longer supported
+
+When making outgoing HTTPS or other TLS connections as a client, Terraform will
+no longer accept CA certificates signed using the SHA-1 hash function. Publicly
+trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
+
+## terraform-credentials-env functionality is now built into the Terraform CLI
+
+If you use the [third-party credentials helper plugin terraform-credentials-env](https://github.com/apparentlymart/terraform-credentials-env),
+you should disable it as part of upgrading to Terraform v1.2 because similar
+functionality is now built in to Terraform itself.
+
+The new behavior supports the same environment variable naming scheme but has a
+difference in priority order from the credentials helper: `TF_TOKEN_...`
+environment variables will now take priority over credentials blocks in CLI
+configuration and credentials stored automatically by terraform login, which is
+not true for credentials provided by any credentials helper plugin. If you see
+Terraform using different credentials after upgrading, check to make sure you
+do not specify credentials for the same host in multiple locations.
+
+If you use the credentials helper in conjunction with the
+[hashicorp/tfe](https://registry.terraform.io/providers/hashicorp/tfe)
+Terraform provider to manage Terraform Cloud or Terraform Enterprise objects
+with Terraform, you should also upgrade to version 0.31 of that provider, which
+added the corresponding built-in support for these environment variables.
