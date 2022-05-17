@@ -1,6 +1,12 @@
 package addrs
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 // Check is the address of a check rule within a checkable object.
 //
@@ -82,5 +88,92 @@ func (c CheckType) Description() string {
 	default:
 		// This should not happen
 		return "Condition"
+	}
+}
+
+func ParseCheckableStr(raw string) (Checkable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, hclDiags := hclsyntax.ParseTraversalAbs([]byte(raw), "", hcl.InitialPos)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
+	}
+
+	path, remain, moreDiags := parseModuleInstancePrefix(traversal)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	if len(remain) < 2 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address operator",
+			Detail:   "A checkable object address must have at least two more segments after the module path.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return nil, diags
+	}
+
+	switch first := remain[0].(type) {
+	case hcl.TraverseRoot:
+		switch first.Name {
+		case "output":
+			if len(remain) > 2 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid address operator",
+					Detail:   "The address for an output value must include only one more attribute after the 'output' keyword, specifying the output value name.",
+					Subject:  remain.SourceRange().Ptr(),
+				})
+				return nil, diags
+			}
+			nameStep, ok := remain[1].(hcl.TraverseAttr)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid address operator",
+					Detail:   "The address for an output value must specify the output value name using attribute syntax.",
+					Subject:  remain[1].SourceRange().Ptr(),
+				})
+				return nil, diags
+			}
+			return AbsOutputValue{
+				Module: path,
+				OutputValue: OutputValue{
+					Name: nameStep.Name,
+				},
+			}, diags
+
+		case "check":
+			// This is reserved to allow us to potentially have top-level "check"
+			// blocks later, which serve as general assertions not attached
+			// to any particular other object.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid address operator",
+				Detail:   "The name 'check' in this context is reserved for a future Terraform language feature.",
+				Subject:  first.SourceRange().Ptr(),
+			})
+			return nil, diags
+
+		default:
+			riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				return nil, diags
+			}
+			return riAddr, diags
+		}
+
+	default:
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid address operator",
+			Detail:   "A checkable object address must have an attribute after the module path indicating the checkable object type.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return nil, diags
 	}
 }

@@ -252,7 +252,37 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
-	// The root module is special in that we persist its attributes and thus
+	for _, csV4 := range sV4.Checks {
+		checkState := states.Check{}
+		checkState.ErrorMessage = csV4.ErrorMessage
+
+		objectAddr, moreDiags := addrs.ParseCheckableStr(csV4.Object)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			continue
+		}
+		checkState.Object = objectAddr
+
+		switch csV4.Status {
+		case "passed":
+			checkState.Status = states.CheckPassed
+		case "failed":
+			checkState.Status = states.CheckFailed
+		case "pending":
+			checkState.Status = states.CheckPending
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid check status in state",
+				fmt.Sprintf("Check for %s has invalid status %q.", objectAddr, csV4.Status),
+			))
+			continue
+		}
+
+		state.Checks = append(state.Checks, checkState)
+	}
+
+	// The root module is special in that we persist its output values and thus
 	// need to reload them now. (For descendent modules we just re-calculate
 	// them based on the latest configuration on each run.)
 	{
@@ -402,6 +432,29 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		}
 	}
 
+	for _, cs := range file.State.Checks {
+		csV4 := checkStateV4{
+			ErrorMessage: cs.ErrorMessage,
+			Object:       cs.Object.String(),
+		}
+		switch cs.Status {
+		case states.CheckPassed:
+			csV4.Status = "passed"
+		case states.CheckFailed:
+			csV4.Status = "failed"
+		case states.CheckPending:
+			csV4.Status = "pending"
+		default:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to serialize check in state",
+				fmt.Sprintf("Check for %s has status %s, which cannot be serialized in state", csV4.Object, cs.Status),
+			))
+			continue
+		}
+		sV4.Checks = append(sV4.Checks, csV4)
+	}
+
 	sV4.normalize()
 
 	src, err := json.MarshalIndent(sV4, "", "  ")
@@ -503,6 +556,7 @@ type stateV4 struct {
 	Lineage          string                   `json:"lineage"`
 	RootOutputs      map[string]outputStateV4 `json:"outputs"`
 	Resources        []resourceStateV4        `json:"resources"`
+	Checks           []checkStateV4           `json:"checks,omitempty"`
 }
 
 // normalize makes some in-place changes to normalize the way items are
@@ -513,6 +567,7 @@ func (s *stateV4) normalize() {
 	for _, rs := range s.Resources {
 		sort.Stable(sortInstancesV4(rs.Instances))
 	}
+	sort.Stable(sortChecksV4(s.Checks))
 }
 
 type outputStateV4 struct {
@@ -529,6 +584,12 @@ type resourceStateV4 struct {
 	EachMode       string                  `json:"each,omitempty"`
 	ProviderConfig string                  `json:"provider"`
 	Instances      []instanceObjectStateV4 `json:"instances"`
+}
+
+type checkStateV4 struct {
+	Object       string `json:"object"`
+	Status       string `json:"status"`
+	ErrorMessage string `json:"error_message"`
 }
 
 type instanceObjectStateV4 struct {
@@ -608,6 +669,23 @@ func (si sortInstancesV4) Less(i, j int) bool {
 		return si[i].Deposed < si[j].Deposed
 	}
 	return false
+}
+
+type sortChecksV4 []checkStateV4
+
+func (sc sortChecksV4) Len() int      { return len(sc) }
+func (sc sortChecksV4) Swap(i, j int) { sc[i], sc[j] = sc[j], sc[i] }
+func (sc sortChecksV4) Less(i, j int) bool {
+	// This sort is only to make the state serialization between runs, and
+	// doesn't confer any particular meaning.
+	switch {
+	case sc[i].Object != sc[j].Object:
+		return sc[i].Object < sc[j].Object
+	case sc[i].ErrorMessage != sc[j].ErrorMessage:
+		return sc[i].ErrorMessage < sc[j].ErrorMessage
+	default:
+		return sc[i].Status < sc[j].Status
+	}
 }
 
 // pathStep is an intermediate representation of a cty.PathStep to facilitate

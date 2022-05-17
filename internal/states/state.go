@@ -25,6 +25,10 @@ type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
+
+	// Checks tracks the most recently-updated statuses for each check
+	// declared in the configuration.
+	Checks []Check
 }
 
 // NewState constructs a minimal empty state, containing an empty root module.
