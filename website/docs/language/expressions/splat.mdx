@@ -89,7 +89,7 @@ resource "aws_s3_bucket" "example" {
 
 The above example uses a [`dynamic` block](/language/expressions/dynamic-blocks), which
 generates zero or more nested blocks based on a collection value. The input
-variable `var.website` is defined as a single object that might be null,
+variable `var.website_setting` is defined as a single object that might be null,
 so the `dynamic` block's `for_each` expression uses `[*]` to ensure that
 there will be one block if the module caller sets the website argument, or
 zero blocks if the caller leaves it set to null.
