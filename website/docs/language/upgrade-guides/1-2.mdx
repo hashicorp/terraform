@@ -33,9 +33,7 @@ web browsers have required it since 2020.
 
 ## TLS Certificates signed with SHA-1 are no longer supported
 
-When making outgoing HTTPS or other TLS connections as a client, Terraform will
-no longer accept CA certificates signed using the SHA-1 hash function. Publicly
-trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
+Terraform will no longer accept CA certificates signed using the SHA-1 hash function when making outgoing HTTPS or other TLS connections as a client. Publicly-trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
 
 ## terraform-credentials-env functionality is now built into the Terraform CLI
 
