@@ -9,7 +9,7 @@ Stores the state as a Blob with the given Key within the Blob Container within [
 
 This backend supports state locking and consistency checking with Azure Blob Storage native capabilities.
 
--> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
+~> **Terraform 1.1 and 1.2 supported a feature-flag to allow enabling/disabling the use of Microsoft Graph (and MSAL) rather than Azure Active Directory Graph (and ADAL) - however this flag has since been removed in Terraform 1.3. Microsoft Graph (and MSAL) are now enabled by default and Azure Active Directory Graph (and ADAL) can no longer be used.
 
 ## Example Configuration
 
@@ -260,10 +260,6 @@ When authenticating using the Managed Service Identity (MSI) - the following fie
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
-* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `true`.
-
--> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
-
 * `use_msi` - (Optional) Should Managed Service Identity authentication be used? This can also be sourced from the `ARM_USE_MSI` environment variable.
 
 ***
@@ -275,8 +271,6 @@ When authenticating using a Service Principal with OpenID Connect (OIDC) - the f
 * `oidc_request_token` - (Optional) The bearer token for the request to the OIDC provider. This can also be sourced from the `ARM_OIDC_REQUEST_TOKEN` or `ACTIONS_ID_TOKEN_REQUEST_TOKEN` environment variables.
 
 * `use_oidc` - (Optional) Should OIDC authentication be used? This can also be sourced from the `ARM_USE_OIDC` environment variable.
-
-~> **Note:** When using OIDC for authentication, `use_microsoft_graph` must be set to `true` (which is the default).
 
 ***
 
@@ -298,10 +292,6 @@ When authenticating using AzureAD Authentication - the following fields are also
 
 -> **Note:** When using AzureAD for Authentication to Storage you also need to ensure the `Storage Blob Data Owner` role is assigned.
 
-* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `true`.
-
--> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
-
 ***
 
 When authenticating using a Service Principal with a Client Certificate - the following fields are also supported:
@@ -318,10 +308,6 @@ When authenticating using a Service Principal with a Client Certificate - the fo
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
 
-* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `true`.
-
--> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
-
 ***
 
 When authenticating using a Service Principal with a Client Secret - the following fields are also supported:
@@ -335,7 +321,3 @@ When authenticating using a Service Principal with a Client Secret - the followi
 * `subscription_id` - (Optional) The Subscription ID in which the Storage Account exists. This can also be sourced from the `ARM_SUBSCRIPTION_ID` environment variable.
 
 * `tenant_id` - (Optional) The Tenant ID in which the Subscription exists. This can also be sourced from the `ARM_TENANT_ID` environment variable.
-
-* `use_microsoft_graph` - (Optional) Should MSAL be used for authentication instead of ADAL, and should Microsoft Graph be used instead of Azure Active Directory Graph? Defaults to `true`.
-
--> **Note:** In Terraform 1.2 the Azure Backend uses MSAL (and Microsoft Graph) rather than ADAL (and Azure Active Directory Graph) for authentication by default - you can disable this by setting `use_microsoft_graph` to `false`. **This setting will be removed in Terraform 1.3, due to Microsoft's deprecation of ADAL**.
