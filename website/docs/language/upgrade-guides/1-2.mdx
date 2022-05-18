@@ -26,9 +26,8 @@ kernel versions is undefined.
 
 ## Remote servers must support TLSv1.2
 
-When making outgoing HTTPS or other TLS connections as a client, Terraform now
-requires the server to support TLS v1.2. TLS v1.0 and v1.1 are no longer
-supported. Any safely up-to-date server should support TLS 1.2, and mainstream
+Terraform now requires the server to support TLS v1.2 when making outgoing HTTPS or other TLS connections as a client. TLS v1.0 and v1.1 are no longer
+supported. All up-to-date servers should support TLS 1.2, and mainstream
 web browsers have required it since 2020.
 
 ## TLS Certificates signed with SHA-1 are no longer supported
