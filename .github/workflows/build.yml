@@ -44,13 +44,17 @@ jobs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
 
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Need all commits and tags to find a reasonable version number
+      - uses: actions/checkout@v3
       - name: Git Describe
         id: git-describe
         run: |
-          git describe --first-parent
+          # The actions/checkout action tries hard to fetch as little as
+          # possible, to the extent that even with "depth: 0" it fails to
+          # produce enough tag metadata for us to "describe" successfully.
+          # We'll therefore re-fetch the tags here to make sure we will
+          # select the most accurate version number.
+          git fetch origin --force --tags
+          git tag
           echo "::set-output name=raw-version::$(git describe --first-parent)"
       - name: Decide version number
         id: get-product-version
@@ -58,6 +62,7 @@ jobs:
         env:
           RAW_VERSION: ${{ steps.git-describe.outputs.raw-version }}
         run: |
+          echo "Version number is ${RAW_VERSION}"
           echo "::set-output name=product-version::${RAW_VERSION#v}"
       - name: Report chosen version number
         run: |
