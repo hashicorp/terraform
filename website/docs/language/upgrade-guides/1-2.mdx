@@ -34,11 +34,10 @@ kernel versions is undefined.
 
 ## Obsolete TLS Features Are No Longer Supported
 
-Terraform now requires the server to support TLS v1.2 when making outgoing HTTPS or other TLS connections as a client. TLS v1.0 and v1.1 are no longer
-supported. All up-to-date servers should support TLS 1.2, and mainstream
-web browsers have required it since 2020.
+Terraform no longer supports the following features when making outgoing HTTPS or other TLS connections as a client:
 
-Terraform will no longer accept CA certificates signed using the SHA-1 hash function when making outgoing HTTPS or other TLS connections as a client. Publicly-trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
+- TLS v1.0 and v1.1. Terraform now requires the server to support TLS v1.2. All up-to-date servers should support TLS 1.2, and mainstream web browsers have required it since 2020.
+ - CA certificates signed using the SHA-1 hash function. Publicly-trusted Certificate Authorities have not issued SHA-1 certificates since 2015.
 
 This change only affects requests from Terraform, including provider installation, module installation, and interactions with your configured backend. Provider plugins are separate programs that have
 their own rules about which TLS versions are supported.
