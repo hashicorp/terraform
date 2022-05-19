@@ -31,13 +31,20 @@ GOEXE="$(go env GOEXE)"
 OUTDIR="build/${GOOS}_${GOARCH}"
 OUTFILE="terraform-e2etest_${GOOS}_${GOARCH}.zip"
 
+LDFLAGS="-X github.com/hashicorp/terraform/internal/command/e2etest.terraformBin=./terraform$GOEXE"
+# Caller may pass in the environment variable GO_LDFLAGS with additional
+# flags we'll use when building.
+if [ -n "${GO_LDFLAGS+set}" ]; then
+    LDFLAGS="${GO_LDFLAGS} ${LDFLAGS}"
+fi
+
 mkdir -p "$OUTDIR"
 
 # We need the test fixtures available when we run the tests.
 cp -r testdata "$OUTDIR/testdata"
 
 # Build the test program
-go test -o "$OUTDIR/e2etest$GOEXE" -c -ldflags "-X github.com/hashicorp/terraform/internal/command/e2etest.terraformBin=./terraform$GOEXE" github.com/hashicorp/terraform/internal/command/e2etest
+go test -o "$OUTDIR/e2etest$GOEXE" -c -ldflags "$LDFLAGS" github.com/hashicorp/terraform/internal/command/e2etest
 
 # Now bundle it all together for easy shipping!
 cd "$OUTDIR"
