@@ -42,6 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
+      product-version-base: ${{ steps.get-product-version.outputs.product-version-base }}
+      product-version-pre: ${{ steps.get-product-version.outputs.product-version-pre }}
+      experiments: ${{ steps.get-product-version.outputs.experiments }}
+      go-ldflags: ${{ steps.get-product-version.outputs.go-ldflags }}
 
     steps:
       - uses: actions/checkout@v3
@@ -53,17 +57,60 @@ jobs:
           # produce enough tag metadata for us to "describe" successfully.
           # We'll therefore re-fetch the tags here to make sure we will
           # select the most accurate version number.
-          git fetch origin --force --tags
-          git tag
-          echo "::set-output name=raw-version::$(git describe --first-parent)"
+          git fetch origin --force --tags --quiet --unshallow
+          git log --tags --simplify-by-decoration --decorate-refs='refs/tags/v*' --pretty=format:'%h %<|(35)%S %ci' --max-count 15 --topo-order
+          set -e
+          RAW_VERSION=$(git describe --tags --match='v*' ${GITHUB_SHA})
+          echo "
+          
+          Raw version is ${RAW_VERSION}"
+          echo "::set-output name=raw-version::${RAW_VERSION}"
       - name: Decide version number
         id: get-product-version
         shell: bash
         env:
           RAW_VERSION: ${{ steps.git-describe.outputs.raw-version }}
         run: |
-          echo "Version number is ${RAW_VERSION}"
-          echo "::set-output name=product-version::${RAW_VERSION#v}"
+          # Trim the "v" prefix, if any.
+          VERSION="${RAW_VERSION#v}"
+
+          # Split off the build metadata part, if any
+          # (we won't actually include it in our final version, and handle it only for
+          # compleness against semver syntax.)
+          IFS='+' read -ra BUILD_METADATA_PARTS <<< "$VERSION"
+          VERSION="${BUILD_METADATA_PARTS[0]}"
+          BUILD_META="${BUILD_METADATA_PARTS[1]}"
+
+          # Separate out the prerelease part, if any
+          # (version.go expects it to be in a separate variable)
+          IFS='-' read -ra PRERELEASE_PARTS <<< "$VERSION"
+          BASE_VERSION="${PRERELEASE_PARTS[0]}"
+          PRERELEASE="${PRERELEASE_PARTS[1]}"
+
+          EXPERIMENTS_ENABLED=0
+          if [[ "$PRERELEASE" == alpha* ]]; then
+            EXPERIMENTS_ENABLED=1
+          fi
+          if [[ "$PRERELEASE" == dev* ]]; then
+            EXPERIMENTS_ENABLED=1
+          fi
+
+          LDFLAGS="-w -s"
+          if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
+            LDFLAGS="${LDFLAGS} -X 'main.experimentsAllowed=yes'"
+          fi
+          LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.Version=${BASE_VERSION}'"
+          LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.Prerelease=${PRERELEASE}'"
+
+          echo "Building Terraform CLI ${VERSION}"
+          if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
+            echo "This build allows use of experimental features"
+          fi
+          echo "::set-output name=product-version::${VERSION}"
+          echo "::set-output name=product-version-base::${BASE_VERSION}"
+          echo "::set-output name=product-version-pre::${PRERELEASE}"
+          echo "::set-output name=experiments::${EXPERIMENTS_ENABLED}"
+          echo "::set-output name=go-ldflags::${LDFLAGS}"
       - name: Report chosen version number
         run: |
           [ -n "${{steps.get-product-version.outputs.product-version}}" ]
@@ -127,6 +174,13 @@ jobs:
           - {goos: "darwin", goarch: "arm64", runson: "macos-latest"}
       fail-fast: false
 
+    env:
+      FULL_VERSION: ${{ needs.get-product-version.outputs.product-version }}
+      BASE_VERSION: ${{ needs.get-product-version.outputs.product-version-base }}
+      VERSION_PRERELEASE: ${{ needs.get-product-version.outputs.product-version-pre }}
+      EXPERIMENTS_ENABLED: ${{ needs.get-product-version.outputs.experiments }}
+      GO_LDFLAGS: ${{ needs.get-product-version.outputs.go-ldflags }}
+
     steps:
       - uses: actions/checkout@v2
 
@@ -159,13 +213,14 @@ jobs:
             # cross-build for darwin_arm64.)
             export CGO_ENABLED=1
           fi
-          go build -ldflags "-w -s" -o dist/ .
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
+          set -x
+          go build -ldflags "${GO_LDFLAGS}" -o dist/ .
+          zip -r -j out/${{ env.PKG_NAME }}_${FULL_VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          name: ${{ env.PKG_NAME }}_${{ env.FULL_VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: out/${{ env.PKG_NAME }}_${{ env.FULL_VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
 
   package-linux:
     name: "Build Linux distro packages for ${{ matrix.arch }}"
@@ -252,7 +307,7 @@ jobs:
       fail-fast: false
 
     env:
-      repo: ${{github.event.repository.name}}
+      repo: "terraform"
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
@@ -260,7 +315,9 @@ jobs:
       - name: Build Docker images
         uses: hashicorp/actions-docker-build@v1
         with:
+          pkg_name: "terraform_${{env.version}}"
           version: ${{env.version}}
+          bin_name: terraform
           target: default
           arch: ${{matrix.arch}}
           dockerfile: .github/workflows/build-Dockerfile
@@ -271,7 +328,9 @@ jobs:
   e2etest-build:
     name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
     runs-on: ubuntu-latest
-    needs: ["get-go-version"]
+    needs:
+      - get-product-version
+      - get-go-version
     strategy:
       matrix:
         # We build test harnesses only for the v1.0 Compatibility Promises
@@ -306,7 +365,12 @@ jobs:
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
+          GO_LDFLAGS: ${{ needs.get-product-version.outputs.go-ldflags }}
         run: |
+          # NOTE: This script reacts to the GOOS, GOARCH, and GO_LDFLAGS
+          # environment variables defined above. The e2e test harness
+          # needs to know the version we're building for so it can verify
+          # that "terraform version" is returning that version number.
           bash ./internal/command/e2etest/make-archive.sh
 
       - uses: actions/upload-artifact@v2
