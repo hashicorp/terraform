@@ -77,15 +77,11 @@ jobs:
           # Split off the build metadata part, if any
           # (we won't actually include it in our final version, and handle it only for
           # compleness against semver syntax.)
-          IFS='+' read -ra BUILD_METADATA_PARTS <<< "$VERSION"
-          VERSION="${BUILD_METADATA_PARTS[0]}"
-          BUILD_META="${BUILD_METADATA_PARTS[1]}"
+          IFS='+' read -ra VERSION BUILD_META <<< "$VERSION"
 
           # Separate out the prerelease part, if any
           # (version.go expects it to be in a separate variable)
-          IFS='-' read -ra PRERELEASE_PARTS <<< "$VERSION"
-          BASE_VERSION="${PRERELEASE_PARTS[0]}"
-          PRERELEASE="${PRERELEASE_PARTS[1]}"
+          IFS='-' read -r BASE_VERSION PRERELEASE <<< "$VERSION"
 
           EXPERIMENTS_ENABLED=0
           if [[ "$PRERELEASE" == alpha* ]]; then
