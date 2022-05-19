@@ -57,6 +57,11 @@ The following arguments are supported:
 * `environment` - (Optional) block of key value pairs representing the
   environment of the executed command. inherits the current process environment.
 
+* `when` - (Optional) If provided, specifies when Terraform will execute the command.
+  For example, `when = destroy` specifies that the provisioner will run when the associated resource
+  is destroyed. Refer to [Destroy-Time Provisioners](/language/resources/provisioners/syntax#destroy-time-provisioners)
+  for details.
+
 ### Interpreter Examples
 
 ```hcl
