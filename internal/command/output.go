@@ -107,7 +107,8 @@ Usage: terraform [global options] output [options] [NAME]
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-                   "terraform.tfstate".
+                   "terraform.tfstate". Ignored when remote 
+                   state is used.
 
   -no-color        If specified, output won't contain any color.
 
