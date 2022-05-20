@@ -1,5 +1,9 @@
 ## 1.3.0 (Unreleased)
 
+BUG FIXES:
+
+* Made `terraform output` CLI help documentation consistent with web-based documentation ([GH-29354])
+
 
 ## Previous Releases
 
