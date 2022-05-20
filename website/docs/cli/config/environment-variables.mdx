@@ -160,3 +160,9 @@ export TF_IGNORE=trace
 ```
 
 For more details on `.terraformignore`, please see [Excluding Files from Upload with .terraformignore](/language/settings/backends/remote#excluding-files-from-upload-with-terraformignore).
+
+## Terraform Cloud CLI Integration
+
+The CLI integration with Terraform Cloud lets you use Terraform Cloud and Terraform Enterprise on the command line. The integration requires including a `cloud` block in your Terraform configuration. You can define its arguments directly in your configuration file or supply them through environment variables, which can be useful for non-interactive workflows like Continuous Integration (CI).
+
+Refer to [Terraform Cloud Settings](/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.
