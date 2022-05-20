@@ -11,15 +11,15 @@ You can create conditions that produce custom error messages for several types o
 > **Hands On:** Try the [Validate Modules with Custom Conditions](https://learn.hashicorp.com/tutorials/terraform/custom-conditions?in=terraform/configuration-language) tutorial on HashiCorp Learn.
 
 This page explains the following:
-  - Creating [validation conditions](#input-variable-validation) for input variables
-  - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs
+  - Creating [validation conditions](#input-variable-validation) for input variables (Terraform v0.13.0 and later)
+  - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs (Terraform v1.2.0 and later)
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
   - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
 
 
 ## Input Variable Validation
 
--> **Note:** Input variable validation is available in Terraform CLI v0.13.0 and later.
+-> **Note:** Input variable validation is available in Terraform v0.13.0 and later.
 
 Add one or more `validation` blocks within the `variable` block to specify custom conditions. Each validation requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer only to the containing variable and must not produce errors.
 
@@ -57,7 +57,7 @@ variable "image_id" {
 
 ## Preconditions and Postconditions
 
--> **Note:** Preconditions and postconditions are available in Terraform CLI v1.2.0 and later.
+-> **Note:** Preconditions and postconditions are available in Terraform v1.2.0 and later.
 
 Use `precondition` and `postcondition` blocks to create custom rules for resources, data sources, and outputs.
 
