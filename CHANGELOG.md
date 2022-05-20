@@ -52,7 +52,7 @@ BUG FIXES:
 * `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. ([#30138](https://github.com/hashicorp/terraform/issues/30138))
 * The local token configuration in the `cloud` and `remote` backend now has higher priority than a token specified in a `credentials` block in the CLI configuration. ([#30664](https://github.com/hashicorp/terraform/issues/30664)) 
 * The `cloud` integration now gracefully exits when `-input=false` and an operation requires some user input.
-* Terraform will now reliably detect an inteerruptiong (e.g. Ctrl+C) during planning for `terraform apply -auto-approve`. Previously there was a window of time where interruption would cancel the plan step but not prevent Terraform from proceeding to the apply step. ([#30979](https://github.com/hashicorp/terraform/issues/30979))
+* Terraform will now reliably detect an interruption (e.g. Ctrl+C) during planning for `terraform apply -auto-approve`. Previously there was a window of time where interruption would cancel the plan step but not prevent Terraform from proceeding to the apply step. ([#30979](https://github.com/hashicorp/terraform/issues/30979))
 * Terraform will no longer crash if a provider fails to return a schema. ([#30987](https://github.com/hashicorp/terraform/issues/30987))
 
 ## Previous Releases
