@@ -30,28 +30,24 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 	for name, child := range cfg.Children {
 		mc := mod.ModuleCalls[name]
-
+		childNoProviderConfigRange := noProviderConfigRange
 		// if the module call has any of count, for_each or depends_on,
 		// providers are prohibited from being configured in this module, or
 		// any module beneath this module.
-		// NOTE: If noProviderConfigRange was already set but we encounter
-		// a nested conflicting argument then we'll overwrite the caller's
-		// range, which allows us to report the problem as close to its
-		// cause as possible.
 		switch {
 		case mc.Count != nil:
-			noProviderConfigRange = mc.Count.Range().Ptr()
+			childNoProviderConfigRange = mc.Count.Range().Ptr()
 		case mc.ForEach != nil:
-			noProviderConfigRange = mc.ForEach.Range().Ptr()
+			childNoProviderConfigRange = mc.ForEach.Range().Ptr()
 		case mc.DependsOn != nil:
 			if len(mc.DependsOn) > 0 {
-				noProviderConfigRange = mc.DependsOn[0].SourceRange().Ptr()
+				childNoProviderConfigRange = mc.DependsOn[0].SourceRange().Ptr()
 			} else {
 				// Weird! We'll just use the call itself, then.
-				noProviderConfigRange = mc.DeclRange.Ptr()
+				childNoProviderConfigRange = mc.DeclRange.Ptr()
 			}
 		}
-		diags = append(diags, validateProviderConfigs(mc, child, noProviderConfigRange)...)
+		diags = append(diags, validateProviderConfigs(mc, child, childNoProviderConfigRange)...)
 	}
 
 	// the set of provider configuration names passed into the module, with the
