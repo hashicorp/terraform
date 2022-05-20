@@ -1,5 +1,9 @@
 ## 1.2.1 (Unreleased)
 
+BUG FIXES:
+
+* SSH provisioner connections fail when using signed `ed25519` keys [GH-31092]
+
 ## 1.2.0 (May 18, 2022)
 
 UPGRADE NOTES:
