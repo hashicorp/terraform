@@ -1,0 +1,19 @@
+{
+    "Modules": [
+        {
+            "Key": "",
+            "Source": "",
+            "Dir": "."
+        },
+        {
+            "Key": "child",
+            "Source": "./child",
+            "Dir": "testdata/child-provider-child-count/child"
+        },
+        {
+            "Key": "child.grandchild",
+            "Source": "../grandchild",
+            "Dir": "testdata/child-provider-child-count/grandchild"
+        }
+    ]
+}
