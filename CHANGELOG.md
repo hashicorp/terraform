@@ -3,6 +3,9 @@
 BUG FIXES:
 
 * SSH provisioner connections fail when using signed `ed25519` keys [GH-31092]
+* Crash with invalid module source [GH-31060]
+* Incorrect "Module is incompatible with count, for_each, and depends_on" error when a provider is nested within a module along with a sub-module using `count` or `for_each` [GH-31091]
+
 
 ## 1.2.0 (May 18, 2022)
 
