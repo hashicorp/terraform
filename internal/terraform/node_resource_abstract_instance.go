@@ -2016,9 +2016,25 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	if !configVal.IsWhollyKnown() {
-		diags = diags.Append(fmt.Errorf(
-			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
-			n.Addr,
+		// We don't have a pretty format function for a path, but since this is
+		// such a rare error, we can just drop the raw GoString values in here
+		// to make sure we have something to debug with.
+		var unknownPaths []string
+		cty.Transform(configVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if !v.IsKnown() {
+				unknownPaths = append(unknownPaths, fmt.Sprintf("%#v", p))
+			}
+			return v, nil
+		})
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Configuration contains unknown value",
+			fmt.Sprintf("configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)\n"+
+				"The following paths in the resource configuration are unknown:\n%s",
+				n.Addr,
+				strings.Join(unknownPaths, "\n"),
+			),
 		))
 		return nil, keyData, diags
 	}
