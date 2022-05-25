@@ -202,6 +202,8 @@ Options:
 
   -no-color           If specified, output won't contain any color.
 
+  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used
                       multiple times.
@@ -215,11 +217,6 @@ Options:
 
   -state, state-out, and -backup are legacy options supported for the local
   backend only. For more information, see the local backend's documentation.
-
-  This command also accepts all of the plan-customization options accepted by
-  the terraform plan command, except as mentioned above.
-  For more information on those options, run:
-      terraform plan -help
 `
 	return strings.TrimSpace(helpText)
 }
