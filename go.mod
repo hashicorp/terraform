@@ -36,7 +36,7 @@ require (
 	github.com/hashicorp/go-azure-helpers v0.31.1
 	github.com/hashicorp/go-checkpoint v0.5.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
-	github.com/hashicorp/go-getter v1.5.10
+	github.com/hashicorp/go-getter v1.6.1
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.3
@@ -86,7 +86,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654
+	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 	golang.org/x/text v0.3.7
 	golang.org/x/tools v0.1.11-0.20220316014157-77aa08bb151a
