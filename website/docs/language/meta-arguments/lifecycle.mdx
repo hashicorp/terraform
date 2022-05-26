@@ -30,7 +30,8 @@ resource "azurerm_resource_group" "example" {
 The `lifecycle` block and its contents are meta-arguments, available
 for all `resource` blocks regardless of type.
 
-The following arguments can be used within a `lifecycle` block:
+The arguments available within a `lifecycle` block are `create_before_destroy`,
+`prevent_destroy`, `ignore_changes`, and `replace_triggered_by`.
 
 * `create_before_destroy` (bool) - By default, when Terraform must change
   a resource argument that cannot be updated in-place due to
@@ -110,9 +111,16 @@ The following arguments can be used within a `lifecycle` block:
   Only attributes defined by the resource type can be ignored.
   `ignore_changes` cannot be applied to itself or to any other meta-arguments.
 
-* `replace_triggered_by` (list of resource references) - Forces Terraform to replace the parent resource when there is a change to a referenced resource or resource attribute. Supply a list of expressions referencing managed resources, instances, or instance attributes. When the containing resource uses `count` or `for_each`, you can use `count.index` or `each.key` in the expression to index specific instances. 
+* `replace_triggered_by` (list of resource or attribute references) -
+  _Added in Terraform 1.2._ Replaces the resource when any of the referenced
+  items change. Supply a list of expressions referencing managed resources,
+  instances, or instance attributes. When used in a resource that uses `count`
+  or `for_each`, you can use `count.index` or `each.key` in the expression to
+  reference specific instances of other resources that are configured with the
+  same count or collection.
 
-References trigger replacement in the following conditions:
+  References trigger replacement in the following conditions:
+
   - If the reference is to a resource with multiple instances, a plan to
     update or replace any instance will trigger replacement.
   - If the reference is to a single resource instance, a plan to update or
@@ -120,14 +128,16 @@ References trigger replacement in the following conditions:
   - If the reference is to a single attribute of a resource instance, any
     change to the attribute value will trigger replacement.
 
-  You can only reference managed resources in `replace_triggered_by` expressions. This lets you modify these expressions without forcing replacement.
+  You can only reference managed resources in `replace_triggered_by`
+  expressions. This lets you modify these expressions without forcing
+  replacement.
 
   ```hcl
   resource "aws_appautoscaling_target" "ecs_target" {
     # ...
     lifecycle {
       replace_triggered_by = [
-        # Replace `aws_appautoscaling_target` each time this instance of 
+        # Replace `aws_appautoscaling_target` each time this instance of
         # the `aws_ecs_service` is replaced.
         aws_ecs_service.svc.id
       ]
