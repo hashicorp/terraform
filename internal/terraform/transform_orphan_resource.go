@@ -26,9 +26,17 @@ type OrphanResourceInstanceTransformer struct {
 	// Config is the root node in the configuration tree. We'll look up
 	// the appropriate note in this tree using the path in each node.
 	Config *configs.Config
+
+	// There are no orphans when doing a full destroy
+	destroyPlan bool
 }
 
 func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
+	if t.destroyPlan {
+		// everything is being destroyed, so don't worry about orphaned instances
+		return nil
+	}
+
 	if t.State == nil {
 		// If the entire state is nil, there can't be any orphans
 		return nil
