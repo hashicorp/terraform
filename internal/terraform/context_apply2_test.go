@@ -3,6 +3,7 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -911,4 +912,141 @@ resource "test_resource" "c" {
 			t.Error("test_resource.c should not exist in state, but is")
 		}
 	})
+}
+
+// pass an input through some expanded values, and back to a provider to make
+// sure we can fully evaluate a provider configuration during a destroy plan.
+func TestContext2Apply_destroyWithConfiguredProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type = map(string)
+  default = {
+    "a" = "first"
+	"b" = "second"
+  }
+}
+
+module "mod" {
+  source = "./mod"
+  for_each = var.in
+  in = each.value
+}
+
+locals {
+  config = [for each in module.mod : each.out]
+}
+
+provider "other" {
+  output = [for each in module.mod : each.out]
+  local = local.config
+  var = var.in
+}
+
+resource "other_object" "other" {
+}
+`,
+		"./mod/main.tf": `
+variable "in" {
+  type = string
+}
+
+data "test_object" "d" {
+  test_string = var.in
+}
+
+resource "test_object" "a" {
+  test_string = var.in
+}
+
+output "out" {
+  value = data.test_object.d.output
+}
+`})
+
+	testProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{Block: simpleTestSchema()},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{Block: simpleTestSchema()},
+			},
+			DataSources: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"test_string": {
+								Type:     cty.String,
+								Optional: true,
+							},
+							"output": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testProvider.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		cfg := req.Config.AsValueMap()
+		s := cfg["test_string"].AsString()
+		if !strings.Contains("firstsecond", s) {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("expected 'first' or 'second', got %s", s))
+			return resp
+		}
+
+		cfg["output"] = cty.StringVal(s + "-ok")
+		resp.State = cty.ObjectVal(cfg)
+		return resp
+	}
+
+	otherProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"output": {
+							Type:     cty.List(cty.String),
+							Optional: true,
+						},
+						"local": {
+							Type:     cty.List(cty.String),
+							Optional: true,
+						},
+						"var": {
+							Type:     cty.Map(cty.String),
+							Optional: true,
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"other_object": providers.Schema{Block: simpleTestSchema()},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("other"): testProviderFuncFixed(otherProvider),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// TODO: extend this to ensure the otherProvider is always properly
+	// configured during the destroy plan
+
+	opts.Mode = plans.DestroyMode
+	// destroy only a single instance not included in the moved statements
+	_, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
 }
