@@ -197,7 +197,7 @@ type Backend struct {
 	nameSuffix             string
 }
 
-func (b Backend) KubernetesSecretClient() (dynamic.ResourceInterface, error) {
+func (b *Backend) KubernetesSecretClient() (dynamic.ResourceInterface, error) {
 	if b.kubernetesSecretClient != nil {
 		return b.kubernetesSecretClient, nil
 	}
@@ -211,7 +211,7 @@ func (b Backend) KubernetesSecretClient() (dynamic.ResourceInterface, error) {
 	return b.kubernetesSecretClient, nil
 }
 
-func (b Backend) KubernetesLeaseClient() (coordinationv1.LeaseInterface, error) {
+func (b *Backend) KubernetesLeaseClient() (coordinationv1.LeaseInterface, error) {
 	if b.kubernetesLeaseClient != nil {
 		return b.kubernetesLeaseClient, nil
 	}
