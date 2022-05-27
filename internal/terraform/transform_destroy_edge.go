@@ -4,9 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
 
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 )
 
@@ -40,12 +38,7 @@ type GraphNodeCreator interface {
 // dependent resources will block parent resources from deleting. Concrete
 // example: VPC with subnets, the VPC can't be deleted while there are
 // still subnets.
-type DestroyEdgeTransformer struct {
-	// These are needed to properly build the graph of dependencies
-	// to determine what a destroy node depends on. Any of these can be nil.
-	Config *configs.Config
-	State  *states.State
-}
+type DestroyEdgeTransformer struct{}
 
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
@@ -89,7 +82,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// Connect destroy despendencies as stored in the state
+	// Connect destroy dependencies as stored in the state
 	for _, ds := range destroyers {
 		for _, des := range ds {
 			ri, ok := des.(GraphNodeResourceInstance)
