@@ -574,7 +574,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
-		graph, diags := (&DestroyPlanGraphBuilder{
+		graph, diags := DestroyPlanGraphBuilder(&PlanGraphBuilder{
 			Config:             config,
 			State:              prevRunState,
 			RootVariableValues: opts.SetVariables,

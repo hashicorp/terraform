@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"sync"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -57,13 +55,16 @@ type PlanGraphBuilder struct {
 	// CustomConcrete can be set to customize the node types created
 	// for various parts of the plan. This is useful in order to customize
 	// the plan behavior.
-	CustomConcrete         bool
-	ConcreteProvider       ConcreteProviderNodeFunc
-	ConcreteResource       ConcreteResourceNodeFunc
-	ConcreteResourceOrphan ConcreteResourceInstanceNodeFunc
-	ConcreteModule         ConcreteModuleNodeFunc
+	CustomConcrete                  bool
+	ConcreteProvider                ConcreteProviderNodeFunc
+	ConcreteResource                ConcreteResourceNodeFunc
+	ConcreteResourceInstance        ConcreteResourceInstanceNodeFunc
+	ConcreteResourceOrphan          ConcreteResourceInstanceNodeFunc
+	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
+	ConcreteModule                  ConcreteModuleNodeFunc
 
-	once sync.Once
+	// destroy is set to true when create a full destroy plan.
+	destroy bool
 }
 
 // See GraphBuilder
@@ -76,36 +77,32 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
-	b.once.Do(b.init)
-
-	concreteResourceInstanceDeposed := func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
-		return &NodePlanDeposedResourceInstanceObject{
-			NodeAbstractResourceInstance: a,
-			DeposedKey:                   key,
-
-			skipRefresh:     b.skipRefresh,
-			skipPlanChanges: b.skipPlanChanges,
-		}
-	}
+	b.init()
 
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete: b.ConcreteResource,
-			Config:   b.Config,
+			Concrete:    b.ConcreteResource,
+			Config:      b.Config,
+			destroyPlan: b.destroy,
 		},
 
 		// Add dynamic values
 		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config, RefreshOnly: b.skipPlanChanges},
+		&OutputTransformer{
+			Config:      b.Config,
+			RefreshOnly: b.skipPlanChanges,
+			destroyPlan: b.destroy,
+		},
 
 		// Add orphan resources
 		&OrphanResourceInstanceTransformer{
-			Concrete: b.ConcreteResourceOrphan,
-			State:    b.State,
-			Config:   b.Config,
+			Concrete:    b.ConcreteResourceOrphan,
+			State:       b.State,
+			Config:      b.Config,
+			destroyPlan: b.destroy,
 		},
 
 		// We also need nodes for any deposed instance objects present in the
@@ -113,7 +110,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// skips creating nodes for _current_ objects, since ConfigTransformer
 		// created nodes that will do that during DynamicExpand.)
 		&StateTransformer{
-			ConcreteDeposed: concreteResourceInstanceDeposed,
+			ConcreteCurrent: b.ConcreteResourceInstance,
+			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
 			State:           b.State,
 		},
 
@@ -141,14 +139,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Concrete: b.ConcreteModule, Config: b.Config},
 
-		// Connect so that the references are ready for targeting. We'll
-		// have to connect again later for providers and so on.
 		&ReferenceTransformer{},
+
 		&AttachDependenciesTransformer{},
 
 		// Make sure data sources are aware of any depends_on from the
 		// configuration
 		&attachDataResourceDependsOnTransformer{},
+
+		// DestroyEdgeTransformer is only required during a plan so that the
+		// TargetsTransformer can determine which nodes to keep in the graph.
+		&DestroyEdgeTransformer{},
 
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
@@ -199,4 +200,15 @@ func (b *PlanGraphBuilder) init() {
 			skipPlanChanges:              b.skipPlanChanges,
 		}
 	}
+
+	b.ConcreteResourceInstanceDeposed = func(a *NodeAbstractResourceInstance, key states.DeposedKey) dag.Vertex {
+		return &NodePlanDeposedResourceInstanceObject{
+			NodeAbstractResourceInstance: a,
+			DeposedKey:                   key,
+
+			skipRefresh:     b.skipRefresh,
+			skipPlanChanges: b.skipPlanChanges,
+		}
+	}
+
 }
