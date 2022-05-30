@@ -27,7 +27,7 @@ flag, but this is not recommended.
 
 If the lock didn't release properly, Terraform may not be able to run future commands since it'll appear as if
 the lock is held. In that case please call:
-terraform force-unlock LOCK_ID`
+terraform force-unlock`
 
 	UnlockErrorMessage = `Error message: %s
 
