@@ -1,5 +1,9 @@
 ## 1.2.2 (Unreleased)
 
+ENHANCEMENTS:
+
+* Invalid `-var` arguments with spaces between the name and value now have an improved error message [GH-30985]
+
 BUG FIXES:
 
 * Terraform now hides invalid input values for sensitive root module variables when generating error diagnostics [GH-30552]
