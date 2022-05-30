@@ -1,5 +1,9 @@
 ## 1.2.2 (Unreleased)
 
+BUG FIXES:
+
+* Terraform now hides invalid input values for sensitive root module variables when generating error diagnostics [GH-30552]
+
 ## 1.2.1 (May 23, 2022)
 
 BUG FIXES:
