@@ -25,7 +25,7 @@ func summarizeTaskResults(taskResults []*tfe.TaskResult) *taskResultSummary {
 			return &taskResultSummary{
 				unreachable: true,
 			}
-		} else if task.Status == "running" || task.Status == "pendingCountnding" {
+		} else if task.Status == "running" || task.Status == "pending" {
 			pendingCount++
 		} else if task.Status == "passed" {
 			passedCount++
