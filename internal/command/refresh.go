@@ -202,6 +202,8 @@ Options:
 
   -no-color           If specified, output won't contain any color.
 
+  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used
                       multiple times.
