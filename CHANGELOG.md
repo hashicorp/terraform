@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* Made `terraform output` CLI help documentation consistent with web-based documentation ([GH-29354])
+* Made `terraform output` CLI help documentation consistent with web-based documentation [GH-29354]
+* Fixed crash on CLI autocomplete [GH-31160]
 
 
 ## Previous Releases
