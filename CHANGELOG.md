@@ -8,6 +8,7 @@ BUG FIXES:
 
 * Terraform now hides invalid input values for sensitive root module variables when generating error diagnostics [GH-30552]
 * Fixed crash on CLI autocomplete [GH-31160]
+* The "Configuration contains unknown values" error message now includes attribute paths [GH-3111]
 
 ## 1.2.1 (May 23, 2022)
 
