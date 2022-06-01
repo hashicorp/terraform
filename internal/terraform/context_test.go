@@ -276,6 +276,14 @@ func testApplyFn(req providers.ApplyResourceChangeRequest) (resp providers.Apply
 
 func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	var planned map[string]cty.Value
+
+	// this is a destroy plan
+	if req.ProposedNewState.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
+
 	if !req.ProposedNewState.IsNull() {
 		planned = req.ProposedNewState.AsValueMap()
 	}
