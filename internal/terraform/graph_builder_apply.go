@@ -136,10 +136,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config: b.Config,
-			State:  b.State,
-		},
+		&DestroyEdgeTransformer{},
 		&CBDEdgeTransformer{
 			Config: b.Config,
 			State:  b.State,
