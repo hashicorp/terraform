@@ -378,6 +378,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 // planDestroy returns a plain destroy diff.
 func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
 
@@ -410,9 +411,53 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return noop, nil
 	}
 
-	// Plan is always the same for a destroy. We don't need the provider's
-	// help for this one.
-	plan := &plans.ResourceInstanceChange{
+	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
+
+	// The config and new value are null to signify that this is a destroy
+	// operation.
+	nullVal := cty.NullVal(unmarkedPriorVal.Type())
+
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return plan, diags.Append(err)
+	}
+
+	// Allow the provider to check the destroy plan, and insert any necessary
+	// private data.
+	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+		TypeName:         n.Addr.Resource.Resource.Type,
+		Config:           nullVal,
+		PriorState:       unmarkedPriorVal,
+		ProposedNewState: nullVal,
+		PriorPrivate:     currentState.Private,
+	})
+
+	// We may not have a config for all destroys, but we want to reference it in
+	// the diagnostics if we do.
+	if n.Config != nil {
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
+	}
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return plan, diags
+	}
+
+	// Check that the provider returned a null value here, since that is the
+	// only valid value for a destroy plan.
+	if !resp.PlannedState.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid plan",
+			fmt.Sprintf(
+				"Provider %q planned a non-null destroy value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr),
+		),
+		)
+		return plan, diags
+	}
+
+	// Plan is always the same for a destroy.
+	plan = &plans.ResourceInstanceChange{
 		Addr:        absAddr,
 		PrevRunAddr: n.prevRunAddr(ctx),
 		DeposedKey:  deposedKey,
@@ -421,7 +466,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			Before: currentState.Value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
-		Private:      currentState.Private,
+		Private:      resp.PlannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
 	}
 
