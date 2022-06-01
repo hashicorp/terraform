@@ -29,18 +29,17 @@ type ConfigTransformer struct {
 	ModeFilter bool
 	Mode       addrs.ResourceMode
 
-	// destroyPlan indicated this is being called from a destroy plan.
-	destroyPlan bool
+	// Do not apply this transformer.
+	skip bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
-	// If no configuration is available, we don't do anything
-	if t.Config == nil {
+	if t.skip {
 		return nil
 	}
 
-	// Configured resource are not added for a destroy plan
-	if t.destroyPlan {
+	// If no configuration is available, we don't do anything
+	if t.Config == nil {
 		return nil
 	}
 

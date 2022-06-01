@@ -27,13 +27,12 @@ type OrphanResourceInstanceTransformer struct {
 	// the appropriate note in this tree using the path in each node.
 	Config *configs.Config
 
-	// There are no orphans when doing a full destroy
-	destroyPlan bool
+	// Do not apply this transformer
+	skip bool
 }
 
 func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
-	if t.destroyPlan {
-		// everything is being destroyed, so don't worry about orphaned instances
+	if t.skip {
 		return nil
 	}
 

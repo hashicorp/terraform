@@ -21,7 +21,7 @@ type OutputTransformer struct {
 
 	// If this is a planned destroy, root outputs are still in the configuration
 	// so we need to record that we wish to remove them
-	destroyPlan bool
+	removeRootOutputs bool
 
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
@@ -66,7 +66,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			}
 		}
 
-		destroy := t.destroyPlan
+		destroy := t.removeRootOutputs
 		if rootChange != nil {
 			destroy = rootChange.Action == plans.Delete
 		}
@@ -95,7 +95,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 				Addr:        addr,
 				Module:      c.Path,
 				Config:      o,
-				Destroy:     t.destroyPlan,
+				Destroy:     t.removeRootOutputs,
 				RefreshOnly: t.RefreshOnly,
 			}
 		}

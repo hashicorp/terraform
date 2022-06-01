@@ -923,7 +923,7 @@ variable "in" {
   type = map(string)
   default = {
     "a" = "first"
-	"b" = "second"
+    "b" = "second"
   }
 }
 

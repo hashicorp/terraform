@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-
 	"github.com/hashicorp/terraform/internal/dag"
 )
 

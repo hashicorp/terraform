@@ -82,9 +82,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
-			Concrete:    b.ConcreteResource,
-			Config:      b.Config,
-			destroyPlan: b.destroy,
+			Concrete: b.ConcreteResource,
+			Config:   b.Config,
+			skip:     b.destroy,
 		},
 
 		// Add dynamic values
@@ -92,17 +92,17 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:      b.Config,
-			RefreshOnly: b.skipPlanChanges,
-			destroyPlan: b.destroy,
+			Config:            b.Config,
+			RefreshOnly:       b.skipPlanChanges,
+			removeRootOutputs: b.destroy,
 		},
 
 		// Add orphan resources
 		&OrphanResourceInstanceTransformer{
-			Concrete:    b.ConcreteResourceOrphan,
-			State:       b.State,
-			Config:      b.Config,
-			destroyPlan: b.destroy,
+			Concrete: b.ConcreteResourceOrphan,
+			State:    b.State,
+			Config:   b.Config,
+			skip:     b.destroy,
 		},
 
 		// We also need nodes for any deposed instance objects present in the
