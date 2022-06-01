@@ -4,6 +4,7 @@ BUG FIXES:
 
 * Made `terraform output` CLI help documentation consistent with web-based documentation [GH-29354]
 * Fixed crash on CLI autocomplete [GH-31160]
+* The "Configuration contains unknown values" error message now includes attribute paths [GH-3111]
 
 
 ## Previous Releases
