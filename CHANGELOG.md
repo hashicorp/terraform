@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * Terraform now hides invalid input values for sensitive root module variables when generating error diagnostics [GH-30552]
+* Fixed crash on CLI autocomplete [GH-31160]
 
 ## 1.2.1 (May 23, 2022)
 
