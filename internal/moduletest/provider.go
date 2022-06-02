@@ -240,8 +240,15 @@ func (p *Provider) UpgradeResourceState(req providers.UpgradeResourceStateReques
 
 // PlanResourceChange takes the current state and proposed state of a
 // resource, and returns the planned final state.
-func (p *Provider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *Provider) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	log.Print("[TRACE] moduletest.Provider: PlanResourceChange")
+
+	// this is a destroy plan,
+	if req.ProposedNewState.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
 
 	var res providers.PlanResourceChangeResponse
 	if req.TypeName != "test_assertions" { // we only have one resource type
