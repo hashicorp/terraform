@@ -422,6 +422,12 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return plan, diags.Append(err)
 	}
 
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return plan, diags
+	}
+
 	// Allow the provider to check the destroy plan, and insert any necessary
 	// private data.
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -430,6 +436,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		PriorState:       unmarkedPriorVal,
 		ProposedNewState: nullVal,
 		PriorPrivate:     currentState.Private,
+		ProviderMeta:     metaConfigVal,
 	})
 
 	// We may not have a config for all destroys, but we want to reference it in
