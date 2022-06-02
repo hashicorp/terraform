@@ -1077,3 +1077,75 @@ got:      %#v`,
 		t.Fatal("failed to configure provider during destroy plan")
 	}
 }
+
+// check that a provider can verify a planned destroy
+func TestContext2Apply_plannedDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+}`,
+	})
+
+	p := simpleMockProvider()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		if !req.ProposedNewState.IsNull() {
+			// we should only be destroying in this test
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unexpected plan with %#v", req.ProposedNewState))
+			return resp
+		}
+
+		resp.PlannedState = req.ProposedNewState
+		// we're going to verify the destroy plan by inserting private data required for destroy
+		resp.PlannedPrivate = append(resp.PlannedPrivate, []byte("planned")...)
+		return resp
+	}
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		// if the value is nil, we return that directly to correspond to a delete
+		if !req.PlannedState.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unexpected apply with %#v", req.PlannedState))
+			return resp
+		}
+
+		resp.NewState = req.PlannedState
+
+		// make sure we get our private data from the plan
+		private := string(req.PlannedPrivate)
+		if private != "planned" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing private data from plan, got %q", private))
+		}
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"ok"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		// we don't want to refresh, because that actually runs a normal plan
+		SkipRefresh: true,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
+}
