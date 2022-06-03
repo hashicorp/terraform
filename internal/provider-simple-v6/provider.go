@@ -3,6 +3,7 @@ package simple
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -41,6 +42,9 @@ func Provider() providers.Interface {
 			},
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
+			},
+			Capabilities: providers.Capabilities{
+				PlanDestroy: true,
 			},
 		},
 	}
@@ -88,7 +92,10 @@ func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (res
 	if req.ProposedNewState.IsNull() {
 		// destroy op
 		resp.PlannedState = req.ProposedNewState
-		resp.PlannedPrivate = req.PriorPrivate
+
+		// signal that this resource was properly planned for destruction,
+		// verifying that the schema capabilities with PlanDestroy took effect.
+		resp.PlannedPrivate = []byte("destroy planned")
 		return resp
 	}
 
@@ -104,6 +111,11 @@ func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (res
 
 func (s simple) ApplyResourceChange(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
 	if req.PlannedState.IsNull() {
+		// make sure this was transferred from the plan action
+		if string(req.PlannedPrivate) != "destroy planned" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("resource not planned for destroy, private data %q", req.PlannedPrivate))
+		}
+
 		resp.NewState = req.PlannedState
 		return resp
 	}

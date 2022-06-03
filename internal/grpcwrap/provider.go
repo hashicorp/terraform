@@ -59,6 +59,10 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		}
 	}
 
+	resp.Capabilities = &tfplugin5.GetProviderSchema_Capabilities{
+		PlanDestroy: p.schema.Capabilities.PlanDestroy,
+	}
+
 	// include any diagnostics from the original GetSchema call
 	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, p.schema.Diagnostics)
 
