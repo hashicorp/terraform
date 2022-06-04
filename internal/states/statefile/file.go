@@ -47,6 +47,22 @@ func New(state *states.State, lineage string, serial uint64) *File {
 	}
 }
 
+func NewFromExistingState(state *states.State, lineage string, serial uint64, terraformVersion *version.Version) *File {
+	// To make life easier on callers, we'll accept a nil state here and just
+	// allocate an empty one, which is required for this file to be successfully
+	// written out.
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return &File{
+		TerraformVersion: terraformVersion,
+		State:            state,
+		Lineage:          lineage,
+		Serial:           serial,
+	}
+}
+
 // DeepCopy is a convenience method to create a new File object whose state
 // is a deep copy of the receiver's, as implemented by states.State.DeepCopy.
 func (f *File) DeepCopy() *File {

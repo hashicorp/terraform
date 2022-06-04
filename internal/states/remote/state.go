@@ -51,7 +51,9 @@ func (s *State) StateForMigration() *statefile.File {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	return statefile.New(s.state.DeepCopy(), s.lineage, s.serial)
+	payload, _ := s.Client.Get()
+	stateFile, _ := statefile.Read(bytes.NewReader(payload.Data))
+	return statefile.NewFromExistingState(s.state.DeepCopy(), s.lineage, s.serial, stateFile.TerraformVersion)
 }
 
 // statemgr.Writer impl.

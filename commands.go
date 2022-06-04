@@ -390,6 +390,12 @@ func initCommands(
 				},
 			}, nil
 		},
+
+		"tfversion": func() (cli.Command, error) {
+			return &command.TfversionCommand{
+				Meta: meta,
+			}, nil
+		},
 	}
 
 	PrimaryCommands = []string{

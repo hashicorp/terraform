@@ -554,8 +554,10 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
 	}
 	if workspace != nil {
-		remoteTFVersion = workspace.TerraformVersion
+		println(workspace.TerraformVersion)
+		//remoteTFVersion = workspace.TerraformVersion
 	}
+	return nil, nil
 
 	if err == tfe.ErrResourceNotFound {
 		// Create a workspace
