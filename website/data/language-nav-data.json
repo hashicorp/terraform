@@ -685,10 +685,6 @@
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
           {
-            "title": "<code>defaults</code>",
-            "href": "/language/functions/defaults"
-          },
-          {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
           },
@@ -777,7 +773,6 @@
       { "title": "concat", "path": "functions/concat", "hidden": true },
       { "title": "contains", "path": "functions/contains", "hidden": true },
       { "title": "csvdecode", "path": "functions/csvdecode", "hidden": true },
-      { "title": "defaults", "path": "functions/defaults", "hidden": true },
       { "title": "dirname", "path": "functions/dirname", "hidden": true },
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },

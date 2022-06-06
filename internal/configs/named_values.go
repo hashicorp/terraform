@@ -27,6 +27,7 @@ type Variable struct {
 	// ConstraintType is used for decoding and type conversions, and may
 	// contain nested ObjectWithOptionalAttr types.
 	ConstraintType cty.Type
+	TypeDefaults   *typeexpr.Defaults
 
 	ParsingMode VariableParsingMode
 	Validations []*CheckRule
@@ -102,9 +103,10 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["type"]; exists {
-		ty, parseMode, tyDiags := decodeVariableType(attr.Expr)
+		ty, tyDefaults, parseMode, tyDiags := decodeVariableType(attr.Expr)
 		diags = append(diags, tyDiags...)
 		v.ConstraintType = ty
+		v.TypeDefaults = tyDefaults
 		v.Type = ty.WithoutOptionalAttributesDeep()
 		v.ParsingMode = parseMode
 	}
@@ -137,6 +139,11 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		// the type might not be set; we'll catch that during merge.
 		if v.ConstraintType != cty.NilType {
 			var err error
+			// If the type constraint has defaults, we must apply those
+			// defaults to the variable default value before type conversion.
+			if v.TypeDefaults != nil {
+				val = v.TypeDefaults.Apply(val)
+			}
 			val, err = convert.Convert(val, v.ConstraintType)
 			if err != nil {
 				diags = append(diags, &hcl.Diagnostic{
@@ -179,7 +186,7 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 	return v, diags
 }
 
-func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl.Diagnostics) {
+func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, VariableParsingMode, hcl.Diagnostics) {
 	if exprIsNativeQuotedString(expr) {
 		// If a user provides the pre-0.12 form of variable type argument where
 		// the string values "string", "list" and "map" are accepted, we
@@ -190,7 +197,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 		// in the normal codepath below.
 		val, diags := expr.Value(nil)
 		if diags.HasErrors() {
-			return cty.DynamicPseudoType, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
 		}
 		str := val.AsString()
 		switch str {
@@ -201,7 +208,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"string\".",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, VariableParseLiteral, diags
+			return cty.DynamicPseudoType, nil, VariableParseLiteral, diags
 		case "list":
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -209,7 +216,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"list\" and write list(string) instead to explicitly indicate that the list elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
 		case "map":
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -217,9 +224,9 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"map\" and write map(string) instead to explicitly indicate that the map elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
-			return cty.DynamicPseudoType, VariableParseHCL, diags
+			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
 		default:
-			return cty.DynamicPseudoType, VariableParseHCL, hcl.Diagnostics{{
+			return cty.DynamicPseudoType, nil, VariableParseHCL, hcl.Diagnostics{{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid legacy variable type hint",
 				Detail:   `To provide a full type expression, remove the surrounding quotes and give the type expression directly.`,
@@ -234,23 +241,23 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, VariableParsingMode, hcl
 	// elements are consistent. This is the same as list(any) or map(any).
 	switch hcl.ExprAsKeyword(expr) {
 	case "list":
-		return cty.List(cty.DynamicPseudoType), VariableParseHCL, nil
+		return cty.List(cty.DynamicPseudoType), nil, VariableParseHCL, nil
 	case "map":
-		return cty.Map(cty.DynamicPseudoType), VariableParseHCL, nil
+		return cty.Map(cty.DynamicPseudoType), nil, VariableParseHCL, nil
 	}
 
-	ty, diags := typeexpr.TypeConstraint(expr)
+	ty, typeDefaults, diags := typeexpr.TypeConstraintWithDefaults(expr)
 	if diags.HasErrors() {
-		return cty.DynamicPseudoType, VariableParseHCL, diags
+		return cty.DynamicPseudoType, nil, VariableParseHCL, diags
 	}
 
 	switch {
 	case ty.IsPrimitiveType():
 		// Primitive types use literal parsing.
-		return ty, VariableParseLiteral, diags
+		return ty, typeDefaults, VariableParseLiteral, diags
 	default:
 		// Everything else uses HCL parsing
-		return ty, VariableParseHCL, diags
+		return ty, typeDefaults, VariableParseHCL, diags
 	}
 }
 

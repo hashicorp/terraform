@@ -90,6 +90,11 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		given = defaultVal // must be set, because we checked above that the variable isn't required
 	}
 
+	// Apply defaults from the variable's type constraint to the given value
+	if cfg.TypeDefaults != nil {
+		given = cfg.TypeDefaults.Apply(given)
+	}
+
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
 		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
