@@ -137,6 +137,10 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
 
+	if resp.Diagnostics.HasErrors() {
+		return resp
+	}
+
 	if protoResp.Provider == nil {
 		resp.Diagnostics = resp.Diagnostics.Append(errors.New("missing provider schema"))
 		return resp
