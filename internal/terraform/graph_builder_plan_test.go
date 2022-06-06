@@ -34,8 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-basic"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-basic"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -76,8 +77,9 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-dynblock"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-dynblock"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -131,8 +133,9 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-attr-as-blocks"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-attr-as-blocks"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -173,6 +176,7 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -194,8 +198,9 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "plan-for-each"),
-		Plugins: plugins,
+		Config:    testModule(t, "plan-for-each"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)

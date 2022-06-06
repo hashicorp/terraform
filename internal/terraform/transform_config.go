@@ -31,6 +31,9 @@ type ConfigTransformer struct {
 
 	// Do not apply this transformer.
 	skip bool
+
+	// configuration resources that are to be imported
+	importTargets []*ImportTarget
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -89,11 +92,22 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			continue
 		}
 
+		// If any of the import targets can apply to this node's instances,
+		// filter them down to the applicable addresses.
+		var imports []*ImportTarget
+		configAddr := relAddr.InModule(path)
+		for _, i := range t.importTargets {
+			if target := i.Addr.ContainingResource().Config(); target.Equal(configAddr) {
+				imports = append(imports, i)
+			}
+		}
+
 		abstract := &NodeAbstractResource{
 			Addr: addrs.ConfigResource{
 				Resource: relAddr,
 				Module:   path,
 			},
+			importTargets: imports,
 		}
 
 		var node dag.Vertex = abstract

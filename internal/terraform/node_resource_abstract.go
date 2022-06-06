@@ -68,6 +68,9 @@ type NodeAbstractResource struct {
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
+
+	// This resource may expand into instances which need to be imported.
+	importTargets []*ImportTarget
 }
 
 var (
@@ -122,6 +125,10 @@ func (n *NodeAbstractResource) ModulePath() addrs.Module {
 // GraphNodeReferenceable
 func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
+}
+
+func (n *NodeAbstractResource) Import(addr *ImportTarget) {
+
 }
 
 // GraphNodeReferencer

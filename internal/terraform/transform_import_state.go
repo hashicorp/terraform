@@ -16,11 +16,15 @@ import (
 type ImportStateTransformer struct {
 	Targets []*ImportTarget
 	Config  *configs.Config
+	skip    bool
 }
 
 func (t *ImportStateTransformer) Transform(g *Graph) error {
-	for _, target := range t.Targets {
+	if t.skip {
+		return nil
+	}
 
+	for _, target := range t.Targets {
 		// This is only likely to happen in misconfigured tests
 		if t.Config == nil {
 			return fmt.Errorf("cannot import into an empty configuration")
