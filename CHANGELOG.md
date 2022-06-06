@@ -1,5 +1,23 @@
 ## 1.3.0 (Unreleased)
 
+UPGRADE NOTES:
+
+* Module variable type constraints now support an `optional()` modifier for object attribute types. Optional attributes may be omitted from the variable value, and will be replaced by a default value (or `null` if no default is specified). For example:
+
+    ```terraform
+    variable "with_optional_attribute" {
+      type = object({
+        a = string                # a required attribute
+        b = optional(string)      # an optional attribute
+        c = optional(number, 127) # an optional attribute with default value
+      })
+    }
+    ```
+
+   Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
+
+    This functionality was introduced as an experiment in Terraform 0.14. This release removes the experimental `defaults` function. [GH-31154]
+
 BUG FIXES:
 
 * Made `terraform output` CLI help documentation consistent with web-based documentation [GH-29354]
