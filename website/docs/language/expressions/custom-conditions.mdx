@@ -341,7 +341,7 @@ The selected AMI must be tagged with the Component value "nomad-server".
 ```
 
 The `error_message` argument can be any expression that evaluates to a string.
-This includes literal strings, heredocs, and template expressions. Multi-line
+This includes literal strings, heredocs, and template expressions. You can use the [`format` function](/language/functions/format) to convert `null` and items from a `list` or `map` into a formatted string. Multi-line
 error messages are supported, and lines with leading whitespace will not be
 word wrapped.
 
