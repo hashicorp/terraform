@@ -1,5 +1,10 @@
 ## 1.2.3 (Unreleased)
 
+
+BUG FIXES:
+
+* Missing check for error diagnostics in GetProviderSchema could result in panic [GH-31184]
+
 ## 1.2.2 (June 01, 2022)
 
 ENHANCEMENTS:
