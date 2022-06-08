@@ -121,10 +121,11 @@ to mark the reference as for a data resource.
 * `path.module` is the filesystem path of the module where the expression
   is placed.
 * `path.root` is the filesystem path of the root module of the configuration.
-* `path.cwd` is the filesystem path of the current working directory. In
-  normal use of Terraform this is the same as `path.root`, but some advanced
-  uses of Terraform run it from a directory other than the root module
-  directory, causing these paths to be different.
+* `path.cwd` is the filesystem path of the current working directory. This is
+  an absolute path which includes details about the filesystem structure,
+  and is useful in some advanced cases where Terraform is run from a directory
+  other than the root module directory. We recommend using `path.root` or
+  `path.module` over `path.cwd` where possible.
 * `terraform.workspace` is the name of the currently selected
   [workspace](/language/state/workspaces).
 
