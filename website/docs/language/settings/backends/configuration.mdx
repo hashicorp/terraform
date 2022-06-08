@@ -43,11 +43,11 @@ There are some important limitations on backend configuration:
 - A configuration can only provide one backend block.
 - A backend block cannot refer to named values (like input variables, locals, or data source attributes).
 
-### Managing Credentials
+### Credentials and Sensitive Data
 
 Backends store state in a remote service, which allows multiple people to access it. Accessing remote state generally requires access credentials, since state data contains extremely sensitive information.
 
-!> **Warning:**  We recommend using environment variables to supply sensitive credentials and other data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both state and plan files. This can leak sensitive credentials.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both state and plan files. This can leak sensitive credentials.
 
 Terraform writes the backend configuration in plain text in two separate files.
 - The `.terraform/terraform.tfstate` file contains the backend configuration for the current working directory.
